@@ -1,0 +1,29 @@
+{
+  "dashboard": "persona-data-health",
+  "description": "Track Frische, Provenance und Pipeline-Fehler für Personas.",
+  "metrics": [
+    {
+      "name": "persona_internal_share",
+      "type": "gauge",
+      "target": 0.7,
+      "explanation": "Anteil intern/blended Personas in den letzten 7 Tagen."
+    },
+    {
+      "name": "persona_refresh_age_days",
+      "type": "histogram",
+      "buckets": [1, 7, 30, 60, 90],
+      "explanation": "Alter der neuesten Batch pro Quelle."
+    },
+    {
+      "name": "persona_pipeline_failures",
+      "type": "counter",
+      "explanation": "Fehlerhafte Läufe in ingest/transform/enrich Pipelines."
+    },
+    {
+      "name": "persona_review_backlog",
+      "type": "gauge",
+      "explanation": "Offene Items aus `knowledge/persona_review_queue.jsonl`."
+    }
+  ]
+}
+

@@ -1,0 +1,39 @@
+source:
+  id: persona_src_tianyilab
+  version: 2025-10-15
+  dataset_ref: hf://Tianyi-Lab/Personas
+
+defaults:
+  provenance: external
+  ux_metrics:
+    satisfaction: 0.60
+    effort: 0.40
+    adoption: 0.55
+
+field_map:
+  persona_id: "concat(source.id, ':', $record.persona_id)"
+  segment: "$record.profile.segment"
+  demographics.age_range: "$record.profile.age_range"
+  demographics.location: "$record.profile.region"
+  demographics.occupation: "$record.profile.profession"
+  goals: "$record.goals"
+  motivations: "$record.motivations"
+  pain_points: "$record.pain_points"
+  behaviors: "$record.behaviors"
+  jobs_to_be_done: "$record.jobs"
+  ux_metrics.satisfaction: "normalize_score($record.metrics.satisfaction)"
+  ux_metrics.effort: "normalize_score($record.metrics.effort)"
+  ux_metrics.adoption: "normalize_score($record.metrics.adoption)"
+  preferences.tools: "$record.preferences.tools"
+  preferences.communication: "$record.preferences.communication"
+  metadata.story_card: "$record.story_card"
+  metadata.validation_status: "$record.validation_status"
+  last_seen_at: "$record.updated_at"
+
+transformers:
+  normalize_score:
+    module: pipelines.persona_transform
+    func: normalize_score
+    params:
+      source_range: [0, 100]
+

@@ -1,0 +1,56 @@
+Metadata-Version: 2.4
+Name: persona-api
+Version: 0.1.0
+Summary: FastAPI backend for Dynamic Persona Chat
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: fastapi==0.121.2
+Requires-Dist: uvicorn[standard]==0.38.0
+Requires-Dist: celery[redis]==5.5.3
+Requires-Dist: redis==5.2.1
+Requires-Dist: qdrant-client==1.16.0
+Requires-Dist: neo4j==6.0.3
+Requires-Dist: psycopg[binary]==3.2.12
+Requires-Dist: SQLAlchemy==2.0.44
+Requires-Dist: alembic==1.17.2
+Requires-Dist: python-multipart==0.0.20
+Requires-Dist: pydantic-settings==2.12.0
+Requires-Dist: boto3==1.40.75
+Requires-Dist: minio==7.2.18
+Requires-Dist: anthropic==0.73.0
+Requires-Dist: httpx==0.28.1
+Requires-Dist: structlog==25.5.0
+Requires-Dist: logfire==4.14.2
+Requires-Dist: orjson==3.11.4
+Requires-Dist: FlagEmbedding==1.3.5
+Requires-Dist: faster-whisper==1.2.1
+Requires-Dist: unstructured==0.18.20
+Requires-Dist: pytesseract==0.3.13
+Requires-Dist: pillow==11.0.0
+Requires-Dist: pandas==2.2.3
+Requires-Dist: numpy==2.1.3
+Requires-Dist: tenacity==9.1.2
+Requires-Dist: opentelemetry-sdk==1.38.0
+Requires-Dist: opentelemetry-exporter-otlp==1.38.0
+Requires-Dist: python-slugify==8.0.4
+
+# Persona API
+
+FastAPI + Celery backend powering the Dynamic Persona Chat experience. It ingests user research, enriches content, writes to Qdrant/Neo4j, discovers personas during chat, and streams persona responses with citations.
+
+## Key services
+
+- **Document ingestion** – async pipeline orchestrated via Celery + Redis + PostgreSQL metadata.
+- **Persona discovery** – retrieval + graph fan-out + Claude Sonnet prompts.
+- **Realtime chat** – FastAPI WebSocket gateway streaming `@udg-glass/types` events.
+- **Observability** – OpenTelemetry (Tempo) + Logfire structured logs.
+
+## Commands
+
+```bash
+uv sync            # install
+uv run fastapi dev app/main.py --port 8000
+uv run celery -A worker.ingest worker -l INFO
+uv run pytest
+```
+

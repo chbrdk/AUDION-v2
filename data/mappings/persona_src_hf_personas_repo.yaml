@@ -1,0 +1,24 @@
+source:
+  id: persona_src_hf_personas_repo
+  version: 2025-08-12
+  dataset_ref: github://huggingface/personas
+
+defaults:
+  provenance: external
+  goals: ["Understand dialog behavior"]
+  jobs_to_be_done: ["Train conversational agents"]
+
+field_map:
+  persona_id: "concat(source.id, ':', $record.persona_id)"
+  segment: "$record.persona_segment"
+  motivations: "$record.persona_traits"
+  behaviors: "$record.sample_dialog.behaviors"
+  pain_points: "$record.persona_pain_points"
+  jobs_to_be_done: "$record.persona_jobs"
+  goals: "$record.persona_goals"
+  metadata.corpus: "$record.corpus_name"
+  metadata.dialog_sample: "$record.sample_dialog.text"
+  last_seen_at: "$record.last_updated"
+
+transformers: {}
+

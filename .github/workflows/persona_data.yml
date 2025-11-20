@@ -1,0 +1,38 @@
+name: Persona Data Validation
+
+on:
+  push:
+    paths:
+      - "knowledge/**"
+      - "pipelines/**"
+      - "services/**"
+      - "data/mappings/**"
+      - "tests/**"
+      - ".github/workflows/persona_data.yml"
+  pull_request:
+    paths:
+      - "knowledge/**"
+      - "pipelines/**"
+      - "services/**"
+      - "data/mappings/**"
+      - "tests/**"
+
+jobs:
+  persona-ci:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: .
+      PERSONA_WORKSPACE_ROOT: ${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install persona deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pyyaml huggingface_hub
+      - name: Run persona tests
+        run: |
+          pytest tests/schema tests/pipelines tests/services -q
+

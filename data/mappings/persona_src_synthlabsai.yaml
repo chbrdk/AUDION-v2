@@ -1,0 +1,47 @@
+source:
+  id: persona_src_synthlabsai
+  version: 2025-11-07
+  dataset_ref: hf://SynthLabsAI/PERSONA
+
+defaults:
+  provenance: external
+  ux_metrics:
+    satisfaction: 0.55
+    effort: 0.45
+    adoption: 0.50
+
+field_map:
+  persona_id: "concat(source.id, ':', $record.profile_id)"
+  segment: "$record.segment"
+  demographics.age_range: "$record.demographic.age_range"
+  demographics.gender: "$record.demographic.gender"
+  demographics.location: "$record.demographic.locale"
+  demographics.occupation: "$record.demographic.role"
+  goals: "$record.goals"
+  motivations: "$record.motivations"
+  pain_points: "$record.pain_points"
+  behaviors: "$record.behaviors"
+  jobs_to_be_done: "$record.jobs_to_be_done"
+  preferences.channels: "$record.preferences.channels"
+  preferences.tools: "$record.preferences.tools"
+  ux_metrics.satisfaction: "normalize_score($record.sentiment.happiness)"
+  ux_metrics.effort: "invert_score($record.sentiment.effort)"
+  ux_metrics.adoption: "normalize_score($record.sentiment.loyalty)"
+  embeddings.text_model: "$record.embedding.model"
+  embeddings.vector: "$record.embedding.vector"
+  embeddings.dim: "$record.embedding.dim"
+  last_seen_at: "$record.updated_at"
+  metadata.raw_cluster: "$record.cluster_id"
+
+transformers:
+  normalize_score:
+    module: pipelines.persona_transform
+    func: normalize_score
+    params:
+      source_range: [1, 5]
+  invert_score:
+    module: pipelines.persona_transform
+    func: invert_score
+    params:
+      source_range: [1, 5]
+

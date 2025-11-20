@@ -1,0 +1,59 @@
+{
+  "persona_id": "persona_src_internal_research:2025-11-a1",
+  "source_id": "persona_src_internal_research",
+  "provenance": "internal",
+  "segment": "Werkstattleiterin",
+  "demographics": {
+    "age_range": "35-44",
+    "gender": "female",
+    "location": "DE-BW",
+    "occupation": "Serviceleiterin"
+  },
+  "goals": [
+    "Reparaturaufträge pro Tag steigern",
+    "Ausfallzeiten minimieren"
+  ],
+  "motivations": [
+    "Hohe Kundenzufriedenheit",
+    "Team-Effizienz"
+  ],
+  "pain_points": [
+    "Intransparente Lieferketten",
+    "Unklare Systembenachrichtigungen"
+  ],
+  "behaviors": [
+    "Prüft Dashboards morgens und mittags",
+    "Kommuniziert bevorzugt per Chat"
+  ],
+  "jobs_to_be_done": [
+    "Planbare Wartungsläufe erstellen",
+    "UX-Feedback ans Produktteam leiten"
+  ],
+  "ux_metrics": {
+    "satisfaction": 0.82,
+    "effort": 0.35,
+    "adoption": 0.76
+  },
+  "preferences": {
+    "channels": [
+      "Desktop",
+      "Mobile"
+    ],
+    "communication": [
+      "Chat",
+      "E-Mail"
+    ]
+  },
+  "embeddings": {
+    "text_model": "text-embed-3-large",
+    "vector": [0.12, 0.98, 0.33],
+    "dim": 3
+  },
+  "last_seen_at": "2025-11-18T09:30:00Z",
+  "created_at": "2025-11-18T09:00:00Z",
+  "metadata": {
+    "research_session_id": "rs-2025-11-18-01",
+    "confidence": "high"
+  }
+}
+

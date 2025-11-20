@@ -1,0 +1,29 @@
+{
+  "name": "dynamic-persona-chat",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "npm@10.9.2",
+  "workspaces": [
+    "apps/web",
+    "packages/types"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace apps/web",
+    "build:web": "npm run build --workspace apps/web",
+    "lint:web": "npm run lint --workspace apps/web",
+    "typecheck:web": "npm run typecheck --workspace apps/web",
+    "check": "npm run lint:web && npm run typecheck:web && biome check .",
+    "biome": "biome",
+    "format": "biome format ."
+  },
+  "devDependencies": {
+    "@rushstack/eslint-patch": "1.15.0",
+    "@typescript-eslint/eslint-plugin": "8.47.0",
+    "@typescript-eslint/parser": "8.47.0",
+    "@biomejs/biome": "2.3.6",
+    "globals": "16.5.0",
+    "eslint": "9.39.1",
+    "typescript": "5.9.3"
+  }
+}
+

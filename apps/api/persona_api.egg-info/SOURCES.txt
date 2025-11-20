@@ -1,0 +1,14 @@
+README.md
+pyproject.toml
+app/__init__.py
+app/celery_app.py
+app/db.py
+app/main.py
+persona_api.egg-info/PKG-INFO
+persona_api.egg-info/SOURCES.txt
+persona_api.egg-info/dependency_links.txt
+persona_api.egg-info/requires.txt
+persona_api.egg-info/top_level.txt
+tests/test_app_starts.py
+worker/__init__.py
+worker/ingest.py

@@ -1,0 +1,142 @@
+from __future__ import annotations
+
+import base64
+from typing import Optional
+
+import httpx
+import structlog
+from openai import OpenAI
+from udg_glass_proto import PersonaProfile
+
+from ..core.config import get_settings
+
+logger = structlog.get_logger(__name__)
+settings = get_settings()
+
+
+class PersonaImageService:
+    """Service for generating persona portrait images using OpenAI image-1."""
+
+    def __init__(self) -> None:
+        self._client = OpenAI(api_key=settings.openai_api_key) if settings.openai_api_key else None
+        if not self._client:
+            logger.warning("persona_image.openai_api_key_not_set")
+
+    def _build_portrait_prompt(self, profile: PersonaProfile) -> str:
+        """Build a detailed prompt for realistic portrait generation."""
+        # Extract demographic information from bio and segment
+        name = profile.name
+        segment = profile.segment
+        bio = profile.bio or ""
+        
+        # Try to extract age and demographics from bio
+        age_hint = ""
+        demographics_hint = ""
+        profession_hint = segment
+        
+        # Extract traits for personality description
+        traits_desc = ""
+        if profile.traits:
+            trait_list = []
+            for trait_name, score in profile.traits.items():
+                if score > 0.6:
+                    trait_list.append(trait_name)
+            if trait_list:
+                traits_desc = f" They appear {', '.join(trait_list[:3])}."
+        
+        # Build comprehensive prompt
+        prompt = (
+            f"A professional portrait photograph of {name}, "
+            f"a {profession_hint}.{traits_desc} "
+            f"Professional business portrait, studio lighting, "
+            f"neutral gray background, high quality, realistic, "
+            f"head and shoulders, looking directly at camera, natural expression, "
+            f"professional business attire."
+        )
+        
+        return prompt
+
+    def generate_portrait(
+        self, profile: PersonaProfile, save_to_storage: bool = True
+    ) -> Optional[str]:
+        """
+        Generate a portrait image for a persona.
+        
+        Args:
+            profile: The persona profile to generate an image for
+            save_to_storage: Whether to download and save the image to storage
+            
+        Returns:
+            URL to the generated image, or None if generation failed
+        """
+        if not self._client:
+            logger.error("persona_image.api_key_missing")
+            return None
+
+        try:
+            prompt = self._build_portrait_prompt(profile)
+            logger.info("persona_image.generating", persona_id=profile.id, prompt_preview=prompt[:100])
+
+            # Call OpenAI Image API (gpt-image-1-mini model)
+            response = self._client.images.generate(
+                model="gpt-image-1-mini",
+                prompt=prompt,
+                size="1024x1024",
+                quality="high",
+                n=1,
+            )
+
+            # OpenAI returns a URL to the generated image
+            # Check response structure - it might be response.data[0].url or response.data[0].b64_json
+            logger.info("persona_image.response_structure", response_type=type(response).__name__, has_data=hasattr(response, 'data'), data_len=len(response.data) if hasattr(response, 'data') and response.data else 0)
+            
+            if not response.data or len(response.data) == 0:
+                logger.error("persona_image.no_image_in_response", persona_id=profile.id, response=str(response)[:200])
+                return None
+            
+            image_data = response.data[0]
+            image_url = getattr(image_data, 'url', None) or getattr(image_data, 'b64_json', None)
+            
+            if not image_url:
+                logger.error("persona_image.no_image_in_response", persona_id=profile.id, image_data_attrs=dir(image_data))
+                return None
+
+            # If save_to_storage is True, download and save the image
+            if save_to_storage:
+                try:
+                    # Download image from URL
+                    image_response = httpx.get(image_url, timeout=30.0)
+                    image_bytes = image_response.content
+                    
+                    # Save to local storage or cloud storage
+                    # For now, we'll return a data URL or save to a public directory
+                    # TODO: Implement proper storage (S3, local filesystem, etc.)
+                    saved_url = self._save_image(profile.id, image_bytes)
+                    logger.info("persona_image.saved", persona_id=profile.id, url=image_url[:50])
+                    return saved_url
+                except Exception as e:
+                    logger.error("persona_image.save_failed", error=str(e), persona_id=profile.id)
+                    # Return original URL as fallback
+                    return image_url
+            else:
+                # Return URL directly
+                return image_url
+
+        except Exception as e:
+            logger.error("persona_image.generation_failed", error=str(e), persona_id=profile.id, exc_info=True)
+            return None
+
+    def _save_image(self, persona_id: str, image_bytes: bytes) -> str:
+        """
+        Save image to storage and return URL.
+        
+        For now, returns a data URL. In production, this should:
+        - Save to S3 or similar cloud storage
+        - Or save to a public directory and serve via web server
+        - Return a permanent URL
+        """
+        # For now, return data URL as base64 encoded image
+        # This works but is not ideal for production
+        # TODO: Implement proper storage (S3, local filesystem with public serving, etc.)
+        image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+        return f"data:image/png;base64,{image_base64}"

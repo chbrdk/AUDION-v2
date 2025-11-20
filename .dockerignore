@@ -1,0 +1,9 @@
+.venv
+node_modules
+apps/api/.venv
+apps/web/.next
+packages/types/dist
+__pycache__
+*.pyc
+.DS_Store
+

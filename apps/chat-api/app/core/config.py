@@ -1,0 +1,36 @@
+from __future__ import annotations
+
+from functools import lru_cache
+from typing import Literal
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    app_env: Literal["development", "staging", "production"] = "development"
+    api_host: str = "0.0.0.0"
+    api_port: int = 8001
+
+    database_url: str
+    qdrant_url: str
+    neo4j_uri: str
+    neo4j_user: str
+    neo4j_password: str
+    anthropic_api_key: str
+    indexing_api_url: str = "http://indexing-api:8000"
+    elevenlabs_api_key: str | None = None
+    elevenlabs_voice_id: str | None = None
+    elevenlabs_model_id: str = "eleven_monolingual_v1"
+    elevenlabs_base_url: str = "https://api.elevenlabs.io"
+
+    otel_exporter_otlp_endpoint: str | None = None
+    logfire_token: str | None = None
+    openai_api_key: str | None = None
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()  # type: ignore[call-arg]
+

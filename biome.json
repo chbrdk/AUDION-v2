@@ -1,0 +1,27 @@
+{
+  "$schema": "https://biomejs.dev/schemas/1.9.3/schema.json",
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2
+  },
+  "organizeImports": {
+    "enabled": true
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "style": {
+        "useBlockStatements": "error"
+      }
+    }
+  },
+  "files": {
+    "ignore": [
+      "node_modules",
+      "apps/web/.next",
+      "**/dist"
+    ]
+  }
+}
+

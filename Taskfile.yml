@@ -1,0 +1,36 @@
+version: '3'
+
+env:
+  PYTHONPATH: '{{.ROOT_DIR}}/apps/api'
+
+tasks:
+  install:
+    desc: Install JS and Python deps
+    cmds:
+      - npm install
+      - cd apps/api && uv sync --python 3.12
+      - cd apps/api && uv pip install -e ../../packages/proto
+
+  dev:web:
+    desc: Run Next dev server
+    cmds:
+      - npm run dev:web
+
+  dev:api:
+    desc: Run FastAPI with autoreload
+    cmds:
+      - cd apps/api && uv run fastapi dev app/main.py --port 8000
+
+  lint:
+    desc: Run all linters
+    cmds:
+      - npm run check
+      - cd apps/api && uv run ruff check .
+      - cd apps/api && uv run mypy .
+
+  test:
+    desc: Run frontend and backend tests
+    cmds:
+      - npm test --workspaces
+      - cd apps/api && uv run pytest
+

@@ -1,0 +1,37 @@
+source:
+  id: persona_src_neu_hai_uxagent
+  version: 2025-09-30
+  dataset_ref: hf://NEU-HAI/UXAgent
+
+defaults:
+  provenance: external
+  goals: ["Improve UX decision support"]
+  jobs_to_be_done: ["Capture UX feedback for analytics"]
+
+field_map:
+  persona_id: "concat(source.id, ':', $record.agent_id)"
+  segment: "$record.context.role"
+  demographics.location: "$record.context.market"
+  goals: "$record.context.goals"
+  pain_points: "$record.feedback.issues"
+  behaviors: "$record.context.behaviors"
+  jobs_to_be_done: "$record.context.jobs_to_be_done"
+  motivations: "$record.context.motivations"
+  ux_metrics.satisfaction: "sentiment_to_score($record.feedback.sentiment)"
+  preferences.channels: "$record.context.channels"
+  metadata.feedback_snippet: "$record.feedback.summary"
+  metadata.topic: "$record.feedback.topic"
+  last_seen_at: "$record.timestamp"
+
+transformers:
+  sentiment_to_score:
+    module: pipelines.persona_transform
+    func: sentiment_to_score
+    params:
+      mapping:
+        very_positive: 0.9
+        positive: 0.75
+        neutral: 0.5
+        negative: 0.25
+        very_negative: 0.1
+

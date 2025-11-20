@@ -1,0 +1,118 @@
+:root {
+  color-scheme: light;
+  font-family: var(--font-noto-sans-jp), 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', system-ui,
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: var(--color-neutral);
+  color: #0f172a;
+  --color-primary-white: #fff;
+  --color-secondary-dx-yellow: #fef14d;
+  --color-secondary-dx-yellow-tint: #f3f0c8;
+  --color-secondary-dx-pink: #f256b6;
+  --color-secondary-dx-pink-tint: #f3d9e3;
+  --color-secondary-dx-pink-on-light: #d5108a;
+  --color-secondary-dx-orange: #ff6a3b;
+  --color-secondary-dx-orange-overlay-20: rgba(255, 106, 59, 0.2);
+  --color-secondary-dx-orange-tint: #f8d5cb;
+  --color-secondary-dx-purple: #b638ff;
+  --color-secondary-dx-green: #00ca55;
+  --color-secondary-dx-green-tint: #dff1e1;
+  --color-secondary-dx-grey-light: #d4d2d2;
+  --color-secondary-dx-grey-light-tint: rgba(212, 210, 210, 0.5);
+  --color-neutral: #f8f6f0;
+  --audion-light-border-color: #0f172a;
+  --audion-light-html-background-color: #0f172a;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  background-color: var(--color-neutral);
+  color: #ffffff;
+  --color-primary-white: #fff;
+  --color-secondary-dx-yellow: #fef14d;
+  --color-secondary-dx-yellow-tint: rgba(254, 241, 77, 0.2);
+  --color-secondary-dx-pink: #f256b6;
+  --color-secondary-dx-pink-tint: rgba(242, 86, 182, 0.2);
+  --color-secondary-dx-pink-on-light: #ff6bb8;
+  --color-secondary-dx-orange: #ff6a3b;
+  --color-secondary-dx-orange-overlay-20: rgba(255, 106, 59, 0.3);
+  --color-secondary-dx-orange-tint: rgba(255, 106, 59, 0.2);
+  --color-secondary-dx-purple: #b638ff;
+  --color-secondary-dx-green: #00ca55;
+  --color-secondary-dx-green-tint: rgba(0, 202, 85, 0.2);
+  --color-secondary-dx-grey-light: #666666;
+  --color-secondary-dx-grey-light-tint: rgba(102, 102, 102, 0.3);
+  --color-neutral: #0f0f0f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  background: var(--audion-light-html-background-color, #0f172a) !important;
+  background-color: var(--audion-light-html-background-color, #0f172a);
+  transition: background-color 0.3s ease;
+}
+
+[data-theme="dark"] html {
+  background-color: #ffffff;
+}
+
+body {
+  margin: 0;
+  height: 100%;
+  min-height: calc(100vh - 20px);
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-noto-sans-jp), 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', system-ui,
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: var(--color-neutral);
+  background-image:
+    linear-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.04) 1px, transparent 1px);
+  background-size: 20px 20px;
+  background-attachment: fixed;
+  color: #0f172a;
+  border: 10px solid var(--audion-light-border-color, #0f172a);
+  border-radius: 40px;
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+[data-theme="dark"] body {
+  background-color: #0f0f0f;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  color: #ffffff;
+  border: 10px solid #ffffff;
+  border-radius: 40px;
+}
+
+button {
+  font: inherit;
+}
+
+main {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined', sans-serif;
+  font-weight: normal;
+  font-style: normal;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+

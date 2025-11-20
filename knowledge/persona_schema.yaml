@@ -1,0 +1,105 @@
+# Persona Schema v1.0 (2025-11-20)
+# Alle Felder ASCII, snake_case. Änderungen bitte versionieren.
+
+meta:
+  version: 1.0.0
+  updated_at: 2025-11-20
+  owner: ux-data-guild
+  description: >
+    Kanonisches Schema für interne und externe UX-Personas.
+    Dient als Grundlage für Ingestion, Gewichtung und Retrieval.
+  required_docs:
+    - knowledge/persona_sources.md
+    - knowledge/persona_source_audits/
+
+fields:
+  persona_id:
+    type: string
+    required: true
+    description: Globale UUID oder stabile Quelle-ID (`source:id`).
+  source_id:
+    type: string
+    required: true
+    description: Referenz auf Eintrag in `knowledge/persona_sources.md`.
+  provenance:
+    type: enum
+    required: true
+    allowed_values: [internal, external, blended]
+    description: Herkunft, steuert Gewichtung.
+  segment:
+    type: string
+    required: true
+    description: Oberkategorie (z.B. „KMU-Eigner“, „Werkstattleiterin“).
+  demographics:
+    type: object
+    required: false
+    schema:
+      age_range: string
+      gender: string
+      location: string
+      occupation: string
+  goals:
+    type: list
+    required: true
+    items: string
+  motivations:
+    type: list
+    required: false
+    items: string
+  pain_points:
+    type: list
+    required: false
+    items: string
+  behaviors:
+    type: list
+    required: false
+    items: string
+  jobs_to_be_done:
+    type: list
+    required: true
+    items: string
+  ux_metrics:
+    type: object
+    required: false
+    schema:
+      satisfaction: number
+      effort: number
+      adoption: number
+    description: Skala 0–1 oder 0–100; siehe Mapping-Regeln.
+  preferences:
+    type: object
+    required: false
+    description: Freitext oder strukturierte Präferenzen (Kanäle, Features).
+  embeddings:
+    type: object
+    required: false
+    schema:
+      text_model: string
+      vector: list
+      dim: integer
+  last_seen_at:
+    type: datetime
+    required: false
+    description: Zuletzt aktualisierte Evidenz.
+  created_at:
+    type: datetime
+    required: true
+    description: Zeitstempel des Imports.
+  metadata:
+    type: object
+    required: false
+    description: "Quelle-spezifische Attribute; muss flach (key: value) bleiben."
+
+validation:
+  - rule: goals >= 1 AND jobs_to_be_done >= 1
+  - rule: satisfaction, effort, adoption ∈ [0,1] nach Normalisierung
+  - rule: embeddings.vector length == embeddings.dim (falls vorhanden)
+  - rule: provenance == 'internal' ⇒ source_id LIKE 'persona_src_internal_%'
+
+testing:
+  contract_tests:
+    - name: schema_contract
+      path: tests/schema/test_persona_contract.py
+  fixtures:
+    - data/fixtures/persona_schema_sample.json
+
