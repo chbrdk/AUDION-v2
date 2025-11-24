@@ -25,3 +25,9 @@ Defined in `apps/web/styles/globals.css` under `:root` for reuse across componen
 - `--color-secondary-dx-grey-light-tint: rgba(212, 210, 210, 0.5)`
 - `--color-neutral: #f8f6f0`
 
+## Persona Admin API Helpers
+- Server routes under `apps/web/app/api/persona-admin/**` must reuse the shared helper at `apps/web/app/api/_lib/persona.ts`.
+- `forwardPersonaBackend()` handles caching headers + internal/public URL switching via `getPersonaBackendBase`; do not reimplement fetch forwarding inside individual route files.
+- `resolvePersonaParams()` accepts `params` as object or promise (Next.js dynamic routes) and normalizes them; destructure from it instead of accessing `context.params` directly.
+- When exposing new Persona backend endpoints, add thin wrappers under `app/api/persona-admin/...` that call `forwardPersonaBackend("/personas/:id/<path>")` so TypeScript + env wiring stays centralized.
+

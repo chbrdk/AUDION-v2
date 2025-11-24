@@ -4,7 +4,7 @@ from datetime import datetime
 from uuid import uuid4
 
 from sqlalchemy import JSON, Column, DateTime, Float, ForeignKey, String, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
 
 from ..db import Base
@@ -29,7 +29,7 @@ class Persona(Base):
     segment = Column(String(128), nullable=False)
     headline = Column(String(256), nullable=False)
     profile = Column(JSON, nullable=False)
-    profile_card = Column(JSON, nullable=True)
+    profile_card = Column(JSONB, nullable=True)
     confidence = Column(Float, nullable=False)
     version = Column(String(32), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

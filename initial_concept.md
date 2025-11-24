@@ -23,7 +23,24 @@ Hintergrund-Processing (2-5 Minuten):
 Documents sind durchsuchbar
 ```
 
-### 2. Dynamic Persona Discovery (During Chat)
+### 2. Target Groups & Persona Management
+```
+Target Groups sind Container für verwandte Personas:
+  - Knowledge liegt auf Target Group Ebene (gemeinsam für alle Personas)
+  - Mehrere Persona-Varianten pro Target Group möglich
+  - Zufällige Persona-Generierung basierend auf Target Group Knowledge
+
+Beispiel:
+  Target Group: "Enterprise Buyers"
+    - Knowledge: Gemeinsame Research-Daten, Pain Points, Goals
+    - Personas:
+      * Erik (skeptisch, CFO)
+      * Thomas (technikaffin, CTO)
+      * Claudia (business-fokussiert, CEO)
+    - Alle Personas greifen auf dasselbe Target Group Knowledge zu
+```
+
+### 2a. Dynamic Persona Discovery (During Chat) - Optional
 ```
 User startet Chat (kein Persona ausgewählt)
     ↓
@@ -33,8 +50,8 @@ System analysiert automatisch:
   1. Embed Query → Search Vector DB
   2. Retrieve relevante Chunks (Top 10-20)
   3. Graph Query: Finde erwähnte Personen + deren Attributes
-  4. LLM Call (Claude): "Identify distinct personas in these excerpts"
-     → Output: 2-3 Persona-Segmente erkannt
+  4. LLM Call (Claude): "Identify distinct target groups/personas in these excerpts"
+     → Output: 2-3 Target Group Segmente erkannt
     ↓
 System antwortet:
 "Ich sehe 3 verschiedene Perspektiven in deiner Research:
@@ -47,9 +64,10 @@ System antwortet:
 User wählt: "Enterprise Buyer"
     ↓
 System generiert Persona LIVE (30-60 Sekunden):
+  - Hole Target Group Knowledge
   - LLM erstellt vollständiges Profil aus relevanten Chunks
   - Persona-Name: "Erik" (generated)
-  - System Prompt engineered
+  - System Prompt engineered mit Target Group Knowledge
   - Persona ist ready
     ↓
 Chat continues als "Erik"
@@ -61,9 +79,10 @@ User: "Erik, was hältst du von unserem API-First Ansatz?"
     ↓
 Retrieval Agent:
   - Embed Question
-  - Search Vector DB (filtered by persona segment)
+  - Search Vector DB (filtered by target_group_id, falls vorhanden)
+  - Fallback: filtered by persona_segment (backward compatibility)
   - Search Graph DB (Erik's connected entities: pain points, goals)
-  - Retrieve Top 5 most relevant chunks
+  - Retrieve Top 5 most relevant chunks aus Target Group Knowledge
     ↓
 Persona Agent:
   - Build Prompt:

@@ -17,5 +17,9 @@ celery_app.conf.update(
         "worker.ingest.ingest_document": {"queue": "ingestion"},
     },
     task_track_started=True,
+    include=["worker.ingest"],  # Auto-import tasks from worker.ingest
 )
+
+# Import event handlers to register signal handlers
+from worker import events  # noqa: F401, E402
 

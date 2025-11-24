@@ -1,0 +1,88 @@
+/* Admin Layout Styles */
+
+.udg-glass-admin-header-bar {
+  background: transparent;
+  border-bottom: 1px solid var(--color-secondary-dx-purple);
+}
+
+[data-theme="dark"] .udg-glass-admin-header-bar {
+  border-bottom-color: var(--color-secondary-dx-purple);
+}
+
+.udg-glass-admin-nav {
+  background: transparent;
+  border-right: 1px solid var(--color-secondary-dx-purple);
+}
+
+[data-theme="dark"] .udg-glass-admin-nav {
+  border-right-color: var(--color-secondary-dx-purple);
+}
+
+.udg-glass-admin-nav-item {
+  transition: all 0.2s ease;
+}
+
+.udg-glass-admin-nav-item.--active {
+  background-color: rgba(182, 56, 255, 0.1);
+  color: var(--color-secondary-dx-purple);
+  border: 1px solid var(--color-secondary-dx-purple) !important;
+}
+
+[data-theme="dark"] .udg-glass-admin-nav-item.--active {
+  background-color: rgba(182, 56, 255, 0.15);
+}
+
+.udg-glass-admin-nav-item:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] .udg-glass-admin-nav-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.udg-glass-admin-content {
+  background: transparent;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+/* Mobile adjustments */
+@media (max-width: 959px) {
+  .udg-glass-admin-nav {
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  }
+
+  [data-theme="dark"] .udg-glass-admin-nav {
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* Desktop adjustments */
+@media (min-width: 960px) {
+  .udg-glass-admin-nav {
+    position: relative !important;
+    transform: none !important;
+    z-index: auto !important;
+  }
+}
+
+/* Compact Button Styles */
+.MuiButton-root.MuiButton-outlinedSizeSmall,
+.MuiButton-root.MuiButton-containedSizeSmall {
+  padding: 0.375rem 0.75rem !important;
+  font-size: 0.8125rem !important;
+  min-height: 28px !important;
+  height: 28px !important;
+  line-height: 1 !important;
+  text-transform: none !important;
+}
+
+.MuiButton-root.MuiButton-containedSizeSmall {
+  font-size: 0.875rem !important;
+  min-height: 32px !important;
+  height: 32px !important;
+  padding: 0.5rem 1rem !important;
+}
+
+

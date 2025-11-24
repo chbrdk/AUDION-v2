@@ -1,0 +1,1055 @@
+from __future__ import annotations
+
+from pathlib import Path
+from typing import List
+from uuid import UUID, uuid4
+
+import structlog
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from sqlalchemy.orm import Session
+
+from ..db import get_session
+from ..models import Document, Persona, ProcessingJob, TargetGroup, TargetGroupKnowledgeEntry
+from worker.ingest import enqueue_ingestion
+from ..schemas import (
+    PersonaDocument,
+    PersonaKnowledgeEntry as PersonaKnowledgeEntrySchema,
+    PersonaKnowledgeUpsertRequest as TargetGroupKnowledgeUpsertRequest,
+    PersonaListResponse,
+    PersonaResponse,
+    TargetGroupCreateRequest,
+    TargetGroupListResponse,
+    TargetGroupPersonaGenerateRequest,
+    TargetGroupResponse,
+    TargetGroupUpdateRequest,
+    KnowledgeChunk,
+    KnowledgeCluster,
+    ClusterResult,
+    SimilarChunk,
+)
+from ..services.persona_generation import PersonaGenerationService
+from ..services.knowledge_ingestion import KnowledgeIngestionService
+from ..services.persona_store import PersonaService
+from ..services.storage import StorageService
+from ..services.target_group_store import TargetGroupService
+
+logger = structlog.get_logger(__name__)
+storage = StorageService()
+persona_service = PersonaService()
+persona_generator = PersonaGenerationService()
+
+router = APIRouter(prefix="/target-groups", tags=["target-groups"])
+service = TargetGroupService()
+
+SCHEMA_SOURCE_PATH = "`apps/api/app/schemas/__init__.py`"
+PERSONA_SCHEMA_DOC = "`knowledge/persona_schema.yaml`"
+TARGET_GROUP_DOC_SECTION = "`knowledge/target_group_migration.md#schemas--verwendungen`"
+
+
+def get_db():
+    with get_session() as session:
+        yield session
+
+
+def _get_target_group_or_404(session: Session, target_group_id: str) -> TargetGroup:
+    try:
+        tg_uuid = UUID(target_group_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid target group id") from exc
+    tg = session.get(TargetGroup, tg_uuid)
+    if not tg:
+        raise HTTPException(status_code=404, detail="Target group not found")
+    return tg
+
+
+@router.get(
+    "",
+    response_model=TargetGroupListResponse,
+    summary="List all target groups with filtering and pagination",
+    description=f"""
+    Retrieve a paginated list of target groups with optional filtering capabilities.
+    
+    This endpoint allows you to search and paginate through all target groups in the system.
+    You can filter by project ID to get target groups associated with a specific project.
+    
+    **Parameters:**
+    - `project_id`: Filter target groups by project ID (optional)
+    - `page`: Page number for pagination (default: 1, minimum: 1)
+    - `page_size`: Number of items per page (default: 20, minimum: 1, maximum: 100)
+    
+    **Returns:**
+    - A paginated list of target groups including total count, current page, and page size information.
+    Each target group includes its ID, name, description, project ID, and associated metadata.
+    
+    **Note:** Results are sorted by creation date (newest first) by default. Target groups are
+    organizational units that group related knowledge and personas together.
+    
+    **Schemas:**
+    - Response: `TargetGroupListResponse` (see {SCHEMA_SOURCE_PATH})
+    - Items: `TargetGroupListItem` with persona/knowledge counters captured in {TARGET_GROUP_DOC_SECTION}
+    """
+)
+def list_target_groups(
+    project_id: str | None = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    session: Session = Depends(get_db),
+) -> TargetGroupListResponse:
+    try:
+        return service.list_target_groups(
+            session,
+            project_id=project_id,
+            page=page,
+            page_size=page_size,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post(
+    "",
+    response_model=TargetGroupResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new target group",
+    description=f"""
+    Create a new target group in the system.
+    
+    Target groups are organizational units that group related knowledge, documents, and personas
+    together. They provide a way to organize and segment research data for persona generation
+    and knowledge management.
+    
+    **Parameters:**
+    - `payload`: The target group creation request containing:
+      - `project_id`: ID of the project this target group belongs to (required)
+      - `name`: Name of the target group (required)
+      - `description`: Optional description of the target group
+      - `metadata`: Optional metadata object with additional structured information
+    
+    **Returns:**
+    - The newly created target group object with all details including generated ID and timestamps.
+    
+    **Note:** Target groups are used to organize knowledge entries, documents, and personas.
+    Once created, you can add knowledge entries, upload documents, and generate personas for the target group.
+    
+    **Schemas:**
+    - Request: `TargetGroupCreateRequest` (see {SCHEMA_SOURCE_PATH})
+    - Response: `TargetGroupResponse` with nested `PersonaListItem` / knowledge entries described in {TARGET_GROUP_DOC_SECTION}
+    """
+)
+def create_target_group(
+    payload: TargetGroupCreateRequest,
+    session: Session = Depends(get_db),
+) -> TargetGroupResponse:
+    try:
+        return service.create_target_group(session, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get(
+    "/{target_group_id}",
+    response_model=TargetGroupResponse,
+    summary="Get details of a specific target group",
+    description=f"""
+    Retrieve comprehensive details of a specific target group by its ID.
+    
+    This endpoint returns all information about a target group including its name,
+    description, associated project, and metadata. It also includes counts and
+    references to associated knowledge entries, documents, and personas.
+    
+    **Parameters:**
+    - `target_group_id`: The unique identifier of the target group (UUID format)
+    
+    **Returns:**
+    - Complete target group object with all attributes:
+      - Basic information (id, name, description)
+      - Project association (project_id)
+      - Metadata and timestamps
+      - Counts of associated knowledge entries, documents, and personas
+    
+    **Note:** This endpoint provides a complete view of the target group's structure
+    and relationships within the system.
+    
+    **Schemas:**
+    - Response: `TargetGroupResponse` (see {SCHEMA_SOURCE_PATH})
+    - Nested persona profile data follows {PERSONA_SCHEMA_DOC}
+    """
+)
+def get_target_group(
+    target_group_id: str,
+    session: Session = Depends(get_db),
+) -> TargetGroupResponse:
+    try:
+        return service.get_target_group(session, target_group_id)
+    except ValueError as exc:
+        if "not found" in str(exc):
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.patch(
+    "/{target_group_id}",
+    response_model=TargetGroupResponse,
+    summary="Update an existing target group",
+    description=f"""
+    Partially update an existing target group with new or modified attributes.
+    
+    This endpoint allows you to update specific fields of a target group without providing
+    all required fields. Only the fields provided in the request payload will be updated.
+    All other fields remain unchanged.
+    
+    **Parameters:**
+    - `target_group_id`: The unique identifier of the target group to update (UUID format)
+    - `payload`: The partial update request containing only the fields to update:
+      - `name`: Updated target group name (optional)
+      - `description`: Updated description (optional)
+      - `metadata`: Updated metadata object (optional, can be partial)
+    
+    **Returns:**
+    - The updated target group object with all fields (updated and unchanged).
+    
+    **Note:** Partial updates are supported. Fields not included in the payload remain unchanged.
+    Updating a target group does not affect its associated knowledge entries, documents, or personas.
+    
+    **Schemas:**
+    - Request: `TargetGroupUpdateRequest` (see {SCHEMA_SOURCE_PATH})
+    - Response: `TargetGroupResponse` with nested entities documented in {TARGET_GROUP_DOC_SECTION}
+    """
+)
+def update_target_group(
+    target_group_id: str,
+    payload: TargetGroupUpdateRequest,
+    session: Session = Depends(get_db),
+) -> TargetGroupResponse:
+    try:
+        return service.update_target_group(session, target_group_id, payload)
+    except ValueError as exc:
+        if "not found" in str(exc):
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get(
+    "/{target_group_id}/knowledge/chunks",
+    response_model=List[KnowledgeChunk],
+    summary="List all knowledge chunks for a target group",
+    description=f"""
+    Retrieve all knowledge chunks associated with a target group.
+    
+    This endpoint returns all document chunks and manual knowledge entry chunks that have been
+    linked to the target group. Chunks include both automatically extracted chunks from uploaded
+    documents and chunks created from manual knowledge entries. Each chunk includes metadata
+    about its source document, relevance score, and content.
+    
+    **Parameters:**
+    - `target_group_id`: The unique identifier of the target group (UUID format)
+    - `limit`: Maximum number of chunks to return (default: 1000, minimum: 1, maximum: 5000)
+    
+    **Returns:**
+    - A list of knowledge chunk objects, each containing:
+      - Chunk ID and content text
+      - Source document ID and filename
+      - Relevance score (from TargetGroupSource)
+      - Optional metadata
+      - Placeholder fields for visualization (x, y, cluster_id - set by clustering endpoint)
+    
+    **Note:** Chunks are retrieved from both documents and manual knowledge entries associated
+    with the target group. The relevance score indicates how relevant each chunk is to the target group.
+    
+    **Schemas:**
+    - Response: `List[KnowledgeChunk]` (see {SCHEMA_SOURCE_PATH})
+    - Chunk usage context documented in {TARGET_GROUP_DOC_SECTION}
+    """
+)
+def list_target_group_chunks(
+    target_group_id: str,
+    limit: int = Query(1000, ge=1, le=5000),
+    session: Session = Depends(get_db),
+) -> List[KnowledgeChunk]:
+    """List all chunks for a target group with metadata."""
+    _get_target_group_or_404(session, target_group_id)
+    try:
+        from ..services.knowledge_explorer import KnowledgeExplorerService
+
+        explorer = KnowledgeExplorerService()
+        chunks_data = explorer.get_chunks_for_target_group(session, target_group_id, limit)
+
+        # Convert to KnowledgeChunk schema
+        chunks = []
+        for chunk_data in chunks_data:
+            chunks.append(
+                KnowledgeChunk(
+                    id=chunk_data["id"],
+                    content=chunk_data["content"],
+                    document_id=chunk_data["document_id"],
+                    document_filename=chunk_data["document_filename"],
+                    relevance_score=chunk_data["relevance_score"],
+                    metadata=chunk_data.get("metadata"),
+                    x=None,  # Will be set by clustering endpoint
+                    y=None,  # Will be set by clustering endpoint
+                    cluster_id=None,  # Will be set by clustering endpoint
+                )
+            )
+        return chunks
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.error("knowledge.chunks.error", target_group_id=target_group_id, error=str(exc), exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to retrieve chunks") from exc
+
+
+@router.get(
+    "/{target_group_id}/knowledge/clusters",
+    response_model=ClusterResult,
+    summary="Cluster knowledge chunks for visualization",
+    description=f"""
+    Perform clustering analysis on knowledge chunks to identify thematic groups and prepare data for visualization.
+    
+    This endpoint uses machine learning clustering algorithms (K-Means or DBSCAN) to group similar
+    knowledge chunks together. It also performs dimensionality reduction to create 2D coordinates
+    for visualization purposes. The clustering helps identify themes, patterns, and relationships
+    within the target group's knowledge base.
+    
+    **Parameters:**
+    - `target_group_id`: The unique identifier of the target group (UUID format)
+    - `method`: Clustering algorithm to use - "kmeans" or "dbscan" (default: "kmeans")
+    - `n_clusters`: Number of clusters to create for K-Means (default: 10, minimum: 2, maximum: 50)
+      Note: Only used when method is "kmeans"
+    - `min_samples`: Minimum number of samples required for a cluster in DBSCAN (default: 3, minimum: 2, maximum: 20)
+      Note: Only used when method is "dbscan"
+    - `limit`: Maximum number of chunks to cluster (default: 1000, minimum: 1, maximum: 5000)
+    
+    **Returns:**
+    - Cluster result object containing:
+      - `clusters`: List of cluster objects with cluster IDs and statistics
+      - `chunks`: List of chunks with assigned cluster IDs and 2D coordinates (x, y)
+      - `coordinates_2d`: 2D coordinates for visualization
+      - `cluster_labels`: Cluster assignment for each chunk
+      - `method`: The clustering method used
+    
+    **Note:** Clustering requires chunks to have embeddings. Chunks without embeddings are included
+    in the result but won't have coordinates or cluster assignments. The 2D coordinates are generated
+    using dimensionality reduction (typically t-SNE or UMAP) for visualization purposes.
+    
+    **Schemas:**
+    - Response: `ClusterResult` plus `KnowledgeCluster` / `KnowledgeChunk` (see {SCHEMA_SOURCE_PATH})
+    - Visualization guidance in {TARGET_GROUP_DOC_SECTION}
+    """
+)
+def get_target_group_clusters(
+    target_group_id: str,
+    method: str = Query("kmeans", regex="^(kmeans|dbscan)$"),
+    n_clusters: int = Query(10, ge=2, le=50),
+    min_samples: int = Query(3, ge=2, le=20),
+    limit: int = Query(1000, ge=1, le=5000),
+    session: Session = Depends(get_db),
+) -> ClusterResult:
+    """Cluster chunks for a target group."""
+    _get_target_group_or_404(session, target_group_id)
+    try:
+        from ..services.knowledge_explorer import KnowledgeExplorerService
+
+        explorer = KnowledgeExplorerService()
+
+        # Get chunks with embeddings
+        chunks_data = explorer.get_chunks_for_target_group(session, target_group_id, limit)
+
+        if not chunks_data:
+            return ClusterResult(
+                clusters=[],
+                chunks=[],
+                coordinates_2d=[],
+                cluster_labels=[],
+                method=method,
+            )
+
+        # Perform clustering
+        cluster_result = explorer.cluster_chunks(
+            chunks_data,
+            method=method,
+            n_clusters=n_clusters if method == "kmeans" else 10,  # DBSCAN doesn't use n_clusters
+            min_samples=min_samples if method == "dbscan" else 3,  # K-Means doesn't use min_samples
+        )
+
+        # Map coordinates and cluster labels to chunks
+        chunks = []
+        coordinates_2d = cluster_result["coordinates_2d"]
+        cluster_labels = cluster_result["cluster_labels"]
+
+        # Only chunks with embeddings have coordinates
+        chunks_with_embeddings = [c for c in chunks_data if c.get("embedding")]
+        coord_idx = 0
+
+        for idx, chunk_data in enumerate(chunks_data):
+            x = None
+            y = None
+            cluster_id = cluster_labels[idx] if idx < len(cluster_labels) else None
+
+            # Only assign coordinates if chunk has embedding
+            if chunk_data.get("embedding"):
+                if coord_idx < len(coordinates_2d):
+                    coord = coordinates_2d[coord_idx]
+                    x = coord[0] if len(coord) > 0 else None
+                    y = coord[1] if len(coord) > 1 else None
+                    coord_idx += 1
+
+            chunks.append(
+                KnowledgeChunk(
+                    id=chunk_data["id"],
+                    content=chunk_data["content"],
+                    document_id=chunk_data["document_id"],
+                    document_filename=chunk_data["document_filename"],
+                    relevance_score=chunk_data["relevance_score"],
+                    metadata=chunk_data.get("metadata"),
+                    x=x,
+                    y=y,
+                    cluster_id=cluster_id,
+                )
+            )
+
+        return ClusterResult(
+            clusters=cluster_result["clusters"],
+            chunks=chunks,
+            coordinates_2d=coordinates_2d,
+            cluster_labels=cluster_labels,
+            method=method,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.error("knowledge.clusters.error", target_group_id=target_group_id, error=str(exc), exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to cluster chunks") from exc
+
+
+@router.get(
+    "/{target_group_id}/knowledge/chunks/{chunk_id}/similar",
+    response_model=List[SimilarChunk],
+    summary="Find similar chunks to a given chunk",
+    description=f"""
+    Find knowledge chunks that are semantically similar to a given chunk.
+    
+    This endpoint uses vector similarity search in the Qdrant database to find chunks with
+    similar semantic meaning. The similarity is calculated based on the embeddings of the chunks.
+    Only chunks associated with the specified target group are considered in the search.
+    
+    **Parameters:**
+    - `target_group_id`: The unique identifier of the target group (UUID format)
+    - `chunk_id`: The unique identifier of the chunk to find similar chunks for (UUID format)
+    - `limit`: Maximum number of similar chunks to return (default: 10, minimum: 1, maximum: 50)
+    
+    **Returns:**
+    - A list of similar chunk objects, each containing:
+      - Chunk ID and content text
+      - Similarity score (0.0 to 1.0, where 1.0 is most similar)
+      - Source document ID
+    
+    **Note:** Similarity is calculated using cosine similarity on chunk embeddings. Results are
+    sorted by similarity score (highest first). The specified chunk itself may be included in
+    the results if it exists. Only chunks within the same target group are returned.
+    
+    **Schemas:**
+    - Response: `List[SimilarChunk]` (see {SCHEMA_SOURCE_PATH})
+    - Usage scenarios documented in {TARGET_GROUP_DOC_SECTION}
+    """
+)
+def get_similar_chunks(
+    target_group_id: str,
+    chunk_id: str,
+    limit: int = Query(10, ge=1, le=50),
+    session: Session = Depends(get_db),
+) -> List[SimilarChunk]:
+    """Find similar chunks to a given chunk."""
+    _get_target_group_or_404(session, target_group_id)
+    try:
+        from ..services.knowledge_explorer import KnowledgeExplorerService
+
+        explorer = KnowledgeExplorerService()
+        similar_data = explorer.get_similar_chunks(chunk_id, target_group_id, limit)
+
+        # Convert to SimilarChunk schema
+        similar = []
+        for similar_item in similar_data:
+            similar.append(
+                SimilarChunk(
+                    id=similar_item["id"],
+                    content=similar_item["content"],
+                    similarity=similar_item.get("similarity", 0.0),
+                    document_id=similar_item.get("document_id", ""),
+                )
+            )
+        return similar
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.error("knowledge.similar.error", target_group_id=target_group_id, chunk_id=chunk_id, error=str(exc), exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to find similar chunks") from exc
+
+
+@router.get(
+    "/{target_group_id}/knowledge",
+    response_model=List[PersonaKnowledgeEntrySchema],
+    summary="List manual knowledge entries for a target group",
+    description=f"""
+    Retrieve all manual knowledge entries that have been added to a target group.
+    
+    This endpoint returns a list of knowledge entries that were manually created and
+    associated with the target group. These entries are distinct from document-derived
+    chunks and represent curated knowledge, observations, or domain-specific insights
+    about the target group.
+    
+    **Parameters:**
+    - `target_group_id`: The unique identifier of the target group (UUID format)
+    
+    **Returns:**
+    - A list of knowledge entry objects, each containing:
+      - Entry ID and title
+      - Content text
+      - Optional metadata payload
+      - Creator information and timestamps
+    
+    **Note:** Knowledge entries are manually curated and are automatically embedded and made
+    searchable when created. They complement document-derived knowledge and are used in persona
+    generation and knowledge retrieval operations.
+    
+    **Schemas:**
+    - Response: `List[PersonaKnowledgeEntry]` (see {SCHEMA_SOURCE_PATH})
+    - Knowledge governance described in {TARGET_GROUP_DOC_SECTION}
+    """
+)
+def list_target_group_knowledge(
+    target_group_id: str,
+    session: Session = Depends(get_db),
+) -> List[PersonaKnowledgeEntrySchema]:
+    _get_target_group_or_404(session, target_group_id)
+    try:
+        return service.list_knowledge(session, target_group_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post(
+    "/{target_group_id}/knowledge",
+    response_model=PersonaKnowledgeEntrySchema,
+    status_code=status.HTTP_201_CREATED,
+    summary="Add a manual knowledge entry to a target group",
+    description=f"""
+    Create a new manual knowledge entry and associate it with a target group.
+    
+    This endpoint allows you to add manually curated knowledge entries to a target group.
+    The knowledge entry will be automatically processed: it will be converted into a document
+    chunk, embedded using AI, and stored in the vector database for semantic search. This makes
+    the knowledge entry available for persona generation and knowledge retrieval operations.
+    
+    **Parameters:**
+    - `target_group_id`: The unique identifier of the target group (UUID format)
+    - `payload`: The knowledge entry creation request containing:
+      - `title`: A short title or heading for the knowledge entry (required)
+      - `content`: The main content text of the knowledge entry (required)
+      - `metadata`: Optional metadata object with additional structured information
+      - `created_by`: Identifier of who created this entry (optional)
+    
+    **Returns:**
+    - The newly created knowledge entry object with ID and timestamps.
+    
+    **Note:** The knowledge entry is automatically ingested after creation: a document chunk
+    is created, an embedding is generated, and it's stored in Qdrant. If ingestion fails,
+    the entry is still saved but may not be immediately searchable. Ingestion errors are logged
+    but don't cause the request to fail.
+    
+    **Schemas:**
+    - Request: `TargetGroupKnowledgeUpsertRequest` (see {SCHEMA_SOURCE_PATH})
+    - Response: `PersonaKnowledgeEntry` with payload fields captured in {TARGET_GROUP_DOC_SECTION}
+    """
+)
+def add_target_group_knowledge(
+    target_group_id: str,
+    payload: TargetGroupKnowledgeUpsertRequest,
+    session: Session = Depends(get_db),
+) -> PersonaKnowledgeEntrySchema:
+    tg = _get_target_group_or_404(session, target_group_id)
+    entry = TargetGroupKnowledgeEntry(
+        target_group_id=tg.id,
+        title=payload.title,
+        content=payload.content,
+        metadata_payload=payload.metadata,
+        created_by=payload.created_by,
+    )
+    session.add(entry)
+    session.commit()
+    session.refresh(entry)
+    
+    # Ingest knowledge entry (create chunk, embed, store in Qdrant)
+    try:
+        knowledge_service = KnowledgeIngestionService()
+        knowledge_service.ingest_knowledge_entry(entry.id)
+    except Exception as e:
+        logger.error("knowledge.ingest.failed", entry_id=str(entry.id), error=str(e))
+        # Don't fail the request, but log the error
+        # The entry is saved, but not embedded yet
+    
+    return service.serialize_knowledge_entry(entry, str(tg.id))
+
+
+@router.put(
+    "/{target_group_id}/knowledge/{knowledge_id}",
+    response_model=PersonaKnowledgeEntrySchema,
+    summary="Update a knowledge entry",
+    description=f"""
+    Update an existing manual knowledge entry for a target group.
+    
+    This endpoint allows you to modify the title, content, or metadata of an existing knowledge
+    entry. When the content is updated, the entry is automatically re-embedded and updated in
+    the vector database to reflect the changes.
+    
+    **Parameters:**
+    - `target_group_id`: The unique identifier of the target group (UUID format)
+    - `knowledge_id`: The unique identifier of the knowledge entry to update (UUID format)
+    - `payload`: The knowledge entry update request containing:
+      - `title`: Updated title (required)
+      - `content`: Updated content text (required)
+      - `metadata`: Updated metadata object (optional)
+    
+    **Returns:**
+    - The updated knowledge entry object with all fields.
+    
+    **Note:** When content is updated, the entry is automatically re-embedded and the vector
+    in Qdrant is updated. If the embedding update fails, the entry update still succeeds but
+    the vector may be out of sync. Update errors are logged but don't cause the request to fail.
+    
+    **Schemas:**
+    - Request: `TargetGroupKnowledgeUpsertRequest` (see {SCHEMA_SOURCE_PATH})
+    - Response: `PersonaKnowledgeEntry`
+    """
+)
+def update_target_group_knowledge(
+    target_group_id: str,
+    knowledge_id: str,
+    payload: TargetGroupKnowledgeUpsertRequest,
+    session: Session = Depends(get_db),
+) -> PersonaKnowledgeEntrySchema:
+    tg = _get_target_group_or_404(session, target_group_id)
+    entry = session.query(TargetGroupKnowledgeEntry).filter(
+        TargetGroupKnowledgeEntry.id == knowledge_id,
+        TargetGroupKnowledgeEntry.target_group_id == tg.id,
+    ).first()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Knowledge entry not found")
+    
+    # Update entry
+    entry.title = payload.title
+    entry.content = payload.content
+    entry.metadata_payload = payload.metadata
+    session.commit()
+    session.refresh(entry)
+    
+    # Update embedding and Qdrant vector
+    try:
+        knowledge_service = KnowledgeIngestionService()
+        knowledge_service.update_knowledge_entry(entry.id)
+    except Exception as e:
+        logger.error("knowledge.update.failed", entry_id=str(entry.id), error=str(e))
+        # Don't fail the request, but log the error
+    
+    return service.serialize_knowledge_entry(entry, str(tg.id))
+
+
+@router.delete(
+    "/{target_group_id}/knowledge/{knowledge_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a knowledge entry",
+    description=f"""
+    Permanently delete a manual knowledge entry and all its associated data.
+    
+    This endpoint performs a complete cleanup of a knowledge entry including:
+    - Removing the associated document chunk from the database
+    - Deleting the vector from Qdrant
+    - Removing the TargetGroupSource relationship
+    - Deleting the knowledge entry itself
+    
+    **Parameters:**
+    - `target_group_id`: The unique identifier of the target group (UUID format)
+    - `knowledge_id`: The unique identifier of the knowledge entry to delete (UUID format)
+    
+    **Returns:**
+    - 204 No Content on successful deletion
+    
+    **Note:** This is a permanent deletion operation. All associated data including embeddings
+    and chunks are removed. If cleanup operations (Qdrant deletion, etc.) fail, the entry
+    is still deleted, but orphaned data may remain. Cleanup errors are logged but don't prevent
+    the entry deletion.
+    
+    **Schemas:**
+    - Response: 204 No Content; request/response payload structure documented in {TARGET_GROUP_DOC_SECTION}
+    """
+)
+def delete_target_group_knowledge(
+    target_group_id: str,
+    knowledge_id: str,
+    session: Session = Depends(get_db),
+) -> None:
+    tg = _get_target_group_or_404(session, target_group_id)
+    entry = session.query(TargetGroupKnowledgeEntry).filter(
+        TargetGroupKnowledgeEntry.id == knowledge_id,
+        TargetGroupKnowledgeEntry.target_group_id == tg.id,
+    ).first()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Knowledge entry not found")
+    
+    # Delete associated chunk, vector, and TargetGroupSource
+    try:
+        knowledge_service = KnowledgeIngestionService()
+        knowledge_service.delete_knowledge_entry(entry.id)
+    except Exception as e:
+        logger.error("knowledge.delete.failed", entry_id=str(entry.id), error=str(e))
+        # Continue with entry deletion even if cleanup fails
+    
+    # Delete the entry itself
+    session.delete(entry)
+    session.commit()
+
+
+@router.get(
+    "/{target_group_id}/documents",
+    response_model=List[PersonaDocument],
+    summary="List all documents associated with a target group",
+    description=f"""
+    Retrieve a list of all documents that have been uploaded and associated with a specific target group.
+    
+    This endpoint returns all documents linked to the target group, including their processing status,
+    file metadata, and ingestion information. Documents are returned in reverse chronological order
+    (newest first).
+    
+    **Parameters:**
+    - `target_group_id`: The unique identifier of the target group (UUID format)
+    
+    **Returns:**
+    - A list of document objects, each containing:
+      - Document ID and filename
+      - File size, content type, and upload timestamp
+      - Processing status (pending, processing, completed, failed)
+      - Upload metadata (uploaded_by, progress percentage)
+      - Error information if processing failed
+    
+    **Note:** Only documents that are directly associated with the target group are returned.
+    Documents may be in various states of processing (pending, processing, completed, or failed).
+    Once processed, documents contribute chunks to the target group's knowledge base.
+    
+    **Schemas:**
+    - Response: `List[PersonaDocument]` (see {SCHEMA_SOURCE_PATH})
+    - Document lifecycle also captured in {TARGET_GROUP_DOC_SECTION}
+    """
+)
+def list_target_group_documents(
+    target_group_id: str,
+    session: Session = Depends(get_db),
+) -> List[PersonaDocument]:
+    _get_target_group_or_404(session, target_group_id)
+    try:
+        return service.list_documents(session, target_group_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post(
+    "/{target_group_id}/documents",
+    response_model=PersonaDocument,
+    status_code=status.HTTP_201_CREATED,
+    summary="Upload a document for a target group",
+    description=f"""
+    Upload a document file to be associated with a target group and processed for knowledge extraction.
+    
+    This endpoint accepts a file upload, stores it in persistent storage, and enqueues it for
+    asynchronous processing. The document will be processed to extract text, create chunks,
+    generate embeddings, and store them in the vector database. The chunks will be automatically
+    linked to the target group through TargetGroupSource relationships.
+    
+    **Parameters:**
+    - `target_group_id`: The unique identifier of the target group to associate the document with (UUID format)
+    - `file`: The document file to upload (multipart/form-data, supports PDF, DOCX, TXT, etc.)
+    - `uploaded_by`: Optional identifier of who uploaded the document (default: "target-group-admin-ui")
+    
+    **Returns:**
+    - The created document object with processing status "processing" and a unique document ID.
+    
+    **Note:** Processing happens asynchronously. Use the document status endpoint or list documents
+    to check processing progress. Once processed, document chunks will be automatically associated
+    with the target group and available for persona generation and knowledge retrieval.
+    
+    **Schemas:**
+    - Response: `PersonaDocument` (see {SCHEMA_SOURCE_PATH})
+    - Request: multipart upload fields documented in {TARGET_GROUP_DOC_SECTION}
+    """
+)
+async def upload_target_group_document(
+    target_group_id: str,
+    file: UploadFile = File(...),
+    uploaded_by: str = Form("target-group-admin-ui"),
+    session: Session = Depends(get_db),
+) -> PersonaDocument:
+    tg = _get_target_group_or_404(session, target_group_id)
+    contents = await file.read()
+    if not contents:
+        raise HTTPException(status_code=400, detail="File was empty")
+    content_type = file.content_type or "application/octet-stream"
+    filename = file.filename or "upload.bin"
+    document_id = uuid4()
+    key = f"target-groups/{target_group_id}/documents/{document_id}/{filename}"
+
+    # Create document with processing status
+    document = Document(
+        id=document_id,
+        filename=filename,
+        content_type=content_type,
+        size_bytes=len(contents),
+        status="processing",
+        object_key=key,
+        file_path=key,
+        target_group_id=tg.id,
+        uploaded_by=uploaded_by,
+    )
+    session.add(document)
+    session.flush()
+
+    # Create processing job
+    job = ProcessingJob(document_id=document.id, status="pending", progress=0)
+    session.add(job)
+    session.commit()
+
+    # Store file in filesystem (persistent storage for ingestion)
+    storage.upload(key=key, data=contents, content_type=content_type)
+
+    # Get the persistent file path for ingestion (same as storage path)
+    from ..core.config import get_settings
+    settings = get_settings()
+    data_dir = Path(settings.data_dir)
+    persistent_file = data_dir / key.lstrip("/")
+
+    # Enqueue ingestion task with persistent file path
+    logger.info("document.upload.enqueue", document_id=str(document.id), file_path=str(persistent_file), target_group_id=str(target_group_id))
+    enqueue_ingestion(str(document.id), str(persistent_file))
+    logger.info("document.upload.enqueued", document_id=str(document.id))
+
+    session.refresh(document)
+    return service._to_document_payload(document, session=session, target_group_id=target_group_id)
+
+
+@router.get(
+    "/{target_group_id}/personas",
+    response_model=PersonaListResponse,
+    summary="List all personas associated with a target group",
+    description=f"""
+    Retrieve a paginated list of all personas that have been generated for or associated with a target group.
+    
+    This endpoint returns personas that are linked to the specified target group. You can filter
+    by status and search by name or attributes. Results are paginated for efficient retrieval.
+    
+    **Parameters:**
+    - `target_group_id`: The unique identifier of the target group (UUID format)
+    - `status`: Filter personas by status (optional)
+    - `q` (alias `search`): Search query to filter personas by name or attributes (optional)
+    - `page`: Page number for pagination (default: 1, minimum: 1)
+    - `page_size`: Number of items per page (default: 20, minimum: 1, maximum: 100)
+    
+    **Returns:**
+    - A paginated list of personas including total count, current page, and page size information.
+    Each persona includes its profile, demographics, goals, pain points, and other attributes.
+    
+    **Note:** Results are sorted by creation date (newest first) by default. Personas generated
+    from a target group are automatically associated with that target group and use its knowledge
+    base for generation.
+    
+    **Schemas:**
+    - Response: `PersonaListResponse` with items `PersonaListItem` (see {SCHEMA_SOURCE_PATH})
+    - Persona profile fields follow {PERSONA_SCHEMA_DOC}
+    """
+)
+def list_target_group_personas(
+    target_group_id: str,
+    status: str | None = Query(None),
+    search: str | None = Query(None, alias="q"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    session: Session = Depends(get_db),
+) -> PersonaListResponse:
+    _get_target_group_or_404(session, target_group_id)
+    try:
+        return persona_service.list_personas(
+            session,
+            target_group_id=target_group_id,
+            status=status,
+            search=search,
+            page=page,
+            page_size=page_size,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post(
+    "/{target_group_id}/personas/generate",
+    response_model=PersonaResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Generate a persona for a target group",
+    description=f"""
+    Automatically generate a persona profile for a target group using AI based on the target group's knowledge.
+    
+    This endpoint uses AI-powered persona generation to create a comprehensive persona profile based on
+    the knowledge chunks, documents, and knowledge entries associated with the target group. The generation
+    process analyzes relevant research data and extracts demographics, goals, pain points, communication
+    patterns, and other persona attributes. You can control which knowledge sources to use through the
+    filter_mode parameter.
+    
+    **Parameters:**
+    - `target_group_id`: The unique identifier of the target group (UUID format)
+    - `payload`: The persona generation request containing:
+      - `segment`: Target segment description (required)
+      - `description`: Optional additional description to guide generation
+      - `filter_mode`: Filter mode for selecting knowledge chunks:
+        - "auto": Automatically select relevant chunks from all target group knowledge (default)
+        - "documents": Use only chunks from specific documents (requires document_ids)
+        - "chunks_manual": Use only specific chunks (requires chunk_ids)
+      - `document_ids`: List of document IDs to use (required if filter_mode is "documents")
+      - `chunk_ids`: List of chunk IDs to use (required if filter_mode is "chunks_manual")
+      - `chunk_weights`: Optional dictionary mapping chunk IDs to weights (0.0-1.0)
+      - `limit_chunks`: Maximum number of chunks to use in generation (optional, only for auto mode)
+      - `variation_params`: Optional parameters to control generation variation:
+        - `randomize_chunks`: Whether to randomize chunk selection
+        - `temperature`: LLM temperature (0.0-1.0) or "random"
+        - `prompt_style`: Prompt style ("vivid", "analytical", "personality-focused", "goal-oriented")
+        - `chunk_sample_size`: Number of chunks to sample
+        - `seed`: Random seed for reproducible generation
+    
+    **Returns:**
+    - The generated persona object with AI-extracted attributes including demographics,
+      goals, pain points, traits, communication style, and confidence score.
+    
+    **Note:** Generation is synchronous but may take several seconds. The persona is created
+    with a "Pending Persona" placeholder name initially and updated once generation completes.
+    If generation fails, the persona creation is rolled back. The persona is automatically
+    associated with the target group.
+    
+    **Schemas:**
+    - Request: `TargetGroupPersonaGenerateRequest` (see {SCHEMA_SOURCE_PATH})
+    - Response: `PersonaResponse` whose profile adheres to {PERSONA_SCHEMA_DOC}
+    - Additional contract notes in {TARGET_GROUP_DOC_SECTION}
+    """
+)
+def generate_target_group_persona(
+    target_group_id: str,
+    payload: TargetGroupPersonaGenerateRequest,
+    session: Session = Depends(get_db),
+) -> PersonaResponse:
+    logger.info("persona.generate.received", target_group_id=target_group_id, payload=payload.dict())
+    try:
+        tg = _get_target_group_or_404(session, target_group_id)
+        logger.info("persona.generate.target_group_found", target_group_id=target_group_id, tg_id=str(tg.id))
+        
+        # Validate filter_mode
+        valid_filter_modes = ["auto", "documents", "chunks_manual"]
+        if payload.filter_mode not in valid_filter_modes:
+            logger.error("persona.generate.invalid_filter_mode", target_group_id=target_group_id, filter_mode=payload.filter_mode)
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid filter_mode. Must be one of: {', '.join(valid_filter_modes)}"
+            )
+        
+        # Validate required fields based on filter_mode
+        if payload.filter_mode == "documents" and not payload.document_ids:
+            logger.error("persona.generate.missing_document_ids", target_group_id=target_group_id)
+            raise HTTPException(
+                status_code=400,
+                detail="document_ids required when filter_mode is 'documents'"
+            )
+        if payload.filter_mode == "chunks_manual" and not payload.chunk_ids:
+            logger.error("persona.generate.missing_chunk_ids", target_group_id=target_group_id)
+            raise HTTPException(
+                status_code=400,
+                detail="chunk_ids required when filter_mode is 'chunks_manual'"
+            )
+        
+        # Validate chunk_weights if provided
+        if payload.chunk_weights:
+            for chunk_id, weight in payload.chunk_weights.items():
+                if not isinstance(weight, (int, float)) or not (0.0 <= weight <= 1.0):
+                    logger.error("persona.generate.invalid_chunk_weight", target_group_id=target_group_id, chunk_id=chunk_id, weight=weight)
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Invalid chunk_weight for chunk {chunk_id}. Must be between 0.0 and 1.0"
+                    )
+        
+        logger.info("persona.generate.creating_persona", target_group_id=target_group_id, segment=payload.segment)
+        # Create persona entity
+        persona = Persona(
+            project_id=tg.project_id,
+            name="Pending Persona",
+            segment=payload.segment,
+            headline=payload.description or f"Auto-generated persona for {tg.name}",
+            profile={},
+            confidence=0.7,
+            version="1.0.0",
+            target_group_id=tg.id,
+        )
+        session.add(persona)
+        session.commit()
+        session.refresh(persona)
+        logger.info("persona.generate.persona_created", target_group_id=target_group_id, persona_id=str(persona.id))
+        
+        # Prepare parameters for generation
+        document_ids_uuid = None
+        chunk_ids_uuid = None
+        chunk_weights_dict = None
+        
+        if payload.filter_mode == "documents" and payload.document_ids:
+            try:
+                document_ids_uuid = [UUID(doc_id) for doc_id in payload.document_ids]
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail=f"Invalid document_id: {exc}") from exc
+        
+        if payload.filter_mode == "chunks_manual" and payload.chunk_ids:
+            try:
+                chunk_ids_uuid = [UUID(chunk_id) for chunk_id in payload.chunk_ids]
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail=f"Invalid chunk_id: {exc}") from exc
+        
+        if payload.chunk_weights:
+            chunk_weights_dict = payload.chunk_weights
+        
+        # Generate persona
+        logger.info("persona.generate.starting_generation", target_group_id=target_group_id, persona_id=str(persona.id))
+        try:
+            # Only pass chunk_ids if filter_mode is chunks_manual
+            # Otherwise pass None so service uses target_group logic
+            final_chunk_ids = chunk_ids_uuid if payload.filter_mode == "chunks_manual" else None
+            final_document_ids = document_ids_uuid if payload.filter_mode == "documents" else None
+            
+            logger.info("persona.generate.calling_service", target_group_id=target_group_id, persona_id=str(persona.id), 
+                       filter_mode=payload.filter_mode, has_document_ids=bool(final_document_ids), has_chunk_ids=bool(final_chunk_ids))
+            
+            persona_generator.generate(
+                persona=persona,
+                target_group_id=tg.id,
+                document_ids=final_document_ids,
+                chunk_ids=final_chunk_ids,
+                chunk_weights=chunk_weights_dict,
+                limit_chunks=payload.limit_chunks if payload.filter_mode != "chunks_manual" else None,
+                variation_params=payload.variation_params,
+            )
+            logger.info("persona.generate.generation_complete", target_group_id=target_group_id, persona_id=str(persona.id))
+        except Exception as exc:
+            logger.error("persona.generate.generation_failed", target_group_id=target_group_id, persona_id=str(persona.id), 
+                        error=str(exc), exc_info=True)
+            # Rollback persona creation if generation fails
+            session.delete(persona)
+            session.commit()
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        
+        session.refresh(persona)
+        logger.info("persona.generate.returning_response", target_group_id=target_group_id, persona_id=str(persona.id))
+        return persona_service.get_persona(session, str(persona.id), use_cache=False)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("persona.generate.unexpected_error", target_group_id=target_group_id, error=str(exc), exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(exc)}") from exc
+
+

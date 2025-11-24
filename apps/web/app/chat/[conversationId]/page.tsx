@@ -342,20 +342,36 @@ export default function ChatPage({ params }: ChatPageProps) {
         const response = await fetch("/api/personas");
         if (response.ok) {
           const data = await response.json();
+          // API returns PersonaListResponse with {items: [...], total, page, page_size}
+          const personas = Array.isArray(data) ? data : (data.items || []);
           setAvailablePersonas(
-            data.map((p: any) => ({
+            personas.map((p: any) => ({
               id: p.id,
               name: p.name,
               segment: p.segment,
               headline: p.headline,
-              confidence: p.confidence,
+              confidence: p.confidence ?? 1.0,
               image_url: p.image_url,
               profileCard: p.profile_card ?? null,
               profile: normalizePersonaProfile(p.profile),
             }))
           );
         } else {
-          console.error("Failed to load personas:", response.statusText);
+          // Try to read error message from response body
+          let errorMessage = response.statusText || `HTTP ${response.status}`;
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorData.detail || errorMessage;
+          } catch {
+            // If JSON parsing fails, try text
+            try {
+              const errorText = await response.text();
+              if (errorText) errorMessage = errorText;
+            } catch {
+              // Ignore if text parsing also fails
+            }
+          }
+          console.error("Failed to load personas:", errorMessage);
         }
       } catch (error) {
         console.error("Error loading personas:", error);
@@ -441,16 +457,8 @@ export default function ChatPage({ params }: ChatPageProps) {
 
   const sendDisabled = !activePersonaId || sending || input.trim().length === 0;
 
-  const handleSend = async (messageText?: string | MouseEvent) => {
-    // Handle both direct calls with string and button click events
-    let textToSend: string | undefined;
-    if (typeof messageText === "string") {
-      textToSend = messageText;
-    } else if (messageText && "preventDefault" in messageText) {
-      // It's an event, ignore it and use input
-      textToSend = undefined;
-    }
-    const contentToSend = (textToSend?.trim() || input.trim());
+  const handleSend = async (messageText?: string) => {
+    const contentToSend = (messageText?.trim() || input.trim());
     
     if (!activePersonaId || sending || !contentToSend) {
       return;
@@ -936,7 +944,9 @@ export default function ChatPage({ params }: ChatPageProps) {
             </IconButton>
           </Tooltip>
           <IconButton
-            onClick={handleSend}
+            onClick={() => {
+              void handleSend();
+            }}
             disabled={sendDisabled}
             sx={{
               backgroundColor: sendDisabled

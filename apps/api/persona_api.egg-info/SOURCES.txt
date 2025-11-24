@@ -10,5 +10,13 @@ persona_api.egg-info/dependency_links.txt
 persona_api.egg-info/requires.txt
 persona_api.egg-info/top_level.txt
 tests/test_app_starts.py
+tests/test_documents_upload.py
+tests/test_ingestion_service.py
+tests/test_persona_models.py
+tests/test_persona_service.py
+tests/test_target_group_api.py
+tests/test_target_group_models.py
+tests/test_target_group_service.py
 worker/__init__.py
+worker/events.py
 worker/ingest.py

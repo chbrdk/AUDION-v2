@@ -2,7 +2,9 @@ import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { Noto_Sans_JP } from "next/font/google";
 import "../styles/globals.css";
+import "../styles/dashboard-cards.css";
 import { ThemeRegistry } from "../components/theme-registry";
+import { GlobalErrorHandler } from "../components/global-error-handler";
 
 export const metadata: Metadata = {
   title: "Audion",
@@ -27,8 +29,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,200..700,0..1,-50..200"
         />
+        <script
+          src="/suppress-extension-errors.js"
+          suppressHydrationWarning
+        ></script>
       </head>
       <body className={`${notoSansJp.variable} ${notoSansJp.className}`}>
+        <GlobalErrorHandler />
         <ThemeRegistry>{children}</ThemeRegistry>
       </body>
     </html>

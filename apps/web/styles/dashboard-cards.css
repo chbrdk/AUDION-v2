@@ -1,0 +1,206 @@
+/* Dashboard Card Layout - Modern, minimalistic design with DX colors */
+
+.udg-glass-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.udg-glass-dashboard-card {
+  border-radius: 24px;
+  border: 1px solid var(--color-secondary-dx-grey-light-tint);
+  padding: 0;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .udg-glass-dashboard-card {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+
+.udg-glass-dashboard-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  background: transparent;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .udg-glass-dashboard-card-header {
+  background: transparent;
+}
+
+.udg-glass-dashboard-card-header:hover {
+  background: transparent;
+}
+
+[data-theme="dark"] .udg-glass-dashboard-card-header:hover {
+  background: transparent;
+}
+
+.udg-glass-dashboard-card-header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.udg-glass-dashboard-card-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-secondary-dx-pink-tint);
+  color: var(--color-secondary-dx-pink);
+  flex-shrink: 0;
+}
+
+.udg-glass-dashboard-card-toggle {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.udg-glass-dashboard-card-toggle:hover {
+  background: var(--color-secondary-dx-orange-tint);
+  color: var(--color-secondary-dx-orange);
+}
+
+.udg-glass-dashboard-card-toggle.--expanded {
+  transform: rotate(180deg);
+}
+
+.udg-glass-dashboard-card-content {
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.udg-glass-dashboard-card-content.--collapsed {
+  display: none;
+}
+
+.udg-glass-dashboard-card-section {
+  margin-bottom: 1.5rem;
+}
+
+.udg-glass-dashboard-card-section:last-child {
+  margin-bottom: 0;
+}
+
+.udg-glass-dashboard-card-section h4 {
+  margin: 0 0 1rem 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+}
+
+/* Dashboard-specific chip styles - cleaner, without badges */
+.udg-glass-chip.--dashboard {
+  background: var(--color-secondary-dx-pink-tint);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-secondary-dx-pink);
+  font-size: 0.875rem;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 500;
+  text-transform: none;
+  transition: all 0.2s ease;
+}
+
+.udg-glass-chip.--dashboard.--trait {
+  background: var(--color-secondary-dx-purple-tint);
+  border-color: var(--color-secondary-dx-purple);
+  color: var(--color-secondary-dx-purple);
+}
+
+.udg-glass-chip.--dashboard.--value {
+  background: var(--color-secondary-dx-green-tint);
+  border-color: var(--color-secondary-dx-green);
+  color: var(--color-secondary-dx-green);
+}
+
+.udg-glass-chip.--dashboard.--interest {
+  background: var(--color-secondary-dx-yellow-tint);
+  border-color: var(--color-secondary-dx-yellow);
+  color: var(--color-text-primary);
+}
+
+.udg-glass-chip.--dashboard.--pain {
+  background: var(--color-secondary-dx-pink-tint);
+  border-color: var(--color-secondary-dx-pink);
+  color: var(--color-secondary-dx-pink);
+}
+
+.udg-glass-chip.--dashboard.--goal {
+  background: var(--color-secondary-dx-blue-tint);
+  border-color: var(--color-secondary-dx-blue);
+  color: var(--color-secondary-dx-blue);
+}
+
+.udg-glass-chip.--dashboard.--social {
+  background: var(--color-secondary-dx-orange-tint);
+  border-color: var(--color-secondary-dx-orange);
+  color: var(--color-secondary-dx-orange);
+}
+
+.udg-glass-chip.--dashboard.--vocab {
+  background: var(--color-secondary-dx-purple-tint);
+  border-color: var(--color-secondary-dx-purple);
+  color: var(--color-secondary-dx-purple);
+}
+
+
+[data-theme="dark"] .udg-glass-chip.--dashboard {
+  opacity: 0.9;
+}
+
+[data-theme="dark"] .udg-glass-chip.--dashboard:hover {
+  opacity: 1;
+}
+
+/* Color-coded card borders for different sections */
+.udg-glass-dashboard-card.--bio {
+  border-top: 3px solid var(--color-secondary-dx-purple);
+}
+
+.udg-glass-dashboard-card.--personality {
+  border-top: 3px solid var(--color-secondary-dx-yellow);
+}
+
+.udg-glass-dashboard-card.--pain-goals {
+  border-top: 3px solid var(--color-secondary-dx-pink);
+}
+
+.udg-glass-dashboard-card.--communication {
+  border-top: 3px solid var(--color-secondary-dx-blue);
+}
+
+.udg-glass-dashboard-card.--knowledge {
+  border-top: 3px solid var(--color-secondary-dx-green);
+}
+
+.udg-glass-dashboard-card.--advanced {
+  border-top: 3px solid var(--color-secondary-dx-orange);
+}
+

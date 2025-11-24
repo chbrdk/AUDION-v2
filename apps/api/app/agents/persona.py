@@ -25,7 +25,7 @@ class PersonaAgent:
     ) -> None:
         send_event(ThinkingEvent(status="Retrieving evidence…"))
         stream = self._anthropic.messages.stream(
-            model="claude-3-5-sonnet-latest",
+            model="claude-sonnet-4-5",
             max_tokens=600,
             temperature=0.4,
             system=system_prompt,

@@ -1,0 +1,727 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any, List, Protocol
+from uuid import UUID
+
+import orjson
+import structlog
+from neo4j import GraphDatabase
+from qdrant_client import QdrantClient
+from qdrant_client.http import models as qmodels
+from redis import Redis
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+from udg_glass_proto import PersonaProfile, PersonaPrompt
+
+from ..core.config import get_settings
+from ..models import (
+    Document,
+    Persona,
+    PersonaAuditAction,
+    PersonaAuditLog,
+    PersonaKnowledgeEntry,
+    PersonaPrompt as PersonaPromptModel,
+    PersonaSource,
+    PersonaStatus,
+    TargetGroupKnowledgeEntry,
+)
+from ..schemas import (
+    PersonaCreateRequest,
+    PersonaDocument,
+    PersonaInsight,
+    PersonaKnowledgeEntry as PersonaKnowledgeEntrySchema,
+    PersonaListItem,
+    PersonaListResponse,
+    PersonaMetadata,
+    PersonaPatchRequest,
+    PersonaResponse,
+)
+from .storage import StorageService
+
+logger = structlog.get_logger(__name__)
+settings = get_settings()
+
+
+class PersonaInsightsBuilder(Protocol):
+    def build(self, *, persona: Persona, sources: List[PersonaSource]) -> PersonaInsight | None: ...
+
+
+@dataclass
+class LivePersonaInsightsBuilder:
+    qdrant_client: QdrantClient | None = None
+    neo4j_driver: Any | None = None
+    collection_name: str = "research_chunks"
+
+    def __post_init__(self) -> None:
+        if not self.qdrant_client:
+            self.qdrant_client = QdrantClient(settings.qdrant_url)
+        if not self.neo4j_driver:
+            self.neo4j_driver = GraphDatabase.driver(settings.neo4j_uri, auth=(settings.neo4j_user, settings.neo4j_password))
+
+    def build(self, *, persona: Persona, sources: List[PersonaSource]) -> PersonaInsight | None:
+        related_chunk_ids = [str(source.chunk_id) for source in sources][:10]
+        chunk_payloads: List[str] = []
+
+        if related_chunk_ids and self.qdrant_client:
+            try:
+                chunk_filter = qmodels.Filter(
+                    must=[
+                        qmodels.FieldCondition(
+                            key="chunk_id",
+                            match=qmodels.MatchAny(any=related_chunk_ids),
+                        )
+                    ]
+                )
+                payloads, _ = self.qdrant_client.scroll(
+                    collection_name=self.collection_name,
+                    scroll_filter=chunk_filter,
+                    limit=len(related_chunk_ids),
+                    with_vectors=False,
+                    with_payload=True,
+                )
+                for item in payloads:
+                    if item.payload and "content" in item.payload:
+                        chunk_payloads.append(item.payload["content"])  # type: ignore[index]
+            except Exception as exc:  # pragma: no cover - external dependency
+                logger.warning("persona.insights.qdrant_failed", error=str(exc))
+
+        graph_relationships: List[dict[str, Any]] = []
+        if self.neo4j_driver:
+            try:
+                with self.neo4j_driver.session() as session:
+                    result = session.run(
+                        """
+                        MATCH (p:Persona {id: $persona_id})-[r]->(n)
+                        RETURN type(r) AS relationship, COLLECT(DISTINCT n.name)[0..5] AS nodes
+                        LIMIT 5
+                        """,
+                        persona_id=str(persona.id),
+                    )
+                    for record in result:
+                        graph_relationships.append(
+                            {
+                                "relationship": record.get("relationship"),
+                                "nodes": record.get("nodes"),
+                            }
+                        )
+            except Exception as exc:  # pragma: no cover - external dependency
+                logger.warning("persona.insights.neo4j_failed", error=str(exc))
+
+        if not related_chunk_ids and not graph_relationships:
+            return None
+
+        return PersonaInsight(
+            relatedChunkIds=related_chunk_ids,
+            graphRelationships=[
+                {
+                    "relationship": rel.get("relationship"),
+                    "nodes": rel.get("nodes") or [],
+                }
+                for rel in graph_relationships
+            ]
+            or [],
+        )
+
+
+class PersonaService:
+    def __init__(
+        self,
+        *,
+        redis_client: Redis | None = None,
+        insights_builder: PersonaInsightsBuilder | None = None,
+    ) -> None:
+        self._redis = redis_client or Redis.from_url(settings.redis_url)
+        self._ttl = settings.persona_cache_ttl_seconds
+        self._insights_builder = insights_builder or LivePersonaInsightsBuilder()
+        self._storage = StorageService()
+
+    # ----------------- Public API -----------------
+    def list_personas(
+        self,
+        session: Session,
+        *,
+        project_id: str | None = None,
+        target_group_id: str | None = None,
+        status: str | None = None,
+        search: str | None = None,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> PersonaListResponse:
+        query = select(Persona)
+        if project_id:
+            try:
+                query = query.where(Persona.project_id == UUID(project_id))
+            except ValueError as exc:
+                raise ValueError("invalid_project_id") from exc
+        if target_group_id:
+            try:
+                query = query.where(Persona.target_group_id == UUID(target_group_id))
+            except ValueError as exc:
+                raise ValueError("invalid_target_group_id") from exc
+        if status:
+            try:
+                persona_status = PersonaStatus(status)
+                query = query.where(Persona.status == persona_status)
+            except ValueError:
+                logger.warning("persona.list.invalid_status", status=status)
+        if search:
+            like_pattern = f"%{search.lower()}%"
+            query = query.where(func.lower(Persona.name).like(like_pattern))
+
+        total = session.scalar(select(func.count()).select_from(query.subquery()))
+        offset = (page - 1) * page_size
+        personas = session.scalars(query.order_by(Persona.updated_at.desc()).offset(offset).limit(page_size)).all()
+
+        items = [self._to_list_item(persona) for persona in personas]
+        return PersonaListResponse(items=items, total=total or 0, page=page, page_size=page_size)
+
+    def get_persona(self, session: Session, persona_id: str, *, use_cache: bool = True) -> PersonaResponse:
+        if use_cache:
+            cached = self._get_cached_response(persona_id)
+            if cached:
+                return cached
+
+        persona = session.get(Persona, UUID(persona_id))
+        if not persona:
+            raise ValueError("persona_not_found")
+
+        prompt = self._latest_prompt(session, persona.id)
+        sources = session.query(PersonaSource).filter(PersonaSource.persona_id == persona.id).all()
+        documents = self._documents_for_persona(session, persona.id)
+        knowledge_entries = self._knowledge_for_persona(session, persona.id)
+        insights = self._build_insights(persona, sources)
+        response = self._build_response(
+            persona,
+            prompt,
+            sources,
+            documents=documents,
+            knowledge=knowledge_entries,
+            insights=insights,
+        )
+        self._set_cache(persona_id, response)
+        return response
+
+    def create_persona(self, session: Session, payload: PersonaCreateRequest) -> PersonaResponse:
+        profile_payload = payload.profile.model_dump() if payload.profile else self._default_profile_payload(
+            name=payload.name,
+            segment=payload.segment,
+            headline=payload.headline,
+        )
+        target_group_id = None
+        if payload.target_group_id:
+            try:
+                target_group_id = UUID(payload.target_group_id)
+            except ValueError:
+                raise ValueError("invalid_target_group_id")
+
+        persona = Persona(
+            project_id=UUID(payload.project_id),
+            name=payload.name,
+            segment=payload.segment,
+            headline=payload.headline,
+            profile=profile_payload,
+            confidence=payload.confidence,
+            version=payload.version,
+            status=PersonaStatus(payload.status) if payload.status else PersonaStatus.draft,
+            updated_by=payload.updated_by,
+            image_url=payload.image_url,
+            target_group_id=target_group_id,
+        )
+        session.add(persona)
+        session.flush()
+
+        if payload.prompt:
+            session.add(
+                PersonaPromptModel(
+                    persona_id=persona.id,
+                    system_prompt=payload.prompt.systemPrompt,
+                    template_version=payload.prompt.templateVersion,
+                )
+            )
+
+        self._record_audit(
+            session,
+            persona=persona,
+            action=PersonaAuditAction.created,
+            actor=payload.updated_by or "system",
+            before=None,
+            after=self._audit_payload(persona),
+        )
+        session.commit()
+        logger.info(
+            "persona.create",
+            persona_id=str(persona.id),
+            project_id=str(persona.project_id),
+            status=persona.status.value,
+        )
+
+        response = self._build_response(persona, self._latest_prompt(session, persona.id), [], documents=[], knowledge=[])
+        self._set_cache(str(persona.id), response)
+        return response
+
+    def update_persona(self, session: Session, persona_id: str, payload: PersonaPatchRequest) -> PersonaResponse:
+        persona = session.get(Persona, UUID(persona_id))
+        if not persona:
+            raise ValueError("persona_not_found")
+
+        before = self._audit_payload(persona)
+
+        if payload.name:
+            persona.name = payload.name
+        if payload.segment:
+            persona.segment = payload.segment
+        if payload.headline:
+            persona.headline = payload.headline
+        if payload.profile:
+            persona.profile = payload.profile.model_dump()
+        if payload.confidence is not None:
+            persona.confidence = payload.confidence
+        if payload.version:
+            persona.version = payload.version
+        if payload.status:
+            try:
+                persona.status = PersonaStatus(payload.status)
+            except ValueError:
+                logger.warning("persona.update.invalid_status", status=payload.status)
+        if payload.last_reviewed_at:
+            persona.last_reviewed_at = payload.last_reviewed_at
+        if payload.image_url is not None:
+            persona.image_url = payload.image_url
+        if payload.locked_by is not None:
+            persona.locked_by = payload.locked_by
+        if payload.locked_at is not None:
+            persona.locked_at = payload.locked_at
+
+        persona.updated_by = payload.updated_by
+        persona.updated_at = datetime.utcnow()
+
+        if payload.prompt:
+            session.add(
+                PersonaPromptModel(
+                    persona_id=persona.id,
+                    system_prompt=payload.prompt.systemPrompt,
+                    template_version=payload.prompt.templateVersion,
+                )
+            )
+
+        self._record_audit(
+            session,
+            persona=persona,
+            action=PersonaAuditAction.updated,
+            actor=payload.updated_by or "system",
+            before=before,
+            after=self._audit_payload(persona),
+        )
+        session.commit()
+        session.refresh(persona)
+        logger.info(
+            "persona.update",
+            persona_id=str(persona.id),
+            status=persona.status.value,
+            updated_by=persona.updated_by,
+        )
+
+        prompt = self._latest_prompt(session, persona.id)
+        sources = session.query(PersonaSource).filter(PersonaSource.persona_id == persona.id).all()
+        documents = self._documents_for_persona(session, persona.id)
+        knowledge_entries = self._knowledge_for_persona(session, persona.id)
+        insights = self._build_insights(persona, sources)
+        response = self._build_response(
+            persona,
+            prompt,
+            sources,
+            documents=documents,
+            knowledge=knowledge_entries,
+            insights=insights,
+        )
+        self._invalidate_cache(str(persona.id))
+        self._set_cache(str(persona.id), response)
+        return response
+
+    def archive_persona(self, session: Session, persona_id: str, actor: str | None = None) -> None:
+        persona = session.get(Persona, UUID(persona_id))
+        if not persona:
+            raise ValueError("persona_not_found")
+        before = self._audit_payload(persona)
+        persona.status = PersonaStatus.archived
+        persona.updated_at = datetime.utcnow()
+        persona.updated_by = actor
+        self._record_audit(
+            session,
+            persona=persona,
+            action=PersonaAuditAction.archived,
+            actor=actor or "system",
+            before=before,
+            after=self._audit_payload(persona),
+        )
+        session.commit()
+        self._invalidate_cache(persona_id)
+        logger.info(
+            "persona.archive",
+            persona_id=persona_id,
+            actor=actor,
+        )
+
+    def list_documents(self, session: Session, persona_id: str) -> List[PersonaDocument]:
+        try:
+            persona_uuid = UUID(persona_id)
+        except ValueError as exc:
+            raise ValueError("invalid_persona_id") from exc
+        return self._documents_for_persona(session, persona_uuid)
+
+    def list_knowledge(self, session: Session, persona_id: str) -> List[PersonaKnowledgeEntrySchema]:
+        try:
+            persona_uuid = UUID(persona_id)
+        except ValueError as exc:
+            raise ValueError("invalid_persona_id") from exc
+        return self._knowledge_for_persona(session, persona_uuid)
+
+    def serialize_document(self, document: Document, session: Session | None = None) -> PersonaDocument:
+        return self._to_document_payload(document, session=session)
+
+    def serialize_knowledge_entry(self, entry: PersonaKnowledgeEntry) -> PersonaKnowledgeEntrySchema:
+        return PersonaKnowledgeEntrySchema(
+            id=str(entry.id),
+            personaId=str(entry.persona_id),
+            title=entry.title,
+            content=entry.content,
+            metadata=entry.metadata_payload or {},
+            createdBy=entry.created_by,
+            createdAt=entry.created_at,
+        )
+
+    def invalidate_cache(self, persona_id: str) -> None:
+        self._invalidate_cache(persona_id)
+
+    # ----------------- Helpers -----------------
+    def _build_response(
+        self,
+        persona: Persona,
+        prompt_model: PersonaPromptModel | None,
+        sources: List[PersonaSource],
+        *,
+        documents: List[PersonaDocument] | None = None,
+        knowledge: List[PersonaKnowledgeEntrySchema] | None = None,
+        profile_override: PersonaProfile | None = None,
+        insights: PersonaInsight | None = None,
+    ) -> PersonaResponse:
+        profile = profile_override or self._profile_from_persona(persona)
+        if prompt_model:
+            prompt = PersonaPrompt(
+                persona_id=str(persona.id),
+                system_prompt=prompt_model.system_prompt,
+                template_version=prompt_model.template_version,
+            )
+        else:
+            prompt = PersonaPrompt(persona_id=str(persona.id), system_prompt="", template_version="unknown")
+        sources_payload = [
+            {
+                "chunk_id": str(source.chunk_id),
+                "confidence": source.confidence,
+                "rationale": source.rationale,
+            }
+            for source in sources
+        ]
+
+        metadata = PersonaMetadata(
+            personaId=str(persona.id),
+            projectId=str(persona.project_id),
+            status=persona.status.value,
+            version=persona.version,
+            confidence=persona.confidence,
+            updatedAt=persona.updated_at or persona.created_at,
+            updatedBy=persona.updated_by,
+            lastReviewedAt=persona.last_reviewed_at,
+            imageUrl=None,
+            avatarUrl=self._avatar_url(persona),
+            lockedBy=persona.locked_by,
+            lockedAt=persona.locked_at,
+            consoleUrl=self._console_url(persona.id),
+            graphUrl=self._graph_url(persona.id),
+            graphBloomUrl=self._graph_bloom_url(persona.id),
+        )
+
+        return PersonaResponse(
+            profile=profile,
+            prompt=prompt,
+            sources=sources_payload,
+            metadata=metadata,
+            documents=documents or [],
+            knowledge=knowledge or [],
+            insights=insights,
+        )
+
+    def _profile_from_persona(self, persona: Persona) -> PersonaProfile:
+        payload = persona.profile or {}
+
+        def field(*keys: str, default: Any = None) -> Any:
+            for key in keys:
+                if key in payload and payload[key] is not None:
+                    return payload[key]
+            return default
+
+        defaults = {
+            "id": str(persona.id),
+            "name": field("name", default=persona.name),
+            "segment": field("segment", default=persona.segment),
+            "headline": field("headline", default=persona.headline),
+            "bio": field("bio", default=""),
+            "traits": field("traits", default={}),
+            "pain_points": field("pain_points", "painPoints", default=[]),
+            "goals": field("goals", default=[]),
+            "communication_style": field("communication_style", "communicationStyle", default=self._default_comm_style()),
+            "confidence": field("confidence", default=persona.confidence),
+            "version": field("version", default=persona.version),
+            "created_at": field("created_at", "createdAt", default=(persona.created_at or datetime.utcnow()).isoformat()),
+        }
+        return PersonaProfile(**defaults)
+
+    def _default_profile_payload(self, *, name: str, segment: str, headline: str) -> dict[str, Any]:
+        now = datetime.utcnow().isoformat()
+        payload = {
+            "name": name,
+            "segment": segment,
+            "headline": headline,
+            "bio": "",
+            "traits": {},
+            "pain_points": [],
+            "painPoints": [],
+            "goals": [],
+            "communication_style": self._default_comm_style(),
+            "communicationStyle": self._default_comm_style(),
+            "confidence": 0.7,
+            "version": "1.0.0",
+            "created_at": now,
+            "createdAt": now,
+        }
+        return payload
+
+    def _default_comm_style(self) -> dict[str, Any]:
+        return {
+            "vocabulary": [],
+            "sentence_structure": "",
+            "skepticism_level": 0,
+        }
+
+    def _latest_prompt(self, session: Session, persona_id: UUID) -> PersonaPromptModel | None:
+        return (
+            session.query(PersonaPromptModel)
+            .filter(PersonaPromptModel.persona_id == persona_id)
+            .order_by(PersonaPromptModel.created_at.desc())
+            .first()
+        )
+
+    def _build_insights(self, persona: Persona, sources: List[PersonaSource]) -> PersonaInsight | None:
+        if not self._insights_builder:
+            return None
+        return self._insights_builder.build(persona=persona, sources=sources)
+
+    def _console_url(self, persona_id: UUID) -> str:
+        base = settings.persona_console_base_url.rstrip("/")
+        path = settings.persona_media_base_path.strip("/")
+        return f"{base}/{path}/{persona_id}"
+
+    def _graph_url(self, persona_id: UUID) -> str | None:
+        browser = (settings.neo4j_browser_url or "").strip()
+        if not browser:
+            return None
+        base = browser.rstrip("/")
+        return f"{base}?query=MATCH%20(p:Persona%20{{id:%20%27{persona_id}%27}})%20RETURN%20p"
+
+    def _graph_bloom_url(self, persona_id: UUID) -> str | None:
+        bloom = (settings.neo4j_bloom_url or "").strip()
+        if not bloom:
+            return None
+        base = bloom.rstrip("/")
+        return f"{base}?personaId={persona_id}"
+
+    def _public_base(self) -> str:
+        return settings.persona_backend_public_url.rstrip("/")
+
+    def _documents_for_persona(self, session: Session, persona_id: UUID) -> List[PersonaDocument]:
+        records = (
+            session.query(Document)
+            .filter(Document.persona_id == persona_id)
+            .order_by(Document.created_at.desc())
+            .all()
+        )
+        return [self._to_document_payload(record, session=session) for record in records]
+
+    def _knowledge_for_persona(self, session: Session, persona_id: UUID) -> List[PersonaKnowledgeEntrySchema]:
+        # Get persona to check for target_group_id
+        persona = session.get(Persona, persona_id)
+        if not persona:
+            return []
+        
+        # If persona has target_group_id, also include target group knowledge
+        knowledge_entries = []
+        
+        # Get persona-specific knowledge
+        entries = (
+            session.query(PersonaKnowledgeEntry)
+            .filter(PersonaKnowledgeEntry.persona_id == persona_id)
+            .order_by(PersonaKnowledgeEntry.created_at.desc())
+            .all()
+        )
+        knowledge_entries.extend([self.serialize_knowledge_entry(entry) for entry in entries])
+        
+        # If target_group_id exists, also get target group knowledge
+        if persona.target_group_id:
+            from ..models import TargetGroupKnowledgeEntry
+            tg_entries = (
+                session.query(TargetGroupKnowledgeEntry)
+                .filter(TargetGroupKnowledgeEntry.target_group_id == persona.target_group_id)
+                .order_by(TargetGroupKnowledgeEntry.created_at.desc())
+                .all()
+            )
+            # Serialize target group knowledge entries using the same format
+            for tg_entry in tg_entries:
+                knowledge_entries.append(
+                    PersonaKnowledgeEntrySchema(
+                        id=str(tg_entry.id),
+                        personaId=str(persona_id),  # Keep persona_id for compatibility
+                        title=tg_entry.title,
+                        content=tg_entry.content,
+                        metadata=tg_entry.metadata_payload,
+                        createdBy=tg_entry.created_by,
+                        createdAt=tg_entry.created_at,
+                    )
+                )
+        
+        return knowledge_entries
+        entries = (
+            session.query(PersonaKnowledgeEntry)
+            .filter(PersonaKnowledgeEntry.persona_id == persona_id)
+            .order_by(PersonaKnowledgeEntry.created_at.desc())
+            .all()
+        )
+        return [self.serialize_knowledge_entry(entry) for entry in entries]
+
+    def _to_document_payload(self, document: Document, session: Session | None = None) -> PersonaDocument:
+        ingestion_status = None
+        ingestion_progress = None
+        
+        # Load ProcessingJob if session is available
+        if session:
+            from ..models import ProcessingJob
+            job = (
+                session.query(ProcessingJob)
+                .filter(ProcessingJob.document_id == document.id)
+                .order_by(ProcessingJob.created_at.desc())
+                .first()
+            )
+            if job:
+                ingestion_status = job.status
+                ingestion_progress = job.progress
+        
+        return PersonaDocument(
+            id=str(document.id),
+            filename=document.filename,
+            contentType=document.content_type,
+            sizeBytes=document.size_bytes,
+            uploadedAt=document.created_at or datetime.utcnow(),
+            uploadedBy=document.uploaded_by,
+            downloadUrl=f"{self._public_base()}/personas/{document.persona_id}/documents/{document.id}/download",
+            insightSummary=document.insight_summary,
+            ingestionStatus=ingestion_status,
+            ingestionProgress=ingestion_progress,
+        )
+
+    def _avatar_url(self, persona: Persona) -> str | None:
+        if not persona.image_url:
+            return None
+        if persona.image_url.startswith("https://"):
+            return persona.image_url
+        return f"{self._public_base()}/personas/{persona.id}/avatar"
+
+    def _to_list_item(self, persona: Persona) -> PersonaListItem:
+        # Convert profile to PersonaProfile if available
+        profile_data = None
+        if persona.profile and isinstance(persona.profile, dict):
+            try:
+                profile_data = PersonaProfile(**persona.profile)
+            except Exception:
+                # If profile doesn't match PersonaProfile schema, pass None
+                pass
+        
+        return PersonaListItem(
+            id=str(persona.id),
+            name=persona.name,
+            segment=persona.segment,
+            headline=persona.headline,
+            status=persona.status.value,
+            confidence=persona.confidence,
+            version=persona.version,
+            updatedAt=persona.updated_at or persona.created_at,
+            updatedBy=persona.updated_by,
+            imageUrl=persona.image_url if persona.image_url and persona.image_url.startswith(("http://", "https://")) else None,
+            avatarUrl=self._avatar_url(persona),
+            profileCard=persona.profile_card,
+            profile=profile_data,
+        )
+
+    def _audit_payload(self, persona: Persona) -> dict[str, Any]:
+        return {
+            "name": persona.name,
+            "segment": persona.segment,
+            "headline": persona.headline,
+            "profile": persona.profile,
+            "confidence": persona.confidence,
+            "version": persona.version,
+            "status": persona.status.value,
+            "updated_by": persona.updated_by,
+            "image_url": persona.image_url,
+        }
+
+    def _record_audit(
+        self,
+        session: Session,
+        *,
+        persona: Persona,
+        action: PersonaAuditAction,
+        actor: str,
+        before: dict[str, Any] | None,
+        after: dict[str, Any] | None,
+    ) -> None:
+        session.add(
+            PersonaAuditLog(
+                persona_id=persona.id,
+                action=action,
+                actor=actor,
+                payload_before=before,
+                payload_after=after,
+            )
+        )
+
+    # ----------------- Cache helpers -----------------
+    def _cache_key(self, persona_id: str) -> str:
+        return f"persona:detail:{persona_id}"
+
+    def _get_cached_response(self, persona_id: str) -> PersonaResponse | None:
+        try:
+            cached = self._redis.get(self._cache_key(persona_id))
+            if not cached:
+                return None
+            return PersonaResponse(**orjson.loads(cached))
+        except Exception as exc:
+            logger.warning("persona.cache.get_failed", error=str(exc))
+            return None
+
+    def _set_cache(self, persona_id: str, response: PersonaResponse) -> None:
+        try:
+            self._redis.setex(
+                self._cache_key(persona_id),
+                self._ttl,
+                orjson.dumps(response.model_dump(mode="json")),
+            )
+        except Exception as exc:
+            logger.warning("persona.cache.set_failed", error=str(exc))
+
+    def _invalidate_cache(self, persona_id: str) -> None:
+        try:
+            self._redis.delete(self._cache_key(persona_id))
+        except Exception as exc:
+            logger.warning("persona.cache.delete_failed", error=str(exc))
+

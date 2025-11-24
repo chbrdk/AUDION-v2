@@ -49,7 +49,7 @@ class PersonaDiscoveryService:
 
         logger.info("persona.discovery.prompt_tokens", length=len(prompt))
         response = self._anthropic.messages.create(
-            model="claude-3-5-sonnet-latest",
+            model="claude-sonnet-4-5",
             max_tokens=800,
             temperature=0.1,
             messages=[
