@@ -18,7 +18,7 @@ export const UdgGlassBioCard = ({
   return (
     <UdgGlassDashboardCard
       id="bio-demographics"
-      title="Biografie & Demographie"
+      title="Biography & Demographics"
       icon="person"
       variant="bio"
       fullWidth={true}
@@ -30,31 +30,48 @@ export const UdgGlassBioCard = ({
       onToggle={onToggle}
     >
       {profile.bio && (
-        <UdgGlassDashboardCardSection title="Biografie">
+        <UdgGlassDashboardCardSection title="Biography">
           <p style={{ lineHeight: "1.6", whiteSpace: "pre-wrap", margin: 0 }}>
             {profile.bio}
           </p>
         </UdgGlassDashboardCardSection>
       )}
-      {(profile.full_name || profile.age || profile.location) && (
-        <UdgGlassDashboardCardSection title="Demographie">
+      {(profile.full_name || profile.age || profile.location || profile.gender || (profile.media_affinity !== null && profile.media_affinity !== undefined)) && (
+        <UdgGlassDashboardCardSection title="Demographics">
           <dl className="udg-glass-meta-grid" style={{ margin: 0 }}>
             {profile.full_name && (
               <div>
-                <dt>Vollständiger Name</dt>
+                <dt>Full Name</dt>
                 <dd>{profile.full_name}</dd>
               </div>
             )}
             {profile.age && (
               <div>
-                <dt>Alter</dt>
-                <dd>{profile.age} Jahre</dd>
+                <dt>Age</dt>
+                <dd>{profile.age} years</dd>
               </div>
             )}
             {profile.location && (
               <div>
-                <dt>Standort</dt>
+                <dt>Location</dt>
                 <dd>{profile.location}</dd>
+              </div>
+            )}
+            {profile.gender && (
+              <div>
+                <dt>Gender</dt>
+                <dd>
+                  {profile.gender === "male" ? "Male" :
+                   profile.gender === "female" ? "Female" :
+                   profile.gender === "diverse" ? "Diverse" :
+                   profile.gender}
+                </dd>
+              </div>
+            )}
+            {profile.media_affinity !== null && profile.media_affinity !== undefined && (
+              <div>
+                <dt>Media Affinity</dt>
+                <dd>{profile.media_affinity}/100</dd>
               </div>
             )}
           </dl>

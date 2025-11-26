@@ -386,12 +386,12 @@ function KnowledgeListView({
                 <div className="udg-glass-list-item__row">
                   <strong>{chunk.content.substring(0, 100)}{chunk.content.length > 100 ? "..." : ""}</strong>
                   <span className="udg-glass-chip --draft">
-                    {((chunk.relevanceScore ?? chunk.relevance_score ?? 0) as number).toFixed(2)}
+                    {(chunk.relevanceScore ?? 0).toFixed(2)}
                   </span>
                 </div>
                 {chunk.documentFilename && (
                   <p className="udg-glass-muted" style={{ fontSize: "0.75rem", marginTop: "0.25rem", margin: 0 }}>
-                    {chunk.documentFilename || chunk.document_filename || "Unknown document"}
+                    {chunk.documentFilename || "Unknown document"}
                   </p>
                 )}
               </div>
@@ -464,11 +464,11 @@ function ChunkDetailPanel({ chunk, similarChunks, onClose }: ChunkDetailPanelPro
           <dl className="udg-glass-meta-grid">
             <div>
               <dt>Document</dt>
-              <dd>{chunk.documentFilename || chunk.document_filename || "Unknown"}</dd>
+              <dd>{chunk.documentFilename || "Unknown"}</dd>
             </div>
             <div style={{ borderLeft: "1px solid var(--color-secondary-dx-purple)", paddingLeft: "0.75rem" }}>
               <dt>Score</dt>
-              <dd>{((chunk.relevanceScore ?? chunk.relevance_score ?? 0) as number).toFixed(2)}</dd>
+              <dd>{(chunk.relevanceScore ?? 0).toFixed(2)}</dd>
             </div>
             {chunk.clusterId !== null && chunk.clusterId !== -1 && (
               <div style={{ borderLeft: "1px solid var(--color-secondary-dx-purple)", paddingLeft: "0.75rem" }}>

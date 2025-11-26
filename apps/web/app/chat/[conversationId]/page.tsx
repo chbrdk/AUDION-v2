@@ -57,6 +57,8 @@ type PersonaProfile = {
   bio?: string | null;
   age?: number | null;
   location?: string | null;
+  gender?: string | null;
+  media_affinity?: number | null;
   interests?: string[];
   colorPalette?: string[];
   attentionSpan?: string | null;
@@ -95,6 +97,23 @@ const normalizePersonaProfile = (raw: any): PersonaProfile | null => {
     const parsed = parseInt(ageValue, 10);
     if (!Number.isNaN(parsed)) {
       age = parsed;
+    }
+  }
+
+  const genderValue = raw.gender;
+  let gender: string | null = null;
+  if (typeof genderValue === "string" && genderValue.trim()) {
+    gender = genderValue.trim();
+  }
+
+  const mediaAffinityValue = raw.media_affinity;
+  let mediaAffinity: number | null = null;
+  if (typeof mediaAffinityValue === "number") {
+    mediaAffinity = mediaAffinityValue;
+  } else if (typeof mediaAffinityValue === "string" && mediaAffinityValue.trim()) {
+    const parsed = parseInt(mediaAffinityValue, 10);
+    if (!Number.isNaN(parsed)) {
+      mediaAffinity = parsed;
     }
   }
 
@@ -141,6 +160,8 @@ const normalizePersonaProfile = (raw: any): PersonaProfile | null => {
     bio: raw.bio ?? null,
     age,
     location: raw.location ?? null,
+    gender,
+    media_affinity: mediaAffinity,
     interests: toStringArray(raw.interests),
     colorPalette: toStringArray(raw.color_palette),
     attentionSpan: raw.attention_span ?? null,

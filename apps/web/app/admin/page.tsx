@@ -1,4 +1,4 @@
-import type { QueueStatsResponse, PersonaListResponse, TargetGroupListResponse } from "@udg-glass/types";
+import type { QueueStatsResponse, PersonaListResponse, ServiceStatusResponse, TargetGroupListResponse } from "@udg-glass/types";
 import { getPersonaBackendBase } from "../api/_lib/backend";
 import { UdgGlassAdminDashboard } from "../../components/admin/udg-glass-admin-dashboard";
 
@@ -103,6 +103,34 @@ async function fetchQueueStats(): Promise<QueueStatsResponse> {
   }
 }
 
+async function fetchServiceStatus(): Promise<ServiceStatusResponse | null> {
+  const internalUrl = process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL?.trim();
+  const base = internalUrl || getPersonaBackendBase({ preferPublic: false });
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+  try {
+    const response = await fetch(`${base}/queue/service-status`, {
+      cache: "no-store",
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      // Don't throw, just return null if service status is unavailable
+      return null;
+    }
+
+    return (await response.json()) as ServiceStatusResponse;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    // Return null on any error - service status is optional
+    return null;
+  }
+}
+
 export default async function AdminDashboardPage() {
   let personaStats = { total: 0 };
   let targetGroupStats = { total: 0 };
@@ -114,13 +142,15 @@ export default async function AdminDashboardPage() {
     workerAvailable: false,
     workerCount: 0,
   };
+  let serviceStatus: ServiceStatusResponse | null = null;
   let error: string | null = null;
 
   try {
-    const [personaResponse, targetGroupResponse, queueResponse] = await Promise.allSettled([
+    const [personaResponse, targetGroupResponse, queueResponse, serviceStatusResponse] = await Promise.allSettled([
       fetchPersonaList(),
       fetchTargetGroupList(),
       fetchQueueStats(),
+      fetchServiceStatus(),
     ]);
 
     if (personaResponse.status === "fulfilled") {
@@ -139,6 +169,10 @@ export default async function AdminDashboardPage() {
       queueStats = queueResponse.value;
     } else {
       console.error("Failed to fetch queue stats:", queueResponse.reason);
+    }
+
+    if (serviceStatusResponse.status === "fulfilled" && serviceStatusResponse.value) {
+      serviceStatus = serviceStatusResponse.value;
     }
   } catch (err) {
     error = err instanceof Error ? err.message : "Unknown error";
@@ -164,6 +198,7 @@ export default async function AdminDashboardPage() {
         personaStats={personaStats}
         targetGroupStats={targetGroupStats}
         queueStats={queueStats}
+        serviceStatus={serviceStatus}
       />
     </>
   );

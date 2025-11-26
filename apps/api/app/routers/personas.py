@@ -8,9 +8,11 @@ from pathlib import Path
 from typing import List
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
+from fastapi import Request
 from fastapi.responses import RedirectResponse, Response, StreamingResponse
 from sqlalchemy.orm import Session
+import json
 
 from ..db import get_session
 from ..models import Document, DocumentChunk, Persona, PersonaKnowledgeEntry, ProcessingJob
@@ -272,13 +274,64 @@ def get_persona(persona_id: str, session: Session = Depends(get_db)) -> PersonaR
     The cache for this persona is automatically invalidated after update.
     """
 )
-def update_persona(
+async def update_persona(
     persona_id: str,
-    payload: PersonaPatchRequest,
+    body: dict = Body(...),
     session: Session = Depends(get_db),
 ) -> PersonaResponse:
+    """
+    Update persona with direct JSON access to avoid Pydantic None filtering issues.
+    """
+    import sys
+    import structlog
+    from udg_glass_proto.personas import PersonaPrompt
+    logger = structlog.get_logger(__name__)
+    
+    # CRITICAL: Log that this route was called
+    logger.info("persona.update.router.entry", persona_id=persona_id)
+    
+    # CRITICAL: body is already a dict from FastAPI Body(...)
+    # This preserves None values exactly as sent from frontend
+    
+    logger.info("persona.update.router.body_received", persona_id=persona_id, body_keys=list(body.keys())[:20] if body else [])
+    
+    # Extract profile JSON directly (no Pydantic!)
+    profile_json = body.get("profile")
+    
+    # Build payload object manually from JSON
+    # Keep Pydantic only for simple fields, not for profile
+    payload = PersonaPatchRequest(
+        name=body.get("name"),
+        segment=body.get("segment"),
+        headline=body.get("headline"),
+        profile=None,  # We handle profile separately as raw JSON
+        confidence=body.get("confidence"),
+        version=body.get("version"),
+        status=body.get("status"),
+        updated_by=body.get("updated_by"),
+        last_reviewed_at=body.get("last_reviewed_at"),
+        image_url=body.get("image_url"),
+        locked_by=body.get("locked_by"),
+        locked_at=body.get("locked_at"),
+        prompt=PersonaPrompt(**body["prompt"]) if body.get("prompt") else None,
+    )
+    
+    logger.info("persona.update.router.start", persona_id=persona_id, has_profile=profile_json is not None)
+    if profile_json:
+        logger.info(
+            "persona.update.router.profile_json",
+            persona_id=persona_id,
+            gender_in=('gender' in profile_json),
+            gender_value=profile_json.get('gender'),
+            media_affinity_in=('media_affinity' in profile_json),
+            media_affinity_value=profile_json.get('media_affinity'),
+            age_in=('age' in profile_json),
+            age_value=profile_json.get('age'),
+            profile_keys=list(profile_json.keys())[:30],
+        )
+    
     try:
-        return persona_service.update_persona(session, persona_id, payload)
+        return persona_service.update_persona(session, persona_id, payload, profile_json=profile_json)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail="Persona not found") from exc
 

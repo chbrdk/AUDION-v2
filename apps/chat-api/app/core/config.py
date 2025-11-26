@@ -1,13 +1,25 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+BASE_DIR = Path(__file__).resolve().parents[4]
+CHAT_API_DIR = Path(__file__).resolve().parents[2]
+
+
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=(
+            CHAT_API_DIR / ".env",
+            BASE_DIR / ".env",
+        ),
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
     app_env: Literal["development", "staging", "production"] = "development"
     api_host: str = "0.0.0.0"

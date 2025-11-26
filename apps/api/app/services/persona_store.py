@@ -204,11 +204,28 @@ class PersonaService:
         return response
 
     def create_persona(self, session: Session, payload: PersonaCreateRequest) -> PersonaResponse:
-        profile_payload = payload.profile.model_dump() if payload.profile else self._default_profile_payload(
-            name=payload.name,
-            segment=payload.segment,
-            headline=payload.headline,
-        )
+        from .field_config import get_preserved_fields
+        
+        if payload.profile:
+            # CRITICAL: Use model_dump(exclude_none=False) to preserve None values
+            # And ensure preserved fields are always included
+            profile_payload = payload.profile.model_dump(exclude_none=False, exclude_unset=False)
+            
+            # Ensure preserved fields are always present (even if None)
+            preserve_fields = get_preserved_fields("persona", "profile")
+            for field_name in preserve_fields:
+                if field_name not in profile_payload:
+                    # If field is not in profile_payload, check if it exists as attribute
+                    if hasattr(payload.profile, field_name):
+                        profile_payload[field_name] = getattr(payload.profile, field_name)
+                    else:
+                        profile_payload[field_name] = None
+        else:
+            profile_payload = self._default_profile_payload(
+                name=payload.name,
+                segment=payload.segment,
+                headline=payload.headline,
+            )
         target_group_id = None
         if payload.target_group_id:
             try:
@@ -261,21 +278,118 @@ class PersonaService:
         self._set_cache(str(persona.id), response)
         return response
 
-    def update_persona(self, session: Session, persona_id: str, payload: PersonaPatchRequest) -> PersonaResponse:
+    def update_persona(self, session: Session, persona_id: str, payload: PersonaPatchRequest, profile_json: dict | None = None) -> PersonaResponse:
+        from .generic_field_handler import GenericFieldHandler
+        from .field_config import get_preserved_fields
+        
         persona = session.get(Persona, UUID(persona_id))
         if not persona:
             raise ValueError("persona_not_found")
 
         before = self._audit_payload(persona)
 
+        # Update simple fields
         if payload.name:
             persona.name = payload.name
         if payload.segment:
             persona.segment = payload.segment
         if payload.headline:
             persona.headline = payload.headline
-        if payload.profile:
-            persona.profile = payload.profile.model_dump()
+        
+        # Handle profile update - use raw JSON if available, otherwise Pydantic model
+        if profile_json is not None:
+            # DIRECT JSON APPROACH: Use raw JSON dict directly - no Pydantic filtering!
+            import sys
+            from copy import deepcopy
+            from sqlalchemy.orm.attributes import flag_modified
+            
+            preserve_fields = get_preserved_fields("persona", "profile")
+            existing_profile = persona.profile or {}
+            
+            logger.info("persona.update.store.direct_json", persona_id=str(persona_id), profile_keys=list(profile_json.keys())[:30])
+            logger.info(
+                "persona.update.store.profile_values",
+                persona_id=str(persona_id),
+                gender_in=('gender' in profile_json),
+                gender_value=profile_json.get('gender'),
+                media_affinity_in=('media_affinity' in profile_json),
+                media_affinity_value=profile_json.get('media_affinity'),
+                age_in=('age' in profile_json),
+                age_value=profile_json.get('age'),
+            )
+            
+            # Merge: Start with existing, update with new JSON
+            merged_profile = deepcopy(existing_profile)
+            
+            # Now update with new JSON (this may overwrite preserved fields, which is OK)
+            merged_profile.update(profile_json)
+            
+            # CRITICAL: Ensure preserved_fields are ALWAYS present (even if None)
+            # This MUST happen AFTER the merge to ensure all preserved fields are explicitly set
+            for field_name in preserve_fields:
+                if field_name in profile_json:
+                    # Use value from JSON (can be None) - this explicitly sets it
+                    merged_profile[field_name] = profile_json[field_name]
+                elif field_name in existing_profile:
+                    # Keep existing value if not in update
+                    merged_profile[field_name] = existing_profile[field_name]
+                else:
+                    # If not in existing or JSON, explicitly set to None
+                    merged_profile[field_name] = None
+                
+                logger.info(
+                    "persona.update.store.set_preserved_field",
+                    persona_id=str(persona_id),
+                    field=field_name,
+                    value=merged_profile.get(field_name),
+                    in_json=(field_name in profile_json),
+                    in_existing=(field_name in existing_profile),
+                )
+            
+            logger.info(
+                "persona.update.store.after_merge",
+                persona_id=str(persona_id),
+                merged_keys=list(merged_profile.keys())[:30],
+                gender_in=('gender' in merged_profile),
+                gender_value=merged_profile.get('gender'),
+                media_affinity_in=('media_affinity' in merged_profile),
+                media_affinity_value=merged_profile.get('media_affinity'),
+            )
+            
+            # Direct assignment to persona.profile
+            persona.profile = deepcopy(merged_profile)
+            flag_modified(persona, "profile")
+            
+            logger.info(
+                "persona.update.store.after_assignment",
+                persona_id=str(persona_id),
+                profile_keys=list((persona.profile or {}).keys())[:20],
+                gender_in=('gender' in (persona.profile or {})),
+                gender_value=(persona.profile or {}).get('gender'),
+                media_affinity_in=('media_affinity' in (persona.profile or {})),
+                media_affinity_value=(persona.profile or {}).get('media_affinity'),
+            )
+            
+        elif payload.profile:
+            # Fallback: Use Pydantic model (shouldn't happen with new approach)
+            logger.warning("persona.update.using_pydantic_fallback", persona_id=str(persona_id))
+            preserve_fields = get_preserved_fields("persona", "profile")
+            handler = GenericFieldHandler(
+                entity_type="persona",
+                json_fields=["profile"],
+                preserved_fields=preserve_fields,
+            )
+            profile_updates = payload.profile.model_dump(exclude_none=False, exclude_unset=False)
+            for field_name in preserve_fields:
+                if hasattr(payload.profile, field_name):
+                    profile_updates[field_name] = getattr(payload.profile, field_name)
+                elif field_name not in profile_updates:
+                    profile_updates[field_name] = None
+            handler.apply_updates_to_entity(
+                persona,
+                {"profile": profile_updates},
+                json_field_preserve_fields={"profile": preserve_fields}
+            )
         if payload.confidence is not None:
             persona.confidence = payload.confidence
         if payload.version:
@@ -316,11 +430,55 @@ class PersonaService:
         )
         session.commit()
         session.refresh(persona)
+        
+        # Debug: Log the actual saved profile data
+        saved_profile = persona.profile or {}
+        
+        # CRITICAL: Verify that preserved fields are actually in the saved profile
+        import json
+        logger.info(
+            "persona.update.store.after_commit",
+            persona_id=str(persona.id),
+            profile_keys=list(saved_profile.keys())[:30],
+            gender_in=('gender' in saved_profile),
+            gender_value=saved_profile.get('gender'),
+            media_affinity_in=('media_affinity' in saved_profile),
+            media_affinity_value=saved_profile.get('media_affinity'),
+            age_in=('age' in saved_profile),
+            age_value=saved_profile.get('age'),
+        )
+        
+        # CRITICAL: Direct DB query to verify what's actually stored
+        try:
+            from sqlalchemy import text
+            db_result = session.execute(
+                text("SELECT profile::text FROM personas WHERE id = :persona_id"),
+                {"persona_id": str(persona.id)}
+            ).scalar()
+            
+            if db_result:
+                db_profile = json.loads(db_result)
+                logger.info(
+                    "persona.update.store.db_query",
+                    persona_id=str(persona.id),
+                    db_profile_keys=list(db_profile.keys())[:30],
+                    db_gender=db_profile.get('gender'),
+                    db_media_affinity=db_profile.get('media_affinity'),
+                    db_age=db_profile.get('age'),
+                )
+        except Exception as e:
+            logger.warning("persona.update.store.db_query_error", persona_id=str(persona.id), error=str(e))
+        
         logger.info(
             "persona.update",
             persona_id=str(persona.id),
             status=persona.status.value,
             updated_by=persona.updated_by,
+            saved_profile_keys=list(saved_profile.keys())[:20],
+            saved_gender=saved_profile.get("gender"),
+            saved_age=saved_profile.get("age"),
+            saved_location=saved_profile.get("location"),
+            saved_media_affinity=saved_profile.get("media_affinity"),
         )
 
         prompt = self._latest_prompt(session, persona.id)
@@ -454,7 +612,10 @@ class PersonaService:
         )
 
     def _profile_from_persona(self, persona: Persona) -> PersonaProfile:
+        from .field_config import get_preserved_fields
+        
         payload = persona.profile or {}
+        preserve_fields = get_preserved_fields("persona", "profile")
 
         def field(*keys: str, default: Any = None) -> Any:
             for key in keys:
@@ -475,11 +636,39 @@ class PersonaService:
             "confidence": field("confidence", default=persona.confidence),
             "version": field("version", default=persona.version),
             "created_at": field("created_at", "createdAt", default=(persona.created_at or datetime.utcnow()).isoformat()),
+            # Optional fields
+            "interests": payload.get("interests", []),
+            "color_palette": payload.get("color_palette", []),
+            "attention_span": payload.get("attention_span") if "attention_span" in payload else None,
+            "social_media_usage": payload.get("social_media_usage", []),
+            "values": payload.get("values", []),
         }
-        return PersonaProfile(**defaults)
+        
+        # CRITICAL: Preserved fields - always include them explicitly, even if None
+        # This ensures they're available for editing and are included in API responses
+        for field_name in preserve_fields:
+            # Explicitly check if key exists in payload (to distinguish None from missing)
+            if field_name in payload:
+                defaults[field_name] = payload[field_name]  # Can be None
+            else:
+                defaults[field_name] = None  # Explicitly None if not present
+        
+        # Create PersonaProfile instance
+        profile = PersonaProfile(**defaults)
+        
+        # CRITICAL: Explicitly set preserved demographic fields to ensure they're included even if None
+        # Pydantic will include them in model_dump() when they're explicitly set as attributes
+        for field_name in preserve_fields:
+            setattr(profile, field_name, defaults.get(field_name))
+        
+        return profile
 
     def _default_profile_payload(self, *, name: str, segment: str, headline: str) -> dict[str, Any]:
+        from .field_config import get_preserved_fields
+        
         now = datetime.utcnow().isoformat()
+        preserve_fields = get_preserved_fields("persona", "profile")
+        
         payload = {
             "name": name,
             "segment": segment,
@@ -496,6 +685,12 @@ class PersonaService:
             "created_at": now,
             "createdAt": now,
         }
+        
+        # CRITICAL: Add preserved fields explicitly as None
+        # This ensures they're always present in the profile from the start
+        for field_name in preserve_fields:
+            payload[field_name] = None
+        
         return payload
 
     def _default_comm_style(self) -> dict[str, Any]:

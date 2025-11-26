@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 
-import { forwardPersonaBackend, resolvePersonaParams } from "../../../../../_lib/persona";
+import { forwardPersonaBackend, resolvePersonaParams } from "../../../../../../_lib/persona";
 
 type RouteParams = {
   params: {

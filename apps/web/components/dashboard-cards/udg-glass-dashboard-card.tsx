@@ -18,7 +18,7 @@ export type UdgGlassDashboardCardProps = {
   title: string;
   icon: string;
   variant?: DashboardCardVariant;
-  iconColor?: { background: string; color: string };
+  iconColor?: { background?: string; color: string };
   borderColor?: string;
   fullWidth?: boolean;
   expanded: boolean;

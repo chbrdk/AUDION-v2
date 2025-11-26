@@ -386,6 +386,17 @@ class QueueStatsResponse(BaseModel):
     worker_count: int = Field(0, description="Number of workers detected as available.")
 
 
+class ServiceStatus(BaseModel):
+    name: str = Field(..., description="Service name.")
+    status: str = Field(..., description="Service status: 'up', 'down', or 'unknown'.")
+    message: str | None = Field(default=None, description="Optional status message or error.")
+
+
+class ServiceStatusResponse(BaseModel):
+    services: List[ServiceStatus] = Field(..., description="List of service statuses.")
+    all_services_up: bool = Field(..., description="True if all critical services are up.")
+
+
 class LogEntry(BaseModel):
     level: str = Field(..., description="Log severity (DEBUG, INFO, WARNING, ERROR).")
     message: str = Field(..., description="Log message text.")
@@ -588,6 +599,8 @@ __all__ = [
     "ProcessingJobDetailResponse",
     "CeleryTaskStatus",
     "QueueStatsResponse",
+    "ServiceStatus",
+    "ServiceStatusResponse",
     "LogEntry",
     "LogListResponse",
     "KnowledgeChunk",

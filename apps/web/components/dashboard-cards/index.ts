@@ -10,6 +10,9 @@ export type { UdgGlassPersonaBasicsCardProps } from "./udg-glass-persona-basics-
 export { UdgGlassBioCard } from "./udg-glass-bio-card";
 export type { UdgGlassBioCardProps } from "./udg-glass-bio-card";
 
+export { UdgGlassBioCardEdit } from "./udg-glass-bio-card-edit";
+export type { UdgGlassBioCardEditProps } from "./udg-glass-bio-card-edit";
+
 export { UdgGlassPersonalityCard } from "./udg-glass-personality-card";
 export type { UdgGlassPersonalityCardProps } from "./udg-glass-personality-card";
 

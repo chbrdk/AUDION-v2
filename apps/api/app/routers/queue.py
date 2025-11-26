@@ -12,11 +12,14 @@ from ..schemas import (
     ProcessingJobDetailResponse,
     ProcessingJobListResponse,
     QueueStatsResponse,
+    ServiceStatusResponse,
 )
 from ..services.queue_store import QueueService
+from ..services.service_status import ServiceStatusService
 
 router = APIRouter(prefix="/queue", tags=["queue"])
 service = QueueService()
+service_status_service = ServiceStatusService()
 
 
 def get_db():
@@ -289,6 +292,40 @@ def get_recent_logs(
             date_from=date_from,
             date_to=date_to,
         )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get(
+    "/service-status",
+    response_model=ServiceStatusResponse,
+    summary="Get status of all system services",
+    description="""
+    Retrieve the health status of all system services including databases, APIs, and infrastructure.
+    
+    This endpoint checks the connectivity and health of:
+    - PostgreSQL database
+    - Redis cache/queue
+    - Qdrant vector database
+    - Neo4j graph database
+    - Tempo observability
+    - Indexing API
+    - Chat API
+    - Persona API (this service)
+    - Web frontend
+    - Nginx reverse proxy
+    
+    **Returns:**
+    - List of service statuses with name, status (up/down/unknown), and optional message
+    - Overall indicator if all critical services are up
+    
+    **Note:** Service checks have a 2-second timeout. Some services may be marked as "unknown"
+    if they are not configured or unreachable.
+    """
+)
+async def get_service_status() -> ServiceStatusResponse:
+    try:
+        return await service_status_service.get_service_status()
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 

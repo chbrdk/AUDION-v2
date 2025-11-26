@@ -1,23 +1,50 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import type { QueueStatsResponse } from "@udg-glass/types";
-import { Box, Button, Stack, Typography } from "@mui/material";
+import type { QueueStatsResponse, ServiceStatusResponse } from "@udg-glass/types";
+import { alpha, Box, Button, Collapse, Stack, Typography, useTheme } from "@mui/material";
 import { MaterialSymbol } from "../material-symbol";
 
 export type UdgGlassAdminDashboardProps = {
   personaStats: { total: number };
   targetGroupStats: { total: number };
   queueStats: QueueStatsResponse;
+  serviceStatus: ServiceStatusResponse | null;
 };
 
 export const UdgGlassAdminDashboard = ({
   personaStats,
   targetGroupStats,
-  queueStats
+  queueStats,
+  serviceStatus
 }: UdgGlassAdminDashboardProps) => {
-  const totalQueueJobs = queueStats.pendingCount + queueStats.processingCount + 
-                         queueStats.completedCount + queueStats.failedCount;
+  const theme = useTheme();
+  const [showServices, setShowServices] = useState(false);
+  const totalQueueJobs = (queueStats.pendingCount ?? 0) + (queueStats.processingCount ?? 0) + 
+                         (queueStats.completedCount ?? 0) + (queueStats.failedCount ?? 0);
+  
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "up":
+        return "check_circle";
+      case "down":
+        return "error";
+      default:
+        return "help";
+    }
+  };
+  
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "up":
+        return theme.palette.success.main;
+      case "down":
+        return theme.palette.error.main;
+      default:
+        return theme.palette.text.secondary;
+    }
+  };
 
   return (
     <Box sx={{ width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
@@ -156,7 +183,7 @@ export const UdgGlassAdminDashboard = ({
           </Stack>
         </Box>
 
-        {/* Queue Status KPI Card */}
+        {/* Service Status KPI Card */}
         <Box
           className="udg-glass-panel"
           sx={{
@@ -171,23 +198,134 @@ export const UdgGlassAdminDashboard = ({
           <Stack spacing={0.125}>
             <Box sx={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
               <MaterialSymbol 
-                icon={queueStats.workerAvailable ? "check_circle" : "error"} 
+                icon={serviceStatus?.allServicesUp ? "check_circle" : (serviceStatus ? "error" : "help")} 
                 fontSize={24} 
                 style={{ color: "var(--color-secondary-dx-purple)" }} 
               />
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Workers
+                Services
               </Typography>
             </Box>
-            <Typography variant="h3" sx={{ fontSize: "2.5rem", fontWeight: 300 }}>
-              {queueStats.workerCount}
-            </Typography>
-            <Typography variant="body2" sx={{ color: "var(--color-text-secondary)" }}>
-              {queueStats.workerAvailable ? "Available" : "Not available"}
-            </Typography>
+            {serviceStatus && serviceStatus.services ? (
+              <>
+                <Typography variant="h3" sx={{ fontSize: "2.5rem", fontWeight: 300 }}>
+                  {serviceStatus.services.filter(s => s.status === "up").length}/{serviceStatus.services.length}
+                </Typography>
+                <Typography variant="body2" sx={{ color: "var(--color-text-secondary)" }}>
+                  {serviceStatus.allServicesUp ? "All services up" : `${serviceStatus.services.filter(s => s.status === "down").length} service(s) down`}
+                </Typography>
+              </>
+            ) : (
+              <>
+                <Typography variant="h3" sx={{ fontSize: "2.5rem", fontWeight: 300 }}>
+                  {queueStats.workerCount ?? 0}
+                </Typography>
+                <Typography variant="body2" sx={{ color: "var(--color-text-secondary)" }}>
+                  {queueStats.workerAvailable ? "Workers available" : "Workers not available"}
+                </Typography>
+              </>
+            )}
           </Stack>
         </Box>
       </Box>
+
+      {/* Service Status Details */}
+      {serviceStatus && serviceStatus.services && (
+        <Box
+          className="udg-glass-panel"
+          sx={{
+            padding: "0",
+            border: "1px solid var(--color-secondary-dx-purple)",
+            borderRadius: 0,
+            minWidth: 0,
+            maxWidth: "100%",
+            boxSizing: "border-box",
+            marginBottom: "2rem"
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              cursor: "pointer",
+              p: 2,
+              "&:hover": {
+                backgroundColor: alpha(theme.palette.text.primary, theme.palette.mode === "dark" ? 0.05 : 0.02)
+              }
+            }}
+            onClick={() => setShowServices(!showServices)}
+          >
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              Service Status Details
+            </Typography>
+            <MaterialSymbol 
+              icon={showServices ? "expand_less" : "expand_more"} 
+              fontSize={24} 
+              style={{ color: "var(--color-secondary-dx-purple)" }} 
+            />
+          </Box>
+          <Collapse in={showServices}>
+            <Box sx={{ p: 2, pt: 0 }}>
+              <Stack spacing={1}>
+                {serviceStatus.services.map((service) => (
+                  <Box
+                    key={service.name}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      p: 1.5,
+                      borderRadius: 1,
+                      backgroundColor: alpha(
+                        getStatusColor(service.status),
+                        theme.palette.mode === "dark" ? 0.1 : 0.05
+                      ),
+                      border: `1px solid ${alpha(getStatusColor(service.status), 0.3)}`
+                    }}
+                  >
+                    <MaterialSymbol 
+                      icon={getStatusIcon(service.status)} 
+                      fontSize={20} 
+                      style={{ color: getStatusColor(service.status) }} 
+                    />
+                    <Typography variant="body1" sx={{ flex: 1, fontWeight: 500 }}>
+                      {service.name}
+                    </Typography>
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        color: getStatusColor(service.status),
+                        textTransform: "uppercase",
+                        fontWeight: 600,
+                        fontSize: "0.75rem"
+                      }}
+                    >
+                      {service.status}
+                    </Typography>
+                    {service.message && (
+                      <Typography 
+                        variant="caption" 
+                        sx={{ 
+                          color: theme.palette.text.secondary,
+                          fontStyle: "italic",
+                          maxWidth: "300px",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap"
+                        }}
+                        title={service.message}
+                      >
+                        {service.message}
+                      </Typography>
+                    )}
+                  </Box>
+                ))}
+              </Stack>
+            </Box>
+          </Collapse>
+        </Box>
+      )}
 
       {/* Quick Actions */}
       <Box

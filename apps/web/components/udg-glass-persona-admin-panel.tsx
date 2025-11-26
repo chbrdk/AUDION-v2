@@ -5,7 +5,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "rea
 
 import clsx from "clsx";
 
-import type { PersonaListItem, PersonaListResponse, PersonaResponse } from "@udg-glass/types";
+import type { PersonaListItem, PersonaListResponse, PersonaProfile, PersonaResponse } from "@udg-glass/types";
 
 import { MaterialSymbol } from "./material-symbol";
 import {
@@ -15,8 +15,11 @@ import {
   UdgGlassPainPointsGoalsCard,
   UdgGlassCommunicationCard,
   UdgGlassKnowledgeSourcesCard,
-  UdgGlassAdvancedCard
+  UdgGlassAdvancedCard,
+  UdgGlassDashboardCard,
+  UdgGlassDashboardCardSection,
 } from "./dashboard-cards";
+import { UdgGlassEntityEditor } from "./generic";
 
 type UdgGlassPersonaAdminPanelProps = {
   initialList: PersonaListResponse;
@@ -143,7 +146,7 @@ export const UdgGlassPersonaAdminPanel = ({ initialList, docsUrl }: UdgGlassPers
   const [createPending, setCreatePending] = useState(false);
   const [listRefreshing, setListRefreshing] = useState(false);
   const [documentUploadPending, setDocumentUploadPending] = useState(false);
-  const [avatarUploadPending, setAvatarUploadPending] = useState(false);
+  const [avatarGeneratePending, setAvatarGeneratePending] = useState(false);
   const [knowledgeForm, setKnowledgeForm] = useState<KnowledgeFormState>(defaultKnowledgeForm);
   const [knowledgePending, setKnowledgePending] = useState(false);
   const [expandedAccordions, setExpandedAccordions] = useState<Set<string>>(
@@ -158,7 +161,6 @@ export const UdgGlassPersonaAdminPanel = ({ initialList, docsUrl }: UdgGlassPers
     ])
   );
   const documentInputRef = useRef<HTMLInputElement | null>(null);
-  const avatarInputRef = useRef<HTMLInputElement | null>(null);
 
   const selectedListItem: PersonaListItem | undefined = useMemo(
     () => list.items.find((item) => item.id === selectedId),
@@ -262,25 +264,223 @@ export const UdgGlassPersonaAdminPanel = ({ initialList, docsUrl }: UdgGlassPers
     }));
   };
 
-  const handleSave = async () => {
+  const handleSave = async (updates?: Partial<EditFormState> | Partial<PersonaProfile>) => {
     if (!selectedId || !detail) {
       return;
     }
     setSavePending(true);
     try {
-      const payload = {
-        name: editForm.name,
-        headline: editForm.headline,
-        segment: editForm.segment,
-        status: editForm.status,
-        updated_by: editForm.updatedBy || "persona-admin-ui",
-        profile: {
-          ...detail.profile,
-          name: editForm.name,
-          headline: editForm.headline,
-          segment: editForm.segment,
-        },
+      // Check if updates contain demographic fields (PersonaProfile fields)
+      const hasDemographicFields = updates && (
+        'age' in updates ||
+        'location' in updates ||
+        'gender' in updates ||
+        'media_affinity' in updates ||
+        'full_name' in updates ||
+        'bio' in updates ||
+        'interests' in updates ||
+        'values' in updates ||
+        'traits' in updates ||
+        'communication_style' in updates ||
+        'pain_points' in updates ||
+        'goals' in updates
+      );
+
+      let formUpdates: Partial<EditFormState> | undefined;
+      let demographicUpdates: Partial<PersonaProfile> | undefined;
+
+      if (hasDemographicFields) {
+        // Updates are demographic fields
+        demographicUpdates = updates as Partial<PersonaProfile>;
+      } else {
+        // Updates are form fields
+        formUpdates = updates as Partial<EditFormState>;
+      }
+
+      // Merge basic form updates
+      const updatedName = formUpdates?.name ?? editForm.name;
+      const updatedHeadline = formUpdates?.headline ?? editForm.headline;
+      const updatedSegment = formUpdates?.segment ?? editForm.segment;
+      const updatedStatus = formUpdates?.status ?? editForm.status;
+      const updatedBy = formUpdates?.updatedBy ?? editForm.updatedBy ?? "persona-admin-ui";
+
+      // Prepare profile updates - preserve existing values and merge new ones
+      const profileUpdates: Partial<PersonaProfile> = {
+        ...detail.profile,
+        name: updatedName,
+        headline: updatedHeadline,
+        segment: updatedSegment,
       };
+
+      // Merge demographic updates (explicitly set values, including null)
+      if (demographicUpdates) {
+        // Explicitly handle each demographic field to ensure they are set
+        if ('age' in demographicUpdates) {
+          profileUpdates.age = demographicUpdates.age;
+        }
+        if ('location' in demographicUpdates) {
+          profileUpdates.location = demographicUpdates.location ?? null;
+        }
+        if ('gender' in demographicUpdates) {
+          // Explicitly set gender, even if it's an empty string (convert to null)
+          const genderValue = demographicUpdates.gender;
+          profileUpdates.gender = (genderValue && genderValue.trim() !== "") ? genderValue : null;
+        }
+        if ('media_affinity' in demographicUpdates) {
+          profileUpdates.media_affinity = demographicUpdates.media_affinity;
+        }
+        if ('full_name' in demographicUpdates) {
+          profileUpdates.full_name = demographicUpdates.full_name ?? null;
+        }
+        // Handle other fields
+        Object.keys(demographicUpdates).forEach((key) => {
+          if (!['age', 'location', 'gender', 'media_affinity', 'full_name', 'name', 'headline', 'segment'].includes(key)) {
+            const value = demographicUpdates[key as keyof PersonaProfile];
+            if (value !== undefined) {
+              (profileUpdates as any)[key] = value;
+            }
+          }
+        });
+      }
+
+      // Ensure we send the complete profile, not just updates
+      // Start with the existing profile and apply all updates
+      const completeProfile: PersonaProfile = {
+        ...detail.profile,
+        // Override with form updates first
+        name: updatedName,
+        headline: updatedHeadline,
+        segment: updatedSegment,
+      };
+      
+      // ALWAYS ensure optional demographic fields exist (even if null) so they're included in JSON
+      // JSON.stringify excludes undefined but includes null, so we need to explicitly set them
+      // We MUST set them as properties, not just check - use existing value or null
+      const existingGender = detail.profile?.gender;
+      const existingAge = detail.profile?.age;
+      const existingLocation = detail.profile?.location;
+      const existingMediaAffinity = detail.profile?.media_affinity;
+      const existingFullName = detail.profile?.full_name;
+      
+      // Explicitly assign to ensure they're properties (not undefined)
+      completeProfile.gender = completeProfile.gender ?? existingGender ?? null;
+      completeProfile.age = completeProfile.age ?? existingAge ?? null;
+      completeProfile.location = completeProfile.location ?? existingLocation ?? null;
+      completeProfile.media_affinity = completeProfile.media_affinity ?? existingMediaAffinity ?? null;
+      completeProfile.full_name = completeProfile.full_name ?? existingFullName ?? null;
+      
+      // Apply demographic updates explicitly to ensure they override existing values
+      if (demographicUpdates) {
+        if ('age' in demographicUpdates) {
+          completeProfile.age = demographicUpdates.age;
+        }
+        if ('location' in demographicUpdates) {
+          completeProfile.location = demographicUpdates.location ?? null;
+        }
+        if ('gender' in demographicUpdates) {
+          // Explicitly set gender, even if it's null or empty string
+          const genderValue = demographicUpdates.gender;
+          const finalGender = (genderValue && typeof genderValue === 'string' && genderValue.trim() !== "") ? genderValue : null;
+          completeProfile.gender = finalGender;
+          console.log('[DEBUG] Setting gender:', { genderValue, finalGender, hasGender: 'gender' in completeProfile });
+        }
+        if ('media_affinity' in demographicUpdates) {
+          completeProfile.media_affinity = demographicUpdates.media_affinity;
+        }
+        if ('full_name' in demographicUpdates) {
+          completeProfile.full_name = demographicUpdates.full_name ?? null;
+        }
+        // Merge any other demographic fields
+        Object.keys(demographicUpdates).forEach((key) => {
+          if (!['age', 'location', 'gender', 'media_affinity', 'full_name', 'name', 'headline', 'segment'].includes(key)) {
+            const value = demographicUpdates[key as keyof PersonaProfile];
+            if (value !== undefined) {
+              (completeProfile as any)[key] = value;
+            }
+          }
+        });
+      }
+      
+      // Also apply profileUpdates for any other fields that were set
+      if (profileUpdates) {
+        Object.keys(profileUpdates).forEach((key) => {
+          if (!['name', 'headline', 'segment'].includes(key)) {
+            const value = profileUpdates[key as keyof PersonaProfile];
+            if (value !== undefined) {
+              (completeProfile as any)[key] = value;
+            }
+          }
+        });
+      }
+
+      // CRITICAL: Ensure all demographic fields are explicitly present in the profile (even if null)
+      // This is important because JSON.stringify will omit undefined fields but include null fields
+      // We must set them BEFORE serialization to ensure they're sent to the backend
+      if (!('gender' in completeProfile)) {
+        completeProfile.gender = detail.profile?.gender ?? null;
+      }
+      if (!('age' in completeProfile)) {
+        completeProfile.age = detail.profile?.age ?? null;
+      }
+      if (!('location' in completeProfile)) {
+        completeProfile.location = detail.profile?.location ?? null;
+      }
+      if (!('media_affinity' in completeProfile)) {
+        completeProfile.media_affinity = detail.profile?.media_affinity ?? null;
+      }
+      if (!('full_name' in completeProfile)) {
+        completeProfile.full_name = detail.profile?.full_name ?? null;
+      }
+
+      // FINAL check: Force all demographic fields to be explicitly set (even if null)
+      // This is critical because JSON.stringify() omits undefined but includes null
+      // We MUST set them as properties (not just check if they exist) to ensure serialization
+      Object.assign(completeProfile, {
+        gender: completeProfile.gender ?? null,
+        age: completeProfile.age ?? null,
+        location: completeProfile.location ?? null,
+        media_affinity: completeProfile.media_affinity ?? null,
+        full_name: completeProfile.full_name ?? null,
+      });
+
+      // Debug logging - log the complete payload AFTER ensuring all fields are set
+      console.log('[DEBUG] Sending payload:', {
+        hasProfile: !!completeProfile,
+        profileKeys: Object.keys(completeProfile || {}),
+        gender: completeProfile?.gender,
+        genderType: typeof completeProfile?.gender,
+        age: completeProfile?.age,
+        location: completeProfile?.location,
+        media_affinity: completeProfile?.media_affinity,
+        demographicUpdates: demographicUpdates,
+        hasGenderInProfile: 'gender' in completeProfile,
+        hasMediaAffinityInProfile: 'media_affinity' in completeProfile,
+        completeProfile: JSON.stringify(completeProfile, null, 2),
+      });
+
+      const payload = {
+        name: updatedName,
+        headline: updatedHeadline,
+        segment: updatedSegment,
+        status: updatedStatus,
+        updated_by: updatedBy,
+        profile: completeProfile,
+      };
+      
+      console.log('[DEBUG] Payload JSON:', JSON.stringify(payload, null, 2));
+      console.log('[DEBUG] Profile keys before send:', Object.keys(completeProfile));
+      console.log('[DEBUG] Gender in profile before send:', 'gender' in completeProfile, completeProfile.gender);
+
+
+      // Update local form state if we have form updates
+      if (formUpdates) {
+        if (formUpdates.name !== undefined) handleEditField("name", formUpdates.name);
+        if (formUpdates.headline !== undefined) handleEditField("headline", formUpdates.headline);
+        if (formUpdates.segment !== undefined) handleEditField("segment", formUpdates.segment);
+        if (formUpdates.status !== undefined) handleEditField("status", formUpdates.status);
+        if (formUpdates.updatedBy !== undefined) handleEditField("updatedBy", formUpdates.updatedBy);
+      }
+
       const response = await fetch(`/api/persona-admin/${selectedId}`, {
         method: "PATCH",
         headers: {
@@ -289,14 +489,37 @@ export const UdgGlassPersonaAdminPanel = ({ initialList, docsUrl }: UdgGlassPers
         body: JSON.stringify(payload),
       });
       if (!response.ok) {
-        throw new Error(`Backend responded with ${response.status}`);
+        const errorText = await response.text().catch(() => "");
+        console.error('[DEBUG] Save failed:', response.status, errorText);
+        throw new Error(`Backend responded with ${response.status}: ${errorText}`);
       }
       const updated = (await response.json()) as PersonaResponse;
+      console.log('[DEBUG] Received response:', {
+        hasProfile: !!updated.profile,
+        profileKeys: Object.keys(updated.profile || {}),
+        gender: updated.profile?.gender,
+        age: updated.profile?.age,
+        location: updated.profile?.location,
+        media_affinity: updated.profile?.media_affinity,
+      });
       setDetail(updated);
       setList((prev) => ({
         ...prev,
         items: prev.items.map((item) => (item.id === updated.metadata.personaId ? { ...item, ...updated.metadata, headline: updated.profile.headline } : item)),
       }));
+      
+      // Update editForm state if we have form updates
+      if (formUpdates) {
+        setEditForm((prev) => ({
+          ...prev,
+          ...(formUpdates.name !== undefined && { name: formUpdates.name }),
+          ...(formUpdates.headline !== undefined && { headline: formUpdates.headline }),
+          ...(formUpdates.segment !== undefined && { segment: formUpdates.segment }),
+          ...(formUpdates.status !== undefined && { status: formUpdates.status }),
+          ...(formUpdates.updatedBy !== undefined && { updatedBy: formUpdates.updatedBy }),
+        }));
+      }
+      
       notify("Persona saved");
     } catch (error) {
       console.error("Persona save failed", error);
@@ -304,6 +527,99 @@ export const UdgGlassPersonaAdminPanel = ({ initialList, docsUrl }: UdgGlassPers
     } finally {
       setSavePending(false);
     }
+  };
+
+  const handleDemographicSave = async (updates: Partial<PersonaProfile>) => {
+    console.log('[DEBUG handleDemographicSave] Received updates:', updates);
+    console.log('[DEBUG handleDemographicSave] Updates keys:', Object.keys(updates || {}));
+    console.log('[DEBUG handleDemographicSave] Gender:', updates?.gender, 'Type:', typeof updates?.gender);
+    console.log('[DEBUG handleDemographicSave] Media affinity:', updates?.media_affinity, 'Type:', typeof updates?.media_affinity);
+    await handleSave(updates);
+  };
+
+  const handleSaveInterests = async (chips: string[]) => {
+    await handleDemographicSave({ interests: chips });
+  };
+
+  const handleSaveValues = async (chips: string[]) => {
+    await handleDemographicSave({ values: chips });
+  };
+
+  const handleSaveSocialMedia = async (chips: string[]) => {
+    await handleDemographicSave({ social_media_usage: chips });
+  };
+
+  const handleSaveTraits = async (chips: string[]) => {
+    // Convert string[] back to Record<string, number>
+    // Use underscore format for keys and default score of 1.0
+    const traitsRecord: Record<string, number> = {};
+    chips.forEach(trait => {
+      const key = trait.replace(/\s+/g, "_"); // Convert spaces back to underscores
+      traitsRecord[key] = 1.0; // Default score
+    });
+    await handleDemographicSave({ traits: traitsRecord });
+  };
+
+  const handleSaveVocabulary = async (chips: string[]) => {
+    // Update vocabulary in communication_style
+    const currentCommunicationStyle = detail?.profile?.communication_style || {
+      vocabulary: [],
+      sentence_structure: "",
+      skepticism_level: 0,
+    };
+    await handleDemographicSave({
+      communication_style: {
+        ...currentCommunicationStyle,
+        vocabulary: chips,
+      },
+    });
+  };
+
+  const getCommunicationStyleSnapshot = () =>
+    detail?.profile?.communication_style || {
+      vocabulary: [],
+      sentence_structure: "",
+      skepticism_level: 0,
+    };
+
+  const handleSaveSentenceStructure = async (value: string) => {
+    const currentCommunicationStyle = getCommunicationStyleSnapshot();
+    await handleDemographicSave({
+      communication_style: {
+        ...currentCommunicationStyle,
+        sentence_structure: value,
+      },
+    });
+  };
+
+  const handleSaveSkepticismLevel = async (value: number) => {
+    const currentCommunicationStyle = getCommunicationStyleSnapshot();
+    await handleDemographicSave({
+      communication_style: {
+        ...currentCommunicationStyle,
+        skepticism_level: value,
+      },
+    });
+  };
+
+  const handleSavePainPoints = async (chips: string[]) => {
+    // Convert string[] back to Array<{ label: string; evidence_count: number }>
+    // Use default evidence_count of 0
+    const painPointsArray = chips.map(label => ({
+      label,
+      evidence_count: 0,
+    }));
+    await handleDemographicSave({ pain_points: painPointsArray });
+  };
+
+  const handleSaveGoals = async (chips: string[]) => {
+    // Convert string[] back to Array<{ label: string; priority: number }>
+    // Use default priority of 999 (low priority)
+    const goalsArray = chips.map(label => ({
+      label,
+      priority: 999,
+    }));
+    await handleDemographicSave({ goals: goalsArray });
   };
 
   const handleCreate = async () => {
@@ -418,40 +734,41 @@ export const UdgGlassPersonaAdminPanel = ({ initialList, docsUrl }: UdgGlassPers
     documentInputRef.current?.click();
   };
 
-  const handleAvatarInputChange = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file || !selectedId) {
+  const handleGenerateAvatar = async () => {
+    if (!selectedId) {
       return;
     }
-    setAvatarUploadPending(true);
+    setAvatarGeneratePending(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("updated_by", "persona-admin-ui");
-      const target = personaBackendPublicBase
-        ? `${personaBackendPublicBase}/personas/${selectedId}/avatar`
-        : `/api/persona-admin/${selectedId}/avatar`;
-      const response = await fetch(target, {
+      const response = await fetch(`/api/persona-admin/${selectedId}/generate-image`, {
         method: "POST",
-        body: formData,
       });
-      if (!response.ok) {
-        throw new Error(`Backend responded with ${response.status}`);
+      const contentType = response.headers.get("content-type") || "";
+      let payload: { status?: string; detail?: string; message?: string } | null = null;
+      if (contentType.includes("application/json")) {
+        payload = await response.json().catch(() => null);
+      } else {
+        const text = await response.text().catch(() => "");
+        if (text) {
+          payload = { detail: text };
+        }
       }
-      const payload = (await response.json()) as PersonaResponse;
-      setDetail(payload);
-      notify("Avatar updated");
+      if (!response.ok) {
+        const errorMessage = payload?.detail || payload?.message || "Avatar generation failed";
+        throw new Error(errorMessage);
+      }
+      if (payload?.status !== "success") {
+        notify("Avatar generation failed. Please check the image service configuration.");
+        return;
+      }
+      await loadDetail(selectedId);
+      notify("Avatar generated");
     } catch (error) {
-      console.error("Avatar upload failed", error);
-      notify("Failed to update avatar");
+      console.error("Avatar generation failed", error);
+      notify((error as Error)?.message || "Failed to generate avatar");
     } finally {
-      setAvatarUploadPending(false);
+      setAvatarGeneratePending(false);
     }
-  };
-
-  const triggerAvatarUpload = () => {
-    avatarInputRef.current?.click();
   };
 
   const toggleAccordion = (accordionId: string) => {
@@ -574,7 +891,6 @@ export const UdgGlassPersonaAdminPanel = ({ initialList, docsUrl }: UdgGlassPers
         {detail && (
           <div className="udg-glass-detail">
             <input ref={documentInputRef} type="file" className="udg-glass-sr-only" onChange={handleDocumentInputChange} />
-            <input ref={avatarInputRef} type="file" className="udg-glass-sr-only" accept="image/*" onChange={handleAvatarInputChange} />
             <header className="udg-glass-detail__header">
               <div className="udg-glass-detail__title">
                 <div className="udg-glass-avatar">
@@ -588,22 +904,9 @@ export const UdgGlassPersonaAdminPanel = ({ initialList, docsUrl }: UdgGlassPers
                   <h2>{detail.profile.name}</h2>
                   <p>{detail.profile.headline}</p>
                   <div className="udg-glass-detail__links">
-                    <button className="udg-glass-button --ghost" onClick={triggerAvatarUpload} disabled={avatarUploadPending}>
-                      <MaterialSymbol icon="photo_camera" fontSize={16} /> {avatarUploadPending ? "Uploading..." : "Change avatar"}
+                    <button className="udg-glass-button --ghost" onClick={handleGenerateAvatar} disabled={avatarGeneratePending}>
+                      <MaterialSymbol icon="photo_camera" fontSize={16} /> {avatarGeneratePending ? "Generating..." : "Generate avatar"}
                     </button>
-                    <a className="udg-glass-button --ghost" href={detail.metadata.consoleUrl} target="_blank" rel="noreferrer">
-                      <MaterialSymbol icon="open_in_new" fontSize={16} /> Console
-                    </a>
-                    {detail.metadata.graphUrl && (
-                      <a className="udg-glass-button --ghost" href={detail.metadata.graphUrl} target="_blank" rel="noreferrer">
-                        <MaterialSymbol icon="hub" fontSize={16} /> Neo4j
-                      </a>
-                    )}
-                    {detail.metadata.graphBloomUrl && (
-                      <a className="udg-glass-button --ghost" href={detail.metadata.graphBloomUrl} target="_blank" rel="noreferrer">
-                        <MaterialSymbol icon="public" fontSize={16} /> Bloom
-                      </a>
-                    )}
                   </div>
                 </div>
               </div>
@@ -618,32 +921,63 @@ export const UdgGlassPersonaAdminPanel = ({ initialList, docsUrl }: UdgGlassPers
                 expanded={isAccordionExpanded("persona-basics")}
                 onToggle={toggleAccordion}
                 onEditField={handleEditField}
-                onSave={handleSave}
+                onSave={(updates) => handleSave(updates)}
                 onArchive={handleArchive}
                 savePending={savePending}
                 formatDate={formatDate}
               />
 
               {/* Card: Biografie & Demographie */}
-              {(detail.profile.bio || (detail.profile as any).full_name || (detail.profile as any).age || (detail.profile as any).location) && (
-                <UdgGlassBioCard
-                  profile={detail.profile}
+              {(detail.profile.bio || detail.profile.full_name || detail.profile.age || detail.profile.location || detail.profile.gender || (detail.profile.media_affinity !== null && detail.profile.media_affinity !== undefined)) && (
+                <UdgGlassDashboardCard
+                  id="bio-demographics"
+                  title="Biography & Demographics"
+                  icon="person"
+                  variant="bio"
+                  fullWidth={true}
+                  iconColor={{
+                    color: "var(--color-secondary-dx-purple)"
+                  }}
+                  borderColor="var(--color-secondary-dx-purple)"
                   expanded={isAccordionExpanded("bio-demographics")}
                   onToggle={toggleAccordion}
-                />
+                >
+                  {detail.profile.bio && (
+                    <UdgGlassDashboardCardSection title="Biography">
+                      <p style={{ lineHeight: "1.6", whiteSpace: "pre-wrap", margin: 0 }}>
+                        {detail.profile.bio}
+                      </p>
+                    </UdgGlassDashboardCardSection>
+                  )}
+                  <UdgGlassDashboardCardSection title="Demographics">
+                    <UdgGlassEntityEditor
+                      entityType="persona"
+                      entity={detail.profile}
+                      onSave={async (updates) => {
+                        await handleDemographicSave(updates as Partial<PersonaProfile>);
+                      }}
+                      inline={true}
+                      fieldOverrides={{
+                        // Filter out non-demographic fields
+                        name: undefined,
+                        headline: undefined,
+                        segment: undefined,
+                      }}
+                    />
+                  </UdgGlassDashboardCardSection>
+                </UdgGlassDashboardCard>
               )}
 
               {/* Card: Persönlichkeit & Werte - 50% width */}
-              {(Object.keys(detail.profile.traits || {}).length > 0 || 
-                ((detail.profile as any).interests && (detail.profile as any).interests.length > 0) ||
-                ((detail.profile as any).values && (detail.profile as any).values.length > 0) ||
-                ((detail.profile as any).social_media_usage && (detail.profile as any).social_media_usage.length > 0)) && (
-                <UdgGlassPersonalityCard
-                  profile={detail.profile}
-                  expanded={isAccordionExpanded("personality-values")}
-                  onToggle={toggleAccordion}
-                />
-              )}
+              <UdgGlassPersonalityCard
+                profile={detail.profile}
+                expanded={isAccordionExpanded("personality-values")}
+                onToggle={toggleAccordion}
+                onSaveInterests={handleSaveInterests}
+                onSaveValues={handleSaveValues}
+                onSaveSocialMedia={handleSaveSocialMedia}
+                onSaveTraits={handleSaveTraits}
+              />
 
               {/* Card: Kommunikation - 50% width (nebeneinander mit Personality) */}
               {detail.profile.communication_style && (
@@ -651,6 +985,9 @@ export const UdgGlassPersonaAdminPanel = ({ initialList, docsUrl }: UdgGlassPers
                   profile={detail.profile}
                   expanded={isAccordionExpanded("communication")}
                   onToggle={toggleAccordion}
+                  onSaveVocabulary={handleSaveVocabulary}
+                  onSaveSentenceStructure={handleSaveSentenceStructure}
+                  onSaveSkepticismLevel={handleSaveSkepticismLevel}
                 />
               )}
 
@@ -661,6 +998,8 @@ export const UdgGlassPersonaAdminPanel = ({ initialList, docsUrl }: UdgGlassPers
                   profile={detail.profile}
                   expanded={isAccordionExpanded("pain-points-goals")}
                   onToggle={toggleAccordion}
+                  onSavePainPoints={handleSavePainPoints}
+                  onSaveGoals={handleSaveGoals}
                 />
               )}
 

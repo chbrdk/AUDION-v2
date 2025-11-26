@@ -9,8 +9,9 @@ x-build-web: &web-build
     RUN_WEB_BUILD: ${WEB_RUN_BUILD:-false}
   cache_from:
     - type=local,src=${LOCAL_DOCKER_CACHE_ROOT:-/tmp/persona-docker-cache}/web
-  cache_to:
-    - type=local,dest=${LOCAL_DOCKER_CACHE_ROOT:-/tmp/persona-docker-cache}/web,mode=max
+  # cache_to temporarily disabled due to docker driver limitation
+  # cache_to:
+  #   - type=local,dest=${LOCAL_DOCKER_CACHE_ROOT:-/tmp/persona-docker-cache}/web,mode=max
 
 x-build-python: &python-build
   context: ..
@@ -20,8 +21,9 @@ x-build-python: &python-build
     PYTHON_IMAGE: ${PYTHON_RUNTIME_IMAGE:-python:3.12-slim}
   cache_from:
     - type=local,src=${LOCAL_DOCKER_CACHE_ROOT:-/tmp/persona-docker-cache}/python
-  cache_to:
-    - type=local,dest=${LOCAL_DOCKER_CACHE_ROOT:-/tmp/persona-docker-cache}/python,mode=max
+  # cache_to temporarily disabled due to docker driver limitation
+  # cache_to:
+  #   - type=local,dest=${LOCAL_DOCKER_CACHE_ROOT:-/tmp/persona-docker-cache}/python,mode=max
 
 services:
   postgres:

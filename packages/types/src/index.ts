@@ -1,4 +1,5 @@
 export * from './events';
+export * from './field-definitions';
 
 export type PersonaProfile = {
   id: string;
@@ -6,6 +7,16 @@ export type PersonaProfile = {
   segment: string;
   headline: string;
   bio: string;
+  full_name?: string | null;
+  age?: number | null;
+  location?: string | null;
+  gender?: string | null;
+  media_affinity?: number | null;
+  interests?: string[];
+  color_palette?: string[];
+  attention_span?: string | null;
+  social_media_usage?: string[];
+  values?: string[];
   traits: Record<string, number>;
   pain_points: Array<{ label: string; evidence_count: number }>;
   goals: Array<{ label: string; priority: number }>;
@@ -214,6 +225,17 @@ export type QueueStatsResponse = {
   failedCount: number;
   workerAvailable: boolean;
   workerCount: number;
+};
+
+export type ServiceStatus = {
+  name: string;
+  status: "up" | "down" | "unknown";
+  message?: string | null;
+};
+
+export type ServiceStatusResponse = {
+  services: ServiceStatus[];
+  allServicesUp: boolean;
 };
 
 export type LogEntry = {

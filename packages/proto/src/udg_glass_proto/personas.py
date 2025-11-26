@@ -35,6 +35,8 @@ class PersonaProfile(BaseModel):
     full_name: Optional[str] = None
     age: Optional[int] = None
     location: Optional[str] = None
+    gender: Optional[str] = None
+    media_affinity: Optional[int] = None
     interests: List[str] = []
     color_palette: List[str] = []
     attention_span: Optional[str] = None

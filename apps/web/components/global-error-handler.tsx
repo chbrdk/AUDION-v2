@@ -8,6 +8,10 @@ import { useEffect } from "react";
  */
 export function GlobalErrorHandler() {
   useEffect(() => {
+    // Only run in browser environment
+    if (typeof window === "undefined") {
+      return;
+    }
     // Filter function to check if error is from browser extension
     const isExtensionError = (
       message?: string | Event,
@@ -117,7 +121,7 @@ export function GlobalErrorHandler() {
 
       // Call original handler for non-extension errors
       if (originalUnhandledRejection) {
-        originalUnhandledRejection(event);
+        originalUnhandledRejection.call(window, event);
       }
     };
 

@@ -3,22 +3,36 @@
 import type { PersonaProfile } from "@udg-glass/types";
 import { UdgGlassDashboardCard } from "./udg-glass-dashboard-card";
 import { UdgGlassDashboardCardSection } from "./udg-glass-dashboard-card-section";
+import { UdgGlassChipEditor } from "../generic/udg-glass-chip-editor";
 
 export type UdgGlassPersonalityCardProps = {
   profile: PersonaProfile;
   expanded: boolean;
   onToggle: (id: string) => void;
+  onSaveInterests?: (chips: string[]) => Promise<void>;
+  onSaveValues?: (chips: string[]) => Promise<void>;
+  onSaveSocialMedia?: (chips: string[]) => Promise<void>;
+  onSaveTraits?: (chips: string[]) => Promise<void>;
 };
 
 export const UdgGlassPersonalityCard = ({
   profile,
   expanded,
-  onToggle
+  onToggle,
+  onSaveInterests,
+  onSaveValues,
+  onSaveSocialMedia,
+  onSaveTraits
 }: UdgGlassPersonalityCardProps) => {
+  // Convert traits Record<string, number> to string[] (only keys)
+  const traitsArray = Object.keys(profile.traits || {}).map(trait => 
+    trait.replace(/_/g, " ")
+  );
+
   return (
     <UdgGlassDashboardCard
       id="personality-values"
-      title="Persönlichkeit & Werte"
+      title="Personality & Values"
       icon="psychology"
       variant="personality"
       iconColor={{
@@ -28,52 +42,41 @@ export const UdgGlassPersonalityCard = ({
       expanded={expanded}
       onToggle={onToggle}
     >
-      {Object.keys(profile.traits || {}).length > 0 && (
-        <UdgGlassDashboardCardSection title="Persönlichkeit (Traits)">
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-            {Object.entries(profile.traits || {})
-              .sort(([, a], [, b]) => (b as number) - (a as number))
-              .map(([trait]) => (
-                <span key={trait} className="udg-glass-chip --dashboard --trait">
-                  {trait.replace(/_/g, " ")}
-                </span>
-              ))}
-          </div>
-        </UdgGlassDashboardCardSection>
-      )}
-      {profile.interests && profile.interests.length > 0 && (
-        <UdgGlassDashboardCardSection title="Interessen">
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-            {profile.interests.map((interest, idx) => (
-              <span key={idx} className="udg-glass-chip --dashboard --interest">
-                {interest}
-              </span>
-            ))}
-          </div>
-        </UdgGlassDashboardCardSection>
-      )}
-      {profile.values && profile.values.length > 0 && (
-        <UdgGlassDashboardCardSection title="Werte">
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-            {profile.values.map((value, idx) => (
-              <span key={idx} className="udg-glass-chip --dashboard --value">
-                {value}
-              </span>
-            ))}
-          </div>
-        </UdgGlassDashboardCardSection>
-      )}
-      {profile.social_media_usage && profile.social_media_usage.length > 0 && (
-        <UdgGlassDashboardCardSection title="Social Media Nutzung">
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-            {profile.social_media_usage.map((platform, idx) => (
-              <span key={idx} className="udg-glass-chip --dashboard --social">
-                {platform}
-              </span>
-            ))}
-          </div>
-        </UdgGlassDashboardCardSection>
-      )}
+      <UdgGlassChipEditor
+        label="Personality (Traits)"
+        chips={traitsArray}
+        chipClassName="--trait"
+        onSave={onSaveTraits || (async () => {})}
+        editable={!!onSaveTraits}
+        emptyMessage="No traits defined"
+      />
+      
+      <UdgGlassChipEditor
+        label="Interests"
+        chips={profile.interests || []}
+        chipClassName="--interest"
+        onSave={onSaveInterests || (async () => {})}
+        editable={!!onSaveInterests}
+        emptyMessage="No interests"
+      />
+      
+      <UdgGlassChipEditor
+        label="Values"
+        chips={profile.values || []}
+        chipClassName="--value"
+        onSave={onSaveValues || (async () => {})}
+        editable={!!onSaveValues}
+        emptyMessage="No values"
+      />
+      
+      <UdgGlassChipEditor
+        label="Social Media Usage"
+        chips={profile.social_media_usage || []}
+        chipClassName="--social"
+        onSave={onSaveSocialMedia || (async () => {})}
+        editable={!!onSaveSocialMedia}
+        emptyMessage="No social media usage"
+      />
     </UdgGlassDashboardCard>
   );
 };

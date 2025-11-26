@@ -32,6 +32,7 @@ import type { PersonaListItem } from "@udg-glass/types";
 import { MaterialSymbol } from "./material-symbol";
 import { UdgGlassKnowledgeExplorer } from "./udg-glass-knowledge-explorer";
 import { UdgGlassPersonaList } from "./udg-glass-persona-list";
+import { UdgGlassEntityEditor } from "./generic";
 
 type UdgGlassTargetGroupAdminPanelProps = {
   initialList: TargetGroupListResponse;
@@ -160,8 +161,6 @@ export const UdgGlassTargetGroupAdminPanel = ({
   const [detailLoading, setDetailLoading] = useState<boolean>(false);
   const [editForm, setEditForm] = useState<EditFormState>(defaultEditFormState);
   const [savePending, setSavePending] = useState(false);
-  const [editingField, setEditingField] = useState<'name' | 'segment' | 'description' | null>(null);
-  const [tempValue, setTempValue] = useState<string>('');
   const [createForm, setCreateForm] = useState<CreateFormState>(defaultCreateFormState);
   const [createPending, setCreatePending] = useState(false);
   const [listRefreshing, setListRefreshing] = useState(false);
@@ -260,18 +259,7 @@ export const UdgGlassTargetGroupAdminPanel = ({
     setEditForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleStartEdit = (field: 'name' | 'segment' | 'description') => {
-    const currentValue = detail?.[field] || '';
-    setTempValue(currentValue);
-    setEditingField(field);
-  };
-
-  const handleCancelEdit = () => {
-    setEditingField(null);
-    setTempValue('');
-  };
-
-  const handleSaveField = async (field: 'name' | 'segment' | 'description') => {
+  const handleFieldSave = async (updates: Partial<TargetGroupResponse>) => {
     if (!selectedId || !detail) {
       return;
     }
@@ -279,18 +267,17 @@ export const UdgGlassTargetGroupAdminPanel = ({
     try {
       const payload: any = {
         updated_by: editForm.updatedBy,
+        ...updates,
       };
-      payload[field] = tempValue || null;
       
       await updateTargetGroup(selectedId, payload);
       await loadDetail(selectedId);
       await refreshList();
-      setEditingField(null);
-      setTempValue('');
       notify("Target Group updated");
     } catch (error) {
       console.error("Save failed:", error);
       notify("Error saving");
+      throw error;
     } finally {
       setSavePending(false);
     }
@@ -591,157 +578,13 @@ export const UdgGlassTargetGroupAdminPanel = ({
           <div className="udg-glass-detail">
             <header className="udg-glass-detail__header">
               <div className="udg-glass-detail__title">
-                <div style={{ width: '100%' }}>
-                  {/* Name */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                    {editingField === 'name' ? (
-                      <>
-                        <input
-                          value={tempValue}
-                          onChange={(e) => setTempValue(e.target.value)}
-                          className="udg-glass-field"
-                          style={{ flex: 1, padding: '0.375rem 0.625rem', fontSize: '1.5rem', fontWeight: 600, border: '1px solid var(--color-secondary-dx-purple)', borderRadius: '8px' }}
-                          autoFocus
-                        />
-                        <button
-                          type="button"
-                          className="udg-glass-button"
-                          onClick={() => handleSaveField('name')}
-                          disabled={savePending}
-                          style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }}
-                        >
-                          <MaterialSymbol icon="check" fontSize={14} />
-                        </button>
-                        <button
-                          type="button"
-                          className="udg-glass-button --ghost"
-                          onClick={handleCancelEdit}
-                          style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }}
-                        >
-                          <MaterialSymbol icon="close" fontSize={14} />
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <h2 style={{ margin: 0, flex: 1 }}>{detail.name}</h2>
-                        <button
-                          type="button"
-                          className="udg-glass-button --ghost"
-                          onClick={() => handleStartEdit('name')}
-                          style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }}
-                          title="Name bearbeiten"
-                        >
-                          <MaterialSymbol icon="edit" fontSize={14} />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                  
-                  {/* Segment */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                    {editingField === 'segment' ? (
-                      <>
-                        <input
-                          value={tempValue}
-                          onChange={(e) => setTempValue(e.target.value)}
-                          className="udg-glass-field"
-                          style={{ flex: 1, padding: '0.375rem 0.625rem', fontSize: '0.875rem', border: '1px solid var(--color-secondary-dx-purple)', borderRadius: '8px' }}
-                          autoFocus
-                        />
-                        <button
-                          type="button"
-                          className="udg-glass-button"
-                          onClick={() => handleSaveField('segment')}
-                          disabled={savePending}
-                          style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }}
-                        >
-                          <MaterialSymbol icon="check" fontSize={14} />
-                        </button>
-                        <button
-                          type="button"
-                          className="udg-glass-button --ghost"
-                          onClick={handleCancelEdit}
-                          style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }}
-                        >
-                          <MaterialSymbol icon="close" fontSize={14} />
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <p style={{ margin: 0, flex: 1 }}>{detail.segment}</p>
-                        <button
-                          type="button"
-                          className="udg-glass-button --ghost"
-                          onClick={() => handleStartEdit('segment')}
-                          style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }}
-                          title="Segment bearbeiten"
-                        >
-                          <MaterialSymbol icon="edit" fontSize={14} />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                  
-                  {/* Description */}
-                  {(detail.description || editingField === 'description') && (
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                      {editingField === 'description' ? (
-                        <>
-                          <textarea
-                            value={tempValue}
-                            onChange={(e) => setTempValue(e.target.value)}
-                            className="udg-glass-field"
-                            style={{ flex: 1, padding: '0.375rem 0.625rem', fontSize: '0.875rem', border: '1px solid var(--color-secondary-dx-purple)', borderRadius: '8px', minHeight: '60px' }}
-                            autoFocus
-                            rows={3}
-                          />
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                            <button
-                              type="button"
-                              className="udg-glass-button"
-                              onClick={() => handleSaveField('description')}
-                              disabled={savePending}
-                              style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }}
-                            >
-                              <MaterialSymbol icon="check" fontSize={14} />
-                            </button>
-                            <button
-                              type="button"
-                              className="udg-glass-button --ghost"
-                              onClick={handleCancelEdit}
-                              style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }}
-                            >
-                              <MaterialSymbol icon="close" fontSize={14} />
-                            </button>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <p className="udg-glass-muted" style={{ margin: 0, flex: 1 }}>{detail.description || ''}</p>
-                          <button
-                            type="button"
-                            className="udg-glass-button --ghost"
-                            onClick={() => handleStartEdit('description')}
-                            style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }}
-                            title="Description bearbeiten"
-                          >
-                            <MaterialSymbol icon="edit" fontSize={14} />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  )}
-                  {!detail.description && editingField !== 'description' && (
-                    <button
-                      type="button"
-                      className="udg-glass-button --ghost"
-                      onClick={() => handleStartEdit('description')}
-                      style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem", marginTop: '0.5rem' }}
-                    >
-                      <MaterialSymbol icon="add" fontSize={14} /> Add Description
-                    </button>
-                  )}
-                </div>
+                <UdgGlassEntityEditor
+                  entityType="targetGroup"
+                  entity={detail}
+                  onSave={handleFieldSave}
+                  inline={true}
+                  disabled={savePending}
+                />
               </div>
             </header>
 
@@ -887,7 +730,7 @@ export const UdgGlassTargetGroupAdminPanel = ({
                       style={{ padding: "0.375rem 0.75rem", fontSize: "0.8125rem" }}
                     >
                       <MaterialSymbol icon="add" fontSize={14} />{" "}
-                      {knowledgePending ? "Hinzufügen..." : "Hinzufügen"}
+                      {knowledgePending ? "Adding..." : "Add"}
                     </button>
                   </form>
                 )}
