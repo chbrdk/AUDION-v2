@@ -16,6 +16,11 @@ const cards = [
     description: "Review and manage the central prompt catalog used across journeys, personas, and target groups.",
     href: "/admin/settings/prompts",
   },
+  {
+    title: "API Documentation",
+    description: "Interactive API reference for the Persona Backend. Explore endpoints, test requests, and view schemas.",
+    href: "/admin/settings/api-docs",
+  },
 ];
 
 export default function SettingsLandingPage() {

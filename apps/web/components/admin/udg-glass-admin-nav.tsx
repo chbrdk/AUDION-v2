@@ -28,8 +28,7 @@ const navItems: NavItem[] = [
   { label: "Target Groups", path: "/admin/target-groups", icon: "groups" },
   { label: "Journeys", path: "/admin/journeys", icon: "route" },
   { label: "Queue", path: "/admin/queue", icon: "view_list" },
-  { label: "Settings", path: "/admin/settings", icon: "settings" },
-  { label: "API Docs", path: "/admin/api-docs", icon: "description" }
+  { label: "Settings", path: "/admin/settings", icon: "settings" }
 ];
 
 const externalNavItems: NavItem[] = [

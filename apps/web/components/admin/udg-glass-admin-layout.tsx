@@ -40,7 +40,6 @@ export const UdgGlassAdminLayoutClient = ({ children, title, subtitle }: UdgGlas
       "/admin/journeys": "Journeys",
       "/admin/queue": "Queue",
       "/admin/settings": "Settings",
-      "/admin/api-docs": "API Docs",
     };
 
     // Check exact match first
