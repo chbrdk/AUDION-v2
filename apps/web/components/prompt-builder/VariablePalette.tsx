@@ -221,14 +221,50 @@ export function VariablePalette({ onVariableDrag }: VariablePaletteProps) {
           </button>
           {isStandardExpanded && (
             <div>
-              {Object.entries(groupedStandard).map(([category, vars]) => (
-                <div key={category} style={{ marginBottom: "1rem" }}>
-                  <h5 style={{ margin: "0 0 0.5rem", fontSize: "0.75rem", fontWeight: 600, color: "var(--color-text-secondary)", textTransform: "capitalize" }}>
-                    {category}
-                  </h5>
-                  {vars.map(renderVariable)}
-                </div>
-              ))}
+              {Object.entries(groupedStandard).map(([category, vars]) => {
+                const isCategoryExpanded = expandedCategories.has(category as VariableCategory);
+                return (
+                  <div key={category} style={{ marginBottom: "1rem" }}>
+                    <button
+                      type="button"
+                      onClick={() => toggleCategory(category as VariableCategory)}
+                      style={{
+                        width: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "0.5rem",
+                        background: "transparent",
+                        border: "none",
+                        cursor: "pointer",
+                        marginBottom: "0.5rem",
+                        borderRadius: "4px",
+                        transition: "background 0.2s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "rgba(148, 163, 184, 0.1)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "transparent";
+                      }}
+                    >
+                      <h5 style={{ margin: 0, fontSize: "0.75rem", fontWeight: 600, color: "var(--color-text-secondary)", textTransform: "capitalize" }}>
+                        {category}
+                      </h5>
+                      <MaterialSymbol
+                        icon={isCategoryExpanded ? "expand_less" : "expand_more"}
+                        fontSize={16}
+                        style={{ color: "var(--color-text-secondary)" }}
+                      />
+                    </button>
+                    {isCategoryExpanded && (
+                      <div>
+                        {vars.map(renderVariable)}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

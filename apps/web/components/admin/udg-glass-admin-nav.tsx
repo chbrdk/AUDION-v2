@@ -28,12 +28,11 @@ const navItems: NavItem[] = [
   { label: "Target Groups", path: "/admin/target-groups", icon: "groups" },
   { label: "Journeys", path: "/admin/journeys", icon: "route" },
   { label: "Queue", path: "/admin/queue", icon: "view_list" },
+  { label: "Chat", path: "/admin/chat", icon: "forum" },
   { label: "Settings", path: "/admin/settings", icon: "settings" }
 ];
 
-const externalNavItems: NavItem[] = [
-  { label: "Chat", path: "/chat", icon: "forum" }
-];
+const externalNavItems: NavItem[] = [];
 
 export const UdgGlassAdminNav = ({ open, onClose, currentPath, themeMode, onToggleTheme }: UdgGlassAdminNavProps) => {
   const pathname = usePathname();
@@ -164,12 +163,13 @@ export const UdgGlassAdminNav = ({ open, onClose, currentPath, themeMode, onTogg
           {navItems.map((item) => {
             const active = isActive(item.path);
             return (
-              <ListItem key={item.path} disablePadding sx={{ width: "100%", display: "flex", justifyContent: isExpanded ? "stretch" : "center" }}>
+              <ListItem key={item.path} disablePadding sx={{ width: "100%", display: "flex", justifyContent: isExpanded ? "stretch" : "center" }} suppressHydrationWarning>
                 <ListItemButton
                   component={Link}
                   href={item.path}
                   onClick={handleItemClick}
                   className={clsx("udg-glass-admin-nav-item", active && "--active")}
+                  suppressHydrationWarning
                   sx={{
                     padding: isExpanded ? "0.5rem 1rem" : "0.5rem",
                     margin: 0,

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useState, createContext, useContext, useEffect } from "react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Box, Divider, IconButton, Typography } from "@mui/material";
@@ -9,6 +9,36 @@ import { BRAND_LOGO } from "../../lib/branding";
 import { useThemeMode } from "../theme-registry";
 import { MaterialSymbol } from "../material-symbol";
 import { UdgGlassAdminNav } from "./udg-glass-admin-nav";
+
+// Context für benutzerdefinierten Header-Content
+// Use a default value to avoid SSR issues
+const defaultHeaderContext: {
+  headerContent: ReactNode | null;
+  setHeaderContent: (content: ReactNode | null) => void;
+} = {
+  headerContent: null,
+  setHeaderContent: () => {}
+};
+
+const AdminHeaderContext = createContext<{
+  headerContent: ReactNode | null;
+  setHeaderContent: (content: ReactNode | null) => void;
+}>(defaultHeaderContext);
+
+export const useAdminHeader = () => {
+  return useContext(AdminHeaderContext);
+};
+
+export const AdminHeaderProvider = ({ children }: { children: ReactNode }) => {
+  // Use useState with null initial value - safe for SSR
+  const [headerContent, setHeaderContent] = useState<ReactNode | null>(null);
+
+  return (
+    <AdminHeaderContext.Provider value={{ headerContent, setHeaderContent }}>
+      {children}
+    </AdminHeaderContext.Provider>
+  );
+};
 
 export type UdgGlassAdminLayoutClientProps = {
   children: ReactNode;
@@ -20,6 +50,8 @@ export const UdgGlassAdminLayoutClient = ({ children, title, subtitle }: UdgGlas
   const [drawerOpen, setDrawerOpen] = useState(true); // Default open on desktop
   const pathname = usePathname();
   const { themeMode, toggleTheme } = useThemeMode();
+  // Get headerContent from context - safe for SSR with default value
+  const { headerContent } = useAdminHeader();
 
   const handleDrawerToggle = () => {
     setDrawerOpen((prev) => !prev);
@@ -39,6 +71,7 @@ export const UdgGlassAdminLayoutClient = ({ children, title, subtitle }: UdgGlas
       "/admin/target-groups": "Target Groups",
       "/admin/journeys": "Journeys",
       "/admin/queue": "Queue",
+      "/admin/chat": "Chat",
       "/admin/settings": "Settings",
     };
 
@@ -80,6 +113,7 @@ export const UdgGlassAdminLayoutClient = ({ children, title, subtitle }: UdgGlas
       {/* Container: Header + Main with Border and Border-Radius */}
       <Box
         className="udg-glass-admin-container"
+        suppressHydrationWarning
         sx={{
           display: "flex",
           flexDirection: "column",
@@ -111,6 +145,7 @@ export const UdgGlassAdminLayoutClient = ({ children, title, subtitle }: UdgGlas
         <Box
           component="header"
           className="udg-glass-admin-header-bar"
+          suppressHydrationWarning
           sx={{
             position: "sticky",
             top: 0,
@@ -223,8 +258,12 @@ export const UdgGlassAdminLayoutClient = ({ children, title, subtitle }: UdgGlas
               width: "100%"
             }}
           >
-            {/* Page Title */}
-            {getPageTitle() && (
+            {/* Page Title or Custom Header Content */}
+            {headerContent ? (
+              <Box sx={{ display: { xs: "none", md: "flex" }, alignItems: "center" }}>
+                {headerContent}
+              </Box>
+            ) : getPageTitle() ? (
               <Typography
                 variant="h6"
                 sx={{
@@ -240,7 +279,7 @@ export const UdgGlassAdminLayoutClient = ({ children, title, subtitle }: UdgGlas
               >
                 {getPageTitle()}
               </Typography>
-            )}
+            ) : null}
             {/* Hamburger only visible on mobile when drawer is closed */}
             <IconButton
               onClick={handleDrawerToggle}
@@ -260,6 +299,7 @@ export const UdgGlassAdminLayoutClient = ({ children, title, subtitle }: UdgGlas
         <Box
           component="main"
           className="udg-glass-admin-content"
+          suppressHydrationWarning
           sx={{
             flex: 1,
             overflowX: "hidden",

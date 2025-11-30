@@ -26,7 +26,7 @@ const UdgGlassLandingHero = () => {
         </Button>
         <Button
           component={Link}
-          href="/chat/demo"
+          href="/chat"
           variant="outlined"
           startIcon={<MaterialSymbol icon="chat_bubble" fontSize={20} />}
           sx={{ borderRadius: 999 }}

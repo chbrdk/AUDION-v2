@@ -36,7 +36,7 @@ export const UdgGlassChatPanel = ({ messages }: UdgGlassChatPanelProps) => {
 
   const textFade = keyframes`
     from {
-      opacity: 0;
+      opacity: 0.7;
     }
     to {
       opacity: 1;
@@ -128,7 +128,12 @@ export const UdgGlassChatPanel = ({ messages }: UdgGlassChatPanelProps) => {
                   key={`${message.id}-${message.content.length}`}
                   variant="body1"
                   whiteSpace="pre-wrap"
-                  sx={{ animation: `${textFade} 220ms ease` }}
+                  sx={{ 
+                    color: theme.palette.text.primary,
+                    animation: `${textFade} 220ms ease`,
+                    // Ensure text is always readable during typing
+                    opacity: 1
+                  }}
                 >
                   {message.content}
                 </Typography>

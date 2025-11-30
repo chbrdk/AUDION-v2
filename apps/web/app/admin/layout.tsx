@@ -1,12 +1,16 @@
+"use client";
+
 import type { ReactNode } from "react";
 import "../../styles/admin.css";
-import { UdgGlassAdminLayoutClient } from "../../components/admin/udg-glass-admin-layout";
+import { UdgGlassAdminLayoutClient, AdminHeaderProvider } from "../../components/admin/udg-glass-admin-layout";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
-    <UdgGlassAdminLayoutClient>
-      {children}
-    </UdgGlassAdminLayoutClient>
+    <AdminHeaderProvider>
+      <UdgGlassAdminLayoutClient>
+        {children}
+      </UdgGlassAdminLayoutClient>
+    </AdminHeaderProvider>
   );
 }
 
