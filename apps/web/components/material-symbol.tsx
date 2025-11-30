@@ -26,12 +26,15 @@ export const MaterialSymbol = ({
   "aria-label": ariaLabel,
   "aria-hidden": ariaHidden
 }: MaterialSymbolProps): ReactNode => {
+  // Normalize fontSize to ensure consistent rendering
+  const normalizedFontSize = typeof fontSize === "number" ? `${fontSize}px` : fontSize;
+  
   return (
     <span
       className={clsx("material-symbols-outlined", className)}
       style={{
         fontVariationSettings: `'FILL' ${fill}, 'wght' ${weight}, 'GRAD' ${grade}, 'opsz' ${opticalSize}`,
-        fontSize,
+        fontSize: normalizedFontSize,
         lineHeight: 1,
         color: "inherit",
         ...style

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Box, Divider, IconButton, List, ListItem, ListItemButton, Typography } from "@mui/material";
+import { Box, Divider, IconButton, List, ListItem, ListItemButton, Typography, useMediaQuery, useTheme } from "@mui/material";
 import clsx from "clsx";
 import { MaterialSymbol } from "../material-symbol";
 
@@ -38,7 +38,16 @@ const externalNavItems: NavItem[] = [
 
 export const UdgGlassAdminNav = ({ open, onClose, currentPath, themeMode, onToggleTheme }: UdgGlassAdminNavProps) => {
   const pathname = usePathname();
+  const theme = useTheme();
+  // useMediaQuery with noSsr option to prevent hydration mismatch
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"), { noSsr: true }); // < 960px
   const [expanded, setExpanded] = useState(false); // Expanded state for desktop
+  const [mounted, setMounted] = useState(false);
+
+  // Ensure we only render client-side differences after mount
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const isActive = (path: string) => {
     if (path === "/admin") {
@@ -49,7 +58,7 @@ export const UdgGlassAdminNav = ({ open, onClose, currentPath, themeMode, onTogg
 
   const handleItemClick = () => {
     // Close drawer on mobile after navigation
-    if (window.innerWidth < 960) {
+    if (mounted && isMobile) {
       onClose();
     }
   };
@@ -60,7 +69,8 @@ export const UdgGlassAdminNav = ({ open, onClose, currentPath, themeMode, onTogg
 
   // On mobile, expanded state follows open state (always expanded when open)
   // On desktop, use the expanded state
-  const isExpanded = typeof window !== "undefined" && window.innerWidth < 960 ? open : expanded;
+  // Use mounted check to ensure SSR consistency - default to false (collapsed) on server
+  const isExpanded = mounted && isMobile ? open : (mounted ? expanded : false);
   const sidebarWidth = isExpanded ? { xs: "240px", md: "240px" } : { xs: "240px", md: "64px" };
 
   return (
