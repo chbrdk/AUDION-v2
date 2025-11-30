@@ -6,7 +6,9 @@
 set -e
 
 SERVER="192.168.50.101"
-PROJECT_PATH="/path/to/AUDION"  # Bitte anpassen!
+# Automatische Pfad-Erkennung
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_PATH="$SCRIPT_DIR"
 
 echo "🚀 Deploy Settings Routes"
 echo "========================"
@@ -17,25 +19,40 @@ echo "📋 Route: /admin/settings/providers"
 echo "📋 Route: /admin/settings/theme"
 echo ""
 
-# Prüfe ob wir lokal sind oder auf dem Server
-if [ "$(hostname)" != "$(echo $SERVER | cut -d'@' -f2)" ]; then
-    echo "📍 Lokales Deployment - bereite vor..."
+# Prüfe ob wir auf dem Server sind (basierend auf IP oder Hostname)
+# Wenn nicht, versuche automatisch zu deployen
+CURRENT_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "")
+if [[ "$CURRENT_IP" != *"192.168.50.101"* ]] && [[ "$(hostname)" != *"192.168.50.101"* ]]; then
+    echo "📍 Lokales System erkannt"
+    echo "🔄 Versuche automatisches Deployment auf Server..."
     echo ""
-    echo "⚠️  Für Server-Deployment bitte auf dem Server ausführen:"
+    
+    # Versuche verschiedene SSH-User
+    for SSH_USER in "m4-dev" "user" "root" "$USER"; do
+        echo "   Versuche: $SSH_USER@$SERVER"
+        if ssh -o ConnectTimeout=5 -o BatchMode=yes "$SSH_USER@$SERVER" "echo 'SSH-Verbindung erfolgreich'" 2>/dev/null; then
+            echo "   ✅ SSH-Verbindung zu $SSH_USER@$SERVER erfolgreich!"
+            echo ""
+            echo "🔄 Starte Deployment auf Server..."
+            ssh "$SSH_USER@$SERVER" "cd $PROJECT_PATH 2>/dev/null || cd ~/AUDION 2>/dev/null || cd /home/*/AUDION 2>/dev/null || cd /opt/AUDION 2>/dev/null || (echo 'Bitte Projekt-Pfad anpassen!' && exit 1) && ./deploy-settings-routes.sh" || {
+                echo ""
+                echo "⚠️  Automatisches Deployment fehlgeschlagen"
+                echo "📋 Bitte manuell auf dem Server ausführen:"
+                echo "   ssh $SSH_USER@$SERVER"
+                echo "   cd /path/to/AUDION"
+                echo "   ./deploy-settings-routes.sh"
+                exit 1
+            }
+            exit 0
+        fi
+    done
+    
+    echo "❌ Keine SSH-Verbindung möglich"
+    echo "📋 Bitte manuell auf dem Server ausführen:"
     echo "   ssh user@$SERVER"
-    echo "   cd $PROJECT_PATH"
+    echo "   cd /path/to/AUDION"
     echo "   ./deploy-settings-routes.sh"
-    echo ""
-    read -p "Möchtest du jetzt auf den Server deployen? (j/n): " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[JjYy]$ ]]; then
-        echo "🔄 Starte Deployment auf Server..."
-        ssh user@$SERVER "cd $PROJECT_PATH && ./deploy-settings-routes.sh"
-        exit 0
-    else
-        echo "❌ Deployment abgebrochen"
-        exit 1
-    fi
+    exit 1
 fi
 
 # Auf dem Server ausführen
