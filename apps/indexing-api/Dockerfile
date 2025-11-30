@@ -9,9 +9,11 @@ ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy
 
 FROM uv-base AS deps
-COPY apps/indexing-api/pyproject.toml apps/indexing-api/uv.lock ./apps/indexing-api/
+COPY packages/proto ./packages/proto
+COPY apps/indexing-api/pyproject.toml ./apps/indexing-api/
+COPY apps/indexing-api/app ./apps/indexing-api/app
 RUN --mount=type=cache,target=/root/.cache/uv \
-    cd apps/indexing-api && uv sync --no-dev --frozen
+    cd apps/indexing-api && uv sync --no-dev
 
 FROM deps AS proto
 COPY packages/proto ./packages/proto

@@ -11,6 +11,9 @@ import type {
   SimilarChunk,
 } from "@udg-glass/types";
 
+// Re-export PersonaResponse for use in other modules
+export type { PersonaResponse };
+
 import { buildPersonaBackendUrl, forwardPersonaBackend } from "./persona";
 
 type TargetGroupCreateRequest = {

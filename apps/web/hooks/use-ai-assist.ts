@@ -42,7 +42,7 @@ export const useAiAssist = () => {
         let response: UiAiAssistResult;
         if (options.journeyId) {
           const payload: JourneyAiGenerateRequest = {
-            template_id: options.templateId,
+            template_id: options.templateId as any, // templateId can be any string for journey AI
             phase_id: options.phaseId,
             phase_context: options.phaseContext,
             prompt_variables: options.promptVariables,

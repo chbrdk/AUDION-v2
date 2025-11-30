@@ -271,7 +271,7 @@ export default function JourneyEditorPage() {
                   }
                   const fullPersona = (await response.json()) as PersonaResponse;
                   const profile = fullPersona.profile;
-                  const personaName = fullPersona.name || persona.name || "Unknown Persona";
+                  const personaName = profile?.name || persona.name || "Unknown Persona";
                   const traits = profile?.traits ? Object.entries(profile.traits).map(([k, v]) => `${k}: ${v}`).slice(0, 5) : [];
                   const goals = profile?.goals ? profile.goals.map((g: any) => g.label || String(g)).slice(0, 3) : [];
                   const pains = profile?.pain_points ? profile.pain_points.map((p: any) => p.label || String(p)).slice(0, 3) : [];

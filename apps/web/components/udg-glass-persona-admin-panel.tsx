@@ -833,7 +833,9 @@ export const UdgGlassPersonaAdminPanel = ({ initialList, docsUrl }: UdgGlassPers
     try {
       const result = await runPersonaAiAssist({
         templateId: "persona.pain_points",
-        personaId: detail.id,
+        context: {
+          persona_id: selectedId || "",
+        },
         maxSuggestions: 4,
       });
       if (!result.suggestions.length) {
