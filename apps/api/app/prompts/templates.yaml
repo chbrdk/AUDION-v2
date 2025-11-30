@@ -1,0 +1,434 @@
+templates:
+  - template_id: journey.moments
+    label: Journey Moments (Actions & Touchpoints)
+    description: "Generate concise actions, thoughts, touchpoints or opportunities for a single journey phase."
+    category: journey
+    tags: ["journey", "phase", "moments", "touchpoints"]
+    default_provider: anthropic
+    default_model: claude-haiku-4-5-20251001
+    temperature: 0.55
+    max_tokens: 900
+    prompt: |
+      You are a Senior Journey Strategist. You support a team in concretizing a journey phase.
+
+      JOURNEY BASIS
+      -------------
+      Journey Name: ${journey_name}
+      Journey Type: ${journey_type}
+
+      TARGET GROUP
+      ------------
+      ${target_group_summary}
+
+      PERSONAS (Excerpts)
+      --------------------
+      ${persona_summaries}
+
+      CURRENT PHASE
+      -------------
+      Name: ${phase_name}
+      Description: ${phase_description}
+      Expected Emotion: ${phase_expected_emotion}
+
+      TASK
+      ----
+      - Create up to ${max_items} Journey Moments as JSON.
+      - Use mixed element types: action, thought, feeling, touchpoint, pain_point, opportunity, quote.
+      - Content per moment max. 220 characters, active and concrete.
+      - Do not deliver duplicates; focus on relevant aspects.
+
+      FORMAT
+      ------
+      {
+        "moments": [
+          {
+            "element_type": "action|thought|touchpoint|...",
+            "title": "short title",
+            "content": "description"
+          }
+        ]
+      }
+    output:
+      mode: json
+      key: moments
+      item_fields:
+        content: content
+        title: title
+        type: element_type
+
+  - template_id: journey.description
+    label: Journey Phase Description
+    description: "Expand or improve the narrative description for a journey phase."
+    category: journey
+    tags: ["journey", "description"]
+    default_provider: anthropic
+    default_model: claude-haiku-4-5-20251001
+    temperature: 0.5
+    max_tokens: 600
+    prompt: |
+      Write a concise and inspiring description for a customer journey phase.
+      Avoid marketing language; stay concrete and from the user's perspective.
+
+      Journey: ${journey_name} (${journey_type})
+      Phase: ${phase_name}
+      Raw Description: ${phase_description}
+      Expected Emotion: ${phase_expected_emotion}
+      Target Group Context: ${target_group_summary}
+
+      TASK: Create 2 paragraphs with 2 sentences each. The first describes motivation & context,
+      the second shows dominant actions or thoughts. Return as plain text without JSON.
+    output:
+      mode: text
+
+  - template_id: persona.pain_points
+    label: Persona Pain Points Expansion
+    description: "Suggest additional pain points or frictions for a selected persona."
+    category: persona
+    tags: ["persona", "pain_points"]
+    default_provider: anthropic
+    default_model: claude-haiku-4-5-20251001
+    temperature: 0.65
+    max_tokens: 800
+    prompt: |
+      Analyze the persona information and suggest additional pain points
+      that the team has not yet documented. Focus on concrete situations
+      or triggers, maximum ${max_items} points.
+
+      TARGET GROUP: ${target_group_summary}
+      PERSONA PROFILE: ${persona_profile}
+      EXISTING PAIN POINTS: ${persona_pain_points}
+
+      FORMAT:
+      {
+        "items": [
+          {
+            "title": "short name",
+            "content": "pain point description"
+          }
+        ]
+      }
+    output:
+      mode: json
+      key: items
+      item_fields:
+        title: title
+        content: content
+
+  - template_id: persona.traits
+    label: Persona Traits (from Knowledge Graph)
+    description: "Generate personality traits based on knowledge graph relationships and research context."
+    category: persona
+    tags: ["persona", "traits", "knowledge_graph"]
+    default_provider: anthropic
+    default_model: claude-haiku-4-5-20251001
+    temperature: 0.6
+    max_tokens: 600
+    prompt: |
+      You are an experienced Persona Analyst. Create personality traits based on knowledge graph relationships and research context.
+
+      PERSONA BASIS
+      ------------
+      Persona Name: ${persona_name}
+      Persona Headline: ${persona_headline}
+      Persona Bio: ${persona_bio}
+
+      EXISTING TRAITS
+      ---------------
+      ${existing_traits}
+
+      KNOWLEDGE GRAPH RELATIONSHIPS
+      ------------------------------
+      ${graph_relationships_summary}
+
+      KNOWLEDGE CONTEXT (Research Chunks)
+      -----------------------------------
+      ${knowledge_context}
+
+      TARGET GROUP
+      ------------
+      ${target_group_summary}
+
+      TASK
+      ----
+      - Analyze the knowledge graph relationships and research chunks
+      - Identify personality traits that emerge from the data
+      - Create maximum ${max_items} new, relevant traits
+      - Avoid duplicates of existing traits
+      - Traits should be concrete, observable, and relevant
+      - Format: Single-word or two-word traits (e.g., "organizer", "tech-savvy", "detail-oriented")
+
+      FORMAT
+      ------
+      {
+        "traits": [
+          {
+            "name": "trait_name",
+            "description": "Brief justification based on knowledge graph/research"
+          }
+        ]
+      }
+    output:
+      mode: json
+      key: traits
+      item_fields:
+        content: name
+        title: name
+        type: description
+
+  - template_id: persona.vocabulary
+    label: Persona Vocabulary (from Knowledge Graph)
+    description: "Generate vocabulary words based on knowledge graph relationships and research context."
+    category: persona
+    tags: ["persona", "vocabulary", "communication", "knowledge_graph"]
+    default_provider: anthropic
+    default_model: claude-haiku-4-5-20251001
+    temperature: 0.6
+    max_tokens: 600
+    prompt: |
+      You are an experienced Communication Analyst. Create vocabulary words based on knowledge graph relationships and research context.
+
+      PERSONA BASIS
+      ------------
+      Persona Name: ${persona_name}
+      Persona Headline: ${persona_headline}
+      Persona Bio: ${persona_bio}
+
+      EXISTING VOCABULARY
+      -------------------
+      ${existing_vocabulary}
+
+      KNOWLEDGE GRAPH RELATIONSHIPS
+      ------------------------------
+      ${graph_relationships_summary}
+
+      KNOWLEDGE CONTEXT (Research Chunks)
+      -----------------------------------
+      ${knowledge_context}
+
+      TARGET GROUP
+      ------------
+      ${target_group_summary}
+
+      TASK
+      ----
+      - Analyze the knowledge graph relationships and research chunks
+      - Identify typical words and terms that this persona uses
+      - Create maximum ${max_items} new, relevant vocabulary words
+      - Avoid duplicates of existing vocabulary
+      - Words should be typical for this persona's communication
+      - Format: Single words or short phrases (e.g., "quality", "freedom", "self-realization", "resort to")
+
+      FORMAT
+      ------
+      {
+        "vocabulary": [
+          {
+            "word": "vocabulary_word",
+            "description": "Brief justification based on knowledge graph/research"
+          }
+        ]
+      }
+    output:
+      mode: json
+      key: vocabulary
+      item_fields:
+        content: word
+        title: word
+        type: description
+
+  - template_id: journey.phase.create
+    label: Journey Phase Creation (with Emotion)
+    description: "Generate a complete journey phase including name, description, duration, and expected emotion based on journey context."
+    category: journey
+    tags: ["journey", "phase", "emotion", "creation"]
+    default_provider: anthropic
+    default_model: claude-haiku-4-5-20251001
+    temperature: 0.6
+    max_tokens: 1200
+    prompt: |
+      You are an experienced Journey Designer. Create a complete journey phase with emotion.
+
+      JOURNEY CONTEXT
+      ---------------
+      Journey Name: ${journey_name}
+      Journey Type: ${journey_type}
+      Journey Description: ${journey_description}
+
+      TARGET GROUP
+      ------------
+      ${target_group_summary}
+
+      PERSONAS
+      --------
+      ${persona_summaries}
+
+      EXISTING PHASES
+      ---------------
+      ${existing_phases_summary}
+
+      LAST PHASE (Reference for the next phase)
+      -----------------------------------------
+      ${last_phase_summary}
+
+      TASK
+      ----
+      Create the NEXT phase in the journey (Phase ${next_phase_number}).
+      
+      CRITICALLY IMPORTANT:
+      - The new phase must be DISTINCTLY different from the last phase "${last_phase_name}"
+      - It must represent PROGRESS in the journey (not a repetition)
+      - The emotional development should continue (e.g., from "${last_phase_emotion}" to a different emotion)
+      - The phase should be a logical NEXT step after "${last_phase_name}"
+      - Ensure that name, description, and content differ from all existing phases
+      - Consider the emotional progression (e.g., frustrated → anxious → neutral → hopeful → satisfied → delighted)
+      - Realistic duration based on journey type
+      - Concrete, user-centered description
+      
+      AVOID:
+      - Duplicates of the last phase
+      - Similar names or descriptions
+      - Same emotion as the last phase (unless logically necessary)
+      
+      The new phase should show clear progress and be distinctly different from "${last_phase_name}".
+
+      FORMAT
+      ------
+      {
+        "name": "Short phase name (max 50 characters)",
+        "description": "2-3 sentences describing the phase",
+        "expected_emotion": "frustrated|anxious|neutral|hopeful|satisfied|delighted",
+        "emotion_intensity": 0.0-1.0,
+        "expected_duration_min": number,
+        "expected_duration_max": number,
+        "duration_unit": "minutes|hours|days"
+      }
+    output:
+      mode: json
+      key: null
+      item_fields:
+        name: name
+        description: description
+        emotion: expected_emotion
+        intensity: emotion_intensity
+        duration_min: expected_duration_min
+        duration_max: expected_duration_max
+        duration_unit: duration_unit
+
+  - template_id: journey.full_generation
+    label: Complete Journey Generation
+    description: "Generate a complete customer journey map with multiple phases, elements, and emotions based on target group and personas."
+    category: journey
+    tags: ["journey", "generation", "full", "phases"]
+    default_provider: anthropic
+    default_model: claude-haiku-4-5-20251001
+    temperature: 0.6
+    max_tokens: 4096
+    prompt: |
+      Based on the following information:
+
+      TARGET GROUP: ${target_group_name}
+      JOURNEY TYPE: ${journey_type}
+
+      PERSONAS:
+      ${persona_summaries}
+
+      KNOWLEDGE CONTEXT:
+      ${knowledge_context}
+
+      Create a Customer Journey Map with the following structure:
+
+      PHASES:
+      For each phase I need:
+      - Name (max 50 characters)
+      - Description (2-3 sentences)
+      - Expected Duration (min-max in minutes/hours/days)
+      - Expected Emotion (frustrated/anxious/neutral/hopeful/satisfied/delighted)
+      - Emotion Intensity (0.0-1.0)
+
+      ELEMENTS per Phase:
+      - Actions: What does the user do?
+      - Thoughts: What does the user think?
+      - Touchpoints: Which channels does the user use?
+      - Pain Points: Where are the friction points?
+      - Opportunities: Improvement potential?
+
+      Output as JSON with the following structure:
+      {
+        "name": "Journey Name",
+        "description": "Journey Description",
+        "phases": [
+          {
+            "name": "Phase Name",
+            "description": "Phase Description",
+            "phase_order": 1,
+            "expected_duration_min": 5,
+            "expected_duration_max": 10,
+            "duration_unit": "minutes",
+            "expected_emotion": "neutral",
+            "emotion_intensity": 0.5,
+            "elements": [
+              {
+                "element_type": "action",
+                "content": "User action description",
+                "element_order": 1
+              }
+            ]
+          }
+        ]
+      }
+    output:
+      mode: json
+      key: null
+      item_fields:
+        name: name
+        description: description
+        phases: phases
+
+  - template_id: journey.phase.name
+    label: Phase Name Suggestion
+    description: "Generate a concise, user-focused name for a journey phase."
+    category: journey
+    tags: ["journey", "phase", "name"]
+    default_provider: anthropic
+    default_model: claude-haiku-4-5-20251001
+    temperature: 0.6
+    max_tokens: 200
+    prompt: |
+      Create a concise phase name (max. 50 characters) for a customer journey phase.
+      
+      Journey: ${journey_name} (${journey_type})
+      Current Phase Description: ${phase_description}
+      Expected Emotion: ${phase_expected_emotion}
+      Context: ${target_group_summary}
+      
+      The name should be formulated from the user's perspective, active and concrete.
+      Examples: "Select E-Bike", "Order Online", "Test Product"
+      
+      Return only the name, without further explanations.
+    output:
+      mode: text
+
+  - template_id: journey.phase.emotion
+    label: Phase Emotion Suggestion
+    description: "Suggest appropriate emotions for a journey phase based on context."
+    category: journey
+    tags: ["journey", "phase", "emotion"]
+    default_provider: anthropic
+    default_model: claude-haiku-4-5-20251001
+    temperature: 0.5
+    max_tokens: 64
+    prompt: |
+      Suggest an appropriate emotion for this journey phase.
+      
+      Journey: ${journey_name}
+      Phase Name: ${phase_name}
+      Phase Description: ${phase_description}
+      Context: ${target_group_summary}
+      
+      Possible Emotions: frustrated, anxious, neutral, hopeful, satisfied, delighted
+      
+      IMPORTANT: Return ONLY a single word - the emotion. No explanations, no sentences, just the word.
+      Example responses: "hopeful", "anxious", "neutral", "satisfied"
+    output:
+      mode: text
+

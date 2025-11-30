@@ -27,9 +27,9 @@ export const UdgGlassAdvancedCard = ({
       icon="tune"
       variant="advanced"
       iconColor={{
-        color: "var(--color-secondary-dx-purple)"
+        color: "var(--color-theme-accent)"
       }}
-      borderColor="var(--color-secondary-dx-purple)"
+      borderColor="var(--color-theme-accent)"
       expanded={expanded}
       onToggle={onToggle}
     >

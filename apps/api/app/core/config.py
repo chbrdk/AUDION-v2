@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     neo4j_browser_url: str = "https://192.168.50.101/neo4j/browser"
     neo4j_bloom_url: str | None = None  # Can be set to https://192.168.50.101/neo4j/bloom if Bloom is available
     claude_api_key: str | None = None
+    openai_api_key: str | None = None
     persona_console_base_url: str = "http://localhost:3000"
     persona_media_base_path: str = "/personas"
     persona_cache_ttl_seconds: int = 300
@@ -39,6 +40,16 @@ class Settings(BaseSettings):
 
     otel_exporter_otlp_endpoint: str | None = None
     logfire_token: str | None = None
+
+    ai_default_provider: Literal["anthropic", "openai"] = "anthropic"
+    ai_knowledge_templates_path: str = Field(
+        default=str(Path(__file__).resolve().parents[1] / "prompts" / "templates.yaml"),
+        description="Filesystem path to the AI prompt template catalog.",
+    )
+    ai_default_temperature: float = 0.6
+    ai_default_max_tokens: int = 1024
+    ai_anthropic_model: str = "claude-haiku-4-5-20251001"
+    ai_openai_model: str = "gpt-4.1"
 
 
 @lru_cache

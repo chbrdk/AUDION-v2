@@ -8,6 +8,7 @@ import clsx from "clsx";
 import type { PersonaListItem, PersonaListResponse, PersonaProfile, PersonaResponse } from "@udg-glass/types";
 
 import { MaterialSymbol } from "./material-symbol";
+import { UdgGlassAiButton } from "./ai/udg-glass-ai-button";
 import {
   UdgGlassPersonaBasicsCard,
   UdgGlassBioCard,
@@ -20,6 +21,9 @@ import {
   UdgGlassDashboardCardSection,
 } from "./dashboard-cards";
 import { UdgGlassEntityEditor } from "./generic";
+import { useAiAssist } from "../hooks/use-ai-assist";
+import { UdgGlassCollapsiblePanel } from "./admin/udg-glass-collapsible-panel";
+import { Box } from "@mui/material";
 
 type UdgGlassPersonaAdminPanelProps = {
   initialList: PersonaListResponse;
@@ -149,6 +153,10 @@ export const UdgGlassPersonaAdminPanel = ({ initialList, docsUrl }: UdgGlassPers
   const [avatarGeneratePending, setAvatarGeneratePending] = useState(false);
   const [knowledgeForm, setKnowledgeForm] = useState<KnowledgeFormState>(defaultKnowledgeForm);
   const [knowledgePending, setKnowledgePending] = useState(false);
+  const { execute: runPersonaAiAssist, loading: personaAiLoading } = useAiAssist();
+  const [personaAiError, setPersonaAiError] = useState<string | null>(null);
+  const [recentTraitHighlights, setRecentTraitHighlights] = useState<string[]>([]);
+  const [recentVocabularyHighlights, setRecentVocabularyHighlights] = useState<string[]>([]);
   const [expandedAccordions, setExpandedAccordions] = useState<Set<string>>(
     new Set([
       "persona-basics",
@@ -225,6 +233,26 @@ export const UdgGlassPersonaAdminPanel = ({ initialList, docsUrl }: UdgGlassPers
       setDetail(null);
     }
   }, [selectedId, loadDetail]);
+
+  useEffect(() => {
+    if (!recentTraitHighlights.length) return;
+    const timeout = setTimeout(() => setRecentTraitHighlights([]), 5000);
+    return () => clearTimeout(timeout);
+  }, [recentTraitHighlights]);
+
+  useEffect(() => {
+    setRecentTraitHighlights([]);
+  }, [selectedId]);
+
+  useEffect(() => {
+    if (!recentVocabularyHighlights.length) return;
+    const timeout = setTimeout(() => setRecentVocabularyHighlights([]), 5000);
+    return () => clearTimeout(timeout);
+  }, [recentVocabularyHighlights]);
+
+  useEffect(() => {
+    setRecentVocabularyHighlights([]);
+  }, [selectedId]);
 
   // Auto-refresh ingestion status for documents that are pending or processing
   useEffect(() => {
@@ -549,30 +577,217 @@ export const UdgGlassPersonaAdminPanel = ({ initialList, docsUrl }: UdgGlassPers
     await handleDemographicSave({ social_media_usage: chips });
   };
 
-  const handleSaveTraits = async (chips: string[]) => {
-    // Convert string[] back to Record<string, number>
-    // Use underscore format for keys and default score of 1.0
+  const traitArrayToRecord = (chips: string[]) => {
     const traitsRecord: Record<string, number> = {};
-    chips.forEach(trait => {
-      const key = trait.replace(/\s+/g, "_"); // Convert spaces back to underscores
-      traitsRecord[key] = 1.0; // Default score
+    chips.forEach((trait) => {
+      const key = trait.replace(/\s+/g, "_");
+      traitsRecord[key] = 1.0;
     });
+    return traitsRecord;
+  };
+
+  const applyTraitsLocally = (traitsRecord: Record<string, number>) => {
+    setDetail((prev) =>
+      prev
+        ? {
+            ...prev,
+            profile: {
+              ...prev.profile,
+              traits: traitsRecord
+            }
+          }
+        : prev
+    );
+  };
+
+  const handleSaveTraits = async (chips: string[]) => {
+    const traitsRecord = traitArrayToRecord(chips);
+    applyTraitsLocally(traitsRecord);
     await handleDemographicSave({ traits: traitsRecord });
   };
 
   const handleSaveVocabulary = async (chips: string[]) => {
-    // Update vocabulary in communication_style
     const currentCommunicationStyle = detail?.profile?.communication_style || {
       vocabulary: [],
       sentence_structure: "",
-      skepticism_level: 0,
+      skepticism_level: 0
     };
-    await handleDemographicSave({
-      communication_style: {
-        ...currentCommunicationStyle,
-        vocabulary: chips,
-      },
+    const previousVocabulary = currentCommunicationStyle.vocabulary || [];
+    const newEntries = chips.filter((chip) => {
+      const normalized = chip.trim().toLowerCase();
+      return !previousVocabulary.some((prev) => prev.trim().toLowerCase() === normalized);
     });
+    if (newEntries.length > 0) {
+      setRecentVocabularyHighlights(newEntries);
+    }
+    const updatedCommunicationStyle = {
+      ...currentCommunicationStyle,
+      vocabulary: chips
+    };
+    setDetail((prev) =>
+      prev
+        ? {
+            ...prev,
+            profile: {
+              ...prev.profile,
+              communication_style: updatedCommunicationStyle
+            }
+          }
+        : prev
+    );
+    await handleDemographicSave({
+      communication_style: updatedCommunicationStyle
+    });
+  };
+
+  const handleAiSuggestTraits = async () => {
+    if (!detail) {
+      notify("No persona selected");
+      return;
+    }
+
+    try {
+      setPersonaAiError(null);
+
+      // Build existing traits summary
+      const existingTraits = Object.keys(detail.profile.traits || {}).map(trait => 
+        trait.replace(/_/g, " ")
+      );
+      const existingTraitsSummary = existingTraits.length > 0
+        ? existingTraits.join(", ")
+        : "Keine Traits definiert";
+
+      // Build graph relationships summary
+      const graphRelationshipsSummary = detail.insights && detail.insights.graphRelationships && detail.insights.graphRelationships.length > 0
+        ? detail.insights.graphRelationships
+            .map(rel => `${rel.relationship}: [${rel.nodes.join(", ")}]`)
+            .join("\n")
+        : "Keine Graph-Relationen verfügbar";
+
+      // Build knowledge context summary (using chunk IDs for now)
+      const knowledgeContext = detail.insights && detail.insights.relatedChunkIds && detail.insights.relatedChunkIds.length > 0
+        ? `Verfügbar: ${detail.insights.relatedChunkIds.length} Research-Chunks verknüpft mit dieser Persona.`
+        : "Keine Research-Chunks verfügbar";
+
+      // Build target group summary (placeholder - would need to fetch target group)
+      const targetGroupSummary = detail.profile.segment || "Keine Target Group definiert";
+
+      const result = await runPersonaAiAssist({
+        templateId: "persona.traits",
+        context: {
+          persona_name: detail.profile.name || "",
+          persona_headline: detail.profile.headline || "",
+          persona_bio: detail.profile.bio || "",
+          existing_traits: existingTraitsSummary,
+          graph_relationships_summary: graphRelationshipsSummary,
+          knowledge_context: knowledgeContext,
+          target_group_summary: targetGroupSummary,
+          max_items: 5,
+        },
+        maxSuggestions: 5,
+      });
+
+      // Parse suggestions and add to existing traits
+      if (result.suggestions && result.suggestions.length > 0) {
+        const currentTraits = Object.keys(detail.profile.traits || {}).map(trait => 
+          trait.replace(/_/g, " ")
+        );
+        
+        // Extract trait names from suggestions
+        const newTraits = result.suggestions
+          .map(s => s.content || s.title || "")
+          .filter(t => t && !currentTraits.some(ct => ct.toLowerCase() === t.toLowerCase()));
+
+        if (newTraits.length > 0) {
+          // Merge with existing traits
+          const allTraits = [...currentTraits, ...newTraits];
+          setRecentTraitHighlights(newTraits);
+          await handleSaveTraits(allTraits);
+          notify(`Added ${newTraits.length} new trait(s) via AI`);
+        } else {
+          notify("No new traits generated");
+        }
+      } else {
+        notify("AI konnte keine Traits generieren");
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to generate traits with AI";
+      setPersonaAiError(errorMessage);
+      notify(errorMessage);
+    }
+  };
+
+  const handleAiSuggestVocabulary = async () => {
+    if (!detail) {
+      notify("No persona selected");
+      return;
+    }
+
+    try {
+      setPersonaAiError(null);
+
+      // Build existing vocabulary summary
+      const existingVocabulary = detail.profile.communication_style?.vocabulary || [];
+      const existingVocabularySummary = existingVocabulary.length > 0
+        ? existingVocabulary.join(", ")
+        : "Kein Vokabular definiert";
+
+      // Build graph relationships summary
+      const graphRelationshipsSummary = detail.insights && detail.insights.graphRelationships && detail.insights.graphRelationships.length > 0
+        ? detail.insights.graphRelationships
+            .map(rel => `${rel.relationship}: [${rel.nodes.join(", ")}]`)
+            .join("\n")
+        : "Keine Graph-Relationen verfügbar";
+
+      // Build knowledge context summary (using chunk IDs for now)
+      const knowledgeContext = detail.insights && detail.insights.relatedChunkIds && detail.insights.relatedChunkIds.length > 0
+        ? `Verfügbar: ${detail.insights.relatedChunkIds.length} Research-Chunks verknüpft mit dieser Persona.`
+        : "Keine Research-Chunks verfügbar";
+
+      // Build target group summary (placeholder - would need to fetch target group)
+      const targetGroupSummary = detail.profile.segment || "Keine Target Group definiert";
+
+      const result = await runPersonaAiAssist({
+        templateId: "persona.vocabulary",
+        context: {
+          persona_name: detail.profile.name || "",
+          persona_headline: detail.profile.headline || "",
+          persona_bio: detail.profile.bio || "",
+          existing_vocabulary: existingVocabularySummary,
+          graph_relationships_summary: graphRelationshipsSummary,
+          knowledge_context: knowledgeContext,
+          target_group_summary: targetGroupSummary,
+          max_items: 5,
+        },
+        maxSuggestions: 5,
+      });
+
+      // Parse suggestions and add to existing vocabulary
+      if (result.suggestions && result.suggestions.length > 0) {
+        const currentVocabulary = detail.profile.communication_style?.vocabulary || [];
+        
+        // Extract vocabulary words from suggestions
+        const newVocabulary = result.suggestions
+          .map(s => s.content || s.title || "")
+          .filter(v => v && !currentVocabulary.some(cv => cv.toLowerCase() === v.toLowerCase()));
+
+        if (newVocabulary.length > 0) {
+          // Merge with existing vocabulary
+          const allVocabulary = [...currentVocabulary, ...newVocabulary];
+          setRecentVocabularyHighlights(newVocabulary);
+          await handleSaveVocabulary(allVocabulary);
+          notify(`Added ${newVocabulary.length} new vocabulary word(s) via AI`);
+        } else {
+          notify("No new vocabulary generated");
+        }
+      } else {
+        notify("AI konnte kein Vokabular generieren");
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to generate vocabulary with AI";
+      setPersonaAiError(errorMessage);
+      notify(errorMessage);
+    }
   };
 
   const getCommunicationStyleSnapshot = () =>
@@ -610,6 +825,37 @@ export const UdgGlassPersonaAdminPanel = ({ initialList, docsUrl }: UdgGlassPers
       evidence_count: 0,
     }));
     await handleDemographicSave({ pain_points: painPointsArray });
+  };
+
+  const handleGeneratePainPointIdeas = async () => {
+    if (!detail) return;
+    setPersonaAiError(null);
+    try {
+      const result = await runPersonaAiAssist({
+        templateId: "persona.pain_points",
+        personaId: detail.id,
+        maxSuggestions: 4,
+      });
+      if (!result.suggestions.length) {
+        setPersonaAiError("Keine AI Vorschläge erhalten.");
+        return;
+      }
+      const current = detail.profile.pain_points?.map((pp) => pp.label) ?? [];
+      const merged = Array.from(
+        new Set([
+          ...current,
+          ...result.suggestions.map((suggestion) => suggestion.title || suggestion.content),
+        ])
+      ).filter(Boolean) as string[];
+      if (!merged.length) {
+        setPersonaAiError("Keine gültigen Pain Points generiert.");
+        return;
+      }
+      await handleSavePainPoints(merged);
+      notify("AI Pain Points hinzugefügt");
+    } catch (error) {
+      setPersonaAiError(error instanceof Error ? error.message : "AI Anfrage fehlgeschlagen");
+    }
   };
 
   const handleSaveGoals = async (chips: string[]) => {
@@ -694,6 +940,40 @@ export const UdgGlassPersonaAdminPanel = ({ initialList, docsUrl }: UdgGlassPers
     } catch (error) {
       console.error("Persona archive failed", error);
       notify("Archiving failed");
+    } finally {
+      setSavePending(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedId || !detail) {
+      return;
+    }
+    
+    const personaName = detail.profile.name || "this persona";
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${personaName}"?\n\nThis action cannot be undone. The persona will be permanently removed.`
+    );
+    
+    if (!confirmed) {
+      return;
+    }
+    
+    setSavePending(true);
+    try {
+      const response = await fetch(`/api/persona-admin/${selectedId}?actor=persona-admin-ui`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        throw new Error(`Backend responded with ${response.status}`);
+      }
+      await refreshList();
+      setSelectedId(null);
+      setDetail(null);
+      notify("Persona deleted");
+    } catch (error) {
+      console.error("Persona delete failed", error);
+      notify("Delete failed");
     } finally {
       setSavePending(false);
     }
@@ -828,61 +1108,63 @@ export const UdgGlassPersonaAdminPanel = ({ initialList, docsUrl }: UdgGlassPers
 
   return (
     <div className="udg-glass-admin-grid">
-      <section className="udg-glass-panel">
-        <header className="udg-glass-panel__header">
-          <div>
-            <h2>Personas</h2>
-            <p>{list.total} entries</p>
+      <UdgGlassCollapsiblePanel title="Personas" defaultExpanded={true}>
+        <section className="udg-glass-panel">
+          <header className="udg-glass-panel__header">
+            <div>
+              <h2>Personas</h2>
+              <p>{list.total} entries</p>
+            </div>
+            <button className="udg-glass-button --ghost" onClick={refreshList} disabled={listRefreshing}>
+              <MaterialSymbol icon="refresh" fontSize={16} /> Refresh
+            </button>
+          </header>
+          <div className="udg-glass-list">
+            {list.items.length === 0 && <p className="udg-glass-empty">No personas available yet.</p>}
+            {list.items.map((item) => {
+              const chip = statusChips[item.status] ?? statusChips.draft;
+              return (
+                <button
+                  key={item.id}
+                  className={clsx("udg-glass-list-item", selectedId === item.id && "is-active")}
+                  onClick={() => setSelectedId(item.id)}
+                >
+                  <div className="udg-glass-list-item__row">
+                    <strong>{item.name}</strong>
+                    <span className={chip.className}>{chip.label}</span>
+                  </div>
+                  <p className="udg-glass-list-item__meta">
+                    {item.segment} · Version {item.version}
+                  </p>
+                  <p className="udg-glass-list-item__meta">Last updated {formatDate(item.updatedAt)}</p>
+                </button>
+              );
+            })}
           </div>
-          <button className="udg-glass-button --ghost" onClick={refreshList} disabled={listRefreshing}>
-            <MaterialSymbol icon="refresh" fontSize={18} /> Refresh
-          </button>
-        </header>
-        <div className="udg-glass-list">
-          {list.items.length === 0 && <p className="udg-glass-empty">No personas available yet.</p>}
-          {list.items.map((item) => {
-            const chip = statusChips[item.status] ?? statusChips.draft;
-            return (
-              <button
-                key={item.id}
-                className={clsx("udg-glass-list-item", selectedId === item.id && "is-active")}
-                onClick={() => setSelectedId(item.id)}
-              >
-                <div className="udg-glass-list-item__row">
-                  <strong>{item.name}</strong>
-                  <span className={chip.className}>{chip.label}</span>
-                </div>
-                <p className="udg-glass-list-item__meta">
-                  {item.segment} · Version {item.version}
-                </p>
-                <p className="udg-glass-list-item__meta">Last updated {formatDate(item.updatedAt)}</p>
-              </button>
-            );
-          })}
-        </div>
-        <div className="udg-glass-create-form">
-          <h3>New Persona</h3>
-          <div className="udg-glass-field">
-            <label>Project ID</label>
-            <input value={createForm.projectId} onChange={(event) => setCreateForm((prev) => ({ ...prev, projectId: event.target.value }))} placeholder="123e4567-e89b-12d3-a456-426614174000" />
+          <div className="udg-glass-create-form">
+            <h3>New Persona</h3>
+            <div className="udg-glass-field">
+              <label>Project ID</label>
+              <input value={createForm.projectId} onChange={(event) => setCreateForm((prev) => ({ ...prev, projectId: event.target.value }))} placeholder="123e4567-e89b-12d3-a456-426614174000" />
+            </div>
+            <div className="udg-glass-field">
+              <label>Name</label>
+              <input value={createForm.name} onChange={(event) => setCreateForm((prev) => ({ ...prev, name: event.target.value }))} placeholder="Persona Name" />
+            </div>
+            <div className="udg-glass-field">
+              <label>Segment</label>
+              <input value={createForm.segment} onChange={(event) => setCreateForm((prev) => ({ ...prev, segment: event.target.value }))} placeholder="B2B / Enterprise / etc." />
+            </div>
+            <div className="udg-glass-field">
+              <label>Headline</label>
+              <input value={createForm.headline} onChange={(event) => setCreateForm((prev) => ({ ...prev, headline: event.target.value }))} placeholder="Kurzbeschreibung" />
+            </div>
+            <button className="udg-glass-button" onClick={handleCreate} disabled={createPending}>
+              <MaterialSymbol icon="add" fontSize={16} /> Persona anlegen
+            </button>
           </div>
-          <div className="udg-glass-field">
-            <label>Name</label>
-            <input value={createForm.name} onChange={(event) => setCreateForm((prev) => ({ ...prev, name: event.target.value }))} placeholder="Persona Name" />
-          </div>
-          <div className="udg-glass-field">
-            <label>Segment</label>
-            <input value={createForm.segment} onChange={(event) => setCreateForm((prev) => ({ ...prev, segment: event.target.value }))} placeholder="B2B / Enterprise / etc." />
-          </div>
-          <div className="udg-glass-field">
-            <label>Headline</label>
-            <input value={createForm.headline} onChange={(event) => setCreateForm((prev) => ({ ...prev, headline: event.target.value }))} placeholder="Kurzbeschreibung" />
-          </div>
-          <button className="udg-glass-button" onClick={handleCreate} disabled={createPending}>
-            <MaterialSymbol icon="add" fontSize={18} /> Persona anlegen
-          </button>
-        </div>
-      </section>
+        </section>
+      </UdgGlassCollapsiblePanel>
 
       <section className="udg-glass-panel">
         {!selectedId && <p className="udg-glass-empty">Please select a persona.</p>}
@@ -923,6 +1205,7 @@ export const UdgGlassPersonaAdminPanel = ({ initialList, docsUrl }: UdgGlassPers
                 onEditField={handleEditField}
                 onSave={(updates) => handleSave(updates)}
                 onArchive={handleArchive}
+                onDelete={handleDelete}
                 savePending={savePending}
                 formatDate={formatDate}
               />
@@ -936,9 +1219,9 @@ export const UdgGlassPersonaAdminPanel = ({ initialList, docsUrl }: UdgGlassPers
                   variant="bio"
                   fullWidth={true}
                   iconColor={{
-                    color: "var(--color-secondary-dx-purple)"
+                    color: "var(--color-theme-accent)"
                   }}
-                  borderColor="var(--color-secondary-dx-purple)"
+                  borderColor="var(--color-theme-accent)"
                   expanded={isAccordionExpanded("bio-demographics")}
                   onToggle={toggleAccordion}
                 >
@@ -977,6 +1260,9 @@ export const UdgGlassPersonaAdminPanel = ({ initialList, docsUrl }: UdgGlassPers
                 onSaveValues={handleSaveValues}
                 onSaveSocialMedia={handleSaveSocialMedia}
                 onSaveTraits={handleSaveTraits}
+                onAiSuggestTraits={handleAiSuggestTraits}
+                aiTraitsLoading={personaAiLoading}
+                highlightedTraits={recentTraitHighlights}
               />
 
               {/* Card: Kommunikation - 50% width (nebeneinander mit Personality) */}
@@ -988,6 +1274,9 @@ export const UdgGlassPersonaAdminPanel = ({ initialList, docsUrl }: UdgGlassPers
                   onSaveVocabulary={handleSaveVocabulary}
                   onSaveSentenceStructure={handleSaveSentenceStructure}
                   onSaveSkepticismLevel={handleSaveSkepticismLevel}
+                  onAiSuggestVocabulary={handleAiSuggestVocabulary}
+                  aiVocabularyLoading={personaAiLoading}
+                  highlightedVocabulary={recentVocabularyHighlights}
                 />
               )}
 
@@ -1000,6 +1289,19 @@ export const UdgGlassPersonaAdminPanel = ({ initialList, docsUrl }: UdgGlassPers
                   onToggle={toggleAccordion}
                   onSavePainPoints={handleSavePainPoints}
                   onSaveGoals={handleSaveGoals}
+                  painPointsToolbar={
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", width: "100%" }}>
+                      <UdgGlassAiButton
+                        templates={[{ id: "persona.pain_points", label: "AI Pain Points", maxSuggestions: 4 }]}
+                        onClick={handleGeneratePainPointIdeas}
+                        disabled={personaAiLoading}
+                        loading={personaAiLoading}
+                        size="small"
+                        title="AI Pain Points"
+                      />
+                      {personaAiError && <span className="udg-glass-pain-toolbar__error">{personaAiError}</span>}
+                    </div>
+                  }
                 />
               )}
 

@@ -54,6 +54,18 @@ const LIGHT_DX_COLOR_VARS = [
   "--color-secondary-dx-grey-light-tint"
 ];
 
+// Mapping für Tint-Versionen der Farben
+const COLOR_TINT_MAP: Record<string, string> = {
+  "--color-secondary-dx-purple": "--color-secondary-dx-purple-tint",
+  "--color-secondary-dx-blue": "--color-secondary-dx-blue-tint",
+  "--color-secondary-dx-pink": "--color-secondary-dx-pink-tint",
+  "--color-secondary-dx-orange": "--color-secondary-dx-orange-tint",
+  "--color-secondary-dx-green": "--color-secondary-dx-green-tint",
+  "--color-secondary-dx-yellow": "--color-secondary-dx-yellow-tint",
+  "--color-secondary-dx-grey-light": "--color-secondary-dx-grey-light-tint",
+  "--audion-light-border-color": "--color-secondary-dx-purple-tint", // Fallback für default
+};
+
 const lightTheme = createTheme({
   palette: {
     mode: "light",
@@ -138,17 +150,36 @@ export const ThemeRegistry = ({ children }: { children: ReactNode }) => {
     }
 
     if (themeMode === "light") {
-      const selectedVar =
+      // Load saved preference or use random
+      const savedColorVar = localStorage.getItem("audion-sidebar-color");
+      const selectedVar = savedColorVar || 
         LIGHT_DX_COLOR_VARS[Math.floor(Math.random() * LIGHT_DX_COLOR_VARS.length)];
+      
       const styles = getComputedStyle(document.documentElement);
       const resolvedColor =
         (selectedVar ? styles.getPropertyValue(selectedVar).trim() : "") || "#0f172a";
 
       document.documentElement.style.setProperty("--audion-light-border-color", resolvedColor);
       document.documentElement.style.setProperty("--audion-light-html-background-color", resolvedColor);
+      
+      // Set text color based on selected color (light colors need dark text)
+      const lightColors = ["--color-secondary-dx-green", "--color-secondary-dx-yellow", "--color-secondary-dx-grey-light"];
+      const textColor = lightColors.includes(selectedVar) ? "#000000" : "#ffffff";
+      document.documentElement.style.setProperty("--audion-sidebar-text-color", textColor);
+      
+      // Set theme accent color (used for borders, accents, etc.)
+      document.documentElement.style.setProperty("--color-theme-accent", `var(${selectedVar})`);
+      
+      // Set theme accent tint
+      const tintVar = COLOR_TINT_MAP[selectedVar] || "--color-secondary-dx-purple-tint";
+      document.documentElement.style.setProperty("--color-theme-accent-tint", `var(${tintVar})`);
     } else {
-      document.documentElement.style.removeProperty("--audion-light-border-color");
-      document.documentElement.style.removeProperty("--audion-light-html-background-color");
+      // Dark theme: use white/light background for sidebar
+      document.documentElement.style.setProperty("--audion-light-border-color", "#ffffff");
+      document.documentElement.style.setProperty("--audion-light-html-background-color", "#ffffff");
+      document.documentElement.style.setProperty("--audion-sidebar-text-color", "#000000");
+      document.documentElement.style.setProperty("--color-theme-accent", "var(--color-secondary-dx-purple)");
+      document.documentElement.style.setProperty("--color-theme-accent-tint", "var(--color-secondary-dx-purple-tint)");
     }
   }, [themeMode, mounted]);
 

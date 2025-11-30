@@ -137,7 +137,7 @@ export function UdgGlassKnowledgeExplorer({ targetGroupId }: KnowledgeExplorerPr
             value={nClusters}
             onChange={(e) => setNClusters(Math.max(2, Math.min(50, parseInt(e.target.value) || 10)))}
             className="udg-glass-field"
-            style={{ width: "60px", padding: "0.375rem 0.625rem", fontSize: "0.8125rem", border: "1px solid var(--color-secondary-dx-purple)", borderRadius: "8px" }}
+            style={{ width: "60px", padding: "0.375rem 0.625rem", fontSize: "0.8125rem", border: "1px solid var(--color-theme-accent)", borderRadius: "8px" }}
           />
         </label>
         <button
@@ -426,7 +426,7 @@ function ChunkDetailPanel({ chunk, similarChunks, onClose }: ChunkDetailPanelPro
         bottom: "0",
         width: "500px",
         backgroundColor: "var(--color-primary-white)",
-        borderLeft: "1px solid var(--color-secondary-dx-purple)",
+        borderLeft: "1px solid var(--color-theme-accent)",
         zIndex: 10000,
         display: "flex",
         flexDirection: "column",
@@ -437,7 +437,7 @@ function ChunkDetailPanel({ chunk, similarChunks, onClose }: ChunkDetailPanelPro
         className="udg-glass-chunk-detail-panel__header"
         style={{
           padding: "1rem",
-          borderBottom: "1px solid var(--color-secondary-dx-purple)",
+          borderBottom: "1px solid var(--color-theme-accent)",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
@@ -466,12 +466,12 @@ function ChunkDetailPanel({ chunk, similarChunks, onClose }: ChunkDetailPanelPro
               <dt>Document</dt>
               <dd>{chunk.documentFilename || "Unknown"}</dd>
             </div>
-            <div style={{ borderLeft: "1px solid var(--color-secondary-dx-purple)", paddingLeft: "0.75rem" }}>
+            <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
               <dt>Score</dt>
               <dd>{(chunk.relevanceScore ?? 0).toFixed(2)}</dd>
             </div>
             {chunk.clusterId !== null && chunk.clusterId !== -1 && (
-              <div style={{ borderLeft: "1px solid var(--color-secondary-dx-purple)", paddingLeft: "0.75rem" }}>
+              <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
                 <dt>Cluster</dt>
                 <dd>{chunk.clusterId}</dd>
               </div>
@@ -482,7 +482,7 @@ function ChunkDetailPanel({ chunk, similarChunks, onClose }: ChunkDetailPanelPro
           className="udg-glass-chunk-full-content"
           style={{
             padding: "1rem",
-            border: "1px solid var(--color-secondary-dx-purple)",
+            border: "1px solid var(--color-theme-accent)",
             borderRadius: "0",
             marginBottom: "1rem",
             whiteSpace: "pre-wrap",

@@ -23,9 +23,9 @@ export const UdgGlassBioCard = ({
       variant="bio"
       fullWidth={true}
       iconColor={{
-        color: "var(--color-secondary-dx-purple)"
+        color: "var(--color-theme-accent)"
       }}
-      borderColor="var(--color-secondary-dx-purple)"
+      borderColor="var(--color-theme-accent)"
       expanded={expanded}
       onToggle={onToggle}
     >

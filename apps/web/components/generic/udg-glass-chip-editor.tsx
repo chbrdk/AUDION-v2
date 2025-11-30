@@ -5,6 +5,7 @@ import { Box, TextField, IconButton, useTheme, alpha } from "@mui/material";
 import { MaterialSymbol } from "../material-symbol";
 import { useInlineEdit } from "../hooks/use-inline-edit";
 import { UdgGlassInlineEditControls } from "../udg-glass-inline-edit-controls";
+import { UdgGlassChip } from "./udg-glass-chip";
 
 export type UdgGlassChipEditorProps = {
   /**
@@ -31,6 +32,18 @@ export type UdgGlassChipEditorProps = {
    * Message to show when no chips exist
    */
   emptyMessage?: string;
+  /**
+   * Optional callback for AI suggestions
+   */
+  onAiSuggest?: () => Promise<void>;
+  /**
+   * Whether AI suggestion is loading
+   */
+  aiLoading?: boolean;
+  /**
+   * Optional highlighted chips (case-insensitive match)
+   */
+  highlightedChips?: string[];
 };
 
 export const UdgGlassChipEditor = ({
@@ -39,7 +52,10 @@ export const UdgGlassChipEditor = ({
   chipClassName = "",
   onSave,
   editable = true,
-  emptyMessage = "Keine Einträge"
+  emptyMessage = "Keine Einträge",
+  onAiSuggest,
+  aiLoading = false,
+  highlightedChips = []
 }: UdgGlassChipEditorProps) => {
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -64,6 +80,14 @@ export const UdgGlassChipEditor = ({
     currentValue: chips,
     isEqual: arrayIsEqual
   });
+  const syncChips = chipEdit.sync;
+
+  // Ensure external updates sync when not editing
+  useEffect(() => {
+    if (!isEditing) {
+      syncChips();
+    }
+  }, [chips, isEditing, syncChips]);
 
   // Focus input when entering edit mode
   useEffect(() => {
@@ -202,19 +226,39 @@ export const UdgGlassChipEditor = ({
         }}
       >
         {label && <h4>{label}</h4>}
-        {editable && !isEditing && hasChips && (
-          <IconButton
-            size="small"
-            onClick={handleStartEdit}
-            sx={{
-              padding: "4px",
-              "&:hover": {
-                backgroundColor: alpha(theme.palette.primary.main, 0.1)
-              }
-            }}
-          >
-            <MaterialSymbol icon="edit" fontSize={18} />
-          </IconButton>
+        {editable && !isEditing && (
+          <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
+            {onAiSuggest && (
+              <IconButton
+                size="small"
+                onClick={onAiSuggest}
+                disabled={aiLoading}
+                sx={{
+                  padding: "4px",
+                  "&:hover": {
+                    backgroundColor: alpha(theme.palette.secondary.main, 0.1)
+                  }
+                }}
+                title="AI Vorschlag"
+              >
+                <MaterialSymbol icon={aiLoading ? "hourglass_empty" : "auto_awesome"} fontSize={18} />
+              </IconButton>
+            )}
+            {hasChips && (
+              <IconButton
+                size="small"
+                onClick={handleStartEdit}
+                sx={{
+                  padding: "4px",
+                  "&:hover": {
+                    backgroundColor: alpha(theme.palette.primary.main, 0.1)
+                  }
+                }}
+              >
+                <MaterialSymbol icon="edit" fontSize={18} />
+              </IconButton>
+            )}
+          </Box>
         )}
       </Box>
 
@@ -258,20 +302,20 @@ export const UdgGlassChipEditor = ({
                     }}
                   />
                 ) : (
-                  <Box
-                    component="span"
-                    className={`udg-glass-chip --dashboard ${chipClassName}`}
-                    onClick={() => isEditing && handleStartEditChip(idx, chip)}
-                    sx={{
-                      cursor: isEditing ? "pointer" : "default",
-                      "&:hover": isEditing ? {
-                        backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                        borderColor: theme.palette.primary.main
-                      } : {}
-                    }}
+                  <UdgGlassChip
+                    variant={chipClassName.includes("--trait") ? "trait" : 
+                            chipClassName.includes("--vocab") ? "vocab" :
+                            chipClassName.includes("--pain") ? "pain" :
+                            chipClassName.includes("--goal") ? "goal" :
+                            chipClassName.includes("--value") ? "value" :
+                            chipClassName.includes("--interest") ? "interest" :
+                            chipClassName.includes("--social") ? "social" : "trait"}
+                    dashboard={true}
+                    highlighted={highlightedChips.some((highlight) => highlight.trim().toLowerCase() === chip.trim().toLowerCase())}
+                    onClick={isEditing ? () => handleStartEditChip(idx, chip) : undefined}
                   >
                     {chip}
-                  </Box>
+                  </UdgGlassChip>
                 )}
                 {isEditing && editingIndex !== idx && (
                   <IconButton
@@ -322,24 +366,42 @@ export const UdgGlassChipEditor = ({
       )}
 
       {editable && showEmptyState && (
-        <IconButton
-          size="small"
-          onClick={handleStartEdit}
-          sx={{
-            mt: 1,
-            "&:hover": {
-              backgroundColor: alpha(theme.palette.primary.main, 0.1)
-            }
-          }}
-        >
-          <MaterialSymbol icon="add" fontSize={18} />
-          <Box component="span" sx={{ ml: 0.5, fontSize: "0.875rem" }}>
-            Add
-          </Box>
-        </IconButton>
+        <Box sx={{ display: "flex", gap: 1, alignItems: "center", mt: 1 }}>
+          {onAiSuggest && (
+            <IconButton
+              size="small"
+              onClick={onAiSuggest}
+              disabled={aiLoading}
+              sx={{
+                "&:hover": {
+                  backgroundColor: alpha(theme.palette.secondary.main, 0.1)
+                }
+              }}
+              title="AI Vorschlag"
+            >
+              <MaterialSymbol icon={aiLoading ? "hourglass_empty" : "auto_awesome"} fontSize={18} />
+              <Box component="span" sx={{ ml: 0.5, fontSize: "0.875rem" }}>
+                AI Vorschlag
+              </Box>
+            </IconButton>
+          )}
+          <IconButton
+            size="small"
+            onClick={handleStartEdit}
+            sx={{
+              "&:hover": {
+                backgroundColor: alpha(theme.palette.primary.main, 0.1)
+              }
+            }}
+          >
+            <MaterialSymbol icon="add" fontSize={18} />
+            <Box component="span" sx={{ ml: 0.5, fontSize: "0.875rem" }}>
+              Add
+            </Box>
+          </IconButton>
+        </Box>
       )}
     </div>
   );
 };
-
 

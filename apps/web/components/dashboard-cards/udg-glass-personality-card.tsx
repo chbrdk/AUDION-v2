@@ -13,6 +13,9 @@ export type UdgGlassPersonalityCardProps = {
   onSaveValues?: (chips: string[]) => Promise<void>;
   onSaveSocialMedia?: (chips: string[]) => Promise<void>;
   onSaveTraits?: (chips: string[]) => Promise<void>;
+  onAiSuggestTraits?: () => Promise<void>;
+  aiTraitsLoading?: boolean;
+  highlightedTraits?: string[];
 };
 
 export const UdgGlassPersonalityCard = ({
@@ -22,7 +25,10 @@ export const UdgGlassPersonalityCard = ({
   onSaveInterests,
   onSaveValues,
   onSaveSocialMedia,
-  onSaveTraits
+  onSaveTraits,
+  onAiSuggestTraits,
+  aiTraitsLoading = false,
+  highlightedTraits = []
 }: UdgGlassPersonalityCardProps) => {
   // Convert traits Record<string, number> to string[] (only keys)
   const traitsArray = Object.keys(profile.traits || {}).map(trait => 
@@ -36,9 +42,9 @@ export const UdgGlassPersonalityCard = ({
       icon="psychology"
       variant="personality"
       iconColor={{
-        color: "var(--color-secondary-dx-purple)"
+        color: "var(--color-theme-accent)"
       }}
-      borderColor="var(--color-secondary-dx-purple)"
+      borderColor="var(--color-theme-accent)"
       expanded={expanded}
       onToggle={onToggle}
     >
@@ -49,6 +55,9 @@ export const UdgGlassPersonalityCard = ({
         onSave={onSaveTraits || (async () => {})}
         editable={!!onSaveTraits}
         emptyMessage="No traits defined"
+        onAiSuggest={onAiSuggestTraits}
+        aiLoading={aiTraitsLoading}
+        highlightedChips={highlightedTraits}
       />
       
       <UdgGlassChipEditor

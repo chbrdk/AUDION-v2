@@ -264,7 +264,7 @@ class PersonaGenerationService:
         )
         
         identity = self._anthropic.messages.create(
-            model="claude-sonnet-4-5",
+            model="claude-haiku-4-5-20251001",
             max_tokens=1000,
             temperature=temperature,
             messages=[{"role": "user", "content": identity_prompt}],

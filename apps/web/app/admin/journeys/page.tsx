@@ -1,0 +1,102 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { journeysApi, type JourneyResponse } from "../../api/_lib/journeys";
+import { MaterialSymbol } from "../../../components/material-symbol";
+
+export default function JourneysListPage() {
+  const [journeys, setJourneys] = useState<JourneyResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadJourneys();
+  }, []);
+
+  const loadJourneys = async () => {
+    try {
+      setLoading(true);
+      const data = await journeysApi.listJourneys();
+      setJourneys(data);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load journeys");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div style={{ padding: "2rem", textAlign: "center" }}>
+        <MaterialSymbol icon="hourglass_empty" fontSize={24} />
+        <p>Loading journeys...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ padding: "2rem" }}>
+        <div style={{ padding: "1rem", backgroundColor: "var(--color-secondary-dx-pink-tint)", borderRadius: "8px", color: "var(--color-secondary-dx-pink-on-light)" }}>
+          <strong>Error:</strong> {error}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: "2rem" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
+        <h1>Journeys</h1>
+        <button
+          className="udg-glass-button"
+          onClick={() => {
+            // TODO: Navigate to create journey
+            window.location.href = "/admin/journeys/new";
+          }}
+        >
+          <MaterialSymbol icon="add" fontSize={16} /> Create Journey
+        </button>
+      </div>
+
+      {journeys.length === 0 ? (
+        <div style={{ padding: "2rem", textAlign: "center", color: "var(--color-text-secondary)" }}>
+          <MaterialSymbol icon="route" fontSize={48} />
+          <p>No journeys yet. Create your first journey to get started.</p>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "1.5rem" }}>
+          {journeys.map((journey) => (
+            <div
+              key={journey.id}
+              className="udg-glass-card"
+              onClick={() => {
+                window.location.href = `/admin/journeys/${journey.id}`;
+              }}
+              style={{ cursor: "pointer" }}
+            >
+              <h3>{journey.name}</h3>
+              {journey.description && <p style={{ color: "var(--color-text-secondary)", marginTop: "0.5rem" }}>{journey.description}</p>}
+              <div style={{ display: "flex", gap: "1rem", marginTop: "1rem", fontSize: "0.875rem", color: "var(--color-text-secondary)" }}>
+                <span>
+                  <MaterialSymbol icon="route" fontSize={14} /> {journey.phases.length} phases
+                </span>
+                <span>
+                  <MaterialSymbol icon="label" fontSize={14} /> {journey.journey_type}
+                </span>
+              </div>
+              {typeof journey.validation_score === "number" && (
+                <div style={{ marginTop: "1rem", padding: "0.5rem", backgroundColor: "var(--color-surface)", borderRadius: "4px" }}>
+                  <span style={{ fontSize: "0.875rem" }}>Validation Score: </span>
+                  <strong>{journey.validation_score.toFixed(1)}%</strong>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+

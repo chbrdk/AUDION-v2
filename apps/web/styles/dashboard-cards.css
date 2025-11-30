@@ -129,15 +129,17 @@
 }
 
 .udg-glass-chip.--dashboard.--trait {
-  background: var(--color-secondary-dx-purple-tint);
-  border-color: var(--color-secondary-dx-purple);
-  color: var(--color-secondary-dx-purple);
+  background: var(--color-secondary-dx-green-tint);
+  border: 1px solid var(--color-secondary-dx-green);
+  color: var(--color-text-primary);
+  font-size: 0.75rem;
 }
 
 .udg-glass-chip.--dashboard.--value {
   background: var(--color-secondary-dx-green-tint);
-  border-color: var(--color-secondary-dx-green);
-  color: var(--color-secondary-dx-green);
+  border: 1px solid var(--color-secondary-dx-green);
+  color: var(--color-text-primary);
+  font-size: 0.75rem;
 }
 
 .udg-glass-chip.--dashboard.--interest {
@@ -148,14 +150,16 @@
 
 .udg-glass-chip.--dashboard.--pain {
   background: var(--color-secondary-dx-pink-tint);
-  border-color: var(--color-secondary-dx-pink);
-  color: var(--color-secondary-dx-pink);
+  border: 1px solid var(--color-secondary-dx-pink);
+  color: var(--color-text-primary);
+  font-size: 0.75rem;
 }
 
 .udg-glass-chip.--dashboard.--goal {
   background: var(--color-secondary-dx-blue-tint);
-  border-color: var(--color-secondary-dx-blue);
-  color: var(--color-secondary-dx-blue);
+  border: 1px solid var(--color-secondary-dx-blue);
+  color: var(--color-text-primary);
+  font-size: 0.75rem;
 }
 
 .udg-glass-chip.--dashboard.--social {
@@ -165,9 +169,10 @@
 }
 
 .udg-glass-chip.--dashboard.--vocab {
-  background: var(--color-secondary-dx-purple-tint);
-  border-color: var(--color-secondary-dx-purple);
-  color: var(--color-secondary-dx-purple);
+  background: var(--color-secondary-dx-blue-tint);
+  border: 1px solid var(--color-secondary-dx-blue);
+  color: var(--color-text-primary);
+  font-size: 0.75rem;
 }
 
 
@@ -181,7 +186,7 @@
 
 /* Color-coded card borders for different sections */
 .udg-glass-dashboard-card.--bio {
-  border-top: 3px solid var(--color-secondary-dx-purple);
+  border-top: 3px solid var(--color-theme-accent);
 }
 
 .udg-glass-dashboard-card.--personality {

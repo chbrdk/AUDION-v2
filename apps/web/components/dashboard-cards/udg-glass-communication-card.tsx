@@ -14,6 +14,9 @@ export type UdgGlassCommunicationCardProps = {
   onSaveVocabulary?: (chips: string[]) => Promise<void>;
   onSaveSentenceStructure?: (value: string) => Promise<void>;
   onSaveSkepticismLevel?: (value: number) => Promise<void>;
+  onAiSuggestVocabulary?: () => Promise<void>;
+  aiVocabularyLoading?: boolean;
+  highlightedVocabulary?: string[];
 };
 
 export const UdgGlassCommunicationCard = ({
@@ -22,7 +25,10 @@ export const UdgGlassCommunicationCard = ({
   onToggle,
   onSaveVocabulary,
   onSaveSentenceStructure,
-  onSaveSkepticismLevel
+  onSaveSkepticismLevel,
+  onAiSuggestVocabulary,
+  aiVocabularyLoading = false,
+  highlightedVocabulary = []
 }: UdgGlassCommunicationCardProps) => {
   if (!profile.communication_style) {
     return null;
@@ -35,9 +41,9 @@ export const UdgGlassCommunicationCard = ({
       icon="chat_bubble"
       variant="communication"
       iconColor={{
-        color: "var(--color-secondary-dx-purple)"
+        color: "var(--color-theme-accent)"
       }}
-      borderColor="var(--color-secondary-dx-purple)"
+      borderColor="var(--color-theme-accent)"
       expanded={expanded}
       onToggle={onToggle}
     >
@@ -48,6 +54,9 @@ export const UdgGlassCommunicationCard = ({
         onSave={onSaveVocabulary || (async () => {})}
         editable={!!onSaveVocabulary}
         emptyMessage="No vocabulary defined"
+        onAiSuggest={onAiSuggestVocabulary}
+        aiLoading={aiVocabularyLoading}
+        highlightedChips={highlightedVocabulary}
       />
       <UdgGlassDashboardCardSection title="Sentence Structure">
         <UdgGlassFieldEditor

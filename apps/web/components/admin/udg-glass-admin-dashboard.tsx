@@ -65,7 +65,7 @@ export const UdgGlassAdminDashboard = ({
           className="udg-glass-panel"
           sx={{
             padding: "0",
-            border: "1px solid var(--color-secondary-dx-purple)",
+            border: "1px solid var(--color-theme-accent)",
             borderRadius: 0,
             minWidth: 0,
             maxWidth: "100%",
@@ -74,7 +74,7 @@ export const UdgGlassAdminDashboard = ({
         >
           <Stack spacing={0.125}>
             <Box sx={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-              <MaterialSymbol icon="person" fontSize={24} style={{ color: "var(--color-secondary-dx-purple)" }} />
+              <MaterialSymbol icon="person" fontSize={24} style={{ color: "var(--color-theme-accent)" }} />
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 Personas
               </Typography>
@@ -87,10 +87,10 @@ export const UdgGlassAdminDashboard = ({
                 variant="outlined"
                 size="small"
                 sx={{
-                  borderColor: "var(--color-secondary-dx-purple)",
-                  color: "var(--color-secondary-dx-purple)",
+                  borderColor: "var(--color-theme-accent)",
+                  color: "var(--color-theme-accent)",
                   "&:hover": {
-                    borderColor: "var(--color-secondary-dx-purple)",
+                    borderColor: "var(--color-theme-accent)",
                     backgroundColor: "rgba(182, 56, 255, 0.1)"
                   }
                 }}
@@ -106,7 +106,7 @@ export const UdgGlassAdminDashboard = ({
           className="udg-glass-panel"
           sx={{
             padding: "0",
-            border: "1px solid var(--color-secondary-dx-purple)",
+            border: "1px solid var(--color-theme-accent)",
             borderRadius: 0,
             minWidth: 0,
             maxWidth: "100%",
@@ -115,7 +115,7 @@ export const UdgGlassAdminDashboard = ({
         >
           <Stack spacing={0.125}>
             <Box sx={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-              <MaterialSymbol icon="groups" fontSize={24} style={{ color: "var(--color-secondary-dx-purple)" }} />
+              <MaterialSymbol icon="groups" fontSize={24} style={{ color: "var(--color-theme-accent)" }} />
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 Target Groups
               </Typography>
@@ -128,10 +128,10 @@ export const UdgGlassAdminDashboard = ({
                 variant="outlined"
                 size="small"
                 sx={{
-                  borderColor: "var(--color-secondary-dx-purple)",
-                  color: "var(--color-secondary-dx-purple)",
+                  borderColor: "var(--color-theme-accent)",
+                  color: "var(--color-theme-accent)",
                   "&:hover": {
-                    borderColor: "var(--color-secondary-dx-purple)",
+                    borderColor: "var(--color-theme-accent)",
                     backgroundColor: "rgba(182, 56, 255, 0.1)"
                   }
                 }}
@@ -147,7 +147,7 @@ export const UdgGlassAdminDashboard = ({
           className="udg-glass-panel"
           sx={{
             padding: "0",
-            border: "1px solid var(--color-secondary-dx-purple)",
+            border: "1px solid var(--color-theme-accent)",
             borderRadius: 0,
             minWidth: 0,
             maxWidth: "100%",
@@ -156,7 +156,7 @@ export const UdgGlassAdminDashboard = ({
         >
           <Stack spacing={0.125}>
             <Box sx={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-              <MaterialSymbol icon="view_list" fontSize={24} style={{ color: "var(--color-secondary-dx-purple)" }} />
+              <MaterialSymbol icon="view_list" fontSize={24} style={{ color: "var(--color-theme-accent)" }} />
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 Queue Jobs
               </Typography>
@@ -169,10 +169,10 @@ export const UdgGlassAdminDashboard = ({
                 variant="outlined"
                 size="small"
                 sx={{
-                  borderColor: "var(--color-secondary-dx-purple)",
-                  color: "var(--color-secondary-dx-purple)",
+                  borderColor: "var(--color-theme-accent)",
+                  color: "var(--color-theme-accent)",
                   "&:hover": {
-                    borderColor: "var(--color-secondary-dx-purple)",
+                    borderColor: "var(--color-theme-accent)",
                     backgroundColor: "rgba(182, 56, 255, 0.1)"
                   }
                 }}
@@ -188,7 +188,7 @@ export const UdgGlassAdminDashboard = ({
           className="udg-glass-panel"
           sx={{
             padding: "0",
-            border: "1px solid var(--color-secondary-dx-purple)",
+            border: "1px solid var(--color-theme-accent)",
             borderRadius: 0,
             minWidth: 0,
             maxWidth: "100%",
@@ -200,7 +200,7 @@ export const UdgGlassAdminDashboard = ({
               <MaterialSymbol 
                 icon={serviceStatus?.allServicesUp ? "check_circle" : (serviceStatus ? "error" : "help")} 
                 fontSize={24} 
-                style={{ color: "var(--color-secondary-dx-purple)" }} 
+                style={{ color: "var(--color-theme-accent)" }} 
               />
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 Services
@@ -235,7 +235,7 @@ export const UdgGlassAdminDashboard = ({
           className="udg-glass-panel"
           sx={{
             padding: "0",
-            border: "1px solid var(--color-secondary-dx-purple)",
+            border: "1px solid var(--color-theme-accent)",
             borderRadius: 0,
             minWidth: 0,
             maxWidth: "100%",
@@ -262,7 +262,7 @@ export const UdgGlassAdminDashboard = ({
             <MaterialSymbol 
               icon={showServices ? "expand_less" : "expand_more"} 
               fontSize={24} 
-              style={{ color: "var(--color-secondary-dx-purple)" }} 
+              style={{ color: "var(--color-theme-accent)" }} 
             />
           </Box>
           <Collapse in={showServices}>
@@ -332,7 +332,7 @@ export const UdgGlassAdminDashboard = ({
         className="udg-glass-panel"
         sx={{
           padding: "0",
-          border: "1px solid var(--color-secondary-dx-purple)",
+          border: "1px solid var(--color-theme-accent)",
           borderRadius: 0,
           marginBottom: "2rem",
           minWidth: 0,
@@ -350,7 +350,7 @@ export const UdgGlassAdminDashboard = ({
               size="small"
               startIcon={<MaterialSymbol icon="person" fontSize={14} />}
               sx={{
-                backgroundColor: "var(--color-secondary-dx-purple)",
+                backgroundColor: "var(--color-theme-accent)",
                 color: "white",
                 "&:hover": {
                   backgroundColor: "rgba(182, 56, 255, 0.9)"
@@ -366,7 +366,7 @@ export const UdgGlassAdminDashboard = ({
               size="small"
               startIcon={<MaterialSymbol icon="groups" fontSize={14} />}
               sx={{
-                backgroundColor: "var(--color-secondary-dx-purple)",
+                backgroundColor: "var(--color-theme-accent)",
                 color: "white",
                 "&:hover": {
                   backgroundColor: "rgba(182, 56, 255, 0.9)"
@@ -386,7 +386,7 @@ export const UdgGlassAdminDashboard = ({
           className="udg-glass-panel"
           sx={{
             padding: "0",
-            border: "1px solid var(--color-secondary-dx-purple)",
+            border: "1px solid var(--color-theme-accent)",
             borderRadius: 0,
             minWidth: 0,
             maxWidth: "100%",

@@ -1,21 +1,50 @@
 /* Admin Layout Styles */
 
+.udg-glass-admin-container {
+  /* Border and border-radius are set inline via sx prop */
+  overflow-x: visible !important;
+  overflow-y: visible !important;
+}
+
+[data-theme="dark"] .udg-glass-admin-container {
+  border-color: #ffffff;
+  background-color: #0f0f0f;
+}
+
 .udg-glass-admin-header-bar {
   background: transparent;
-  border-bottom: 1px solid var(--color-secondary-dx-purple);
+  border-bottom: 0;
+  position: relative;
+  overflow: visible;
+}
+
+.udg-glass-admin-header-corner {
+  position: absolute;
+  top: -2px;
+  left: -3px;
+  width: 363px;
+  height: 135px;
+  z-index: -1;
+  pointer-events: none;
+  overflow: visible;
 }
 
 [data-theme="dark"] .udg-glass-admin-header-bar {
-  border-bottom-color: var(--color-secondary-dx-purple);
+  border-bottom-color: var(--color-theme-accent);
+}
+
+[data-theme="dark"] .udg-glass-admin-header-corner {
+  /* No background-color in dark theme */
 }
 
 .udg-glass-admin-nav {
-  background: transparent;
-  border-right: 1px solid var(--color-secondary-dx-purple);
+  background: var(--audion-light-border-color, #0f172a);
+  border-right: 1px solid var(--audion-light-border-color, #0f172a);
 }
 
 [data-theme="dark"] .udg-glass-admin-nav {
-  border-right-color: var(--color-secondary-dx-purple);
+  background: var(--audion-light-border-color, #0f172a);
+  border-right-color: var(--audion-light-border-color, #0f172a);
 }
 
 .udg-glass-admin-nav-item {
@@ -23,21 +52,22 @@
 }
 
 .udg-glass-admin-nav-item.--active {
-  background-color: rgba(182, 56, 255, 0.1);
-  color: var(--color-secondary-dx-purple);
-  border: 1px solid var(--color-secondary-dx-purple) !important;
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  color: var(--audion-sidebar-text-color, #ffffff) !important;
+  border: none !important;
 }
 
 [data-theme="dark"] .udg-glass-admin-nav-item.--active {
-  background-color: rgba(182, 56, 255, 0.15);
+  background-color: rgba(255, 255, 255, 0.15);
 }
 
 .udg-glass-admin-nav-item:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: var(--audion-sidebar-text-color, #ffffff) !important;
 }
 
 [data-theme="dark"] .udg-glass-admin-nav-item:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .udg-glass-admin-content {

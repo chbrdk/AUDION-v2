@@ -11,6 +11,43 @@ from udg_glass_proto import (
     UploadJobStatus,
 )
 
+# Import Journey schemas
+from .journey import (
+    JourneyBase,
+    JourneyCreate,
+    JourneyGenerateRequest,
+    JourneyAiGenerateRequest,
+    JourneyAiGenerationResponse,
+    JourneyAiSuggestion,
+    JourneyResponse,
+    PhaseBase,
+    PhaseCreate,
+    PhaseResponse,
+    ElementCreate,
+    ElementResponse,
+    ExpectationCreate,
+    ExpectationResponse,
+    MeasurementSummary,
+    MeasurementResponse,
+    ValidationRequest,
+    FrictionPoint,
+    PhaseValidationResult,
+    JourneyValidationReport,
+    InsightResponse,
+    ChangeResponse,
+)
+
+from .ai import (
+    AiAssistRequest,
+    AiAssistResponse,
+    AiAssistSuggestion,
+    AiProvider,
+    AiPromptTestRequest,
+    AiTemplateDefinition,
+    AiTemplateSummary,
+    AiTemplateUpdateRequest,
+)
+
 
 class DocumentUploadResponse(BaseModel):
     job_id: str = Field(..., description="Identifier of the asynchronous ingestion job created for the uploaded document.")
@@ -607,5 +644,25 @@ __all__ = [
     "KnowledgeCluster",
     "ClusterResult",
     "SimilarChunk",
+    # Journey schemas
+    "JourneyBase",
+    "JourneyCreate",
+    "JourneyGenerateRequest",
+    "JourneyResponse",
+    "PhaseBase",
+    "PhaseCreate",
+    "PhaseResponse",
+    "ElementCreate",
+    "ElementResponse",
+    "ExpectationCreate",
+    "ExpectationResponse",
+    "MeasurementSummary",
+    "MeasurementResponse",
+    "ValidationRequest",
+    "FrictionPoint",
+    "PhaseValidationResult",
+    "JourneyValidationReport",
+    "InsightResponse",
+    "ChangeResponse",
 ]
 

@@ -522,6 +522,98 @@ class PersonaService:
             actor=actor,
         )
 
+    def delete_persona(self, session: Session, persona_id: str, actor: str | None = None) -> None:
+        """Permanently delete a persona and all associated data."""
+        persona = session.get(Persona, UUID(persona_id))
+        if not persona:
+            raise ValueError("persona_not_found")
+        
+        persona_uuid = persona.id
+        before = self._audit_payload(persona)
+        
+        # Delete all associated documents (this will also delete chunks, processing jobs, etc.)
+        from ..models import Document, DocumentChunk, ProcessingJob
+        documents = session.query(Document).filter(Document.persona_id == persona_uuid).all()
+        for document in documents:
+            # Delete file from storage
+            if document.object_key:
+                try:
+                    self._storage.delete(key=document.object_key)
+                except Exception:
+                    pass  # File might not exist, continue with cleanup
+            
+            # Delete chunks from Qdrant
+            try:
+                from qdrant_client.http import models as qmodels
+                qdrant = QdrantClient(settings.qdrant_url)
+                collection = "research_chunks"
+                if qdrant.collection_exists(collection):
+                    qdrant.delete(
+                        collection_name=collection,
+                        points_selector=qmodels.Filter(
+                            must=[
+                                qmodels.FieldCondition(
+                                    key="document_id",
+                                    match=qmodels.MatchValue(value=str(document.id)),
+                                )
+                            ]
+                        ),
+                    )
+            except Exception:
+                pass  # Qdrant might not be available, continue with cleanup
+            
+            # Delete chunks from database
+            session.query(DocumentChunk).filter(DocumentChunk.document_id == document.id).delete()
+            
+            # Delete processing job
+            session.query(ProcessingJob).filter(ProcessingJob.document_id == document.id).delete()
+            
+            # Delete document
+            session.delete(document)
+        
+        # Delete all knowledge entries
+        session.query(PersonaKnowledgeEntry).filter(PersonaKnowledgeEntry.persona_id == persona_uuid).delete()
+        
+        # Delete all persona sources
+        from ..models import PersonaSource
+        session.query(PersonaSource).filter(PersonaSource.persona_id == persona_uuid).delete()
+        
+        # Delete all persona prompts
+        from ..models import PersonaPrompt as PersonaPromptModel
+        session.query(PersonaPromptModel).filter(PersonaPromptModel.persona_id == persona_uuid).delete()
+        
+        # Delete all audit logs before deleting persona (to avoid foreign key constraint violation)
+        # Note: We delete audit logs because the persona is being permanently deleted
+        # We log the deletion action before deleting the logs
+        from ..models import PersonaAuditLog
+        logger.info(
+            "persona.delete.audit_logs",
+            persona_id=persona_id,
+            actor=actor,
+            before=before,
+        )
+        session.query(PersonaAuditLog).filter(PersonaAuditLog.persona_id == persona_uuid).delete()
+        
+        # Delete avatar from storage if it exists
+        if persona.image_url and not persona.image_url.startswith(("http://", "https://", "data:")):
+            try:
+                self._storage.delete(key=persona.image_url)
+            except Exception:
+                pass  # Avatar might not exist, continue with cleanup
+        
+        # Finally, delete the persona itself
+        session.delete(persona)
+        session.commit()
+        
+        # Invalidate cache
+        self._invalidate_cache(persona_id)
+        
+        logger.info(
+            "persona.delete",
+            persona_id=persona_id,
+            actor=actor,
+        )
+
     def list_documents(self, session: Session, persona_id: str) -> List[PersonaDocument]:
         try:
             persona_uuid = UUID(persona_id)

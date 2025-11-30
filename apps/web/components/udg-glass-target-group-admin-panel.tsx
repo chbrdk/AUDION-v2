@@ -33,6 +33,7 @@ import { MaterialSymbol } from "./material-symbol";
 import { UdgGlassKnowledgeExplorer } from "./udg-glass-knowledge-explorer";
 import { UdgGlassPersonaList } from "./udg-glass-persona-list";
 import { UdgGlassEntityEditor } from "./generic";
+import { UdgGlassCollapsiblePanel } from "./admin/udg-glass-collapsible-panel";
 
 type UdgGlassTargetGroupAdminPanelProps = {
   initialList: TargetGroupListResponse;
@@ -444,131 +445,132 @@ export const UdgGlassTargetGroupAdminPanel = ({
 
   return (
     <div className="udg-glass-admin-grid">
-      <section className="udg-glass-panel">
-        <header className="udg-glass-panel__header">
-          <div>
-            <h2 style={{ fontSize: "1.5rem", fontWeight: 600, marginBottom: "0.5rem" }}>Target Groups</h2>
-            <p style={{ fontSize: "0.875rem", marginBottom: "0.5rem" }}>{list.total} Einträge</p>
+      <UdgGlassCollapsiblePanel title="Target Groups" defaultExpanded={true}>
+        <section className="udg-glass-panel">
+          <header className="udg-glass-panel__header">
+            <div>
+              <h2>Target Groups</h2>
+              <p>{list.total} Einträge</p>
+            </div>
             <button
               className="udg-glass-button --ghost"
               onClick={refreshList}
               disabled={listRefreshing}
-              style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }}
             >
-              <MaterialSymbol icon="refresh" fontSize={14} /> Refresh
+              <MaterialSymbol icon="refresh" fontSize={16} /> Refresh
             </button>
+          </header>
+          <div className="udg-glass-list">
+            {list.items.length === 0 && (
+              <p className="udg-glass-empty">No target groups available yet.</p>
+            )}
+            {list.items.map((item) => {
+              return (
+                <button
+                  key={item.id}
+                  className={clsx("udg-glass-list-item", selectedId === item.id && "is-active")}
+                  onClick={() => setSelectedId(item.id)}
+                >
+                  <div className="udg-glass-list-item__row">
+                    <strong>{item.name}</strong>
+                    <span className="udg-glass-chip --published">{item.segment}</span>
+                  </div>
+                </button>
+              );
+            })}
           </div>
-        </header>
-        <div className="udg-glass-list">
-          {list.items.length === 0 && (
-            <p className="udg-glass-empty">No target groups available yet.</p>
-          )}
-          {list.items.map((item) => {
-            return (
-              <button
-                key={item.id}
-                className={clsx("udg-glass-list-item", selectedId === item.id && "is-active")}
-                onClick={() => setSelectedId(item.id)}
-              >
-                <div className="udg-glass-list-item__row">
-                  <strong>{item.name}</strong>
-                  <span className="udg-glass-chip --published">{item.segment}</span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-        <div className="udg-glass-create-form">
-          <button
-            type="button"
-            className="udg-glass-create-form__header"
-            onClick={() => setCreateFormExpanded(!createFormExpanded)}
-          >
-            <h3 style={{ fontSize: "0.875rem", fontWeight: 600, margin: 0 }}>New Target Group</h3>
-            <MaterialSymbol 
-              icon={createFormExpanded ? "expand_less" : "expand_more"} 
-              fontSize={20} 
-            />
-          </button>
-          {createFormExpanded && (
-            <div className="udg-glass-create-form__content">
-              <div className="udg-glass-field">
-            <label>Project ID</label>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <input
-                value={createForm.projectId}
-                onChange={(event) =>
-                  setCreateForm((prev) => ({ ...prev, projectId: event.target.value }))
-                }
-                placeholder="123e4567-e89b-12d3-a456-426614174000"
-                style={{ width: "100%" }}
+          <div className="udg-glass-create-form">
+            <button
+              type="button"
+              className="udg-glass-create-form__header"
+              onClick={() => setCreateFormExpanded(!createFormExpanded)}
+            >
+              <h3 style={{ fontSize: "0.875rem", fontWeight: 600, margin: 0 }}>New Target Group</h3>
+              <MaterialSymbol 
+                icon={createFormExpanded ? "expand_less" : "expand_more"} 
+                fontSize={20} 
               />
-              <button
-                type="button"
-                className="udg-glass-button --ghost"
-                onClick={() => {
-                  // Generate a new UUID v4
-                  let uuid: string;
-                  if (typeof crypto !== "undefined" && crypto.randomUUID) {
-                    uuid = crypto.randomUUID();
-                  } else {
-                    // Fallback for older browsers
-                    uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-                      const r = (Math.random() * 16) | 0;
-                      const v = c === "x" ? r : (r & 0x3) | 0x8;
-                      return v.toString(16);
-                    });
+            </button>
+            {createFormExpanded && (
+              <div className="udg-glass-create-form__content">
+                <div className="udg-glass-field">
+              <label>Project ID</label>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <input
+                  value={createForm.projectId}
+                  onChange={(event) =>
+                    setCreateForm((prev) => ({ ...prev, projectId: event.target.value }))
                   }
-                  setCreateForm((prev) => ({ ...prev, projectId: uuid }));
-                }}
-                style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem", alignSelf: "flex-start", whiteSpace: "nowrap" }}
-                title="Generate new UUID"
-              >
-                <MaterialSymbol icon="refresh" fontSize={14} /> Generate
-              </button>
+                  placeholder="123e4567-e89b-12d3-a456-426614174000"
+                  style={{ width: "100%" }}
+                />
+                <button
+                  type="button"
+                  className="udg-glass-button --ghost"
+                  onClick={() => {
+                    // Generate a new UUID v4
+                    let uuid: string;
+                    if (typeof crypto !== "undefined" && crypto.randomUUID) {
+                      uuid = crypto.randomUUID();
+                    } else {
+                      // Fallback for older browsers
+                      uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+                        const r = (Math.random() * 16) | 0;
+                        const v = c === "x" ? r : (r & 0x3) | 0x8;
+                        return v.toString(16);
+                      });
+                    }
+                    setCreateForm((prev) => ({ ...prev, projectId: uuid }));
+                  }}
+                  style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem", alignSelf: "flex-start", whiteSpace: "nowrap" }}
+                  title="Generate new UUID"
+                >
+                  <MaterialSymbol icon="refresh" fontSize={14} /> Generate
+                </button>
+              </div>
             </div>
-          </div>
-          <div className="udg-glass-field">
-            <label>Name</label>
-            <input
-              value={createForm.name}
-              onChange={(event) => setCreateForm((prev) => ({ ...prev, name: event.target.value }))}
-              placeholder="Target Group Name"
-            />
-          </div>
-          <div className="udg-glass-field">
-            <label>Segment</label>
-            <input
-              value={createForm.segment}
-              onChange={(event) =>
-                setCreateForm((prev) => ({ ...prev, segment: event.target.value }))
-              }
-              placeholder="B2B / Enterprise / etc."
-            />
-          </div>
-          <div className="udg-glass-field">
-            <label>Description</label>
-            <textarea
-              value={createForm.description}
-              onChange={(event) =>
-                setCreateForm((prev) => ({ ...prev, description: event.target.value }))
-              }
-              placeholder="Beschreibung"
-              rows={3}
-            />
-          </div>
-          <button
-            className="udg-glass-button"
-            onClick={handleCreate}
-            disabled={createPending}
-            style={{ padding: "0.375rem 0.75rem", fontSize: "0.8125rem" }}
-          >
-            <MaterialSymbol icon="add" fontSize={14} /> Target Group anlegen
-          </button>
+            <div className="udg-glass-field">
+              <label>Name</label>
+              <input
+                value={createForm.name}
+                onChange={(event) => setCreateForm((prev) => ({ ...prev, name: event.target.value }))}
+                placeholder="Target Group Name"
+              />
             </div>
-          )}
-        </div>
-      </section>
+            <div className="udg-glass-field">
+              <label>Segment</label>
+              <input
+                value={createForm.segment}
+                onChange={(event) =>
+                  setCreateForm((prev) => ({ ...prev, segment: event.target.value }))
+                }
+                placeholder="B2B / Enterprise / etc."
+              />
+            </div>
+            <div className="udg-glass-field">
+              <label>Description</label>
+              <textarea
+                value={createForm.description}
+                onChange={(event) =>
+                  setCreateForm((prev) => ({ ...prev, description: event.target.value }))
+                }
+                placeholder="Beschreibung"
+                rows={3}
+              />
+            </div>
+            <button
+              className="udg-glass-button"
+              onClick={handleCreate}
+              disabled={createPending}
+              style={{ padding: "0.375rem 0.75rem", fontSize: "0.8125rem" }}
+            >
+              <MaterialSymbol icon="add" fontSize={14} /> Target Group anlegen
+            </button>
+              </div>
+            )}
+          </div>
+        </section>
+      </UdgGlassCollapsiblePanel>
 
       <section className="udg-glass-panel">
         {!selectedId && <p className="udg-glass-empty">Please select a Target Group.</p>}
@@ -589,18 +591,18 @@ export const UdgGlassTargetGroupAdminPanel = ({
             </header>
 
             <div className="udg-glass-detail__grid">
-              <div style={{ border: "1px solid var(--color-secondary-dx-purple)", borderRadius: "12px", padding: "0.75rem", marginTop: "1rem" }}>
+              <div style={{ border: "1px solid var(--color-theme-accent)", borderRadius: "12px", padding: "0.75rem", marginTop: "1rem" }}>
                 <h3 style={{ fontSize: "1.5rem", fontWeight: 100, marginBottom: "2rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Metadaten</h3>
                 <dl className="udg-glass-meta-grid">
                   <div>
                     <dt>Project ID</dt>
                     <dd>{detail.projectId ?? (detail as any).project_id ?? ""}</dd>
                   </div>
-                  <div style={{ borderLeft: "1px solid var(--color-secondary-dx-purple)", paddingLeft: "0.75rem" }}>
+                  <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
                     <dt>Created</dt>
                     <dd>{formatDate(detail.createdAt ?? (detail as any).created_at ?? "")}</dd>
                   </div>
-                  <div style={{ borderLeft: "1px solid var(--color-secondary-dx-purple)", paddingLeft: "0.75rem" }}>
+                  <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
                     <dt>Updated</dt>
                     <dd>{formatDate(detail.updatedAt ?? (detail as any).updated_at ?? "")}</dd>
                   </div>
@@ -615,8 +617,33 @@ export const UdgGlassTargetGroupAdminPanel = ({
               <UdgGlassPersonaList 
                 personas={personas} 
                 onDelete={async (personaId: string) => {
-                  // TODO: Implement delete persona API call
-                  notify("Persona deletion not yet implemented");
+                  const persona = personas.find(p => p.id === personaId);
+                  const personaName = persona?.name || "this persona";
+                  const confirmed = window.confirm(
+                    `Are you sure you want to delete "${personaName}"?\n\nThis action cannot be undone. The persona will be permanently removed.`
+                  );
+                  
+                  if (!confirmed) {
+                    return;
+                  }
+                  
+                  try {
+                    const response = await fetch(`/api/persona-admin/${personaId}?actor=persona-admin-ui`, {
+                      method: "DELETE",
+                    });
+                    if (!response.ok) {
+                      throw new Error(`Backend responded with ${response.status}`);
+                    }
+                    // Refresh personas list
+                    if (selectedId) {
+                      const personasData = await fetchTargetGroupPersonas(selectedId);
+                      setPersonas(personasData.items);
+                    }
+                    notify("Persona deleted");
+                  } catch (error) {
+                    console.error("Persona delete failed", error);
+                    notify("Delete failed");
+                  }
                 }}
               />
               
@@ -775,7 +802,7 @@ export const UdgGlassTargetGroupAdminPanel = ({
                                 style={{
                                   width: `${doc.ingestionProgress}%`,
                                   height: "100%",
-                                  backgroundColor: "var(--color-secondary-dx-purple)",
+                                  backgroundColor: "var(--color-theme-accent)",
                                   transition: "width 0.3s ease",
                                 }}
                               />
@@ -805,8 +832,8 @@ export const UdgGlassTargetGroupAdminPanel = ({
                 </button>
                 {documentUploadExpanded && (
                   <div className="udg-glass-create-form__content">
-                    <div style={{ padding: "1rem", border: "1px dashed var(--color-secondary-dx-purple)", borderRadius: "8px", textAlign: "center" }}>
-                      <MaterialSymbol icon="upload_file" fontSize={32} style={{ color: "var(--color-secondary-dx-purple)", marginBottom: "0.5rem" }} />
+                    <div style={{ padding: "1rem", border: "1px dashed var(--color-theme-accent)", borderRadius: "8px", textAlign: "center" }}>
+                      <MaterialSymbol icon="upload_file" fontSize={32} style={{ color: "var(--color-theme-accent)", marginBottom: "0.5rem" }} />
                       <p style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.75rem" }}>
                         PDF, DOCX, PPTX, MP3 — Drag file here or click to select
                       </p>

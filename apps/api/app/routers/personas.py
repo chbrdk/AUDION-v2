@@ -5,7 +5,7 @@ from base64 import b64decode
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
-from typing import List
+from typing import Any, Dict, List
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
@@ -18,6 +18,8 @@ from ..db import get_session
 from ..models import Document, DocumentChunk, Persona, PersonaKnowledgeEntry, ProcessingJob
 from worker.ingest import enqueue_ingestion
 from ..schemas import (
+    AiAssistRequest,
+    AiAssistResponse,
     PersonaCreateRequest,
     PersonaDocument,
     PersonaGenerateRequest,
@@ -27,14 +29,17 @@ from ..schemas import (
     PersonaPatchRequest,
     PersonaResponse,
 )
+from ..services.ai_assist import AiAssistService
 from ..services.persona_generation import PersonaGenerationService
 from ..services.persona_store import PersonaService
+from ..services.target_group_store import TargetGroupService
 from ..services.storage import StorageService
 
 router = APIRouter(prefix="/personas", tags=["personas"])
 generator = PersonaGenerationService()
 persona_service = PersonaService()
 storage = StorageService()
+target_group_service = TargetGroupService()
 
 
 def get_db():
@@ -98,6 +103,78 @@ def list_personas(
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+def _persona_target_group_summary(session: Session, persona: Persona) -> str:
+    if not persona.target_group_id:
+        return "Keine Target Group verknüpft."
+    try:
+        tg = target_group_service.get_target_group(session, str(persona.target_group_id))
+    except ValueError:
+        return "Target Group konnte nicht geladen werden."
+    summary = f"{tg.name} • Segment: {tg.segment or 'n/a'}"
+    if tg.description:
+        summary += f"\nBeschreibung: {tg.description}"
+    return summary
+
+
+def _persona_existing_pain_points(persona: Persona) -> List[str]:
+    profile = persona.profile or {}
+    candidates = profile.get("pain_points") or profile.get("painPoints") or []
+    values: List[str] = []
+    if isinstance(candidates, list):
+        for entry in candidates:
+            if isinstance(entry, dict):
+                label = entry.get("label") or entry.get("title")
+                desc = entry.get("description") or entry.get("content")
+                if label and desc:
+                    values.append(f"{label}: {desc}")
+                elif label:
+                    values.append(label)
+                elif desc:
+                    values.append(desc)
+            elif isinstance(entry, str):
+                values.append(entry)
+    return values
+
+
+def _build_persona_ai_context(session: Session, persona: Persona, max_items: int) -> Dict[str, Any]:
+    profile_json = json.dumps(persona.profile or {}, ensure_ascii=False, indent=2)
+    existing_pain_points = "\n".join(_persona_existing_pain_points(persona)) or "Keine Pain Points dokumentiert."
+    return {
+        "persona_name": persona.name,
+        "persona_segment": persona.segment,
+        "persona_profile": profile_json,
+        "persona_pain_points": existing_pain_points,
+        "target_group_summary": _persona_target_group_summary(session, persona),
+        "max_items": max_items,
+    }
+
+
+@router.post(
+    "/{persona_id}/ai/pain-points",
+    response_model=AiAssistResponse,
+    summary="Generate AI suggestions for persona pain points",
+)
+async def generate_persona_pain_points(
+    persona_id: str,
+    payload: Dict[str, int] | None = Body(default=None),
+    session: Session = Depends(get_db),
+) -> AiAssistResponse:
+    persona = _get_persona_or_404(session, persona_id)
+    max_items = (payload or {}).get("max_items", 3)
+    max_items = max(1, min(max_items, 10))
+    context = _build_persona_ai_context(session, persona, max_items)
+    ai_request = AiAssistRequest(
+        template_id="persona.pain_points",
+        context=context,
+        max_suggestions=max_items,
+    )
+    try:
+        ai_assist = AiAssistService(session=session)
+        return await ai_assist.generate(ai_request)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.post(
@@ -339,29 +416,32 @@ async def update_persona(
 @router.delete(
     "/{persona_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Archive/delete a persona",
+    summary="Delete a persona permanently",
     description="""
-    Archive or delete a persona from the system.
+    Permanently delete a persona and all associated data from the system.
     
-    This endpoint marks a persona as archived (soft delete) rather than permanently
-    removing it from the database. Archived personas are hidden from normal listings
-    but can still be accessed directly by ID if needed for audit purposes.
+    This endpoint performs a complete deletion of a persona including:
+    - Removing all associated documents and their chunks from storage and vector database
+    - Deleting all knowledge entries
+    - Removing all persona sources and prompts
+    - Deleting the persona record itself
+    - Invalidating all caches
     
     **Parameters:**
-    - `persona_id`: The unique identifier of the persona to archive (UUID format)
+    - `persona_id`: The unique identifier of the persona to delete (UUID format)
     - `actor`: Optional identifier of who is performing the deletion (for audit logging)
     
     **Returns:**
     - 204 No Content on successful deletion
     
-    **Note:** This is a soft delete operation. The persona is marked as archived but
-    not permanently removed. Associated documents and knowledge entries remain linked
-    but are typically filtered from active results.
+    **Note:** This is a permanent deletion operation. All associated data including
+    documents, chunks, embeddings, and knowledge entries are removed. This action cannot
+    be undone. An audit log entry is created before deletion for tracking purposes.
     """
 )
 def delete_persona(persona_id: str, actor: str | None = Query(None), session: Session = Depends(get_db)) -> None:
     try:
-        persona_service.archive_persona(session, persona_id, actor=actor)
+        persona_service.delete_persona(session, persona_id, actor=actor)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail="Persona not found") from exc
 

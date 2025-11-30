@@ -29,132 +29,233 @@ export const UdgGlassAdminLayoutClient = ({ children, title, subtitle }: UdgGlas
     setDrawerOpen(false);
   };
 
+  // Get page title from pathname
+  const getPageTitle = () => {
+    if (!pathname) return "";
+    
+    const pathMap: Record<string, string> = {
+      "/admin": "Dashboard",
+      "/admin/personas": "Personas",
+      "/admin/target-groups": "Target Groups",
+      "/admin/journeys": "Journeys",
+      "/admin/queue": "Queue",
+      "/admin/settings": "Settings",
+      "/admin/api-docs": "API Docs",
+    };
+
+    // Check exact match first
+    if (pathMap[pathname]) {
+      return pathMap[pathname];
+    }
+
+    // Check if pathname starts with any key
+    for (const [path, label] of Object.entries(pathMap)) {
+      if (pathname.startsWith(path) && path !== "/admin") {
+        return label;
+      }
+    }
+
+    return "";
+  };
+
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        minHeight: "100vh",
-        position: "relative",
-        width: "100%",
-        maxWidth: "100vw",
-        overflowX: "hidden"
-      }}
-    >
-      {/* Header Bar */}
+          <Box
+            sx={{
+              display: "flex",
+              minHeight: "100vh",
+              position: "relative",
+              width: "100%",
+              maxWidth: "100vw",
+              overflowX: "visible"
+            }}
+          >
+      {/* Sidebar - Outside Container, Full Height */}
+      <UdgGlassAdminNav 
+        open={drawerOpen} 
+        onClose={handleDrawerClose}
+        currentPath={pathname || ""}
+        themeMode={themeMode}
+        onToggleTheme={toggleTheme}
+      />
+
+      {/* Container: Header + Main with Border and Border-Radius */}
       <Box
-        component="header"
-        className="udg-glass-admin-header-bar"
-        sx={{
-          position: "sticky",
-          top: 0,
-          zIndex: 1100,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: { xs: "0.75rem 1rem", md: "1rem 1.5rem" },
-          borderBottom: "1px solid var(--color-secondary-dx-purple)",
-          minHeight: { xs: "56px", md: "64px" }
-        }}
-      >
-        {/* Left: Logo */}
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: { xs: 1, md: 1.75 }
-          }}
-        >
-          <Image
-            src={BRAND_LOGO.path}
-            alt={BRAND_LOGO.alt}
-            width={180}
-            height={44}
-            priority
-            style={{
-              height: "auto",
-              width: "auto",
-              maxWidth: "220px",
-              filter: themeMode === "dark" ? "invert(1)" : "none"
-            }}
-          />
-
-          <Divider
-            orientation="vertical"
-            flexItem
-            sx={{
-              height: 36,
-              borderColor: "var(--color-neutral)",
-              display: { xs: "none", md: "block" }
-            }}
-          />
-
-          <Typography
-            variant="h4"
-            sx={{
-              fontWeight: 300,
-              letterSpacing: 1.5,
-              textTransform: "uppercase",
-              display: { xs: "none", md: "block" }
-            }}
-          >
-            Audion
-          </Typography>
-        </Box>
-
-        {/* Right: Hamburger (only on mobile when nav closed) + Theme Toggle */}
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 1
-          }}
-        >
-          {/* Hamburger only visible on mobile when drawer is closed */}
-          <IconButton
-            onClick={handleDrawerToggle}
-            sx={{
-              color: "var(--color-text-primary)",
-              padding: "8px",
-              display: { xs: drawerOpen ? "none" : "flex", md: "none" }
-            }}
-            aria-label="Toggle navigation"
-          >
-            <MaterialSymbol icon="menu" fontSize={24} />
-          </IconButton>
-
-          <IconButton
-            onClick={toggleTheme}
-            sx={{
-              color: "var(--color-text-primary)",
-              padding: "8px"
-            }}
-            aria-label="Toggle theme"
-          >
-            <MaterialSymbol 
-              icon={themeMode === "dark" ? "light_mode" : "dark_mode"} 
-              fontSize={24} 
-            />
-          </IconButton>
-        </Box>
-      </Box>
-
-      {/* Main Layout: Drawer + Content */}
-      <Box
+        className="udg-glass-admin-container"
         sx={{
           display: "flex",
+          flexDirection: "column",
           flex: 1,
+          minWidth: 0,
+          minHeight: "100vh",
           position: "relative",
-          overflow: "hidden",
-          minWidth: 0
+          border: "10px solid var(--audion-light-border-color, #0f172a)",
+          borderLeft: 0,
+          borderRadius: "40px",
+          backgroundColor: "var(--color-neutral)",
+          backgroundImage: themeMode === "dark"
+            ? `
+              linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px)
+            `
+            : `
+              linear-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(15, 23, 42, 0.04) 1px, transparent 1px)
+            `,
+          backgroundSize: "20px 20px",
+          backgroundAttachment: "fixed",
+          overflowX: "visible",
+          overflowY: "hidden",
+          transition: "border-color 0.3s ease, background-color 0.3s ease"
         }}
       >
-        {/* Off-Canvas Navigation Drawer */}
-        <UdgGlassAdminNav 
-          open={drawerOpen} 
-          onClose={handleDrawerClose}
-          currentPath={pathname || ""}
-        />
+        {/* Header Bar */}
+        <Box
+          component="header"
+          className="udg-glass-admin-header-bar"
+          sx={{
+            position: "sticky",
+            top: 0,
+            zIndex: 1100,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: { xs: "0.75rem 1rem", md: "1rem 1.5rem" },
+            minHeight: { xs: "56px", md: "64px" },
+            backgroundColor: "transparent",
+            overflow: "visible",
+            borderBottom: 0,
+            borderTopLeftRadius: "40px",
+            borderTopRightRadius: "40px"
+          }}
+        >
+          {/* L-shaped element with rounded corners - based on provided SVG */}
+          <Box
+            className="udg-glass-admin-header-corner"
+            sx={{
+              position: "absolute",
+              top: "-2px",
+              left: "-3px",
+              width: "363px",
+              height: "135px",
+              zIndex: -1,
+              pointerEvents: "none",
+              overflow: "visible"
+            }}
+          >
+            <svg
+              width="363"
+              height="135"
+              viewBox="0 0 363 135"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              style={{
+                width: "100%",
+                height: "100%"
+              }}
+            >
+              <path
+                d="M3 120V134.5H0V0H362.5V2H328.5C306.961 2 289.5 19.4609 289.5 41C289.5 62.5391 272.039 80 250.5 80H43C20.9086 80 3 97.9086 3 120Z"
+                fill="var(--audion-light-border-color, #0f172a)"
+                style={{
+                  transition: "fill 0.3s ease"
+                }}
+              />
+            </svg>
+          </Box>
+          {/* Left: Logo - positioned absolutely over sidebar */}
+          <Box
+            sx={{
+              position: "absolute",
+              top: "22px",
+              left: "-38px",
+              zIndex: 1200,
+              display: "flex",
+              alignItems: "flex-start",
+              gap: { xs: 1, md: 1.75 }
+            }}
+          >
+            <Image
+              src={BRAND_LOGO.path}
+              alt={BRAND_LOGO.alt}
+              width={120}
+              height={30}
+              priority
+              style={{
+                height: "auto",
+                width: "auto",
+                maxWidth: "140px",
+                filter: themeMode === "dark" ? "invert(0)" : "none"
+              }}
+            />
+
+            <Divider
+              orientation="vertical"
+              flexItem
+              sx={{
+                height: 24,
+                borderColor: themeMode === "dark" ? "#000000" : "var(--color-text-primary)",
+                display: { xs: "none", md: "block" }
+              }}
+            />
+
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: 300,
+                letterSpacing: 1.5,
+                textTransform: "uppercase",
+                fontSize: "32px",
+                lineHeight: 1,
+                marginTop: "-4px",
+                color: themeMode === "dark" ? "#000000" : "inherit",
+                display: { xs: "none", md: "block" }
+              }}
+            >
+              Audion
+            </Typography>
+          </Box>
+          {/* Right: Page Title + Hamburger (only on mobile when nav closed) */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-end",
+              gap: 1,
+              width: "100%"
+            }}
+          >
+            {/* Page Title */}
+            {getPageTitle() && (
+              <Typography
+                variant="h6"
+                sx={{
+                  fontSize: "36px",
+                  textTransform: "lowercase",
+                  fontWeight: 800,
+                  marginTop: "-15px",
+                  letterSpacing: "-2px",
+                  color: "var(--color-text-primary)",
+                  textShadow: "4px 4px 0 var(--color-theme-accent)",
+                  display: { xs: "none", md: "block" }
+                }}
+              >
+                {getPageTitle()}
+              </Typography>
+            )}
+            {/* Hamburger only visible on mobile when drawer is closed */}
+            <IconButton
+              onClick={handleDrawerToggle}
+              sx={{
+                color: "var(--color-text-primary)",
+                padding: "8px",
+                display: { xs: drawerOpen ? "none" : "flex", md: "none" }
+              }}
+              aria-label="Toggle navigation"
+            >
+              <MaterialSymbol icon="menu" fontSize={24} />
+            </IconButton>
+          </Box>
+        </Box>
 
         {/* Content Area */}
         <Box
@@ -164,10 +265,12 @@ export const UdgGlassAdminLayoutClient = ({ children, title, subtitle }: UdgGlas
             flex: 1,
             overflowX: "hidden",
             overflowY: "auto",
-            padding: { xs: "1rem", md: "1.5rem 1.5rem 1.5rem 0" },
+            marginTop: "-76px",
+            padding: { xs: "calc(1rem + 76px) 1rem 1rem", md: "calc(1.5rem + 76px) 1.5rem 1.5rem" },
             minWidth: 0,
             maxWidth: "100%",
-            width: "100%"
+            width: "100%",
+            transition: "padding 0.3s ease"
           }}
         >
           {/* Optional Page Title */}

@@ -62,7 +62,7 @@ See `knowledge/env.md` and `knowledge/build-cache.md` for complete environment v
 ## Project Structure
 
 ```
-persona_chat/
+AUDION/
 ├── apps/
 │   ├── web/              # Next.js frontend
 │   ├── api/              # Persona backend API

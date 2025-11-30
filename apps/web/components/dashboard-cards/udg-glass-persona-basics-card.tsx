@@ -25,6 +25,7 @@ export type UdgGlassPersonaBasicsCardProps = {
   onEditField: (field: keyof EditFormState, value: string) => void;
   onSave: (updates?: Partial<EditFormState>) => void | Promise<void>;
   onArchive?: () => void;
+  onDelete?: () => void;
   savePending: boolean;
   formatDate: (value?: string | null) => string;
 };
@@ -37,6 +38,7 @@ export const UdgGlassPersonaBasicsCard = ({
   onEditField,
   onSave,
   onArchive,
+  onDelete,
   savePending,
   formatDate
 }: UdgGlassPersonaBasicsCardProps) => {
@@ -125,9 +127,9 @@ export const UdgGlassPersonaBasicsCard = ({
       icon="info"
       variant="persona-basics"
       iconColor={{
-        color: "var(--color-secondary-dx-purple)"
+        color: "var(--color-theme-accent)"
       }}
-      borderColor="var(--color-secondary-dx-purple)"
+      borderColor="var(--color-theme-accent)"
       fullWidth={true}
       expanded={expanded}
       onToggle={onToggle}
@@ -277,8 +279,8 @@ export const UdgGlassPersonaBasicsCard = ({
             />
           </Box>
 
-          {onArchive && (
-            <div className="udg-glass-detail__actions" style={{ marginTop: "1rem" }}>
+          <div className="udg-glass-detail__actions" style={{ marginTop: "1rem", display: "flex", gap: "0.5rem" }}>
+            {onArchive && (
               <button 
                 className="udg-glass-button --ghost" 
                 onClick={onArchive}
@@ -286,8 +288,19 @@ export const UdgGlassPersonaBasicsCard = ({
               >
                 <MaterialSymbol icon="archive" fontSize={18} /> Archive
               </button>
-            </div>
-          )}
+            )}
+            {onDelete && (
+              <button 
+                className="udg-glass-button --ghost" 
+                onClick={onDelete}
+                disabled={savePending}
+                title="Delete persona"
+                style={{ padding: "0.375rem", fontSize: "0.75rem", color: "var(--color-secondary-dx-pink)" }}
+              >
+                <MaterialSymbol icon="delete" fontSize={16} />
+              </button>
+            )}
+          </div>
         </UdgGlassDashboardCardSection>
       </div>
     </UdgGlassDashboardCard>

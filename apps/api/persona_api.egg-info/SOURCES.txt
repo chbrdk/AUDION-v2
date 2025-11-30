@@ -2,6 +2,7 @@ README.md
 pyproject.toml
 app/__init__.py
 app/celery_app.py
+app/celeryconfig.py
 app/db.py
 app/main.py
 persona_api.egg-info/PKG-INFO
@@ -9,9 +10,15 @@ persona_api.egg-info/SOURCES.txt
 persona_api.egg-info/dependency_links.txt
 persona_api.egg-info/requires.txt
 persona_api.egg-info/top_level.txt
+tests/test_ai_assist_service.py
 tests/test_app_starts.py
 tests/test_documents_upload.py
+tests/test_generic_field_handler.py
 tests/test_ingestion_service.py
+tests/test_journey_api.py
+tests/test_journey_generation.py
+tests/test_journey_models.py
+tests/test_journey_validation.py
 tests/test_persona_models.py
 tests/test_persona_service.py
 tests/test_target_group_api.py

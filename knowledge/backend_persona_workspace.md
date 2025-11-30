@@ -40,6 +40,7 @@
 - `PERSONA_BACKEND_PUBLIC_URL` → default `http://localhost:8000`, set to `https://192.168.50.101/api/persona-backend` in Docker so generated download/avatar URLs stay HTTPS-safe.
 - `PERSONA_BACKEND_DOCS_URL` → default `http://localhost:8000/docs`, surfaced in admin console links.
 - Nginx proxy enforces `client_max_body_size 200m`, so uploads to `/api/persona-backend` (documents, knowledge attachments, avatars) avoid 413 responses for larger files.
+- **Reverse proxy path**: keep the `/api/persona-backend` prefix when forwarding to `persona-api`. FastAPI already sets `root_path=/api/persona-backend`, so removing the prefix breaks routes like `/api/persona-backend/ai-assist`.
 - `NEO4J_BROWSER_URL` / `NEO4J_BLOOM_URL` → optional deep links for graph introspection; response metadata exposes `graphUrl` + `graphBloomUrl`.
 
 ## Access URLs

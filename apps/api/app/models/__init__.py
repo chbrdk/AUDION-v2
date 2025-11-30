@@ -24,6 +24,7 @@ class PersonaAuditAction(PyEnum):
     published = "published"
     archived = "archived"
     restored = "restored"
+    deleted = "deleted"
 
 
 class Document(Base):
@@ -94,6 +95,7 @@ class TargetGroup(Base):
     knowledge_entries = relationship("TargetGroupKnowledgeEntry", back_populates="target_group", cascade="all, delete-orphan")
     sources = relationship("TargetGroupSource", back_populates="target_group", cascade="all, delete-orphan")
     documents = relationship("Document", back_populates="target_group")
+    journeys = relationship("Journey", back_populates="target_group")
 
 
 class Persona(Base):
@@ -207,4 +209,23 @@ class TargetGroupKnowledgeEntry(Base):
     target_group = relationship("TargetGroup", back_populates="knowledge_entries")
     chunks = relationship("DocumentChunk", back_populates="knowledge_entry", cascade="all, delete-orphan")
 
+
+# Import Journey models
+from .journey import (
+    Journey,
+    JourneyPhase,
+    JourneyPhaseElement,
+    JourneyExpectation,
+    JourneyMeasurement,
+    JourneyInsight,
+    JourneyChange,
+    JourneyCreationMode,
+    JourneyStatus,
+    JourneyElementType,
+    JourneyMetricType,
+    JourneyComparisonOperator,
+    JourneyMeasurementStatus,
+    JourneyInsightType,
+    JourneyInsightStatus,
+)
 

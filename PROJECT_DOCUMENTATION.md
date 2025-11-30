@@ -463,6 +463,50 @@ LOCAL_DOCKER_CACHE_ROOT=/path/to/cache ./scripts/build.sh
 
 ### Persona Backend API (`/api/persona-backend`)
 
+#### Journeys
+
+**GET `/journeys`**
+- Liste aller Journeys mit Pagination
+- Query Params: `target_group_id`, `project_id`, `page`, `page_size`
+- Response: `List[JourneyResponse]`
+
+**POST `/journeys`**
+- Erstelle neue Journey
+- Body: `JourneyCreate`
+- Response: `JourneyResponse`
+
+**GET `/journeys/{journey_id}`**
+- Journey-Details abrufen
+- Response: `JourneyResponse`
+
+**PUT `/journeys/{journey_id}`**
+- Journey aktualisieren
+- Body: `JourneyCreate`
+- Response: `JourneyResponse`
+
+**DELETE `/journeys/{journey_id}`**
+- Journey löschen
+
+**POST `/journeys/{journey_id}/phases`**
+- Phase zu Journey hinzufügen
+- Body: `PhaseCreate`
+- Response: `PhaseResponse`
+
+**POST `/journeys/{journey_id}/validate`**
+- Journey gegen Personas validieren
+- Body: `ValidationRequest`
+- Response: `JourneyValidationReport`
+
+**POST `/journeys/{journey_id}/tracking/sync`**
+- Measurements von Analytics synchronisieren
+- Response: Status
+
+**GET `/journeys/{journey_id}/insights`**
+- Liste aller Insights für Journey
+- Response: `List[InsightResponse]`
+
+Siehe: `knowledge/journey_mapper.md` für vollständige API-Dokumentation.
+
 #### Personas
 
 **GET `/personas`**
@@ -808,7 +852,7 @@ Siehe: `knowledge/persona_schema.yaml`
 ### Code-Struktur
 
 ```
-persona_chat/
+AUDION/
 ├── apps/
 │   ├── api/              # Persona Backend API
 │   │   ├── app/
@@ -907,6 +951,11 @@ cd apps/api && uv run pytest
 
 ## Deployment
 
+### Deployment-Optionen
+
+**Aktuell:** Docker Compose auf eigenem Server
+**Alternative:** Coolify (siehe `knowledge/coolify-deployment.md` für vollständigen Guide)
+
 ### Production Server
 
 **Server:** `192.168.50.101`
@@ -916,7 +965,7 @@ cd apps/api && uv run pytest
 **1. Code aktualisieren:**
 ```bash
 ssh user@192.168.50.101
-cd /path/to/persona_chat
+cd /path/to/AUDION
 git pull origin main
 ```
 
@@ -1262,6 +1311,7 @@ NODE_OPTIONS='--inspect' npm run dev:web
 - `knowledge/build-cache.md` - Build Cache Konfiguration
 - `knowledge/ui.md` - UI Components und Branding
 - `knowledge/persona_sources.md` - Externe Persona-Datenquellen
+- `knowledge/coolify-deployment.md` - Coolify Deployment Guide
 - `Docs/` - Weitere technische Dokumentation
 
 ### API-Dokumentation
@@ -1281,6 +1331,7 @@ NODE_OPTIONS='--inspect' npm run dev:web
 
 ### November 2025
 
+- **Journey Mapper**: Customer Journey Maps mit AI-Generierung, Persona Validation und Reality Tracking
 - **Target Groups**: Neue Architektur für Persona-Organisation
 - **Queue Dashboard**: Monitoring für Processing Jobs
 - **Service Status**: Health Checks für alle Services
@@ -1289,6 +1340,62 @@ NODE_OPTIONS='--inspect' npm run dev:web
 
 ---
 
-**Letzte Aktualisierung:** 2025-11-24
+## Journey Mapper Feature
 
-**Version:** 1.0.0
+Das Journey Mapper Feature ermöglicht die Erstellung und Verwaltung von Customer Journey Maps mit folgenden Funktionen:
+
+### Features
+
+- **Drei Creation-Modi:**
+  - **Manual**: Manuelle Erstellung von Journeys und Phasen
+  - **AI-generiert**: Automatische Generierung aus Target Group Knowledge und Personas
+  - **Hybrid**: Kombination aus manuellen und AI-generierten Phasen
+
+- **Persona Validation:**
+  - Validierung von Journey Phases gegen Persona Profiles
+  - Fit Scores (0-100) pro Phase
+  - Identifikation von Friction Points
+  - Automatische Recommendations
+
+- **Reality Tracking:**
+  - Expectations vs. Measurements
+  - Integration mit GA4, Hotjar, HubSpot
+  - Automatisches Syncing von Measurements
+  - Status-Tracking (good, warning, critical, no_data)
+
+- **Insights & Learning:**
+  - Automatische Insights-Generierung aus Measurements
+  - Insight-Typen: Confirmation, Contradiction, Discovery, Anomaly
+  - AI-basierte Recommendations
+  - Change Tracking
+
+### Integration
+
+- **Target Groups**: Journeys gehören zu Target Groups (wie Personas)
+- **Personas**: Validation nutzt bestehende Persona Profiles
+- **Knowledge Base**: Journey Generation nutzt Target Group Knowledge und RetrievalAgent
+
+### API Endpoints
+
+Siehe: `knowledge/journey_mapper.md` für vollständige API-Dokumentation.
+
+**Base URL:** `/api/persona-backend/journeys`
+
+### Frontend
+
+- **Pages:** `/admin/journeys` (List), `/admin/journeys/[journeyId]` (Editor), `/admin/journeys/[journeyId]/dashboard` (Dashboard)
+- **Components:** `udg-glass-journey-canvas`, `udg-glass-phase-card`, `udg-glass-validation-panel`
+
+### Celery Tasks
+
+- **Queue `journeys`**: Journey generation and validation
+- **Queue `analytics`**: Measurement syncing and insight analysis
+- **Scheduled Tasks**: Daily sync and analysis at 2 AM / 3 AM
+
+Siehe: `knowledge/journey_mapper.md` für detaillierte Dokumentation.
+
+---
+
+**Letzte Aktualisierung:** 2025-11-26
+
+**Version:** 1.1.0

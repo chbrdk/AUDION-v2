@@ -1,0 +1,70 @@
+import { getPersonaBackendBase } from "../../../api/_lib/backend";
+
+type ProviderInfo = {
+  id: string;
+  label: string;
+  model: string;
+  api_key_configured: boolean;
+};
+
+type ProvidersResponse = {
+  default_provider: string;
+  providers: ProviderInfo[];
+};
+
+const fetchProviders = async (): Promise<ProvidersResponse> => {
+  const response = await fetch(`${getPersonaBackendBase()}/settings/ai/providers`, {
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error("Failed to load provider information");
+  }
+  return response.json();
+};
+
+const statusLabel = (configured: boolean) => (configured ? "Connected" : "Missing key");
+
+export default async function SettingsProvidersPage() {
+  const data = await fetchProviders();
+
+  return (
+    <div className="udg-glass-panel">
+      <header className="udg-glass-detail__header">
+        <div>
+          <p className="udg-glass-eyebrow">AI Settings</p>
+          <h1 style={{ margin: 0 }}>Providers</h1>
+          <p className="udg-glass-muted" style={{ maxWidth: "640px" }}>
+            Track which model backends are available to the workspace. Keys are never exposed, only their status.
+          </p>
+        </div>
+      </header>
+
+      <div className="udg-glass-settings-grid">
+        {data.providers.map((provider) => (
+          <div key={provider.id} className="udg-glass-settings-card">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <h3 style={{ marginBottom: "0.25rem" }}>{provider.label}</h3>
+                <p className="udg-glass-muted" style={{ margin: 0 }}>
+                  Default model: {provider.model || "—"}
+                </p>
+              </div>
+              <span
+                className={`udg-glass-status-pill ${provider.api_key_configured ? "--success" : "--warning"}`}
+              >
+                {statusLabel(provider.api_key_configured)}
+              </span>
+            </div>
+            {data.default_provider === provider.id && (
+              <p className="udg-glass-badge --outline" style={{ marginTop: "0.75rem", display: "inline-flex" }}>
+                Default
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+

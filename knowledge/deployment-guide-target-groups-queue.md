@@ -27,7 +27,7 @@ Dieses Guide beschreibt, wie die neuen Target Groups und Queue Dashboard Feature
 ```bash
 # 1. Auf dem Production-Server: Code aktualisieren
 ssh user@192.168.50.101
-cd /path/to/persona_chat
+cd /path/to/AUDION
 git pull origin main  # oder dein Branch
 
 # 2. Ins infrastructure Verzeichnis wechseln
@@ -48,7 +48,7 @@ docker compose logs -f web
 ```bash
 # 1. SSH auf Server
 ssh user@192.168.50.101
-cd /path/to/persona_chat
+cd /path/to/AUDION
 
 # 2. TypeScript Types bauen
 npm run build --workspace packages/types
@@ -71,7 +71,7 @@ docker compose up -d web
 ```bash
 # 1. SSH auf Server
 ssh user@192.168.50.101
-cd /path/to/persona_chat/infrastructure
+cd /path/to/AUDION/infrastructure
 
 # 2. Alle Container neu bauen
 docker compose build
