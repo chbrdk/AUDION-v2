@@ -29,6 +29,7 @@ const navItems: NavItem[] = [
   { label: "Journeys", path: "/admin/journeys", icon: "route" },
   { label: "Queue", path: "/admin/queue", icon: "view_list" },
   { label: "Chat", path: "/admin/chat", icon: "forum" },
+  { label: "Chat History", path: "/admin/chat/history", icon: "history" },
   { label: "Settings", path: "/admin/settings", icon: "settings" }
 ];
 

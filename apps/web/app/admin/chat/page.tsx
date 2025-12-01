@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useRef, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useRef, Suspense, type ReactNode } from "react";
 import {
   alpha,
   Avatar,
@@ -42,6 +42,17 @@ import { useWhisperTranscription } from "../../../hooks/use-whisper-transcriptio
 import { useAudioQueue } from "../../../hooks/use-audio-queue";
 import { useAdminHeader } from "../../../components/admin/udg-glass-admin-layout";
 import { journeysApi, type JourneyResponse } from "../../api/_lib/journeys";
+import { buildAdaptiveSystemPrompt, type ConversationLearning } from "../../../lib/adaptive-prompt";
+import { extractLearnings, mergeLearnings, saveLearningsToLocalStorage, loadLearningsFromLocalStorage } from "../../../lib/conversation-learnings";
+import { getCurrentPhase } from "../../../lib/phase-detection";
+import { 
+  saveConversationToLocalStorage, 
+  loadConversationFromLocalStorage, 
+  generateConversationTitle,
+  generateConversationId,
+  type Conversation
+} from "../../../lib/chat-history";
+import { useRouter, useSearchParams } from "next/navigation";
 
 type PersonaProfileCard = {
   display_name?: string | null;
@@ -200,8 +211,10 @@ type Message = {
   personaName?: string;
 };
 
-export default function AdminChatPage() {
+function AdminChatPageContent() {
   const theme = useTheme();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { setHeaderContent } = useAdminHeader();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -217,6 +230,13 @@ export default function AdminChatPage() {
     excerpt: string;
   }>>([]);
   const [showEvidence, setShowEvidence] = useState(false);
+  
+  // Adaptive Prompt & Learnings State
+  const [learnings, setLearnings] = useState<ConversationLearning[]>([]);
+  
+  // Chat History State
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [conversationTitle, setConversationTitle] = useState<string>("");
   
   // Journey-Phasen-Dialog State
   const [journeyDialogOpen, setJourneyDialogOpen] = useState(false);
@@ -481,7 +501,75 @@ export default function AdminChatPage() {
     }
     stopAudioQueue();
     
-    const messageContent = contentToSend;
+    // Extract learnings from conversation history
+    const newLearnings = extractLearnings(messages, activePersonaId);
+    const updatedLearnings = mergeLearnings(learnings, newLearnings);
+    setLearnings(updatedLearnings);
+    
+    // Determine current phase
+    const currentPhase = getCurrentPhase(messages, selectedJourney || undefined);
+    
+    // Build adaptive system prompt
+    const normalizedPersonaProfile = personaProfile ? {
+      name: personaProfile.name,
+      fullName: personaProfile.fullName,
+      headline: personaProfile.headline,
+      bio: personaProfile.bio,
+      age: personaProfile.age,
+      location: personaProfile.location,
+      gender: personaProfile.gender,
+      media_affinity: personaProfile.media_affinity,
+      interests: personaProfile.interests || [],
+      colorPalette: personaProfile.colorPalette || [],
+      attentionSpan: personaProfile.attentionSpan,
+      socialMediaUsage: personaProfile.socialMediaUsage || [],
+      values: personaProfile.values || [],
+      traits: personaProfile.traits || {},
+      painPoints: personaProfile.painPoints || [],
+      goals: personaProfile.goals || [],
+      communicationStyle: personaProfile.communicationStyle,
+    } : {
+      name: activePersona?.name || null,
+      fullName: personaDisplayName || null,
+      headline: personaProfileCard?.headline || activePersona?.headline || null,
+      bio: null,
+      age: null,
+      location: personaProfileCard?.location || null,
+      gender: null,
+      media_affinity: null,
+      interests: [],
+      colorPalette: [],
+      attentionSpan: null,
+      socialMediaUsage: [],
+      values: [],
+      traits: {},
+      painPoints: [],
+      goals: [],
+      communicationStyle: undefined,
+    };
+    
+    const systemPrompt = buildAdaptiveSystemPrompt({
+      persona: normalizedPersonaProfile,
+      journeyPhases: selectedJourney?.phases,
+      conversationHistory: messages,
+      learnings: updatedLearnings,
+      currentPhase,
+      messageCount: messages.filter((m) => m.role === "user").length,
+    });
+    
+    // Collect system messages (Journey context) to include in the request
+    const systemMessages = messages
+      .filter((msg) => msg.role === "system")
+      .map((msg) => msg.content)
+      .join("\n\n");
+    
+    // Build the message content with adaptive prompt and context
+    const messageContent = systemPrompt
+      ? `${systemPrompt}\n\n---\n\n${systemMessages ? systemMessages + "\n\n---\n\n" : ""}User message: ${contentToSend}`
+      : systemMessages
+        ? `${systemMessages}\n\n---\n\nUser message: ${contentToSend}`
+        : contentToSend;
+    
     const messageId = `user-${Date.now()}`;
     const personaMessageId = `persona-${Date.now()}`;
     const voiceStreaming = voiceEnabled;
@@ -491,7 +579,7 @@ export default function AdminChatPage() {
       {
         id: messageId,
         role: "user",
-        content: messageContent
+        content: contentToSend
       }
     ]);
     setInput("");
@@ -605,6 +693,28 @@ export default function AdminChatPage() {
       }
       
       setThinkingLabel(undefined);
+      
+      // Save new learnings after successful response
+      if (newLearnings.length > 0 && activePersonaId) {
+        const personaLearnings = newLearnings.filter((l) => l.personaId === activePersonaId);
+        const globalLearnings = newLearnings.filter((l) => !l.personaId);
+        
+        if (personaLearnings.length > 0) {
+          const existingPersonaLearnings = loadLearningsFromLocalStorage(activePersonaId);
+          const mergedPersonaLearnings = mergeLearnings(existingPersonaLearnings, personaLearnings);
+          saveLearningsToLocalStorage(activePersonaId, mergedPersonaLearnings);
+        }
+        if (globalLearnings.length > 0) {
+          const existingGlobalLearnings = loadLearningsFromLocalStorage("global");
+          const mergedGlobalLearnings = mergeLearnings(existingGlobalLearnings, globalLearnings);
+          saveLearningsToLocalStorage("global", mergedGlobalLearnings);
+        }
+      }
+      
+      // Update URL with conversationId if not already set
+      if (currentConversationId && !searchParams.get("conversationId")) {
+        router.replace(`/admin/chat?conversationId=${currentConversationId}`);
+      }
     } catch (error) {
       console.error("Failed to send message:", error);
       stopAudioQueue();
@@ -678,7 +788,7 @@ export default function AdminChatPage() {
       .map((phase, index) => {
         let context = `Phase ${index + 1}: ${phase.name}`;
         if (phase.description) {
-          context += `\nBeschreibung: ${phase.description}`;
+          context += `\nDescription: ${phase.description}`;
         }
         if (phase.elements && phase.elements.length > 0) {
           context += `\nMoments:`;
@@ -696,7 +806,7 @@ export default function AdminChatPage() {
       {
         id: `journey-context-${Date.now()}`,
         role: "system",
-        content: `Journey-Kontext hinzugefügt: "${selectedJourney.name}"\n\n${phasesContext}`,
+        content: `Journey context added: "${selectedJourney.name}"\n\n${phasesContext}`,
       },
     ]);
 
@@ -706,6 +816,56 @@ export default function AdminChatPage() {
     setSelectedPhases([]);
     setSelectedJourney(null);
   };
+
+  // Load conversation from URL on mount
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    
+    const conversationIdParam = searchParams.get("conversationId");
+    if (conversationIdParam) {
+      const conversation = loadConversationFromLocalStorage(conversationIdParam);
+      if (conversation) {
+        setCurrentConversationId(conversation.metadata.conversationId);
+        setConversationTitle(conversation.metadata.title);
+        setMessages(conversation.messages);
+        setActivePersonaId(conversation.metadata.personaId);
+        if (conversation.learnings) {
+          setLearnings(conversation.learnings);
+        }
+        // Restore journey context if available
+        if (conversation.metadata.journeyId) {
+          setSelectedJourneyId(conversation.metadata.journeyId);
+          // Note: Journey details would need to be loaded separately
+        }
+        if (conversation.metadata.selectedPhases) {
+          setSelectedPhases(conversation.metadata.selectedPhases);
+        }
+      }
+    }
+  }, [searchParams]);
+
+  // Create new conversation when persona changes (if no conversationId in URL and no messages)
+  useEffect(() => {
+    if (activePersonaId && !searchParams.get("conversationId") && messages.length === 0 && !currentConversationId) {
+      const newConversationId = generateConversationId();
+      setCurrentConversationId(newConversationId);
+      setConversationTitle("");
+      // Don't clear messages here as they might be loaded from conversation
+    }
+  }, [activePersonaId, searchParams, messages.length, currentConversationId]);
+
+  // Load learnings when persona changes
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    
+    if (activePersonaId) {
+      const personaLearnings = loadLearningsFromLocalStorage(activePersonaId);
+      const globalLearnings = loadLearningsFromLocalStorage("global");
+      setLearnings([...personaLearnings, ...globalLearnings]);
+    } else {
+      setLearnings([]);
+    }
+  }, [activePersonaId]);
 
   // Update header with persona info when activePersona changes
   useEffect(() => {
@@ -756,6 +916,46 @@ export default function AdminChatPage() {
       setHeaderContent(null);
     };
   }, [activePersonaId, activePersona, personaDisplayName, setHeaderContent, theme]);
+
+  // Auto-save conversation
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    
+    if (messages.length > 0 && activePersonaId && currentConversationId && activePersona) {
+      // Debounce: Speichere nur nach 2 Sekunden Inaktivität
+      const timer = setTimeout(() => {
+        // Prüfe ob Konversation bereits existiert, um createdAt zu erhalten
+        const existing = loadConversationFromLocalStorage(currentConversationId);
+        const createdAt = existing?.metadata.createdAt || new Date();
+        
+        const conversation: Conversation = {
+          metadata: {
+            conversationId: currentConversationId,
+            personaId: activePersonaId,
+            personaName: activePersona.name || "Unknown",
+            title: conversationTitle || generateConversationTitle(messages),
+            createdAt: createdAt,
+            updatedAt: new Date(),
+            messageCount: messages.length,
+            journeyId: selectedJourney?.id,
+            journeyName: selectedJourney?.name,
+            selectedPhases: selectedPhases.length > 0 ? selectedPhases : undefined,
+            isArchived: false,
+          },
+          messages: messages,
+          learnings: learnings,
+        };
+        saveConversationToLocalStorage(conversation);
+        
+        // Update conversationTitle if it was auto-generated
+        if (!conversationTitle) {
+          setConversationTitle(conversation.metadata.title);
+        }
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [messages, activePersonaId, currentConversationId, conversationTitle, selectedJourney, selectedPhases, learnings, activePersona]);
 
   return (
     <Box
@@ -1076,26 +1276,27 @@ export default function AdminChatPage() {
           fullWidth
           PaperProps={{
             sx: {
-              borderRadius: 1.5,
-              backgroundColor: theme.palette.background.paper,
+              borderRadius: "40px",
+              backgroundColor: "var(--color-neutral)",
+              border: "5px solid var(--audion-light-border-color, #0f172a)",
               maxHeight: "70vh"
             }
           }}
         >
-          <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 0.75, pb: 0.5, pt: 1.5, px: 2 }}>
+          <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 0.75, pb: 1, pt: 2.5, px: 3 }}>
             <MaterialSymbol icon="route" fontSize={16} />
             <Typography variant="body2" component="span" sx={{ fontSize: "0.8125rem", fontWeight: 600 }}>
-              Journey-Phasen
+              Journey Phases
             </Typography>
           </DialogTitle>
-          <DialogContent sx={{ px: 1.5, py: 1 }}>
+          <DialogContent sx={{ px: 3, py: 2 }}>
             {loadingJourneys ? (
               <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
                 <CircularProgress size={20} />
               </Box>
             ) : (
               <Stack spacing={1.5}>
-                {/* Journey-Auswahl */}
+                {/* Journey Selection */}
                 <FormControl fullWidth size="small">
                   <InputLabel sx={{ fontSize: "0.75rem" }}>Journey</InputLabel>
                   <Select
@@ -1105,7 +1306,7 @@ export default function AdminChatPage() {
                     sx={{ fontSize: "0.8125rem", "& .MuiSelect-select": { py: 0.75 } }}
                   >
                     {journeys.length === 0 ? (
-                      <MenuItem disabled sx={{ fontSize: "0.75rem" }}>Keine verfügbar</MenuItem>
+                      <MenuItem disabled sx={{ fontSize: "0.75rem" }}>None available</MenuItem>
                     ) : (
                       journeys.map((journey) => (
                         <MenuItem key={journey.id} value={journey.id} sx={{ fontSize: "0.8125rem", py: 0.5 }}>
@@ -1114,7 +1315,7 @@ export default function AdminChatPage() {
                               {journey.name}
                             </Typography>
                             <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.6875rem" }}>
-                              {journey.phases.length} Phase(n)
+                              {journey.phases.length} Phase{journey.phases.length !== 1 ? "s" : ""}
                             </Typography>
                           </Box>
                         </MenuItem>
@@ -1123,11 +1324,11 @@ export default function AdminChatPage() {
                   </Select>
                 </FormControl>
 
-                {/* Phasen-Liste */}
+                {/* Phases List */}
                 {selectedJourney && selectedJourney.phases.length > 0 && (
                   <Box sx={{ maxHeight: "240px", overflowY: "auto" }}>
                     <Typography variant="caption" sx={{ mb: 0.75, fontWeight: 600, display: "block", fontSize: "0.6875rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
-                      Phasen:
+                      Phases:
                     </Typography>
                     <Stack spacing={0.5}>
                       {selectedJourney.phases
@@ -1143,15 +1344,42 @@ export default function AdminChatPage() {
                                 : "transparent",
                               borderColor: selectedPhases.includes(phase.id)
                                 ? theme.palette.primary.main
-                                : "var(--color-neutral)",
-                              transition: "all 0.2s ease"
+                                : "var(--audion-light-border-color, #0f172a)",
+                              transition: "all 0.2s ease",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 0.5
                             }}
                           >
                             <FormControlLabel
                               control={
                                 <Checkbox
                                   size="small"
-                                  sx={{ py: 0.25 }}
+                                  sx={{
+                                    py: 0.25,
+                                    padding: "4px",
+                                    "& .MuiSvgIcon-root": {
+                                      width: "18px",
+                                      height: "18px",
+                                      borderRadius: "50%",
+                                      border: "1.5px solid var(--audion-light-border-color, #0f172a)",
+                                      transition: "all 0.2s ease"
+                                    },
+                                    "&:not(.Mui-checked) .MuiSvgIcon-root": {
+                                      backgroundColor: "transparent",
+                                      "& path": {
+                                        display: "none"
+                                      }
+                                    },
+                                    "&.Mui-checked .MuiSvgIcon-root": {
+                                      borderColor: theme.palette.primary.main,
+                                      backgroundColor: theme.palette.primary.main,
+                                      "& path": {
+                                        display: "block",
+                                        fill: "#fff"
+                                      }
+                                    }
+                                  }}
                                   checked={selectedPhases.includes(phase.id)}
                                   onChange={(e) => {
                                     if (e.target.checked) {
@@ -1163,19 +1391,70 @@ export default function AdminChatPage() {
                                 />
                               }
                               label={
-                                <Box>
+                                <Box sx={{ flex: 1 }}>
                                   <Typography variant="caption" fontWeight={500} sx={{ fontSize: "0.75rem", display: "block", lineHeight: 1.3 }}>
                                     {phase.phase_order || 0}. {phase.name}
                                   </Typography>
                                   {phase.elements && phase.elements.length > 0 && (
                                     <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.6875rem", lineHeight: 1.2 }}>
-                                      {phase.elements.length} Moment(e)
+                                      {phase.elements.length} Moment{phase.elements.length !== 1 ? "s" : ""}
                                     </Typography>
                                   )}
                                 </Box>
                               }
-                              sx={{ m: 0, width: "100%" }}
+                              sx={{ m: 0, flex: 1 }}
                             />
+                            {phase.description && (
+                              <Tooltip
+                                title={
+                                  <Box>
+                                    <Typography variant="caption" sx={{ display: "block", fontWeight: 600, mb: 0.5 }}>
+                                      {phase.name}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ display: "block", fontSize: "0.75rem" }}>
+                                      {phase.description}
+                                    </Typography>
+                                  </Box>
+                                }
+                                arrow
+                                placement="left"
+                                componentsProps={{
+                                  tooltip: {
+                                    sx: {
+                                      backgroundColor: "var(--color-neutral)",
+                                      border: "1px solid var(--audion-light-border-color, #0f172a)",
+                                      color: "var(--color-text-primary)",
+                                      maxWidth: "300px"
+                                    }
+                                  },
+                                  arrow: {
+                                    sx: {
+                                      color: "var(--color-neutral)",
+                                      "&::before": {
+                                        border: "1px solid var(--audion-light-border-color, #0f172a)"
+                                      }
+                                    }
+                                  }
+                                }}
+                              >
+                                <IconButton
+                                  size="small"
+                                  sx={{
+                                    p: 0.5,
+                                    minWidth: "auto",
+                                    width: "24px",
+                                    height: "24px",
+                                    color: "text.secondary",
+                                    "&:hover": {
+                                      color: "text.primary"
+                                    }
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MaterialSymbol icon="info" fontSize={16} />
+                                </IconButton>
+                              </Tooltip>
+                            )}
                           </Paper>
                         ))}
                     </Stack>
@@ -1186,17 +1465,17 @@ export default function AdminChatPage() {
                   <Box sx={{ textAlign: "center", py: 1.5 }}>
                     <MaterialSymbol icon="info" fontSize={24} style={{ opacity: 0.5 }} />
                     <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5, fontSize: "0.6875rem" }}>
-                      Keine Phasen
+                      No phases
                     </Typography>
                   </Box>
                 )}
               </Stack>
             )}
           </DialogContent>
-          <DialogActions sx={{ px: 1.5, py: 1, gap: 0.75 }}>
-            <Button
-              size="small"
-              sx={{ fontSize: "0.75rem", minWidth: "auto", px: 1.5 }}
+          <DialogActions sx={{ px: 3, py: 2, gap: 0.75 }}>
+            <button
+              type="button"
+              className="udg-glass-button --ghost"
               onClick={() => {
                 setJourneyDialogOpen(false);
                 setSelectedJourneyId(null);
@@ -1204,18 +1483,17 @@ export default function AdminChatPage() {
                 setSelectedJourney(null);
               }}
             >
-              Abbrechen
-            </Button>
-            <Button
-              size="small"
-              sx={{ fontSize: "0.75rem", minWidth: "auto", px: 1.5 }}
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="udg-glass-button"
               onClick={handleAddPhasesToChat}
-              variant="contained"
               disabled={selectedPhases.length === 0}
-              startIcon={<MaterialSymbol icon="add" fontSize={14} />}
             >
-              {selectedPhases.length} hinzufügen
-            </Button>
+              <MaterialSymbol icon="add" fontSize={14} />
+              Add {selectedPhases.length}
+            </button>
           </DialogActions>
         </Dialog>
 
@@ -1416,6 +1694,18 @@ export default function AdminChatPage() {
           )}
         </Menu>
     </Box>
+  );
+}
+
+export default function AdminChatPage() {
+  return (
+    <Suspense fallback={
+      <Box sx={{ p: 3, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Typography>Loading...</Typography>
+      </Box>
+    }>
+      <AdminChatPageContent />
+    </Suspense>
   );
 }
 
