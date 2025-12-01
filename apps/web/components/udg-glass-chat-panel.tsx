@@ -10,6 +10,7 @@ type Message = {
   role: "user" | "persona" | "system";
   content: string;
   personaName?: string;
+  images?: string[]; // Base64 data URLs for images
 };
 
 type UdgGlassChatPanelProps = {
@@ -190,6 +191,28 @@ export const UdgGlassChatPanel = ({ messages, systemPrompt }: UdgGlassChatPanelP
                 >
                   {message.content}
                 </Typography>
+                
+                {/* Display images if available */}
+                {message.images && message.images.length > 0 && (
+                  <Box sx={{ mt: 1.5, display: "flex", flexDirection: "column", gap: 1 }}>
+                    {message.images.map((imageDataUrl, imageIndex) => (
+                      <Box
+                        key={imageIndex}
+                        component="img"
+                        src={imageDataUrl}
+                        alt={`Attachment ${imageIndex + 1}`}
+                        sx={{
+                          maxWidth: "100%",
+                          maxHeight: "400px",
+                          borderRadius: "8px",
+                          objectFit: "contain",
+                          border: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
+                          backgroundColor: alpha(theme.palette.background.paper, 0.5)
+                        }}
+                      />
+                    ))}
+                  </Box>
+                )}
               </Box>
             </Stack>
           );

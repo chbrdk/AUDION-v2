@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy import text
+import structlog
 
 from .core.logging import configure_logging
 from .core.telemetry import configure_tracing
@@ -13,6 +15,23 @@ from .routers.personas import router as personas_router
 from .routers.chat import router as chat_rest_router
 from .routers.voice import router as voice_router
 from .ws.chat import router as chat_ws_router
+
+logger = structlog.get_logger(__name__)
+
+
+class RequestLoggingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        if request.url.path.startswith("/chat/message/stream"):
+            # Log request info before parsing
+            content_length = request.headers.get("content-length")
+            logger.info("chat.request.received",
+                       path=request.url.path,
+                       method=request.method,
+                       content_length=content_length,
+                       content_type=request.headers.get("content-type"))
+        
+        response = await call_next(request)
+        return response
 
 
 def ensure_persona_profile_card_column() -> None:
@@ -47,6 +66,7 @@ def create_app() -> FastAPI:
         docs_url="/docs",
         openapi_url="/openapi.json"
     )
+    app.add_middleware(RequestLoggingMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],

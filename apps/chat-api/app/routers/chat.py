@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import json
-from typing import AsyncIterator, List
+import base64
+from typing import AsyncIterator, List, Dict, Any
 from uuid import UUID
 
 import structlog
@@ -22,9 +23,121 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 logger = structlog.get_logger(__name__)
 
 
+def select_model_for_messages(messages: List[Dict[str, Any]]) -> str:
+    """
+    Wählt das passende Modell basierend auf dem Inhalt der Messages.
+    - Haiku 4.5 für normale Text-Messages (kostengünstig, schnell)
+    - Sonnet 4.5 für Messages mit Bildern (Vision-Unterstützung)
+    """
+    # Prüfe ob Bilder in den Messages vorhanden sind
+    has_images = any(
+        isinstance(msg.get("content"), list) and 
+        any(block.get("type") == "image" for block in msg.get("content", []))
+        for msg in messages
+    )
+    
+    if has_images:
+        # Sonnet 4.5 für Vision (Format: claude-{model}-{version}-{date})
+        # Basierend auf Dokumentation: claude-sonnet-4-20250514
+        # Falls dieser Name nicht existiert, versuche alternatives Format
+        return "claude-sonnet-4-20250514"
+    else:
+        # Haiku 4.5 für normale Messages (Format: claude-{model}-{version}-{date})
+        # Basierend auf Dokumentation: claude-haiku-4-20250514
+        # Falls dieser Name nicht existiert, versuche alternatives Format
+        return "claude-haiku-4-20250514"
+
+
+def convert_message_with_images(msg: ChatMessage) -> Dict[str, Any]:
+    """
+    Konvertiert eine Message mit Bildern in Claude Vision Format.
+    
+    Claude Vision erwartet Messages im Format:
+    {
+        "role": "user",
+        "content": [
+            {"type": "text", "text": "..."},
+            {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": "..."}}
+        ]
+    }
+    """
+    if not msg.images or len(msg.images) == 0:
+        # Normale Text-Message ohne Bilder
+        return {
+            "role": msg.role,
+            "content": msg.content
+        }
+    
+    # Message mit Bildern: content als Array
+    content_blocks = []
+    
+    # Text-Block hinzufügen (wenn vorhanden)
+    if msg.content and msg.content.strip():
+        content_blocks.append({
+            "type": "text",
+            "text": msg.content
+        })
+    
+    # Bild-Blöcke hinzufügen
+    for idx, image_data_url in enumerate(msg.images):
+        # Extrahiere base64 und media_type aus data URL
+        # Format: data:image/jpeg;base64,<base64-string>
+        if image_data_url.startswith("data:image/"):
+            parts = image_data_url.split(",", 1)
+            if len(parts) == 2:
+                header = parts[0]  # data:image/jpeg;base64
+                base64_data = parts[1]
+                
+                # Extrahiere media_type (z.B. "image/jpeg" aus "data:image/jpeg;base64")
+                media_type = header.split(";")[0].split(":")[1] if ":" in header else "image/jpeg"
+                
+                # Debug: Log Bild-Details
+                logger.info("chat.image.processing",
+                           image_index=idx,
+                           media_type=media_type,
+                           data_length=len(base64_data),
+                           data_preview=base64_data[:50] + "..." if len(base64_data) > 50 else base64_data)
+                
+                content_blocks.append({
+                    "type": "image",
+                    "source": {
+                        "type": "base64",
+                        "media_type": media_type,
+                        "data": base64_data
+                    }
+                })
+            else:
+                logger.warning("chat.image.invalid_format", 
+                             image_index=idx,
+                             image_preview=image_data_url[:50])
+        else:
+            logger.warning("chat.image.invalid_data_url", 
+                         image_index=idx,
+                         image_preview=image_data_url[:50])
+    
+    # Wenn nur Bilder und kein Text, füge leeren Text-Block hinzu
+    if not content_blocks or all(block.get("type") == "image" for block in content_blocks):
+        content_blocks.insert(0, {
+            "type": "text",
+            "text": msg.content if msg.content else ""
+        })
+    
+    logger.info("chat.image.conversion_complete",
+               role=msg.role,
+               total_blocks=len(content_blocks),
+               text_blocks=sum(1 for b in content_blocks if b.get("type") == "text"),
+               image_blocks=sum(1 for b in content_blocks if b.get("type") == "image"))
+    
+    return {
+        "role": msg.role,
+        "content": content_blocks
+    }
+
+
 class ChatMessage(BaseModel):
     role: str  # "system", "user", "assistant"
     content: str
+    images: List[str] | None = Field(default=None)  # Base64 data URLs for images
 
 
 class ChatMessageRequest(BaseModel):
@@ -93,14 +206,35 @@ async def send_message(request: ChatMessageRequest) -> ChatMessageResponse:
         anthropic_messages = []
         system_parts = [base_system_prompt]
         
+        # Debug: Log incoming request
+        logger.info("chat.request.received",
+                   messages_count=len(request.messages),
+                   has_images=any(msg.images and len(msg.images) > 0 for msg in request.messages if hasattr(msg, 'images')))
+        
         for msg in request.messages:
             if msg.role == "system":
                 system_parts.append(msg.content)
             elif msg.role in ["user", "assistant"]:
-                anthropic_messages.append({
-                    "role": msg.role,
-                    "content": msg.content
-                })
+                # Debug: Log raw message before conversion
+                logger.info("chat.message.raw",
+                           role=msg.role,
+                           has_images=bool(msg.images and len(msg.images) > 0),
+                           image_count=len(msg.images) if msg.images else 0,
+                           content_length=len(msg.content) if msg.content else 0)
+                
+                # Konvertiere Message mit Bildern in Claude Vision Format
+                anthropic_message = convert_message_with_images(msg)
+                
+                # Debug: Log wenn Bilder vorhanden sind
+                if msg.images and len(msg.images) > 0:
+                    logger.info("chat.message.with_images", 
+                               role=msg.role,
+                               image_count=len(msg.images),
+                               has_text=bool(msg.content),
+                               content_type=type(anthropic_message.get("content")).__name__,
+                               content_is_list=isinstance(anthropic_message.get("content"), list))
+                
+                anthropic_messages.append(anthropic_message)
         
         system_prompt = "\n\n".join(system_parts)
         retrieval_query = next((m.content[:100] for m in request.messages if m.role == "user"), "")
@@ -170,9 +304,22 @@ async def send_message(request: ChatMessageRequest) -> ChatMessageResponse:
         
         def generate_response() -> str:
             """Generate response synchronously using Anthropic API."""
-            # Use create instead of stream for simpler REST API response
+            # Wähle Modell basierend auf Inhalt (Bilder = Sonnet, sonst Haiku)
+            selected_model = select_model_for_messages(anthropic_messages)
+            
+            # Debug: Log final messages format before sending to Claude
+            has_images = any(
+                isinstance(msg.get("content"), list) and 
+                any(block.get("type") == "image" for block in msg.get("content", []))
+                for msg in anthropic_messages
+            )
+            if has_images:
+                logger.info("chat.anthropic.sending_with_images",
+                           messages_count=len(anthropic_messages),
+                           model=selected_model)
+            
             response = persona_agent._anthropic.messages.create(
-                model="claude-3-5-haiku-20241022",
+                model=selected_model,
                 max_tokens=600,
                 temperature=0.4,
                 system=system_prompt,
@@ -221,6 +368,52 @@ async def send_message(request: ChatMessageRequest) -> ChatMessageResponse:
 @router.post("/message/stream")
 async def send_message_stream(request: ChatMessageRequest) -> StreamingResponse:
     """Send a message to a persona and stream the response."""
+    # Log immediately at function start - before any try/except
+    # Use both structlog and print to ensure visibility
+    import sys
+    print(f"[ENDPOINT] Function called - persona_id: {request.persona_id}", file=sys.stderr, flush=True)
+    print(f"[ENDPOINT] has_messages: {bool(request.messages)}, count: {len(request.messages) if request.messages else 0}", file=sys.stderr, flush=True)
+    
+    logger.info("chat.stream.endpoint.called",
+               persona_id=request.persona_id,
+               has_messages=bool(request.messages),
+               messages_count=len(request.messages) if request.messages else 0,
+               has_message=bool(request.message))
+    
+    try:
+        
+        if request.messages:
+            for idx, msg in enumerate(request.messages):
+                try:
+                    # Check if images attribute exists and has value
+                    has_images_attr = hasattr(msg, 'images')
+                    images_value = getattr(msg, 'images', None) if has_images_attr else None
+                    has_images = bool(images_value and len(images_value) > 0) if images_value else False
+                    image_count = len(images_value) if has_images else 0
+                    
+                    # Get image data size for logging (first image only)
+                    first_image_size = len(images_value[0]) if has_images and images_value[0] else 0
+                    
+                    logger.info("chat.stream.message.detail",
+                               index=idx,
+                               role=msg.role,
+                               has_images=has_images,
+                               image_count=image_count,
+                               has_images_attr=has_images_attr,
+                               images_value=bool(images_value),
+                               first_image_size=first_image_size,
+                               content_preview=msg.content[:50] if msg.content else "")
+                except Exception as e:
+                    logger.error("chat.stream.message.detail.error",
+                               index=idx,
+                               error=str(e),
+                               error_type=type(e).__name__)
+    except Exception as e:
+        logger.error("chat.stream.endpoint.error",
+                   error=str(e),
+                   error_type=type(e).__name__,
+                   exc_info=True)
+    
     try:
         persona_uuid = UUID(request.persona_id)
     except ValueError as e:
@@ -257,14 +450,35 @@ async def send_message_stream(request: ChatMessageRequest) -> StreamingResponse:
         anthropic_messages = []
         system_parts = [base_system_prompt]
         
+        # Debug: Log incoming request for streaming
+        logger.info("chat.stream.request.received",
+                   messages_count=len(request.messages),
+                   has_images=any(msg.images and len(msg.images) > 0 for msg in request.messages if hasattr(msg, 'images')))
+        
         for msg in request.messages:
             if msg.role == "system":
                 system_parts.append(msg.content)
             elif msg.role in ["user", "assistant"]:
-                anthropic_messages.append({
-                    "role": msg.role,
-                    "content": msg.content
-                })
+                # Debug: Log raw message before conversion
+                logger.info("chat.message.raw",
+                           role=msg.role,
+                           has_images=bool(msg.images and len(msg.images) > 0),
+                           image_count=len(msg.images) if msg.images else 0,
+                           content_length=len(msg.content) if msg.content else 0)
+                
+                # Konvertiere Message mit Bildern in Claude Vision Format
+                anthropic_message = convert_message_with_images(msg)
+                
+                # Debug: Log wenn Bilder vorhanden sind
+                if msg.images and len(msg.images) > 0:
+                    logger.info("chat.message.with_images", 
+                               role=msg.role,
+                               image_count=len(msg.images),
+                               has_text=bool(msg.content),
+                               content_type=type(anthropic_message.get("content")).__name__,
+                               content_is_list=isinstance(anthropic_message.get("content"), list))
+                
+                anthropic_messages.append(anthropic_message)
         
         system_prompt = "\n\n".join(system_parts)
         # Get last user message for logging and retrieval
@@ -348,8 +562,22 @@ async def send_message_stream(request: ChatMessageRequest) -> StreamingResponse:
             def collect_stream_deltas():
                 """Collect deltas from stream in a separate thread."""
                 try:
+                    # Wähle Modell basierend auf Inhalt (Bilder = Sonnet, sonst Haiku)
+                    selected_model = select_model_for_messages(anthropic_messages)
+                    
+                    # Debug: Log final messages format before sending to Claude
+                    has_images = any(
+                        isinstance(msg.get("content"), list) and 
+                        any(block.get("type") == "image" for block in msg.get("content", []))
+                        for msg in anthropic_messages
+                    )
+                    if has_images:
+                        logger.info("chat.anthropic.streaming_with_images",
+                                   messages_count=len(anthropic_messages),
+                                   model=selected_model)
+                    
                     with persona_agent._anthropic.messages.stream(
-                        model="claude-3-5-haiku-20241022",
+                        model=selected_model,
                         max_tokens=600,
                         temperature=0.4,
                         system=system_prompt,

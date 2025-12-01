@@ -174,7 +174,7 @@ class PersonaService:
         offset = (page - 1) * page_size
         personas = session.scalars(query.order_by(Persona.updated_at.desc()).offset(offset).limit(page_size)).all()
 
-        items = [self._to_list_item(persona) for persona in personas]
+        items = [self._to_list_item(persona, session=session) for persona in personas]
         return PersonaListResponse(items=items, total=total or 0, page=page, page_size=page_size)
 
     def get_persona(self, session: Session, persona_id: str, *, use_cache: bool = True) -> PersonaResponse:
@@ -923,7 +923,7 @@ class PersonaService:
             return persona.image_url
         return f"{self._public_base()}/personas/{persona.id}/avatar"
 
-    def _to_list_item(self, persona: Persona) -> PersonaListItem:
+    def _to_list_item(self, persona: Persona, session: Session | None = None) -> PersonaListItem:
         # Convert profile to PersonaProfile if available
         profile_data = None
         if persona.profile and isinstance(persona.profile, dict):
@@ -932,6 +932,18 @@ class PersonaService:
             except Exception:
                 # If profile doesn't match PersonaProfile schema, pass None
                 pass
+        
+        # Load system prompt if session is available
+        prompt_data = None
+        if session:
+            prompt_model = self._latest_prompt(session, persona.id)
+            if prompt_model:
+                from udg_glass_proto.personas import PersonaPrompt
+                prompt_data = PersonaPrompt(
+                    persona_id=str(persona.id),
+                    system_prompt=prompt_model.system_prompt,
+                    template_version=prompt_model.template_version,
+                )
         
         return PersonaListItem(
             id=str(persona.id),
@@ -947,6 +959,7 @@ class PersonaService:
             avatarUrl=self._avatar_url(persona),
             profileCard=persona.profile_card,
             profile=profile_data,
+            prompt=prompt_data,
         )
 
     def _audit_payload(self, persona: Persona) -> dict[str, Any]:

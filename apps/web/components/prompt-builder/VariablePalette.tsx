@@ -6,9 +6,10 @@ import { STANDARD_VARIABLES, EXTENDED_VARIABLES, type VariableDefinition, type V
 
 interface VariablePaletteProps {
   onVariableDrag?: (variable: VariableDefinition) => void;
+  onVariableClick?: (variable: VariableDefinition) => void;
 }
 
-export function VariablePalette({ onVariableDrag }: VariablePaletteProps) {
+export function VariablePalette({ onVariableDrag, onVariableClick }: VariablePaletteProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedCategories, setExpandedCategories] = useState<Set<VariableCategory>>(
     new Set()
@@ -70,6 +71,12 @@ export function VariablePalette({ onVariableDrag }: VariablePaletteProps) {
     }
   };
 
+  const handleVariableClick = (variable: VariableDefinition) => {
+    if (onVariableClick) {
+      onVariableClick(variable);
+    }
+  };
+
   const renderVariable = (variable: VariableDefinition) => (
     <div
       key={variable.name}
@@ -83,6 +90,9 @@ export function VariablePalette({ onVariableDrag }: VariablePaletteProps) {
         cursor: "grab",
         marginBottom: "0.5rem",
         transition: "all 0.2s ease",
+        display: "flex",
+        alignItems: "start",
+        gap: "0.5rem"
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.background = "rgba(182, 56, 255, 0.1)";
@@ -95,49 +105,78 @@ export function VariablePalette({ onVariableDrag }: VariablePaletteProps) {
         e.currentTarget.style.cursor = "grab";
       }}
     >
-      <div style={{ display: "flex", alignItems: "start", gap: "0.5rem" }}>
-        <MaterialSymbol icon="drag_indicator" fontSize={16} style={{ color: "var(--color-text-secondary)", marginTop: "0.125rem", flexShrink: 0 }} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <code
-            style={{
-              background: "rgba(182, 56, 255, 0.15)",
-              color: "var(--color-theme-accent)",
-              padding: "0.25rem 0.5rem",
-              borderRadius: "4px",
-              fontSize: "0.75rem",
-              fontWeight: 600,
-              fontFamily: "monospace",
-              display: "block",
-              marginBottom: "0.25rem",
-              wordBreak: "break-all",
-            }}
-          >
-            {variable.syntax}
-          </code>
-          <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-text-secondary)", lineHeight: "1.4" }}>
-            {variable.description}
-          </p>
-          {variable.requiresContext && variable.requiresContext.length > 0 && (
-            <div style={{ marginTop: "0.25rem", display: "flex", alignItems: "center", gap: "0.25rem", flexWrap: "wrap" }}>
-              {variable.requiresContext.map((ctx) => (
-                <span
-                  key={ctx}
-                  style={{
-                    fontSize: "0.625rem",
-                    padding: "0.125rem 0.375rem",
-                    background: "rgba(234, 179, 8, 0.15)",
-                    color: "rgba(234, 179, 8, 1)",
-                    borderRadius: "3px",
-                    fontWeight: 500,
-                  }}
-                >
-                  Requires: {ctx}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
+      <MaterialSymbol icon="drag_indicator" fontSize={16} style={{ color: "var(--color-text-secondary)", marginTop: "0.125rem", flexShrink: 0 }} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <code
+          style={{
+            background: "rgba(182, 56, 255, 0.15)",
+            color: "var(--color-theme-accent)",
+            padding: "0.25rem 0.5rem",
+            borderRadius: "4px",
+            fontSize: "0.75rem",
+            fontWeight: 600,
+            fontFamily: "monospace",
+            display: "block",
+            marginBottom: "0.25rem",
+            wordBreak: "break-all",
+          }}
+        >
+          {variable.syntax}
+        </code>
+        <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-text-secondary)", lineHeight: "1.4" }}>
+          {variable.description}
+        </p>
+        {variable.requiresContext && variable.requiresContext.length > 0 && (
+          <div style={{ marginTop: "0.25rem", display: "flex", alignItems: "center", gap: "0.25rem", flexWrap: "wrap" }}>
+            {variable.requiresContext.map((ctx) => (
+              <span
+                key={ctx}
+                style={{
+                  fontSize: "0.625rem",
+                  padding: "0.125rem 0.375rem",
+                  background: "rgba(234, 179, 8, 0.15)",
+                  color: "rgba(234, 179, 8, 1)",
+                  borderRadius: "3px",
+                  fontWeight: 500,
+                }}
+              >
+                Requires: {ctx}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
+      {onVariableClick && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleVariableClick(variable);
+          }}
+          style={{
+            marginLeft: "auto",
+            padding: "0.375rem 0.75rem",
+            background: "var(--color-theme-accent)",
+            color: "white",
+            border: "none",
+            borderRadius: "6px",
+            cursor: "pointer",
+            fontSize: "0.75rem",
+            fontWeight: 500,
+            transition: "all 0.2s ease",
+            flexShrink: 0
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "rgba(182, 56, 255, 0.8)";
+            e.currentTarget.style.transform = "scale(1.05)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "var(--color-theme-accent)";
+            e.currentTarget.style.transform = "scale(1)";
+          }}
+        >
+          Insert
+        </button>
+      )}
     </div>
   );
 

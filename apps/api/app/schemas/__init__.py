@@ -238,6 +238,10 @@ class PersonaListItem(BaseModel):
         default=None,
         description="Full PersonaProfile message from `udg_glass_proto` when included.",
     )
+    prompt: PersonaPrompt | None = Field(
+        default=None,
+        description="Optional persona prompt definition for LLM workflows.",
+    )
 
 
 class PersonaListResponse(BaseModel):

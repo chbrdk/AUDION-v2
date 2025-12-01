@@ -28,6 +28,8 @@ import {
   Paper,
   Select,
   Stack,
+  Tabs,
+  Tab,
   TextField,
   Typography,
   useTheme,
@@ -36,6 +38,8 @@ import {
 } from "@mui/material";
 import { UdgGlassChatPanel } from "../../../components/udg-glass-chat-panel";
 import { MaterialSymbol } from "../../../components/material-symbol";
+import { VariablePalette } from "../../../components/prompt-builder/VariablePalette";
+import { type VariableDefinition } from "../../../components/prompt-builder/variableDefinitions";
 import { getChatApiBase, getVoiceApiBase } from "../../api/_lib/backend";
 import { useSpeechToText } from "../../../hooks/use-speech-to-text";
 import { useWhisperTranscription } from "../../../hooks/use-whisper-transcription";
@@ -196,12 +200,13 @@ const normalizePersonaProfile = (raw: any): PersonaProfile | null => {
 type PersonaSummary = {
   id: string;
   name: string;
-  segment: string;
+  segment?: string;
   headline: string;
   confidence: number;
   image_url?: string | null;
   profileCard?: PersonaProfileCard | null;
   profile?: PersonaProfile | null;
+  systemPrompt?: string | null; // System prompt from database
 };
 
 type Message = {
@@ -209,6 +214,7 @@ type Message = {
   role: "user" | "persona" | "system";
   content: string;
   personaName?: string;
+  images?: string[]; // Base64 data URLs for images
 };
 
 function AdminChatPageContent() {
@@ -246,6 +252,9 @@ function AdminChatPageContent() {
   const [selectedJourneyId, setSelectedJourneyId] = useState<string | null>(null);
   const [selectedPhases, setSelectedPhases] = useState<string[]>([]);
   const [selectedJourney, setSelectedJourney] = useState<JourneyResponse | null>(null);
+  const [activeDialogTab, setActiveDialogTab] = useState<"phases" | "variables" | "attachments">("phases");
+  const [attachedImages, setAttachedImages] = useState<string[]>([]); // Base64 data URLs
+  const [pendingImages, setPendingImages] = useState<string[]>([]); // Bilder, die mit der nächsten Nachricht gesendet werden sollen
   const [sending, setSending] = useState(false);
   const [personaMenuAnchor, setPersonaMenuAnchor] = useState<null | HTMLElement>(null);
   const [personaDrawerOpen, setPersonaDrawerOpen] = useState(false);
@@ -390,16 +399,32 @@ function AdminChatPageContent() {
           const data = await response.json();
           const personas = Array.isArray(data) ? data : (data.items || []);
           setAvailablePersonas(
-            personas.map((p: any) => ({
-              id: p.id,
-              name: p.name,
-              segment: p.segment,
-              headline: p.headline,
-              confidence: p.confidence ?? 1.0,
-              image_url: p.image_url,
-              profileCard: p.profile_card ?? null,
-              profile: normalizePersonaProfile(p.profile),
-            }))
+            personas.map((p: any) => {
+              // Pydantic serializes PersonaPrompt with systemPrompt (camelCase) in JSON
+              const systemPrompt = p.prompt?.systemPrompt ?? p.prompt?.system_prompt ?? null;
+              // Debug: Log if prompt is found
+              if (p.name?.toLowerCase().includes("clara")) {
+                console.log("[Chat] Clara persona loaded:", {
+                  id: p.id,
+                  name: p.name,
+                  hasPrompt: !!p.prompt,
+                  promptKeys: p.prompt ? Object.keys(p.prompt) : [],
+                  systemPrompt: systemPrompt ? systemPrompt.substring(0, 200) + "..." : null,
+                  fullPrompt: systemPrompt,
+                });
+              }
+              return {
+                id: p.id,
+                name: p.name,
+                segment: p.segment,
+                headline: p.headline,
+                confidence: p.confidence ?? 1.0,
+                image_url: p.image_url,
+                profileCard: p.profile_card ?? null,
+                profile: normalizePersonaProfile(p.profile),
+                systemPrompt: systemPrompt,
+              };
+            })
           );
         } else {
           let errorMessage = response.statusText || `HTTP ${response.status}`;
@@ -490,9 +515,9 @@ function AdminChatPageContent() {
   const sendDisabled = !activePersonaId || sending || input.trim().length === 0;
 
   const handleSend = async (messageText?: string) => {
-    const contentToSend = (messageText?.trim() || input.trim());
+    const rawContent = (messageText?.trim() || input.trim());
     
-    if (!activePersonaId || sending || !contentToSend) {
+    if (!activePersonaId || sending || !rawContent) {
       return;
     }
     
@@ -501,6 +526,9 @@ function AdminChatPageContent() {
       speechSessionActiveRef.current = false;
     }
     stopAudioQueue();
+    
+    // Ersetze Variablen in der User-Nachricht BEVOR sie gesendet wird
+    const contentToSend = replaceMessageVariables(rawContent);
     
     // Extract learnings from conversation history
     const newLearnings = extractLearnings(messages, activePersonaId);
@@ -549,6 +577,17 @@ function AdminChatPageContent() {
       communicationStyle: undefined,
     };
     
+    // Debug: Log the base system prompt
+    const basePrompt = activePersona?.systemPrompt ?? null;
+    if (activePersona?.name?.toLowerCase().includes("clara")) {
+      console.log("[Chat] Building system prompt for Clara:", {
+        hasBasePrompt: !!basePrompt,
+        basePromptPreview: basePrompt ? basePrompt.substring(0, 100) + "..." : null,
+        hasJourneyPhases: !!selectedJourney?.phases,
+        hasLearnings: updatedLearnings.length > 0,
+      });
+    }
+    
     const systemPrompt = buildAdaptiveSystemPrompt({
       persona: normalizedPersonaProfile,
       journeyPhases: selectedJourney?.phases,
@@ -556,6 +595,7 @@ function AdminChatPageContent() {
       learnings: updatedLearnings,
       currentPhase,
       messageCount: messages.filter((m) => m.role === "user").length,
+      baseSystemPrompt: basePrompt, // Use system prompt from database
     });
     
     // Speichere den System-Prompt für die Historie
@@ -567,7 +607,8 @@ function AdminChatPageContent() {
       .map((msg) => msg.content);
     
     // Build messages array for API
-    const apiMessages: Array<{ role: string; content: string }> = [];
+    // Type allows images for user messages
+    const apiMessages: Array<{ role: string; content: string; images?: string[] }> = [];
     
     // Add adaptive system prompt as first system message
     if (systemPrompt) {
@@ -593,13 +634,41 @@ function AdminChatPageContent() {
         apiMessages.push({
           role: msg.role === "persona" ? "assistant" : "user",
           content: msg.content,
+          // Preserve images from conversation history if they exist
+          images: msg.images,
         });
       });
     
-    // Add current user message
-    apiMessages.push({
+    // Add current user message with images if available
+    const userMessage: { role: string; content: string; images?: string[] } = {
       role: "user",
       content: contentToSend,
+    };
+    
+    // Füge Bilder hinzu, wenn vorhanden
+    console.log("[Chat] handleSend: pendingImages.length =", pendingImages.length);
+    if (pendingImages.length > 0) {
+      userMessage.images = [...pendingImages];
+      console.log("[Chat] Sending message with images:", {
+        imageCount: pendingImages.length,
+        firstImagePreview: pendingImages[0].substring(0, 100) + "...",
+        messageContent: contentToSend
+      });
+    } else {
+      console.log("[Chat] handleSend: No images in pendingImages");
+    }
+    
+    apiMessages.push(userMessage);
+    
+    // Debug: Log final API messages
+    console.log("[Chat] API Messages being sent:", {
+      totalMessages: apiMessages.length,
+      lastMessage: {
+        role: userMessage.role,
+        hasImages: !!userMessage.images,
+        imageCount: userMessage.images?.length || 0,
+        contentLength: userMessage.content.length
+      }
     });
     
     const messageId = `user-${Date.now()}`;
@@ -611,10 +680,12 @@ function AdminChatPageContent() {
       {
         id: messageId,
         role: "user",
-        content: contentToSend
+        content: contentToSend,
+        images: pendingImages.length > 0 ? [...pendingImages] : undefined
       }
     ]);
     setInput("");
+    setPendingImages([]); // Reset pending images after sending
     setSending(true);
     setThinkingLabel(voiceStreaming ? "Sending voice message..." : "Sending message...");
     
@@ -632,15 +703,38 @@ function AdminChatPageContent() {
     try {
       const apiBase = voiceStreaming ? getVoiceApiBase() : getChatApiBase();
       const endpointPath = voiceStreaming ? "/chat/stream" : "/message/stream";
+      const requestBody = {
+        persona_id: activePersonaId,
+        messages: apiMessages,
+      };
+      
+      // Debug: Log request body (truncate images for logging)
+      const logBody = {
+        ...requestBody,
+        messages: requestBody.messages.map((msg: any) => ({
+          ...msg,
+          images: msg.images ? `[${msg.images.length} images, first: ${msg.images[0]?.substring(0, 50)}...]` : undefined
+        }))
+      };
+      console.log("[Chat] Request body being sent:", logBody);
+      
+      // Debug: Check if images are in the actual JSON string
+      const jsonString = JSON.stringify(requestBody);
+      const hasImagesInJson = jsonString.includes('"images"');
+      const imageCountInJson = (jsonString.match(/"images"/g) || []).length;
+      console.log("[Chat] JSON string check:", {
+        hasImagesInJson,
+        imageCountInJson,
+        jsonLength: jsonString.length,
+        lastMessageHasImages: requestBody.messages[requestBody.messages.length - 1]?.images ? requestBody.messages[requestBody.messages.length - 1].images.length : 0
+      });
+      
       const response = await fetch(`${apiBase}${endpointPath}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          persona_id: activePersonaId,
-          messages: apiMessages,
-        }),
+        body: jsonString,
       });
       
       if (!response.ok) {
@@ -847,6 +941,283 @@ function AdminChatPageContent() {
     setSelectedJourneyId(null);
     setSelectedPhases([]);
     setSelectedJourney(null);
+    setActiveDialogTab("phases");
+  };
+
+  const handleVariableClick = (variable: VariableDefinition) => {
+    // Füge Variable-Syntax in den Input ein
+    const variableSyntax = variable.syntax;
+    setInput((prev) => {
+      // Versuche Cursor-Position zu finden, sonst am Ende einfügen
+      const inputElement = document.querySelector('input[placeholder*="Ask"], textarea[placeholder*="Ask"]') as HTMLInputElement | HTMLTextAreaElement;
+      if (inputElement && 'selectionStart' in inputElement) {
+        const cursorPos = inputElement.selectionStart || prev.length;
+        const newValue = prev.slice(0, cursorPos) + variableSyntax + prev.slice(cursorPos);
+        // Setze Cursor nach der eingefügten Variable
+        setTimeout(() => {
+          const newPos = cursorPos + variableSyntax.length;
+          inputElement.setSelectionRange(newPos, newPos);
+          inputElement.focus();
+        }, 0);
+        return newValue;
+      }
+      return prev + variableSyntax;
+    });
+  };
+
+  // Ersetzt Variablen in User-Nachrichten durch tatsächliche Werte
+  const replaceMessageVariables = (message: string): string => {
+    if (!message || !message.includes("${")) {
+      return message; // Keine Variablen vorhanden
+    }
+
+    const normalizedPersonaProfile = personaProfile ? {
+      name: personaProfile.name,
+      fullName: personaProfile.fullName,
+      headline: personaProfile.headline,
+      bio: personaProfile.bio,
+      age: personaProfile.age,
+      location: personaProfile.location,
+      gender: personaProfile.gender,
+      media_affinity: personaProfile.media_affinity,
+      interests: personaProfile.interests || [],
+      colorPalette: personaProfile.colorPalette || [],
+      attentionSpan: personaProfile.attentionSpan,
+      socialMediaUsage: personaProfile.socialMediaUsage || [],
+      values: personaProfile.values || [],
+      traits: personaProfile.traits || {},
+      painPoints: personaProfile.painPoints || [],
+      goals: personaProfile.goals || [],
+      communicationStyle: personaProfile.communicationStyle,
+    } : {
+      name: activePersona?.name || null,
+      fullName: personaDisplayName || null,
+      headline: personaProfileCard?.headline || activePersona?.headline || null,
+      bio: null,
+      age: null,
+      location: personaProfileCard?.location || null,
+      gender: null,
+      media_affinity: null,
+      interests: [],
+      colorPalette: [],
+      attentionSpan: null,
+      socialMediaUsage: [],
+      values: [],
+      traits: {},
+      painPoints: [],
+      goals: [],
+      communicationStyle: undefined,
+    };
+
+    // Erstelle ein Mapping aller verfügbaren Variablen
+    const variables: Record<string, string> = {
+      // Persona-Variablen
+      persona_name: normalizedPersonaProfile.name || normalizedPersonaProfile.fullName || "",
+      persona_fullname: normalizedPersonaProfile.fullName || normalizedPersonaProfile.name || "",
+      persona_headline: normalizedPersonaProfile.headline || "",
+      persona_bio: normalizedPersonaProfile.bio || "",
+      persona_age: normalizedPersonaProfile.age?.toString() || "",
+      persona_location: normalizedPersonaProfile.location || "",
+      persona_gender: normalizedPersonaProfile.gender || "",
+      persona_media_affinity: normalizedPersonaProfile.media_affinity?.toString() || "",
+      persona_attention_span: normalizedPersonaProfile.attentionSpan || "",
+      persona_interests: normalizedPersonaProfile.interests?.join(", ") || "",
+      persona_values: normalizedPersonaProfile.values?.join(", ") || "",
+      persona_color_palette: normalizedPersonaProfile.colorPalette?.join(", ") || "",
+      persona_social_media_usage: normalizedPersonaProfile.socialMediaUsage?.join(", ") || "",
+      persona_vocabulary: normalizedPersonaProfile.communicationStyle?.vocabulary?.join(", ") || "",
+      persona_sentence_structure: normalizedPersonaProfile.communicationStyle?.sentenceStructure || "",
+      persona_skepticism_level: normalizedPersonaProfile.communicationStyle?.skepticismLevel?.toString() || "",
+      persona_pain_points: normalizedPersonaProfile.painPoints?.map(p => p.label || "").filter(Boolean).join(", ") || "",
+      persona_goals: normalizedPersonaProfile.goals?.map(g => g.label || "").filter(Boolean).join(", ") || "",
+      persona_traits: normalizedPersonaProfile.traits ? Object.entries(normalizedPersonaProfile.traits)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join(", ") : "",
+      existing_traits: normalizedPersonaProfile.traits ? Object.entries(normalizedPersonaProfile.traits)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join(", ") : "",
+      
+      // Journey-Variablen
+      journey_name: selectedJourney?.name || "",
+      journey_type: selectedJourney?.journey_type || "",
+      journey_description: selectedJourney?.description || "",
+      // Note: target_group_summary and persona_summaries are not available in JourneyResponse
+      target_group_summary: "",
+      persona_summaries: "",
+    };
+
+    // Phase-Variablen (aus currentPhase)
+    const currentPhase = getCurrentPhase(messages, selectedJourney || undefined);
+    if (currentPhase) {
+      variables.phase_name = currentPhase.name || "";
+      variables.phase_description = currentPhase.description || "";
+      variables.phase_expected_emotion = currentPhase.expected_emotion || "";
+    }
+
+    // Phasen-Liste
+    if (selectedJourney?.phases && selectedJourney.phases.length > 0) {
+      const sortedPhases = [...selectedJourney.phases].sort((a, b) => (a.phase_order || 0) - (b.phase_order || 0));
+      variables.existing_phases_summary = sortedPhases
+        .map((p, idx) => `Phase ${idx + 1}: ${p.name}`)
+        .join(", ");
+      variables.existing_phases_count = sortedPhases.length.toString();
+      
+      const lastPhase = sortedPhases[sortedPhases.length - 1];
+      if (lastPhase) {
+        variables.last_phase_summary = `Phase ${sortedPhases.length}: ${lastPhase.name}${lastPhase.description ? ` - ${lastPhase.description}` : ""}`;
+        variables.last_phase_name = lastPhase.name || "";
+      }
+    }
+
+    // Ersetze alle Variablen im Format ${variable_name}
+    let replacedMessage = message;
+    const variablePattern = /\$\{([^}]+)\}/g;
+
+    replacedMessage = replacedMessage.replace(variablePattern, (match, variableName) => {
+      const trimmedName = variableName.trim();
+      const normalizedName = trimmedName.toLowerCase();
+
+      // Suche nach exakter Übereinstimmung (case-insensitive)
+      const exactMatch = Object.entries(variables).find(([key]) =>
+        key.toLowerCase() === normalizedName
+      );
+
+      if (exactMatch) {
+        return exactMatch[1] || match; // Wenn leer, behalte die Variable
+      }
+
+      // Versuche mit Unterstrichen statt Bindestrichen
+      const altName = normalizedName.replace(/-/g, "_");
+      const altMatch = Object.entries(variables).find(([key]) =>
+        key.toLowerCase() === altName
+      );
+
+      if (altMatch) {
+        return altMatch[1] || match;
+      }
+
+      // Wenn nicht gefunden, gib die Variable zurück (nicht ersetzt)
+      return match;
+    });
+
+    return replacedMessage;
+  };
+
+  const compressImage = (file: File, maxWidth: number = 1920, maxHeight: number = 1920, quality: number = 0.8): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          // Calculate new dimensions
+          if (width > height) {
+            if (width > maxWidth) {
+              height = (height * maxWidth) / width;
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxHeight) {
+              width = (width * maxHeight) / height;
+              height = maxHeight;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Failed to get canvas context'));
+            return;
+          }
+          
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                reject(new Error('Failed to compress image'));
+                return;
+              }
+              const reader = new FileReader();
+              reader.onload = () => {
+                if (typeof reader.result === 'string') {
+                  console.log(`[Chat] Image compressed: ${file.size} -> ${blob.size} bytes (${Math.round((1 - blob.size / file.size) * 100)}% reduction)`);
+                  resolve(reader.result);
+                } else {
+                  reject(new Error('Failed to read compressed image'));
+                }
+              };
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            },
+            file.type,
+            quality
+          );
+        };
+        img.onerror = reject;
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleImageUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0) {
+      console.log("[Chat] handleImageUpload: No files provided");
+      return;
+    }
+    
+    console.log("[Chat] handleImageUpload: Files received", files.length);
+    
+    // Filtere nur Bilder
+    const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
+    console.log("[Chat] handleImageUpload: Image files filtered", imageFiles.length, imageFiles.map(f => ({ name: f.name, type: f.type, size: f.size })));
+    
+    // Komprimiere und konvertiere Bilder zu Base64 data URLs
+    try {
+      const base64Images = await Promise.all(
+        imageFiles.map(file => compressImage(file))
+      );
+      console.log("[Chat] handleImageUpload: Images compressed and converted to base64", base64Images.length, "First image preview:", base64Images[0]?.substring(0, 100) + "...");
+      setAttachedImages((prev) => {
+        const newImages = [...prev, ...base64Images];
+        console.log("[Chat] handleImageUpload: attachedImages updated", newImages.length);
+        return newImages;
+      });
+    } catch (error) {
+      console.error('[Chat] Failed to compress/convert images:', error);
+    }
+  };
+
+  const handleAddAttachmentsToChat = () => {
+    console.log("[Chat] handleAddAttachmentsToChat: called, attachedImages.length =", attachedImages.length);
+    
+    if (attachedImages.length === 0) {
+      console.log("[Chat] handleAddAttachmentsToChat: No images to add, returning");
+      return;
+    }
+
+    // Speichere Bilder für die nächste Nachricht
+    setPendingImages((prev) => {
+      const newPending = [...prev, ...attachedImages];
+      console.log("[Chat] handleAddAttachmentsToChat: pendingImages updated", newPending.length, "images");
+      return newPending;
+    });
+    
+    // Schließe Dialog und setze zurück
+    setJourneyDialogOpen(false);
+    setAttachedImages([]);
+    setActiveDialogTab("phases");
+    
+    // Optional: Fokussiere den Input, damit User direkt tippen kann
+    setTimeout(() => {
+      const inputElement = document.querySelector('input[placeholder*="Ask"], textarea[placeholder*="Ask"]') as HTMLInputElement | HTMLTextAreaElement;
+      inputElement?.focus();
+    }, 100);
   };
 
   // Load conversation from URL on mount
@@ -901,6 +1272,58 @@ function AdminChatPageContent() {
       setLearnings([]);
     }
   }, [activePersonaId]);
+
+  // Update system prompt when persona changes or when context changes
+  useEffect(() => {
+    if (!activePersona || !activePersonaId) {
+      setCurrentSystemPrompt(undefined);
+      return;
+    }
+
+    // Build the system prompt with current context
+    // Debug: Log persona data for troubleshooting
+    if (activePersona.name?.toLowerCase().includes("clara")) {
+      console.log("[Chat] Persona data for variable replacement:", {
+        name: activePersona.name,
+        headline: activePersona.headline,
+        profileHeadline: activePersona.profile?.headline,
+        profileCardHeadline: activePersona.profileCard?.headline,
+        bio: activePersona.profile?.bio?.substring(0, 100),
+      });
+    }
+    
+    const normalizedPersonaProfile: PersonaProfile = {
+      name: activePersona.name,
+      fullName: activePersona.profile?.fullName ?? activePersona.profile?.name ?? activePersona.name,
+      headline: activePersona.profile?.headline ?? activePersona.profileCard?.headline ?? activePersona.headline ?? null,
+      bio: activePersona.profile?.bio ?? null,
+      age: activePersona.profile?.age ?? null,
+      location: activePersona.profile?.location ?? null,
+      gender: activePersona.profile?.gender ?? null,
+      media_affinity: activePersona.profile?.media_affinity ?? null,
+      interests: activePersona.profile?.interests ?? [],
+      colorPalette: activePersona.profile?.colorPalette ?? [],
+      attentionSpan: activePersona.profile?.attentionSpan ?? null,
+      socialMediaUsage: activePersona.profile?.socialMediaUsage ?? [],
+      values: activePersona.profile?.values ?? [],
+      traits: activePersona.profile?.traits ?? {},
+      painPoints: activePersona.profile?.painPoints ?? [],
+      goals: activePersona.profile?.goals ?? [],
+      communicationStyle: activePersona.profile?.communicationStyle ?? undefined,
+    };
+
+    const systemPrompt = buildAdaptiveSystemPrompt({
+      persona: normalizedPersonaProfile,
+      journeyPhases: selectedJourney?.phases,
+      conversationHistory: messages,
+      learnings: learnings,
+      currentPhase: selectedJourney?.phases?.find((p) => selectedPhases.includes(p.id)) || undefined,
+      messageCount: messages.filter((m) => m.role === "user").length,
+      baseSystemPrompt: activePersona.systemPrompt ?? null, // Use system prompt from database
+    });
+
+    setCurrentSystemPrompt(systemPrompt);
+  }, [activePersona, activePersonaId, selectedJourney, selectedPhases, messages, learnings]);
 
   // Update header with persona info when activePersona changes
   useEffect(() => {
@@ -1298,7 +1721,7 @@ function AdminChatPageContent() {
               </Box>
         )}
 
-        {/* Journey-Phasen-Dialog */}
+        {/* Context Dialog with Tabs */}
         <Dialog
           open={journeyDialogOpen}
           onClose={() => {
@@ -1306,207 +1729,351 @@ function AdminChatPageContent() {
             setSelectedJourneyId(null);
             setSelectedPhases([]);
             setSelectedJourney(null);
+            setActiveDialogTab("phases");
+            setAttachedImages([]);
           }}
-          maxWidth="xs"
+          maxWidth="sm"
           fullWidth
           PaperProps={{
             sx: {
               borderRadius: "40px",
               backgroundColor: "var(--color-neutral)",
               border: "5px solid var(--audion-light-border-color, #0f172a)",
-              maxHeight: "70vh"
+              maxHeight: "80vh"
             }
           }}
         >
           <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 0.75, pb: 1, pt: 2.5, px: 3 }}>
-            <MaterialSymbol icon="route" fontSize={16} />
+            <MaterialSymbol icon="add_circle" fontSize={16} />
             <Typography variant="body2" component="span" sx={{ fontSize: "0.8125rem", fontWeight: 600 }}>
-              Journey Phases
+              Add Context
             </Typography>
           </DialogTitle>
-          <DialogContent sx={{ px: 3, py: 2 }}>
-            {loadingJourneys ? (
-              <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
-                <CircularProgress size={20} />
-              </Box>
-            ) : (
-              <Stack spacing={1.5}>
-                {/* Journey Selection */}
-                <FormControl fullWidth size="small">
-                  <InputLabel sx={{ fontSize: "0.75rem" }}>Journey</InputLabel>
-                  <Select
-                    value={selectedJourneyId || ""}
-                    onChange={(e) => setSelectedJourneyId(e.target.value || null)}
-                    label="Journey"
-                    sx={{ fontSize: "0.8125rem", "& .MuiSelect-select": { py: 0.75 } }}
-                  >
-                    {journeys.length === 0 ? (
-                      <MenuItem disabled sx={{ fontSize: "0.75rem" }}>None available</MenuItem>
-                    ) : (
-                      journeys.map((journey) => (
-                        <MenuItem key={journey.id} value={journey.id} sx={{ fontSize: "0.8125rem", py: 0.5 }}>
-                          <Box>
-                            <Typography variant="caption" fontWeight={500} sx={{ fontSize: "0.8125rem", display: "block" }}>
-                              {journey.name}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.6875rem" }}>
-                              {journey.phases.length} Phase{journey.phases.length !== 1 ? "s" : ""}
-                            </Typography>
-                          </Box>
-                        </MenuItem>
-                      ))
-                    )}
-                  </Select>
-                </FormControl>
+          
+          {/* Tabs */}
+          <Box sx={{ borderBottom: 1, borderColor: "divider", px: 3 }}>
+            <Tabs
+              value={activeDialogTab}
+              onChange={(_, newValue) => setActiveDialogTab(newValue)}
+              sx={{
+                minHeight: "auto",
+                "& .MuiTab-root": {
+                  minHeight: "auto",
+                  padding: "0.5rem 1rem",
+                  fontSize: "0.75rem",
+                  textTransform: "none",
+                  fontWeight: 500
+                }
+              }}
+            >
+              <Tab
+                value="phases"
+                label="Journey Phases"
+                icon={<MaterialSymbol icon="route" fontSize={14} />}
+                iconPosition="start"
+              />
+              <Tab
+                value="variables"
+                label="Variables"
+                icon={<MaterialSymbol icon="code" fontSize={14} />}
+                iconPosition="start"
+              />
+              <Tab
+                value="attachments"
+                label="Attachments"
+                icon={<MaterialSymbol icon="image" fontSize={14} />}
+                iconPosition="start"
+              />
+            </Tabs>
+          </Box>
 
-                {/* Phases List */}
-                {selectedJourney && selectedJourney.phases.length > 0 && (
-                  <Box sx={{ maxHeight: "240px", overflowY: "auto" }}>
-                    <Typography variant="caption" sx={{ mb: 0.75, fontWeight: 600, display: "block", fontSize: "0.6875rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
-                      Phases:
-                    </Typography>
-                    <Stack spacing={0.5}>
-                      {selectedJourney.phases
-                        .sort((a, b) => (a.phase_order || 0) - (b.phase_order || 0))
-                        .map((phase) => (
-                          <Paper
-                            key={phase.id}
-                            variant="outlined"
-                            sx={{
-                              p: 0.75,
-                              backgroundColor: selectedPhases.includes(phase.id)
-                                ? alpha(theme.palette.primary.main, 0.08)
-                                : "transparent",
-                              borderColor: selectedPhases.includes(phase.id)
-                                ? theme.palette.primary.main
-                                : "var(--audion-light-border-color, #0f172a)",
-                              transition: "all 0.2s ease",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 0.5
-                            }}
-                          >
-                            <FormControlLabel
-                              control={
-                                <Checkbox
-                                  size="small"
-                                  sx={{
-                                    py: 0.25,
-                                    padding: "4px",
-                                    "& .MuiSvgIcon-root": {
-                                      width: "18px",
-                                      height: "18px",
-                                      borderRadius: "50%",
-                                      border: "1.5px solid var(--audion-light-border-color, #0f172a)",
-                                      transition: "all 0.2s ease"
-                                    },
-                                    "&:not(.Mui-checked) .MuiSvgIcon-root": {
-                                      backgroundColor: "transparent",
-                                      "& path": {
-                                        display: "none"
-                                      }
-                                    },
-                                    "&.Mui-checked .MuiSvgIcon-root": {
-                                      borderColor: theme.palette.primary.main,
-                                      backgroundColor: theme.palette.primary.main,
-                                      "& path": {
-                                        display: "block",
-                                        fill: "#fff"
-                                      }
-                                    }
-                                  }}
-                                  checked={selectedPhases.includes(phase.id)}
-                                  onChange={(e) => {
-                                    if (e.target.checked) {
-                                      setSelectedPhases([...selectedPhases, phase.id]);
-                                    } else {
-                                      setSelectedPhases(selectedPhases.filter((id) => id !== phase.id));
-                                    }
-                                  }}
-                                />
-                              }
-                              label={
-                                <Box sx={{ flex: 1 }}>
-                                  <Typography variant="caption" fontWeight={500} sx={{ fontSize: "0.75rem", display: "block", lineHeight: 1.3 }}>
-                                    {phase.phase_order || 0}. {phase.name}
-                                  </Typography>
-                                  {phase.elements && phase.elements.length > 0 && (
-                                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.6875rem", lineHeight: 1.2 }}>
-                                      {phase.elements.length} Moment{phase.elements.length !== 1 ? "s" : ""}
-                                    </Typography>
-                                  )}
-                                </Box>
-                              }
-                              sx={{ m: 0, flex: 1 }}
-                            />
-                            {phase.description && (
-                              <Tooltip
-                                title={
-                                  <Box>
-                                    <Typography variant="caption" sx={{ display: "block", fontWeight: 600, mb: 0.5 }}>
-                                      {phase.name}
-                                    </Typography>
-                                    <Typography variant="caption" sx={{ display: "block", fontSize: "0.75rem" }}>
-                                      {phase.description}
-                                    </Typography>
-                                  </Box>
-                                }
-                                arrow
-                                placement="left"
-                                componentsProps={{
-                                  tooltip: {
-                                    sx: {
-                                      backgroundColor: "var(--color-neutral)",
-                                      border: "1px solid var(--audion-light-border-color, #0f172a)",
-                                      color: "var(--color-text-primary)",
-                                      maxWidth: "300px"
-                                    }
-                                  },
-                                  arrow: {
-                                    sx: {
-                                      color: "var(--color-neutral)",
-                                      "&::before": {
-                                        border: "1px solid var(--audion-light-border-color, #0f172a)"
-                                      }
-                                    }
-                                  }
+          <DialogContent sx={{ px: 3, py: 2, minHeight: "300px" }}>
+            {/* Tab: Journey Phases */}
+            {activeDialogTab === "phases" && (
+              <>
+                {loadingJourneys ? (
+                  <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
+                    <CircularProgress size={20} />
+                  </Box>
+                ) : (
+                  <Stack spacing={1.5}>
+                    {/* Journey Selection */}
+                    <FormControl fullWidth size="small">
+                      <InputLabel sx={{ fontSize: "0.75rem" }}>Journey</InputLabel>
+                      <Select
+                        value={selectedJourneyId || ""}
+                        onChange={(e) => setSelectedJourneyId(e.target.value || null)}
+                        label="Journey"
+                        sx={{ fontSize: "0.8125rem", "& .MuiSelect-select": { py: 0.75 } }}
+                      >
+                        {journeys.length === 0 ? (
+                          <MenuItem disabled sx={{ fontSize: "0.75rem" }}>None available</MenuItem>
+                        ) : (
+                          journeys.map((journey) => (
+                            <MenuItem key={journey.id} value={journey.id} sx={{ fontSize: "0.8125rem", py: 0.5 }}>
+                              <Box>
+                                <Typography variant="caption" fontWeight={500} sx={{ fontSize: "0.8125rem", display: "block" }}>
+                                  {journey.name}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.6875rem" }}>
+                                  {journey.phases.length} Phase{journey.phases.length !== 1 ? "s" : ""}
+                                </Typography>
+                              </Box>
+                            </MenuItem>
+                          ))
+                        )}
+                      </Select>
+                    </FormControl>
+
+                    {/* Phases List */}
+                    {selectedJourney && selectedJourney.phases.length > 0 && (
+                      <Box sx={{ maxHeight: "240px", overflowY: "auto" }}>
+                        <Typography variant="caption" sx={{ mb: 0.75, fontWeight: 600, display: "block", fontSize: "0.6875rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                          Phases:
+                        </Typography>
+                        <Stack spacing={0.5}>
+                          {selectedJourney.phases
+                            .sort((a, b) => (a.phase_order || 0) - (b.phase_order || 0))
+                            .map((phase) => (
+                              <Paper
+                                key={phase.id}
+                                variant="outlined"
+                                sx={{
+                                  p: 0.75,
+                                  backgroundColor: selectedPhases.includes(phase.id)
+                                    ? alpha(theme.palette.primary.main, 0.08)
+                                    : "transparent",
+                                  borderColor: selectedPhases.includes(phase.id)
+                                    ? theme.palette.primary.main
+                                    : "var(--audion-light-border-color, #0f172a)",
+                                  transition: "all 0.2s ease",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 0.5
                                 }}
                               >
-                                <IconButton
-                                  size="small"
-                                  sx={{
-                                    p: 0.5,
-                                    minWidth: "auto",
-                                    width: "24px",
-                                    height: "24px",
-                                    color: "text.secondary",
-                                    "&:hover": {
-                                      color: "text.primary"
+                                <FormControlLabel
+                                  control={
+                                    <Checkbox
+                                      size="small"
+                                      sx={{
+                                        py: 0.25,
+                                        padding: "4px",
+                                        "& .MuiSvgIcon-root": {
+                                          width: "18px",
+                                          height: "18px",
+                                          borderRadius: "50%",
+                                          border: "1.5px solid var(--audion-light-border-color, #0f172a)",
+                                          transition: "all 0.2s ease"
+                                        },
+                                        "&:not(.Mui-checked) .MuiSvgIcon-root": {
+                                          backgroundColor: "transparent",
+                                          "& path": {
+                                            display: "none"
+                                          }
+                                        },
+                                        "&.Mui-checked .MuiSvgIcon-root": {
+                                          borderColor: theme.palette.primary.main,
+                                          backgroundColor: theme.palette.primary.main,
+                                          "& path": {
+                                            display: "block",
+                                            fill: "#fff"
+                                          }
+                                        }
+                                      }}
+                                      checked={selectedPhases.includes(phase.id)}
+                                      onChange={(e) => {
+                                        if (e.target.checked) {
+                                          setSelectedPhases([...selectedPhases, phase.id]);
+                                        } else {
+                                          setSelectedPhases(selectedPhases.filter((id) => id !== phase.id));
+                                        }
+                                      }}
+                                    />
+                                  }
+                                  label={
+                                    <Box sx={{ flex: 1 }}>
+                                      <Typography variant="caption" fontWeight={500} sx={{ fontSize: "0.75rem", display: "block", lineHeight: 1.3 }}>
+                                        {phase.phase_order || 0}. {phase.name}
+                                      </Typography>
+                                      {phase.elements && phase.elements.length > 0 && (
+                                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.6875rem", lineHeight: 1.2 }}>
+                                          {phase.elements.length} Moment{phase.elements.length !== 1 ? "s" : ""}
+                                        </Typography>
+                                      )}
+                                    </Box>
+                                  }
+                                  sx={{ m: 0, flex: 1 }}
+                                />
+                                {phase.description && (
+                                  <Tooltip
+                                    title={
+                                      <Box>
+                                        <Typography variant="caption" sx={{ display: "block", fontWeight: 600, mb: 0.5 }}>
+                                          {phase.name}
+                                        </Typography>
+                                        <Typography variant="caption" sx={{ display: "block", fontSize: "0.75rem" }}>
+                                          {phase.description}
+                                        </Typography>
+                                      </Box>
                                     }
-                                  }}
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <MaterialSymbol icon="info" fontSize={16} />
-                                </IconButton>
-                              </Tooltip>
-                            )}
-                          </Paper>
-                        ))}
-                    </Stack>
-                  </Box>
-                )}
+                                    arrow
+                                    placement="left"
+                                    componentsProps={{
+                                      tooltip: {
+                                        sx: {
+                                          backgroundColor: "var(--color-neutral)",
+                                          border: "1px solid var(--audion-light-border-color, #0f172a)",
+                                          color: "var(--color-text-primary)",
+                                          maxWidth: "300px"
+                                        }
+                                      },
+                                      arrow: {
+                                        sx: {
+                                          color: "var(--color-neutral)",
+                                          "&::before": {
+                                            border: "1px solid var(--audion-light-border-color, #0f172a)"
+                                          }
+                                        }
+                                      }
+                                    }}
+                                  >
+                                    <IconButton
+                                      size="small"
+                                      sx={{
+                                        p: 0.5,
+                                        minWidth: "auto",
+                                        width: "24px",
+                                        height: "24px",
+                                        color: "text.secondary",
+                                        "&:hover": {
+                                          color: "text.primary"
+                                        }
+                                      }}
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <MaterialSymbol icon="info" fontSize={16} />
+                                    </IconButton>
+                                  </Tooltip>
+                                )}
+                              </Paper>
+                            ))}
+                        </Stack>
+                      </Box>
+                    )}
 
-                {selectedJourney && selectedJourney.phases.length === 0 && (
-                  <Box sx={{ textAlign: "center", py: 1.5 }}>
-                    <MaterialSymbol icon="info" fontSize={24} style={{ opacity: 0.5 }} />
-                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5, fontSize: "0.6875rem" }}>
-                      No phases
+                    {selectedJourney && selectedJourney.phases.length === 0 && (
+                      <Box sx={{ textAlign: "center", py: 1.5 }}>
+                        <MaterialSymbol icon="info" fontSize={24} style={{ opacity: 0.5 }} />
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5, fontSize: "0.6875rem" }}>
+                          No phases
+                        </Typography>
+                      </Box>
+                    )}
+                  </Stack>
+                )}
+              </>
+            )}
+
+            {/* Tab: Variables */}
+            {activeDialogTab === "variables" && (
+              <Box sx={{ maxHeight: "400px", overflowY: "auto" }}>
+                <VariablePalette
+                  onVariableClick={handleVariableClick}
+                />
+              </Box>
+            )}
+
+            {/* Tab: Attachments */}
+            {activeDialogTab === "attachments" && (
+              <Stack spacing={2}>
+                <Box
+                  sx={{
+                    border: "2px dashed var(--audion-light-border-color, #0f172a)",
+                    borderRadius: "12px",
+                    p: 3,
+                    textAlign: "center",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                    "&:hover": {
+                      borderColor: theme.palette.primary.main,
+                      backgroundColor: alpha(theme.palette.primary.main, 0.05)
+                    }
+                  }}
+                  onClick={() => {
+                    const input = document.createElement("input");
+                    input.type = "file";
+                    input.accept = "image/*";
+                    input.multiple = true;
+                    input.onchange = (e) => {
+                      const target = e.target as HTMLInputElement;
+                      handleImageUpload(target.files);
+                    };
+                    input.click();
+                  }}
+                >
+                  <MaterialSymbol icon="upload_file" fontSize={32} style={{ opacity: 0.6, marginBottom: "0.5rem" }} />
+                  <Typography variant="caption" sx={{ display: "block", fontSize: "0.75rem", fontWeight: 500 }}>
+                    Upload Images
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.6875rem" }}>
+                    Click to select or drag and drop
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.625rem", mt: 0.5, display: "block" }}>
+                    Figma links and URLs coming soon
+                  </Typography>
+                </Box>
+
+                {/* Uploaded Images Preview */}
+                {attachedImages.length > 0 && (
+                  <Box>
+                    <Typography variant="caption" sx={{ mb: 1, fontWeight: 600, display: "block", fontSize: "0.6875rem" }}>
+                      Uploaded ({attachedImages.length}):
                     </Typography>
+                    <Stack spacing={1}>
+                      {attachedImages.map((imageDataUrl, index) => (
+                        <Paper
+                          key={index}
+                          variant="outlined"
+                          sx={{
+                            p: 1,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1
+                          }}
+                        >
+                          <Box
+                            component="img"
+                            src={imageDataUrl}
+                            alt={`Preview ${index + 1}`}
+                            sx={{
+                              width: 40,
+                              height: 40,
+                              objectFit: "cover",
+                              borderRadius: "4px"
+                            }}
+                          />
+                          <Typography variant="caption" sx={{ flex: 1, fontSize: "0.75rem" }}>
+                            Image {index + 1}
+                          </Typography>
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              setAttachedImages((prev) => prev.filter((_, i) => i !== index));
+                            }}
+                            sx={{ p: 0.5 }}
+                          >
+                            <MaterialSymbol icon="close" fontSize={16} />
+                          </IconButton>
+                        </Paper>
+                      ))}
+                    </Stack>
                   </Box>
                 )}
               </Stack>
             )}
           </DialogContent>
+
           <DialogActions sx={{ px: 3, py: 2, gap: 0.75 }}>
             <button
               type="button"
@@ -1516,19 +2083,34 @@ function AdminChatPageContent() {
                 setSelectedJourneyId(null);
                 setSelectedPhases([]);
                 setSelectedJourney(null);
+                setActiveDialogTab("phases");
+                setAttachedImages([]);
               }}
             >
               Cancel
             </button>
-            <button
-              type="button"
-              className="udg-glass-button"
-              onClick={handleAddPhasesToChat}
-              disabled={selectedPhases.length === 0}
-            >
-              <MaterialSymbol icon="add" fontSize={14} />
-              Add {selectedPhases.length}
-            </button>
+            {activeDialogTab === "phases" && (
+              <button
+                type="button"
+                className="udg-glass-button"
+                onClick={handleAddPhasesToChat}
+                disabled={selectedPhases.length === 0}
+              >
+                <MaterialSymbol icon="add" fontSize={14} />
+                Add {selectedPhases.length}
+              </button>
+            )}
+            {activeDialogTab === "attachments" && (
+              <button
+                type="button"
+                className="udg-glass-button"
+                onClick={handleAddAttachmentsToChat}
+                disabled={attachedImages.length === 0}
+              >
+                <MaterialSymbol icon="add" fontSize={14} />
+                Add {attachedImages.length} image{attachedImages.length !== 1 ? "s" : ""}
+              </button>
+            )}
           </DialogActions>
         </Dialog>
 

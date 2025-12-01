@@ -50,6 +50,7 @@ export type PromptContext = {
   learnings: ConversationLearning[];
   currentPhase?: PhaseResponse;
   messageCount: number;
+  baseSystemPrompt?: string | null; // Optional: Base system prompt from database
 };
 
 /**
@@ -130,82 +131,206 @@ export function buildAdaptiveInstructions(context: PromptContext): string {
 }
 
 /**
+ * Ersetzt Variablen im Prompt durch tatsächliche Werte aus dem Persona-Profil
+ */
+function replacePromptVariables(prompt: string, persona: PersonaProfile): string {
+  // Erstelle ein Mapping aller verfügbaren Variablen
+  const variables: Record<string, string> = {
+    // Basis-Informationen
+    persona_name: persona.name || persona.fullName || "",
+    persona_fullname: persona.fullName || persona.name || "",
+    persona_headline: persona.headline || "",
+    persona_bio: persona.bio || "",
+    persona_age: persona.age?.toString() || "",
+    persona_location: persona.location || "",
+    persona_gender: persona.gender || "",
+    persona_media_affinity: persona.media_affinity?.toString() || "",
+    persona_attention_span: persona.attentionSpan || "",
+    
+    // Arrays als komma-separierte Listen
+    persona_interests: persona.interests?.join(", ") || "",
+    persona_values: persona.values?.join(", ") || "",
+    persona_color_palette: persona.colorPalette?.join(", ") || "",
+    persona_social_media_usage: persona.socialMediaUsage?.join(", ") || "",
+    
+    // Communication Style
+    persona_vocabulary: persona.communicationStyle?.vocabulary?.join(", ") || "",
+    persona_sentence_structure: persona.communicationStyle?.sentenceStructure || "",
+    persona_skepticism_level: persona.communicationStyle?.skepticismLevel?.toString() || "",
+    
+    // Pain Points
+    persona_pain_points: persona.painPoints?.map(p => p.label || "").filter(Boolean).join(", ") || "",
+    
+    // Goals
+    persona_goals: persona.goals?.map(g => g.label || "").filter(Boolean).join(", ") || "",
+    
+    // Traits
+    persona_traits: persona.traits ? Object.entries(persona.traits)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join(", ") : "",
+    existing_traits: persona.traits ? Object.entries(persona.traits)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join(", ") : "",
+  };
+  
+  // Ersetze alle Variablen im Format ${variable_name}
+  let replacedPrompt = prompt;
+  const variablePattern = /\$\{([^}]+)\}/g;
+  
+  // Finde alle Variablen im Prompt
+  const foundVariables = [...prompt.matchAll(variablePattern)];
+  
+  replacedPrompt = replacedPrompt.replace(variablePattern, (match, variableName) => {
+    const trimmedName = variableName.trim();
+    const normalizedName = trimmedName.toLowerCase();
+    
+    // Suche nach exakter Übereinstimmung (case-insensitive)
+    const exactMatch = Object.entries(variables).find(([key]) => 
+      key.toLowerCase() === normalizedName
+    );
+    
+    if (exactMatch) {
+      const value = exactMatch[1];
+      // Debug für wichtige Variablen
+      if (trimmedName.toLowerCase() === "persona_headline" || trimmedName.toLowerCase() === "persona_bio") {
+        console.log(`[replacePromptVariables] Replacing ${trimmedName} with:`, value.substring(0, 100));
+      }
+      return value;
+    }
+    
+    // Versuche mit Unterstrichen statt Bindestrichen
+    const altName = normalizedName.replace(/-/g, "_");
+    const altMatch = Object.entries(variables).find(([key]) => 
+      key.toLowerCase() === altName
+    );
+    
+    if (altMatch) {
+      return altMatch[1];
+    }
+    
+    // Debug: Log nicht gefundene Variablen
+    console.warn(`[replacePromptVariables] Variable not found: ${trimmedName}`, {
+      availableVariables: Object.keys(variables),
+      normalizedName,
+      altName,
+    });
+    
+    // Wenn nicht gefunden, gib die Variable zurück (nicht ersetzt)
+    return match;
+  });
+  
+  return replacedPrompt;
+}
+
+/**
  * Baut den adaptiven System-Prompt dynamisch zusammen
  */
 export function buildAdaptiveSystemPrompt(context: PromptContext): string {
-  const { persona, journeyPhases, conversationHistory, learnings, currentPhase } = context;
+  const { persona, journeyPhases, conversationHistory, learnings, currentPhase, baseSystemPrompt } = context;
   
-  let prompt = `You are ${persona.name || persona.fullName || "a persona"}.\n\n`;
+  // Wenn ein Base-System-Prompt aus der Datenbank vorhanden ist, verwende ihn als Basis
+  let prompt = "";
   
-  // Basis-Persona-Informationen
-  if (persona.bio) {
-    prompt += `About you: ${persona.bio}\n\n`;
-  }
-  
-  if (persona.headline) {
-    prompt += `Headline: ${persona.headline}\n\n`;
-  }
-  
-  if (persona.communicationStyle) {
-    prompt += `Communication style:\n`;
-    if (persona.communicationStyle.vocabulary && persona.communicationStyle.vocabulary.length > 0) {
-      prompt += `- Vocabulary: ${persona.communicationStyle.vocabulary.join(", ")}\n`;
-    }
-    if (persona.communicationStyle.sentenceStructure) {
-      prompt += `- Sentence structure: ${persona.communicationStyle.sentenceStructure}\n`;
-    }
-    if (persona.communicationStyle.skepticismLevel !== undefined) {
-      prompt += `- Skepticism level: ${persona.communicationStyle.skepticismLevel}/10\n`;
-    }
-    prompt += `\n`;
-  }
-  
-  if (persona.interests && persona.interests.length > 0) {
-    prompt += `Interests: ${persona.interests.join(", ")}\n\n`;
-  }
-  
-  if (persona.values && persona.values.length > 0) {
-    prompt += `Values: ${persona.values.join(", ")}\n\n`;
-  }
-  
-  // Journey-Kontext (wenn vorhanden)
-  if (currentPhase) {
-    prompt += `Current conversation phase: ${currentPhase.name}\n`;
-    if (currentPhase.description) {
-      prompt += `Phase goal: ${currentPhase.description}\n`;
-    }
-    if (currentPhase.expected_emotion) {
-      prompt += `Expected emotion: ${currentPhase.expected_emotion}\n`;
-    }
-    prompt += `\n`;
-  } else if (journeyPhases && journeyPhases.length > 0) {
-    prompt += `Available journey phases: ${journeyPhases.map((p) => p.name).join(", ")}\n\n`;
-  }
-  
-  // Learnings aus vorherigen Gesprächen
-  if (learnings.length > 0) {
-    prompt += `Conversation insights:\n`;
-    learnings.forEach((learning) => {
-      if (learning.userPreference) {
-        prompt += `- User prefers: ${learning.userPreference}\n`;
-      }
-      if (learning.personaInsight) {
-        prompt += `- Insight: ${learning.personaInsight}\n`;
-      }
+  if (baseSystemPrompt && baseSystemPrompt.trim().length > 0) {
+    // Verwende den System-Prompt aus der Datenbank als Basis
+    prompt = baseSystemPrompt.trim();
+    
+    // Ersetze Variablen durch tatsächliche Werte
+    const beforeReplace = prompt;
+    const variablesInPrompt = beforeReplace.match(/\$\{([^}]+)\}/g) || [];
+    prompt = replacePromptVariables(prompt, persona);
+    
+    // Debug: Log variable replacement (always, not just for Clara)
+    console.log("[AdaptivePrompt] Variable replacement:", {
+      personaName: persona.name,
+      hasVariables: beforeReplace.includes("${"),
+      variablesFound: variablesInPrompt,
+      beforeReplace: beforeReplace.substring(0, 400),
+      afterReplace: prompt.substring(0, 400),
+      personaData: {
+        name: persona.name,
+        headline: persona.headline,
+        bio: persona.bio?.substring(0, 100),
+        fullName: persona.fullName,
+      },
     });
-    prompt += `\n`;
-  }
-  
-  // Gesprächsverlauf-Analyse (letzte N Nachrichten)
-  if (conversationHistory.length > 0) {
-    const topics = extractTopics(conversationHistory);
-    if (topics.length > 0) {
-      prompt += `Recent conversation topics: ${topics.join(", ")}\n\n`;
+    
+    // KEINE adaptiven Elemente mehr hinzufügen - der Base-Prompt ist bereits vollständig
+    // Die adaptiven Elemente werden nur verwendet, wenn kein Base-Prompt vorhanden ist
+  } else {
+    // Fallback: Baue Prompt dynamisch aus Persona-Profil (alte Logik)
+    prompt = `You are ${persona.name || persona.fullName || "a persona"}.\n\n`;
+    
+    // Basis-Persona-Informationen
+    if (persona.bio) {
+      prompt += `About you: ${persona.bio}\n\n`;
     }
+    
+    if (persona.headline) {
+      prompt += `Headline: ${persona.headline}\n\n`;
+    }
+    
+    if (persona.communicationStyle) {
+      prompt += `Communication style:\n`;
+      if (persona.communicationStyle.vocabulary && persona.communicationStyle.vocabulary.length > 0) {
+        prompt += `- Vocabulary: ${persona.communicationStyle.vocabulary.join(", ")}\n`;
+      }
+      if (persona.communicationStyle.sentenceStructure) {
+        prompt += `- Sentence structure: ${persona.communicationStyle.sentenceStructure}\n`;
+      }
+      if (persona.communicationStyle.skepticismLevel !== undefined) {
+        prompt += `- Skepticism level: ${persona.communicationStyle.skepticismLevel}/10\n`;
+      }
+      prompt += `\n`;
+    }
+    
+    if (persona.interests && persona.interests.length > 0) {
+      prompt += `Interests: ${persona.interests.join(", ")}\n\n`;
+    }
+    
+    if (persona.values && persona.values.length > 0) {
+      prompt += `Values: ${persona.values.join(", ")}\n\n`;
+    }
+    
+    // Journey-Kontext (wenn vorhanden)
+    if (currentPhase) {
+      prompt += `Current conversation phase: ${currentPhase.name}\n`;
+      if (currentPhase.description) {
+        prompt += `Phase goal: ${currentPhase.description}\n`;
+      }
+      if (currentPhase.expected_emotion) {
+        prompt += `Expected emotion: ${currentPhase.expected_emotion}\n`;
+      }
+      prompt += `\n`;
+    } else if (journeyPhases && journeyPhases.length > 0) {
+      prompt += `Available journey phases: ${journeyPhases.map((p) => p.name).join(", ")}\n\n`;
+    }
+    
+    // Learnings aus vorherigen Gesprächen
+    if (learnings.length > 0) {
+      prompt += `Conversation insights:\n`;
+      learnings.forEach((learning) => {
+        if (learning.userPreference) {
+          prompt += `- User prefers: ${learning.userPreference}\n`;
+        }
+        if (learning.personaInsight) {
+          prompt += `- Insight: ${learning.personaInsight}\n`;
+        }
+      });
+      prompt += `\n`;
+    }
+    
+    // Gesprächsverlauf-Analyse (letzte N Nachrichten)
+    if (conversationHistory.length > 0) {
+      const topics = extractTopics(conversationHistory);
+      if (topics.length > 0) {
+        prompt += `Recent conversation topics: ${topics.join(", ")}\n\n`;
+      }
+    }
+    
+    // Adaptive Anweisungen
+    prompt += buildAdaptiveInstructions(context);
   }
-  
-  // Adaptive Anweisungen
-  prompt += buildAdaptiveInstructions(context);
   
   return prompt;
 }

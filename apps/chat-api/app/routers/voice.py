@@ -5,7 +5,7 @@ import base64
 import json
 import queue
 import threading
-from typing import AsyncIterator, List
+from typing import AsyncIterator, List, Dict, Any
 from uuid import UUID
 
 import structlog
@@ -23,6 +23,75 @@ from ..ws.chat import get_persona_agent, get_persona_prompt, get_retrieval_agent
 
 router = APIRouter(prefix="/voice", tags=["voice"])
 logger = structlog.get_logger(__name__)
+
+
+def select_model_for_messages(messages: List[Dict[str, Any]]) -> str:
+    """
+    Wählt das passende Modell basierend auf dem Inhalt der Messages.
+    - Haiku 4.5 für normale Text-Messages (kostengünstig, schnell)
+    - Sonnet 4.5 für Messages mit Bildern (Vision-Unterstützung)
+    """
+    # Prüfe ob Bilder in den Messages vorhanden sind
+    has_images = any(
+        isinstance(msg.get("content"), list) and 
+        any(block.get("type") == "image" for block in msg.get("content", []))
+        for msg in messages
+    )
+    
+    if has_images:
+        # Sonnet 4.5 für Vision (Format: claude-{model}-{version}-{date})
+        return "claude-sonnet-4-20250514"
+    else:
+        # Haiku 4.5 für normale Messages (Format: claude-{model}-{version}-{date})
+        return "claude-haiku-4-20250514"
+
+
+def convert_message_with_images(msg: VoiceChatMessage) -> Dict[str, Any]:
+    """
+    Konvertiert eine Message mit Bildern in Claude Vision Format.
+    Siehe chat.py für Details.
+    """
+    if not msg.images or len(msg.images) == 0:
+        return {
+            "role": msg.role,
+            "content": msg.content
+        }
+    
+    content_blocks = []
+    
+    if msg.content and msg.content.strip():
+        content_blocks.append({
+            "type": "text",
+            "text": msg.content
+        })
+    
+    for image_data_url in msg.images:
+        if image_data_url.startswith("data:image/"):
+            parts = image_data_url.split(",", 1)
+            if len(parts) == 2:
+                header = parts[0]
+                base64_data = parts[1]
+                media_type = header.split(";")[0].split(":")[1] if ":" in header else "image/jpeg"
+                
+                content_blocks.append({
+                    "type": "image",
+                    "source": {
+                        "type": "base64",
+                        "media_type": media_type,
+                        "data": base64_data
+                    }
+                })
+    
+    if not content_blocks or all(block.get("type") == "image" for block in content_blocks):
+        content_blocks.insert(0, {
+            "type": "text",
+            "text": msg.content if msg.content else ""
+        })
+    
+    return {
+        "role": msg.role,
+        "content": content_blocks
+    }
 
 # Initialize Whisper service (lazy-loaded)
 _whisper_service: WhisperTranscriptionService | None = None
@@ -43,6 +112,7 @@ def get_whisper_service() -> WhisperTranscriptionService:
 class VoiceChatMessage(BaseModel):
     role: str  # "system", "user", "assistant"
     content: str
+    images: List[str] | None = Field(default=None)  # Base64 data URLs for images
 
 
 class VoiceChatRequest(BaseModel):
@@ -106,10 +176,9 @@ async def voice_chat_stream(request: VoiceChatRequest) -> StreamingResponse:
             if msg.role == "system":
                 system_parts.append(msg.content)
             elif msg.role in ["user", "assistant"]:
-                anthropic_messages.append({
-                    "role": msg.role,
-                    "content": msg.content
-                })
+                # Konvertiere Message mit Bildern in Claude Vision Format
+                anthropic_message = convert_message_with_images(msg)
+                anthropic_messages.append(anthropic_message)
         
         system_prompt = "\n\n".join(system_parts)
         retrieval_query = next((m.content for m in request.messages if m.role == "user"), "")
@@ -180,8 +249,22 @@ async def voice_chat_stream(request: VoiceChatRequest) -> StreamingResponse:
 
             def collect_stream_deltas() -> None:
                 try:
+                    # Wähle Modell basierend auf Inhalt (Bilder = Sonnet, sonst Haiku)
+                    selected_model = select_model_for_messages(anthropic_messages)
+                    
+                    # Debug: Log wenn Bilder vorhanden sind
+                    has_images = any(
+                        isinstance(msg.get("content"), list) and 
+                        any(block.get("type") == "image" for block in msg.get("content", []))
+                        for msg in anthropic_messages
+                    )
+                    if has_images:
+                        logger.info("voice.anthropic.streaming_with_images",
+                                   messages_count=len(anthropic_messages),
+                                   model=selected_model)
+                    
                     with persona_agent._anthropic.messages.stream(
-                        model="claude-3-5-haiku-20241022",
+                        model=selected_model,
                         max_tokens=600,
                         temperature=0.4,
                         system=system_prompt,
