@@ -14,6 +14,7 @@ import {
   alpha,
   Avatar,
   Chip,
+  Tooltip,
 } from "@mui/material";
 import { MaterialSymbol } from "../material-symbol";
 import type { ConversationSummary } from "../../lib/chat-history";
@@ -205,16 +206,69 @@ export function UdgGlassChatItem({
 
             {/* Metadata */}
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-              <Chip
-                label={conversation.personaName}
-                size="small"
-                sx={{
-                  height: "20px",
-                  fontSize: "0.6875rem",
-                  bgcolor: alpha(theme.palette.primary.main, 0.1),
-                  color: theme.palette.primary.main,
-                }}
-              />
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <Chip
+                  label={conversation.personaName}
+                  size="small"
+                  sx={{
+                    height: "20px",
+                    fontSize: "0.6875rem",
+                    bgcolor: alpha(theme.palette.primary.main, 0.1),
+                    color: theme.palette.primary.main,
+                  }}
+                />
+                {conversation.systemPrompt && (
+                  <Tooltip
+                    title={
+                      <Box
+                        sx={{
+                          maxWidth: "400px",
+                          maxHeight: "300px",
+                          overflow: "auto",
+                          p: 1,
+                          whiteSpace: "pre-wrap",
+                          fontSize: "0.75rem",
+                          fontFamily: "monospace",
+                          backgroundColor: "transparent",
+                        }}
+                      >
+                        {conversation.systemPrompt}
+                      </Box>
+                    }
+                    arrow
+                    placement="top"
+                    componentsProps={{
+                      tooltip: {
+                        sx: {
+                          backgroundColor: "var(--color-neutral)",
+                          border: "1px solid var(--audion-light-border-color, #0f172a)",
+                          borderRadius: "8px",
+                          maxWidth: "500px",
+                          padding: 0,
+                        },
+                      },
+                    }}
+                  >
+                    <IconButton
+                      size="small"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                      sx={{
+                        p: 0.25,
+                        width: "18px",
+                        height: "18px",
+                        color: "text.secondary",
+                        "&:hover": {
+                          color: "text.primary",
+                        },
+                      }}
+                    >
+                      <MaterialSymbol icon="info" fontSize={14} />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </Box>
               <Typography variant="caption" sx={{ fontSize: "0.6875rem", color: "text.secondary" }}>
                 {conversation.messageCount} messages
               </Typography>

@@ -1,9 +1,16 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 import structlog
 from fastapi import APIRouter, HTTPException, status
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+from uuid import UUID
 
 from ..core.config import get_settings
+from ..db import get_session
+from ..models import Persona, PersonaPrompt
 from ..schemas import AiTemplateDefinition, AiTemplateSummary, AiTemplateUpdateRequest
 from ..services.ai_assist import PromptTemplateRegistry
 
@@ -71,4 +78,149 @@ def update_ai_template(template_id: str, payload: AiTemplateUpdateRequest) -> Ai
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to update template: {str(exc)}",
         ) from exc
+
+
+@router.get("/ai/persona-prompts")
+def list_persona_prompts() -> list[dict]:
+    """List all persona prompts as template-like entries."""
+    with get_session() as session:
+        # Get all personas with their prompts
+        personas = session.query(Persona).all()
+        prompts = []
+        
+        for persona in personas:
+            prompt = session.scalar(
+                select(PersonaPrompt)
+                .where(PersonaPrompt.persona_id == persona.id)
+                .order_by(PersonaPrompt.created_at.desc())
+            )
+            
+            if prompt:
+                prompts.append({
+                    "template_id": f"persona-prompt-{persona.id}",
+                    "label": f"{persona.name} - System Prompt",
+                    "description": f"System prompt for persona: {persona.name}",
+                    "category": "Persona Prompts",
+                    "tags": ["persona", "chat", "system-prompt"],
+                    "default_provider": "anthropic",
+                    "default_model": "claude-3-5-haiku-20241022",
+                    "persona_id": str(persona.id),
+                    "persona_name": persona.name,
+                })
+        
+        return prompts
+
+
+@router.get("/ai/persona-prompts/{persona_id}", response_model=AiTemplateDefinition)
+def get_persona_prompt(persona_id: str) -> AiTemplateDefinition:
+    """Get persona prompt as a template definition."""
+    try:
+        persona_uuid = UUID(persona_id)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid persona_id format: {exc}"
+        ) from exc
+    
+    with get_session() as session:
+        persona = session.get(Persona, persona_uuid)
+        if not persona:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Persona not found: {persona_id}"
+            )
+        
+        prompt = session.scalar(
+            select(PersonaPrompt)
+            .where(PersonaPrompt.persona_id == persona_uuid)
+            .order_by(PersonaPrompt.created_at.desc())
+        )
+        
+        if not prompt:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Prompt not found for persona: {persona_id}"
+            )
+        
+        return AiTemplateDefinition(
+            template_id=f"persona-prompt-{persona.id}",
+            label=f"{persona.name} - System Prompt",
+            description=f"System prompt for persona: {persona.name}",
+            category="Persona Prompts",
+            tags=["persona", "chat", "system-prompt"],
+            default_provider="anthropic",
+            default_model="claude-3-5-haiku-20241022",
+            temperature=0.4,
+            max_tokens=600,
+            prompt=prompt.system_prompt,
+            output={"mode": "text"},
+            metadata={
+                "persona_id": str(persona.id),
+                "persona_name": persona.name,
+                "template_version": prompt.template_version,
+            }
+        )
+
+
+@router.put("/ai/persona-prompts/{persona_id}", response_model=AiTemplateDefinition)
+def update_persona_prompt(persona_id: str, payload: AiTemplateUpdateRequest) -> AiTemplateDefinition:
+    """Update a persona prompt."""
+    try:
+        persona_uuid = UUID(persona_id)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid persona_id format: {exc}"
+        ) from exc
+    
+    with get_session() as session:
+        persona = session.get(Persona, persona_uuid)
+        if not persona:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Persona not found: {persona_id}"
+            )
+        
+        # Get or create prompt
+        prompt = session.scalar(
+            select(PersonaPrompt)
+            .where(PersonaPrompt.persona_id == persona_uuid)
+            .order_by(PersonaPrompt.created_at.desc())
+        )
+        
+        if not prompt:
+            # Create new prompt if it doesn't exist
+            prompt = PersonaPrompt(
+                persona_id=persona_uuid,
+                system_prompt=payload.prompt or "",
+                template_version="2025-01-18",
+                created_at=datetime.utcnow()
+            )
+            session.add(prompt)
+        else:
+            # Update existing prompt
+            if payload.prompt is not None:
+                prompt.system_prompt = payload.prompt
+        
+        session.commit()
+        session.refresh(prompt)
+        
+        return AiTemplateDefinition(
+            template_id=f"persona-prompt-{persona.id}",
+            label=payload.label or f"{persona.name} - System Prompt",
+            description=payload.description or f"System prompt for persona: {persona.name}",
+            category=payload.category or "Persona Prompts",
+            tags=payload.tags or ["persona", "chat", "system-prompt"],
+            default_provider=payload.default_provider or "anthropic",
+            default_model=payload.default_model or "claude-3-5-haiku-20241022",
+            temperature=payload.temperature or 0.4,
+            max_tokens=payload.max_tokens or 600,
+            prompt=prompt.system_prompt,
+            output=payload.output or {"mode": "text"},
+            metadata={
+                "persona_id": str(persona.id),
+                "persona_name": persona.name,
+                "template_version": prompt.template_version,
+            }
+        )
 

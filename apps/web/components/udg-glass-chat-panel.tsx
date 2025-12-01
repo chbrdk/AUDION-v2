@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { alpha, Box, Stack, Typography, useTheme } from "@mui/material";
+import { alpha, Box, Stack, Typography, useTheme, IconButton, Tooltip } from "@mui/material";
 import { keyframes } from "@emotion/react";
+import { MaterialSymbol } from "./material-symbol";
 
 type Message = {
   id: string;
@@ -13,9 +14,10 @@ type Message = {
 
 type UdgGlassChatPanelProps = {
   messages: Message[];
+  systemPrompt?: string; // Optional: System prompt to display in tooltip
 };
 
-export const UdgGlassChatPanel = ({ messages }: UdgGlassChatPanelProps) => {
+export const UdgGlassChatPanel = ({ messages, systemPrompt }: UdgGlassChatPanelProps) => {
   const bottomRef = useRef<HTMLDivElement>(null);
   const theme = useTheme();
 
@@ -102,16 +104,67 @@ export const UdgGlassChatPanel = ({ messages }: UdgGlassChatPanelProps) => {
               spacing={0.5}
               alignItems={bubbleStyles.alignSelf === "flex-end" ? "flex-end" : "flex-start"}
             >
-              <Typography
-                variant="caption"
-                sx={{
-                  letterSpacing: 1,
-                  textTransform: "uppercase",
-                  color: getLabelColor(message.role)
-                }}
-              >
-                {label}
-              </Typography>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    letterSpacing: 1,
+                    textTransform: "uppercase",
+                    color: getLabelColor(message.role)
+                  }}
+                >
+                  {label}
+                </Typography>
+                {message.role === "persona" && systemPrompt && (
+                  <Tooltip
+                    title={
+                      <Box
+                        sx={{
+                          maxWidth: "400px",
+                          maxHeight: "300px",
+                          overflow: "auto",
+                          p: 1,
+                          whiteSpace: "pre-wrap",
+                          fontSize: "0.75rem",
+                          fontFamily: "monospace",
+                          backgroundColor: "transparent",
+                        }}
+                      >
+                        {systemPrompt}
+                      </Box>
+                    }
+                    arrow
+                    placement="top"
+                    componentsProps={{
+                      tooltip: {
+                        sx: {
+                          backgroundColor: "var(--color-neutral)",
+                          border: "1px solid var(--audion-light-border-color, #0f172a)",
+                          borderRadius: "8px",
+                          maxWidth: "500px",
+                          padding: 0,
+                        },
+                      },
+                    }}
+                  >
+                    <IconButton
+                      size="small"
+                      sx={{
+                        p: 0.25,
+                        width: "18px",
+                        height: "18px",
+                        color: getLabelColor(message.role),
+                        opacity: 0.7,
+                        "&:hover": {
+                          opacity: 1,
+                        },
+                      }}
+                    >
+                      <MaterialSymbol icon="info" fontSize={14} />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </Box>
               <Box
                 sx={{
                   ...bubbleStyles,

@@ -8,7 +8,7 @@ from uuid import UUID
 import structlog
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import select
 
 from ..agents.persona import PersonaAgent
@@ -22,9 +22,22 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 logger = structlog.get_logger(__name__)
 
 
+class ChatMessage(BaseModel):
+    role: str  # "system", "user", "assistant"
+    content: str
+
+
 class ChatMessageRequest(BaseModel):
     persona_id: str
-    message: str
+    message: str | None = Field(default=None)  # Legacy: single message string
+    messages: List[ChatMessage] | None = Field(default=None)  # New: messages array with conversation history
+    
+    @model_validator(mode='after')
+    def validate_message_or_messages(self):
+        """Ensure either message or messages is provided."""
+        if not self.message and not self.messages:
+            raise ValueError("Either 'message' or 'messages' must be provided")
+        return self
 
 
 class ChatSource(BaseModel):
@@ -66,22 +79,65 @@ async def send_message(request: ChatMessageRequest) -> ChatMessageResponse:
             select(PersonaPrompt).where(PersonaPrompt.persona_id == persona_uuid)
         )
     
-    system_prompt = prompt.system_prompt if prompt else get_persona_prompt(request.persona_id)
-    if not system_prompt:
+    # Determine system prompt and messages
+    base_system_prompt = prompt.system_prompt if prompt else get_persona_prompt(request.persona_id)
+    if not base_system_prompt:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Persona prompt not found"
         )
     
-    logger.info("chat.message.received", persona_id=request.persona_id, message_length=len(request.message))
+    # Build messages array from request
+    if request.messages:
+        # New format: messages array provided
+        anthropic_messages = []
+        system_parts = [base_system_prompt]
+        
+        for msg in request.messages:
+            if msg.role == "system":
+                system_parts.append(msg.content)
+            elif msg.role in ["user", "assistant"]:
+                anthropic_messages.append({
+                    "role": msg.role,
+                    "content": msg.content
+                })
+        
+        system_prompt = "\n\n".join(system_parts)
+        retrieval_query = next((m.content[:100] for m in request.messages if m.role == "user"), "")
+        user_message_for_logging = retrieval_query
+    elif request.message:
+        # Legacy format: single message string
+        system_prompt = base_system_prompt
+        anthropic_messages = [{
+            "role": "user",
+            "content": (
+                "Answer succinctly in natural, conversational language. "
+                "Avoid repeating words or phrases, do not include document IDs, chunk IDs, brackets, or the word 'doc'. "
+                "Keep the reply to at most three short paragraphs, unless the user explicitly asks for more detail. "
+                "Share only the most relevant details, and go deeper only when it truly adds value. "
+                "Avoid repeating words or phrases, do not include document IDs, chunk IDs, brackets, or the word 'doc'. "
+                "Keep the reply to at most three short paragraphs, unless the user explicitly asks for more detail. "
+                "Share only the most relevant details, and go deeper only when it truly adds value. "
+                f"User message: {request.message}"
+            ),
+        }]
+        retrieval_query = request.message
+        user_message_for_logging = request.message
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Either 'message' or 'messages' must be provided"
+        )
+    
+    logger.info("chat.message.received", persona_id=request.persona_id, message_length=len(user_message_for_logging))
     
     # Get relevant sources
     try:
-        logger.info("chat.retrieval.starting", query=request.message[:100])
+        logger.info("chat.retrieval.starting", query=retrieval_query[:100])
         loop = asyncio.get_event_loop()
         embedding, hits = await loop.run_in_executor(
             None,
-            lambda: get_retrieval_agent().run(query=request.message, persona_segment=None)
+            lambda: get_retrieval_agent().run(query=retrieval_query, persona_segment=None)
         )
         logger.info("chat.retrieval.complete", hits_count=len(hits))
     except Exception as e:
@@ -120,21 +176,7 @@ async def send_message(request: ChatMessageRequest) -> ChatMessageResponse:
                 max_tokens=600,
                 temperature=0.4,
                 system=system_prompt,
-                messages=[
-                    {
-                        "role": "user",
-                                "content": (
-                                    "Answer succinctly in natural, conversational language. "
-                                    "Avoid repeating words or phrases, do not include document IDs, chunk IDs, brackets, or the word 'doc'. "
-                                    "Keep the reply to at most three short paragraphs, unless the user explicitly asks for more detail. "
-                                    "Share only the most relevant details, and go deeper only when it truly adds value. "
-                                    "Avoid repeating words or phrases, do not include document IDs, chunk IDs, brackets, or the word 'doc'. "
-                                    "Keep the reply to at most three short paragraphs, unless the user explicitly asks for more detail. "
-                                    "Share only the most relevant details, and go deeper only when it truly adds value. "
-                                    f"User message: {request.message}"
-                                ),
-                    }
-                ],
+                messages=anthropic_messages,
             )
             
             # Extract text content
@@ -201,20 +243,80 @@ async def send_message_stream(request: ChatMessageRequest) -> StreamingResponse:
             select(PersonaPrompt).where(PersonaPrompt.persona_id == persona_uuid)
         )
     
-    system_prompt = prompt.system_prompt if prompt else get_persona_prompt(request.persona_id)
-    if not system_prompt:
+    # Determine system prompt and messages
+    base_system_prompt = prompt.system_prompt if prompt else get_persona_prompt(request.persona_id)
+    if not base_system_prompt:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Persona prompt not found"
         )
     
-    logger.info("chat.message.stream.received", persona_id=request.persona_id, message_length=len(request.message))
+    # Build messages array from request
+    if request.messages:
+        # New format: messages array provided
+        anthropic_messages = []
+        system_parts = [base_system_prompt]
+        
+        for msg in request.messages:
+            if msg.role == "system":
+                system_parts.append(msg.content)
+            elif msg.role in ["user", "assistant"]:
+                anthropic_messages.append({
+                    "role": msg.role,
+                    "content": msg.content
+                })
+        
+        system_prompt = "\n\n".join(system_parts)
+        # Get last user message for logging and retrieval
+        user_msgs = [m.content for m in request.messages if m.role == "user"]
+        user_message_for_logging = user_msgs[-1][:100] if user_msgs else "N/A"
+        
+        # Ensure we have at least one message
+        if not anthropic_messages:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="At least one user or assistant message must be provided"
+            )
+    elif request.message:
+        # Legacy format: single message string
+        system_prompt = base_system_prompt
+        anthropic_messages = [{
+            "role": "user",
+            "content": (
+                "Answer succinctly in natural, conversational language. "
+                "Avoid repeating words or phrases, do not include document IDs, chunk IDs, brackets, or the word 'doc'. "
+                "Keep the reply under 90 words and at most three short paragraphs unless the user explicitly asks for more detail. "
+                "Do not mention confidence scores, percentages, or meta commentary. "
+                "Avoid markdown formatting (no bold, bullets) unless the user requests it. "
+                "Share only the most relevant details, and go deeper only when it truly adds value. "
+                f"User message: {request.message}"
+            ),
+        }]
+        user_message_for_logging = request.message[:100]
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Either 'message' or 'messages' must be provided"
+        )
+    
+    logger.info("chat.message.stream.received", persona_id=request.persona_id, message_length=len(user_message_for_logging))
     
     async def generate_stream() -> AsyncIterator[str]:
         """Generate and stream response chunks."""
         try:
+            # Extract query for retrieval (use last user message)
+            if request.messages:
+                user_msgs = [m.content for m in request.messages if m.role == "user"]
+                retrieval_query = user_msgs[-1] if user_msgs else user_message_for_logging
+            else:
+                retrieval_query = user_message_for_logging
+            
+            # Ensure retrieval_query is a string
+            if not retrieval_query or retrieval_query == "N/A":
+                retrieval_query = ""
+            
             # Start retrieval in background and persona agent in parallel
-            logger.info("chat.stream.retrieval.starting", query=request.message[:100])
+            logger.info("chat.stream.retrieval.starting", query=retrieval_query[:100] if retrieval_query else "N/A")
             loop = asyncio.get_event_loop()
             
             # Start retrieval task in background (non-blocking)
@@ -222,7 +324,7 @@ async def send_message_stream(request: ChatMessageRequest) -> StreamingResponse:
                 asyncio.wait_for(
                     loop.run_in_executor(
                         None,
-                        lambda: get_retrieval_agent().run(query=request.message, persona_segment=None)
+                        lambda: get_retrieval_agent().run(query=retrieval_query, persona_segment=None)
                     ),
                     timeout=10.0  # Reduced timeout to 10 seconds
                 )
@@ -251,20 +353,7 @@ async def send_message_stream(request: ChatMessageRequest) -> StreamingResponse:
                         max_tokens=600,
                         temperature=0.4,
                         system=system_prompt,
-                        messages=[
-                            {
-                                "role": "user",
-                                "content": (
-                                    "Answer succinctly in natural, conversational language. "
-                                    "Avoid repeating words or phrases, do not include document IDs, chunk IDs, brackets, or the word 'doc'. "
-                                    "Keep the reply under 90 words and at most three short paragraphs unless the user explicitly asks for more detail. "
-                                    "Do not mention confidence scores, percentages, or meta commentary. "
-                                    "Avoid markdown formatting (no bold, bullets) unless the user requests it. "
-                                    "Share only the most relevant details, and go deeper only when it truly adds value. "
-                                    f"User message: {request.message}"
-                                ),
-                            }
-                        ],
+                        messages=anthropic_messages,
                     ) as stream:
                         for event in stream:
                             if event.type == "content_block_delta":

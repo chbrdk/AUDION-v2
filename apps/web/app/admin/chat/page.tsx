@@ -237,6 +237,7 @@ function AdminChatPageContent() {
   // Chat History State
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [conversationTitle, setConversationTitle] = useState<string>("");
+  const [currentSystemPrompt, setCurrentSystemPrompt] = useState<string | undefined>(undefined);
   
   // Journey-Phasen-Dialog State
   const [journeyDialogOpen, setJourneyDialogOpen] = useState(false);
@@ -557,18 +558,49 @@ function AdminChatPageContent() {
       messageCount: messages.filter((m) => m.role === "user").length,
     });
     
-    // Collect system messages (Journey context) to include in the request
-    const systemMessages = messages
-      .filter((msg) => msg.role === "system")
-      .map((msg) => msg.content)
-      .join("\n\n");
+    // Speichere den System-Prompt für die Historie
+    setCurrentSystemPrompt(systemPrompt);
     
-    // Build the message content with adaptive prompt and context
-    const messageContent = systemPrompt
-      ? `${systemPrompt}\n\n---\n\n${systemMessages ? systemMessages + "\n\n---\n\n" : ""}User message: ${contentToSend}`
-      : systemMessages
-        ? `${systemMessages}\n\n---\n\nUser message: ${contentToSend}`
-        : contentToSend;
+    // Collect system messages (Journey context) to include in the request
+    const journeySystemMessages = messages
+      .filter((msg) => msg.role === "system")
+      .map((msg) => msg.content);
+    
+    // Build messages array for API
+    const apiMessages: Array<{ role: string; content: string }> = [];
+    
+    // Add adaptive system prompt as first system message
+    if (systemPrompt) {
+      apiMessages.push({
+        role: "system",
+        content: systemPrompt,
+      });
+    }
+    
+    // Add journey context as additional system messages
+    journeySystemMessages.forEach((content) => {
+      apiMessages.push({
+        role: "system",
+        content: content,
+      });
+    });
+    
+    // Add conversation history (user and assistant messages)
+    // Only include messages with non-empty content (exclude placeholder messages)
+    messages
+      .filter((msg) => (msg.role === "user" || msg.role === "persona") && msg.content.trim().length > 0)
+      .forEach((msg) => {
+        apiMessages.push({
+          role: msg.role === "persona" ? "assistant" : "user",
+          content: msg.content,
+        });
+      });
+    
+    // Add current user message
+    apiMessages.push({
+      role: "user",
+      content: contentToSend,
+    });
     
     const messageId = `user-${Date.now()}`;
     const personaMessageId = `persona-${Date.now()}`;
@@ -607,7 +639,7 @@ function AdminChatPageContent() {
         },
         body: JSON.stringify({
           persona_id: activePersonaId,
-          message: messageContent,
+          messages: apiMessages,
         }),
       });
       
@@ -831,6 +863,9 @@ function AdminChatPageContent() {
         setActivePersonaId(conversation.metadata.personaId);
         if (conversation.learnings) {
           setLearnings(conversation.learnings);
+        }
+        if (conversation.systemPrompt) {
+          setCurrentSystemPrompt(conversation.systemPrompt);
         }
         // Restore journey context if available
         if (conversation.metadata.journeyId) {
@@ -1062,7 +1097,7 @@ function AdminChatPageContent() {
                 marginBottom: "1rem"
               }}
             >
-              <UdgGlassChatPanel messages={messages} />
+              <UdgGlassChatPanel messages={messages} systemPrompt={currentSystemPrompt} />
             </Box>
 
             {/* Input Area - Fixed at Bottom */}

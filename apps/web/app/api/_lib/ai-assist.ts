@@ -138,5 +138,37 @@ export const aiAssistApi = {
     }
     return response.json();
   },
+
+  // Persona Prompts
+  listPersonaPrompts: async (): Promise<AiTemplateSummary[]> => {
+    const response = await fetch(`${getPersonaBackendBase()}/settings/ai/persona-prompts`);
+    if (!response.ok) {
+      const error = await response.text().catch(() => "");
+      throw new Error(error || `Backend responded with ${response.status}`);
+    }
+    return response.json();
+  },
+
+  getPersonaPrompt: async (personaId: string): Promise<AiTemplateDefinition> => {
+    const response = await fetch(`${getPersonaBackendBase()}/settings/ai/persona-prompts/${personaId}`);
+    if (!response.ok) {
+      const error = await response.text().catch(() => "");
+      throw new Error(error || `Backend responded with ${response.status}`);
+    }
+    return response.json();
+  },
+
+  updatePersonaPrompt: async (personaId: string, payload: AiTemplateUpdateRequest): Promise<AiTemplateDefinition> => {
+    const response = await fetch(`${getPersonaBackendBase()}/settings/ai/persona-prompts/${personaId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const error = await response.text().catch(() => "");
+      throw new Error(error || `Backend responded with ${response.status}`);
+    }
+    return response.json();
+  },
 };
 

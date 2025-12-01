@@ -5,13 +5,13 @@ import base64
 import json
 import queue
 import threading
-from typing import AsyncIterator
+from typing import AsyncIterator, List
 from uuid import UUID
 
 import structlog
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import select
 
 from ..db import get_session
@@ -40,10 +40,23 @@ def get_whisper_service() -> WhisperTranscriptionService:
     return _whisper_service
 
 
+class VoiceChatMessage(BaseModel):
+    role: str  # "system", "user", "assistant"
+    content: str
+
+
 class VoiceChatRequest(BaseModel):
     persona_id: str
-    message: str
-    voice_id: str | None = None
+    message: str | None = Field(default=None)  # Legacy: single message string
+    messages: List[VoiceChatMessage] | None = Field(default=None)  # New: messages array with conversation history
+    voice_id: str | None = Field(default=None)
+    
+    @model_validator(mode='after')
+    def validate_message_or_messages(self):
+        """Ensure either message or messages is provided."""
+        if not self.message and not self.messages:
+            raise ValueError("Either 'message' or 'messages' must be provided")
+        return self
 
 
 def _find_sentence_boundary(text: str) -> int:
@@ -75,11 +88,49 @@ async def voice_chat_stream(request: VoiceChatRequest) -> StreamingResponse:
             )
         prompt = session.scalar(select(PersonaPrompt).where(PersonaPrompt.persona_id == persona_uuid))
 
-    system_prompt = prompt.system_prompt if prompt else get_persona_prompt(request.persona_id)
-    if not system_prompt:
+    # Determine system prompt and messages
+    base_system_prompt = prompt.system_prompt if prompt else get_persona_prompt(request.persona_id)
+    if not base_system_prompt:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Persona prompt not found"
+        )
+    
+    # Build messages array from request
+    if request.messages:
+        # New format: messages array provided
+        anthropic_messages = []
+        system_parts = [base_system_prompt]
+        
+        for msg in request.messages:
+            if msg.role == "system":
+                system_parts.append(msg.content)
+            elif msg.role in ["user", "assistant"]:
+                anthropic_messages.append({
+                    "role": msg.role,
+                    "content": msg.content
+                })
+        
+        system_prompt = "\n\n".join(system_parts)
+        retrieval_query = next((m.content for m in request.messages if m.role == "user"), "")
+    elif request.message:
+        # Legacy format: single message string
+        system_prompt = base_system_prompt
+        anthropic_messages = [{
+            "role": "user",
+            "content": (
+                "Answer succinctly in natural, conversational language. "
+                "Avoid repeating words or phrases, and do not include document IDs or brackets. "
+                "Keep the reply under 90 words and limit to short paragraphs. "
+                "Avoid meta commentary and markdown unless explicitly requested. "
+                f"User message: {request.message}"
+            ),
+        }]
+        retrieval_query = request.message
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Either 'message' or 'messages' must be provided"
         )
 
     try:
@@ -100,7 +151,7 @@ async def voice_chat_stream(request: VoiceChatRequest) -> StreamingResponse:
                 _, hits = await asyncio.wait_for(
                     loop.run_in_executor(
                         None,
-                        lambda: get_retrieval_agent().run(query=request.message, persona_segment=None)
+                        lambda: get_retrieval_agent().run(query=retrieval_query, persona_segment=None)
                     ),
                     timeout=30.0
                 )
@@ -134,18 +185,7 @@ async def voice_chat_stream(request: VoiceChatRequest) -> StreamingResponse:
                         max_tokens=600,
                         temperature=0.4,
                         system=system_prompt,
-                        messages=[
-                            {
-                                "role": "user",
-                                "content": (
-                                    "Answer succinctly in natural, conversational language. "
-                                    "Avoid repeating words or phrases, and do not include document IDs or brackets. "
-                                    "Keep the reply under 90 words and limit to short paragraphs. "
-                                    "Avoid meta commentary and markdown unless explicitly requested. "
-                                    f"User message: {request.message}"
-                                ),
-                            }
-                        ],
+                        messages=anthropic_messages,
                     ) as stream:
                         for event in stream:
                             if event.type == "content_block_delta":

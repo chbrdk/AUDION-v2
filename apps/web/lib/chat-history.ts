@@ -19,11 +19,13 @@ export type Conversation = {
   metadata: ConversationMetadata;
   messages: Message[];
   learnings?: ConversationLearning[];
+  systemPrompt?: string; // Der System-Prompt, der für diese Konversation verwendet wurde
 };
 
 export type ConversationSummary = ConversationMetadata & {
   preview?: string; // Erste Nachricht oder letzte Nachricht als Preview
   lastMessageAt?: Date;
+  systemPrompt?: string; // Der System-Prompt, der für diese Konversation verwendet wurde
 };
 
 /**
@@ -107,6 +109,7 @@ function updateConversationIndex(conversation: Conversation): void {
       ...conversation.metadata,
       preview: lastPersonaMessage?.content?.substring(0, 100) || lastUserMessage?.content?.substring(0, 100) || "",
       lastMessageAt: conversation.metadata.updatedAt,
+      systemPrompt: conversation.systemPrompt,
     };
     
     if (existingIndexEntry !== -1) {

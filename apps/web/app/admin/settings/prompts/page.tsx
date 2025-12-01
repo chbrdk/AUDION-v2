@@ -8,6 +8,7 @@ import clsx from "clsx";
 
 export default function SettingsPromptsPage() {
   const [templates, setTemplates] = useState<AiTemplateSummary[]>([]);
+  const [personaPrompts, setPersonaPrompts] = useState<AiTemplateSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTemplate, setEditingTemplate] = useState<AiTemplateDefinition | null>(null);
@@ -17,24 +18,48 @@ export default function SettingsPromptsPage() {
   const [activeTab, setActiveTab] = useState<"edit" | "test">("edit");
 
   useEffect(() => {
-    loadTemplates();
+    const loadAll = async () => {
+      setLoading(true);
+      try {
+        await Promise.all([loadTemplates(), loadPersonaPrompts()]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadAll();
   }, []);
 
   const loadTemplates = async () => {
     try {
-      setLoading(true);
       const data = await aiAssistApi.listTemplates();
       setTemplates(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load templates");
-    } finally {
-      setLoading(false);
+    }
+  };
+
+  const loadPersonaPrompts = async () => {
+    try {
+      const data = await aiAssistApi.listPersonaPrompts();
+      setPersonaPrompts(data);
+    } catch (err) {
+      console.error("Failed to load persona prompts:", err);
+      // Don't set error for persona prompts, just log it
     }
   };
 
   const startEditing = async (templateId: string) => {
     try {
-      const full = await aiAssistApi.getTemplate(templateId);
+      let full: AiTemplateDefinition;
+      
+      // Check if it's a persona prompt
+      if (templateId.startsWith("persona-prompt-")) {
+        const personaId = templateId.replace("persona-prompt-", "");
+        full = await aiAssistApi.getPersonaPrompt(personaId);
+      } else {
+        full = await aiAssistApi.getTemplate(templateId);
+      }
+      
       setEditingTemplate(full);
       setError(null);
       setActiveTab("edit"); // Reset to edit tab when opening a new template
@@ -74,8 +99,17 @@ export default function SettingsPromptsPage() {
         output: editingTemplate.output,
         metadata: editingTemplate.metadata,
       };
-      await aiAssistApi.updateTemplate(editingId, updates);
-      await loadTemplates();
+      
+      // Check if it's a persona prompt
+      if (editingId.startsWith("persona-prompt-")) {
+        const personaId = editingId.replace("persona-prompt-", "");
+        await aiAssistApi.updatePersonaPrompt(personaId, updates);
+        await loadPersonaPrompts();
+      } else {
+        await aiAssistApi.updateTemplate(editingId, updates);
+        await loadTemplates();
+      }
+      
       cancelEditing();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save template");
@@ -418,7 +452,135 @@ export default function SettingsPromptsPage() {
       </div>
 
       <div className="udg-glass-settings-grid">
-        {templates.map((template) => (
+        {/* Persona Prompts Section */}
+        {personaPrompts.length > 0 && (
+          <>
+            <div style={{ gridColumn: "1 / -1", marginTop: "2rem", marginBottom: "1rem" }}>
+              <h2 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 600 }}>Persona Prompts</h2>
+              <p className="udg-glass-muted" style={{ marginTop: "0.5rem" }}>
+                System prompts used for persona chat interactions. These are dynamically generated and can be customized.
+              </p>
+            </div>
+            {personaPrompts.map((template) => (
+              <article
+                key={template.template_id}
+                className={clsx("udg-glass-settings-card", editingId === template.template_id && "--expanded")}
+              >
+                {editingId === template.template_id && editingTemplate ? (
+                  <>
+                    {/* Tab Navigation */}
+                    <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem", borderBottom: "1px solid rgba(148, 163, 184, 0.2)" }}>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("edit")}
+                        style={{
+                          padding: "0.5rem 1rem",
+                          background: activeTab === "edit" ? "var(--color-theme-accent)" : "transparent",
+                          color: activeTab === "edit" ? "white" : "var(--color-text-primary)",
+                          border: "none",
+                          borderBottom: activeTab === "edit" ? "2px solid var(--color-theme-accent)" : "2px solid transparent",
+                          cursor: "pointer",
+                          fontSize: "0.8125rem",
+                          fontWeight: activeTab === "edit" ? 600 : 400,
+                          transition: "all 0.2s ease",
+                        }}
+                      >
+                        <MaterialSymbol icon="edit" fontSize={16} style={{ marginRight: "0.25rem", verticalAlign: "middle" }} />
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("test")}
+                        style={{
+                          padding: "0.5rem 1rem",
+                          background: activeTab === "test" ? "var(--color-theme-accent)" : "transparent",
+                          color: activeTab === "test" ? "white" : "var(--color-text-primary)",
+                          border: "none",
+                          borderBottom: activeTab === "test" ? "2px solid var(--color-theme-accent)" : "2px solid transparent",
+                          cursor: "pointer",
+                          fontSize: "0.8125rem",
+                          fontWeight: activeTab === "test" ? 600 : 400,
+                          transition: "all 0.2s ease",
+                        }}
+                      >
+                        <MaterialSymbol icon="science" fontSize={16} style={{ marginRight: "0.25rem", verticalAlign: "middle" }} />
+                        Test & Preview
+                      </button>
+                    </div>
+
+                    {/* Tab Content */}
+                    {activeTab === "edit" ? (
+                      <TemplateEditForm
+                        template={editingTemplate}
+                        onUpdate={setEditingTemplate}
+                        onSave={saveTemplate}
+                        onCancel={cancelEditing}
+                        saving={saving}
+                      />
+                    ) : (
+                      <div style={{ minHeight: "600px" }}>
+                        <PromptBuilder
+                          initialPrompt={editingTemplate.prompt}
+                          onPromptChange={(newPrompt) => {
+                            setEditingTemplate({ ...editingTemplate, prompt: newPrompt });
+                          }}
+                        />
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "0.5rem" }}>
+                      <div style={{ flex: 1 }}>
+                        <p className="udg-glass-eyebrow" style={{ marginBottom: "0.25rem" }}>
+                          {template.category}
+                        </p>
+                        <h3 style={{ marginBottom: "0.5rem" }}>{template.label}</h3>
+                      </div>
+                      <button
+                        className="udg-glass-button --ghost"
+                        onClick={() => startEditing(template.template_id)}
+                        style={{ padding: "0.25rem 0.5rem" }}
+                        title="Edit template"
+                      >
+                        <MaterialSymbol icon="edit" fontSize={16} />
+                      </button>
+                    </div>
+                    <p className="udg-glass-muted" style={{ minHeight: "48px" }}>
+                      {template.description}
+                    </p>
+                    <div style={{ marginTop: "0.75rem", display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>
+                      <span className="udg-glass-badge --outline">{template.default_provider}</span>
+                      {template.default_model && <span className="udg-glass-chip --dashboard">{template.default_model}</span>}
+                    </div>
+                    {template.tags.length > 0 && (
+                      <div style={{ marginTop: "0.75rem", display: "flex", flexWrap: "wrap", gap: "0.25rem" }}>
+                        {template.tags.map((tag) => (
+                          <span key={tag} className="udg-glass-chip --dashboard --tag">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </article>
+            ))}
+          </>
+        )}
+
+        {/* Regular Templates Section */}
+        {templates.length > 0 && (
+          <>
+            {personaPrompts.length > 0 && (
+              <div style={{ gridColumn: "1 / -1", marginTop: "2rem", marginBottom: "1rem" }}>
+                <h2 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 600 }}>AI Templates</h2>
+                <p className="udg-glass-muted" style={{ marginTop: "0.5rem" }}>
+                  Standard templates for AI-assisted features like journey mapping and phase generation.
+                </p>
+              </div>
+            )}
+            {templates.map((template) => (
           <article
             key={template.template_id}
             className={clsx("udg-glass-settings-card", editingId === template.template_id && "--expanded")}
@@ -523,6 +685,8 @@ export default function SettingsPromptsPage() {
             )}
           </article>
         ))}
+          </>
+        )}
       </div>
     </div>
   );
