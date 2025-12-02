@@ -14,6 +14,7 @@ from .routers.health import router as health_router
 from .routers.personas import router as personas_router
 from .routers.chat import router as chat_rest_router
 from .routers.voice import router as voice_router
+from .routers.images import router as images_router
 from .ws.chat import router as chat_ws_router
 
 logger = structlog.get_logger(__name__)
@@ -30,8 +31,14 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                        content_length=content_length,
                        content_type=request.headers.get("content-type"))
         
-        response = await call_next(request)
-        return response
+        try:
+            response = await call_next(request)
+            return response
+        except Exception as e:
+            logger.error("chat.request.error",
+                        error=str(e),
+                        error_type=type(e).__name__)
+            raise
 
 
 def ensure_persona_profile_card_column() -> None:
@@ -79,6 +86,7 @@ def create_app() -> FastAPI:
     app.include_router(personas_router)
     app.include_router(chat_rest_router)  # REST API for chat
     app.include_router(voice_router)  # Voice streaming API
+    app.include_router(images_router)  # Image upload API
     app.include_router(chat_ws_router)  # WebSocket for chat
 
     return app

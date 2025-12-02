@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import base64
-from typing import AsyncIterator, List, Dict, Any
+from typing import AsyncIterator, List, Dict, Any, Any as AnyType
 from uuid import UUID
 
 import structlog
@@ -18,6 +18,7 @@ from ..db import get_session
 from ..models import Persona, PersonaPrompt
 from ..utils.text import clean_response_text
 from ..ws.chat import get_persona_agent, get_persona_prompt, get_retrieval_agent
+from .images import get_image_data_url
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 logger = structlog.get_logger(__name__)
@@ -50,7 +51,7 @@ def select_model_for_messages(messages: List[Dict[str, Any]]) -> str:
 
 def convert_message_with_images(msg: ChatMessage) -> Dict[str, Any]:
     """
-    Konvertiert eine Message mit Bildern in Claude Vision Format.
+    Konvertiert eine Message mit Bildern (via Image-IDs) in Claude Vision Format.
     
     Claude Vision erwartet Messages im Format:
     {
@@ -61,12 +62,17 @@ def convert_message_with_images(msg: ChatMessage) -> Dict[str, Any]:
         ]
     }
     """
-    if not msg.images or len(msg.images) == 0:
+    # Prüfe ob Image-IDs vorhanden sind
+    if not msg.image_ids or len(msg.image_ids) == 0:
         # Normale Text-Message ohne Bilder
         return {
             "role": msg.role,
             "content": msg.content
         }
+    
+    logger.info("chat.image.processing",
+               role=msg.role,
+               image_count=len(msg.image_ids))
     
     # Message mit Bildern: content als Array
     content_blocks = []
@@ -78,8 +84,16 @@ def convert_message_with_images(msg: ChatMessage) -> Dict[str, Any]:
             "text": msg.content
         })
     
-    # Bild-Blöcke hinzufügen
-    for idx, image_data_url in enumerate(msg.images):
+    # Bild-Blöcke hinzufügen (lade Bilder anhand der IDs)
+    for idx, image_id in enumerate(msg.image_ids):
+        image_data_url = get_image_data_url(image_id)
+        
+        if not image_data_url:
+            logger.warning("chat.image.not_found",
+                         image_id=image_id,
+                         image_index=idx)
+            continue
+        
         # Extrahiere base64 und media_type aus data URL
         # Format: data:image/jpeg;base64,<base64-string>
         if image_data_url.startswith("data:image/"):
@@ -91,12 +105,11 @@ def convert_message_with_images(msg: ChatMessage) -> Dict[str, Any]:
                 # Extrahiere media_type (z.B. "image/jpeg" aus "data:image/jpeg;base64")
                 media_type = header.split(";")[0].split(":")[1] if ":" in header else "image/jpeg"
                 
-                # Debug: Log Bild-Details
-                logger.info("chat.image.processing",
+                logger.info("chat.image.loaded",
                            image_index=idx,
+                           image_id=image_id,
                            media_type=media_type,
-                           data_length=len(base64_data),
-                           data_preview=base64_data[:50] + "..." if len(base64_data) > 50 else base64_data)
+                           data_length=len(base64_data))
                 
                 content_blocks.append({
                     "type": "image",
@@ -107,13 +120,13 @@ def convert_message_with_images(msg: ChatMessage) -> Dict[str, Any]:
                     }
                 })
             else:
-                logger.warning("chat.image.invalid_format", 
-                             image_index=idx,
-                             image_preview=image_data_url[:50])
+                logger.warning("chat.image.invalid_format",
+                             image_id=image_id,
+                             image_index=idx)
         else:
-            logger.warning("chat.image.invalid_data_url", 
-                         image_index=idx,
-                         image_preview=image_data_url[:50])
+            logger.warning("chat.image.invalid_data_url",
+                         image_id=image_id,
+                         image_index=idx)
     
     # Wenn nur Bilder und kein Text, füge leeren Text-Block hinzu
     if not content_blocks or all(block.get("type") == "image" for block in content_blocks):
@@ -137,7 +150,7 @@ def convert_message_with_images(msg: ChatMessage) -> Dict[str, Any]:
 class ChatMessage(BaseModel):
     role: str  # "system", "user", "assistant"
     content: str
-    images: List[str] | None = Field(default=None)  # Base64 data URLs for images
+    image_ids: List[str] | None = Field(default=None, description="IDs von hochgeladenen Bildern (via /images/upload)")
 
 
 class ChatMessageRequest(BaseModel):
@@ -209,7 +222,7 @@ async def send_message(request: ChatMessageRequest) -> ChatMessageResponse:
         # Debug: Log incoming request
         logger.info("chat.request.received",
                    messages_count=len(request.messages),
-                   has_images=any(msg.images and len(msg.images) > 0 for msg in request.messages if hasattr(msg, 'images')))
+                   has_image_ids=any(msg.image_ids and len(msg.image_ids) > 0 for msg in request.messages))
         
         for msg in request.messages:
             if msg.role == "system":
@@ -218,18 +231,18 @@ async def send_message(request: ChatMessageRequest) -> ChatMessageResponse:
                 # Debug: Log raw message before conversion
                 logger.info("chat.message.raw",
                            role=msg.role,
-                           has_images=bool(msg.images and len(msg.images) > 0),
-                           image_count=len(msg.images) if msg.images else 0,
+                           has_image_ids=bool(msg.image_ids and len(msg.image_ids) > 0),
+                           image_id_count=len(msg.image_ids) if msg.image_ids else 0,
                            content_length=len(msg.content) if msg.content else 0)
                 
-                # Konvertiere Message mit Bildern in Claude Vision Format
+                # Konvertiere Message mit Bildern (via Image-IDs) in Claude Vision Format
                 anthropic_message = convert_message_with_images(msg)
                 
                 # Debug: Log wenn Bilder vorhanden sind
-                if msg.images and len(msg.images) > 0:
+                if msg.image_ids and len(msg.image_ids) > 0:
                     logger.info("chat.message.with_images", 
                                role=msg.role,
-                               image_count=len(msg.images),
+                               image_id_count=len(msg.image_ids),
                                has_text=bool(msg.content),
                                content_type=type(anthropic_message.get("content")).__name__,
                                content_is_list=isinstance(anthropic_message.get("content"), list))
@@ -385,23 +398,15 @@ async def send_message_stream(request: ChatMessageRequest) -> StreamingResponse:
         if request.messages:
             for idx, msg in enumerate(request.messages):
                 try:
-                    # Check if images attribute exists and has value
-                    has_images_attr = hasattr(msg, 'images')
-                    images_value = getattr(msg, 'images', None) if has_images_attr else None
-                    has_images = bool(images_value and len(images_value) > 0) if images_value else False
-                    image_count = len(images_value) if has_images else 0
-                    
-                    # Get image data size for logging (first image only)
-                    first_image_size = len(images_value[0]) if has_images and images_value[0] else 0
+                    # Check if image_ids attribute exists and has value
+                    has_image_ids = bool(msg.image_ids and len(msg.image_ids) > 0)
+                    image_id_count = len(msg.image_ids) if msg.image_ids else 0
                     
                     logger.info("chat.stream.message.detail",
                                index=idx,
                                role=msg.role,
-                               has_images=has_images,
-                               image_count=image_count,
-                               has_images_attr=has_images_attr,
-                               images_value=bool(images_value),
-                               first_image_size=first_image_size,
+                               has_image_ids=has_image_ids,
+                               image_id_count=image_id_count,
                                content_preview=msg.content[:50] if msg.content else "")
                 except Exception as e:
                     logger.error("chat.stream.message.detail.error",
@@ -450,34 +455,12 @@ async def send_message_stream(request: ChatMessageRequest) -> StreamingResponse:
         anthropic_messages = []
         system_parts = [base_system_prompt]
         
-        # Debug: Log incoming request for streaming
-        logger.info("chat.stream.request.received",
-                   messages_count=len(request.messages),
-                   has_images=any(msg.images and len(msg.images) > 0 for msg in request.messages if hasattr(msg, 'images')))
-        
         for msg in request.messages:
             if msg.role == "system":
                 system_parts.append(msg.content)
             elif msg.role in ["user", "assistant"]:
-                # Debug: Log raw message before conversion
-                logger.info("chat.message.raw",
-                           role=msg.role,
-                           has_images=bool(msg.images and len(msg.images) > 0),
-                           image_count=len(msg.images) if msg.images else 0,
-                           content_length=len(msg.content) if msg.content else 0)
-                
-                # Konvertiere Message mit Bildern in Claude Vision Format
+                # Konvertiere Message mit Bildern (via Image-IDs) in Claude Vision Format
                 anthropic_message = convert_message_with_images(msg)
-                
-                # Debug: Log wenn Bilder vorhanden sind
-                if msg.images and len(msg.images) > 0:
-                    logger.info("chat.message.with_images", 
-                               role=msg.role,
-                               image_count=len(msg.images),
-                               has_text=bool(msg.content),
-                               content_type=type(anthropic_message.get("content")).__name__,
-                               content_is_list=isinstance(anthropic_message.get("content"), list))
-                
                 anthropic_messages.append(anthropic_message)
         
         system_prompt = "\n\n".join(system_parts)

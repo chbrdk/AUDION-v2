@@ -34,7 +34,8 @@ import {
   Typography,
   useTheme,
   CircularProgress,
-  Tooltip
+  Tooltip,
+  Badge
 } from "@mui/material";
 import { UdgGlassChatPanel } from "../../../components/udg-glass-chat-panel";
 import { MaterialSymbol } from "../../../components/material-symbol";
@@ -214,7 +215,8 @@ type Message = {
   role: "user" | "persona" | "system";
   content: string;
   personaName?: string;
-  images?: string[]; // Base64 data URLs for images
+  image_ids?: string[]; // Image IDs from upload endpoint (for backend)
+  images?: string[]; // Base64 data URLs for display (thumbnails)
 };
 
 function AdminChatPageContent() {
@@ -253,8 +255,9 @@ function AdminChatPageContent() {
   const [selectedPhases, setSelectedPhases] = useState<string[]>([]);
   const [selectedJourney, setSelectedJourney] = useState<JourneyResponse | null>(null);
   const [activeDialogTab, setActiveDialogTab] = useState<"phases" | "variables" | "attachments">("phases");
-  const [attachedImages, setAttachedImages] = useState<string[]>([]); // Base64 data URLs
-  const [pendingImages, setPendingImages] = useState<string[]>([]); // Bilder, die mit der nächsten Nachricht gesendet werden sollen
+  const [attachedImages, setAttachedImages] = useState<string[]>([]); // Base64 data URLs (für Preview)
+  const [pendingImageIds, setPendingImageIds] = useState<string[]>([]); // Image IDs, die mit der nächsten Nachricht gesendet werden sollen
+  const [pendingImages, setPendingImages] = useState<string[]>([]); // Base64 data URLs für Anzeige (Thumbnails)
   const [sending, setSending] = useState(false);
   const [personaMenuAnchor, setPersonaMenuAnchor] = useState<null | HTMLElement>(null);
   const [personaDrawerOpen, setPersonaDrawerOpen] = useState(false);
@@ -402,17 +405,7 @@ function AdminChatPageContent() {
             personas.map((p: any) => {
               // Pydantic serializes PersonaPrompt with systemPrompt (camelCase) in JSON
               const systemPrompt = p.prompt?.systemPrompt ?? p.prompt?.system_prompt ?? null;
-              // Debug: Log if prompt is found
-              if (p.name?.toLowerCase().includes("clara")) {
-                console.log("[Chat] Clara persona loaded:", {
-                  id: p.id,
-                  name: p.name,
-                  hasPrompt: !!p.prompt,
-                  promptKeys: p.prompt ? Object.keys(p.prompt) : [],
-                  systemPrompt: systemPrompt ? systemPrompt.substring(0, 200) + "..." : null,
-                  fullPrompt: systemPrompt,
-                });
-              }
+              // Load prompt if available
               return {
                 id: p.id,
                 name: p.name,
@@ -607,8 +600,8 @@ function AdminChatPageContent() {
       .map((msg) => msg.content);
     
     // Build messages array for API
-    // Type allows images for user messages
-    const apiMessages: Array<{ role: string; content: string; images?: string[] }> = [];
+    // Type allows image_ids for user messages
+    const apiMessages: Array<{ role: string; content: string; image_ids?: string[] }> = [];
     
     // Add adaptive system prompt as first system message
     if (systemPrompt) {
@@ -634,42 +627,23 @@ function AdminChatPageContent() {
         apiMessages.push({
           role: msg.role === "persona" ? "assistant" : "user",
           content: msg.content,
-          // Preserve images from conversation history if they exist
-          images: msg.images,
+          // Preserve image_ids from conversation history if they exist
+          image_ids: msg.image_ids,
         });
       });
     
-    // Add current user message with images if available
-    const userMessage: { role: string; content: string; images?: string[] } = {
+    // Add current user message with image_ids if available
+    const userMessage: { role: string; content: string; image_ids?: string[] } = {
       role: "user",
       content: contentToSend,
     };
     
-    // Füge Bilder hinzu, wenn vorhanden
-    console.log("[Chat] handleSend: pendingImages.length =", pendingImages.length);
-    if (pendingImages.length > 0) {
-      userMessage.images = [...pendingImages];
-      console.log("[Chat] Sending message with images:", {
-        imageCount: pendingImages.length,
-        firstImagePreview: pendingImages[0].substring(0, 100) + "...",
-        messageContent: contentToSend
-      });
-    } else {
-      console.log("[Chat] handleSend: No images in pendingImages");
+    // Füge Image-IDs hinzu, wenn vorhanden
+    if (pendingImageIds.length > 0) {
+      userMessage.image_ids = [...pendingImageIds];
     }
     
     apiMessages.push(userMessage);
-    
-    // Debug: Log final API messages
-    console.log("[Chat] API Messages being sent:", {
-      totalMessages: apiMessages.length,
-      lastMessage: {
-        role: userMessage.role,
-        hasImages: !!userMessage.images,
-        imageCount: userMessage.images?.length || 0,
-        contentLength: userMessage.content.length
-      }
-    });
     
     const messageId = `user-${Date.now()}`;
     const personaMessageId = `persona-${Date.now()}`;
@@ -681,10 +655,12 @@ function AdminChatPageContent() {
         id: messageId,
         role: "user",
         content: contentToSend,
-        images: pendingImages.length > 0 ? [...pendingImages] : undefined
+        image_ids: pendingImageIds.length > 0 ? [...pendingImageIds] : undefined,
+        images: pendingImages.length > 0 ? [...pendingImages] : undefined // Base64 für Thumbnails
       }
     ]);
     setInput("");
+    setPendingImageIds([]); // Reset pending image IDs after sending
     setPendingImages([]); // Reset pending images after sending
     setSending(true);
     setThinkingLabel(voiceStreaming ? "Sending voice message..." : "Sending message...");
@@ -708,33 +684,12 @@ function AdminChatPageContent() {
         messages: apiMessages,
       };
       
-      // Debug: Log request body (truncate images for logging)
-      const logBody = {
-        ...requestBody,
-        messages: requestBody.messages.map((msg: any) => ({
-          ...msg,
-          images: msg.images ? `[${msg.images.length} images, first: ${msg.images[0]?.substring(0, 50)}...]` : undefined
-        }))
-      };
-      console.log("[Chat] Request body being sent:", logBody);
-      
-      // Debug: Check if images are in the actual JSON string
-      const jsonString = JSON.stringify(requestBody);
-      const hasImagesInJson = jsonString.includes('"images"');
-      const imageCountInJson = (jsonString.match(/"images"/g) || []).length;
-      console.log("[Chat] JSON string check:", {
-        hasImagesInJson,
-        imageCountInJson,
-        jsonLength: jsonString.length,
-        lastMessageHasImages: requestBody.messages[requestBody.messages.length - 1]?.images ? requestBody.messages[requestBody.messages.length - 1].images.length : 0
-      });
-      
       const response = await fetch(`${apiBase}${endpointPath}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: jsonString,
+        body: JSON.stringify(requestBody),
       });
       
       if (!response.ok) {
@@ -1103,7 +1058,7 @@ function AdminChatPageContent() {
     return replacedMessage;
   };
 
-  const compressImage = (file: File, maxWidth: number = 1920, maxHeight: number = 1920, quality: number = 0.8): Promise<string> => {
+  const compressImage = (file: File, maxWidth: number = 1024, maxHeight: number = 1024, quality: number = 0.7): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -1144,7 +1099,6 @@ function AdminChatPageContent() {
               const reader = new FileReader();
               reader.onload = () => {
                 if (typeof reader.result === 'string') {
-                  console.log(`[Chat] Image compressed: ${file.size} -> ${blob.size} bytes (${Math.round((1 - blob.size / file.size) * 100)}% reduction)`);
                   resolve(reader.result);
                 } else {
                   reject(new Error('Failed to read compressed image'));
@@ -1167,57 +1121,76 @@ function AdminChatPageContent() {
 
   const handleImageUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) {
-      console.log("[Chat] handleImageUpload: No files provided");
       return;
     }
     
-    console.log("[Chat] handleImageUpload: Files received", files.length);
-    
     // Filtere nur Bilder
     const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
-    console.log("[Chat] handleImageUpload: Image files filtered", imageFiles.length, imageFiles.map(f => ({ name: f.name, type: f.type, size: f.size })));
     
     // Komprimiere und konvertiere Bilder zu Base64 data URLs
     try {
       const base64Images = await Promise.all(
         imageFiles.map(file => compressImage(file))
       );
-      console.log("[Chat] handleImageUpload: Images compressed and converted to base64", base64Images.length, "First image preview:", base64Images[0]?.substring(0, 100) + "...");
-      setAttachedImages((prev) => {
-        const newImages = [...prev, ...base64Images];
-        console.log("[Chat] handleImageUpload: attachedImages updated", newImages.length);
-        return newImages;
-      });
+      setAttachedImages((prev) => [...prev, ...base64Images]);
     } catch (error) {
-      console.error('[Chat] Failed to compress/convert images:', error);
+      console.error('Failed to compress/convert images:', error);
     }
   };
 
-  const handleAddAttachmentsToChat = () => {
-    console.log("[Chat] handleAddAttachmentsToChat: called, attachedImages.length =", attachedImages.length);
-    
+  const handleAddAttachmentsToChat = async () => {
     if (attachedImages.length === 0) {
-      console.log("[Chat] handleAddAttachmentsToChat: No images to add, returning");
       return;
     }
 
-    // Speichere Bilder für die nächste Nachricht
-    setPendingImages((prev) => {
-      const newPending = [...prev, ...attachedImages];
-      console.log("[Chat] handleAddAttachmentsToChat: pendingImages updated", newPending.length, "images");
-      return newPending;
-    });
-    
-    // Schließe Dialog und setze zurück
-    setJourneyDialogOpen(false);
-    setAttachedImages([]);
-    setActiveDialogTab("phases");
-    
-    // Optional: Fokussiere den Input, damit User direkt tippen kann
-    setTimeout(() => {
-      const inputElement = document.querySelector('input[placeholder*="Ask"], textarea[placeholder*="Ask"]') as HTMLInputElement | HTMLTextAreaElement;
-      inputElement?.focus();
-    }, 100);
+    // Lade Bilder hoch und erhalte Image-IDs
+    try {
+      const apiBase = getChatApiBase();
+      // Check if apiBase already contains /chat (might be configured that way)
+      // The images router is registered with prefix /chat/images
+      // If apiBase already ends with /chat, we use /images/upload, otherwise /chat/images/upload
+      const uploadUrl = apiBase.endsWith('/chat') 
+        ? `${apiBase}/images/upload`
+        : `${apiBase}/chat/images/upload`;
+      
+      const uploadPromises = attachedImages.map(async (imageDataUrl) => {
+        const response = await fetch(uploadUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ image: imageDataUrl }),
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text().catch(() => response.statusText || "Unknown error");
+          throw new Error(`Failed to upload image: ${response.status} ${errorText}`);
+        }
+        
+        const data = await response.json();
+        return data.image_id;
+      });
+      
+      const imageIds = await Promise.all(uploadPromises);
+      
+      // Speichere Image-IDs für Backend und Base64-Daten für Anzeige
+      setPendingImageIds((prev) => [...prev, ...imageIds]);
+      setPendingImages((prev) => [...prev, ...attachedImages]);
+      
+      // Schließe Dialog und setze zurück
+      setJourneyDialogOpen(false);
+      setAttachedImages([]);
+      setActiveDialogTab("phases");
+      
+      // Optional: Fokussiere den Input, damit User direkt tippen kann
+      setTimeout(() => {
+        const inputElement = document.querySelector('input[placeholder*="Ask"], textarea[placeholder*="Ask"]') as HTMLInputElement | HTMLTextAreaElement;
+        inputElement?.focus();
+      }, 100);
+    } catch (error) {
+      console.error("Failed to upload images:", error);
+      // TODO: Zeige Fehler-Message an User
+    }
   };
 
   // Load conversation from URL on mount
@@ -1280,18 +1253,6 @@ function AdminChatPageContent() {
       return;
     }
 
-    // Build the system prompt with current context
-    // Debug: Log persona data for troubleshooting
-    if (activePersona.name?.toLowerCase().includes("clara")) {
-      console.log("[Chat] Persona data for variable replacement:", {
-        name: activePersona.name,
-        headline: activePersona.headline,
-        profileHeadline: activePersona.profile?.headline,
-        profileCardHeadline: activePersona.profileCard?.headline,
-        bio: activePersona.profile?.bio?.substring(0, 100),
-      });
-    }
-    
     const normalizedPersonaProfile: PersonaProfile = {
       name: activePersona.name,
       fullName: activePersona.profile?.fullName ?? activePersona.profile?.name ?? activePersona.name,
@@ -1551,16 +1512,32 @@ function AdminChatPageContent() {
                 }}
               >
                 <Tooltip title="Journey-Phasen hinzufügen">
-                  <IconButton
-                    onClick={() => setJourneyDialogOpen(true)}
-                    disabled={!activePersonaId || sending}
+                  <Badge
+                    badgeContent={pendingImages.length > 0 ? pendingImages.length : 0}
+                    color="primary"
+                    overlap="circular"
                     sx={{
-                      backgroundColor: alpha(theme.palette.text.primary, 0.08),
-                      borderRadius: 999
+                      "& .MuiBadge-badge": {
+                        right: 4,
+                        top: 4,
+                        minWidth: "18px",
+                        height: "18px",
+                        fontSize: "0.7rem",
+                        fontWeight: 600
+                      }
                     }}
                   >
-                    <MaterialSymbol icon="add" fontSize={22} />
-                  </IconButton>
+                    <IconButton
+                      onClick={() => setJourneyDialogOpen(true)}
+                      disabled={!activePersonaId || sending}
+                      sx={{
+                        backgroundColor: alpha(theme.palette.text.primary, 0.08),
+                        borderRadius: 999
+                      }}
+                    >
+                      <MaterialSymbol icon="add" fontSize={22} />
+                    </IconButton>
+                  </Badge>
                 </Tooltip>
                 <Tooltip title={whisperRecording ? "Stop recording" : "Start voice input"}>
                   <IconButton
