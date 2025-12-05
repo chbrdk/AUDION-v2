@@ -1,25 +1,32 @@
 "use client";
 
-import { MaterialSymbol } from "../material-symbol";
+import { UdgGlassAiButtonIcon } from "../generic";
 
 type Props = {
   onClick: () => void;
   loading?: boolean;
   disabled?: boolean;
+  size?: "small" | "medium" | "large";
+  fontSize?: number;
 };
 
-export const UdgGlassAiFieldButton = ({ onClick, loading = false, disabled = false }: Props) => {
+export const UdgGlassAiFieldButton = ({ 
+  onClick, 
+  loading = false, 
+  disabled = false,
+  size = "small",
+  fontSize = 14,
+}: Props) => {
   return (
-    <button
-      type="button"
-      className="udg-glass-ai-field-button"
+    <UdgGlassAiButtonIcon
       onClick={onClick}
-      disabled={disabled || loading}
+      disabled={disabled}
+      loading={loading}
+      size={size}
+      fontSize={fontSize}
       title="AI Vorschlag"
       aria-label="AI Vorschlag"
-    >
-      <MaterialSymbol icon={loading ? "hourglass_empty" : "auto_awesome"} fontSize={14} />
-    </button>
+    />
   );
 };
 

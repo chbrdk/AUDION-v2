@@ -114,6 +114,108 @@ templates:
         title: title
         content: content
 
+  - template_id: persona.goals
+    label: Persona Goals Expansion
+    description: "Suggest additional goals or aspirations for a selected persona."
+    category: persona
+    tags: ["persona", "goals"]
+    default_provider: anthropic
+    default_model: claude-haiku-4-5-20251001
+    temperature: 0.65
+    max_tokens: 800
+    prompt: |
+      Analyze the persona information and suggest additional goals
+      that the team has not yet documented. Focus on concrete aspirations,
+      motivations, or desired outcomes, maximum ${max_items} points.
+
+      TARGET GROUP: ${target_group_summary}
+      PERSONA PROFILE: ${persona_profile}
+      EXISTING GOALS: ${persona_goals}
+
+      FORMAT:
+      {
+        "items": [
+          {
+            "title": "short name",
+            "content": "goal description"
+          }
+        ]
+      }
+    output:
+      mode: json
+      key: items
+      item_fields:
+        title: title
+        content: content
+
+  - template_id: persona.interests
+    label: Persona Interests Expansion
+    description: "Suggest additional interests or hobbies for a selected persona."
+    category: persona
+    tags: ["persona", "interests"]
+    default_provider: anthropic
+    default_model: claude-haiku-4-5-20251001
+    temperature: 0.65
+    max_tokens: 800
+    prompt: |
+      Analyze the persona information and suggest additional interests
+      that the team has not yet documented. Focus on hobbies, activities,
+      or topics the persona might be interested in, maximum ${max_items} points.
+
+      TARGET GROUP: ${target_group_summary}
+      PERSONA PROFILE: ${persona_profile}
+      EXISTING INTERESTS: ${persona_interests}
+
+      FORMAT:
+      {
+        "items": [
+          {
+            "title": "short name",
+            "content": "interest description"
+          }
+        ]
+      }
+    output:
+      mode: json
+      key: items
+      item_fields:
+        title: title
+        content: content
+
+  - template_id: persona.values
+    label: Persona Values Expansion
+    description: "Suggest additional values or principles for a selected persona."
+    category: persona
+    tags: ["persona", "values"]
+    default_provider: anthropic
+    default_model: claude-haiku-4-5-20251001
+    temperature: 0.65
+    max_tokens: 800
+    prompt: |
+      Analyze the persona information and suggest additional values
+      that the team has not yet documented. Focus on principles, beliefs,
+      or moral values the persona might hold, maximum ${max_items} points.
+
+      TARGET GROUP: ${target_group_summary}
+      PERSONA PROFILE: ${persona_profile}
+      EXISTING VALUES: ${persona_values}
+
+      FORMAT:
+      {
+        "items": [
+          {
+            "title": "short name",
+            "content": "value description"
+          }
+        ]
+      }
+    output:
+      mode: json
+      key: items
+      item_fields:
+        title: title
+        content: content
+
   - template_id: persona.traits
     label: Persona Traits (from Knowledge Graph)
     description: "Generate personality traits based on knowledge graph relationships and research context."

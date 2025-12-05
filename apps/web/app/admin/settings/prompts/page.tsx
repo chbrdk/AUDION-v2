@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { aiAssistApi, type AiTemplateSummary, type AiTemplateDefinition, type AiTemplateUpdateRequest } from "../../../api/_lib/ai-assist";
 import { MaterialSymbol } from "../../../../components/material-symbol";
 import { PromptBuilder } from "../../../../components/prompt-builder/PromptBuilder";
@@ -16,6 +16,9 @@ export default function SettingsPromptsPage() {
   const [error, setError] = useState<string | null>(null);
   const [showGlossary, setShowGlossary] = useState(false);
   const [activeTab, setActiveTab] = useState<"edit" | "test">("edit");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const loadAll = async () => {
@@ -117,6 +120,82 @@ export default function SettingsPromptsPage() {
       setSaving(false);
     }
   };
+
+  // Extract unique categories and tags from all templates
+  const allCategories = useMemo(() => {
+    const categories = new Set<string>();
+    templates.forEach((t) => categories.add(t.category));
+    personaPrompts.forEach((t) => categories.add(t.category));
+    return Array.from(categories).sort();
+  }, [templates, personaPrompts]);
+
+  const allTags = useMemo(() => {
+    const tags = new Set<string>();
+    templates.forEach((t) => t.tags.forEach((tag) => tags.add(tag)));
+    personaPrompts.forEach((t) => t.tags.forEach((tag) => tags.add(tag)));
+    return Array.from(tags).sort();
+  }, [templates, personaPrompts]);
+
+  // Filter function for templates
+  const matchesFilter = (template: AiTemplateSummary): boolean => {
+    // Search query filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const matchesSearch =
+        template.label.toLowerCase().includes(query) ||
+        template.description.toLowerCase().includes(query) ||
+        template.category.toLowerCase().includes(query) ||
+        template.tags.some((tag) => tag.toLowerCase().includes(query)) ||
+        (template as any).persona_name?.toLowerCase().includes(query);
+      if (!matchesSearch) return false;
+    }
+
+    // Category filter
+    if (selectedCategory && template.category !== selectedCategory) {
+      return false;
+    }
+
+    // Tags filter (at least one selected tag must be present)
+    if (selectedTags.size > 0) {
+      const hasSelectedTag = Array.from(selectedTags).some((tag) =>
+        template.tags.includes(tag)
+      );
+      if (!hasSelectedTag) return false;
+    }
+
+    return true;
+  };
+
+  // Filtered templates
+  const filteredPersonaPrompts = useMemo(
+    () => personaPrompts.filter(matchesFilter),
+    [personaPrompts, searchQuery, selectedCategory, selectedTags]
+  );
+
+  const filteredTemplates = useMemo(
+    () => templates.filter(matchesFilter),
+    [templates, searchQuery, selectedCategory, selectedTags]
+  );
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) => {
+      const next = new Set(prev);
+      if (next.has(tag)) {
+        next.delete(tag);
+      } else {
+        next.add(tag);
+      }
+      return next;
+    });
+  };
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setSelectedCategory(null);
+    setSelectedTags(new Set());
+  };
+
+  const hasActiveFilters = searchQuery.trim() || selectedCategory || selectedTags.size > 0;
 
   if (loading) {
     return (
@@ -451,6 +530,195 @@ export default function SettingsPromptsPage() {
         )}
       </div>
 
+      {/* Search and Filter Bar - Global for all prompts */}
+      {(personaPrompts.length > 0 || templates.length > 0) && (
+        <div
+          style={{
+            marginTop: "2rem",
+            marginBottom: "1.5rem",
+            padding: "1rem",
+            background: "var(--color-neutral)",
+            borderRadius: "12px",
+            border: "1px solid rgba(148, 163, 184, 0.2)",
+          }}
+        >
+              <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                {/* Search Input */}
+                <div style={{ position: "relative" }}>
+                  <MaterialSymbol
+                    icon="search"
+                    fontSize={18}
+                    style={{
+                      position: "absolute",
+                      left: "0.75rem",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      color: "var(--color-text-secondary)",
+                      pointerEvents: "none",
+                    }}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Search prompts by name, description, tags, or category..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "0.625rem 0.75rem 0.625rem 2.5rem",
+                      border: "1px solid rgba(148, 163, 184, 0.2)",
+                      borderRadius: "8px",
+                      fontSize: "0.875rem",
+                      background: "transparent",
+                      color: "var(--color-text-primary)",
+                      transition: "border-color 0.2s ease",
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = "var(--color-theme-accent)";
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = "rgba(148, 163, 184, 0.2)";
+                    }}
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      style={{
+                        position: "absolute",
+                        right: "0.75rem",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "transparent",
+                        border: "none",
+                        cursor: "pointer",
+                        padding: "0.25rem",
+                        display: "flex",
+                        alignItems: "center",
+                        color: "var(--color-text-secondary)",
+                      }}
+                      title="Clear search"
+                    >
+                      <MaterialSymbol icon="close" fontSize={16} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Filters Row */}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", alignItems: "center" }}>
+                  {/* Category Filter */}
+                  {allCategories.length > 0 && (
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      <span style={{ fontSize: "0.8125rem", color: "var(--color-text-secondary)", fontWeight: 500 }}>
+                        Category:
+                      </span>
+                      <select
+                        value={selectedCategory || ""}
+                        onChange={(e) => setSelectedCategory(e.target.value || null)}
+                        style={{
+                          padding: "0.375rem 0.75rem",
+                          border: "1px solid rgba(148, 163, 184, 0.2)",
+                          borderRadius: "6px",
+                          fontSize: "0.8125rem",
+                          background: "transparent",
+                          color: "var(--color-text-primary)",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <option value="">All Categories</option>
+                        {allCategories.map((category) => (
+                          <option key={category} value={category}>
+                            {category}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Tags Filter */}
+                  {allTags.length > 0 && (
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                      <span style={{ fontSize: "0.8125rem", color: "var(--color-text-secondary)", fontWeight: 500 }}>
+                        Tags:
+                      </span>
+                      {allTags.map((tag) => (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => toggleTag(tag)}
+                          className={clsx(
+                            "udg-glass-chip",
+                            selectedTags.has(tag) && "--active"
+                          )}
+                          style={{
+                            cursor: "pointer",
+                            transition: "all 0.2s ease",
+                            background: selectedTags.has(tag)
+                              ? "var(--color-theme-accent)"
+                              : "rgba(148, 163, 184, 0.1)",
+                            color: selectedTags.has(tag)
+                              ? "white"
+                              : "var(--color-text-primary)",
+                            border: selectedTags.has(tag)
+                              ? "1px solid var(--color-theme-accent)"
+                              : "1px solid rgba(148, 163, 184, 0.2)",
+                            fontSize: "0.75rem",
+                            fontWeight: 400,
+                            padding: "0.25rem 0.5rem",
+                          }}
+                        >
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Clear Filters Button */}
+                  {hasActiveFilters && (
+                    <button
+                      type="button"
+                      onClick={clearFilters}
+                      style={{
+                        marginLeft: "auto",
+                        padding: "0.375rem 0.75rem",
+                        background: "transparent",
+                        border: "1px solid rgba(148, 163, 184, 0.2)",
+                        borderRadius: "6px",
+                        fontSize: "0.8125rem",
+                        color: "var(--color-text-secondary)",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.375rem",
+                        transition: "all 0.2s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = "var(--color-theme-accent)";
+                        e.currentTarget.style.color = "var(--color-theme-accent)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = "rgba(148, 163, 184, 0.2)";
+                        e.currentTarget.style.color = "var(--color-text-secondary)";
+                      }}
+                    >
+                      <MaterialSymbol icon="filter_alt_off" fontSize={14} />
+                      Clear Filters
+                    </button>
+                  )}
+                </div>
+
+                {/* Results Count - Combined */}
+                {hasActiveFilters && (
+                  <div style={{ fontSize: "0.8125rem", color: "var(--color-text-secondary)" }}>
+                    Showing {filteredPersonaPrompts.length} persona prompt{filteredPersonaPrompts.length !== 1 ? "s" : ""}
+                    {templates.length > 0 && (
+                      <> and {filteredTemplates.length} template{filteredTemplates.length !== 1 ? "s" : ""}</>
+                    )}
+                  </div>
+                )}
+              </div>
+        </div>
+      )}
+
       <div className="udg-glass-settings-grid">
         {/* Persona Prompts Section */}
         {personaPrompts.length > 0 && (
@@ -461,7 +729,26 @@ export default function SettingsPromptsPage() {
                 System prompts used for persona chat interactions. These are dynamically generated and can be customized.
               </p>
             </div>
-            {personaPrompts.map((template) => (
+
+            {filteredPersonaPrompts.length === 0 ? (
+              <div
+                style={{
+                  gridColumn: "1 / -1",
+                  padding: "3rem 1rem",
+                  textAlign: "center",
+                  color: "var(--color-text-secondary)",
+                }}
+              >
+                <MaterialSymbol icon="search_off" fontSize={48} style={{ marginBottom: "1rem", opacity: 0.5 }} />
+                <p style={{ margin: 0, fontSize: "1rem", fontWeight: 500 }}>No persona prompts found</p>
+                <p style={{ margin: "0.5rem 0 0", fontSize: "0.875rem" }}>
+                  {hasActiveFilters
+                    ? "Try adjusting your filters or search query."
+                    : "No persona prompts are available yet."}
+                </p>
+              </div>
+            ) : (
+              filteredPersonaPrompts.map((template) => (
               <article
                 key={template.template_id}
                 className={clsx("udg-glass-settings-card", editingId === template.template_id && "--expanded")}
@@ -565,7 +852,8 @@ export default function SettingsPromptsPage() {
                   </>
                 )}
               </article>
-            ))}
+              ))
+            )}
           </>
         )}
 
@@ -580,7 +868,27 @@ export default function SettingsPromptsPage() {
                 </p>
               </div>
             )}
-            {templates.map((template) => (
+
+
+            {filteredTemplates.length === 0 ? (
+              <div
+                style={{
+                  gridColumn: "1 / -1",
+                  padding: "3rem 1rem",
+                  textAlign: "center",
+                  color: "var(--color-text-secondary)",
+                }}
+              >
+                <MaterialSymbol icon="search_off" fontSize={48} style={{ marginBottom: "1rem", opacity: 0.5 }} />
+                <p style={{ margin: 0, fontSize: "1rem", fontWeight: 500 }}>No templates found</p>
+                <p style={{ margin: "0.5rem 0 0", fontSize: "0.875rem" }}>
+                  {hasActiveFilters
+                    ? "Try adjusting your filters or search query."
+                    : "No templates are available yet."}
+                </p>
+              </div>
+            ) : (
+              filteredTemplates.map((template) => (
           <article
             key={template.template_id}
             className={clsx("udg-glass-settings-card", editingId === template.template_id && "--expanded")}
@@ -684,7 +992,8 @@ export default function SettingsPromptsPage() {
               </>
             )}
           </article>
-        ))}
+              ))
+            )}
           </>
         )}
       </div>
@@ -790,7 +1099,6 @@ function TemplateEditForm({
           <input
             type="number"
             min="64"
-            max="4096"
             value={template.max_tokens}
             onChange={(e) => onUpdate({ ...template, max_tokens: parseInt(e.target.value) })}
             style={{ width: "100%", padding: "0.5rem", border: "1px solid var(--color-theme-accent)", borderRadius: "4px" }}

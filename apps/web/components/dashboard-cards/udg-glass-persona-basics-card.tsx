@@ -135,40 +135,41 @@ export const UdgGlassPersonaBasicsCard = ({
       onToggle={onToggle}
     >
       <div className="udg-glass-detail__grid">
-        <UdgGlassDashboardCardSection title="Metadata">
-          <dl className="udg-glass-meta-grid" style={{ marginTop: "0.5rem" }}>
+        <div style={{ border: "1px solid var(--color-theme-accent)", borderRadius: "12px", padding: "0.75rem", marginTop: "1rem" }}>
+          <h3 style={{ fontSize: "1.5rem", fontWeight: 100, marginBottom: "2rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>METADATA</h3>
+          <dl className="udg-glass-meta-grid">
             <div>
               <dt>Status</dt>
               <dd>{detail.metadata.status}</dd>
             </div>
-            <div>
+            <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
               <dt>Confidence</dt>
               <dd>{detail.metadata.confidence.toFixed(2)}</dd>
             </div>
-            <div>
+            <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
               <dt>Version</dt>
               <dd>{detail.metadata.version}</dd>
             </div>
-            <div>
+            <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
               <dt>Updated</dt>
               <dd>{formatDate(detail.metadata.updatedAt)}</dd>
             </div>
-            <div>
+            <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
               <dt>Updated by</dt>
               <dd>{detail.metadata.updatedBy ?? "—"}</dd>
             </div>
-            <div>
+            <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
               <dt>Last review</dt>
               <dd>{formatDate(detail.metadata.lastReviewedAt)}</dd>
             </div>
             {detail.profile.created_at && (
-              <div>
+              <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
                 <dt>Created at</dt>
                 <dd>{formatDate(detail.profile.created_at)}</dd>
               </div>
             )}
             {detail.profile.targetGroupId && (
-              <div>
+              <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
                 <dt>Target Group</dt>
                 <dd>
                   <a 
@@ -182,7 +183,7 @@ export const UdgGlassPersonaBasicsCard = ({
               </div>
             )}
           </dl>
-        </UdgGlassDashboardCardSection>
+        </div>
 
         <UdgGlassDashboardCardSection title="Edit">
           <Box ref={nameRef} sx={{ position: "relative", marginTop: "0.5rem" }}>

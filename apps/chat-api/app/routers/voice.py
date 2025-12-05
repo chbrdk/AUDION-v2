@@ -29,7 +29,7 @@ def select_model_for_messages(messages: List[Dict[str, Any]]) -> str:
     """
     Wählt das passende Modell basierend auf dem Inhalt der Messages.
     - Haiku 4.5 für normale Text-Messages (kostengünstig, schnell)
-    - Sonnet 4.5 für Messages mit Bildern (Vision-Unterstützung)
+    - Sonnet 4.5 für Messages mit Bildern (Vision-Unterstützung, bessere Performance)
     """
     # Prüfe ob Bilder in den Messages vorhanden sind
     has_images = any(
@@ -39,11 +39,11 @@ def select_model_for_messages(messages: List[Dict[str, Any]]) -> str:
     )
     
     if has_images:
-        # Sonnet 4.5 für Vision (Format: claude-{model}-{version}-{date})
-        return "claude-sonnet-4-20250514"
+        # Sonnet 4.5 für Vision (unterstützt Bilder, bessere Performance)
+        return "claude-sonnet-4-5-20250929"
     else:
-        # Haiku 4.5 für normale Messages (Format: claude-{model}-{version}-{date})
-        return "claude-haiku-4-20250514"
+        # Haiku 4.5 für normale Messages (kostengünstig, schnell)
+        return "claude-haiku-4-5-20251001"
 
 
 def convert_message_with_images(msg: VoiceChatMessage) -> Dict[str, Any]:
@@ -244,7 +244,7 @@ async def voice_chat_stream(request: VoiceChatRequest) -> StreamingResponse:
             persona_agent = get_persona_agent()
 
             sentinel = object()
-            delta_queue: queue.Queue[object] = queue.Queue()
+            stream_data_queue: queue.Queue[object] = queue.Queue()
             stream_error = [None]
 
             def collect_stream_deltas() -> None:
@@ -276,11 +276,11 @@ async def voice_chat_stream(request: VoiceChatRequest) -> StreamingResponse:
                                 if delta_text is None and isinstance(event.delta, dict):
                                     delta_text = event.delta.get("text")
                                 if delta_text:
-                                    delta_queue.put(delta_text)
+                                    stream_data_queue.put(delta_text)
                 except Exception as exc:
                     stream_error[0] = exc
                 finally:
-                    delta_queue.put(sentinel)
+                    stream_data_queue.put(sentinel)
 
             thread = threading.Thread(target=collect_stream_deltas, daemon=True)
             thread.start()
@@ -327,7 +327,7 @@ async def voice_chat_stream(request: VoiceChatRequest) -> StreamingResponse:
 
             def get_item_with_timeout() -> object | None:
                 try:
-                    return delta_queue.get(timeout=0.1)
+                    return stream_data_queue.get(timeout=0.1)
                 except queue.Empty:
                     return None
 

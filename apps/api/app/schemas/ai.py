@@ -87,7 +87,7 @@ class AiTemplateDefinition(BaseModel):
     default_provider: AiProvider = Field(default=AiProvider.ANTHROPIC, description="Preferred provider.")
     default_model: str | None = Field(default=None, description="Optional default model for the provider.")
     temperature: float = Field(default=0.6, ge=0.0, le=1.0, description="Temperature passed to the provider.")
-    max_tokens: int = Field(default=1024, ge=64, le=4096, description="Maximum tokens requested from the provider.")
+    max_tokens: int = Field(default=1024, ge=64, description="Maximum tokens requested from the provider.")
     prompt: str = Field(..., description="Prompt body with template variables.")
     output: AiTemplateOutputConfig = Field(
         default_factory=AiTemplateOutputConfig, description="Parsing instructions for the provider output."

@@ -14,21 +14,24 @@ from sqlalchemy import select
 
 from ..agents.persona import PersonaAgent
 from ..agents.retrieval import RetrievalAgent
+from ..core.config import get_settings
 from ..db import get_session
 from ..models import Persona, PersonaPrompt
 from ..utils.text import clean_response_text
 from ..ws.chat import get_persona_agent, get_persona_prompt, get_retrieval_agent
 from .images import get_image_data_url
+from udg_glass_proto import ContentDeltaEvent, SourcesEvent, CompleteEvent, ThinkingEvent
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 logger = structlog.get_logger(__name__)
+settings = get_settings()
 
 
 def select_model_for_messages(messages: List[Dict[str, Any]]) -> str:
     """
     Wählt das passende Modell basierend auf dem Inhalt der Messages.
     - Haiku 4.5 für normale Text-Messages (kostengünstig, schnell)
-    - Sonnet 4.5 für Messages mit Bildern (Vision-Unterstützung)
+    - Sonnet 4.5 für Messages mit Bildern (Vision-Unterstützung, bessere Performance)
     """
     # Prüfe ob Bilder in den Messages vorhanden sind
     has_images = any(
@@ -38,15 +41,11 @@ def select_model_for_messages(messages: List[Dict[str, Any]]) -> str:
     )
     
     if has_images:
-        # Sonnet 4.5 für Vision (Format: claude-{model}-{version}-{date})
-        # Basierend auf Dokumentation: claude-sonnet-4-20250514
-        # Falls dieser Name nicht existiert, versuche alternatives Format
-        return "claude-sonnet-4-20250514"
+        # Sonnet 4.5 für Vision (unterstützt Bilder, bessere Performance)
+        return "claude-sonnet-4-5-20250929"
     else:
-        # Haiku 4.5 für normale Messages (Format: claude-{model}-{version}-{date})
-        # Basierend auf Dokumentation: claude-haiku-4-20250514
-        # Falls dieser Name nicht existiert, versuche alternatives Format
-        return "claude-haiku-4-20250514"
+        # Haiku 4.5 für normale Messages (kostengünstig, schnell)
+        return "claude-haiku-4-5-20251001"
 
 
 def convert_message_with_images(msg: ChatMessage) -> Dict[str, Any]:
@@ -441,6 +440,21 @@ async def send_message_stream(request: ChatMessageRequest) -> StreamingResponse:
             select(PersonaPrompt).where(PersonaPrompt.persona_id == persona_uuid)
         )
     
+    # Extract persona segment for tool filtering
+    persona_segment: str | None = persona.segment if persona and persona.segment else None
+    
+    # Check if tools are enabled via feature flag
+    use_tools = settings.chat_use_tools
+    
+    # Load tools if enabled
+    tools = None
+    if use_tools:
+        from ..agents.tools import KNOWLEDGE_TOOLS
+        tools = KNOWLEDGE_TOOLS
+        logger.info("chat.tools.enabled", persona_id=request.persona_id, tools_count=len(tools), persona_segment=persona_segment)
+    else:
+        logger.info("chat.tools.disabled", persona_id=request.persona_id, using_legacy_retrieval=True)
+    
     # Determine system prompt and messages
     base_system_prompt = prompt.system_prompt if prompt else get_persona_prompt(request.persona_id)
     if not base_system_prompt:
@@ -512,166 +526,291 @@ async def send_message_stream(request: ChatMessageRequest) -> StreamingResponse:
             if not retrieval_query or retrieval_query == "N/A":
                 retrieval_query = ""
             
-            # Start retrieval in background and persona agent in parallel
-            logger.info("chat.stream.retrieval.starting", query=retrieval_query[:100] if retrieval_query else "N/A")
             loop = asyncio.get_event_loop()
-            
-            # Start retrieval task in background (non-blocking)
-            retrieval_task = asyncio.create_task(
-                asyncio.wait_for(
-                    loop.run_in_executor(
-                        None,
-                        lambda: get_retrieval_agent().run(query=retrieval_query, persona_segment=None)
-                    ),
-                    timeout=10.0  # Reduced timeout to 10 seconds
-                )
-            )
-            
-            # Send empty sources immediately to unblock frontend
-            yield f"data: {json.dumps({'type': 'sources', 'sources': []})}\n\n"
-            
-            # Start persona agent immediately (don't wait for retrieval)
-            logger.info("chat.stream.persona_agent.starting", persona_id=request.persona_id)
             persona_agent = get_persona_agent()
             
-            # Create stream using asyncio to bridge sync stream to async
-            import queue
-            import threading
-            
-            sentinel = object()
-            delta_queue: queue.Queue[object] = queue.Queue()
-            stream_error = [None]  # Use list to pass exception from thread
-            
-            def collect_stream_deltas():
-                """Collect deltas from stream in a separate thread."""
-                try:
-                    # Wähle Modell basierend auf Inhalt (Bilder = Sonnet, sonst Haiku)
-                    selected_model = select_model_for_messages(anthropic_messages)
-                    
-                    # Debug: Log final messages format before sending to Claude
-                    has_images = any(
-                        isinstance(msg.get("content"), list) and 
-                        any(block.get("type") == "image" for block in msg.get("content", []))
-                        for msg in anthropic_messages
-                    )
-                    if has_images:
-                        logger.info("chat.anthropic.streaming_with_images",
-                                   messages_count=len(anthropic_messages),
-                                   model=selected_model)
-                    
-                    with persona_agent._anthropic.messages.stream(
-                        model=selected_model,
-                        max_tokens=600,
-                        temperature=0.4,
-                        system=system_prompt,
-                        messages=anthropic_messages,
-                    ) as stream:
-                        for event in stream:
-                            if event.type == "content_block_delta":
-                                delta_text = getattr(event.delta, "text", None)
-                                if delta_text is None and isinstance(event.delta, dict):
-                                    delta_text = event.delta.get("text")
-                                if delta_text:
-                                    delta_queue.put(delta_text)
-                except Exception as e:
-                    logger.error("chat.stream.collect_failed", error=str(e), exc_info=True)
-                    stream_error[0] = e
-                finally:
-                    # Signal completion
-                    delta_queue.put(sentinel)
-            
-            response_buffer = ""
-            sanitized_sent = ""
-
-            def emit_sanitized_delta(delta_text: str) -> str:
-                nonlocal response_buffer, sanitized_sent
-                response_buffer += delta_text
-                sanitized = clean_response_text(response_buffer)
-                max_len = min(len(sanitized), len(sanitized_sent))
-                prefix_len = 0
-                while prefix_len < max_len and sanitized[prefix_len] == sanitized_sent[prefix_len]:
-                    prefix_len += 1
-                delta_payload = sanitized[prefix_len:]
-                sanitized_sent = sanitized
-                return delta_payload
-
-            # Start collecting in a thread (not executor, to keep it simple)
-            thread = threading.Thread(target=collect_stream_deltas, daemon=True)
-            thread.start()
-            
-            # Yield deltas from queue as they arrive
-            def get_item_with_timeout():
-                """Get next queue item with timeout, returning None on timeout."""
-                try:
-                    return delta_queue.get(timeout=0.1)
-                except queue.Empty:
-                    return None
-            
-            while True:
-                # Wait for next item with timeout (non-blocking)
-                item = await loop.run_in_executor(None, get_item_with_timeout)
+            # Use PersonaAgent.stream_response() with tools if enabled, otherwise use direct stream
+            if use_tools and tools:
+                # Tools-based streaming: Use PersonaAgent with full tool support
+                logger.info("chat.stream.tools_enabled", persona_id=request.persona_id, tools_count=len(tools))
                 
-                if item is None:
-                    # Timeout: check thread status
-                    if not thread.is_alive():
-                        # Drain any remaining items
-                        try:
-                            while True:
-                                item = delta_queue.get_nowait()
-                                if item is sentinel:
-                                    break
-                                delta_payload = emit_sanitized_delta(item)
-                                if delta_payload:
-                                    yield f"data: {json.dumps({'type': 'delta', 'delta': delta_payload})}\n\n"
-                        except queue.Empty:
-                            pass
+                # Create event queue for PersonaAgent events
+                import queue
+                import threading
+                
+                event_queue: queue.Queue[object] = queue.Queue()
+                stream_error = [None]
+                
+                def send_event(event):
+                    """Convert PersonaAgent events to queue items."""
+                    event_queue.put(event)
+                
+                # Prepare sources (empty for tools mode, tools handle retrieval dynamically)
+                sources = []
+                
+                # Run PersonaAgent.stream_response() with tools in executor
+                def run_persona_stream():
+                    try:
+                        persona_agent.stream_response(
+                            system_prompt=system_prompt,
+                            question=retrieval_query,
+                            sources=sources,
+                            persona_id=request.persona_id,
+                            send_event=send_event,
+                            tools=tools,
+                            persona_segment=persona_segment,
+                            use_tools=True,
+                        )
+                    except Exception as e:
+                        logger.error("chat.stream.persona_agent_failed", error=str(e), exc_info=True)
+                        stream_error[0] = e
+                    finally:
+                        event_queue.put(None)  # Signal completion
+                
+                # Start PersonaAgent stream in thread
+                stream_thread = threading.Thread(target=run_persona_stream, daemon=True)
+                stream_thread.start()
+                
+                # Convert PersonaAgent events to SSE format
+                response_buffer = ""
+                sanitized_sent = ""
+                
+                def emit_sanitized_delta(delta_text: str) -> str:
+                    nonlocal response_buffer, sanitized_sent
+                    response_buffer += delta_text
+                    sanitized = clean_response_text(response_buffer)
+                    max_len = min(len(sanitized), len(sanitized_sent))
+                    prefix_len = 0
+                    while prefix_len < max_len and sanitized[prefix_len] == sanitized_sent[prefix_len]:
+                        prefix_len += 1
+                    delta_payload = sanitized[prefix_len:]
+                    sanitized_sent = sanitized
+                    return delta_payload
+                
+                # Process events from PersonaAgent
+                while True:
+                    try:
+                        event = await loop.run_in_executor(
+                            None,
+                            lambda: event_queue.get(timeout=0.1)
+                        )
+                    except queue.Empty:
+                        # Check if thread is still alive
+                        if not stream_thread.is_alive():
+                            # Drain remaining events
+                            try:
+                                while True:
+                                    event = event_queue.get_nowait()
+                                    if event is None:
+                                        break
+                                    # Process event
+                                    if isinstance(event, ContentDeltaEvent):
+                                        delta_payload = emit_sanitized_delta(event.delta)
+                                        if delta_payload:
+                                            yield f"data: {json.dumps({'type': 'delta', 'delta': delta_payload})}\n\n"
+                                    elif isinstance(event, SourcesEvent):
+                                        yield f"data: {json.dumps({'type': 'sources', 'sources': event.sources})}\n\n"
+                                    elif isinstance(event, CompleteEvent):
+                                        yield f"data: {json.dumps({'type': 'complete'})}\n\n"
+                                    elif isinstance(event, ThinkingEvent):
+                                        # Thinking events are typically not sent to frontend for SSE
+                                        pass
+                            except queue.Empty:
+                                pass
+                            if stream_error[0]:
+                                raise stream_error[0]
+                            break
+                        await asyncio.sleep(0.01)
+                        continue
+                    
+                    if event is None:
+                        # Stream complete
                         if stream_error[0]:
                             raise stream_error[0]
                         break
-                    await asyncio.sleep(0.01)
-                    continue
-                
-                if item is sentinel:
-                    if stream_error[0]:
-                        raise stream_error[0]
-                    break
-                
-                delta_payload = emit_sanitized_delta(item)
-                if delta_payload:
-                    yield f"data: {json.dumps({'type': 'delta', 'delta': delta_payload})}\n\n"
-            
-            # Wait for thread to complete
-            thread.join(timeout=1)
-            
-            # Try to get retrieval results if available (non-blocking)
-            try:
-                if retrieval_task.done():
-                    embedding, hits = retrieval_task.result()
-                    logger.info("chat.stream.retrieval.complete", hits_count=len(hits))
                     
-                    # Convert hits to source format
-                    sources = [
-                        {
-                            "chunk_id": str(hit.payload.get("chunk_id", "")),
-                            "document_id": str(hit.payload.get("document_id", "")),
-                            "title": hit.payload.get("title", "Research"),
-                            "confidence": float(hit.score) if hasattr(hit, "score") else 0.8,
-                            "excerpt": hit.payload.get("content", ""),
-                        }
-                        for hit in hits[:5]
-                        if hit.payload
-                    ]
+                    # Convert PersonaAgent events to SSE format
+                    if isinstance(event, ContentDeltaEvent):
+                        delta_payload = emit_sanitized_delta(event.delta)
+                        if delta_payload:
+                            yield f"data: {json.dumps({'type': 'delta', 'delta': delta_payload})}\n\n"
+                    elif isinstance(event, SourcesEvent):
+                        yield f"data: {json.dumps({'type': 'sources', 'sources': event.sources})}\n\n"
+                    elif isinstance(event, CompleteEvent):
+                        yield f"data: {json.dumps({'type': 'complete'})}\n\n"
+                    elif isinstance(event, ThinkingEvent):
+                        # Thinking events: send status if it's an error, otherwise ignore
+                        if hasattr(event, "status") and event.status and "error" in event.status.lower():
+                            # Convert error ThinkingEvent to error SSE
+                            error_msg = event.status.replace("Error generating response: ", "")
+                            yield f"data: {json.dumps({'type': 'error', 'error': error_msg})}\n\n"
+                        # Otherwise ignore thinking events
+                        pass
+                
+                # Wait for thread to complete
+                stream_thread.join(timeout=2)
+                logger.info("chat.stream.tools_complete", persona_id=request.persona_id)
+                
+            else:
+                # Legacy streaming: Direct Anthropic stream (backward compatibility)
+                logger.info("chat.stream.legacy_mode", persona_id=request.persona_id)
+                
+                # Start retrieval task in background (non-blocking)
+                retrieval_task = asyncio.create_task(
+                    asyncio.wait_for(
+                        loop.run_in_executor(
+                            None,
+                            lambda: get_retrieval_agent().run(query=retrieval_query, persona_segment=None)
+                        ),
+                        timeout=10.0
+                    )
+                )
+                
+                # Send empty sources immediately to unblock frontend
+                yield f"data: {json.dumps({'type': 'sources', 'sources': []})}\n\n"
+                
+                # Create stream using asyncio to bridge sync stream to async
+                import queue
+                import threading
+                
+                sentinel = object()
+                # Use container to avoid closure issues
+                queue_container = {"queue": queue.Queue()}
+                stream_error = [None]  # Use list to pass exception from thread
+                
+                def collect_stream_deltas():
+                    """Collect deltas from stream in a separate thread."""
+                    stream_queue = queue_container["queue"]
+                    try:
+                        # Wähle Modell basierend auf Inhalt (Bilder = Sonnet, sonst Haiku)
+                        selected_model = select_model_for_messages(anthropic_messages)
+                        
+                        # Debug: Log final messages format before sending to Claude
+                        has_images = any(
+                            isinstance(msg.get("content"), list) and 
+                            any(block.get("type") == "image" for block in msg.get("content", []))
+                            for msg in anthropic_messages
+                        )
+                        if has_images:
+                            logger.info("chat.anthropic.streaming_with_images",
+                                       messages_count=len(anthropic_messages),
+                                       model=selected_model)
+                        
+                        # Legacy mode: No tools (backward compatibility)
+                        with persona_agent._anthropic.messages.stream(
+                            model=selected_model,
+                            max_tokens=600,
+                            temperature=0.4,
+                            system=system_prompt,
+                            messages=anthropic_messages,
+                        ) as stream:
+                            for event in stream:
+                                if event.type == "content_block_delta":
+                                    delta_text = getattr(event.delta, "text", None)
+                                    if delta_text is None and isinstance(event.delta, dict):
+                                        delta_text = event.delta.get("text")
+                                    if delta_text:
+                                        stream_queue.put(delta_text)
+                    except Exception as e:
+                        logger.error("chat.stream.collect_failed", error=str(e), exc_info=True)
+                        stream_error[0] = e
+                    finally:
+                        # Signal completion
+                        stream_queue.put(sentinel)
+                
+                response_buffer = ""
+                sanitized_sent = ""
+
+                def emit_sanitized_delta(delta_text: str) -> str:
+                    nonlocal response_buffer, sanitized_sent
+                    response_buffer += delta_text
+                    sanitized = clean_response_text(response_buffer)
+                    max_len = min(len(sanitized), len(sanitized_sent))
+                    prefix_len = 0
+                    while prefix_len < max_len and sanitized[prefix_len] == sanitized_sent[prefix_len]:
+                        prefix_len += 1
+                    delta_payload = sanitized[prefix_len:]
+                    sanitized_sent = sanitized
+                    return delta_payload
+
+                # Start collecting in a thread (not executor, to keep it simple)
+                thread = threading.Thread(target=collect_stream_deltas, daemon=True)
+                thread.start()
+                
+                # Yield deltas from queue as they arrive
+                stream_data_queue = queue_container["queue"]
+                def get_item_with_timeout():
+                    """Get next queue item with timeout, returning None on timeout."""
+                    try:
+                        return stream_data_queue.get(timeout=0.1)
+                    except queue.Empty:
+                        return None
+                
+                while True:
+                    # Wait for next item with timeout (non-blocking)
+                    item = await loop.run_in_executor(None, get_item_with_timeout)
                     
-                    # Send sources if we have any
-                    if sources:
-                        yield f"data: {json.dumps({'type': 'sources', 'sources': sources})}\n\n"
-            except (asyncio.TimeoutError, asyncio.CancelledError, Exception) as e:
-                logger.warning("chat.stream.retrieval.skipped", error=str(e))
-                # Ignore retrieval errors - sources are optional
-            
-            # Send completion
-            yield f"data: {json.dumps({'type': 'complete'})}\n\n"
-            logger.info("chat.stream.persona_agent.complete")
+                    if item is None:
+                        # Timeout: check thread status
+                        if not thread.is_alive():
+                            # Drain any remaining items
+                            try:
+                                while True:
+                                    item = stream_data_queue.get_nowait()
+                                    if item is sentinel:
+                                        break
+                                    delta_payload = emit_sanitized_delta(item)
+                                    if delta_payload:
+                                        yield f"data: {json.dumps({'type': 'delta', 'delta': delta_payload})}\n\n"
+                            except queue.Empty:
+                                pass
+                            if stream_error[0]:
+                                raise stream_error[0]
+                            break
+                        await asyncio.sleep(0.01)
+                        continue
+                    
+                    if item is sentinel:
+                        if stream_error[0]:
+                            raise stream_error[0]
+                        break
+                    
+                    delta_payload = emit_sanitized_delta(item)
+                    if delta_payload:
+                        yield f"data: {json.dumps({'type': 'delta', 'delta': delta_payload})}\n\n"
+                
+                # Wait for thread to complete
+                thread.join(timeout=1)
+                
+                # Try to get retrieval results if available (non-blocking)
+                try:
+                    if retrieval_task.done():
+                        embedding, hits = retrieval_task.result()
+                        logger.info("chat.stream.retrieval.complete", hits_count=len(hits))
+                        
+                        # Convert hits to source format
+                        sources = [
+                            {
+                                "chunk_id": str(hit.payload.get("chunk_id", "")),
+                                "document_id": str(hit.payload.get("document_id", "")),
+                                "title": hit.payload.get("title", "Research"),
+                                "confidence": float(hit.score) if hasattr(hit, "score") else 0.8,
+                                "excerpt": hit.payload.get("content", ""),
+                            }
+                            for hit in hits[:5]
+                            if hit.payload
+                        ]
+                        
+                        # Send sources if we have any
+                        if sources:
+                            yield f"data: {json.dumps({'type': 'sources', 'sources': sources})}\n\n"
+                except (asyncio.TimeoutError, asyncio.CancelledError, Exception) as e:
+                    logger.warning("chat.stream.retrieval.skipped", error=str(e))
+                    # Ignore retrieval errors - sources are optional
+                
+                # Send completion
+                yield f"data: {json.dumps({'type': 'complete'})}\n\n"
+                logger.info("chat.stream.persona_agent.complete")
             
         except Exception as e:
             logger.error("chat.stream.error", error=str(e), exc_info=True)

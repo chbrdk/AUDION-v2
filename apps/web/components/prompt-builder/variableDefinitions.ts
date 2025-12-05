@@ -248,6 +248,30 @@ export const EXTENDED_VARIABLES: VariableDefinition[] = [
     example: "Urban Tech Professionals",
     requiresContext: ["target_group_id"],
   },
+  {
+    name: "knowledge.search.content",
+    syntax: "${knowledge:${query}.content}",
+    description: "Search knowledge base and return content of top results (newline-separated)",
+    category: "extended",
+    example: "Research findings about user behavior...",
+    requiresContext: ["query"],
+  },
+  {
+    name: "knowledge.search.results",
+    syntax: "${knowledge:${query}.results}",
+    description: "Search knowledge base and return structured JSON results with content, document_id, score",
+    category: "extended",
+    example: '[{"content": "...", "document_id": "...", "score": 0.85}]',
+    requiresContext: ["query"],
+  },
+  {
+    name: "knowledge.target_group.content",
+    syntax: "${knowledge:${target_group_id}.content}",
+    description: "Get all knowledge chunks for a target group (newline-separated content)",
+    category: "extended",
+    example: "All research findings for this target group...",
+    requiresContext: ["target_group_id"],
+  },
 ];
 
 export const getAllVariables = (): VariableDefinition[] => {

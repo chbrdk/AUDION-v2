@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import type { FieldDefinition } from "@udg-glass/types";
 import { TextField, MenuItem, Select, FormControl, InputLabel, Slider, Typography, Stack, Box, Checkbox } from "@mui/material";
 import { MaterialSymbol } from "../material-symbol";
+import { UdgGlassEditButton } from "./udg-glass-edit-button";
 import { useInlineEdit } from "../hooks/use-inline-edit";
 import { UdgGlassInlineEditControls } from "../udg-glass-inline-edit-controls";
 
@@ -14,6 +15,9 @@ export type UdgGlassFieldEditorProps = {
   onSave?: (key: string, value: any) => Promise<void>;
   inline?: boolean;
   disabled?: boolean;
+  onEditStart?: () => void;
+  onEditEnd?: () => void;
+  forceEditMode?: boolean;
 };
 
 /**
@@ -27,8 +31,19 @@ export const UdgGlassFieldEditor = ({
   onSave,
   inline = true,
   disabled = false,
+  onEditStart,
+  onEditEnd,
+  forceEditMode = false,
 }: UdgGlassFieldEditorProps) => {
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(forceEditMode);
+  
+  // Update editing state when forceEditMode changes
+  useEffect(() => {
+    if (forceEditMode) {
+      setEditing(true);
+      onEditStart?.();
+    }
+  }, [forceEditMode, onEditStart]);
   const fieldRef = useRef<HTMLDivElement>(null);
 
   const inlineEdit = useInlineEdit({
@@ -52,6 +67,7 @@ export const UdgGlassFieldEditor = ({
         await onSave(field.key, inlineEdit.getValue());
         onChange(field.key, inlineEdit.getValue());
         setEditing(false);
+        onEditEnd?.();
       } catch (error) {
         console.error(`Save failed for field ${field.key}:`, error);
         throw error;
@@ -59,13 +75,15 @@ export const UdgGlassFieldEditor = ({
     } else {
       onChange(field.key, inlineEdit.getValue());
       setEditing(false);
+      onEditEnd?.();
     }
-  }, [field.key, inlineEdit, onChange, onSave]);
+  }, [field.key, inlineEdit, onChange, onSave, onEditEnd]);
 
   const handleCancel = useCallback(() => {
     inlineEdit.reset();
     setEditing(false);
-  }, [inlineEdit]);
+    onEditEnd?.();
+  }, [inlineEdit, onEditEnd]);
 
   // Render field input based on type
   const renderFieldInput = () => {
@@ -242,26 +260,16 @@ export const UdgGlassFieldEditor = ({
             )}
           </Box>
           {!disabled && (
-            <Box
-              component="button"
+            <UdgGlassEditButton
               onClick={() => {
                 inlineEdit.sync();
                 setEditing(true);
+                onEditStart?.();
               }}
-              sx={{
-                cursor: "pointer",
-                opacity: 0.6,
-                "&:hover": { opacity: 1 },
-                border: "none",
-                background: "transparent",
-                padding: 0,
-                display: "flex",
-                alignItems: "center"
-              }}
-              aria-label="Edit field"
-            >
-              <MaterialSymbol icon="edit" fontSize={16} />
-            </Box>
+              aria-label={`Edit ${field.label}`}
+              size="small"
+              fontSize={16}
+            />
           )}
         </Box>
       );

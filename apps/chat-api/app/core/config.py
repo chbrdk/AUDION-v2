@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     otel_exporter_otlp_endpoint: str | None = None
     logfire_token: str | None = None
     openai_api_key: str | None = None
+    chat_use_tools: bool = True  # Enable tools/functions for chat (default: True)
 
 
 @lru_cache

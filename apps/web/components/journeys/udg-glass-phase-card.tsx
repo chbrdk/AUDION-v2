@@ -7,6 +7,7 @@ import type { JourneyResponse } from "../../app/api/_lib/journeys";
 import { MaterialSymbol } from "../material-symbol";
 import { UdgGlassAiFieldButton } from "../ai/udg-glass-ai-field-button";
 import { UdgGlassAiButton } from "../ai/udg-glass-ai-button";
+import { UdgGlassEditButton } from "../generic/udg-glass-edit-button";
 import { useAiAssist } from "../../hooks/use-ai-assist";
 
 type JourneyPhase = JourneyResponse["phases"][number];
@@ -541,16 +542,12 @@ export const UdgGlassJourneyPhaseCard = ({
           <h4 className="udg-glass-journey-phase__title">{phase.name}</h4>
         </div>
         <div style={{ display: "flex", gap: "0.5rem" }}>
-          <button
-            type="button"
-            className="udg-glass-button --ghost"
+          <UdgGlassEditButton
             onClick={handleStartEdit}
-            style={{ padding: "0.375rem" }}
-            title="Edit phase"
+            size="small"
+            fontSize={16}
             aria-label="Edit phase"
-          >
-            <MaterialSymbol icon="edit" fontSize={16} />
-          </button>
+          />
           {onDelete && (
             <button
               type="button"

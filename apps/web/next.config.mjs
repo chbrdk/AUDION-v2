@@ -4,12 +4,12 @@ const nextConfig = {
   experimental: {
     serverActions: {
       enabled: true
-    }
+    },
   },
   // Prevent static generation of error pages
   generateBuildId: async () => {
     return 'build-' + Date.now();
-  }
+  },
 };
 
 export default nextConfig;

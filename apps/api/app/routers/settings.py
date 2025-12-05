@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from datetime import datetime
+from typing import Any
 
 import structlog
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 from uuid import UUID
 
 from ..core.config import get_settings
@@ -96,14 +99,17 @@ def list_persona_prompts() -> list[dict]:
             )
             
             if prompt:
+                # Read metadata from database
+                metadata = prompt.template_metadata or {}
+                
                 prompts.append({
                     "template_id": f"persona-prompt-{persona.id}",
-                    "label": f"{persona.name} - System Prompt",
-                    "description": f"System prompt for persona: {persona.name}",
-                    "category": "Persona Prompts",
-                    "tags": ["persona", "chat", "system-prompt"],
-                    "default_provider": "anthropic",
-                    "default_model": "claude-3-5-haiku-20241022",
+                    "label": metadata.get("label") or f"{persona.name} - System Prompt",
+                    "description": metadata.get("description") or f"System prompt for persona: {persona.name}",
+                    "category": metadata.get("category") or "Persona Prompts",
+                    "tags": metadata.get("tags") or ["persona", "chat", "system-prompt"],
+                    "default_provider": metadata.get("default_provider") or "anthropic",
+                    "default_model": metadata.get("default_model") or "claude-3-5-haiku-20241022",
                     "persona_id": str(persona.id),
                     "persona_name": persona.name,
                 })
@@ -142,18 +148,36 @@ def get_persona_prompt(persona_id: str) -> AiTemplateDefinition:
                 detail=f"Prompt not found for persona: {persona_id}"
             )
         
+        # Read metadata from database - ensure fresh data
+        session.refresh(prompt)
+        metadata = prompt.template_metadata or {}
+        
+        logger.info(
+            "persona_prompt.get_metadata",
+            persona_id=str(persona_uuid),
+            metadata_keys=list(metadata.keys()) if metadata else [],
+            metadata=metadata,
+        )
+        
+        # Helper function to get value from metadata or use default
+        # Handles None, 0, False, empty strings correctly
+        def get_value(key: str, default: Any) -> Any:
+            if key in metadata and metadata[key] is not None:
+                return metadata[key]
+            return default
+        
         return AiTemplateDefinition(
             template_id=f"persona-prompt-{persona.id}",
-            label=f"{persona.name} - System Prompt",
-            description=f"System prompt for persona: {persona.name}",
-            category="Persona Prompts",
-            tags=["persona", "chat", "system-prompt"],
-            default_provider="anthropic",
-            default_model="claude-3-5-haiku-20241022",
-            temperature=0.4,
-            max_tokens=600,
+            label=get_value("label", f"{persona.name} - System Prompt"),
+            description=get_value("description", f"System prompt for persona: {persona.name}"),
+            category=get_value("category", "Persona Prompts"),
+            tags=get_value("tags", ["persona", "chat", "system-prompt"]),
+            default_provider=get_value("default_provider", "anthropic"),
+            default_model=get_value("default_model", "claude-3-5-haiku-20241022"),
+            temperature=get_value("temperature", 0.4),
+            max_tokens=get_value("max_tokens", 600),
             prompt=prompt.system_prompt,
-            output={"mode": "text"},
+            output=get_value("output", {"mode": "text"}),
             metadata={
                 "persona_id": str(persona.id),
                 "persona_name": persona.name,
@@ -190,33 +214,134 @@ def update_persona_prompt(persona_id: str, payload: AiTemplateUpdateRequest) -> 
         
         if not prompt:
             # Create new prompt if it doesn't exist
+            template_metadata = {}
+            if payload.label is not None:
+                template_metadata["label"] = payload.label
+            if payload.description is not None:
+                template_metadata["description"] = payload.description
+            if payload.category is not None:
+                template_metadata["category"] = payload.category
+            if payload.tags is not None:
+                template_metadata["tags"] = payload.tags
+            if payload.default_provider is not None:
+                # Convert Enum to string for JSON serialization
+                template_metadata["default_provider"] = payload.default_provider.value if hasattr(payload.default_provider, "value") else str(payload.default_provider)
+            if payload.default_model is not None:
+                template_metadata["default_model"] = payload.default_model
+            if payload.temperature is not None:
+                template_metadata["temperature"] = payload.temperature
+            if payload.max_tokens is not None:
+                template_metadata["max_tokens"] = payload.max_tokens
+            if payload.output is not None:
+                # Convert Pydantic model to dict for JSON serialization
+                if hasattr(payload.output, "model_dump"):
+                    template_metadata["output"] = payload.output.model_dump()
+                elif hasattr(payload.output, "dict"):
+                    template_metadata["output"] = payload.output.dict()
+                else:
+                    template_metadata["output"] = dict(payload.output)
+            
             prompt = PersonaPrompt(
                 persona_id=persona_uuid,
                 system_prompt=payload.prompt or "",
                 template_version="2025-01-18",
-                created_at=datetime.utcnow()
+                created_at=datetime.utcnow(),
+                template_metadata=template_metadata if template_metadata else None
             )
             session.add(prompt)
+            logger.info(
+                "persona_prompt.create_new",
+                persona_id=str(persona_uuid),
+                metadata_keys=list(template_metadata.keys()),
+                template_metadata=template_metadata,
+            )
         else:
             # Update existing prompt
             if payload.prompt is not None:
                 prompt.system_prompt = payload.prompt
+            
+            # Update metadata - CRITICAL: Create new dict and flag as modified for SQLAlchemy
+            existing_metadata = deepcopy(prompt.template_metadata) if prompt.template_metadata else {}
+            
+            if payload.label is not None:
+                existing_metadata["label"] = payload.label
+            if payload.description is not None:
+                existing_metadata["description"] = payload.description
+            if payload.category is not None:
+                existing_metadata["category"] = payload.category
+            if payload.tags is not None:
+                existing_metadata["tags"] = payload.tags
+            if payload.default_provider is not None:
+                # Convert Enum to string for JSON serialization
+                existing_metadata["default_provider"] = payload.default_provider.value if hasattr(payload.default_provider, "value") else str(payload.default_provider)
+            if payload.default_model is not None:
+                existing_metadata["default_model"] = payload.default_model
+            if payload.temperature is not None:
+                existing_metadata["temperature"] = payload.temperature
+            if payload.max_tokens is not None:
+                existing_metadata["max_tokens"] = payload.max_tokens
+            if payload.output is not None:
+                # Convert Pydantic model to dict for JSON serialization
+                if hasattr(payload.output, "model_dump"):
+                    existing_metadata["output"] = payload.output.model_dump()
+                elif hasattr(payload.output, "dict"):
+                    existing_metadata["output"] = payload.output.dict()
+                else:
+                    existing_metadata["output"] = dict(payload.output)
+            
+            # Always assign metadata dict (even if empty) and flag as modified
+            prompt.template_metadata = existing_metadata
+            flag_modified(prompt, "template_metadata")
+            
+            # Debug logging
+            logger.info(
+                "persona_prompt.update_metadata",
+                persona_id=str(persona_uuid),
+                metadata_keys=list(existing_metadata.keys()),
+                max_tokens=existing_metadata.get("max_tokens"),
+                metadata_dict=existing_metadata,
+            )
         
+        # Flush and commit changes
+        session.flush()  # Flush before commit to ensure all changes are staged
         session.commit()
         session.refresh(prompt)
         
+        # Verify the data was saved by reloading from database
+        session.expire(prompt)
+        session.refresh(prompt)
+        logger.info(
+            "persona_prompt.after_commit",
+            persona_id=str(persona_uuid),
+            saved_metadata=prompt.template_metadata,
+            metadata_type=type(prompt.template_metadata).__name__,
+        )
+        
+        # Read metadata from database
+        metadata = prompt.template_metadata or {}
+        
+        # Helper function to get value with proper priority: metadata > payload > default
+        # Handles None, 0, False, empty strings correctly
+        def get_value(key: str, default: Any) -> Any:
+            if key in metadata and metadata[key] is not None:
+                return metadata[key]
+            payload_val = getattr(payload, key, None)
+            if payload_val is not None:
+                return payload_val
+            return default
+        
         return AiTemplateDefinition(
             template_id=f"persona-prompt-{persona.id}",
-            label=payload.label or f"{persona.name} - System Prompt",
-            description=payload.description or f"System prompt for persona: {persona.name}",
-            category=payload.category or "Persona Prompts",
-            tags=payload.tags or ["persona", "chat", "system-prompt"],
-            default_provider=payload.default_provider or "anthropic",
-            default_model=payload.default_model or "claude-3-5-haiku-20241022",
-            temperature=payload.temperature or 0.4,
-            max_tokens=payload.max_tokens or 600,
+            label=get_value("label", f"{persona.name} - System Prompt"),
+            description=get_value("description", f"System prompt for persona: {persona.name}"),
+            category=get_value("category", "Persona Prompts"),
+            tags=get_value("tags", ["persona", "chat", "system-prompt"]),
+            default_provider=get_value("default_provider", "anthropic"),
+            default_model=get_value("default_model", "claude-3-5-haiku-20241022"),
+            temperature=get_value("temperature", 0.4),
+            max_tokens=get_value("max_tokens", 600),
             prompt=prompt.system_prompt,
-            output=payload.output or {"mode": "text"},
+            output=get_value("output", {"mode": "text"}),
             metadata={
                 "persona_id": str(persona.id),
                 "persona_name": persona.name,

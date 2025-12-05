@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { useState, createContext, useContext, useEffect } from "react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Box, Divider, IconButton, Typography } from "@mui/material";
+import { Box, Divider, IconButton, Typography, useTheme } from "@mui/material";
 import { BRAND_LOGO } from "../../lib/branding";
 import { useThemeMode } from "../theme-registry";
 import { MaterialSymbol } from "../material-symbol";
@@ -40,6 +40,41 @@ export const AdminHeaderProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
+// Context für Panel-State (Mobile Off-Canvas)
+const defaultPanelContext: {
+  panelOpen: boolean;
+  setPanelOpen: (open: boolean) => void;
+  togglePanel: () => void;
+} = {
+  panelOpen: false,
+  setPanelOpen: () => {},
+  togglePanel: () => {}
+};
+
+const AdminPanelContext = createContext<{
+  panelOpen: boolean;
+  setPanelOpen: (open: boolean) => void;
+  togglePanel: () => void;
+}>(defaultPanelContext);
+
+export const useAdminPanel = () => {
+  return useContext(AdminPanelContext);
+};
+
+export const AdminPanelProvider = ({ children }: { children: ReactNode }) => {
+  const [panelOpen, setPanelOpen] = useState(false);
+
+  const togglePanel = () => {
+    setPanelOpen((prev) => !prev);
+  };
+
+  return (
+    <AdminPanelContext.Provider value={{ panelOpen, setPanelOpen, togglePanel }}>
+      {children}
+    </AdminPanelContext.Provider>
+  );
+};
+
 export type UdgGlassAdminLayoutClientProps = {
   children: ReactNode;
   title?: string;
@@ -47,11 +82,14 @@ export type UdgGlassAdminLayoutClientProps = {
 };
 
 export const UdgGlassAdminLayoutClient = ({ children, title, subtitle }: UdgGlassAdminLayoutClientProps) => {
-  const [drawerOpen, setDrawerOpen] = useState(true); // Default open on desktop
+  const [drawerOpen, setDrawerOpen] = useState(false); // Default open on desktop
   const pathname = usePathname();
+  const theme = useTheme();
   const { themeMode, toggleTheme } = useThemeMode();
   // Get headerContent from context - safe for SSR with default value
   const { headerContent } = useAdminHeader();
+  // Get panel state from context
+  const { panelOpen, togglePanel, setPanelOpen } = useAdminPanel();
 
   const handleDrawerToggle = () => {
     setDrawerOpen((prev) => !prev);
@@ -59,6 +97,10 @@ export const UdgGlassAdminLayoutClient = ({ children, title, subtitle }: UdgGlas
 
   const handleDrawerClose = () => {
     setDrawerOpen(false);
+  };
+
+  const handlePanelClose = () => {
+    setPanelOpen(false);
   };
 
   // Get page title from pathname
@@ -88,6 +130,38 @@ export const UdgGlassAdminLayoutClient = ({ children, title, subtitle }: UdgGlas
     }
 
     return "";
+  };
+
+  // Get page icon from pathname (matching navigation items)
+  const getPageIcon = () => {
+    if (!pathname) return "toc";
+    
+    const iconMap: Record<string, string> = {
+      "/admin": "dashboard",
+      "/admin/personas": "person",
+      "/admin/target-groups": "groups",
+      "/admin/journeys": "route",
+      "/admin/queue": "view_list",
+      "/admin/chat": "forum",
+      "/admin/chat/history": "history",
+      "/admin/settings": "settings",
+    };
+
+    // Check exact match first (e.g., /admin/chat/history)
+    if (iconMap[pathname]) {
+      return iconMap[pathname];
+    }
+
+    // Check if pathname starts with any key (in order of specificity)
+    const sortedPaths = Object.keys(iconMap).sort((a, b) => b.length - a.length);
+    for (const path of sortedPaths) {
+      if (pathname.startsWith(path) && path !== "/admin") {
+        return iconMap[path];
+      }
+    }
+
+    // Default fallback
+    return "toc";
   };
 
   return (
@@ -122,17 +196,17 @@ export const UdgGlassAdminLayoutClient = ({ children, title, subtitle }: UdgGlas
           minHeight: "100vh",
           position: "relative",
           border: "10px solid var(--audion-light-border-color, #0f172a)",
-          borderLeft: 0,
+          borderLeft: { xs: "10px solid var(--audion-light-border-color, #0f172a)", md: 0 },
           borderRadius: "40px",
           backgroundColor: "var(--color-neutral)",
           backgroundImage: themeMode === "dark"
             ? `
-              linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px)
+              linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px)
             `
             : `
-              linear-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(15, 23, 42, 0.04) 1px, transparent 1px)
+              linear-gradient(rgba(15, 23, 42, 0.03) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(15, 23, 42, 0.03) 1px, transparent 1px)
             `,
           backgroundSize: "20px 20px",
           backgroundAttachment: "fixed",
@@ -168,7 +242,7 @@ export const UdgGlassAdminLayoutClient = ({ children, title, subtitle }: UdgGlas
             sx={{
               position: "absolute",
               top: "-2px",
-              left: "-3px",
+              left: { xs: "-203px", md: "-3px" }, // Move -200px left on mobile
               width: "363px",
               height: "135px",
               zIndex: -1,
@@ -196,16 +270,53 @@ export const UdgGlassAdminLayoutClient = ({ children, title, subtitle }: UdgGlas
               />
             </svg>
           </Box>
-          {/* Left: Logo - positioned absolutely over sidebar */}
+          {/* Duplicated SVG for mobile - 60px further right with different fill color */}
+          <Box
+            className="udg-glass-admin-header-corner-duplicate"
+            sx={{
+              position: "absolute",
+              top: "-2px",
+              left: { xs: "-120px", md: "-9999px" }, // 10px further left on mobile, hidden on desktop
+              width: "363px",
+              height: "135px",
+              zIndex: -1,
+              pointerEvents: "none",
+              overflow: "visible",
+              display: { xs: "block", md: "none" }
+            }}
+          >
+            <svg
+              width="363"
+              height="135"
+              viewBox="0 0 363 135"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              style={{
+                width: "100%",
+                height: "100%"
+              }}
+            >
+              <path
+                d="M3 120V134.5H0V0H362.5V2H328.5C306.961 2 289.5 19.4609 289.5 41C289.5 62.5391 272.039 80 250.5 80H43C20.9086 80 3 97.9086 3 120Z"
+                fill="var(--color-theme-accent, #b638ff)"
+                style={{
+                  transition: "fill 0.3s ease",
+                  opacity: 0.6
+                }}
+              />
+            </svg>
+          </Box>
+          {/* Logo - left on desktop, right on mobile */}
           <Box
             sx={{
               position: "absolute",
               top: "22px",
-              left: "-38px",
+              left: { xs: "auto", md: "-40px" },
+              right: { xs: "22px", md: "auto" },
               zIndex: 1200,
               display: "flex",
               alignItems: "flex-start",
-              gap: { xs: 1, md: 1.75 }
+              gap: { xs: 1, md: "14px" }
             }}
           >
             <Image
@@ -218,7 +329,7 @@ export const UdgGlassAdminLayoutClient = ({ children, title, subtitle }: UdgGlas
                 height: "auto",
                 width: "auto",
                 maxWidth: "140px",
-                filter: themeMode === "dark" ? "invert(0)" : "none"
+                filter: "none"
               }}
             />
 
@@ -273,25 +384,70 @@ export const UdgGlassAdminLayoutClient = ({ children, title, subtitle }: UdgGlas
                   marginTop: "-15px",
                   letterSpacing: "-2px",
                   color: "var(--color-text-primary)",
-                  textShadow: "4px 4px 0 var(--color-theme-accent)",
                   display: { xs: "none", md: "block" }
                 }}
               >
                 {getPageTitle()}
               </Typography>
             ) : null}
-            {/* Hamburger only visible on mobile when drawer is closed */}
+          </Box>
+          {/* Left: Hamburger button - positioned left on mobile */}
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: { xs: "0.5rem", md: 0 },
+              position: { xs: "absolute", md: "static" },
+              left: { xs: "1rem", md: "auto" },
+              top: { xs: "7px", md: "auto" },
+              zIndex: 1201
+            }}
+          >
+            {/* Hamburger button - positioned left on mobile */}
             <IconButton
               onClick={handleDrawerToggle}
               sx={{
-                color: "var(--color-text-primary)",
-                padding: "8px",
-                display: { xs: drawerOpen ? "none" : "flex", md: "none" }
+                color: (theme) => theme.palette.mode === "dark" ? "#000000" : "var(--color-text-primary)",
+                padding: { xs: "16px", md: "8px" },
+                display: { xs: drawerOpen ? "none" : "flex", md: "none" },
+                width: { xs: "64px", md: "auto" },
+                height: { xs: "64px", md: "auto" }
               }}
               aria-label="Toggle navigation"
             >
-              <MaterialSymbol icon="menu" fontSize={24} />
+              <MaterialSymbol icon="menu" fontSize={{ xs: 48, md: 32 }} />
             </IconButton>
+          </Box>
+          
+          {/* Panel toggle button - only on mobile, positioned over the duplicated SVG */}
+          <Box
+            onClick={togglePanel}
+            sx={{
+              display: { xs: drawerOpen ? "none" : "flex", md: "none" },
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: "0 30px 30px 0",
+              cursor: "pointer",
+              minWidth: "90px",
+              minHeight: "40px",
+              position: "absolute",
+              left: { xs: "80px", md: "-9999px" },
+              top: { xs: "20px", md: "66px" },
+              zIndex: 1202, // Above the SVG (which has zIndex: -1)
+              transition: "opacity 0.2s ease",
+              "&:hover": {
+                opacity: 0.9
+              }
+            }}
+            aria-label="Toggle panel"
+          >
+            <MaterialSymbol 
+              icon={getPageIcon()} 
+              fontSize={{ xs: 32, md: 32 }}
+              style={{ 
+                color: theme.palette.mode === "dark" ? "#ffffff" : "#000000"
+              }}
+            />
           </Box>
         </Box>
 
@@ -330,7 +486,7 @@ export const UdgGlassAdminLayoutClient = ({ children, title, subtitle }: UdgGlas
         </Box>
       </Box>
 
-      {/* Mobile Overlay */}
+      {/* Mobile Overlay for Navigation */}
       {drawerOpen && (
         <Box
           onClick={handleDrawerClose}
@@ -339,6 +495,20 @@ export const UdgGlassAdminLayoutClient = ({ children, title, subtitle }: UdgGlas
             inset: 0,
             backgroundColor: "rgba(0, 0, 0, 0.5)",
             zIndex: 1099,
+            display: { xs: "block", md: "none" }
+          }}
+        />
+      )}
+
+      {/* Mobile Overlay for Panel */}
+      {panelOpen && (
+        <Box
+          onClick={handlePanelClose}
+          sx={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            zIndex: 1198,
             display: { xs: "block", md: "none" }
           }}
         />

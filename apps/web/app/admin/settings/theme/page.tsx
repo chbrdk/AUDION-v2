@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { MaterialSymbol } from "../../../../components/material-symbol";
+import { useThemeMode } from "../../../../components/theme-registry";
 
 // Helper function to determine if a color is light (needs dark text)
 const isLightColor = (hex: string): boolean => {
@@ -90,6 +91,7 @@ const SIDEBAR_COLOR_OPTIONS = [
 ];
 
 export default function ThemeSettingsPage() {
+  const { themeMode } = useThemeMode();
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [mounted, setMounted] = useState(false);
 
@@ -108,8 +110,8 @@ export default function ThemeSettingsPage() {
       document.documentElement.style.setProperty("--audion-light-border-color", resolvedColor);
       document.documentElement.style.setProperty("--audion-light-html-background-color", resolvedColor);
       
-      const option = SIDEBAR_COLOR_OPTIONS.find(opt => opt.varName === colorVar);
-      const textColor = option?.textColor || "#ffffff";
+      // In light theme, always use black text for sidebar
+      const textColor = themeMode === "light" ? "#000000" : (SIDEBAR_COLOR_OPTIONS.find(opt => opt.varName === colorVar)?.textColor || "#ffffff");
       document.documentElement.style.setProperty("--audion-sidebar-text-color", textColor);
       
       // Set theme accent color
@@ -122,6 +124,18 @@ export default function ThemeSettingsPage() {
     
     setMounted(true);
   }, []);
+
+  // Update text color when theme mode changes
+  useEffect(() => {
+    if (!mounted) return;
+    
+    const saved = localStorage.getItem("audion-sidebar-color");
+    const colorVar = saved || "--color-secondary-dx-purple";
+    
+    // In light theme, always use black text for sidebar
+    const textColor = themeMode === "light" ? "#000000" : (SIDEBAR_COLOR_OPTIONS.find(opt => opt.varName === colorVar)?.textColor || "#ffffff");
+    document.documentElement.style.setProperty("--audion-sidebar-text-color", textColor);
+  }, [themeMode, mounted]);
 
   const handleColorSelect = (varName: string) => {
     setSelectedColor(varName);
@@ -136,9 +150,8 @@ export default function ThemeSettingsPage() {
       document.documentElement.style.setProperty("--audion-light-border-color", resolvedColor);
       document.documentElement.style.setProperty("--audion-light-html-background-color", resolvedColor);
       
-      // Set text color based on selected color
-      const option = SIDEBAR_COLOR_OPTIONS.find(opt => opt.varName === varName);
-      const textColor = option?.textColor || "#ffffff";
+        // In light theme, always use black text for sidebar
+        const textColor = themeMode === "light" ? "#000000" : (SIDEBAR_COLOR_OPTIONS.find(opt => opt.varName === varName)?.textColor || "#ffffff");
       document.documentElement.style.setProperty("--audion-sidebar-text-color", textColor);
       
       // Set theme accent color (used for borders, accents, etc.)

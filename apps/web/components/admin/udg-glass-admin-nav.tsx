@@ -70,7 +70,7 @@ export const UdgGlassAdminNav = ({ open, onClose, currentPath, themeMode, onTogg
   // On desktop, use the expanded state
   // Use mounted check to ensure SSR consistency - default to false (collapsed) on server
   const isExpanded = mounted && isMobile ? open : (mounted ? expanded : false);
-  const sidebarWidth = isExpanded ? { xs: "240px", md: "240px" } : { xs: "240px", md: "64px" };
+  const sidebarWidth = isExpanded ? { xs: "95%", md: "240px" } : { xs: "95%", md: "64px" };
 
   return (
     <>
@@ -101,6 +101,34 @@ export const UdgGlassAdminNav = ({ open, onClose, currentPath, themeMode, onTogg
             padding: isExpanded ? "0.75rem 0.5rem" : "0.75rem 0"
           }}
       >
+        {/* Close Button - Top Right (mobile only) */}
+        {mounted && isMobile && (
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "flex-end",
+              padding: "0.5rem",
+              paddingTop: "1rem"
+            }}
+          >
+            <IconButton
+              onClick={onClose}
+              sx={{
+                color: "var(--audion-sidebar-text-color, rgba(255, 255, 255, 0.9))",
+                padding: { xs: "1.5rem", md: "0.5rem" },
+                width: { xs: "96px", md: "40px" },
+                height: { xs: "96px", md: "40px" },
+                "&:hover": {
+                  backgroundColor: "rgba(255, 255, 255, 0.1)"
+                },
+                transition: "all 0.2s ease"
+              }}
+              aria-label="Close navigation"
+            >
+              <MaterialSymbol icon="close" fontSize={{ xs: 56, md: 20 }} />
+            </IconButton>
+          </Box>
+        )}
         {/* Navigation Items */}
         <List
           sx={{
@@ -128,9 +156,9 @@ export const UdgGlassAdminNav = ({ open, onClose, currentPath, themeMode, onTogg
               onClick={handleToggleExpand}
               sx={{
                 color: "var(--audion-sidebar-text-color, rgba(255, 255, 255, 0.9))",
-                padding: "0.5rem",
-                width: isExpanded ? "calc(100% - 0.5rem)" : "40px",
-                height: "40px",
+                padding: { xs: "1rem", md: "0.5rem" },
+                width: isExpanded ? "calc(100% - 0.5rem)" : { xs: "60px", md: "40px" },
+                height: { xs: "60px", md: "40px" },
                 display: "flex",
                 alignItems: "center",
                 justifyContent: isExpanded ? "flex-start" : "center",
@@ -144,14 +172,14 @@ export const UdgGlassAdminNav = ({ open, onClose, currentPath, themeMode, onTogg
             >
               <MaterialSymbol 
                 icon={isExpanded ? "menu_open" : "menu"} 
-                fontSize={20} 
-                style={{ marginRight: isExpanded ? "0.75rem" : 0 }}
+                fontSize={{ xs: 28, md: 20 }} 
+                style={{ marginRight: isExpanded ? (isMobile ? "1rem" : "0.75rem") : 0 }}
               />
               {isExpanded && (
                 <Typography
                   variant="body2"
                   sx={{
-                    fontSize: "0.8125rem",
+                    fontSize: { xs: "1.125rem", md: "0.8125rem" },
                     color: "inherit",
                     whiteSpace: "nowrap"
                   }}
@@ -172,12 +200,12 @@ export const UdgGlassAdminNav = ({ open, onClose, currentPath, themeMode, onTogg
                   className={clsx("udg-glass-admin-nav-item", active && "--active")}
                   suppressHydrationWarning
                   sx={{
-                    padding: isExpanded ? "0.5rem 1rem" : "0.5rem",
+                    padding: isExpanded ? { xs: "1rem 1.5rem", md: "0.5rem 1rem" } : { xs: "1rem", md: "0.5rem" },
                     margin: 0,
                     borderRadius: "8px",
                     minWidth: "auto",
-                    width: isExpanded ? "calc(100% - 0.5rem)" : "40px",
-                    height: "40px",
+                    width: isExpanded ? "calc(100% - 0.5rem)" : { xs: "60px", md: "40px" },
+                    height: { xs: "60px", md: "40px" },
                     display: "flex",
                     alignItems: "center",
                     justifyContent: isExpanded ? "flex-start" : "center",
@@ -196,15 +224,15 @@ export const UdgGlassAdminNav = ({ open, onClose, currentPath, themeMode, onTogg
                 >
                   <MaterialSymbol 
                     icon={item.icon} 
-                    fontSize={20} 
-                    style={{ marginRight: isExpanded ? "0.75rem" : 0 }}
+                    fontSize={{ xs: 28, md: 20 }} 
+                    style={{ marginRight: isExpanded ? (isMobile ? "1rem" : "0.75rem") : 0 }}
                   />
                   {isExpanded && (
                     <Typography
                       variant="body2"
                       sx={{
                         fontWeight: active ? 600 : 400,
-                        fontSize: "0.8125rem",
+                        fontSize: { xs: "1.125rem", md: "0.8125rem" },
                         color: "inherit",
                         whiteSpace: "nowrap",
                         overflow: "hidden",
@@ -239,12 +267,12 @@ export const UdgGlassAdminNav = ({ open, onClose, currentPath, themeMode, onTogg
                 rel={item.external ? "noreferrer" : undefined}
                 onClick={handleItemClick}
                 sx={{
-                  padding: isExpanded ? "0.5rem 1rem" : "0.5rem",
+                  padding: isExpanded ? { xs: "1rem 1.5rem", md: "0.5rem 1rem" } : { xs: "1rem", md: "0.5rem" },
                   margin: 0,
                   borderRadius: "8px",
                   minWidth: "auto",
-                  width: isExpanded ? "calc(100% - 0.5rem)" : "40px",
-                  height: "40px",
+                  width: isExpanded ? "calc(100% - 0.5rem)" : { xs: "60px", md: "40px" },
+                  height: { xs: "60px", md: "40px" },
                   display: "flex",
                   alignItems: "center",
                   justifyContent: isExpanded ? "flex-start" : "center",
@@ -260,14 +288,14 @@ export const UdgGlassAdminNav = ({ open, onClose, currentPath, themeMode, onTogg
               >
                 <MaterialSymbol 
                   icon={item.icon} 
-                  fontSize={20} 
-                  style={{ marginRight: isExpanded ? "0.75rem" : 0 }}
+                  fontSize={{ xs: 28, md: 20 }} 
+                  style={{ marginRight: isExpanded ? (isMobile ? "1rem" : "0.75rem") : 0 }}
                 />
                 {isExpanded && (
                   <Typography 
                     variant="body2" 
                     sx={{ 
-                      fontSize: "0.8125rem",
+                      fontSize: { xs: "1.125rem", md: "0.8125rem" },
                       color: "inherit",
                       whiteSpace: "nowrap",
                       overflow: "hidden",
@@ -297,9 +325,9 @@ export const UdgGlassAdminNav = ({ open, onClose, currentPath, themeMode, onTogg
               onClick={onToggleTheme}
               sx={{
                 color: "var(--audion-sidebar-text-color, rgba(255, 255, 255, 0.9))",
-                padding: "0.5rem",
-                width: isExpanded ? "calc(100% - 0.5rem)" : "40px",
-                height: "40px",
+                padding: { xs: "1rem", md: "0.5rem" },
+                width: isExpanded ? "calc(100% - 0.5rem)" : { xs: "60px", md: "40px" },
+                height: { xs: "60px", md: "40px" },
                 display: "flex",
                 alignItems: "center",
                 justifyContent: isExpanded ? "flex-start" : "center",
@@ -313,14 +341,14 @@ export const UdgGlassAdminNav = ({ open, onClose, currentPath, themeMode, onTogg
             >
               <MaterialSymbol 
                 icon={themeMode === "dark" ? "light_mode" : "dark_mode"} 
-                fontSize={20} 
-                style={{ marginRight: isExpanded ? "0.75rem" : 0 }}
+                fontSize={{ xs: 28, md: 20 }} 
+                style={{ marginRight: isExpanded ? (isMobile ? "1rem" : "0.75rem") : 0 }}
               />
               {isExpanded && (
                 <Typography
                   variant="body2"
                   sx={{
-                    fontSize: "0.8125rem",
+                    fontSize: { xs: "1.125rem", md: "0.8125rem" },
                     color: "inherit",
                     whiteSpace: "nowrap"
                   }}

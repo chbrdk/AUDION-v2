@@ -71,7 +71,7 @@ const lightTheme = createTheme({
     mode: "light",
     primary: { main: "#000000", light: "#333333", dark: "#000000" },
     secondary: { main: "#000000" },
-    background: { default: "#F8F6F0", paper: "#FFFFFF" },
+    background: { default: "transparent", paper: "#FFFFFF" },
     text: {
       primary: "#000000",
       secondary: "#000000",
@@ -84,8 +84,105 @@ const lightTheme = createTheme({
       color: "#000000",
       fontWeight: 300
     },
-    body1: { lineHeight: 1.5 },
-    body2: { lineHeight: 1.5 }
+    h1: {
+      fontSize: "2rem",
+      fontWeight: 600,
+      lineHeight: 1.2,
+      "@media (max-width: 959px)": {
+        fontSize: "1.75rem",
+        fontWeight: 600,
+        lineHeight: 1.25
+      }
+    },
+    h2: {
+      fontSize: "1.75rem",
+      fontWeight: 600,
+      lineHeight: 1.3,
+      "@media (max-width: 959px)": {
+        fontSize: "1.5rem",
+        fontWeight: 600,
+        lineHeight: 1.3
+      }
+    },
+    h3: {
+      fontSize: "1.5rem",
+      fontWeight: 600,
+      lineHeight: 1.35,
+      "@media (max-width: 959px)": {
+        fontSize: "1.25rem",
+        fontWeight: 600,
+        lineHeight: 1.35
+      }
+    },
+    h4: {
+      fontSize: "1.25rem",
+      fontWeight: 600,
+      lineHeight: 1.4,
+      "@media (max-width: 959px)": {
+        fontSize: "1.125rem",
+        fontWeight: 600,
+        lineHeight: 1.4
+      }
+    },
+    h5: {
+      fontSize: "1.125rem",
+      fontWeight: 500,
+      lineHeight: 1.4,
+      "@media (max-width: 959px)": {
+        fontSize: "1rem",
+        fontWeight: 500,
+        lineHeight: 1.4
+      }
+    },
+    h6: {
+      fontSize: "1rem",
+      fontWeight: 500,
+      lineHeight: 1.4,
+      "@media (max-width: 959px)": {
+        fontSize: "0.9375rem",
+        fontWeight: 500,
+        lineHeight: 1.4
+      }
+    },
+    body1: { 
+      fontSize: "1rem",
+      lineHeight: 1.6,
+      fontWeight: 400,
+      "@media (max-width: 959px)": {
+        fontSize: "0.9375rem",
+        lineHeight: 1.6,
+        fontWeight: 400
+      }
+    },
+    body2: { 
+      fontSize: "0.875rem",
+      lineHeight: 1.5,
+      fontWeight: 400,
+      "@media (max-width: 959px)": {
+        fontSize: "0.8125rem",
+        lineHeight: 1.5,
+        fontWeight: 400
+      }
+    },
+    button: {
+      fontSize: "0.875rem",
+      fontWeight: 600,
+      lineHeight: 1.5,
+      textTransform: "none",
+      "@media (max-width: 959px)": {
+        fontSize: "0.8125rem",
+        fontWeight: 600
+      }
+    },
+    caption: {
+      fontSize: "0.75rem",
+      lineHeight: 1.4,
+      fontWeight: 400,
+      "@media (max-width: 959px)": {
+        fontSize: "0.6875rem",
+        lineHeight: 1.4
+      }
+    }
   },
   shape: {
     borderRadius: 12
@@ -111,8 +208,105 @@ const darkTheme = createTheme({
       color: "#FFFFFF",
       fontWeight: 300
     },
-    body1: { lineHeight: 1.5 },
-    body2: { lineHeight: 1.5 }
+    h1: {
+      fontSize: "2rem",
+      fontWeight: 600,
+      lineHeight: 1.2,
+      "@media (max-width: 959px)": {
+        fontSize: "1.75rem",
+        fontWeight: 600,
+        lineHeight: 1.25
+      }
+    },
+    h2: {
+      fontSize: "1.75rem",
+      fontWeight: 600,
+      lineHeight: 1.3,
+      "@media (max-width: 959px)": {
+        fontSize: "1.5rem",
+        fontWeight: 600,
+        lineHeight: 1.3
+      }
+    },
+    h3: {
+      fontSize: "1.5rem",
+      fontWeight: 600,
+      lineHeight: 1.35,
+      "@media (max-width: 959px)": {
+        fontSize: "1.25rem",
+        fontWeight: 600,
+        lineHeight: 1.35
+      }
+    },
+    h4: {
+      fontSize: "1.25rem",
+      fontWeight: 600,
+      lineHeight: 1.4,
+      "@media (max-width: 959px)": {
+        fontSize: "1.125rem",
+        fontWeight: 600,
+        lineHeight: 1.4
+      }
+    },
+    h5: {
+      fontSize: "1.125rem",
+      fontWeight: 500,
+      lineHeight: 1.4,
+      "@media (max-width: 959px)": {
+        fontSize: "1rem",
+        fontWeight: 500,
+        lineHeight: 1.4
+      }
+    },
+    h6: {
+      fontSize: "1rem",
+      fontWeight: 500,
+      lineHeight: 1.4,
+      "@media (max-width: 959px)": {
+        fontSize: "0.9375rem",
+        fontWeight: 500,
+        lineHeight: 1.4
+      }
+    },
+    body1: { 
+      fontSize: "1rem",
+      lineHeight: 1.6,
+      fontWeight: 400,
+      "@media (max-width: 959px)": {
+        fontSize: "0.9375rem",
+        lineHeight: 1.6,
+        fontWeight: 400
+      }
+    },
+    body2: { 
+      fontSize: "0.875rem",
+      lineHeight: 1.5,
+      fontWeight: 400,
+      "@media (max-width: 959px)": {
+        fontSize: "0.8125rem",
+        lineHeight: 1.5,
+        fontWeight: 400
+      }
+    },
+    button: {
+      fontSize: "0.875rem",
+      fontWeight: 600,
+      lineHeight: 1.5,
+      textTransform: "none",
+      "@media (max-width: 959px)": {
+        fontSize: "0.8125rem",
+        fontWeight: 600
+      }
+    },
+    caption: {
+      fontSize: "0.75rem",
+      lineHeight: 1.4,
+      fontWeight: 400,
+      "@media (max-width: 959px)": {
+        fontSize: "0.6875rem",
+        lineHeight: 1.4
+      }
+    }
   },
   shape: {
     borderRadius: 12
@@ -150,10 +344,9 @@ export const ThemeRegistry = ({ children }: { children: ReactNode }) => {
     }
 
     if (themeMode === "light") {
-      // Load saved preference or use random
+      // Load saved preference or use default (no random to avoid hydration mismatch)
       const savedColorVar = localStorage.getItem("audion-sidebar-color");
-      const selectedVar = savedColorVar || 
-        LIGHT_DX_COLOR_VARS[Math.floor(Math.random() * LIGHT_DX_COLOR_VARS.length)];
+      const selectedVar = savedColorVar || "--color-secondary-dx-purple";
       
       const styles = getComputedStyle(document.documentElement);
       const resolvedColor =
@@ -162,10 +355,8 @@ export const ThemeRegistry = ({ children }: { children: ReactNode }) => {
       document.documentElement.style.setProperty("--audion-light-border-color", resolvedColor);
       document.documentElement.style.setProperty("--audion-light-html-background-color", resolvedColor);
       
-      // Set text color based on selected color (light colors need dark text)
-      const lightColors = ["--color-secondary-dx-green", "--color-secondary-dx-yellow", "--color-secondary-dx-grey-light"];
-      const textColor = lightColors.includes(selectedVar) ? "#000000" : "#ffffff";
-      document.documentElement.style.setProperty("--audion-sidebar-text-color", textColor);
+      // In light theme, always use black text for sidebar
+      document.documentElement.style.setProperty("--audion-sidebar-text-color", "#000000");
       
       // Set theme accent color (used for borders, accents, etc.)
       document.documentElement.style.setProperty("--color-theme-accent", `var(${selectedVar})`);
@@ -192,7 +383,7 @@ export const ThemeRegistry = ({ children }: { children: ReactNode }) => {
   // Always provide the context, even before mount, to prevent errors
   return (
     <ThemeContext.Provider value={{ themeMode, toggleTheme }}>
-      <AppRouterCacheProvider options={{ enableCssLayer: true }}>
+      <AppRouterCacheProvider options={{ enableCssLayer: false }}>
         <ThemeProvider theme={currentTheme}>
           <CssBaseline />
           {children}

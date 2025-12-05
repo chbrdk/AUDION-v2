@@ -219,6 +219,49 @@ type Message = {
   images?: string[]; // Base64 data URLs for display (thumbnails)
 };
 
+const notify = (message: string) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const existingToasts = document.querySelectorAll(".udg-glass-toast");
+  existingToasts.forEach((toast) => toast.remove());
+
+  const toast = document.createElement("div");
+  toast.className = "udg-glass-toast";
+  toast.textContent = message;
+
+  Object.assign(toast.style, {
+    position: "fixed",
+    bottom: "30px",
+    right: "30px",
+    background: "#0f172a",
+    color: "#ffffff",
+    padding: "16px 24px",
+    borderRadius: "8px",
+    boxShadow: "0 8px 24px rgba(0, 0, 0, 0.3)",
+    zIndex: "99999",
+    fontSize: "15px",
+    fontWeight: "500",
+    maxWidth: "450px",
+    minWidth: "200px",
+    animation: "slideIn 0.3s ease-out",
+    pointerEvents: "auto",
+    fontFamily: "system-ui, -apple-system, sans-serif",
+    border: "2px solid rgba(255, 255, 255, 0.1)",
+  });
+
+  document.body.appendChild(toast);
+  void toast.offsetHeight;
+
+  setTimeout(() => {
+    toast.style.animation = "slideOut 0.3s ease-out";
+    setTimeout(() => {
+      toast.parentNode?.removeChild(toast);
+    }, 300);
+  }, 5000);
+};
+
 function AdminChatPageContent() {
   const theme = useTheme();
   const router = useRouter();
@@ -328,14 +371,30 @@ function AdminChatPageContent() {
     }
     return facts;
   }, [personaProfileCard, activePersona]);
-  const personaGoals = useMemo(
-    () => personaProfileCard?.goals?.filter(Boolean) ?? [],
-    [personaProfileCard]
-  );
-  const personaFrustrations = useMemo(
-    () => personaProfileCard?.frustrations?.filter(Boolean) ?? [],
-    [personaProfileCard]
-  );
+  const personaGoals = useMemo(() => {
+    // Try profileCard first, then profile
+    const cardGoals = personaProfileCard?.goals?.filter(Boolean) ?? [];
+    if (cardGoals.length > 0) {
+      return cardGoals;
+    }
+    // Extract from profile if available
+    const profileGoals = personaProfile?.goals?.map((g) => 
+      typeof g === "string" ? g : g?.label || ""
+    ).filter(Boolean) ?? [];
+    return profileGoals;
+  }, [personaProfileCard, personaProfile]);
+  const personaFrustrations = useMemo(() => {
+    // Try profileCard first, then profile (painPoints)
+    const cardFrustrations = personaProfileCard?.frustrations?.filter(Boolean) ?? [];
+    if (cardFrustrations.length > 0) {
+      return cardFrustrations;
+    }
+    // Extract from profile painPoints if available
+    const profilePainPoints = personaProfile?.painPoints?.map((pp) =>
+      typeof pp === "string" ? pp : pp?.label || ""
+    ).filter(Boolean) ?? [];
+    return profilePainPoints;
+  }, [personaProfileCard, personaProfile]);
   const personaChannels = useMemo(() => {
     const channels = personaProfileCard?.preferred_channels?.filter(Boolean) ?? [];
     if (!channels.length) {
@@ -392,6 +451,8 @@ function AdminChatPageContent() {
       flushBuffer(messageId);
     }
   };
+
+
 
   useEffect(() => {
     const loadPersonas = async () => {
@@ -708,69 +769,95 @@ function AdminChatPageContent() {
       let buffer = "";
       let hasReceivedData = false;
       let streamStarted = false;
+      let streamErr: string | null = null;
       
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) {
-            if (!hasReceivedData) {
-              throw new Error("Stream ended without any data");
+      // Process stream inline - no external functions to avoid closure issues
+      while (true) {
+        const readResult = await reader.read();
+        if (readResult.done) {
+          if (!hasReceivedData) {
+            streamErr = "Stream ended without any data";
+          }
+          break;
+        }
+
+        hasReceivedData = true;
+        buffer += decoder.decode(readResult.value, { stream: true });
+        const lines = buffer.split("\n\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          if (!line.startsWith("data: ")) continue;
+
+          let parsedData: any = null;
+          const jsonStr = line.slice(6);
+          try {
+            parsedData = JSON.parse(jsonStr);
+          } catch {
+            continue;
+          }
+
+          if (!parsedData) continue;
+
+          if (!streamStarted) {
+            streamStarted = true;
+            setSending(false);
+          }
+
+          if (parsedData.type === "delta") {
+            if (parsedData.delta) {
+              enqueueDelta(personaMessageId, parsedData.delta);
             }
+            if (voiceStreaming && parsedData.audio) {
+              enqueueAudioChunk(parsedData.audio, parsedData.mime_type ?? "audio/mpeg");
+            }
+          } else if (parsedData.type === "sources") {
+            const normalizedSources = (parsedData.sources || []).map((source: any, index: number) => ({
+              chunk_id: source.chunk_id ?? `chunk-${index}`,
+              document_id: source.document_id ?? "Unknown",
+              title: source.title ?? "Research",
+              confidence: typeof source.confidence === "number" ? source.confidence : 0.8,
+              excerpt: source.content ?? "",
+            }));
+            setLatestSources(normalizedSources);
+          } else if (parsedData.type === "complete") {
+            setThinkingLabel(undefined);
+          } else if (parsedData.type === "error") {
+            const errVal = parsedData.error;
+            streamErr = typeof errVal === "string" ? errVal : String(errVal || "Failed to get response");
             break;
           }
-          
-          hasReceivedData = true;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n\n");
-          buffer = lines.pop() || "";
-          
-          for (const line of lines) {
-            if (!line.trim()) continue;
-            
-            if (line.startsWith("data: ")) {
-              try {
-                const data = JSON.parse(line.slice(6));
-                
-                if (!streamStarted) {
-                  streamStarted = true;
-                  setSending(false);
-                }
-                
-                if (data.type === "delta") {
-                  if (data.delta) {
-                    enqueueDelta(personaMessageId, data.delta);
-                  }
-                  if (voiceStreaming && data.audio) {
-                    enqueueAudioChunk(data.audio, data.mime_type ?? "audio/mpeg");
-                  }
-                } else if (data.type === "sources") {
-                  const normalizedSources = (data.sources || []).map((source: any, index: number) => ({
-                    chunk_id: source.chunk_id ?? `chunk-${index}`,
-                    document_id: source.document_id ?? "Unknown",
-                    title: source.title ?? "Research",
-                    confidence: typeof source.confidence === "number" ? source.confidence : 0.8,
-                    excerpt: source.content ?? "",
-                  }));
-                  setLatestSources(normalizedSources);
-                } else if (data.type === "complete") {
-                  setThinkingLabel(undefined);
-                } else if (data.type === "error") {
-                  throw new Error(data.error);
-                }
-              } catch (e) {
-                console.error("Failed to parse SSE data:", e, line);
-              }
-            } else if (line.trim()) {
-              console.error("Unexpected SSE line format:", line);
-            }
-          }
         }
-      } catch (streamError) {
-        console.error("Stream reading error:", streamError);
-        throw streamError;
-      } finally {
-        reader.releaseLock();
-        setSending(false);
+
+        if (streamErr) {
+          break;
+        }
+      }
+
+      reader.releaseLock();
+      setSending(false);
+
+      // Handle errors after stream completes
+      if (streamErr) {
+        clearTypingState(personaMessageId);
+        let errorMsg = streamErr;
+        if (errorMsg.toLowerCase().includes("overloaded")) {
+          errorMsg = "The AI service is currently overloaded. Please try again in a few moments.";
+        }
+        
+        setMessages((prev) => {
+          const updated = [...prev];
+          const personaMsg = updated.find((m) => m.id === personaMessageId);
+          if (personaMsg) {
+            personaMsg.content = errorMsg;
+            personaMsg.role = "system";
+          }
+          return updated;
+        });
+        setThinkingLabel(undefined);
+        notify(errorMsg);
+        return;
       }
       
       setThinkingLabel(undefined);
@@ -800,16 +887,30 @@ function AdminChatPageContent() {
       console.error("Failed to send message:", error);
       stopAudioQueue();
       clearTypingState(personaMessageId);
+      
+      // Get user-friendly error message
+      let errorMessage = "Failed to send message. Please try again.";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        // Check if it's an overloaded error
+        if (error.message.includes("overloaded") || error.message.includes("Overloaded")) {
+          errorMessage = "The AI service is currently overloaded. Please try again in a few moments.";
+        }
+      }
+      
       setMessages((prev) => {
         const updated = [...prev];
         const personaMsg = updated.find((m) => m.id === personaMessageId);
         if (personaMsg) {
-          personaMsg.content = `Error: ${error instanceof Error ? error.message : "Failed to send message"}`;
+          personaMsg.content = errorMessage;
           personaMsg.role = "system";
         }
         return updated;
       });
       setThinkingLabel(undefined);
+      
+      // Show notification toast
+      notify(errorMessage);
     } finally {
       setSending(false);
     }
@@ -2228,6 +2329,42 @@ function AdminChatPageContent() {
                         label={item}
                         size="small"
                         icon={<MaterialSymbol icon="warning" fontSize={14} />}
+                        sx={{ borderRadius: 999 }}
+                      />
+                    ))}
+                  </Stack>
+                </Stack>
+              )}
+              {personaInterests.length > 0 && (
+                <Stack spacing={1}>
+                  <Typography variant="subtitle2" sx={{ textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: 1 }}>
+                    Interests
+                  </Typography>
+                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                    {personaInterests.map((interest, index) => (
+                      <Chip
+                        key={`interest-${index}`}
+                        label={interest}
+                        size="small"
+                        icon={<MaterialSymbol icon="favorite" fontSize={14} />}
+                        sx={{ borderRadius: 999 }}
+                      />
+                    ))}
+                  </Stack>
+                </Stack>
+              )}
+              {personaValues.length > 0 && (
+                <Stack spacing={1}>
+                  <Typography variant="subtitle2" sx={{ textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: 1 }}>
+                    Values
+                  </Typography>
+                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                    {personaValues.map((value, index) => (
+                      <Chip
+                        key={`value-${index}`}
+                        label={value}
+                        size="small"
+                        icon={<MaterialSymbol icon="psychology" fontSize={14} />}
                         sx={{ borderRadius: 999 }}
                       />
                     ))}

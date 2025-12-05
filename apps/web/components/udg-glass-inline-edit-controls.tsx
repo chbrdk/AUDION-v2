@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Box, IconButton, Tooltip, useTheme, alpha } from "@mui/material";
+import { Box, IconButton, Tooltip, useTheme, alpha, Typography } from "@mui/material";
 import { MaterialSymbol } from "./material-symbol";
 
 export type UdgGlassInlineEditControlsProps = {
@@ -218,9 +218,9 @@ export const UdgGlassInlineEditControls = ({
         display: "flex",
         alignItems: "center",
         gap: 0.5,
-        backgroundColor: alpha(theme.palette.background.paper, 0.98),
+        backgroundColor: "var(--color-theme-accent)",
         backdropFilter: "blur(8px)",
-        border: `1px solid ${theme.palette.divider}`,
+        border: "1px solid var(--color-theme-accent)",
         borderRadius: 2,
         padding: "6px 4px",
         boxShadow: theme.shadows[12],
@@ -228,18 +228,31 @@ export const UdgGlassInlineEditControls = ({
         pointerEvents: "auto"
       }}
     >
+      <Typography
+        variant="body2"
+        sx={{
+          color: "#ffffff",
+          fontSize: "0.875rem",
+          fontWeight: "bold",
+          paddingLeft: "8px",
+          paddingRight: "4px",
+        }}
+      >
+        save?
+      </Typography>
       <Tooltip title="Save changes" arrow>
         <IconButton
           size="small"
           onClick={handleSave}
           disabled={saving}
           sx={{
-            color: theme.palette.primary.main,
+            color: "#ffffff",
             "&:hover": {
-              backgroundColor: alpha(theme.palette.primary.main, 0.1)
+              backgroundColor: "rgba(255, 255, 255, 0.1)"
             },
             "&:disabled": {
-              color: theme.palette.action.disabled
+              color: "rgba(255, 255, 255, 0.38)",
+              opacity: 0.5
             }
           }}
         >
@@ -252,12 +265,13 @@ export const UdgGlassInlineEditControls = ({
           onClick={onDiscard}
           disabled={saving}
           sx={{
-            color: theme.palette.error.main,
+            color: "#ffffff",
             "&:hover": {
-              backgroundColor: alpha(theme.palette.error.main, 0.1)
+              backgroundColor: "rgba(255, 255, 255, 0.1)"
             },
             "&:disabled": {
-              color: theme.palette.action.disabled
+              color: "rgba(255, 255, 255, 0.38)",
+              opacity: 0.5
             }
           }}
         >

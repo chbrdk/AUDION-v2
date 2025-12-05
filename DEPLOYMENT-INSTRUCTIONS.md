@@ -41,7 +41,7 @@ docker compose up -d web
 ```bash
 docker compose logs -f web
 ```
-
+3
 ### Schritt 7: Route testen
 ```bash
 # Im Browser öffnen:

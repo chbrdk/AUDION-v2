@@ -8,9 +8,8 @@ import clsx from "clsx";
 import type { PersonaListItem, PersonaListResponse, PersonaProfile, PersonaResponse } from "@udg-glass/types";
 
 import { MaterialSymbol } from "./material-symbol";
-import { UdgGlassAiButton } from "./ai/udg-glass-ai-button";
+import { UdgGlassAiButtonIcon } from "./generic/udg-glass-ai-button-icon";
 import {
-  UdgGlassPersonaBasicsCard,
   UdgGlassBioCard,
   UdgGlassPersonalityCard,
   UdgGlassPainPointsGoalsCard,
@@ -20,7 +19,8 @@ import {
   UdgGlassDashboardCard,
   UdgGlassDashboardCardSection,
 } from "./dashboard-cards";
-import { UdgGlassEntityEditor } from "./generic";
+import { UdgGlassEntityEditor, UdgGlassFieldEditor, UdgGlassEditButton } from "./generic";
+import { getFieldDefinitions } from "@udg-glass/types";
 import { useAiAssist } from "../hooks/use-ai-assist";
 import { UdgGlassCollapsiblePanel } from "./admin/udg-glass-collapsible-panel";
 import { Box } from "@mui/material";
@@ -157,6 +157,7 @@ export const UdgGlassPersonaAdminPanel = ({ initialList, docsUrl }: UdgGlassPers
   const [personaAiError, setPersonaAiError] = useState<string | null>(null);
   const [recentTraitHighlights, setRecentTraitHighlights] = useState<string[]>([]);
   const [recentVocabularyHighlights, setRecentVocabularyHighlights] = useState<string[]>([]);
+  const [editingField, setEditingField] = useState<string | null>(null);
   const [expandedAccordions, setExpandedAccordions] = useState<Set<string>>(
     new Set([
       "persona-basics",
@@ -569,8 +570,108 @@ export const UdgGlassPersonaAdminPanel = ({ initialList, docsUrl }: UdgGlassPers
     await handleDemographicSave({ interests: chips });
   };
 
+  const handleGenerateInterestsIdeas = async () => {
+    if (!detail) return;
+    setPersonaAiError(null);
+    try {
+      // Build existing interests summary
+      const existingInterests = detail.profile.interests || [];
+      const existingInterestsSummary = existingInterests.length > 0
+        ? existingInterests.join(", ")
+        : "Keine Interests definiert";
+
+      // Build target group summary
+      const targetGroupSummary = detail.profile.segment || "Keine Target Group definiert";
+
+      // Build persona profile JSON
+      const personaProfile = JSON.stringify(detail.profile, null, 2);
+
+      const result = await runPersonaAiAssist({
+        templateId: "persona.interests",
+        context: {
+          persona_name: detail.profile.name || "",
+          persona_segment: detail.profile.segment || "",
+          persona_profile: personaProfile,
+          persona_interests: existingInterestsSummary,
+          target_group_summary: targetGroupSummary,
+          max_items: 4,
+        },
+        maxSuggestions: 4,
+      });
+      if (!result.suggestions.length) {
+        setPersonaAiError("Keine AI Vorschläge erhalten.");
+        return;
+      }
+      const current = detail.profile.interests || [];
+      const merged = Array.from(
+        new Set([
+          ...current,
+          ...result.suggestions.map((suggestion) => suggestion.title || suggestion.content),
+        ])
+      ).filter(Boolean) as string[];
+      if (!merged.length) {
+        setPersonaAiError("Keine gültigen Interests generiert.");
+        return;
+      }
+      await handleSaveInterests(merged);
+      notify("AI Interests hinzugefügt");
+    } catch (error) {
+      setPersonaAiError(error instanceof Error ? error.message : "AI Anfrage fehlgeschlagen");
+    }
+  };
+
   const handleSaveValues = async (chips: string[]) => {
     await handleDemographicSave({ values: chips });
+  };
+
+  const handleGenerateValuesIdeas = async () => {
+    if (!detail) return;
+    setPersonaAiError(null);
+    try {
+      // Build existing values summary
+      const existingValues = detail.profile.values || [];
+      const existingValuesSummary = existingValues.length > 0
+        ? existingValues.join(", ")
+        : "Keine Values definiert";
+
+      // Build target group summary
+      const targetGroupSummary = detail.profile.segment || "Keine Target Group definiert";
+
+      // Build persona profile JSON
+      const personaProfile = JSON.stringify(detail.profile, null, 2);
+
+      const result = await runPersonaAiAssist({
+        templateId: "persona.values",
+        context: {
+          persona_name: detail.profile.name || "",
+          persona_segment: detail.profile.segment || "",
+          persona_profile: personaProfile,
+          persona_values: existingValuesSummary,
+          target_group_summary: targetGroupSummary,
+          max_items: 4,
+        },
+        maxSuggestions: 4,
+      });
+      if (!result.suggestions.length) {
+        setPersonaAiError("Keine AI Vorschläge erhalten.");
+        return;
+      }
+      const current = detail.profile.values || [];
+      const merged = Array.from(
+        new Set([
+          ...current,
+          ...result.suggestions.map((suggestion) => suggestion.title || suggestion.content),
+        ])
+      ).filter(Boolean) as string[];
+      if (!merged.length) {
+        setPersonaAiError("Keine gültigen Values generiert.");
+        return;
+      }
+      await handleSaveValues(merged);
+      notify("AI Values hinzugefügt");
+    } catch (error) {
+      setPersonaAiError(error instanceof Error ? error.message : "AI Anfrage fehlgeschlagen");
+    }
   };
 
   const handleSaveSocialMedia = async (chips: string[]) => {
@@ -868,6 +969,56 @@ export const UdgGlassPersonaAdminPanel = ({ initialList, docsUrl }: UdgGlassPers
       priority: 999,
     }));
     await handleDemographicSave({ goals: goalsArray });
+  };
+
+  const handleGenerateGoalsIdeas = async () => {
+    if (!detail) return;
+    setPersonaAiError(null);
+    try {
+      // Build existing goals summary
+      const existingGoals = detail.profile.goals?.map((goal) => goal.label) ?? [];
+      const existingGoalsSummary = existingGoals.length > 0
+        ? existingGoals.join(", ")
+        : "Keine Goals definiert";
+
+      // Build target group summary
+      const targetGroupSummary = detail.profile.segment || "Keine Target Group definiert";
+
+      // Build persona profile JSON
+      const personaProfile = JSON.stringify(detail.profile, null, 2);
+
+      const result = await runPersonaAiAssist({
+        templateId: "persona.goals",
+        context: {
+          persona_name: detail.profile.name || "",
+          persona_segment: detail.profile.segment || "",
+          persona_profile: personaProfile,
+          persona_goals: existingGoalsSummary,
+          target_group_summary: targetGroupSummary,
+          max_items: 4,
+        },
+        maxSuggestions: 4,
+      });
+      if (!result.suggestions.length) {
+        setPersonaAiError("Keine AI Vorschläge erhalten.");
+        return;
+      }
+      const current = detail.profile.goals?.map((goal) => goal.label) ?? [];
+      const merged = Array.from(
+        new Set([
+          ...current,
+          ...result.suggestions.map((suggestion) => suggestion.title || suggestion.content),
+        ])
+      ).filter(Boolean) as string[];
+      if (!merged.length) {
+        setPersonaAiError("Keine gültigen Goals generiert.");
+        return;
+      }
+      await handleSaveGoals(merged);
+      notify("AI Goals hinzugefügt");
+    } catch (error) {
+      setPersonaAiError(error instanceof Error ? error.message : "AI Anfrage fehlgeschlagen");
+    }
   };
 
   const handleCreate = async () => {
@@ -1184,33 +1335,203 @@ export const UdgGlassPersonaAdminPanel = ({ initialList, docsUrl }: UdgGlassPers
                     <MaterialSymbol icon="person" fontSize={32} />
                   )}
                 </div>
-                <div>
-                  <h2>{detail.profile.name}</h2>
-                  <p>{detail.profile.headline}</p>
-                  <div className="udg-glass-detail__links">
+                <div style={{ flex: 1 }}>
+                  {(() => {
+                    const fieldDefinitions = getFieldDefinitions("persona");
+                    const nameField = fieldDefinitions.find(f => f.key === "name");
+                    const headlineField = fieldDefinitions.find(f => f.key === "headline");
+                    const segmentField = fieldDefinitions.find(f => f.key === "segment");
+
+                    const handleFieldSave = async (key: string, value: any) => {
+                      await handleSave({ [key]: value } as Partial<EditFormState>);
+                      setEditingField(null);
+                    };
+
+                    const handleFieldChange = (key: string, value: any) => {
+                      // Just update local state, save is handled by onSave
+                    };
+
+                    return (
+                      <div>
+                        {/* Name as large headline */}
+                        {nameField && (
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                            {editingField === "name" ? (
+                              <Box sx={{ flex: 1 }}>
+                                <UdgGlassFieldEditor
+                                  field={nameField}
+                                  value={detail.profile.name}
+                                  onChange={handleFieldChange}
+                                  onSave={(key, value) => handleFieldSave(key, value)}
+                                  inline={true}
+                                  disabled={savePending}
+                                  forceEditMode={true}
+                                  onEditEnd={() => setEditingField(null)}
+                                />
+                              </Box>
+                            ) : (
+                              <>
+                                <h2 style={{ margin: 0, fontSize: "2rem", fontWeight: 600, flex: 1 }}>
+                                  {detail.profile.name}
+                                </h2>
+                                <UdgGlassEditButton
+                                  onClick={() => setEditingField("name")}
+                                  disabled={savePending}
+                                  aria-label="Edit name"
+                                  size="small"
+                                  fontSize={16}
+                                />
+                              </>
+                            )}
+                          </div>
+                        )}
+                        {/* Headline and Segment without labels */}
+                        <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                          {headlineField && (
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                              {editingField === "headline" ? (
+                                <Box sx={{ flex: 1 }}>
+                                  <UdgGlassFieldEditor
+                                    field={headlineField}
+                                    value={detail.profile.headline}
+                                    onChange={handleFieldChange}
+                                    onSave={(key, value) => handleFieldSave(key, value)}
+                                    inline={true}
+                                    disabled={savePending}
+                                    forceEditMode={true}
+                                    onEditEnd={() => setEditingField(null)}
+                                  />
+                                </Box>
+                              ) : (
+                                <>
+                                  <span style={{ fontSize: "1rem", color: "var(--color-text-secondary)" }}>
+                                    {detail.profile.headline || "—"}
+                                  </span>
+                                  <UdgGlassEditButton
+                                    onClick={() => setEditingField("headline")}
+                                    disabled={savePending}
+                                    aria-label="Edit headline"
+                                    size="small"
+                                    fontSize={14}
+                                  />
+                                </>
+                              )}
+                            </div>
+                          )}
+                          {segmentField && (
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                              {editingField === "segment" ? (
+                                <Box sx={{ flex: 1 }}>
+                                  <UdgGlassFieldEditor
+                                    field={segmentField}
+                                    value={detail.profile.segment}
+                                    onChange={handleFieldChange}
+                                    onSave={(key, value) => handleFieldSave(key, value)}
+                                    inline={true}
+                                    disabled={savePending}
+                                    forceEditMode={true}
+                                    onEditEnd={() => setEditingField(null)}
+                                  />
+                                </Box>
+                              ) : (
+                                <>
+                                  <span style={{ fontSize: "0.875rem", color: "var(--color-text-secondary)" }}>
+                                    {detail.profile.segment || "—"}
+                                  </span>
+                                  <UdgGlassEditButton
+                                    onClick={() => setEditingField("segment")}
+                                    disabled={savePending}
+                                    aria-label="Edit segment"
+                                    size="small"
+                                    fontSize={14}
+                                  />
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  <div className="udg-glass-detail__links" style={{ marginTop: "0.5rem", display: "flex", gap: "0.5rem", alignItems: "center" }}>
                     <button className="udg-glass-button --ghost" onClick={handleGenerateAvatar} disabled={avatarGeneratePending}>
                       <MaterialSymbol icon="photo_camera" fontSize={16} /> {avatarGeneratePending ? "Generating..." : "Generate avatar"}
+                    </button>
+                    <button 
+                      className="udg-glass-button --ghost" 
+                      onClick={handleArchive}
+                      disabled={savePending}
+                    >
+                      <MaterialSymbol icon="archive" fontSize={16} /> Archive
+                    </button>
+                    <button 
+                      className="udg-glass-button --ghost" 
+                      onClick={handleDelete}
+                      disabled={savePending}
+                      style={{ color: "var(--color-secondary-dx-pink)" }}
+                    >
+                      <MaterialSymbol icon="delete" fontSize={16} /> Delete
                     </button>
                   </div>
                 </div>
               </div>
             </header>
 
+            {/* Metadata Box */}
+            <div className="udg-glass-detail__grid">
+              <div style={{ border: "1px solid var(--color-theme-accent)", borderRadius: "12px", padding: "0.75rem", marginTop: "1rem" }}>
+                <h3 style={{ fontSize: "1.5rem", fontWeight: 100, marginBottom: "2rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>METADATA</h3>
+                <dl className="udg-glass-meta-grid">
+                  <div>
+                    <dt>Status</dt>
+                    <dd>{detail.metadata.status}</dd>
+                  </div>
+                  <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
+                    <dt>Confidence</dt>
+                    <dd>{detail.metadata.confidence.toFixed(2)}</dd>
+                  </div>
+                  <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
+                    <dt>Version</dt>
+                    <dd>{detail.metadata.version}</dd>
+                  </div>
+                  <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
+                    <dt>Updated</dt>
+                    <dd>{formatDate(detail.metadata.updatedAt)}</dd>
+                  </div>
+                  <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
+                    <dt>Updated by</dt>
+                    <dd>{detail.metadata.updatedBy ?? "—"}</dd>
+                  </div>
+                  <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
+                    <dt>Last review</dt>
+                    <dd>{formatDate(detail.metadata.lastReviewedAt)}</dd>
+                  </div>
+                  {detail.profile.created_at && (
+                    <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
+                      <dt>Created at</dt>
+                      <dd>{formatDate(detail.profile.created_at)}</dd>
+                    </div>
+                  )}
+                  {detail.profile.targetGroupId && (
+                    <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
+                      <dt>Target Group</dt>
+                      <dd>
+                        <a 
+                          href={`/target-groups/admin?selected=${detail.profile.targetGroupId}`}
+                          className="udg-glass-button --ghost"
+                          style={{ fontSize: "0.875rem", padding: "4px 8px" }}
+                        >
+                          <MaterialSymbol icon="groups" fontSize={14} /> To Target Group
+                        </a>
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+            </div>
+
             {/* Dashboard Cards Grid */}
             <div className="udg-glass-dashboard-grid">
-              {/* Card: Persona-Grundlagen - Full Width */}
-              <UdgGlassPersonaBasicsCard
-                detail={detail}
-                editForm={editForm}
-                expanded={isAccordionExpanded("persona-basics")}
-                onToggle={toggleAccordion}
-                onEditField={handleEditField}
-                onSave={(updates) => handleSave(updates)}
-                onArchive={handleArchive}
-                onDelete={handleDelete}
-                savePending={savePending}
-                formatDate={formatDate}
-              />
 
               {/* Card: Biografie & Demographie */}
               {(detail.profile.bio || detail.profile.full_name || detail.profile.age || detail.profile.location || detail.profile.gender || (detail.profile.media_affinity !== null && detail.profile.media_affinity !== undefined)) && (
@@ -1264,6 +1585,10 @@ export const UdgGlassPersonaAdminPanel = ({ initialList, docsUrl }: UdgGlassPers
                 onSaveTraits={handleSaveTraits}
                 onAiSuggestTraits={handleAiSuggestTraits}
                 aiTraitsLoading={personaAiLoading}
+                onAiSuggestInterests={handleGenerateInterestsIdeas}
+                aiInterestsLoading={personaAiLoading}
+                onAiSuggestValues={handleGenerateValuesIdeas}
+                aiValuesLoading={personaAiLoading}
                 highlightedTraits={recentTraitHighlights}
               />
 
@@ -1291,18 +1616,16 @@ export const UdgGlassPersonaAdminPanel = ({ initialList, docsUrl }: UdgGlassPers
                   onToggle={toggleAccordion}
                   onSavePainPoints={handleSavePainPoints}
                   onSaveGoals={handleSaveGoals}
+                  onAiSuggestGoals={handleGenerateGoalsIdeas}
+                  aiGoalsLoading={personaAiLoading}
+                  onAiSuggestPainPoints={handleGeneratePainPointIdeas}
+                  aiPainPointsLoading={personaAiLoading}
                   painPointsToolbar={
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", width: "100%" }}>
-                      <UdgGlassAiButton
-                        templates={[{ id: "persona.pain_points", label: "AI Pain Points", maxSuggestions: 4 }]}
-                        onClick={handleGeneratePainPointIdeas}
-                        disabled={personaAiLoading}
-                        loading={personaAiLoading}
-                        size="small"
-                        title="AI Pain Points"
-                      />
-                      {personaAiError && <span className="udg-glass-pain-toolbar__error">{personaAiError}</span>}
-                    </div>
+                    personaAiError ? (
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", width: "100%" }}>
+                        <span className="udg-glass-pain-toolbar__error">{personaAiError}</span>
+                      </div>
+                    ) : undefined
                   }
                 />
               )}

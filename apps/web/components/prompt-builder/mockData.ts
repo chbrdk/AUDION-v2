@@ -125,6 +125,33 @@ export const generateMockExtendedData = (): Record<string, any> => ({
     expected_duration_max: 15,
     duration_unit: "minutes",
   },
+
+  // Mock knowledge data
+  knowledge: {
+    "[query]": {
+      content: "Mock research findings about the query topic. This includes relevant insights from user research studies, market analysis reports, and behavioral observations.\n\nAdditional context about user preferences and pain points related to the query.",
+      results: [
+        {
+          content: "Mock chunk content 1: Research findings about user behavior patterns in tech adoption scenarios...",
+          document_id: "doc-uuid-1",
+          chunk_id: "chunk-uuid-1",
+          score: 0.85,
+        },
+        {
+          content: "Mock chunk content 2: Additional insights from qualitative interviews about user motivations...",
+          document_id: "doc-uuid-2",
+          chunk_id: "chunk-uuid-2",
+          score: 0.78,
+        },
+        {
+          content: "Mock chunk content 3: Quantitative data showing trends in user preferences...",
+          document_id: "doc-uuid-3",
+          chunk_id: "chunk-uuid-3",
+          score: 0.72,
+        },
+      ],
+    },
+  },
 });
 
 /**
@@ -133,8 +160,40 @@ export const generateMockExtendedData = (): Record<string, any> => ({
 export const resolveExtendedVariable = (
   resolverType: string,
   propertyPath: string,
-  mockData: Record<string, any> = generateMockExtendedData()
+  mockData: Record<string, any> = generateMockExtendedData(),
+  queryOrId?: string
 ): string => {
+  // Special handling for knowledge resolver
+  if (resolverType === "knowledge") {
+    const knowledgeData = mockData[resolverType];
+    if (!knowledgeData) {
+      return `[${resolverType} not found]`;
+    }
+    // Use "[query]" as default key or provided query/id
+    const queryKey = queryOrId || "[query]";
+    const entity = knowledgeData[queryKey] || knowledgeData["[query]"];
+    if (!entity) {
+      return `[Knowledge data not found for query: ${queryKey}]`;
+    }
+    
+    // Navigate property path (e.g., .content or .results)
+    const parts = propertyPath.split(".").filter(Boolean);
+    let current: any = entity;
+    
+    for (const part of parts) {
+      current = current?.[part];
+      if (current === undefined) {
+        return `[Knowledge property '${part}' not found]`;
+      }
+    }
+    
+    // Convert to string
+    if (typeof current === "object") {
+      return JSON.stringify(current, null, 2);
+    }
+    return String(current);
+  }
+  
   const entity = mockData[resolverType];
   if (!entity) {
     return `[${resolverType} not found]`;

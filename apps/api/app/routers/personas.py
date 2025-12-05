@@ -138,6 +138,66 @@ def _persona_existing_pain_points(persona: Persona) -> List[str]:
     return values
 
 
+def _persona_existing_goals(persona: Persona) -> List[str]:
+    profile = persona.profile or {}
+    candidates = profile.get("goals") or []
+    values: List[str] = []
+    if isinstance(candidates, list):
+        for entry in candidates:
+            if isinstance(entry, dict):
+                label = entry.get("label") or entry.get("title")
+                desc = entry.get("description") or entry.get("content")
+                if label and desc:
+                    values.append(f"{label}: {desc}")
+                elif label:
+                    values.append(label)
+                elif desc:
+                    values.append(desc)
+            elif isinstance(entry, str):
+                values.append(entry)
+    return values
+
+
+def _persona_existing_interests(persona: Persona) -> List[str]:
+    profile = persona.profile or {}
+    candidates = profile.get("interests") or []
+    values: List[str] = []
+    if isinstance(candidates, list):
+        for entry in candidates:
+            if isinstance(entry, str):
+                values.append(entry)
+            elif isinstance(entry, dict):
+                label = entry.get("label") or entry.get("title") or entry.get("name")
+                desc = entry.get("description") or entry.get("content")
+                if label and desc:
+                    values.append(f"{label}: {desc}")
+                elif label:
+                    values.append(label)
+                elif desc:
+                    values.append(desc)
+    return values
+
+
+def _persona_existing_values(persona: Persona) -> List[str]:
+    profile = persona.profile or {}
+    candidates = profile.get("values") or []
+    values: List[str] = []
+    if isinstance(candidates, list):
+        for entry in candidates:
+            if isinstance(entry, str):
+                values.append(entry)
+            elif isinstance(entry, dict):
+                label = entry.get("label") or entry.get("title") or entry.get("name")
+                desc = entry.get("description") or entry.get("content")
+                if label and desc:
+                    values.append(f"{label}: {desc}")
+                elif label:
+                    values.append(label)
+                elif desc:
+                    values.append(desc)
+    return values
+
+
 def _build_persona_ai_context(session: Session, persona: Persona, max_items: int) -> Dict[str, Any]:
     profile_json = json.dumps(persona.profile or {}, ensure_ascii=False, indent=2)
     existing_pain_points = "\n".join(_persona_existing_pain_points(persona)) or "Keine Pain Points dokumentiert."
@@ -146,6 +206,45 @@ def _build_persona_ai_context(session: Session, persona: Persona, max_items: int
         "persona_segment": persona.segment,
         "persona_profile": profile_json,
         "persona_pain_points": existing_pain_points,
+        "target_group_summary": _persona_target_group_summary(session, persona),
+        "max_items": max_items,
+    }
+
+
+def _build_persona_goals_ai_context(session: Session, persona: Persona, max_items: int) -> Dict[str, Any]:
+    profile_json = json.dumps(persona.profile or {}, ensure_ascii=False, indent=2)
+    existing_goals = "\n".join(_persona_existing_goals(persona)) or "Keine Goals dokumentiert."
+    return {
+        "persona_name": persona.name,
+        "persona_segment": persona.segment,
+        "persona_profile": profile_json,
+        "persona_goals": existing_goals,
+        "target_group_summary": _persona_target_group_summary(session, persona),
+        "max_items": max_items,
+    }
+
+
+def _build_persona_interests_ai_context(session: Session, persona: Persona, max_items: int) -> Dict[str, Any]:
+    profile_json = json.dumps(persona.profile or {}, ensure_ascii=False, indent=2)
+    existing_interests = "\n".join(_persona_existing_interests(persona)) or "Keine Interests dokumentiert."
+    return {
+        "persona_name": persona.name,
+        "persona_segment": persona.segment,
+        "persona_profile": profile_json,
+        "persona_interests": existing_interests,
+        "target_group_summary": _persona_target_group_summary(session, persona),
+        "max_items": max_items,
+    }
+
+
+def _build_persona_values_ai_context(session: Session, persona: Persona, max_items: int) -> Dict[str, Any]:
+    profile_json = json.dumps(persona.profile or {}, ensure_ascii=False, indent=2)
+    existing_values = "\n".join(_persona_existing_values(persona)) or "Keine Values dokumentiert."
+    return {
+        "persona_name": persona.name,
+        "persona_segment": persona.segment,
+        "persona_profile": profile_json,
+        "persona_values": existing_values,
         "target_group_summary": _persona_target_group_summary(session, persona),
         "max_items": max_items,
     }
@@ -167,6 +266,136 @@ async def generate_persona_pain_points(
     context = _build_persona_ai_context(session, persona, max_items)
     ai_request = AiAssistRequest(
         template_id="persona.pain_points",
+        context=context,
+        max_suggestions=max_items,
+    )
+    try:
+        ai_assist = AiAssistService(session=session)
+        return await ai_assist.generate(ai_request)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post(
+    "/{persona_id}/ai/interests",
+    response_model=AiAssistResponse,
+    summary="Generate AI suggestions for persona interests",
+)
+async def generate_persona_interests(
+    persona_id: str,
+    payload: Dict[str, int] | None = Body(default=None),
+    session: Session = Depends(get_db),
+) -> AiAssistResponse:
+    persona = _get_persona_or_404(session, persona_id)
+    max_items = (payload or {}).get("max_items", 3)
+    max_items = max(1, min(max_items, 10))
+    context = _build_persona_interests_ai_context(session, persona, max_items)
+    ai_request = AiAssistRequest(
+        template_id="persona.interests",
+        context=context,
+        max_suggestions=max_items,
+    )
+    try:
+        ai_assist = AiAssistService(session=session)
+        return await ai_assist.generate(ai_request)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post(
+    "/{persona_id}/ai/values",
+    response_model=AiAssistResponse,
+    summary="Generate AI suggestions for persona values",
+)
+async def generate_persona_values(
+    persona_id: str,
+    payload: Dict[str, int] | None = Body(default=None),
+    session: Session = Depends(get_db),
+) -> AiAssistResponse:
+    persona = _get_persona_or_404(session, persona_id)
+    max_items = (payload or {}).get("max_items", 3)
+    max_items = max(1, min(max_items, 10))
+    context = _build_persona_values_ai_context(session, persona, max_items)
+    ai_request = AiAssistRequest(
+        template_id="persona.values",
+        context=context,
+        max_suggestions=max_items,
+    )
+    try:
+        ai_assist = AiAssistService(session=session)
+        return await ai_assist.generate(ai_request)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post(
+    "/{persona_id}/ai/interests",
+    response_model=AiAssistResponse,
+    summary="Generate AI suggestions for persona interests",
+)
+async def generate_persona_interests(
+    persona_id: str,
+    payload: Dict[str, int] | None = Body(default=None),
+    session: Session = Depends(get_db),
+) -> AiAssistResponse:
+    persona = _get_persona_or_404(session, persona_id)
+    max_items = (payload or {}).get("max_items", 3)
+    max_items = max(1, min(max_items, 10))
+    context = _build_persona_interests_ai_context(session, persona, max_items)
+    ai_request = AiAssistRequest(
+        template_id="persona.interests",
+        context=context,
+        max_suggestions=max_items,
+    )
+    try:
+        ai_assist = AiAssistService(session=session)
+        return await ai_assist.generate(ai_request)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post(
+    "/{persona_id}/ai/values",
+    response_model=AiAssistResponse,
+    summary="Generate AI suggestions for persona values",
+)
+async def generate_persona_values(
+    persona_id: str,
+    payload: Dict[str, int] | None = Body(default=None),
+    session: Session = Depends(get_db),
+) -> AiAssistResponse:
+    persona = _get_persona_or_404(session, persona_id)
+    max_items = (payload or {}).get("max_items", 3)
+    max_items = max(1, min(max_items, 10))
+    context = _build_persona_values_ai_context(session, persona, max_items)
+    ai_request = AiAssistRequest(
+        template_id="persona.values",
+        context=context,
+        max_suggestions=max_items,
+    )
+    try:
+        ai_assist = AiAssistService(session=session)
+        return await ai_assist.generate(ai_request)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post(
+    "/{persona_id}/ai/goals",
+    response_model=AiAssistResponse,
+    summary="Generate AI suggestions for persona goals",
+)
+async def generate_persona_goals(
+    persona_id: str,
+    payload: Dict[str, int] | None = Body(default=None),
+    session: Session = Depends(get_db),
+) -> AiAssistResponse:
+    persona = _get_persona_or_404(session, persona_id)
+    max_items = (payload or {}).get("max_items", 3)
+    max_items = max(1, min(max_items, 10))
+    context = _build_persona_goals_ai_context(session, persona, max_items)
+    ai_request = AiAssistRequest(
+        template_id="persona.goals",
         context=context,
         max_suggestions=max_items,
     )

@@ -9,6 +9,7 @@ export type UdgGlassJourneyCanvasProps = {
   selectedPhaseId?: string | null;
   onPhaseSelect?: (phaseId: string) => void;
   onPhaseReorder?: (fromIndex: number, toIndex: number) => void;
+  onAddPhase?: () => void;
 };
 
 export const UdgGlassJourneyCanvas = ({
@@ -16,6 +17,7 @@ export const UdgGlassJourneyCanvas = ({
   selectedPhaseId,
   onPhaseSelect,
   onPhaseReorder,
+  onAddPhase,
 }: UdgGlassJourneyCanvasProps) => {
   return (
     <div className="udg-glass-journey-canvas" style={{ padding: "1rem" }}>
@@ -38,6 +40,7 @@ export const UdgGlassJourneyCanvas = ({
         ))}
         <button
           className="udg-glass-button --ghost"
+          type="button"
           style={{
             minWidth: "200px",
             height: "150px",
@@ -50,7 +53,7 @@ export const UdgGlassJourneyCanvas = ({
             borderRadius: "8px",
           }}
           onClick={() => {
-            // TODO: Add phase
+            onAddPhase?.();
           }}
         >
           <MaterialSymbol icon="add" fontSize={24} />

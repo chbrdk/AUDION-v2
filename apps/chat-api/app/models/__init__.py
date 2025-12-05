@@ -48,6 +48,7 @@ class PersonaPrompt(Base):
     system_prompt = Column(Text, nullable=False)
     template_version = Column(String(32), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    template_metadata = Column(JSONB, nullable=True)
 
     persona = relationship("Persona", back_populates="prompt")
 

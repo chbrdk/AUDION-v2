@@ -15,6 +15,10 @@ export type UdgGlassPersonalityCardProps = {
   onSaveTraits?: (chips: string[]) => Promise<void>;
   onAiSuggestTraits?: () => Promise<void>;
   aiTraitsLoading?: boolean;
+  onAiSuggestInterests?: () => Promise<void>;
+  aiInterestsLoading?: boolean;
+  onAiSuggestValues?: () => Promise<void>;
+  aiValuesLoading?: boolean;
   highlightedTraits?: string[];
 };
 
@@ -28,6 +32,10 @@ export const UdgGlassPersonalityCard = ({
   onSaveTraits,
   onAiSuggestTraits,
   aiTraitsLoading = false,
+  onAiSuggestInterests,
+  aiInterestsLoading = false,
+  onAiSuggestValues,
+  aiValuesLoading = false,
   highlightedTraits = []
 }: UdgGlassPersonalityCardProps) => {
   // Convert traits Record<string, number> to string[] (only keys)
@@ -67,6 +75,8 @@ export const UdgGlassPersonalityCard = ({
         onSave={onSaveInterests || (async () => {})}
         editable={!!onSaveInterests}
         emptyMessage="No interests"
+        onAiSuggest={onAiSuggestInterests}
+        aiLoading={aiInterestsLoading}
       />
       
       <UdgGlassChipEditor
@@ -76,6 +86,8 @@ export const UdgGlassPersonalityCard = ({
         onSave={onSaveValues || (async () => {})}
         editable={!!onSaveValues}
         emptyMessage="No values"
+        onAiSuggest={onAiSuggestValues}
+        aiLoading={aiValuesLoading}
       />
       
       <UdgGlassChipEditor

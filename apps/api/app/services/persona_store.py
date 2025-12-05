@@ -929,9 +929,50 @@ class PersonaService:
         if persona.profile and isinstance(persona.profile, dict):
             try:
                 profile_data = PersonaProfile(**persona.profile)
-            except Exception:
-                # If profile doesn't match PersonaProfile schema, pass None
-                pass
+            except Exception as e:
+                # If profile doesn't match PersonaProfile schema, try to create a minimal profile
+                # Log the error for debugging
+                logger.warning(
+                    "persona.list.profile_conversion_failed",
+                    persona_id=str(persona.id),
+                    error=str(e),
+                    profile_keys=list(persona.profile.keys())[:10] if isinstance(persona.profile, dict) else None
+                )
+                # Try to create a basic profile from the raw data
+                try:
+                    # Extract basic fields that should always be available
+                    profile_data = PersonaProfile(
+                        id=str(persona.id),
+                        name=persona.profile.get("name") or persona.name,
+                        segment=persona.profile.get("segment") or persona.segment,
+                        headline=persona.profile.get("headline") or persona.headline,
+                        bio=persona.profile.get("bio", ""),
+                        traits=persona.profile.get("traits", {}),
+                        pain_points=persona.profile.get("pain_points") or persona.profile.get("painPoints", []),
+                        goals=persona.profile.get("goals", []),
+                        communication_style=persona.profile.get("communication_style") or persona.profile.get("communicationStyle", {}),
+                        confidence=persona.profile.get("confidence", persona.confidence),
+                        version=persona.profile.get("version", persona.version),
+                        interests=persona.profile.get("interests", []),
+                        color_palette=persona.profile.get("color_palette") or persona.profile.get("colorPalette", []),
+                        attention_span=persona.profile.get("attention_span") or persona.profile.get("attentionSpan"),
+                        social_media_usage=persona.profile.get("social_media_usage") or persona.profile.get("socialMediaUsage", []),
+                        values=persona.profile.get("values", []),
+                        # Include optional demographics fields
+                        full_name=persona.profile.get("full_name") or persona.profile.get("fullName"),
+                        age=persona.profile.get("age"),
+                        location=persona.profile.get("location"),
+                        gender=persona.profile.get("gender"),
+                        media_affinity=persona.profile.get("media_affinity") or persona.profile.get("mediaAffinity"),
+                    )
+                except Exception as e2:
+                    logger.warning(
+                        "persona.list.profile_fallback_failed",
+                        persona_id=str(persona.id),
+                        error=str(e2)
+                    )
+                    # Last resort: return None, but this shouldn't happen
+                    profile_data = None
         
         # Load system prompt if session is available
         prompt_data = None

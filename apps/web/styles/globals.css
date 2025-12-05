@@ -2,7 +2,7 @@
   color-scheme: light;
   font-family: var(--font-noto-sans-jp), 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', system-ui,
     -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background-color: var(--color-neutral);
+  background-color: var(--audion-light-html-background-color, var(--color-neutral));
   color: #0f172a;
   --color-primary-white: #fff;
   --color-secondary-dx-yellow: #fef14d;
@@ -31,7 +31,7 @@
 
 [data-theme="dark"] {
   color-scheme: dark;
-  background-color: var(--color-neutral);
+  background-color: var(--audion-light-html-background-color, var(--color-neutral));
   color: #ffffff;
   --color-primary-white: #fff;
   --color-secondary-dx-yellow: #fef14d;
@@ -76,7 +76,7 @@ body {
   flex-direction: column;
   font-family: var(--font-noto-sans-jp), 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', system-ui,
     -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background-color: var(--audion-light-border-color, #0f172a);
+  background-color: var(--audion-light-html-background-color, #0f172a) !important;
   color: #0f172a;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
@@ -89,7 +89,7 @@ body:has(.udg-glass-admin-panel) {
 }
 
 [data-theme="dark"] body {
-  background-color: var(--audion-light-border-color, #0f172a);
+  background-color: var(--audion-light-html-background-color, #ffffff) !important;
   color: #ffffff;
 }
 
@@ -205,6 +205,18 @@ main {
 
 @media (max-width: 1200px) {
   .udg-glass-admin-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .udg-glass-admin-grid > .udg-glass-panel-wrapper {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .udg-glass-admin-grid:has(.udg-glass-panel-wrapper.--collapsed),
+  .udg-glass-admin-grid:has(.udg-glass-panel-wrapper.--expanded) {
     grid-template-columns: 1fr;
   }
 }
@@ -1640,5 +1652,139 @@ main {
 .udg-glass-color-swatch:hover {
   transform: scale(1.1);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Mobile Typography Optimizations */
+@media (max-width: 959px) {
+  /* Base font size adjustment for better readability */
+  body {
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Heading adjustments */
+  h1, .MuiTypography-h1 {
+    font-size: 1.75rem !important;
+    font-weight: 600 !important;
+    line-height: 1.25 !important;
+    letter-spacing: -0.02em;
+  }
+
+  h2, .MuiTypography-h2 {
+    font-size: 1.5rem !important;
+    font-weight: 600 !important;
+    line-height: 1.3 !important;
+    letter-spacing: -0.01em;
+  }
+
+  h3, .MuiTypography-h3 {
+    font-size: 1.25rem !important;
+    font-weight: 600 !important;
+    line-height: 1.35 !important;
+  }
+
+  h4, .MuiTypography-h4 {
+    font-size: 1.125rem !important;
+    font-weight: 600 !important;
+    line-height: 1.4 !important;
+  }
+
+  h5, .MuiTypography-h5 {
+    font-size: 1rem !important;
+    font-weight: 500 !important;
+    line-height: 1.4 !important;
+  }
+
+  h6, .MuiTypography-h6 {
+    font-size: 0.9375rem !important;
+    font-weight: 500 !important;
+    line-height: 1.4 !important;
+  }
+
+  /* Body text adjustments */
+  p, .MuiTypography-body1 {
+    font-size: 0.9375rem !important;
+    line-height: 1.6 !important;
+    font-weight: 400 !important;
+  }
+
+  .MuiTypography-body2 {
+    font-size: 0.8125rem !important;
+    line-height: 1.5 !important;
+    font-weight: 400 !important;
+  }
+
+  /* Button text */
+  button, .MuiButton-root {
+    font-size: 0.8125rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.01em;
+  }
+
+  /* Small text and captions */
+  small, .MuiTypography-caption {
+    font-size: 0.6875rem !important;
+    line-height: 1.4 !important;
+    font-weight: 400 !important;
+  }
+
+  /* Strong and bold text */
+  strong, b {
+    font-weight: 600 !important;
+  }
+
+  /* Links */
+  a {
+    font-size: inherit;
+    font-weight: 500;
+  }
+
+  /* Admin-specific typography adjustments */
+  .udg-glass-eyebrow {
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.1em !important;
+  }
+
+  .udg-glass-admin-page h1,
+  .udg-glass-admin-page h2,
+  .udg-glass-admin-page h3 {
+    letter-spacing: -0.01em;
+  }
+
+  /* Form labels and inputs */
+  label {
+    font-size: 0.75rem !important;
+    font-weight: 500 !important;
+  }
+
+  input, textarea, select {
+    font-size: 0.9375rem !important;
+    line-height: 1.5 !important;
+  }
+
+  /* Chip and badge text */
+  .MuiChip-label,
+  .udg-glass-chip {
+    font-size: 0.75rem !important;
+    font-weight: 500 !important;
+  }
+
+  /* Navigation items */
+  .udg-glass-admin-nav-item {
+    font-size: 0.9375rem !important;
+    font-weight: 500 !important;
+  }
+
+  /* List items */
+  .udg-glass-list-item strong {
+    font-size: 0.8125rem !important;
+    font-weight: 500 !important;
+  }
+
+  .udg-glass-list-item__meta {
+    font-size: 0.75rem !important;
+  }
 }
 

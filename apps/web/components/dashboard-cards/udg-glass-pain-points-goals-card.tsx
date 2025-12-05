@@ -12,6 +12,10 @@ export type UdgGlassPainPointsGoalsCardProps = {
   onToggle: (id: string) => void;
   onSavePainPoints?: (chips: string[]) => Promise<void>;
   onSaveGoals?: (chips: string[]) => Promise<void>;
+  onAiSuggestPainPoints?: () => Promise<void>;
+  aiPainPointsLoading?: boolean;
+  onAiSuggestGoals?: () => Promise<void>;
+  aiGoalsLoading?: boolean;
   painPointsToolbar?: ReactNode;
 };
 
@@ -21,6 +25,10 @@ export const UdgGlassPainPointsGoalsCard = ({
   onToggle,
   onSavePainPoints,
   onSaveGoals,
+  onAiSuggestPainPoints,
+  aiPainPointsLoading = false,
+  onAiSuggestGoals,
+  aiGoalsLoading = false,
   painPointsToolbar,
 }: UdgGlassPainPointsGoalsCardProps) => {
   // Convert pain_points Array<{ label: string; evidence_count: number }> to string[] (only labels)
@@ -53,6 +61,8 @@ export const UdgGlassPainPointsGoalsCard = ({
             onSave={onSavePainPoints || (async () => {})}
             editable={!!onSavePainPoints}
             emptyMessage="No pain points identified"
+            onAiSuggest={onAiSuggestPainPoints}
+            aiLoading={aiPainPointsLoading}
           />
         </div>
         <div>
@@ -63,6 +73,8 @@ export const UdgGlassPainPointsGoalsCard = ({
             onSave={onSaveGoals || (async () => {})}
             editable={!!onSaveGoals}
             emptyMessage="No goals defined"
+            onAiSuggest={onAiSuggestGoals}
+            aiLoading={aiGoalsLoading}
           />
         </div>
       </div>

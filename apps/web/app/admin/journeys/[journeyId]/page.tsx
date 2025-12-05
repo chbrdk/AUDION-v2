@@ -190,7 +190,14 @@ export default function JourneyEditorPage() {
   };
 
   const handleAddPhase = () => {
-    const nextOrder = journey ? journey.phases.length + 1 : 1;
+    console.log("handleAddPhase called", { journey: !!journey, journeyId, phasesCount: journey?.phases?.length });
+    if (!journey) {
+      console.error("Cannot add phase: journey is not loaded");
+      notify("Please wait for journey to load");
+      return;
+    }
+    const nextOrder = journey.phases.length + 1;
+    console.log("Setting phase form expanded to true, nextOrder:", nextOrder);
     setEditingPhaseId(null);
     setPhaseFormData({
       name: "",
@@ -965,7 +972,7 @@ export default function JourneyEditorPage() {
             </div>
           </div>
           
-          {journey.phases.length === 0 ? (
+          {journey.phases.length === 0 && !phaseFormExpanded ? (
             <p className="udg-glass-empty">No phases yet. Add your first phase to get started.</p>
           ) : (
             <div className="udg-glass-journey-timeline">

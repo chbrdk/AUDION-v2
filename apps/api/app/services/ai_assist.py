@@ -203,18 +203,24 @@ class _ExtendedVariableResolver:
                 logger.warning("ai.assist.extended_var.missing_id", var_name=var_name, id_var=id_variable)
                 return f"[{resolver_type.capitalize()} ID not found]"
             
-            # Convert to string and validate UUID format
+            # Convert to string
             entity_id_str = str(entity_id).strip()
             if not entity_id_str:
                 return f"[{resolver_type.capitalize()} ID is empty]"
             
-            try:
-                UUID(entity_id_str)
-            except ValueError:
-                logger.warning("ai.assist.extended_var.invalid_uuid", var_name=var_name, entity_id=entity_id_str)
-                return f"[Invalid {resolver_type} ID]"
-            
             # Resolve based on type
+            if resolver_type == "knowledge":
+                # Knowledge resolver doesn't require UUID validation - query can be any string
+                return self._resolve_knowledge(entity_id_str, property_path, context)
+            else:
+                # Other resolvers require UUID validation
+                try:
+                    UUID(entity_id_str)
+                except ValueError:
+                    logger.warning("ai.assist.extended_var.invalid_uuid", var_name=var_name, entity_id=entity_id_str)
+                    return f"[Invalid {resolver_type} ID]"
+            
+            # Resolve UUID-based entities
             if resolver_type == "persona":
                 return self._resolve_persona(entity_id_str, property_path)
             elif resolver_type == "journey":
@@ -313,6 +319,93 @@ class _ExtendedVariableResolver:
         except Exception as exc:
             logger.warning("ai.assist.extended_var.phase_failed", phase_id=phase_id, error=str(exc))
             return "[Phase resolution error]"
+
+    def _resolve_knowledge(self, query_or_id: str, path: str, context: Dict[str, Any]) -> str:
+        """Resolve knowledge search results."""
+        try:
+            from ..agents.retrieval import RetrievalAgent
+            
+            retrieval_agent = RetrievalAgent()
+            
+            # Get persona_segment from context if available for filtering
+            persona_segment = context.get("persona_segment")
+            target_group_id = context.get("target_group_id")
+            
+            # Check if query_or_id is a UUID (target_group_id) or a search query
+            is_uuid = False
+            try:
+                UUID(query_or_id)
+                is_uuid = True
+            except ValueError:
+                pass
+            
+            if is_uuid and path.startswith(".content"):
+                # If it's a UUID and path is .content, treat as target_group_id
+                # Use KnowledgeExplorerService for target group chunks
+                try:
+                    from ..services.knowledge_explorer import KnowledgeExplorerService
+                    explorer = KnowledgeExplorerService()
+                    chunks_data = explorer.get_chunks_for_target_group(self.session, query_or_id, limit=50)
+                    
+                    # Format based on path
+                    if path == ".content" or path == "":
+                        return "\n\n".join([chunk.get("content", "")[:500] for chunk in chunks_data[:10]])
+                    elif path == ".results":
+                        # JSON format
+                        results = [
+                            {
+                                "content": chunk.get("content", "")[:500],
+                                "document_id": chunk.get("document_id", ""),
+                                "relevance_score": chunk.get("relevance_score", 0.0),
+                            }
+                            for chunk in chunks_data[:10]
+                        ]
+                        return json.dumps(results, ensure_ascii=False, indent=2)
+                except Exception as exc:
+                    logger.warning("ai.assist.extended_var.knowledge_target_group_failed", error=str(exc))
+                    # Fallback to search
+                    pass
+            
+            # Perform semantic search using RetrievalAgent
+            _, hits = retrieval_agent.run(
+                query=query_or_id,
+                target_group_id=target_group_id,
+                persona_segment=persona_segment
+            )
+            
+            # Format results based on path
+            if path == ".content" or path == "":
+                # Return content of top results (newline-separated)
+                contents = []
+                for hit in hits[:5]:
+                    if hit.payload:
+                        content = hit.payload.get("content", "")
+                        if content:
+                            contents.append(content[:500])
+                return "\n\n".join(contents) if contents else "[No knowledge found]"
+            elif path == ".results":
+                # Return structured JSON results
+                results = []
+                for hit in hits[:5]:
+                    if hit.payload:
+                        score = 0.0
+                        if hasattr(hit, "score"):
+                            score = float(hit.score)
+                        elif isinstance(hit, dict) and "score" in hit:
+                            score = float(hit["score"])
+                        
+                        results.append({
+                            "content": hit.payload.get("content", "")[:500],
+                            "document_id": str(hit.payload.get("document_id", "")),
+                            "chunk_id": str(hit.payload.get("chunk_id", "")),
+                            "score": score,
+                        })
+                return json.dumps(results, ensure_ascii=False, indent=2) if results else "[]"
+            else:
+                return f"[Unknown knowledge path: {path}]"
+        except Exception as exc:
+            logger.warning("ai.assist.extended_var.knowledge_failed", query=query_or_id[:100], error=str(exc), exc_info=True)
+            return "[Knowledge resolution error]"
 
     def _navigate_property_path(self, obj: Any, path: str, entity_type: str) -> str:
         """

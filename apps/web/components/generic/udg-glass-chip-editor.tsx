@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Box, TextField, IconButton, useTheme, alpha } from "@mui/material";
 import { MaterialSymbol } from "../material-symbol";
+import { UdgGlassEditButton, UdgGlassAiButtonIcon } from "./";
 import { useInlineEdit } from "../hooks/use-inline-edit";
 import { UdgGlassInlineEditControls } from "../udg-glass-inline-edit-controls";
 import { UdgGlassChip } from "./udg-glass-chip";
@@ -229,34 +230,23 @@ export const UdgGlassChipEditor = ({
         {editable && !isEditing && (
           <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
             {onAiSuggest && (
-              <IconButton
-                size="small"
+              <UdgGlassAiButtonIcon
                 onClick={onAiSuggest}
                 disabled={aiLoading}
-                sx={{
-                  padding: "4px",
-                  "&:hover": {
-                    backgroundColor: alpha(theme.palette.secondary.main, 0.1)
-                  }
-                }}
+                loading={aiLoading}
+                size="small"
+                fontSize={18}
                 title="AI Vorschlag"
-              >
-                <MaterialSymbol icon={aiLoading ? "hourglass_empty" : "auto_awesome"} fontSize={18} />
-              </IconButton>
+                aria-label="AI Vorschlag"
+              />
             )}
             {hasChips && (
-              <IconButton
-                size="small"
+              <UdgGlassEditButton
                 onClick={handleStartEdit}
-                sx={{
-                  padding: "4px",
-                  "&:hover": {
-                    backgroundColor: alpha(theme.palette.primary.main, 0.1)
-                  }
-                }}
-              >
-                <MaterialSymbol icon="edit" fontSize={18} />
-              </IconButton>
+                size="small"
+                fontSize={18}
+                aria-label="Edit chips"
+              />
             )}
           </Box>
         )}
@@ -368,22 +358,20 @@ export const UdgGlassChipEditor = ({
       {editable && showEmptyState && (
         <Box sx={{ display: "flex", gap: 1, alignItems: "center", mt: 1 }}>
           {onAiSuggest && (
-            <IconButton
-              size="small"
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <UdgGlassAiButtonIcon
               onClick={onAiSuggest}
               disabled={aiLoading}
-              sx={{
-                "&:hover": {
-                  backgroundColor: alpha(theme.palette.secondary.main, 0.1)
-                }
-              }}
+                loading={aiLoading}
+                size="small"
+                fontSize={18}
               title="AI Vorschlag"
-            >
-              <MaterialSymbol icon={aiLoading ? "hourglass_empty" : "auto_awesome"} fontSize={18} />
-              <Box component="span" sx={{ ml: 0.5, fontSize: "0.875rem" }}>
+                aria-label="AI Vorschlag"
+              />
+              <Box component="span" sx={{ fontSize: "0.875rem" }}>
                 AI Vorschlag
               </Box>
-            </IconButton>
+            </Box>
           )}
           <IconButton
             size="small"
