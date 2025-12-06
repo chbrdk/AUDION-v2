@@ -1,0 +1,123 @@
+{
+  "timestamp": "2025-12-05T00:00:00Z",
+  "version": "baseline-v1",
+  "description": "Performance-Metriken vor Optimierungen - Baseline für Vergleich",
+  "frontend": {
+    "bundle_size": {
+      "total": null,
+      "first_load_js": null,
+      "shared_js": null,
+      "pages": {},
+      "note": "Wird gemessen mit: npm run build && next build --analyze"
+    },
+    "build_time": {
+      "seconds": null,
+      "note": "Wird gemessen mit: time npm run build"
+    },
+    "lighthouse": {
+      "performance": null,
+      "accessibility": null,
+      "best_practices": null,
+      "seo": null,
+      "note": "Wird gemessen mit: lighthouse http://localhost:3000"
+    }
+  },
+  "backend": {
+    "api_response_times": {
+      "personas_list": {
+        "p50_ms": null,
+        "p95_ms": null,
+        "p99_ms": null,
+        "endpoint": "GET /personas",
+        "note": "Wird gemessen mit: wrk oder Apache Bench"
+      },
+      "persona_detail": {
+        "p50_ms": null,
+        "p95_ms": null,
+        "p99_ms": null,
+        "endpoint": "GET /personas/{id}",
+        "note": "Wird gemessen mit: wrk oder Apache Bench"
+      },
+      "chat_message": {
+        "p50_ms": null,
+        "p95_ms": null,
+        "p99_ms": null,
+        "endpoint": "POST /message/stream",
+        "note": "Wird gemessen mit: wrk oder Apache Bench"
+      },
+      "target_groups_list": {
+        "p50_ms": null,
+        "p95_ms": null,
+        "p99_ms": null,
+        "endpoint": "GET /target-groups",
+        "note": "Wird gemessen mit: wrk oder Apache Bench"
+      }
+    },
+    "database_queries": {
+      "persona_store_get_persona": {
+        "avg_ms": null,
+        "query": "SELECT personas + relationships",
+        "note": "Wird gemessen mit: EXPLAIN ANALYZE in psql"
+      },
+      "persona_store_list_personas": {
+        "avg_ms": null,
+        "query": "SELECT personas with filters",
+        "note": "Wird gemessen mit: EXPLAIN ANALYZE in psql"
+      },
+      "knowledge_explorer_get_chunks": {
+        "avg_ms": null,
+        "query": "SELECT chunks + documents + sources",
+        "note": "Wird gemessen mit: EXPLAIN ANALYZE in psql"
+      },
+      "ingestion_process_document": {
+        "avg_ms": null,
+        "query": "Multiple queries during ingestion",
+        "note": "Wird gemessen mit: EXPLAIN ANALYZE in psql"
+      }
+    },
+    "async_operations": {
+      "journey_validation_sequential": {
+        "avg_seconds": null,
+        "personas_count": null,
+        "note": "Wird gemessen mit: Time für validate_journey_task"
+      },
+      "tool_execution": {
+        "avg_ms": null,
+        "note": "Wird gemessen mit: Time für Tool Execution in persona.py"
+      },
+      "embedding_generation": {
+        "batch_size": 4,
+        "chunks_per_second": null,
+        "note": "Wird gemessen mit: Time für Embedding Generation"
+      }
+    },
+    "memory_usage": {
+      "persona_api_mb": null,
+      "chat_api_mb": null,
+      "indexing_api_mb": null,
+      "note": "Wird gemessen mit: docker stats oder psutil"
+    }
+  },
+  "infrastructure": {
+    "build_times": {
+      "web_docker_build_seconds": null,
+      "api_docker_build_seconds": null,
+      "chat_api_docker_build_seconds": null,
+      "indexing_api_docker_build_seconds": null,
+      "note": "Wird gemessen mit: time docker compose build"
+    },
+    "startup_times": {
+      "persona_api_seconds": null,
+      "chat_api_seconds": null,
+      "indexing_api_seconds": null,
+      "web_seconds": null,
+      "note": "Wird gemessen mit: time bis Health Check OK"
+    }
+  },
+  "notes": [
+    "Diese Metriken werden vor allen Optimierungen gemessen",
+    "Alle Werte werden nach Optimierungen erneut gemessen und verglichen",
+    "NULL-Werte werden durch tatsächliche Messungen ersetzt",
+    "Messungen sollten unter konsistenten Bedingungen durchgeführt werden"
+  ]
+}

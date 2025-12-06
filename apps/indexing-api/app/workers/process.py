@@ -5,6 +5,8 @@ from uuid import UUID
 
 import structlog
 
+from sqlalchemy import select
+
 from ..celery_app import celery_app
 from ..db import get_session
 from ..models import ProcessingJob
@@ -27,11 +29,10 @@ def enqueue_processing(document_id: str, file_path: str) -> None:
         kwargs={"document_id": document_id, "file_path": file_path},
     )
     with get_session() as session:
-        job = (
-            session.query(ProcessingJob)
-            .filter(ProcessingJob.document_id == UUID(document_id))
-            .one()
+        job = session.scalar(
+            select(ProcessingJob).where(ProcessingJob.document_id == UUID(document_id))
         )
-        job.status = "pending"
-        session.commit()
+        if job:
+            job.status = "pending"
+            session.commit()
 

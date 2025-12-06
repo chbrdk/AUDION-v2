@@ -12,6 +12,8 @@ from uuid import UUID
 
 import structlog
 
+from sqlalchemy import select
+
 from ..agents.retrieval import RetrievalAgent
 from ..core.config import get_settings
 from ..db import get_session
@@ -220,12 +222,11 @@ class ToolExecutor:
         try:
             # Get all chunks for this document from database
             with get_session() as session:
-                chunks = (
-                    session.query(DocumentChunk)
-                    .filter(DocumentChunk.document_id == doc_uuid)
+                chunks = session.scalars(
+                    select(DocumentChunk)
+                    .where(DocumentChunk.document_id == doc_uuid)
                     .order_by(DocumentChunk.chunk_metadata["order"].astext.cast(int).nulls_last())
-                    .all()
-                )
+                ).all()
                 
                 if not chunks:
                     return {

@@ -88,7 +88,7 @@ def list_persona_prompts() -> list[dict]:
     """List all persona prompts as template-like entries."""
     with get_session() as session:
         # Get all personas with their prompts
-        personas = session.query(Persona).all()
+        personas = session.scalars(select(Persona)).all()
         prompts = []
         
         for persona in personas:

@@ -7,6 +7,8 @@ from FlagEmbedding import BGEM3FlagModel
 from qdrant_client import QdrantClient
 from qdrant_client.http import models as qmodels
 
+from sqlalchemy import select
+
 from ..core.config import get_settings
 from ..db import get_session
 from ..models import Document, DocumentChunk, TargetGroup, TargetGroupKnowledgeEntry, TargetGroupSource
@@ -45,17 +47,20 @@ class KnowledgeIngestionService:
         """Get or create a virtual document for knowledge entries of a target group."""
         # Try to find existing virtual document
         # Use a more reliable way to identify virtual documents
-        virtual_doc = session.query(Document).filter(
-            Document.target_group_id == target_group_id,
-            Document.file_path == "",  # Virtual documents have empty file_path
-            Document.filename.like("Knowledge Base - %"),
-        ).first()
+        virtual_doc = session.scalar(
+            select(Document)
+            .where(Document.target_group_id == target_group_id)
+            .where(Document.file_path == "")  # Virtual documents have empty file_path
+            .where(Document.filename.like("Knowledge Base - %"))
+        )
 
         if virtual_doc:
             return virtual_doc
 
         # Get target group to get project_id
-        target_group = session.query(TargetGroup).filter(TargetGroup.id == target_group_id).first()
+        target_group = session.scalar(
+            select(TargetGroup).where(TargetGroup.id == target_group_id)
+        )
         if not target_group:
             raise ValueError(f"Target group {target_group_id} not found")
 
@@ -82,14 +87,16 @@ class KnowledgeIngestionService:
         logger.info("knowledge.ingest.start", entry_id=str(entry_id))
 
         with get_session() as session:
-            entry = session.query(TargetGroupKnowledgeEntry).filter(TargetGroupKnowledgeEntry.id == entry_id).first()
+            entry = session.scalar(
+                select(TargetGroupKnowledgeEntry).where(TargetGroupKnowledgeEntry.id == entry_id)
+            )
             if not entry:
                 raise ValueError(f"Knowledge entry {entry_id} not found")
 
             # Check if chunk already exists (for updates)
-            existing_chunk = session.query(DocumentChunk).filter(
-                DocumentChunk.knowledge_entry_id == entry_id
-            ).first()
+            existing_chunk = session.scalar(
+                select(DocumentChunk).where(DocumentChunk.knowledge_entry_id == entry_id)
+            )
 
             # Get or create virtual document
             virtual_doc = self._get_or_create_virtual_document(entry.target_group_id, session)

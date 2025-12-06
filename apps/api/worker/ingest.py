@@ -5,6 +5,8 @@ from uuid import UUID
 
 import structlog
 
+from sqlalchemy import select
+
 from app.db import get_session
 from app.models import ProcessingJob
 from app.services.ingestion import IngestionService
@@ -31,10 +33,8 @@ def ingest_document(self, document_id: str, file_path: str) -> None:
             logger.error("ingest.task.file_not_found", document_id=document_id, file_path=str(file_path_obj))
             # Update job status to failed
             with get_session() as session:
-                job = (
-                    session.query(ProcessingJob)
-                    .filter(ProcessingJob.document_id == UUID(document_id))
-                    .first()
+                job = session.scalar(
+                    select(ProcessingJob).where(ProcessingJob.document_id == UUID(document_id))
                 )
                 if job:
                     job.status = "failed"
@@ -50,10 +50,8 @@ def ingest_document(self, document_id: str, file_path: str) -> None:
         # Update job status to failed if not already updated by ingestion service
         try:
             with get_session() as session:
-                job = (
-                    session.query(ProcessingJob)
-                    .filter(ProcessingJob.document_id == UUID(document_id))
-                    .first()
+                job = session.scalar(
+                    select(ProcessingJob).where(ProcessingJob.document_id == UUID(document_id))
                 )
                 if job and job.status not in ["failed", "completed"]:
                     job.status = "failed"
@@ -125,10 +123,8 @@ def enqueue_ingestion(document_id: str, file_path: str, retry_count: int = 0, ma
                     
                     # Update job status
                     with get_session() as session:
-                        job = (
-                            session.query(ProcessingJob)
-                            .filter(ProcessingJob.document_id == UUID(document_id))
-                            .first()
+                        job = session.scalar(
+                            select(ProcessingJob).where(ProcessingJob.document_id == UUID(document_id))
                         )
                         if job:
                             if retry_count < max_retries:
@@ -162,10 +158,8 @@ def enqueue_ingestion(document_id: str, file_path: str, retry_count: int = 0, ma
                     # Other failure
                     logger.warning("enqueue.ingestion.task_failed_immediately", document_id=document_id, task_id=result.id)
                     with get_session() as session:
-                        job = (
-                            session.query(ProcessingJob)
-                            .filter(ProcessingJob.document_id == UUID(document_id))
-                            .first()
+                        job = session.scalar(
+                            select(ProcessingJob).where(ProcessingJob.document_id == UUID(document_id))
                         )
                         if job:
                             job.status = "failed"
@@ -180,10 +174,8 @@ def enqueue_ingestion(document_id: str, file_path: str, retry_count: int = 0, ma
         logger.error("enqueue.ingestion.failed", document_id=document_id, error=str(exc), exc_info=True)
         # Update job status to failed
         with get_session() as session:
-            job = (
-                session.query(ProcessingJob)
-                .filter(ProcessingJob.document_id == UUID(document_id))
-                .first()
+            job = session.scalar(
+                select(ProcessingJob).where(ProcessingJob.document_id == UUID(document_id))
             )
             if job:
                 job.status = "failed"
@@ -192,10 +184,8 @@ def enqueue_ingestion(document_id: str, file_path: str, retry_count: int = 0, ma
         raise
     
     with get_session() as session:
-        job = (
-            session.query(ProcessingJob)
-            .filter(ProcessingJob.document_id == UUID(document_id))
-            .first()
+        job = session.scalar(
+            select(ProcessingJob).where(ProcessingJob.document_id == UUID(document_id))
         )
         if job:
             job.status = "pending"
@@ -222,10 +212,8 @@ def _process_directly(document_id: str, file_path: str) -> None:
         if not file_path_obj.exists():
             logger.error("enqueue.ingestion.file_not_found", document_id=document_id, file_path=str(file_path_obj))
             with get_session() as session:
-                job = (
-                    session.query(ProcessingJob)
-                    .filter(ProcessingJob.document_id == UUID(document_id))
-                    .first()
+                job = session.scalar(
+                    select(ProcessingJob).where(ProcessingJob.document_id == UUID(document_id))
                 )
                 if job:
                     job.status = "failed"
@@ -235,10 +223,8 @@ def _process_directly(document_id: str, file_path: str) -> None:
         
         # Update job status to processing
         with get_session() as session:
-            job = (
-                session.query(ProcessingJob)
-                .filter(ProcessingJob.document_id == UUID(document_id))
-                .first()
+            job = session.scalar(
+                select(ProcessingJob).where(ProcessingJob.document_id == UUID(document_id))
             )
             if job:
                 job.status = "processing"
@@ -260,10 +246,8 @@ def _process_directly(document_id: str, file_path: str) -> None:
         # Update job status
         try:
             with get_session() as session:
-                job = (
-                    session.query(ProcessingJob)
-                    .filter(ProcessingJob.document_id == UUID(document_id))
-                    .first()
+                job = session.scalar(
+                    select(ProcessingJob).where(ProcessingJob.document_id == UUID(document_id))
                 )
                 if job:
                     job.status = "failed"

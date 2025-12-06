@@ -11,6 +11,7 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
 from fastapi import Request
 from fastapi.responses import RedirectResponse, Response, StreamingResponse
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 import json
 
@@ -1004,7 +1005,9 @@ def retry_persona_document_ingestion(
         raise HTTPException(status_code=400, detail="Document file path missing")
     
     # Get or create processing job
-    job = session.query(ProcessingJob).filter(ProcessingJob.document_id == document_uuid).first()
+    job = session.scalar(
+        select(ProcessingJob).where(ProcessingJob.document_id == document_uuid)
+    )
     if not job:
         job = ProcessingJob(document_id=document_uuid, status="pending", progress=0)
         session.add(job)
@@ -1106,10 +1109,10 @@ def delete_persona_document(
         pass  # Qdrant might not be available, continue with cleanup
     
     # Delete chunks from database
-    session.query(DocumentChunk).filter(DocumentChunk.document_id == document_uuid).delete()
+    session.execute(delete(DocumentChunk).where(DocumentChunk.document_id == document_uuid))
     
     # Delete processing job
-    session.query(ProcessingJob).filter(ProcessingJob.document_id == document_uuid).delete()
+    session.execute(delete(ProcessingJob).where(ProcessingJob.document_id == document_uuid))
     
     # Delete document
     session.delete(document)

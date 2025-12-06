@@ -6,6 +6,7 @@ from uuid import UUID, uuid4
 
 import structlog
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_session
@@ -628,10 +629,11 @@ def update_target_group_knowledge(
     session: Session = Depends(get_db),
 ) -> PersonaKnowledgeEntrySchema:
     tg = _get_target_group_or_404(session, target_group_id)
-    entry = session.query(TargetGroupKnowledgeEntry).filter(
-        TargetGroupKnowledgeEntry.id == knowledge_id,
-        TargetGroupKnowledgeEntry.target_group_id == tg.id,
-    ).first()
+    entry = session.scalar(
+        select(TargetGroupKnowledgeEntry)
+        .where(TargetGroupKnowledgeEntry.id == knowledge_id)
+        .where(TargetGroupKnowledgeEntry.target_group_id == tg.id)
+    )
     if not entry:
         raise HTTPException(status_code=404, detail="Knowledge entry not found")
     
@@ -688,10 +690,11 @@ def delete_target_group_knowledge(
     session: Session = Depends(get_db),
 ) -> None:
     tg = _get_target_group_or_404(session, target_group_id)
-    entry = session.query(TargetGroupKnowledgeEntry).filter(
-        TargetGroupKnowledgeEntry.id == knowledge_id,
-        TargetGroupKnowledgeEntry.target_group_id == tg.id,
-    ).first()
+    entry = session.scalar(
+        select(TargetGroupKnowledgeEntry)
+        .where(TargetGroupKnowledgeEntry.id == knowledge_id)
+        .where(TargetGroupKnowledgeEntry.target_group_id == tg.id)
+    )
     if not entry:
         raise HTTPException(status_code=404, detail="Knowledge entry not found")
     

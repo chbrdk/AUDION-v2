@@ -253,12 +253,12 @@ class TargetGroupService:
             raise ValueError("target_group_not_found")
 
         # Get documents that belong directly to this target group
-        records = (
-            session.query(Document)
-            .filter(Document.target_group_id == tg_uuid)
+        from sqlalchemy import select
+        records = session.scalars(
+            select(Document)
+            .where(Document.target_group_id == tg_uuid)
             .order_by(Document.created_at.desc())
-            .all()
-        )
+        ).all()
         return [self._to_document_payload(record, session=session, target_group_id=target_group_id) for record in records]
 
     def _to_document_payload(self, document: Document, session: Session | None = None, target_group_id: str | None = None) -> PersonaDocument:
@@ -267,11 +267,12 @@ class TargetGroupService:
 
         # Load ProcessingJob if session is available
         if session:
-            job = (
-                session.query(ProcessingJob)
-                .filter(ProcessingJob.document_id == document.id)
+            from sqlalchemy import select
+            job = session.scalar(
+                select(ProcessingJob)
+                .where(ProcessingJob.document_id == document.id)
                 .order_by(ProcessingJob.created_at.desc())
-                .first()
+            )
             )
             if job:
                 ingestion_status = job.status

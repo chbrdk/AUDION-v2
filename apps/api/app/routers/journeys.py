@@ -6,6 +6,7 @@ from uuid import UUID
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_session
@@ -331,13 +332,15 @@ def list_journeys(
     page_size: int = Query(20, ge=1, le=100),
     session: Session = Depends(get_db),
 ) -> List[JourneyResponse]:
-    query = session.query(Journey)
+    stmt = select(Journey)
     if target_group_id:
-        query = query.filter(Journey.target_group_id == UUID(target_group_id))
+        stmt = stmt.where(Journey.target_group_id == UUID(target_group_id))
     if project_id:
-        query = query.filter(Journey.project_id == UUID(project_id))
+        stmt = stmt.where(Journey.project_id == UUID(project_id))
     
-    journeys = query.offset((page - 1) * page_size).limit(page_size).all()
+    journeys = session.scalars(
+        stmt.offset((page - 1) * page_size).limit(page_size)
+    ).all()
     return [_journey_to_response(j) for j in journeys]
 
 
@@ -666,7 +669,9 @@ def list_expectations(
 ) -> List[ExpectationResponse]:
     _get_journey_or_404(session, journey_id)
     phase = _get_phase_or_404(session, phase_id)
-    expectations = session.query(JourneyExpectation).filter(JourneyExpectation.phase_id == phase.id).all()
+    expectations = session.scalars(
+        select(JourneyExpectation).where(JourneyExpectation.phase_id == phase.id)
+    ).all()
     return [_expectation_to_response(e) for e in expectations]
 
 
@@ -814,12 +819,11 @@ def get_measurements(
     measurements = []
     for phase in journey.phases:
         for expectation in phase.expectations:
-            phase_measurements = (
-                session.query(JourneyMeasurement)
-                .filter(JourneyMeasurement.expectation_id == expectation.id)
+            phase_measurements = session.scalars(
+                select(JourneyMeasurement)
+                .where(JourneyMeasurement.expectation_id == expectation.id)
                 .order_by(JourneyMeasurement.synced_at.desc())
-                .all()
-            )
+            ).all()
             for m in phase_measurements:
                 measurements.append(
                     MeasurementResponse(
@@ -855,12 +859,11 @@ def get_insights(
     
     journey = _get_journey_or_404(session, journey_id)
     
-    insights = (
-        session.query(JourneyInsight)
-        .filter(JourneyInsight.journey_id == journey.id)
+    insights = session.scalars(
+        select(JourneyInsight)
+        .where(JourneyInsight.journey_id == journey.id)
         .order_by(JourneyInsight.created_at.desc())
-        .all()
-    )
+    ).all()
     
     return [
         InsightResponse(
@@ -982,12 +985,11 @@ def list_changes(
     
     journey = _get_journey_or_404(session, journey_id)
     
-    changes = (
-        session.query(JourneyChange)
-        .filter(JourneyChange.journey_id == journey.id)
+    changes = session.scalars(
+        select(JourneyChange)
+        .where(JourneyChange.journey_id == journey.id)
         .order_by(JourneyChange.created_at.desc())
-        .all()
-    )
+    ).all()
     
     return [
         ChangeResponse(

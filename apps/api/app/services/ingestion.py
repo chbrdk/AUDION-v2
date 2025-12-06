@@ -11,6 +11,8 @@ from qdrant_client import QdrantClient
 from qdrant_client.http import models as qmodels
 from unstructured.partition.auto import partition
 
+from sqlalchemy import select
+
 from ..core.config import get_settings
 from ..db import get_session
 from ..models import Document, DocumentChunk, ProcessingJob, TargetGroupSource
@@ -51,8 +53,8 @@ class IngestionService:
         logger.info("ingest.start", document_id=str(document_id), file_path=str(file_path))
 
         with get_session() as session:
-            job: ProcessingJob | None = (
-                session.query(ProcessingJob).filter(ProcessingJob.document_id == document_id).first()
+            job: ProcessingJob | None = session.scalar(
+                select(ProcessingJob).where(ProcessingJob.document_id == document_id)
             )
             if not job:
                 # Create job if it doesn't exist
@@ -82,7 +84,7 @@ class IngestionService:
             
             # Get document to check for persona_id and target_group_id
             from ..models import Persona
-            document = session.query(Document).get(document_id)
+            document = session.get(Document, document_id)
             if not document:
                 job.status = "failed"
                 job.error = "Document not found"
@@ -95,7 +97,7 @@ class IngestionService:
             if document.target_group_id:
                 target_group_id = str(document.target_group_id)
             elif document.persona_id:
-                persona = session.query(Persona).get(document.persona_id)
+                persona = session.get(Persona, document.persona_id)
                 if persona:
                     persona_segment = persona.segment  # For backward compatibility
                     if persona.target_group_id:
@@ -105,13 +107,13 @@ class IngestionService:
         if not file_path.exists():
             logger.error("ingest.file_not_found", document_id=str(document_id), file_path=str(file_path))
             with get_session() as session:
-                job = (
-                    session.query(ProcessingJob).filter(ProcessingJob.document_id == document_id).first()
+                job = session.scalar(
+                    select(ProcessingJob).where(ProcessingJob.document_id == document_id)
                 )
                 if job:
                     job.status = "failed"
                     job.error = f"File not found: {file_path}"
-                document = session.query(Document).get(document_id)
+                document = session.get(Document, document_id)
                 if document:
                     document.status = "failed"
                 session.commit()
@@ -121,8 +123,8 @@ class IngestionService:
             # Update progress: starting parsing
             logger.info("ingest.partition.start", document_id=str(document_id), file_path=str(file_path))
             with get_session() as session:
-                job = (
-                    session.query(ProcessingJob).filter(ProcessingJob.document_id == document_id).first()
+                job = session.scalar(
+                    select(ProcessingJob).where(ProcessingJob.document_id == document_id)
                 )
                 if job:
                     job.progress = 10  # Indicate parsing has started
@@ -135,13 +137,13 @@ class IngestionService:
             if not cleaned_chunks:
                 logger.warning("ingest.no_chunks", document_id=str(document_id))
                 with get_session() as session:
-                    job = (
-                        session.query(ProcessingJob).filter(ProcessingJob.document_id == document_id).first()
+                    job = session.scalar(
+                        select(ProcessingJob).where(ProcessingJob.document_id == document_id)
                     )
                     if job:
                         job.status = "completed"
                         job.progress = 100
-                    document = session.query(Document).get(document_id)
+                    document = session.get(Document, document_id)
                     if document:
                         document.status = "completed"
                     session.commit()
@@ -150,8 +152,8 @@ class IngestionService:
             # Update progress: parsing complete
             logger.info("ingest.progress.parsing_complete", document_id=str(document_id), progress=20)
             with get_session() as session:
-                job = (
-                    session.query(ProcessingJob).filter(ProcessingJob.document_id == document_id).first()
+                job = session.scalar(
+                    select(ProcessingJob).where(ProcessingJob.document_id == document_id)
                 )
                 if job:
                     job.progress = 20
@@ -164,8 +166,8 @@ class IngestionService:
             # Update progress: embeddings complete
             logger.info("ingest.progress.embeddings_complete", document_id=str(document_id), progress=50)
             with get_session() as session:
-                job = (
-                    session.query(ProcessingJob).filter(ProcessingJob.document_id == document_id).first()
+                job = session.scalar(
+                    select(ProcessingJob).where(ProcessingJob.document_id == document_id)
                 )
                 if job:
                     job.progress = 50
@@ -215,8 +217,8 @@ class IngestionService:
                 # Update progress: processing chunks
                 if (idx + 1) % 10 == 0 or idx == total_chunks - 1:
                     with get_session() as session:
-                        job = (
-                            session.query(ProcessingJob).filter(ProcessingJob.document_id == document_id).first()
+                        job = session.scalar(
+                            select(ProcessingJob).where(ProcessingJob.document_id == document_id)
                         )
                         if job:
                             # Progress: 50% (embeddings) + 30% (chunks) = 80% max
@@ -226,8 +228,8 @@ class IngestionService:
             # Update progress: storing in Qdrant
             logger.info("ingest.qdrant.storing", document_id=str(document_id), points_count=len(points), progress=90)
             with get_session() as session:
-                job = (
-                    session.query(ProcessingJob).filter(ProcessingJob.document_id == document_id).first()
+                job = session.scalar(
+                    select(ProcessingJob).where(ProcessingJob.document_id == document_id)
                 )
                 if job:
                     job.progress = 90
@@ -244,10 +246,11 @@ class IngestionService:
                 with get_session() as session:
                     for chunk_id in chunk_ids:
                         # Check if TargetGroupSource already exists to avoid duplicates
-                        existing = session.query(TargetGroupSource).filter(
-                            TargetGroupSource.target_group_id == target_group_uuid,
-                            TargetGroupSource.chunk_id == chunk_id
-                        ).first()
+                        existing = session.scalar(
+                            select(TargetGroupSource)
+                            .where(TargetGroupSource.target_group_id == target_group_uuid)
+                            .where(TargetGroupSource.chunk_id == chunk_id)
+                        )
                         if not existing:
                             target_group_source = TargetGroupSource(
                                 target_group_id=target_group_uuid,
@@ -261,14 +264,14 @@ class IngestionService:
 
             logger.info("ingest.completing", document_id=str(document_id), progress=100)
             with get_session() as session:
-                job = (
-                    session.query(ProcessingJob).filter(ProcessingJob.document_id == document_id).first()
+                job = session.scalar(
+                    select(ProcessingJob).where(ProcessingJob.document_id == document_id)
                 )
                 if job:
                     job.status = "completed"
                     job.progress = 100
                     job.updated_at = datetime.utcnow()
-                document = session.query(Document).get(document_id)
+                document = session.get(Document, document_id)
                 if document:
                     document.status = "completed"
                     document.updated_at = datetime.utcnow()
@@ -278,14 +281,14 @@ class IngestionService:
         except Exception as exc:
             logger.error("ingest.failed", document_id=str(document_id), error=str(exc), error_type=type(exc).__name__, exc_info=True)
             with get_session() as session:
-                job = (
-                    session.query(ProcessingJob).filter(ProcessingJob.document_id == document_id).first()
+                job = session.scalar(
+                    select(ProcessingJob).where(ProcessingJob.document_id == document_id)
                 )
                 if job:
                     job.status = "failed"
                     job.error = str(exc)
                     job.progress = 0
-                document = session.query(Document).get(document_id)
+                document = session.get(Document, document_id)
                 if document:
                     document.status = "failed"
                 session.commit()

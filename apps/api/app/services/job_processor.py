@@ -8,6 +8,8 @@ from uuid import UUID
 
 import structlog
 
+from sqlalchemy import select
+
 from app.db import get_session
 from app.models import ProcessingJob, Document
 from app.services.ingestion import IngestionService
@@ -35,12 +37,11 @@ def process_pending_jobs(max_age_seconds: int = 300) -> int:
         with get_session() as session:
             # Find pending jobs older than max_age_seconds
             cutoff_time = datetime.now(timezone.utc) - timedelta(seconds=max_age_seconds)
-            pending_jobs = (
-                session.query(ProcessingJob)
-                .filter(ProcessingJob.status == "pending")
-                .filter(ProcessingJob.created_at < cutoff_time)
-                .all()
-            )
+            pending_jobs = session.scalars(
+                select(ProcessingJob)
+                .where(ProcessingJob.status == "pending")
+                .where(ProcessingJob.created_at < cutoff_time)
+            ).all()
             
             if not pending_jobs:
                 return 0
@@ -54,7 +55,9 @@ def process_pending_jobs(max_age_seconds: int = 300) -> int:
             for job in pending_jobs:
                 try:
                     # Get document
-                    document = session.query(Document).filter(Document.id == job.document_id).first()
+                    document = session.scalar(
+                        select(Document).where(Document.id == job.document_id)
+                    )
                     if not document:
                         logger.warning(
                             "job_processor.document_not_found",

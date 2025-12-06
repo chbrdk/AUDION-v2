@@ -5,6 +5,7 @@ from typing import List
 from uuid import UUID
 
 import structlog
+from sqlalchemy import select
 
 from ..celery_app import celery_app
 from ..services.analytics_integration import AnalyticsIntegrationService
@@ -90,18 +91,27 @@ def validate_journey_task(
     )
     try:
         service = JourneyValidationService()
-        results = []
         
-        for persona_id in persona_ids:
-            result = service.validate_journey_against_persona(
-                journey_id=UUID(journey_id),
-                persona_id=UUID(persona_id),
-            )
-            results.append({
-                "persona_id": persona_id,
-                "overall_fit_score": result.overall_fit_score,
-                "phases": len(result.phases),
-            })
+        # Parallelize validation across all personas
+        async def validate_all_personas():
+            validation_tasks = [
+                service.validate_journey_against_persona(
+                    journey_id=UUID(journey_id),
+                    persona_id=UUID(persona_id),
+                )
+                for persona_id in persona_ids
+            ]
+            validation_results = await asyncio.gather(*validation_tasks)
+            return [
+                {
+                    "persona_id": persona_id,
+                    "overall_fit_score": result.overall_fit_score,
+                    "phases": len(result.phases),
+                }
+                for persona_id, result in zip(persona_ids, validation_results)
+            ]
+        
+        results = asyncio.run(validate_all_personas())
         
         logger.info(
             "journey.validate.task.completed",
@@ -276,12 +286,11 @@ def analyze_all_insights() -> dict:
     logger.info("journey.analyze_all_insights.start")
     try:
         with get_session() as session:
-            active_journeys = (
-                session.query(Journey)
-                .filter(Journey.status == JourneyStatus.active)
-                .filter(Journey.tracking_enabled == True)
-                .all()
-            )
+            active_journeys = session.scalars(
+                select(Journey)
+                .where(Journey.status == JourneyStatus.active)
+                .where(Journey.tracking_enabled == True)
+            ).all()
             
             results = []
             for journey in active_journeys:

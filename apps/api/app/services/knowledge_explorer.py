@@ -9,6 +9,7 @@ from sklearn.cluster import KMeans, DBSCAN
 from sklearn.decomposition import PCA
 from qdrant_client import QdrantClient
 from qdrant_client.http import models as qmodels
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..core.config import get_settings
@@ -49,13 +50,12 @@ class KnowledgeExplorerService:
             raise ValueError("invalid_target_group_id") from exc
 
         # Get chunk IDs from TargetGroupSource ordered by relevance
-        sources = (
-            session.query(TargetGroupSource)
-            .filter(TargetGroupSource.target_group_id == tg_uuid)
+        sources = session.scalars(
+            select(TargetGroupSource)
+            .where(TargetGroupSource.target_group_id == tg_uuid)
             .order_by(TargetGroupSource.relevance_score.desc())
             .limit(limit)
-            .all()
-        )
+        ).all()
 
         if not sources:
             logger.info("knowledge_explorer.no_sources", target_group_id=target_group_id)
@@ -69,11 +69,10 @@ class KnowledgeExplorerService:
         )
 
         # Retrieve chunks from database
-        chunks = (
-            session.query(DocumentChunk)
-            .filter(DocumentChunk.id.in_([UUID(cid) for cid in chunk_ids]))
-            .all()
-        )
+        chunks = session.scalars(
+            select(DocumentChunk)
+            .where(DocumentChunk.id.in_([UUID(cid) for cid in chunk_ids]))
+        ).all()
 
         if not chunks:
             logger.warning(
@@ -108,7 +107,9 @@ class KnowledgeExplorerService:
 
         # Get document lookup for filenames
         document_ids = {chunk.document_id for chunk in chunks}
-        documents = session.query(Document).filter(Document.id.in_(document_ids)).all()
+        documents = session.scalars(
+            select(Document).where(Document.id.in_(document_ids))
+        ).all()
         document_map = {str(doc.id): doc for doc in documents}
 
         # Build relevance score lookup

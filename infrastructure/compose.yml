@@ -18,7 +18,7 @@ x-build-python: &python-build
   target: runtime
   args:
     UV_IMAGE: ${PYTHON_UV_IMAGE:-ghcr.io/astral-sh/uv:python3.12-bookworm}
-    PYTHON_IMAGE: ${PYTHON_RUNTIME_IMAGE:-python:3.12-slim}
+    PYTHON_IMAGE: ${PYTHON_RUNTIME_IMAGE:-python:3.12.12-slim}
   cache_from:
     - type=local,src=${LOCAL_DOCKER_CACHE_ROOT:-/tmp/persona-docker-cache}/python
   # cache_to temporarily disabled due to docker driver limitation

@@ -11,7 +11,7 @@ from neo4j import GraphDatabase
 from qdrant_client import QdrantClient
 from qdrant_client.http import models as qmodels
 from redis import Redis
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 from udg_glass_proto import PersonaProfile, PersonaPrompt
 
@@ -188,7 +188,7 @@ class PersonaService:
             raise ValueError("persona_not_found")
 
         prompt = self._latest_prompt(session, persona.id)
-        sources = session.query(PersonaSource).filter(PersonaSource.persona_id == persona.id).all()
+        sources = session.scalars(select(PersonaSource).where(PersonaSource.persona_id == persona.id)).all()
         documents = self._documents_for_persona(session, persona.id)
         knowledge_entries = self._knowledge_for_persona(session, persona.id)
         insights = self._build_insights(persona, sources)
@@ -482,7 +482,7 @@ class PersonaService:
         )
 
         prompt = self._latest_prompt(session, persona.id)
-        sources = session.query(PersonaSource).filter(PersonaSource.persona_id == persona.id).all()
+        sources = session.scalars(select(PersonaSource).where(PersonaSource.persona_id == persona.id)).all()
         documents = self._documents_for_persona(session, persona.id)
         knowledge_entries = self._knowledge_for_persona(session, persona.id)
         insights = self._build_insights(persona, sources)
@@ -533,7 +533,7 @@ class PersonaService:
         
         # Delete all associated documents (this will also delete chunks, processing jobs, etc.)
         from ..models import Document, DocumentChunk, ProcessingJob
-        documents = session.query(Document).filter(Document.persona_id == persona_uuid).all()
+        documents = session.scalars(select(Document).where(Document.persona_id == persona_uuid)).all()
         for document in documents:
             # Delete file from storage
             if document.object_key:
@@ -563,36 +563,34 @@ class PersonaService:
                 pass  # Qdrant might not be available, continue with cleanup
             
             # Delete chunks from database
-            session.query(DocumentChunk).filter(DocumentChunk.document_id == document.id).delete()
+            session.execute(delete(DocumentChunk).where(DocumentChunk.document_id == document.id))
             
             # Delete processing job
-            session.query(ProcessingJob).filter(ProcessingJob.document_id == document.id).delete()
+            session.execute(delete(ProcessingJob).where(ProcessingJob.document_id == document.id))
             
             # Delete document
             session.delete(document)
         
         # Delete all knowledge entries
-        session.query(PersonaKnowledgeEntry).filter(PersonaKnowledgeEntry.persona_id == persona_uuid).delete()
+        from ..models import PersonaKnowledgeEntry, PersonaSource, PersonaPrompt as PersonaPromptModel, PersonaAuditLog
+        session.execute(delete(PersonaKnowledgeEntry).where(PersonaKnowledgeEntry.persona_id == persona_uuid))
         
         # Delete all persona sources
-        from ..models import PersonaSource
-        session.query(PersonaSource).filter(PersonaSource.persona_id == persona_uuid).delete()
+        session.execute(delete(PersonaSource).where(PersonaSource.persona_id == persona_uuid))
         
         # Delete all persona prompts
-        from ..models import PersonaPrompt as PersonaPromptModel
-        session.query(PersonaPromptModel).filter(PersonaPromptModel.persona_id == persona_uuid).delete()
+        session.execute(delete(PersonaPromptModel).where(PersonaPromptModel.persona_id == persona_uuid))
         
         # Delete all audit logs before deleting persona (to avoid foreign key constraint violation)
         # Note: We delete audit logs because the persona is being permanently deleted
         # We log the deletion action before deleting the logs
-        from ..models import PersonaAuditLog
         logger.info(
             "persona.delete.audit_logs",
             persona_id=persona_id,
             actor=actor,
             before=before,
         )
-        session.query(PersonaAuditLog).filter(PersonaAuditLog.persona_id == persona_uuid).delete()
+        session.execute(delete(PersonaAuditLog).where(PersonaAuditLog.persona_id == persona_uuid))
         
         # Delete avatar from storage if it exists
         if persona.image_url and not persona.image_url.startswith(("http://", "https://", "data:")):
@@ -793,11 +791,10 @@ class PersonaService:
         }
 
     def _latest_prompt(self, session: Session, persona_id: UUID) -> PersonaPromptModel | None:
-        return (
-            session.query(PersonaPromptModel)
-            .filter(PersonaPromptModel.persona_id == persona_id)
+        return session.scalar(
+            select(PersonaPromptModel)
+            .where(PersonaPromptModel.persona_id == persona_id)
             .order_by(PersonaPromptModel.created_at.desc())
-            .first()
         )
 
     def _build_insights(self, persona: Persona, sources: List[PersonaSource]) -> PersonaInsight | None:
@@ -828,12 +825,11 @@ class PersonaService:
         return settings.persona_backend_public_url.rstrip("/")
 
     def _documents_for_persona(self, session: Session, persona_id: UUID) -> List[PersonaDocument]:
-        records = (
-            session.query(Document)
-            .filter(Document.persona_id == persona_id)
+        records = session.scalars(
+            select(Document)
+            .where(Document.persona_id == persona_id)
             .order_by(Document.created_at.desc())
-            .all()
-        )
+        ).all()
         return [self._to_document_payload(record, session=session) for record in records]
 
     def _knowledge_for_persona(self, session: Session, persona_id: UUID) -> List[PersonaKnowledgeEntrySchema]:
@@ -846,23 +842,21 @@ class PersonaService:
         knowledge_entries = []
         
         # Get persona-specific knowledge
-        entries = (
-            session.query(PersonaKnowledgeEntry)
-            .filter(PersonaKnowledgeEntry.persona_id == persona_id)
+        entries = session.scalars(
+            select(PersonaKnowledgeEntry)
+            .where(PersonaKnowledgeEntry.persona_id == persona_id)
             .order_by(PersonaKnowledgeEntry.created_at.desc())
-            .all()
-        )
+        ).all()
         knowledge_entries.extend([self.serialize_knowledge_entry(entry) for entry in entries])
         
         # If target_group_id exists, also get target group knowledge
         if persona.target_group_id:
             from ..models import TargetGroupKnowledgeEntry
-            tg_entries = (
-                session.query(TargetGroupKnowledgeEntry)
-                .filter(TargetGroupKnowledgeEntry.target_group_id == persona.target_group_id)
+            tg_entries = session.scalars(
+                select(TargetGroupKnowledgeEntry)
+                .where(TargetGroupKnowledgeEntry.target_group_id == persona.target_group_id)
                 .order_by(TargetGroupKnowledgeEntry.created_at.desc())
-                .all()
-            )
+            ).all()
             # Serialize target group knowledge entries using the same format
             for tg_entry in tg_entries:
                 knowledge_entries.append(
@@ -878,13 +872,6 @@ class PersonaService:
                 )
         
         return knowledge_entries
-        entries = (
-            session.query(PersonaKnowledgeEntry)
-            .filter(PersonaKnowledgeEntry.persona_id == persona_id)
-            .order_by(PersonaKnowledgeEntry.created_at.desc())
-            .all()
-        )
-        return [self.serialize_knowledge_entry(entry) for entry in entries]
 
     def _to_document_payload(self, document: Document, session: Session | None = None) -> PersonaDocument:
         ingestion_status = None
@@ -893,11 +880,10 @@ class PersonaService:
         # Load ProcessingJob if session is available
         if session:
             from ..models import ProcessingJob
-            job = (
-                session.query(ProcessingJob)
-                .filter(ProcessingJob.document_id == document.id)
+            job = session.scalar(
+                select(ProcessingJob)
+                .where(ProcessingJob.document_id == document.id)
                 .order_by(ProcessingJob.created_at.desc())
-                .first()
             )
             if job:
                 ingestion_status = job.status

@@ -6,6 +6,8 @@ import structlog
 from celery import signals
 from celery.exceptions import NotRegistered
 
+from sqlalchemy import select
+
 from app.db import get_session
 from app.models import ProcessingJob
 
@@ -83,10 +85,8 @@ def _update_job_status_for_not_registered(document_id: str, task_name: str) -> N
     """Update job status when task is not registered."""
     try:
         with get_session() as session:
-            job = (
-                session.query(ProcessingJob)
-                .filter(ProcessingJob.document_id == UUID(document_id))
-                .first()
+            job = session.scalar(
+                select(ProcessingJob).where(ProcessingJob.document_id == UUID(document_id))
             )
             if job and job.status not in ["failed", "completed"]:
                 error_msg = f"Task not registered: {task_name}. Worker may not be running or task not imported."

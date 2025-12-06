@@ -3,7 +3,16 @@
 import { useState, useEffect, useMemo } from "react";
 import { aiAssistApi, type AiTemplateSummary, type AiTemplateDefinition, type AiTemplateUpdateRequest } from "../../../api/_lib/ai-assist";
 import { MaterialSymbol } from "../../../../components/material-symbol";
-import { PromptBuilder } from "../../../../components/prompt-builder/PromptBuilder";
+import dynamic from "next/dynamic";
+
+// Code Splitting: PromptBuilder ist eine große Komponente
+const PromptBuilder = dynamic(
+  () => import("../../../../components/prompt-builder/PromptBuilder").then((mod) => ({ default: mod.PromptBuilder })),
+  {
+    loading: () => <div>Loading prompt builder...</div>,
+    ssr: false, // PromptBuilder benötigt Client-Side Features
+  }
+);
 import clsx from "clsx";
 
 export default function SettingsPromptsPage() {

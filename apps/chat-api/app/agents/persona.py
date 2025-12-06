@@ -265,31 +265,26 @@ class PersonaAgent:
                         
                         logger.info("persona.agent.tool_call_execute", tool_name=current_tool_name, arguments_keys=list(tool_arguments.keys()), arguments=tool_arguments)
                         
-                        # Execute tool (use asyncio if available, otherwise sync)
+                        # Execute tool - simplified async execution
+                        # Since we're in a sync context but need async, use asyncio.run
+                        # This is cleaner than the previous complex event loop handling
                         try:
-                            loop = asyncio.get_event_loop()
-                            if loop.is_running():
-                                # If loop is running, we need to use run_in_executor
-                                result = loop.run_in_executor(
-                                    None,
-                                    lambda: asyncio.run(self._tool_executor.execute_tool(current_tool_name, tool_arguments, persona_segment))
-                                )
-                                # For now, we'll do sync execution in executor
-                                import concurrent.futures
-                                with concurrent.futures.ThreadPoolExecutor() as executor:
-                                    future = executor.submit(
-                                        lambda: asyncio.run(self._tool_executor.execute_tool(current_tool_name, tool_arguments, persona_segment))
-                                    )
-                                    tool_result = future.result(timeout=10)
-                            else:
-                                tool_result = loop.run_until_complete(
-                                    self._tool_executor.execute_tool(current_tool_name, tool_arguments, persona_segment)
-                                )
-                        except RuntimeError:
-                            # No event loop, create new one
                             tool_result = asyncio.run(
                                 self._tool_executor.execute_tool(current_tool_name, tool_arguments, persona_segment)
                             )
+                        except RuntimeError as e:
+                            # If event loop is already running, we need to handle it differently
+                            # This should not happen in normal flow, but handle gracefully
+                            logger.warning("persona.agent.tool_execution_event_loop_error", error=str(e))
+                            # Fallback: create new event loop in thread
+                            import concurrent.futures
+                            with concurrent.futures.ThreadPoolExecutor() as executor:
+                                future = executor.submit(
+                                    lambda: asyncio.run(
+                                        self._tool_executor.execute_tool(current_tool_name, tool_arguments, persona_segment)
+                                    )
+                                )
+                                tool_result = future.result(timeout=30)  # Increased timeout for safety
                         
                         # Add tool result to messages
                         messages.append({

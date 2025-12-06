@@ -6,6 +6,8 @@ from uuid import UUID
 import structlog
 from anthropic import Anthropic
 
+from sqlalchemy import select
+
 from ..core.config import get_settings
 from ..db import get_session
 from ..models import Journey, JourneyInsight, JourneyMeasurement
@@ -40,13 +42,12 @@ class InsightGenerationService:
             measurements = []
             for phase in journey.phases:
                 for expectation in phase.expectations:
-                    phase_measurements = (
-                        session.query(JourneyMeasurement)
-                        .filter(JourneyMeasurement.expectation_id == expectation.id)
+                    phase_measurements = session.scalars(
+                        select(JourneyMeasurement)
+                        .where(JourneyMeasurement.expectation_id == expectation.id)
                         .order_by(JourneyMeasurement.synced_at.desc())
                         .limit(10)
-                        .all()
-                    )
+                    ).all()
                     measurements.extend(phase_measurements)
 
             if not measurements:

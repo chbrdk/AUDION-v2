@@ -10,6 +10,8 @@ from qdrant_client import QdrantClient
 from qdrant_client.http import models as qmodels
 from unstructured.partition.auto import partition
 
+from sqlalchemy import select
+
 from ..core.config import get_settings
 from ..db import get_session
 from ..models import Document, DocumentChunk, ProcessingJob
@@ -39,8 +41,8 @@ class IngestionService:
         logger.info("ingest.start", document_id=str(document_id))
 
         with get_session() as session:
-            job: ProcessingJob | None = (
-                session.query(ProcessingJob).filter(ProcessingJob.document_id == document_id).one()
+            job: ProcessingJob | None = session.scalar(
+                select(ProcessingJob).where(ProcessingJob.document_id == document_id)
             )
             if not job:
                 raise RuntimeError("Processing job missing")
@@ -56,12 +58,13 @@ class IngestionService:
         except Exception as e:
             logger.error("ingest.parse_failed", document_id=str(document_id), error=str(e), error_type=type(e).__name__)
             with get_session() as session:
-                job = (
-                    session.query(ProcessingJob).filter(ProcessingJob.document_id == document_id).one()
+                job = session.scalar(
+                    select(ProcessingJob).where(ProcessingJob.document_id == document_id)
                 )
-                job.status = "failed"
-                job.error = f"Parse error: {str(e)}"
-                session.commit()
+                if job:
+                    job.status = "failed"
+                    job.error = f"Parse error: {str(e)}"
+                    session.commit()
             raise
 
         cleaned_chunks = [chunk.text.strip() for chunk in elements if chunk.text]
@@ -69,27 +72,44 @@ class IngestionService:
         
         # Update progress after parsing
         with get_session() as session:
-            job = (
-                session.query(ProcessingJob).filter(ProcessingJob.document_id == document_id).one()
+            job = session.scalar(
+                select(ProcessingJob).where(ProcessingJob.document_id == document_id)
             )
-            job.progress = 20
-            session.commit()
+            if job:
+                job.progress = 20
+                session.commit()
 
         if not cleaned_chunks:
             with get_session() as session:
-                job = (
-                    session.query(ProcessingJob).filter(ProcessingJob.document_id == document_id).one()
+                job = session.scalar(
+                    select(ProcessingJob).where(ProcessingJob.document_id == document_id)
                 )
-                job.status = "failed"
-                job.error = "No text content extracted from document"
-                session.commit()
+                if job:
+                    job.status = "failed"
+                    job.error = "No text content extracted from document"
+                    session.commit()
             logger.warning("ingest.no_content", document_id=str(document_id))
             return
 
-        # Generate embeddings in smaller batches to avoid SIGSEGV
+        # Generate embeddings with optimized dynamic batch size
         logger.info("ingest.embedding_start", document_id=str(document_id), chunks_count=len(cleaned_chunks))
         embeddings = []
-        batch_size = 4  # Reduced batch size to avoid crashes
+        
+        # Dynamic batch size: adapt based on chunk count and estimated memory
+        # Start with 8 (optimized from previous 4), scale up for larger documents
+        # Conservative: 4 for small batches, 8-12 for medium, up to 16 for large
+        total_chunks = len(cleaned_chunks)
+        if total_chunks <= 20:
+            batch_size = 4  # Small documents: conservative
+        elif total_chunks <= 100:
+            batch_size = 8  # Medium documents: balanced
+        elif total_chunks <= 500:
+            batch_size = 12  # Large documents: optimized
+        else:
+            batch_size = 16  # Very large documents: maximum (with monitoring)
+        
+        logger.info("ingest.embedding_batch_size", document_id=str(document_id), batch_size=batch_size, chunks_count=total_chunks)
+        
         try:
             for i in range(0, len(cleaned_chunks), batch_size):
                 batch = cleaned_chunks[i:i + batch_size]
@@ -100,21 +120,23 @@ class IngestionService:
         except Exception as e:
             logger.error("ingest.embedding_failed", document_id=str(document_id), error=str(e), error_type=type(e).__name__)
             with get_session() as session:
-                job = (
-                    session.query(ProcessingJob).filter(ProcessingJob.document_id == document_id).one()
+                job = session.scalar(
+                    select(ProcessingJob).where(ProcessingJob.document_id == document_id)
                 )
-                job.status = "failed"
-                job.error = f"Embedding error: {str(e)}"
-                session.commit()
+                if job:
+                    job.status = "failed"
+                    job.error = f"Embedding error: {str(e)}"
+                    session.commit()
             raise
         
         # Update progress
         with get_session() as session:
-            job = (
-                session.query(ProcessingJob).filter(ProcessingJob.document_id == document_id).one()
+            job = session.scalar(
+                select(ProcessingJob).where(ProcessingJob.document_id == document_id)
             )
-            job.progress = 50
-            session.commit()
+            if job:
+                job.progress = 50
+                session.commit()
         
         points = []
 
@@ -168,31 +190,34 @@ class IngestionService:
                     payload_keys=list(points[0].payload.keys()) if hasattr(points[0], 'payload') else None
                 )
             with get_session() as session:
-                job = (
-                    session.query(ProcessingJob).filter(ProcessingJob.document_id == document_id).one()
+                job = session.scalar(
+                    select(ProcessingJob).where(ProcessingJob.document_id == document_id)
                 )
-                job.status = "failed"
-                job.error = f"Qdrant upsert error: {str(e)}"
-                session.commit()
+                if job:
+                    job.status = "failed"
+                    job.error = f"Qdrant upsert error: {str(e)}"
+                    session.commit()
             raise
         
         # Update progress
         with get_session() as session:
-            job = (
-                session.query(ProcessingJob).filter(ProcessingJob.document_id == document_id).one()
+            job = session.scalar(
+                select(ProcessingJob).where(ProcessingJob.document_id == document_id)
             )
-            job.progress = 90
-            session.commit()
+            if job:
+                job.progress = 90
+                session.commit()
 
         # Update job and document status
         with get_session() as session:
-            job = (
-                session.query(ProcessingJob).filter(ProcessingJob.document_id == document_id).one()
+            job = session.scalar(
+                select(ProcessingJob).where(ProcessingJob.document_id == document_id)
             )
-            job.status = "completed"
-            job.progress = 100
-            job.updated_at = datetime.utcnow()
-            document = session.query(Document).get(document_id)
+            if job:
+                job.status = "completed"
+                job.progress = 100
+                job.updated_at = datetime.utcnow()
+            document = session.get(Document, document_id)
             if document:
                 document.status = "completed"
                 document.updated_at = datetime.utcnow()

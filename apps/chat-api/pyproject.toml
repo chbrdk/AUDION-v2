@@ -5,7 +5,7 @@ description = "Real-time chat and persona service for Dynamic Persona Chat"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "fastapi==0.121.2",
+    "fastapi==0.123.9",
     "uvicorn[standard]==0.38.0",
     "websockets==15.0.1",
     "anthropic==0.73.0",

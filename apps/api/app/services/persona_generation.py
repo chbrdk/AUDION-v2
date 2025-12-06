@@ -109,9 +109,10 @@ class PersonaGenerationService:
                         for chunk_id_str, weight in chunk_weights.items():
                             try:
                                 chunk_uuid = UUID(chunk_id_str)
-                                source = session.query(TargetGroupSource).filter(
-                                    TargetGroupSource.chunk_id == chunk_uuid,
-                                    TargetGroupSource.target_group_id == target_group_id
+                                source = session.scalar(
+                                    select(TargetGroupSource)
+                                    .where(TargetGroupSource.chunk_id == chunk_uuid)
+                                    .where(TargetGroupSource.target_group_id == target_group_id)
                                 ).first()
                                 if source:
                                     source.relevance_score = float(weight)
