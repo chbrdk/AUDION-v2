@@ -159,7 +159,7 @@ All routes now use consistent import paths:
 
 #### Console.log Removal
 
-Removed all `console.log` statements from `udg-glass-persona-admin-panel.tsx` to satisfy ESLint `--max-warnings=0`:
+Removed all `console.log` statements from `msqdx-glass-persona-admin-panel.tsx` to satisfy ESLint `--max-warnings=0`:
 
 - Replaced with proper error handling
 - Kept `console.error` for actual errors (allowed by ESLint config)
@@ -187,7 +187,7 @@ import type { ChangeEvent, FormEvent } from "react";
 - `apps/web/app/api/persona-admin/[personaId]/knowledge/route.ts`
 - `apps/web/app/api/persona-admin/[personaId]/documents/[documentId]/route.ts`
 - `apps/web/app/api/persona-admin/[personaId]/documents/[documentId]/retry/route.ts`
-- `apps/web/components/udg-glass-persona-admin-panel.tsx`
+- `apps/web/components/msqdx-glass-persona-admin-panel.tsx`
 - `apps/web/app/chat/[conversationId]/page.tsx` (handleSend onClick fix)
 
 ## Testing

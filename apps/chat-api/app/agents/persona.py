@@ -4,7 +4,7 @@ import json
 from typing import Callable, List, Dict, Any, Optional
 
 from anthropic import Anthropic
-from udg_glass_proto import CompleteEvent, ContentDeltaEvent, SourcesEvent, ThinkingEvent
+from msqdx_glass_proto import CompleteEvent, ContentDeltaEvent, SourcesEvent, ThinkingEvent
 
 from ..core.config import get_settings
 from ..utils.text import clean_response_text

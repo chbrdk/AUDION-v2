@@ -150,7 +150,7 @@ export const STANDARD_VARIABLES: VariableDefinition[] = [
     syntax: "${persona_pain_points}",
     description: "Existing pain points of the persona",
     category: "persona",
-    example: "Lack of time, budget constraints...",
+    example: "Lack of time, bmsqdxet constraints...",
   },
   {
     name: "existing_traits",

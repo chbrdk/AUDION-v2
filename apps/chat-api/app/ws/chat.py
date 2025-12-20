@@ -7,7 +7,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from sqlalchemy import select
-from udg_glass_proto import PersonasDiscoveredEvent, ThinkingEvent
+from msqdx_glass_proto import PersonasDiscoveredEvent, ThinkingEvent
 
 from ..agents.persona import PersonaAgent
 from ..agents.retrieval import RetrievalAgent

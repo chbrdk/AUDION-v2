@@ -9,7 +9,7 @@ import numpy as np
 import structlog
 from anthropic import Anthropic
 from sqlalchemy import select
-from udg_glass_proto import PersonaProfile, PersonaPrompt
+from msqdx_glass_proto import PersonaProfile, PersonaPrompt
 
 from ..core.config import get_settings
 from ..db import get_session
@@ -298,8 +298,28 @@ class PersonaGenerationService:
         try:
             payload = json.loads(cleaned_text)
         except json.JSONDecodeError as exc:
-            logger.error("persona.generate.json_parse_error", persona_id=str(persona.id), response_text=response_text[:500], cleaned_text=cleaned_text[:500], error=str(exc))
-            raise ValueError(f"Failed to parse JSON response from Anthropic API: {str(exc)}") from exc
+            # Fallback: try to extract the first JSON object from the text
+            import re as _re
+            fallback_payload = None
+            match = _re.search(r"\{.*\}", cleaned_text, _re.DOTALL)
+            if match:
+                try:
+                    # Use raw_decode to ignore trailing data after a valid object
+                    decoder = json.JSONDecoder()
+                    obj, _ = decoder.raw_decode(match.group())
+                    fallback_payload = obj
+                except Exception:
+                    fallback_payload = None
+            if fallback_payload is None:
+                logger.error(
+                    "persona.generate.json_parse_error",
+                    persona_id=str(persona.id),
+                    response_text=response_text[:500],
+                    cleaned_text=cleaned_text[:500],
+                    error=str(exc),
+                )
+                raise ValueError(f"Failed to parse JSON response from Anthropic API: {str(exc)}") from exc
+            payload = fallback_payload
         
         # Helper function to safely convert confidence to float
         def parse_confidence(value):
@@ -380,6 +400,81 @@ class PersonaGenerationService:
                 communication_style["skepticism_level"] = 1
             else:
                 communication_style["skepticism_level"] = 3
+
+        # Normalize trait scores: accept numeric or common string buckets
+        def _to_score(value: float | int | str | list | dict) -> float:
+            # Already numeric
+            if isinstance(value, (int, float)):
+                return float(value)
+            # Lists: treat as qualitative -> default mid/high if non-empty
+            if isinstance(value, list):
+                return 0.7 if len(value) > 0 else 0.5
+            # Dicts: not expected, default mid
+            if isinstance(value, dict):
+                return 0.5
+            if isinstance(value, str):
+                import re as _re2
+                v = value.strip().lower()
+                # normalize separators/punctuation to spaces
+                v = v.replace("—", " ").replace("-", " ")
+                v = _re2.sub(r"[^a-z0-9\.\s]", " ", v)
+                v = " ".join(v.split())
+                # Map qualitative buckets to numeric scores (0-1 range)
+                mapping = {
+                    "very_low": 0.15,
+                    "very low": 0.15,
+                    "low": 0.35,
+                    "moderate": 0.5,
+                    "medium": 0.5,
+                    "moderate_to_high": 0.65,
+                    "moderate to high": 0.65,
+                    "high": 0.8,
+                    "very_high": 0.95,
+                    "very high": 0.95,
+                }
+                if v in mapping:
+                    return mapping[v]
+                # token-based heuristics
+                if "very" in v and "high" in v:
+                    return 0.95
+                if "very" in v and "low" in v:
+                    return 0.15
+                if "moderate" in v or "medium" in v or "balanced" in v:
+                    # if also "high" present, lean higher
+                    if "high" in v:
+                        return 0.65
+                    if "low" in v:
+                        return 0.45
+                    return 0.5
+                if "high" in v or "strong" in v or "intense" in v or "driven" in v:
+                    return 0.8
+                if "low" in v or "minimal" in v or "cautious" in v:
+                    return 0.3
+                # Try to extract a number from the string
+                nums = _re2.findall(r"\d+\.?\d*", v)
+                if nums:
+                    try:
+                        return float(nums[0])
+                    except Exception:
+                        pass
+                # Fallback qualitative defaults
+                if any(word in v for word in ["low", "minimal", "cautious"]):
+                    return 0.3
+                if any(word in v for word in ["high", "strong", "intense", "driven"]):
+                    return 0.8
+                if any(word in v for word in ["moderate", "balanced", "medium"]):
+                    return 0.5
+                # Default mid
+                return 0.5
+            # Unknown type -> mid
+            return 0.5
+
+        raw_traits = payload.get("traits", {}) or {}
+        normalized_traits: dict[str, float] = {}
+        if isinstance(raw_traits, dict):
+            for k, v in raw_traits.items():
+                normalized_traits[k] = _to_score(v)
+        # Merge variation_params into traits (already handled below), but keep normalization
         
         profile_dict = {
             "id": str(persona.id),
@@ -387,7 +482,7 @@ class PersonaGenerationService:
             "segment": persona.segment,
             "headline": payload.get("headline", persona.headline),
             "bio": payload.get("bio", ""),
-            "traits": payload.get("traits", {}),
+            "traits": normalized_traits,
             "pain_points": pain_points,
             "goals": goals,
             "communication_style": communication_style,
@@ -404,6 +499,14 @@ class PersonaGenerationService:
             for key, value in variation_params.items():
                 if isinstance(value, (int, float)):
                     profile_dict["traits"][key] = value
+
+        # Final safety: coerce all trait values to float
+        traits_dict = profile_dict.get("traits", {}) or {}
+        safe_traits: dict[str, float] = {}
+        if isinstance(traits_dict, dict):
+            for k, v in traits_dict.items():
+                safe_traits[k] = _to_score(v)
+        profile_dict["traits"] = safe_traits
         
         profile = PersonaProfile(**profile_dict)
 

@@ -591,7 +591,7 @@ async def update_persona(
     """
     import sys
     import structlog
-    from udg_glass_proto.personas import PersonaPrompt
+    from msqdx_glass_proto.personas import PersonaPrompt
     logger = structlog.get_logger(__name__)
     
     # CRITICAL: Log that this route was called

@@ -38,9 +38,9 @@ Das Journey Mapper Feature ermöglicht die Erstellung und Verwaltung von Custome
 - `/admin/journeys/[journeyId]/dashboard` - Dashboard mit Measurements & Insights
 
 **Components:**
-- `udg-glass-journey-canvas` - Canvas für Journey Visualization
-- `udg-glass-phase-card` - Phase Card Component
-- `udg-glass-validation-panel` - Validation UI
+- `msqdx-glass-journey-canvas` - Canvas für Journey Visualization
+- `msqdx-glass-phase-card` - Phase Card Component
+- `msqdx-glass-validation-panel` - Validation UI
 
 **API Client:** `apps/web/app/api/_lib/journeys.ts`
 

@@ -142,7 +142,7 @@ export default function NewJourneyPage() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
         <h1>Create New Journey</h1>
         <button
-          className="udg-glass-button --ghost"
+          className="msqdx-glass-button --ghost"
           onClick={() => router.push("/admin/journeys")}
           disabled={loading}
         >
@@ -156,7 +156,7 @@ export default function NewJourneyPage() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="udg-glass-card" style={{ padding: "2rem" }}>
+      <form onSubmit={handleSubmit} className="msqdx-glass-card" style={{ padding: "2rem" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
           <div>
             <label htmlFor="name" style={{ display: "block", marginBottom: "0.5rem", fontWeight: "500" }}>
@@ -279,7 +279,7 @@ export default function NewJourneyPage() {
               />
               <button
                 type="button"
-                className="udg-glass-button --ghost"
+                className="msqdx-glass-button --ghost"
                 onClick={() => setFormData({ ...formData, organization_id: generateUUID() })}
                 disabled={loading}
                 title="Generate new Organization ID"
@@ -355,7 +355,7 @@ export default function NewJourneyPage() {
           <div style={{ display: "flex", gap: "1rem", justifyContent: "flex-end", marginTop: "1rem" }}>
             <button
               type="button"
-              className="udg-glass-button --ghost"
+              className="msqdx-glass-button --ghost"
               onClick={() => router.push("/admin/journeys")}
               disabled={loading || generating}
             >
@@ -364,7 +364,7 @@ export default function NewJourneyPage() {
             {formData.target_group_id && formData.target_group_id.trim() !== "" && (
               <button
                 type="button"
-                className="udg-glass-button"
+                className="msqdx-glass-button"
                 onClick={handleGenerateWithAI}
                 disabled={loading || generating || loadingTargetGroups}
                 style={{ backgroundColor: "var(--color-theme-accent)", color: "white" }}
@@ -382,7 +382,7 @@ export default function NewJourneyPage() {
             )}
             <button
               type="submit"
-              className="udg-glass-button"
+              className="msqdx-glass-button"
               disabled={loading || generating}
             >
               {loading ? (

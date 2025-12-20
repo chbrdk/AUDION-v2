@@ -14,8 +14,10 @@ const FALLBACK_FONT_STACK = [
 
 export const BRAND_FONT_FAMILY = `${BRAND_FONT_VARIABLE}, ${FALLBACK_FONT_STACK}`;
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+
 export const BRAND_LOGO = {
-  path: "/assets/@msqdx-logo.svg",
+  path: `${basePath}/assets/@msqdx-logo.svg`,
   alt: "MSQDX logo"
 } as const;
 

@@ -12,10 +12,10 @@
     "jsx": "preserve",
     "baseUrl": ".",
     "paths": {
-      "@udg-glass/types/*": [
+      "@msqdx-glass/types/*": [
         "packages/types/src/*"
       ],
-      "@udg-glass/types": [
+      "@msqdx-glass/types": [
         "packages/types/src/index.ts"
       ]
     }

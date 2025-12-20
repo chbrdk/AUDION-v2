@@ -273,7 +273,6 @@ class TargetGroupService:
                 .where(ProcessingJob.document_id == document.id)
                 .order_by(ProcessingJob.created_at.desc())
             )
-            )
             if job:
                 ingestion_status = job.status
                 ingestion_progress = job.progress

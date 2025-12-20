@@ -1,6 +1,6 @@
-export * from './udg-glass-field-editor';
-export * from './udg-glass-entity-editor';
-export * from './udg-glass-chip-editor';
-export * from './udg-glass-edit-button';
-export * from './udg-glass-ai-button-icon';
+export * from './msqdx-glass-field-editor';
+export * from './msqdx-glass-entity-editor';
+export * from './msqdx-glass-chip-editor';
+export * from './msqdx-glass-edit-button';
+export * from './msqdx-glass-ai-button-icon';
 

@@ -1,7 +1,7 @@
-import type { PersonaListResponse } from "@udg-glass/types";
+import type { PersonaListResponse } from "@msqdx-glass/types";
 
 import { getPersonaBackendBase, getPersonaBackendDocsUrl } from "../../api/_lib/backend";
-import { UdgGlassPersonaAdminPanel } from "../../../components/udg-glass-persona-admin-panel";
+import { MsqdxGlassPersonaAdminPanel } from "../../../components/msqdx-glass-persona-admin-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -58,7 +58,7 @@ export default async function PersonaAdminPage() {
           <strong>Backend unreachable:</strong> {error}. Please wait until the service has fully started and reload the page.
         </div>
       )}
-      <UdgGlassPersonaAdminPanel initialList={list} docsUrl={docsUrl} />
+      <MsqdxGlassPersonaAdminPanel initialList={list} docsUrl={docsUrl} />
     </>
   );
 }

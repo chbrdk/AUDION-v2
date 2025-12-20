@@ -20,7 +20,7 @@ from ..models import Persona, PersonaPrompt
 from ..utils.text import clean_response_text
 from ..ws.chat import get_persona_agent, get_persona_prompt, get_retrieval_agent
 from .images import get_image_data_url
-from udg_glass_proto import ContentDeltaEvent, SourcesEvent, CompleteEvent, ThinkingEvent
+from msqdx_glass_proto import ContentDeltaEvent, SourcesEvent, CompleteEvent, ThinkingEvent
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 logger = structlog.get_logger(__name__)

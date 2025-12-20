@@ -3823,10 +3823,10 @@ cd /Users/m4-dev/Development/persona_chat && git commit -m "chore: bootstrap per
  create mode 100644 apps/web/components/.specstory/.what-is-this.md
  create mode 100644 apps/web/components/material-symbol.tsx
  create mode 100644 apps/web/components/theme-registry.tsx
- create mode 100644 apps/web/components/udg-glass-chat-panel.tsx
- create mode 100644 apps/web/components/udg-glass-persona-card.tsx
- create mode 100644 apps/web/components/udg-glass-processing-timeline.tsx
- create mode 100644 apps/web/components/udg-glass-upload-dropzone.tsx
+ create mode 100644 apps/web/components/msqdx-glass-chat-panel.tsx
+ create mode 100644 apps/web/components/msqdx-glass-persona-card.tsx
+ create mode 100644 apps/web/components/msqdx-glass-processing-timeline.tsx
+ create mode 100644 apps/web/components/msqdx-glass-upload-dropzone.tsx
  create mode 100644 apps/web/hooks/use-audio-queue.ts
  create mode 100644 apps/web/hooks/use-speech-to-text.ts
  create mode 100644 apps/web/hooks/use-whisper-transcription.ts
@@ -3900,10 +3900,10 @@ cd /Users/m4-dev/Development/persona_chat && git commit -m "chore: bootstrap per
  create mode 100644 package.json
  create mode 100644 packages/proto/README.md
  create mode 100644 packages/proto/pyproject.toml
- create mode 100644 packages/proto/src/udg_glass_proto/__init__.py
- create mode 100644 packages/proto/src/udg_glass_proto/events.py
- create mode 100644 packages/proto/src/udg_glass_proto/personas.py
- create mode 100644 packages/proto/src/udg_glass_proto/uploads.py
+ create mode 100644 packages/proto/src/msqdx_glass_proto/__init__.py
+ create mode 100644 packages/proto/src/msqdx_glass_proto/events.py
+ create mode 100644 packages/proto/src/msqdx_glass_proto/personas.py
+ create mode 100644 packages/proto/src/msqdx_glass_proto/uploads.py
  create mode 100644 packages/types/package.json
  create mode 100644 packages/types/src/events.ts
  create mode 100644 packages/types/src/index.ts

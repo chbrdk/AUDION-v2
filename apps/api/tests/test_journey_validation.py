@@ -16,7 +16,7 @@ os.environ.setdefault("CLAUDE_API_KEY", "test-key")
 from app.services.journey_validation import JourneyValidationService
 from app.models import Journey, JourneyPhase, JourneyPhaseElement, Persona
 from app.db import get_session
-from udg_glass_proto import PersonaProfile
+from msqdx_glass_proto import PersonaProfile
 
 
 @pytest.mark.asyncio

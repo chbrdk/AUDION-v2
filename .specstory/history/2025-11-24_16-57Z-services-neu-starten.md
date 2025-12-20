@@ -793,8 +793,8 @@ Alle Container sind aktiv. Die Anwendung sollte wieder erreichbar sein.
 
 _**User (2025-11-24 16:57Z)**_
 
-<Styled(div) as="div" ref={null} className="udg-glass-panel MuiBox-root" theme="[Object]" children="[Object]" sx="[Object]">error Workers Not available</Styled(div)>
-<div class="udg-glass-panel MuiBox-root mui-18o2kj7">error Workers Not available</div> können wir hier nicht stattdessen anzeigen ob alle services laufen?
+<Styled(div) as="div" ref={null} className="msqdx-glass-panel MuiBox-root" theme="[Object]" children="[Object]" sx="[Object]">error Workers Not available</Styled(div)>
+<div class="msqdx-glass-panel MuiBox-root mui-18o2kj7">error Workers Not available</div> können wir hier nicht stattdessen anzeigen ob alle services laufen?
 
 ---
 
@@ -848,12 +848,12 @@ Output mode: content
 | File | Lines |
 |------|-------|
 | `apps/web/app/chat/[conversationId]/page.tsx` | L30-1470 |
-| `apps/web/components/udg-glass-persona-card.tsx` | L15-87 |
+| `apps/web/components/msqdx-glass-persona-card.tsx` | L15-87 |
 | `apps/web/app/upload/page.tsx` | L22-122 |
-| `apps/web/components/udg-glass-upload-dropzone.tsx` | L15-114 |
+| `apps/web/components/msqdx-glass-upload-dropzone.tsx` | L15-114 |
 | `apps/web/app/chat/[conversationId]/page.tsx` | L30-164 |
-| `apps/web/components/udg-glass-processing-timeline.tsx` | L36-91 |
-| `apps/web/components/udg-glass-chat-panel.tsx` | L17-142 |
+| `apps/web/components/msqdx-glass-processing-timeline.tsx` | L36-91 |
+| `apps/web/components/msqdx-glass-chat-panel.tsx` | L17-142 |
 | `apps/web/app/chat/[conversationId]/page.tsx` | L30-153 |
 | `apps/web/app/page.tsx` | L38-55 |
 | `apps/web/app/chat/[conversationId]/page.tsx` | L28-72 |
@@ -901,7 +901,7 @@ Output mode: content
 |------|------|------|
 | `/Users/m4-dev/Development/persona_chat/apps/api/app/routers/queue.py` | `# For now, we don't store task_id in DB, so we return None if not available` | L151 |
 | `/Users/m4-dev/Development/persona_chat/apps/api/app/routers/queue.py` | `status_code=404, detail="Celery task ID not available for this job"` | L154 |
-| `/Users/m4-dev/Development/persona_chat/apps/web/components/admin/udg-glass-admin-dashboard.tsx` | `\{queueStats.workerAvailable ? "Available" : "Not available"\}` | L186 |
+| `/Users/m4-dev/Development/persona_chat/apps/web/components/admin/msqdx-glass-admin-dashboard.tsx` | `\{queueStats.workerAvailable ? "Available" : "Not available"\}` | L186 |
 | `/Users/m4-dev/Development/persona_chat/apps/api/worker/ingest.py` | `Falls back to direct processing if Celery worker is not available.` | L70 |
 | `/Users/m4-dev/Development/persona_chat/apps/api/worker/ingest.py` | `message="Celery worker not available, processing directly",` | L85 |
 | `/Users/m4-dev/Development/persona_chat/apps/api/app/services/job_processor.py` | `# Worker not available - process directly` | L99 |
@@ -921,17 +921,17 @@ Output mode: content
             
 | File | Lines |
 |------|-------|
-| `apps/web/components/udg-glass-upload-dropzone.tsx` | L15-114 |
-| `apps/web/components/udg-glass-chat-panel.tsx` | L17-142 |
+| `apps/web/components/msqdx-glass-upload-dropzone.tsx` | L15-114 |
+| `apps/web/components/msqdx-glass-chat-panel.tsx` | L17-142 |
 | `apps/web/app/chat/[conversationId]/page.tsx` | L30-1470 |
 | `apps/web/app/upload/page.tsx` | L22-122 |
-| `apps/web/components/udg-glass-persona-card.tsx` | L15-87 |
+| `apps/web/components/msqdx-glass-persona-card.tsx` | L15-87 |
 | `apps/web/app/upload/page.tsx` | L16-122 |
 | `apps/web/app/chat/[conversationId]/page.tsx` | L28-72 |
-| `apps/web/components/udg-glass-processing-timeline.tsx` | L36-91 |
+| `apps/web/components/msqdx-glass-processing-timeline.tsx` | L36-91 |
 | `apps/web/app/upload/page.tsx` | L26 |
-| `apps/web/components/udg-glass-upload-dropzone.tsx` | L114 |
-| `apps/web/components/udg-glass-chat-panel.tsx` | L6-142 |
+| `apps/web/components/msqdx-glass-upload-dropzone.tsx` | L114 |
+| `apps/web/components/msqdx-glass-chat-panel.tsx` | L6-142 |
 
 </details>
 </tool-use>
@@ -949,7 +949,7 @@ Untersuche die Admin-Dashboard-Komponente, die den Worker-Status anzeigt:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/udg-glass-admin-dashboard.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/msqdx-glass-admin-dashboard.tsx</summary>
 
 </details>
 </tool-use>
@@ -1007,16 +1007,16 @@ Output mode: content
 | `/Users/m4-dev/Development/persona_chat/apps/api/app/routers/queue.py` | `QueueStatsResponse,` | L14 |
 | `/Users/m4-dev/Development/persona_chat/apps/api/app/routers/queue.py` | `response_model=QueueStatsResponse,` | L172 |
 | `/Users/m4-dev/Development/persona_chat/apps/api/app/routers/queue.py` | `) -> QueueStatsResponse:` | L199 |
-| `/Users/m4-dev/Development/persona_chat/apps/web/components/admin/udg-glass-admin-dashboard.tsx` | `import type \{ QueueStatsResponse \} from "@udg-glass/types";` | L4 |
-| `/Users/m4-dev/Development/persona_chat/apps/web/components/admin/udg-glass-admin-dashboard.tsx` | `queueStats: QueueStatsResponse;` | L11 |
-| `/Users/m4-dev/Development/persona_chat/apps/web/app/admin/queue/page.tsx` | `import type \{ QueueStatsResponse \} from "@udg-glass/types";` | L1 |
+| `/Users/m4-dev/Development/persona_chat/apps/web/components/admin/msqdx-glass-admin-dashboard.tsx` | `import type \{ QueueStatsResponse \} from "@msqdx-glass/types";` | L4 |
+| `/Users/m4-dev/Development/persona_chat/apps/web/components/admin/msqdx-glass-admin-dashboard.tsx` | `queueStats: QueueStatsResponse;` | L11 |
+| `/Users/m4-dev/Development/persona_chat/apps/web/app/admin/queue/page.tsx` | `import type \{ QueueStatsResponse \} from "@msqdx-glass/types";` | L1 |
 | `/Users/m4-dev/Development/persona_chat/apps/web/app/admin/queue/page.tsx` | `async function fetchQueueStats(): Promise<QueueStatsResponse> \{` | L8 |
 | `/Users/m4-dev/Development/persona_chat/apps/web/app/admin/queue/page.tsx` | `return (await response.json()) as QueueStatsResponse;` | L28 |
 | `/Users/m4-dev/Development/persona_chat/apps/web/app/admin/queue/page.tsx` | `let stats: QueueStatsResponse;` | L42 |
-| `/Users/m4-dev/Development/persona_chat/apps/web/components/udg-glass-queue-dashboard.tsx` | `QueueStatsResponse,` | L12 |
-| `/Users/m4-dev/Development/persona_chat/apps/web/components/udg-glass-queue-dashboard.tsx` | `initialStats: QueueStatsResponse;` | L24 |
-| `/Users/m4-dev/Development/persona_chat/apps/web/components/udg-glass-queue-dashboard.tsx` | `const [stats, setStats] = useState<QueueStatsResponse>(initialStats);` | L95 |
-| `/Users/m4-dev/Development/persona_chat/apps/web/app/admin/page.tsx` | `import type \{ QueueStatsResponse, PersonaListResponse, TargetGroupListResponse \} from "@udg-glass/types";` | L1 |
+| `/Users/m4-dev/Development/persona_chat/apps/web/components/msqdx-glass-queue-dashboard.tsx` | `QueueStatsResponse,` | L12 |
+| `/Users/m4-dev/Development/persona_chat/apps/web/components/msqdx-glass-queue-dashboard.tsx` | `initialStats: QueueStatsResponse;` | L24 |
+| `/Users/m4-dev/Development/persona_chat/apps/web/components/msqdx-glass-queue-dashboard.tsx` | `const [stats, setStats] = useState<QueueStatsResponse>(initialStats);` | L95 |
+| `/Users/m4-dev/Development/persona_chat/apps/web/app/admin/page.tsx` | `import type \{ QueueStatsResponse, PersonaListResponse, TargetGroupListResponse \} from "@msqdx-glass/types";` | L1 |
 | `/Users/m4-dev/Development/persona_chat/apps/web/app/admin/page.tsx` | `async function fetchQueueStats(): Promise<QueueStatsResponse> \{` | L73 |
 | `/Users/m4-dev/Development/persona_chat/apps/web/app/admin/page.tsx` | `return (await response.json()) as QueueStatsResponse;` | L93 |
 | `/Users/m4-dev/Development/persona_chat/apps/web/app/admin/page.tsx` | `let queueStats: QueueStatsResponse = \{` | L109 |
@@ -1042,10 +1042,10 @@ Output mode: content
 
 | File | Content | Line |
 |------|------|------|
-| `/Users/m4-dev/Development/persona_chat/apps/web/components/admin/udg-glass-admin-dashboard.tsx` | `icon=\{queueStats.workerAvailable ? "check_circle" : "error"\}` | L174 |
-| `/Users/m4-dev/Development/persona_chat/apps/web/components/admin/udg-glass-admin-dashboard.tsx` | `\{queueStats.workerAvailable ? "Available" : "Not available"\}` | L186 |
+| `/Users/m4-dev/Development/persona_chat/apps/web/components/admin/msqdx-glass-admin-dashboard.tsx` | `icon=\{queueStats.workerAvailable ? "check_circle" : "error"\}` | L174 |
+| `/Users/m4-dev/Development/persona_chat/apps/web/components/admin/msqdx-glass-admin-dashboard.tsx` | `\{queueStats.workerAvailable ? "Available" : "Not available"\}` | L186 |
 | `/Users/m4-dev/Development/persona_chat/apps/web/app/admin/queue/page.tsx` | `workerAvailable: false,` | L54 |
-| `/Users/m4-dev/Development/persona_chat/apps/web/components/udg-glass-queue-dashboard.tsx` | `\{stats.workerCount\} \{stats.workerAvailable ? "✓" : "✗"\}` | L212 |
+| `/Users/m4-dev/Development/persona_chat/apps/web/components/msqdx-glass-queue-dashboard.tsx` | `\{stats.workerCount\} \{stats.workerAvailable ? "✓" : "✗"\}` | L212 |
 | `/Users/m4-dev/Development/persona_chat/apps/web/app/admin/page.tsx` | `workerAvailable: false,` | L114 |
 | `/Users/m4-dev/Development/persona_chat/packages/types/src/index.ts` | `workerAvailable: boolean;` | L215 |
 | `/Users/m4-dev/Development/persona_chat/apps/web/app/api/_lib/queue.ts` | `workerAvailable: data.worker_available,` | L124 |
@@ -1225,7 +1225,7 @@ Output mode: content
 | `/Users/m4-dev/Development/persona_chat/apps/api/app/schemas/__init__.py` | `from datetime import datetime` | L3 |
 | `/Users/m4-dev/Development/persona_chat/apps/api/app/schemas/__init__.py` | `from typing import Any, Dict, List, Optional` | L4 |
 | `/Users/m4-dev/Development/persona_chat/apps/api/app/schemas/__init__.py` | `from pydantic import BaseModel, Field` | L6 |
-| `/Users/m4-dev/Development/persona_chat/apps/api/app/schemas/__init__.py` | `from udg_glass_proto import (` | L7 |
+| `/Users/m4-dev/Development/persona_chat/apps/api/app/schemas/__init__.py` | `from msqdx_glass_proto import (` | L7 |
 
 
 </details>
@@ -1856,10 +1856,10 @@ Lines added: 1, lines removed: 1
 
 ```diff
 @@ -1,3 +1,3 @@
-- import type { QueueStatsResponse, PersonaListResponse, TargetGroupListResponse } from &quot;@udg-glass/types&quot;;
-+ import type { QueueStatsResponse, PersonaListResponse, ServiceStatusResponse, TargetGroupListResponse } from &quot;@udg-glass/types&quot;;
+- import type { QueueStatsResponse, PersonaListResponse, TargetGroupListResponse } from &quot;@msqdx-glass/types&quot;;
++ import type { QueueStatsResponse, PersonaListResponse, ServiceStatusResponse, TargetGroupListResponse } from &quot;@msqdx-glass/types&quot;;
   import { getPersonaBackendBase } from &quot;../api/_lib/backend&quot;;
-  import { UdgGlassAdminDashboard } from &quot;../../components/admin/udg-glass-admin-dashboard&quot;;
+  import { MsqdxGlassAdminDashboard } from &quot;../../components/admin/msqdx-glass-admin-dashboard&quot;;
 ```
 
 </details>
@@ -2007,7 +2007,7 @@ Anpassen der UI-Komponente, um den Service-Status anzuzeigen:
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/udg-glass-admin-dashboard.tsx</summary>
+<details><summary>Tool use: **code_edit** • Edit file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/msqdx-glass-admin-dashboard.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -2016,8 +2016,8 @@ Lines added: 1, lines removed: 1
 @@ -2,5 +2,5 @@
   
   import Link from &quot;next/link&quot;;
-- import type { QueueStatsResponse } from &quot;@udg-glass/types&quot;;
-+ import type { QueueStatsResponse, ServiceStatusResponse } from &quot;@udg-glass/types&quot;;
+- import type { QueueStatsResponse } from &quot;@msqdx-glass/types&quot;;
++ import type { QueueStatsResponse, ServiceStatusResponse } from &quot;@msqdx-glass/types&quot;;
   import { Box, Button, Stack, Typography } from &quot;@mui/material&quot;;
   import { MaterialSymbol } from &quot;../material-symbol&quot;;
 ```
@@ -2042,7 +2042,7 @@ Lines added: 1, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/udg-glass-admin-dashboard.tsx</summary>
+<details><summary>Tool use: **code_edit** • Edit file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/msqdx-glass-admin-dashboard.tsx</summary>
 
 **Chunk 1**
 Lines added: 2, lines removed: 1
@@ -2054,7 +2054,7 @@ Lines added: 2, lines removed: 1
 -   queueStats
 +   queueStats,
 +   serviceStatus
-  }: UdgGlassAdminDashboardProps) =&gt; {
+  }: MsqdxGlassAdminDashboardProps) =&gt; {
     const totalQueueJobs = queueStats.pendingCount + queueStats.processingCount + 
 ```
 
@@ -2066,7 +2066,7 @@ Lines added: 2, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/udg-glass-admin-dashboard.tsx</summary>
+<details><summary>Tool use: **code_edit** • Edit file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/msqdx-glass-admin-dashboard.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -2078,7 +2078,7 @@ Lines added: 1, lines removed: 1
 -         {/* Queue Status KPI Card */}
 +         {/* Service Status KPI Card */}
           &lt;Box
-            className=&quot;udg-glass-panel&quot;
+            className=&quot;msqdx-glass-panel&quot;
 ```
 
 **Chunk 2**
@@ -2166,7 +2166,7 @@ Lint paths:
 - `apps/api/app/schemas/__init__.py`
 - `apps/api/app/routers/queue.py`
 - `apps/api/app/services/service_status.py`
-- `apps/web/components/admin/udg-glass-admin-dashboard.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-dashboard.tsx`
 - `apps/web/app/admin/page.tsx`
 
 Lint results
@@ -2466,7 +2466,7 @@ Die "Workers Not available"-Anzeige wurde durch eine Service-Status-Anzeige erse
 2. **Frontend (TypeScript/Next.js):**
    - TypeScript-Types `ServiceStatus` und `ServiceStatusResponse` in `packages/types/src/index.ts`
    - Service-Status-Aufruf in `apps/web/app/admin/page.tsx`
-   - UI-Komponente angepasst in `apps/web/components/admin/udg-glass-admin-dashboard.tsx`:
+   - UI-Komponente angepasst in `apps/web/components/admin/msqdx-glass-admin-dashboard.tsx`:
      - Zeigt Anzahl der laufenden Services (z.B. "8/10")
      - Zeigt "All services up" oder Anzahl der ausgefallenen Services
      - Fallback auf Worker-Status, wenn Service-Status nicht verfügbar ist
@@ -2558,7 +2558,7 @@ cd /Users/m4-dev/Development/persona_chat/packages/types && npm run build
 
 ```
 
-&gt; @udg-glass/types@0.1.0 build
+&gt; @msqdx-glass/types@0.1.0 build
 &gt; tsc -b
 
 
@@ -3039,9 +3039,9 @@ h3
 
 <anonymous>
 
-UdgGlassAdminDashboard
+MsqdxGlassAdminDashboard
 
-components/admin/udg-glass-admin-dashboard.tsx (139:13)
+components/admin/msqdx-glass-admin-dashboard.tsx (139:13)
 
 AdminDashboardPage
 
@@ -3062,7 +3062,7 @@ Der Fehler entsteht, weil `NaN` als `children` übergeben wird. Prüfe die betro
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/udg-glass-admin-dashboard.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/msqdx-glass-admin-dashboard.tsx</summary>
 
 </details>
 </tool-use>
@@ -3074,7 +3074,7 @@ Der Fehler entsteht, weil `NaN` als `children` übergeben wird. Prüfe die betro
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/udg-glass-admin-dashboard.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/msqdx-glass-admin-dashboard.tsx</summary>
 
 </details>
 </tool-use>
@@ -3099,7 +3099,7 @@ Problem: `serviceStatus.services` kann `undefined` sein. Absichern der Berechnun
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/udg-glass-admin-dashboard.tsx</summary>
+<details><summary>Tool use: **code_edit** • Edit file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/msqdx-glass-admin-dashboard.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -3139,7 +3139,7 @@ Lines added: 1, lines removed: 1
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-dashboard.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-dashboard.tsx`
 
 Lint results
 
@@ -3169,7 +3169,7 @@ _**User (2025-11-24 16:57Z)**_
 
 Received NaN for the `children` attribute. If this is expected, cast the value to a string.
 
-components/admin/udg-glass-admin-dashboard.tsx (139:13) @ UdgGlassAdminDashboard
+components/admin/msqdx-glass-admin-dashboard.tsx (139:13) @ MsqdxGlassAdminDashboard
 
 
 
@@ -3201,9 +3201,9 @@ h3
 
 <anonymous>
 
-UdgGlassAdminDashboard
+MsqdxGlassAdminDashboard
 
-components/admin/udg-glass-admin-dashboard.tsx (139:13)
+components/admin/msqdx-glass-admin-dashboard.tsx (139:13)
 
 AdminDashboardPage
 
@@ -3224,7 +3224,7 @@ Prüfe die Berechnung von `totalQueueJobs`:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/udg-glass-admin-dashboard.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/msqdx-glass-admin-dashboard.tsx</summary>
 
 </details>
 </tool-use>
@@ -3243,7 +3243,7 @@ Die Werte in `queueStats` können `undefined` sein. Absichern der Berechnung:
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/udg-glass-admin-dashboard.tsx</summary>
+<details><summary>Tool use: **code_edit** • Edit file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/msqdx-glass-admin-dashboard.tsx</summary>
 
 **Chunk 1**
 Lines added: 2, lines removed: 2
@@ -3251,7 +3251,7 @@ Lines added: 2, lines removed: 2
 ```diff
 @@ -19,6 +19,6 @@
     serviceStatus
-  }: UdgGlassAdminDashboardProps) =&gt; {
+  }: MsqdxGlassAdminDashboardProps) =&gt; {
 -   const totalQueueJobs = queueStats.pendingCount + queueStats.processingCount + 
 -                          queueStats.completedCount + queueStats.failedCount;
 +   const totalQueueJobs = (queueStats.pendingCount ?? 0) + (queueStats.processingCount ?? 0) + 
@@ -3272,7 +3272,7 @@ Lines added: 2, lines removed: 2
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-dashboard.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-dashboard.tsx`
 
 Lint results
 
@@ -3316,7 +3316,7 @@ Erweitern der UI, um alle Services mit ihrem Status anzuzeigen. Prüfe die aktue
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/udg-glass-admin-dashboard.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/msqdx-glass-admin-dashboard.tsx</summary>
 
 </details>
 </tool-use>
@@ -3329,17 +3329,17 @@ Erweitern der UI, um alle Services mit ihrem Status anzuzeigen. Prüfe die aktue
             
 | File | Lines |
 |------|-------|
-| `apps/web/components/udg-glass-chat-panel.tsx` | L17-142 |
-| `apps/web/components/udg-glass-persona-card.tsx` | L15-87 |
-| `apps/web/components/udg-glass-chat-panel.tsx` | L15 |
-| `apps/web/components/udg-glass-upload-dropzone.tsx` | L13-114 |
-| `apps/web/components/udg-glass-processing-timeline.tsx` | L36-91 |
-| `apps/web/components/udg-glass-chat-panel.tsx` | L6-142 |
-| `apps/web/components/udg-glass-persona-card.tsx` | L13 |
-| `apps/web/components/udg-glass-processing-timeline.tsx` | L91 |
+| `apps/web/components/msqdx-glass-chat-panel.tsx` | L17-142 |
+| `apps/web/components/msqdx-glass-persona-card.tsx` | L15-87 |
+| `apps/web/components/msqdx-glass-chat-panel.tsx` | L15 |
+| `apps/web/components/msqdx-glass-upload-dropzone.tsx` | L13-114 |
+| `apps/web/components/msqdx-glass-processing-timeline.tsx` | L36-91 |
+| `apps/web/components/msqdx-glass-chat-panel.tsx` | L6-142 |
+| `apps/web/components/msqdx-glass-persona-card.tsx` | L13 |
+| `apps/web/components/msqdx-glass-processing-timeline.tsx` | L91 |
 | `apps/web/components/theme-registry.tsx` | L26 |
-| `apps/web/components/udg-glass-upload-dropzone.tsx` | L114 |
-| `apps/web/components/udg-glass-upload-dropzone.tsx` | L15-114 |
+| `apps/web/components/msqdx-glass-upload-dropzone.tsx` | L114 |
+| `apps/web/components/msqdx-glass-upload-dropzone.tsx` | L15-114 |
 
 </details>
 </tool-use>
@@ -3357,7 +3357,7 @@ Hinzufügen einer detaillierten Liste aller Services mit Status. Erweitern der K
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/udg-glass-admin-dashboard.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/msqdx-glass-admin-dashboard.tsx</summary>
 
 </details>
 </tool-use>
@@ -3366,7 +3366,7 @@ Hinzufügen einer detaillierten Liste aller Services mit Status. Erweitern der K
 
 <tool-use data-tool-type="search" data-tool-name="grep">
 <details>
-<summary>Tool use: **grep** • Grep for "import.*Collapse|import.*Accordion|import.*useState" in "apps/web/components/admin/udg-glass-admin-dashboard.tsx" • 0 matches</summary>
+<summary>Tool use: **grep** • Grep for "import.*Collapse|import.*Accordion|import.*useState" in "apps/web/components/admin/msqdx-glass-admin-dashboard.tsx" • 0 matches</summary>
 
 Output mode: content
 
@@ -3379,7 +3379,7 @@ _No matches found_
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/udg-glass-admin-dashboard.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/msqdx-glass-admin-dashboard.tsx</summary>
 
 </details>
 </tool-use>
@@ -3398,7 +3398,7 @@ Hinzufügen einer detaillierten Service-Liste. Erweitern der Komponente:
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/udg-glass-admin-dashboard.tsx</summary>
+<details><summary>Tool use: **code_edit** • Edit file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/msqdx-glass-admin-dashboard.tsx</summary>
 
 **Chunk 1**
 Lines added: 2, lines removed: 1
@@ -3409,7 +3409,7 @@ Lines added: 2, lines removed: 1
   
 + import { useState } from &quot;react&quot;;
   import Link from &quot;next/link&quot;;
-  import type { QueueStatsResponse, ServiceStatusResponse } from &quot;@udg-glass/types&quot;;
+  import type { QueueStatsResponse, ServiceStatusResponse } from &quot;@msqdx-glass/types&quot;;
 - import { Box, Button, Stack, Typography } from &quot;@mui/material&quot;;
 + import { alpha, Box, Button, Collapse, Stack, Typography, useTheme } from &quot;@mui/material&quot;;
   import { MaterialSymbol } from &quot;../material-symbol&quot;;
@@ -3424,7 +3424,7 @@ Lines added: 2, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/udg-glass-admin-dashboard.tsx</summary>
+<details><summary>Tool use: **code_edit** • Edit file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/msqdx-glass-admin-dashboard.tsx</summary>
 
 **Chunk 1**
 Lines added: 24, lines removed: undefined
@@ -3432,7 +3432,7 @@ Lines added: 24, lines removed: undefined
 ```diff
 @@ -20,6 +20,30 @@
     serviceStatus
-  }: UdgGlassAdminDashboardProps) =&gt; {
+  }: MsqdxGlassAdminDashboardProps) =&gt; {
 +   const theme = useTheme();
 +   const [showServices, setShowServices] = useState(false);
     const totalQueueJobs = (queueStats.pendingCount ?? 0) + (queueStats.processingCount ?? 0) + 
@@ -3470,7 +3470,7 @@ Lines added: 24, lines removed: undefined
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/udg-glass-admin-dashboard.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/msqdx-glass-admin-dashboard.tsx</summary>
 
 </details>
 </tool-use>
@@ -3487,7 +3487,7 @@ Model supplied an ambiguous edit
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-dashboard.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-dashboard.tsx`
 
 Lint results
 
@@ -3509,7 +3509,7 @@ Prüfe die aktuelle Struktur der Datei:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/udg-glass-admin-dashboard.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/msqdx-glass-admin-dashboard.tsx</summary>
 
 </details>
 </tool-use>
@@ -3528,7 +3528,7 @@ Hinzufügen der Service-Liste an der richtigen Stelle:
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/udg-glass-admin-dashboard.tsx</summary>
+<details><summary>Tool use: **code_edit** • Edit file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/msqdx-glass-admin-dashboard.tsx</summary>
 
 **Chunk 1**
 Lines added: 98, lines removed: undefined
@@ -3541,7 +3541,7 @@ Lines added: 98, lines removed: undefined
 +       {/* Service Status Details */}
 +       {serviceStatus &amp;&amp; serviceStatus.services &amp;&amp; (
 +         &lt;Box
-+           className=&quot;udg-glass-panel&quot;
++           className=&quot;msqdx-glass-panel&quot;
 +           sx={{
 +             padding: &quot;0&quot;,
 +             border: &quot;1px solid var(--color-secondary-dx-purple)&quot;,
@@ -3651,7 +3651,7 @@ Lines added: 98, lines removed: undefined
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-dashboard.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-dashboard.tsx`
 
 Lint results
 
@@ -3673,7 +3673,7 @@ Prüfen, ob alle Funktionen korrekt definiert sind:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/udg-glass-admin-dashboard.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: /Users/m4-dev/Development/persona_chat/apps/web/components/admin/msqdx-glass-admin-dashboard.tsx</summary>
 
 </details>
 </tool-use>

@@ -28,7 +28,7 @@ dependencies = [
     "opentelemetry-sdk==1.38.0",
     "opentelemetry-exporter-otlp==1.38.0",
     "python-slugify==8.0.4",
-    "udg-glass-proto @ file:///app/packages/proto"
+    "msqdx-glass-proto @ file:///app/packages/proto"
 ]
 
 [build-system]

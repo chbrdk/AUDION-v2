@@ -28,35 +28,35 @@ export default async function SettingsProvidersPage() {
   const data = await fetchProviders();
 
   return (
-    <div className="udg-glass-panel">
-      <header className="udg-glass-detail__header">
+    <div className="msqdx-glass-panel">
+      <header className="msqdx-glass-detail__header">
         <div>
-          <p className="udg-glass-eyebrow">AI Settings</p>
+          <p className="msqdx-glass-eyebrow">AI Settings</p>
           <h1 style={{ margin: 0 }}>Providers</h1>
-          <p className="udg-glass-muted" style={{ maxWidth: "640px" }}>
+          <p className="msqdx-glass-muted" style={{ maxWidth: "640px" }}>
             Track which model backends are available to the workspace. Keys are never exposed, only their status.
           </p>
         </div>
       </header>
 
-      <div className="udg-glass-settings-grid">
+      <div className="msqdx-glass-settings-grid">
         {data.providers.map((provider) => (
-          <div key={provider.id} className="udg-glass-settings-card">
+          <div key={provider.id} className="msqdx-glass-settings-card">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <h3 style={{ marginBottom: "0.25rem" }}>{provider.label}</h3>
-                <p className="udg-glass-muted" style={{ margin: 0 }}>
+                <p className="msqdx-glass-muted" style={{ margin: 0 }}>
                   Default model: {provider.model || "—"}
                 </p>
               </div>
               <span
-                className={`udg-glass-status-pill ${provider.api_key_configured ? "--success" : "--warning"}`}
+                className={`msqdx-glass-status-pill ${provider.api_key_configured ? "--success" : "--warning"}`}
               >
                 {statusLabel(provider.api_key_configured)}
               </span>
             </div>
             {data.default_provider === provider.id && (
-              <p className="udg-glass-badge --outline" style={{ marginTop: "0.75rem", display: "inline-flex" }}>
+              <p className="msqdx-glass-badge --outline" style={{ marginTop: "0.75rem", display: "inline-flex" }}>
                 Default
               </p>
             )}

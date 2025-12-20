@@ -5,7 +5,7 @@ import json
 from typing import List
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from udg_glass_proto import PersonasDiscoveredEvent, ThinkingEvent
+from msqdx_glass_proto import PersonasDiscoveredEvent, ThinkingEvent
 
 from ..agents.persona import PersonaAgent
 from ..agents.retrieval import RetrievalAgent

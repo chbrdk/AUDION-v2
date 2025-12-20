@@ -1,7 +1,7 @@
-import type { TargetGroupListResponse } from "@udg-glass/types";
+import type { TargetGroupListResponse } from "@msqdx-glass/types";
 
 import { getPersonaBackendBase, getPersonaBackendDocsUrl } from "../../api/_lib/backend";
-import { UdgGlassTargetGroupAdminPanel } from "../../../components/udg-glass-target-group-admin-panel";
+import { MsqdxGlassTargetGroupAdminPanel } from "../../../components/msqdx-glass-target-group-admin-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -58,7 +58,7 @@ export default async function TargetGroupAdminPage() {
           <strong>Backend unreachable:</strong> {error}. Please wait until the service has fully started and reload the page.
         </div>
       )}
-      <UdgGlassTargetGroupAdminPanel initialList={list} docsUrl={docsUrl} />
+      <MsqdxGlassTargetGroupAdminPanel initialList={list} docsUrl={docsUrl} />
     </>
   );
 }

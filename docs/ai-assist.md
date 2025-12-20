@@ -14,7 +14,7 @@ The AI Assist platform centralises all LLM-powered authoring across the workspac
 - **Frontend SDK**
   - `aiAssistApi` wraps `/ai-assist`.
   - `useAiAssist` hook orchestrates calling generic or feature-specific routes.
-  - `UdgGlassAiButton` offers a consistent CTA with sparkle icon + template selector.
+  - `MsqdxGlassAiButton` offers a consistent CTA with sparkle icon + template selector.
 
 ## Adding a New Template
 1. Append a template entry to `templates.yaml` with a unique `template_id`.

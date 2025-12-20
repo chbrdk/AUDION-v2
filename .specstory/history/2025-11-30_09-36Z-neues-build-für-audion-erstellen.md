@@ -1598,7 +1598,7 @@ time="2025-11-30T10:41:13+01:00" level=warning msg="/Users/m4-dev/Development/AU
 
 #57 [web builder 3/5] RUN npm run build --workspace packages/types
 #57 4.039 
-#57 4.039 &gt; @udg-glass/types@0.1.0 build
+#57 4.039 &gt; @msqdx-glass/types@0.1.0 build
 #57 4.039 &gt; tsc -b
 #57 4.039 
 #57 DONE 7.7s
@@ -1626,7 +1626,7 @@ time="2025-11-30T10:41:13+01:00" level=warning msg="/Users/m4-dev/Development/AU
 #56 8.925 Using CPython 3.12.12 interpreter at: /usr/local/bin/python3
 #56 8.925 Creating virtual environment at: .venv
 #56 12.71 Resolved 165 packages in 3.78s
-#56 12.74    Building udg-glass-proto @ file:///app/packages/proto
+#56 12.74    Building msqdx-glass-proto @ file:///app/packages/proto
 #56 12.74    Building chat-api @ file:///app/apps/chat-api
 #56 12.91 Downloading pygments (1.2MiB)
 #56 12.93 Downloading sqlalchemy (3.2MiB)
@@ -1712,7 +1712,7 @@ time="2025-11-30T10:41:13+01:00" level=warning msg="/Users/m4-dev/Development/AU
 #56 15.43 Downloading setuptools (1.1MiB)
 #56 15.49  Downloaded faster-whisper
 #56 15.49    Building zlib-state==0.1.10
-#56 15.49       Built udg-glass-proto @ file:///app/packages/proto
+#56 15.49       Built msqdx-glass-proto @ file:///app/packages/proto
 #56 15.50       Built warc3-wet-clueweb09==0.2.5
 #56 15.52  Downloaded pygments
 #56 15.58       Built flagembedding==1.3.5
@@ -2013,7 +2013,7 @@ time="2025-11-30T10:41:13+01:00" level=warning msg="/Users/m4-dev/Development/AU
 #58 527.5  + typing-inspect==0.9.0
 #58 527.5  + typing-inspection==0.4.2
 #58 527.5  + tzdata==2025.2
-#58 527.5  + udg-glass-proto==0.1.0 (from file:///app/packages/proto)
+#58 527.5  + msqdx-glass-proto==0.1.0 (from file:///app/packages/proto)
 #58 527.5  + unlzw3==0.2.3
 #58 527.5  + unstructured==0.18.20
 #58 527.5  + unstructured-client==0.42.4
@@ -2161,7 +2161,7 @@ time="2025-11-30T10:41:13+01:00" level=warning msg="/Users/m4-dev/Development/AU
 #56 569.5  + typing-extensions==4.15.0
 #56 569.5  + typing-inspection==0.4.2
 #56 569.5  + tzdata==2025.2
-#56 569.5  + udg-glass-proto==0.1.0 (from file:///app/packages/proto)
+#56 569.5  + msqdx-glass-proto==0.1.0 (from file:///app/packages/proto)
 #56 569.5  + unlzw3==0.2.3
 #56 569.5  + urllib3==2.5.0
 #56 569.5  + uvicorn==0.38.0
@@ -2271,13 +2271,13 @@ time="2025-11-30T10:41:13+01:00" level=warning msg="/Users/m4-dev/Development/AU
 #61 [chat-api proto 1/1] RUN cd apps/chat-api &amp;&amp; uv pip install -e /app/packages/proto
 #61 6.708 warning: The &#96;tool.uv.dev-dependencies&#96; field (used in &#96;pyproject.toml&#96;) is deprecated and will be removed in a future release; use &#96;dependency-groups.dev&#96; instead
 #61 8.739 Resolved 6 packages in 519ms
-#61 8.790    Building udg-glass-proto @ file:///app/packages/proto
-#61 9.812       Built udg-glass-proto @ file:///app/packages/proto
+#61 8.790    Building msqdx-glass-proto @ file:///app/packages/proto
+#61 9.812       Built msqdx-glass-proto @ file:///app/packages/proto
 #61 9.814 Prepared 1 package in 1.07s
 #61 9.819 Uninstalled 1 package in 5ms
 #61 9.822 Installed 1 package in 2ms
 #61 10.69 Bytecode compiled 16249 files in 871ms
-#61 10.69  ~ udg-glass-proto==0.1.0 (from file:///app/packages/proto)
+#61 10.69  ~ msqdx-glass-proto==0.1.0 (from file:///app/packages/proto)
 #61 DONE 11.9s
 
 #26 [indexing-api runtime 3/6] RUN apt-get update &amp;&amp; apt-get install -y --no-install-recommends     libgl1     libglib2.0-0     libsm6     libxext6     libxrender-dev     libgomp1     poppler-utils     &amp;&amp; rm -rf /var/lib/apt/lists/*
@@ -2292,8 +2292,8 @@ time="2025-11-30T10:41:13+01:00" level=warning msg="/Users/m4-dev/Development/AU
 #69 [indexing-api proto 2/2] RUN cd apps/indexing-api &amp;&amp; uv pip install -e /app/packages/proto
 #69 9.386 warning: The &#96;tool.uv.dev-dependencies&#96; field (used in &#96;pyproject.toml&#96;) is deprecated and will be removed in a future release; use &#96;dependency-groups.dev&#96; instead
 #69 10.30 Resolved 6 packages in 254ms
-#69 10.30    Building udg-glass-proto @ file:///app/packages/proto
-#69 11.54       Built udg-glass-proto @ file:///app/packages/proto
+#69 10.30    Building msqdx-glass-proto @ file:///app/packages/proto
+#69 11.54       Built msqdx-glass-proto @ file:///app/packages/proto
 #69 11.54 Prepared 1 package in 1.23s
 #69 11.55 Uninstalled 1 package in 6ms
 #69 11.55 Installed 1 package in 8ms
@@ -2304,7 +2304,7 @@ time="2025-11-30T10:41:13+01:00" level=warning msg="/Users/m4-dev/Development/AU
 
 #69 [indexing-api proto 2/2] RUN cd apps/indexing-api &amp;&amp; uv pip install -e /app/packages/proto
 #69 19.34 Bytecode compiled 18813 files in 7.78s
-#69 19.34  ~ udg-glass-proto==0.1.0 (from file:///app/packages/proto)
+#69 19.34  ~ msqdx-glass-proto==0.1.0 (from file:///app/packages/proto)
 #69 ...
 
 #70 [web runner 7/7] COPY --from=builder /app/apps/web/.next ./apps/web/.next

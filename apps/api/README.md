@@ -6,7 +6,7 @@ FastAPI + Celery backend powering the Dynamic Persona Chat experience. It ingest
 
 - **Document ingestion** – async pipeline orchestrated via Celery + Redis + PostgreSQL metadata.
 - **Persona discovery** – retrieval + graph fan-out + Claude Sonnet prompts.
-- **Realtime chat** – FastAPI WebSocket gateway streaming `@udg-glass/types` events.
+- **Realtime chat** – FastAPI WebSocket gateway streaming `@msqdx-glass/types` events.
 - **Observability** – OpenTelemetry (Tempo) + Logfire structured logs.
 
 ## Commands

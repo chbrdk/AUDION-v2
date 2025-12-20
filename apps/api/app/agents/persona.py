@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import List
 
 from anthropic import Anthropic
-from udg_glass_proto import ChatEvent, CompleteEvent, ContentDeltaEvent, SourcesEvent, ThinkingEvent
+from msqdx_glass_proto import ChatEvent, CompleteEvent, ContentDeltaEvent, SourcesEvent, ThinkingEvent
 
 from ..core.config import get_settings
 

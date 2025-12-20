@@ -6,7 +6,7 @@ from typing import Optional
 import httpx
 import structlog
 from openai import OpenAI
-from udg_glass_proto import PersonaProfile
+from msqdx_glass_proto import PersonaProfile
 
 from ..core.config import get_settings
 

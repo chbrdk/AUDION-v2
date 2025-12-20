@@ -44,8 +44,8 @@ TypeScript-Definitionen für Feld-Konfigurationen:
 
 #### 2. Generische Komponenten (`apps/web/components/generic/`)
 
-- `UdgGlassFieldEditor`: Edit-Komponente für einzelne Felder
-- `UdgGlassEntityEditor`: Editor für komplette Entitäten (gruppiert Felder)
+- `MsqdxGlassFieldEditor`: Edit-Komponente für einzelne Felder
+- `MsqdxGlassEntityEditor`: Editor für komplette Entitäten (gruppiert Felder)
 
 ## Verwendung
 
@@ -68,7 +68,7 @@ ENTITY_PRESERVED_FIELDS = {
 }
 ```
 
-2. Feld im Pydantic-Modell definieren (`packages/proto/src/udg_glass_proto/personas.py`):
+2. Feld im Pydantic-Modell definieren (`packages/proto/src/msqdx_glass_proto/personas.py`):
 
 ```python
 class PersonaProfile(BaseModel):
@@ -167,7 +167,7 @@ export const ENTITY_FIELD_DEFINITIONS: Record<string, FieldDefinition[]> = {
 2. In Admin Panel verwenden:
 
 ```typescript
-<UdgGlassEntityEditor
+<MsqdxGlassEntityEditor
   entityType="newEntity"
   entity={entityData}
   onSave={async (updates) => {
@@ -212,17 +212,17 @@ export const ENTITY_FIELD_DEFINITIONS: Record<string, FieldDefinition[]> = {
 
 ### Persona Admin Panel
 
-Alte Komponente `UdgGlassBioCardEdit` wurde durch `UdgGlassEntityEditor` ersetzt:
+Alte Komponente `MsqdxGlassBioCardEdit` wurde durch `MsqdxGlassEntityEditor` ersetzt:
 
 ```typescript
 // Alt
-<UdgGlassBioCardEdit
+<MsqdxGlassBioCardEdit
   profile={detail.profile}
   onSave={handleDemographicSave}
 />
 
 // Neu
-<UdgGlassEntityEditor
+<MsqdxGlassEntityEditor
   entityType="persona"
   entity={detail.profile}
   onSave={async (updates) => {
@@ -238,7 +238,7 @@ Alte Komponente `UdgGlassBioCardEdit` wurde durch `UdgGlassEntityEditor` ersetzt
 
 ### TargetGroup Admin Panel
 
-Manuelle Edit-Logik wurde durch `UdgGlassEntityEditor` ersetzt:
+Manuelle Edit-Logik wurde durch `MsqdxGlassEntityEditor` ersetzt:
 
 ```typescript
 // Alt: Manuelle Edit-Logik für jedes Feld
@@ -246,7 +246,7 @@ const [editingField, setEditingField] = useState<'name' | 'segment' | 'descripti
 // ... komplexe handleStartEdit, handleSaveField, etc.
 
 // Neu
-<UdgGlassEntityEditor
+<MsqdxGlassEntityEditor
   entityType="targetGroup"
   entity={detail}
   onSave={handleFieldSave}
@@ -278,7 +278,7 @@ const [editingField, setEditingField] = useState<'name' | 'segment' | 'descripti
 
 Das System ist darauf ausgelegt, einfach erweitert zu werden:
 
-1. **Neue Feld-Typen**: In `UdgGlassFieldEditor` hinzufügen
+1. **Neue Feld-Typen**: In `MsqdxGlassFieldEditor` hinzufügen
 2. **Neue Validierung**: In `FieldDefinition.config` erweitern
 3. **Neue Entitäten**: Konfiguration in `field_config.py` und `field-definitions.ts` hinzufügen
 4. **Neue Gruppierungen**: Feld-Definitionen mit `group` Attribut erweitern

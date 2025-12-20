@@ -1,7 +1,7 @@
-import type { QueueStatsResponse } from "@udg-glass/types";
+import type { QueueStatsResponse } from "@msqdx-glass/types";
 
 import { getPersonaBackendBase } from "../../api/_lib/backend";
-import { UdgGlassQueueDashboard } from "../../../components/udg-glass-queue-dashboard";
+import { MsqdxGlassQueueDashboard } from "../../../components/msqdx-glass-queue-dashboard";
 
 export const dynamic = "force-dynamic";
 
@@ -72,7 +72,7 @@ export default async function QueuePage() {
           has fully started and reload the page.
         </div>
       )}
-      <UdgGlassQueueDashboard initialStats={stats} />
+      <MsqdxGlassQueueDashboard initialStats={stats} />
     </>
   );
 }

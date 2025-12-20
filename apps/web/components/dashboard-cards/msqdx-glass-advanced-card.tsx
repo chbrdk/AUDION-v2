@@ -1,0 +1,68 @@
+"use client";
+
+import type { PersonaProfile } from "@msqdx-glass/types";
+import { MsqdxGlassDashboardCard } from "./msqdx-glass-dashboard-card";
+import { MsqdxGlassDashboardCardSection } from "./msqdx-glass-dashboard-card-section";
+
+export type MsqdxGlassAdvancedCardProps = {
+  profile: PersonaProfile;
+  expanded: boolean;
+  onToggle: (id: string) => void;
+};
+
+export const MsqdxGlassAdvancedCard = ({
+  profile,
+  expanded,
+  onToggle
+}: MsqdxGlassAdvancedCardProps) => {
+  // Only render if color_palette or attention_span exists
+  if (!profile.color_palette?.length && !profile.attention_span) {
+    return null;
+  }
+
+  return (
+    <MsqdxGlassDashboardCard
+      id="advanced"
+      title="Erweitert"
+      icon="tune"
+      variant="advanced"
+      iconColor={{
+        color: "var(--color-theme-accent)"
+      }}
+      borderColor="var(--color-theme-accent)"
+      expanded={expanded}
+      onToggle={onToggle}
+    >
+      {profile.color_palette && profile.color_palette.length > 0 && (
+        <MsqdxGlassDashboardCardSection title="Farbpalette">
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+            {profile.color_palette.map((color, idx) => (
+              <div
+                key={idx}
+                style={{
+                  width: "48px",
+                  height: "48px",
+                  borderRadius: "12px",
+                  backgroundColor: color,
+                  border: "1px solid var(--color-secondary-dx-grey-light-tint)",
+                  cursor: "pointer",
+                  boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+                  transition: "transform 0.2s ease"
+                }}
+                title={color}
+                onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"}
+                onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
+              />
+            ))}
+          </div>
+        </MsqdxGlassDashboardCardSection>
+      )}
+      {profile.attention_span && (
+        <MsqdxGlassDashboardCardSection title="Attention Span">
+          <p style={{ margin: 0 }}>{profile.attention_span}</p>
+        </MsqdxGlassDashboardCardSection>
+      )}
+    </MsqdxGlassDashboardCard>
+  );
+};
+

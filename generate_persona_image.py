@@ -11,7 +11,7 @@ from app.db import get_session
 from app.models import Persona
 from app.services.persona_image import PersonaImageService
 from sqlalchemy import select
-from udg_glass_proto import PersonaProfile
+from msqdx_glass_proto import PersonaProfile
 from datetime import datetime
 
 def find_ebike_persona():

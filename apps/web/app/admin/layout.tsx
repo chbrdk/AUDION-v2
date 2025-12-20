@@ -2,15 +2,15 @@
 
 import type { ReactNode } from "react";
 import "../../styles/admin.css";
-import { UdgGlassAdminLayoutClient, AdminHeaderProvider, AdminPanelProvider } from "../../components/admin/udg-glass-admin-layout";
+import { MsqdxGlassAdminLayoutClient, AdminHeaderProvider, AdminPanelProvider } from "../../components/admin/msqdx-glass-admin-layout";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <AdminHeaderProvider>
       <AdminPanelProvider>
-        <UdgGlassAdminLayoutClient>
+        <MsqdxGlassAdminLayoutClient>
           {children}
-        </UdgGlassAdminLayoutClient>
+        </MsqdxGlassAdminLayoutClient>
       </AdminPanelProvider>
     </AdminHeaderProvider>
   );

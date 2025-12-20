@@ -19,7 +19,7 @@
 
 **Anwendbarkeit:**
 - Direkte Pydantic BaseModel Klassen könnten MISSING nutzen
-- In unserem Projekt: Pydantic Models hauptsächlich in `udg-glass-proto` Package
+- In unserem Projekt: Pydantic Models hauptsächlich in `msqdx-glass-proto` Package
 - pydantic-settings nutzt Pydantic Core, aber MISSING ist für BaseModel relevant
 
 **Beispiel:**
@@ -47,7 +47,7 @@ class MyModel(BaseModel):
 ## Integration Status
 
 ### Direkte Pydantic Models
-- **Location:** `packages/proto` (udg-glass-proto)
+- **Location:** `packages/proto` (msqdx-glass-proto)
 - **Status:** Externes Package, separate Versionierung
 - **Empfehlung:** MISSING Sentinel in zukünftigen Model-Definitionen nutzen
 

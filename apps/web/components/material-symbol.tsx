@@ -47,5 +47,5 @@ export const MaterialSymbol = ({
   );
 };
 
-MaterialSymbol.displayName = "udg-glass-material-symbol";
+MaterialSymbol.displayName = "msqdx-glass-material-symbol";
 

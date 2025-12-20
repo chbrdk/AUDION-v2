@@ -1,6 +1,6 @@
 import pytest
 
-pytest.importorskip("udg_glass_proto")
+pytest.importorskip("msqdx_glass_proto")
 
 from app.services.ai_assist import AiAssistService, PromptTemplateRegistry
 

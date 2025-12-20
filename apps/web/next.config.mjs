@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Base path für Audion - ermöglicht parallelen Betrieb mit anderen Services
+  // Wird über Umgebungsvariable konfiguriert, Standard: /audion
+  basePath: process.env.NEXT_PUBLIC_BASE_PATH || '',
   experimental: {
     serverActions: {
       enabled: true

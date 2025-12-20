@@ -4,7 +4,7 @@ from typing import List
 from uuid import UUID
 
 import structlog
-from udg_glass_proto import PersonaProfile
+from msqdx_glass_proto import PersonaProfile
 
 from ..db import get_session
 from ..models import Journey, JourneyPhase

@@ -64,7 +64,7 @@ const [state, formAction, isPending] = useActionState(createPersonaAction, null)
 ## Migration-Plan
 
 ### Kandidaten für Migration
-1. **Persona Creation Form** (`udg-glass-persona-create-dialog.tsx`)
+1. **Persona Creation Form** (`msqdx-glass-persona-create-dialog.tsx`)
 2. **Target Group Creation**
 3. **Settings Forms**
 4. **Document Upload Forms**

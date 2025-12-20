@@ -10,7 +10,7 @@ from ..db import get_session
 from ..models import DocumentChunk, Persona, PersonaPrompt, PersonaSource
 from ..services.persona_generation import PersonaGenerationService
 from ..services.persona_image import PersonaImageService
-from udg_glass_proto import PersonaProfile
+from msqdx_glass_proto import PersonaProfile
 
 router = APIRouter(prefix="/personas", tags=["personas"])
 

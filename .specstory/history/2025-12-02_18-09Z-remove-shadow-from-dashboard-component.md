@@ -1469,7 +1469,7 @@ Output mode: content
 
 | File | Content | Line |
 |------|------|------|
-| `/Users/m4-dev/Development/AUDION/apps/chat-api/app/agents/persona.py` | `from udg_glass_proto import CompleteEvent, ContentDeltaEvent, SourcesEvent, ThinkingEvent` | L7 |
+| `/Users/m4-dev/Development/AUDION/apps/chat-api/app/agents/persona.py` | `from msqdx_glass_proto import CompleteEvent, ContentDeltaEvent, SourcesEvent, ThinkingEvent` | L7 |
 | `/Users/m4-dev/Development/AUDION/apps/chat-api/app/agents/persona.py` | `send_event: Callable,` | L27 |
 | `/Users/m4-dev/Development/AUDION/apps/chat-api/app/agents/persona.py` | `send_event: Callback to send events` | L40 |
 | `/Users/m4-dev/Development/AUDION/apps/chat-api/app/agents/persona.py` | `send_event=send_event,` | L54 |
@@ -1908,7 +1908,7 @@ Output mode: content
 
 | File | Content | Line |
 |------|------|------|
-| `/Users/m4-dev/Development/AUDION/apps/chat-api/app/agents/persona.py` | `from udg_glass_proto import CompleteEvent, ContentDeltaEvent, SourcesEvent, ThinkingEvent` | L7 |
+| `/Users/m4-dev/Development/AUDION/apps/chat-api/app/agents/persona.py` | `from msqdx_glass_proto import CompleteEvent, ContentDeltaEvent, SourcesEvent, ThinkingEvent` | L7 |
 | `/Users/m4-dev/Development/AUDION/apps/chat-api/app/agents/persona.py` | `send_event(ThinkingEvent(status="Retrieving evidence…"))` | L60 |
 | `/Users/m4-dev/Development/AUDION/apps/chat-api/app/agents/persona.py` | `logger.error("persona.agent.stream_failed", error=str(e), exc_info=True)` | L84 |
 | `/Users/m4-dev/Development/AUDION/apps/chat-api/app/agents/persona.py` | `send_event(ThinkingEvent(status=f"Error generating response: \{str(e)\}"))` | L85 |
@@ -3252,7 +3252,7 @@ Logs zeigen: `"tool_input_preview": "EMPTY"` und `"tool_input_empty"` — die To
 | `apps/chat-api/app/routers/chat.py` | L376-827 |
 | `apps/chat-api/app/routers/voice.py` | L137-367 |
 | `.specstory/history/2025-12-02_18-09Z-remove-shadow-from-dashboard-component.md` | L13274-13312 |
-| `packages/proto/src/udg_glass_proto/events.py` | L19-35 |
+| `packages/proto/src/msqdx_glass_proto/events.py` | L19-35 |
 | `.specstory/history/2025-12-02_18-09Z-remove-shadow-from-dashboard-component.md` | L13240-13276 |
 | `packages/types/src/events.ts` | L5-31 |
 | `apps/chat-api/app/agents/persona.py` | L299 |
@@ -5178,7 +5178,7 @@ time="2025-12-03T20:51:32+01:00" level=warning msg="/Users/m4-dev/Development/AU
 #15 158.2  + typing-extensions==4.15.0
 #15 158.2  + typing-inspection==0.4.2
 #15 158.2  + tzdata==2025.2
-#15 158.2  + udg-glass-proto==0.1.0 (from file:///app/packages/proto)
+#15 158.2  + msqdx-glass-proto==0.1.0 (from file:///app/packages/proto)
 #15 158.2  + unlzw3==0.2.3
 #15 158.2  + urllib3==2.5.0
 #15 158.2  + uvicorn==0.38.0
@@ -5197,13 +5197,13 @@ time="2025-12-03T20:51:32+01:00" level=warning msg="/Users/m4-dev/Development/AU
 #16 [proto 1/1] RUN cd apps/chat-api &amp;&amp; uv pip install -e /app/packages/proto
 #16 3.325 warning: The &#96;tool.uv.dev-dependencies&#96; field (used in &#96;pyproject.toml&#96;) is deprecated and will be removed in a future release; use &#96;dependency-groups.dev&#96; instead
 #16 4.707 Resolved 6 packages in 308ms
-#16 4.708    Building udg-glass-proto @ file:///app/packages/proto
-#16 5.733       Built udg-glass-proto @ file:///app/packages/proto
+#16 4.708    Building msqdx-glass-proto @ file:///app/packages/proto
+#16 5.733       Built msqdx-glass-proto @ file:///app/packages/proto
 #16 5.734 Prepared 1 package in 1.02s
 #16 5.735 Uninstalled 1 package in 0.95ms
 #16 5.735 Installed 1 package in 0.70ms
 #16 11.41 Bytecode compiled 16249 files in 5.67s
-#16 11.41  ~ udg-glass-proto==0.1.0 (from file:///app/packages/proto)
+#16 11.41  ~ msqdx-glass-proto==0.1.0 (from file:///app/packages/proto)
 #16 DONE 12.3s
 
 #17 [runtime 2/6] WORKDIR /app/apps/chat-api
@@ -5525,7 +5525,7 @@ Prüfe, wie wir auf `input` im Delta zugreifen, und passe die Verarbeitung entsp
 | `apps/chat-api/app/agents/persona.py` | L338 |
 | `.specstory/history/2025-12-02_18-09Z-remove-shadow-from-dashboard-component.md` | L16454-16477 |
 | `.specstory/history/2025-12-02_18-09Z-remove-shadow-from-dashboard-component.md` | L13240-13276 |
-| `packages/proto/src/udg_glass_proto/events.py` | L19-35 |
+| `packages/proto/src/msqdx_glass_proto/events.py` | L19-35 |
 | `.specstory/history/2025-12-02_18-09Z-remove-shadow-from-dashboard-component.md` | L17860-17884 |
 
 </details>
@@ -6685,10 +6685,10 @@ Prüfe, warum die Persona-Infos nicht angezeigt werden. Vermutlich ein Frontend-
 | `apps/web/app/chat/page.tsx` | L193-1455 |
 | `apps/web/app/chat/[conversationId]/page.tsx` | L198-1491 |
 | `apps/web/app/admin/chat/page.tsx` | L262-2376 |
-| `apps/web/components/udg-glass-persona-admin-panel.tsx` | L138-1662 |
-| `apps/web/components/dashboard-cards/udg-glass-bio-card.tsx` | L10-81 |
-| `apps/web/components/dashboard-cards/udg-glass-bio-card.tsx` | L6-81 |
-| `apps/web/components/udg-glass-persona-card.tsx` | L15-87 |
+| `apps/web/components/msqdx-glass-persona-admin-panel.tsx` | L138-1662 |
+| `apps/web/components/dashboard-cards/msqdx-glass-bio-card.tsx` | L10-81 |
+| `apps/web/components/dashboard-cards/msqdx-glass-bio-card.tsx` | L6-81 |
+| `apps/web/components/msqdx-glass-persona-card.tsx` | L15-87 |
 
 </details>
 </tool-use>
@@ -6704,7 +6704,7 @@ Output mode: content
 
 | File | Content | Line |
 |------|------|------|
-| `/Users/m4-dev/Development/AUDION/apps/web/package.json` | `"@udg-glass/types": "file:../../packages/types",` | L18 |
+| `/Users/m4-dev/Development/AUDION/apps/web/package.json` | `"@msqdx-glass/types": "file:../../packages/types",` | L18 |
 | `/Users/m4-dev/Development/AUDION/apps/web/next.config.mjs` | `// Prevent static generation of error pages` | L9 |
 | `/Users/m4-dev/Development/AUDION/apps/web/app/admin/chat/page.tsx` | `import \{ extractLearnings, mergeLearnings, saveLearningsToLocalStorage, loadLearningsFromLocalStorage \} from "../../../lib/conversation-learnings";` | L51 |
 | `/Users/m4-dev/Development/AUDION/apps/web/app/admin/chat/page.tsx` | `saveConversationToLocalStorage,` | L54 |
@@ -6898,7 +6898,7 @@ Output mode: content
 | `/Users/m4-dev/Development/AUDION/apps/web/app/admin/chat/page.tsx` | `saveConversationToLocalStorage(conversation);` | L1452 |
 | `/Users/m4-dev/Development/AUDION/apps/web/app/admin/chat/page.tsx` | `\}, [messages, activePersonaId, currentConversationId, conversationTitle, selectedJourney, selectedPhases, learnings, activePersona]);` | L1462 |
 | `/Users/m4-dev/Development/AUDION/apps/web/app/admin/chat/page.tsx` | `\{/* Chat Messages - Scrollable Area */\}` | L1559 |
-| `/Users/m4-dev/Development/AUDION/apps/web/app/admin/chat/page.tsx` | `<UdgGlassChatPanel messages=\{messages\} systemPrompt=\{currentSystemPrompt\} />` | L1569 |
+| `/Users/m4-dev/Development/AUDION/apps/web/app/admin/chat/page.tsx` | `<MsqdxGlassChatPanel messages=\{messages\} systemPrompt=\{currentSystemPrompt\} />` | L1569 |
 | `/Users/m4-dev/Development/AUDION/apps/web/app/admin/chat/page.tsx` | `badgeContent=\{pendingImages.length > 0 ? pendingImages.length : 0\}` | L1601 |
 | `/Users/m4-dev/Development/AUDION/apps/web/app/admin/chat/page.tsx` | `setAttachedImages([]);` | L1795 |
 | `/Users/m4-dev/Development/AUDION/apps/web/app/admin/chat/page.tsx` | `icon=\{<MaterialSymbol icon="image" fontSize=\{14\} />\}` | L1846 |
@@ -6928,10 +6928,10 @@ Output mode: content
 | `/Users/m4-dev/Development/AUDION/apps/web/components/prompt-builder/variableDefinitions.ts` | `example: "Age, occupation, goals, challenges...",` | L146 |
 | `/Users/m4-dev/Development/AUDION/apps/web/components/prompt-builder/mockData.ts` | `target_group_summary: "Tech-savvy urban professionals, aged 30-45, interested in sustainable transportation",` | L10 |
 | `/Users/m4-dev/Development/AUDION/apps/web/components/prompt-builder/mockData.ts` | `persona_profile: "Age: 35, Occupation: Software Engineer, Location: Urban area, Income: High",` | L28 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/generic/udg-glass-chip-editor.tsx` | `* Message to show when no chips exist` | L33 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/generic/udg-glass-chip-editor.tsx` | `emptyMessage?: string;` | L35 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/generic/udg-glass-chip-editor.tsx` | `emptyMessage = "Keine Einträge",` | L56 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/generic/udg-glass-chip-editor.tsx` | `\{emptyMessage\}` | L257 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/generic/msqdx-glass-chip-editor.tsx` | `* Message to show when no chips exist` | L33 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/generic/msqdx-glass-chip-editor.tsx` | `emptyMessage?: string;` | L35 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/generic/msqdx-glass-chip-editor.tsx` | `emptyMessage = "Keine Einträge",` | L56 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/generic/msqdx-glass-chip-editor.tsx` | `\{emptyMessage\}` | L257 |
 | `/Users/m4-dev/Development/AUDION/apps/web/app/admin/settings/theme/page.tsx` | `export default function ThemeSettingsPage() \{` | L93 |
 | `/Users/m4-dev/Development/AUDION/apps/web/app/admin/settings/theme/page.tsx` | `const saved = localStorage.getItem("audion-sidebar-color");` | L100 |
 | `/Users/m4-dev/Development/AUDION/apps/web/app/admin/settings/theme/page.tsx` | `const saved = localStorage.getItem("audion-sidebar-color");` | L132 |
@@ -6943,97 +6943,97 @@ Output mode: content
 | `/Users/m4-dev/Development/AUDION/apps/web/app/admin/settings/prompts/page.tsx` | `<VariableItem name="persona_bio" description="Full biography or description of the persona" example="Detailed persona profile with demographics, goals, challenges..." />` | L501 |
 | `/Users/m4-dev/Development/AUDION/apps/web/app/admin/settings/prompts/page.tsx` | `<VariableItem name="persona_profile" description="Full profile of the persona" example="Age, occupation, goals, challenges..." />` | L502 |
 | `/Users/m4-dev/Development/AUDION/apps/web/app/admin/settings/prompts/page.tsx` | `<strong>Usage:</strong> Use variables in your prompts with the syntax <code style=\{{ background: "rgba(15, 23, 42, 0.1)", padding: "0.125rem 0.25rem", borderRadius: "4px", fontSize: "0.8125rem" \}}>\{"$\{variable_name\}"\}</code>` | L522 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/dashboard-cards/udg-glass-personality-card.tsx` | `emptyMessage="No traits defined"` | L65 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/dashboard-cards/udg-glass-personality-card.tsx` | `emptyMessage="No interests"` | L77 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/dashboard-cards/udg-glass-personality-card.tsx` | `emptyMessage="No values"` | L88 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/dashboard-cards/udg-glass-personality-card.tsx` | `label="Social Media Usage"` | L94 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/dashboard-cards/udg-glass-personality-card.tsx` | `chips=\{profile.social_media_usage \|\| []\}` | L95 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/dashboard-cards/udg-glass-personality-card.tsx` | `emptyMessage="No social media usage"` | L99 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `const notify = (message: string) => \{` | L98 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `toast.textContent = message;` | L108 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `"bio-demographics",` | L164 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `'age' in updates \|\|` | L304 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `'location' in updates \|\|` | L305 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `if ('age' in demographicUpdates) \{` | L347 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `profileUpdates.age = demographicUpdates.age;` | L348 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `if ('location' in demographicUpdates) \{` | L350 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `profileUpdates.location = demographicUpdates.location ?? null;` | L351 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `if (!['age', 'location', 'gender', 'media_affinity', 'full_name', 'name', 'headline', 'segment'].includes(key)) \{` | L366 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `const existingAge = detail.profile?.age;` | L389 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `const existingLocation = detail.profile?.location;` | L390 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `completeProfile.age = completeProfile.age ?? existingAge ?? null;` | L396 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `completeProfile.location = completeProfile.location ?? existingLocation ?? null;` | L397 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `if ('age' in demographicUpdates) \{` | L403 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `completeProfile.age = demographicUpdates.age;` | L404 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `if ('location' in demographicUpdates) \{` | L406 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `completeProfile.location = demographicUpdates.location ?? null;` | L407 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `if (!['age', 'location', 'gender', 'media_affinity', 'full_name', 'name', 'headline', 'segment'].includes(key)) \{` | L424 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `if (!('age' in completeProfile)) \{` | L451 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `completeProfile.age = detail.profile?.age ?? null;` | L452 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `if (!('location' in completeProfile)) \{` | L454 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `completeProfile.location = detail.profile?.location ?? null;` | L455 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `age: completeProfile.age ?? null,` | L469 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `location: completeProfile.location ?? null,` | L470 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `age: completeProfile?.age,` | L481 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `location: completeProfile?.location,` | L482 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `age: updated.profile?.age,` | L530 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `location: updated.profile?.location,` | L531 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `const handleDemographicSave = async (updates: Partial<PersonaProfile>) => \{` | L561 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `console.log('[DEBUG handleDemographicSave] Received updates:', updates);` | L562 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `console.log('[DEBUG handleDemographicSave] Updates keys:', Object.keys(updates \|\| \{}));` | L563 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `console.log('[DEBUG handleDemographicSave] Gender:', updates?.gender, 'Type:', typeof updates?.gender);` | L564 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `console.log('[DEBUG handleDemographicSave] Media affinity:', updates?.media_affinity, 'Type:', typeof updates?.media_affinity);` | L565 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `await handleDemographicSave(\{ interests: chips \});` | L570 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `setPersonaAiError(error instanceof Error ? error.message : "AI Anfrage fehlgeschlagen");` | L619 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `await handleDemographicSave(\{ values: chips \});` | L624 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `setPersonaAiError(error instanceof Error ? error.message : "AI Anfrage fehlgeschlagen");` | L673 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `await handleDemographicSave(\{ social_media_usage: chips \});` | L678 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `await handleDemographicSave(\{ traits: traitsRecord \});` | L707 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `await handleDemographicSave(\{` | L739 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `const errorMessage = err instanceof Error ? err.message : "Failed to generate traits with AI";` | L815 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `setPersonaAiError(errorMessage);` | L816 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `notify(errorMessage);` | L817 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `const errorMessage = err instanceof Error ? err.message : "Failed to generate vocabulary with AI";` | L888 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `setPersonaAiError(errorMessage);` | L889 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `notify(errorMessage);` | L890 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `await handleDemographicSave(\{` | L903 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `await handleDemographicSave(\{` | L913 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `await handleDemographicSave(\{ pain_points: painPointsArray \});` | L928 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `setPersonaAiError(error instanceof Error ? error.message : "AI Anfrage fehlgeschlagen");` | L960 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `await handleDemographicSave(\{ goals: goalsArray \});` | L971 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `setPersonaAiError(error instanceof Error ? error.message : "AI Anfrage fehlgeschlagen");` | L1020 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `const response = await fetch(`/api/persona-admin/$\{selectedId\}/generate-image`, \{` | L1176 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `let payload: \{ status?: string; detail?: string; message?: string \} \| null = null;` | L1180 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `const errorMessage = payload?.detail \|\| payload?.message \|\| "Avatar generation failed";` | L1190 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `throw new Error(errorMessage);` | L1191 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `notify("Avatar generation failed. Please check the image service configuration.");` | L1194 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `notify((error as Error)?.message \|\| "Failed to generate avatar");` | L1201 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `\{(detail.profile.bio \|\| detail.profile.full_name \|\| detail.profile.age \|\| detail.profile.location \|\| detail.profile.gender \|\| (detail.profile.media_affinity !== null && detail.profile.media_affinity !== undefined)) && (` | L1537 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `id="bio-demographics"` | L1539 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `title="Biography & Demographics"` | L1540 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `expanded=\{isAccordionExpanded("bio-demographics")\}` | L1548 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `<UdgGlassDashboardCardSection title="Demographics">` | L1558 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `await handleDemographicSave(updates as Partial<PersonaProfile>);` | L1563 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/dashboard-cards/udg-glass-pain-points-goals-card.tsx` | `emptyMessage="No pain points identified"` | L63 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/dashboard-cards/udg-glass-pain-points-goals-card.tsx` | `emptyMessage="No goals defined"` | L75 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/dashboard-cards/msqdx-glass-personality-card.tsx` | `emptyMessage="No traits defined"` | L65 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/dashboard-cards/msqdx-glass-personality-card.tsx` | `emptyMessage="No interests"` | L77 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/dashboard-cards/msqdx-glass-personality-card.tsx` | `emptyMessage="No values"` | L88 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/dashboard-cards/msqdx-glass-personality-card.tsx` | `label="Social Media Usage"` | L94 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/dashboard-cards/msqdx-glass-personality-card.tsx` | `chips=\{profile.social_media_usage \|\| []\}` | L95 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/dashboard-cards/msqdx-glass-personality-card.tsx` | `emptyMessage="No social media usage"` | L99 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `const notify = (message: string) => \{` | L98 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `toast.textContent = message;` | L108 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `"bio-demographics",` | L164 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `'age' in updates \|\|` | L304 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `'location' in updates \|\|` | L305 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `if ('age' in demographicUpdates) \{` | L347 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `profileUpdates.age = demographicUpdates.age;` | L348 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `if ('location' in demographicUpdates) \{` | L350 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `profileUpdates.location = demographicUpdates.location ?? null;` | L351 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `if (!['age', 'location', 'gender', 'media_affinity', 'full_name', 'name', 'headline', 'segment'].includes(key)) \{` | L366 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `const existingAge = detail.profile?.age;` | L389 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `const existingLocation = detail.profile?.location;` | L390 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `completeProfile.age = completeProfile.age ?? existingAge ?? null;` | L396 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `completeProfile.location = completeProfile.location ?? existingLocation ?? null;` | L397 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `if ('age' in demographicUpdates) \{` | L403 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `completeProfile.age = demographicUpdates.age;` | L404 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `if ('location' in demographicUpdates) \{` | L406 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `completeProfile.location = demographicUpdates.location ?? null;` | L407 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `if (!['age', 'location', 'gender', 'media_affinity', 'full_name', 'name', 'headline', 'segment'].includes(key)) \{` | L424 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `if (!('age' in completeProfile)) \{` | L451 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `completeProfile.age = detail.profile?.age ?? null;` | L452 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `if (!('location' in completeProfile)) \{` | L454 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `completeProfile.location = detail.profile?.location ?? null;` | L455 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `age: completeProfile.age ?? null,` | L469 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `location: completeProfile.location ?? null,` | L470 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `age: completeProfile?.age,` | L481 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `location: completeProfile?.location,` | L482 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `age: updated.profile?.age,` | L530 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `location: updated.profile?.location,` | L531 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `const handleDemographicSave = async (updates: Partial<PersonaProfile>) => \{` | L561 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `console.log('[DEBUG handleDemographicSave] Received updates:', updates);` | L562 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `console.log('[DEBUG handleDemographicSave] Updates keys:', Object.keys(updates \|\| \{}));` | L563 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `console.log('[DEBUG handleDemographicSave] Gender:', updates?.gender, 'Type:', typeof updates?.gender);` | L564 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `console.log('[DEBUG handleDemographicSave] Media affinity:', updates?.media_affinity, 'Type:', typeof updates?.media_affinity);` | L565 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `await handleDemographicSave(\{ interests: chips \});` | L570 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `setPersonaAiError(error instanceof Error ? error.message : "AI Anfrage fehlgeschlagen");` | L619 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `await handleDemographicSave(\{ values: chips \});` | L624 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `setPersonaAiError(error instanceof Error ? error.message : "AI Anfrage fehlgeschlagen");` | L673 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `await handleDemographicSave(\{ social_media_usage: chips \});` | L678 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `await handleDemographicSave(\{ traits: traitsRecord \});` | L707 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `await handleDemographicSave(\{` | L739 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `const errorMessage = err instanceof Error ? err.message : "Failed to generate traits with AI";` | L815 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `setPersonaAiError(errorMessage);` | L816 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `notify(errorMessage);` | L817 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `const errorMessage = err instanceof Error ? err.message : "Failed to generate vocabulary with AI";` | L888 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `setPersonaAiError(errorMessage);` | L889 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `notify(errorMessage);` | L890 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `await handleDemographicSave(\{` | L903 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `await handleDemographicSave(\{` | L913 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `await handleDemographicSave(\{ pain_points: painPointsArray \});` | L928 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `setPersonaAiError(error instanceof Error ? error.message : "AI Anfrage fehlgeschlagen");` | L960 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `await handleDemographicSave(\{ goals: goalsArray \});` | L971 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `setPersonaAiError(error instanceof Error ? error.message : "AI Anfrage fehlgeschlagen");` | L1020 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `const response = await fetch(`/api/persona-admin/$\{selectedId\}/generate-image`, \{` | L1176 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `let payload: \{ status?: string; detail?: string; message?: string \} \| null = null;` | L1180 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `const errorMessage = payload?.detail \|\| payload?.message \|\| "Avatar generation failed";` | L1190 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `throw new Error(errorMessage);` | L1191 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `notify("Avatar generation failed. Please check the image service configuration.");` | L1194 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `notify((error as Error)?.message \|\| "Failed to generate avatar");` | L1201 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `\{(detail.profile.bio \|\| detail.profile.full_name \|\| detail.profile.age \|\| detail.profile.location \|\| detail.profile.gender \|\| (detail.profile.media_affinity !== null && detail.profile.media_affinity !== undefined)) && (` | L1537 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `id="bio-demographics"` | L1539 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `title="Biography & Demographics"` | L1540 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `expanded=\{isAccordionExpanded("bio-demographics")\}` | L1548 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `<MsqdxGlassDashboardCardSection title="Demographics">` | L1558 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `await handleDemographicSave(updates as Partial<PersonaProfile>);` | L1563 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/dashboard-cards/msqdx-glass-pain-points-goals-card.tsx` | `emptyMessage="No pain points identified"` | L63 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/dashboard-cards/msqdx-glass-pain-points-goals-card.tsx` | `emptyMessage="No goals defined"` | L75 |
 | `/Users/m4-dev/Development/AUDION/apps/web/components/theme-registry.tsx` | `// Load theme from localStorage on mount` | L128 |
 | `/Users/m4-dev/Development/AUDION/apps/web/components/theme-registry.tsx` | `const savedTheme = localStorage.getItem("audion-theme-mode") as ThemeMode \| null;` | L129 |
 | `/Users/m4-dev/Development/AUDION/apps/web/components/theme-registry.tsx` | `// Update data-theme attribute and localStorage` | L140 |
 | `/Users/m4-dev/Development/AUDION/apps/web/components/theme-registry.tsx` | `localStorage.setItem("audion-theme-mode", themeMode);` | L143 |
 | `/Users/m4-dev/Development/AUDION/apps/web/components/theme-registry.tsx` | `const savedColorVar = localStorage.getItem("audion-sidebar-color");` | L154 |
 | `/Users/m4-dev/Development/AUDION/apps/web/styles/globals.css` | `body:has([data-admin-page]),` | L85 |
-| `/Users/m4-dev/Development/AUDION/apps/web/styles/globals.css` | `body:has(.udg-glass-admin-page),` | L86 |
-| `/Users/m4-dev/Development/AUDION/apps/web/styles/globals.css` | `.udg-glass-admin-page \{` | L123 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/udg-glass-admin-layout.tsx` | `import Image from "next/image";` | L5 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/udg-glass-admin-layout.tsx` | `// Get page title from pathname` | L64 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/udg-glass-admin-layout.tsx` | `const getPageTitle = () => \{` | L65 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/udg-glass-admin-layout.tsx` | `backgroundImage: themeMode === "dark"` | L128 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/udg-glass-admin-layout.tsx` | `<Image` | L211 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/udg-glass-admin-layout.tsx` | `\{/* Right: Page Title + Hamburger (only on mobile when nav closed) */\}` | L251 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/udg-glass-admin-layout.tsx` | `\{/* Page Title or Custom Header Content */\}` | L261 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/udg-glass-admin-layout.tsx` | `) : getPageTitle() ? (` | L266 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/udg-glass-admin-layout.tsx` | `\{getPageTitle()\}` | L279 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/udg-glass-admin-layout.tsx` | `\{/* Optional Page Title */\}` | L314 |
+| `/Users/m4-dev/Development/AUDION/apps/web/styles/globals.css` | `body:has(.msqdx-glass-admin-page),` | L86 |
+| `/Users/m4-dev/Development/AUDION/apps/web/styles/globals.css` | `.msqdx-glass-admin-page \{` | L123 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/msqdx-glass-admin-layout.tsx` | `import Image from "next/image";` | L5 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/msqdx-glass-admin-layout.tsx` | `// Get page title from pathname` | L64 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/msqdx-glass-admin-layout.tsx` | `const getPageTitle = () => \{` | L65 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/msqdx-glass-admin-layout.tsx` | `backgroundImage: themeMode === "dark"` | L128 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/msqdx-glass-admin-layout.tsx` | `<Image` | L211 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/msqdx-glass-admin-layout.tsx` | `\{/* Right: Page Title + Hamburger (only on mobile when nav closed) */\}` | L251 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/msqdx-glass-admin-layout.tsx` | `\{/* Page Title or Custom Header Content */\}` | L261 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/msqdx-glass-admin-layout.tsx` | `) : getPageTitle() ? (` | L266 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/msqdx-glass-admin-layout.tsx` | `\{getPageTitle()\}` | L279 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/msqdx-glass-admin-layout.tsx` | `\{/* Optional Page Title */\}` | L314 |
 | `/Users/m4-dev/Development/AUDION/apps/web/app/admin/chat/history/page.tsx` | `loadConversationsFromLocalStorage,` | L22 |
 | `/Users/m4-dev/Development/AUDION/apps/web/app/admin/chat/history/page.tsx` | `deleteConversationFromLocalStorage,` | L25 |
 | `/Users/m4-dev/Development/AUDION/apps/web/app/admin/chat/history/page.tsx` | `image_url?: string \| null;` | L34 |
@@ -7044,15 +7044,15 @@ Output mode: content
 | `/Users/m4-dev/Development/AUDION/apps/web/app/admin/chat/history/page.tsx` | `const loaded = loadConversationsFromLocalStorage(selectedPersonaId, showArchived);` | L96 |
 | `/Users/m4-dev/Development/AUDION/apps/web/app/admin/chat/history/page.tsx` | `deleteConversationFromLocalStorage(conversationId);` | L101 |
 | `/Users/m4-dev/Development/AUDION/apps/web/app/admin/chat/history/page.tsx` | `const loaded = loadConversationsFromLocalStorage(selectedPersonaId, showArchived);` | L103 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-chat-panel.tsx` | `type Message = \{` | L8 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-chat-panel.tsx` | `images?: string[]; // Base64 data URLs for images` | L13 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-chat-panel.tsx` | `messages: Message[];` | L17 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-chat-panel.tsx` | `export const UdgGlassChatPanel = (\{ messages, systemPrompt \}: UdgGlassChatPanelProps) => \{` | L21 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-chat-panel.tsx` | `const getBubbleStyles = (role: Message["role"]) => \{` | L49 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-chat-panel.tsx` | `const getLabelColor = (role: Message["role"]) => \{` | L80 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-chat-panel.tsx` | `\}, [messages]);` | L88 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-chat-panel.tsx` | `\{messages.map((message) => \{` | L93 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-chat-panel.tsx` | `const bubbleStyles = getBubbleStyles(message.role);` | L94 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-chat-panel.tsx` | `type Message = \{` | L8 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-chat-panel.tsx` | `images?: string[]; // Base64 data URLs for images` | L13 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-chat-panel.tsx` | `messages: Message[];` | L17 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-chat-panel.tsx` | `export const MsqdxGlassChatPanel = (\{ messages, systemPrompt \}: MsqdxGlassChatPanelProps) => \{` | L21 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-chat-panel.tsx` | `const getBubbleStyles = (role: Message["role"]) => \{` | L49 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-chat-panel.tsx` | `const getLabelColor = (role: Message["role"]) => \{` | L80 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-chat-panel.tsx` | `\}, [messages]);` | L88 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-chat-panel.tsx` | `\{messages.map((message) => \{` | L93 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-chat-panel.tsx` | `const bubbleStyles = getBubbleStyles(message.role);` | L94 |
 
 
 </details>
@@ -8071,8 +8071,8 @@ Bitte die Seite neu laden. Alle Persona-Infos (Goals, Frustrations, Interests, V
 
 _**User (2025-12-03 18:38Z)**_
 
-ich würde gern responsive einiges verbessern beginnend mit dem header  <Styled(div) as="header" ref={null} className="udg-glass-admin-header-bar MuiBox-root" theme="[Object]" suppressHydrationWarning={true} children="[Array]" sx="[Object]">menu</Styled(div)>
-<header class="udg-glass-admin-header-bar MuiBox-root mui-1m8m1nr">menu</header>  wo ich das udg-glass-admin-header-corner  gerne um -200px left versetzen möchte um dann das <MuiButtonBase-root as="button" className="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeMedium mui-13vg3ed-MuiIconButton-root" ownerState="[Object]" onBlur="[Function]" onClick="[Function]" onContextMenu="[Function]" onFocus="[Function]" onKeyDown="[Function]" onKeyUp="[Function]" onMouseDown="[Function]" onMouseLeave="[Function]" onMouseUp="[Function]" onDragLeave="[Function]" onTouchEnd="[Function]" onTouchMove="[Function]" onTouchStart="[Function]" ref="[Function]" tabIndex={0} type="button" disabled={null} aria-label="Toggle navigation" children="[Array]">menu</MuiButtonBase-root>
+ich würde gern responsive einiges verbessern beginnend mit dem header  <Styled(div) as="header" ref={null} className="msqdx-glass-admin-header-bar MuiBox-root" theme="[Object]" suppressHydrationWarning={true} children="[Array]" sx="[Object]">menu</Styled(div)>
+<header class="msqdx-glass-admin-header-bar MuiBox-root mui-1m8m1nr">menu</header>  wo ich das msqdx-glass-admin-header-corner  gerne um -200px left versetzen möchte um dann das <MuiButtonBase-root as="button" className="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeMedium mui-13vg3ed-MuiIconButton-root" ownerState="[Object]" onBlur="[Function]" onClick="[Function]" onContextMenu="[Function]" onFocus="[Function]" onKeyDown="[Function]" onKeyUp="[Function]" onMouseDown="[Function]" onMouseLeave="[Function]" onMouseUp="[Function]" onDragLeave="[Function]" onTouchEnd="[Function]" onTouchMove="[Function]" onTouchStart="[Function]" ref="[Function]" tabIndex={0} type="button" disabled={null} aria-label="Toggle navigation" children="[Array]">menu</MuiButtonBase-root>
 <button class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeMedium mui-1mptl1q-MuiButtonBase-root-MuiIconButton-root" tabindex="0" type="button" aria-label="Toggle navigation">menu</button> links im viewport anzuzeigen. aber nur mobile
 
 ---
@@ -8091,21 +8091,21 @@ Suche die Header-Komponente und prüfe deren Struktur:
 
 <tool-use data-tool-type="search" data-tool-name="codebase_search">
 <details>
-                <summary>Tool use: **codebase_search** • Searched codebase "Where is the udg-glass-admin-header-bar component with udg-glass-admin-header-corner defined?" • **11** results</summary>
+                <summary>Tool use: **codebase_search** • Searched codebase "Where is the msqdx-glass-admin-header-bar component with msqdx-glass-admin-header-corner defined?" • **11** results</summary>
             
 | File | Lines |
 |------|-------|
-| `apps/web/components/admin/udg-glass-admin-layout.tsx` | L42-346 |
-| `apps/web/components/admin/udg-glass-admin-layout.tsx` | L40 |
+| `apps/web/components/admin/msqdx-glass-admin-layout.tsx` | L42-346 |
+| `apps/web/components/admin/msqdx-glass-admin-layout.tsx` | L40 |
 | `apps/web/styles/admin.css` | L83 |
 | `apps/web/app/admin/layout.tsx` | L14 |
-| `apps/web/components/admin/udg-glass-admin-layout.tsx` | L40-346 |
-| `apps/web/components/admin/udg-glass-admin-layout.tsx` | L25-46 |
+| `apps/web/components/admin/msqdx-glass-admin-layout.tsx` | L40-346 |
+| `apps/web/components/admin/msqdx-glass-admin-layout.tsx` | L25-46 |
 | `apps/web/styles/globals.css` | L86-198 |
-| `apps/web/components/admin/udg-glass-admin-dashboard.tsx` | L444 |
-| `apps/web/components/admin/udg-glass-admin-nav.tsx` | L22 |
-| `apps/web/components/admin/udg-glass-admin-dashboard.tsx` | L8-444 |
-| `apps/web/components/udg-glass-persona-admin-panel.tsx` | L38 |
+| `apps/web/components/admin/msqdx-glass-admin-dashboard.tsx` | L444 |
+| `apps/web/components/admin/msqdx-glass-admin-nav.tsx` | L22 |
+| `apps/web/components/admin/msqdx-glass-admin-dashboard.tsx` | L8-444 |
+| `apps/web/components/msqdx-glass-persona-admin-panel.tsx` | L38 |
 
 </details>
 </tool-use>
@@ -8114,19 +8114,19 @@ Suche die Header-Komponente und prüfe deren Struktur:
 
 <tool-use data-tool-type="search" data-tool-name="grep">
 <details>
-<summary>Tool use: **grep** • Grep for "udg-glass-admin-header-bar|udg-glass-admin-header-corner" in "apps/web" • 6 matches</summary>
+<summary>Tool use: **grep** • Grep for "msqdx-glass-admin-header-bar|msqdx-glass-admin-header-corner" in "apps/web" • 6 matches</summary>
 
 Output mode: content
 
 
 | File | Content | Line |
 |------|------|------|
-| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/udg-glass-admin-layout.tsx` | `className="udg-glass-admin-header-bar"` | L147 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/udg-glass-admin-layout.tsx` | `className="udg-glass-admin-header-corner"` | L167 |
-| `/Users/m4-dev/Development/AUDION/apps/web/styles/admin.css` | `.udg-glass-admin-header-bar \{` | L14 |
-| `/Users/m4-dev/Development/AUDION/apps/web/styles/admin.css` | `.udg-glass-admin-header-corner \{` | L21 |
-| `/Users/m4-dev/Development/AUDION/apps/web/styles/admin.css` | `[data-theme="dark"] .udg-glass-admin-header-bar \{` | L32 |
-| `/Users/m4-dev/Development/AUDION/apps/web/styles/admin.css` | `[data-theme="dark"] .udg-glass-admin-header-corner \{` | L36 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/msqdx-glass-admin-layout.tsx` | `className="msqdx-glass-admin-header-bar"` | L147 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/msqdx-glass-admin-layout.tsx` | `className="msqdx-glass-admin-header-corner"` | L167 |
+| `/Users/m4-dev/Development/AUDION/apps/web/styles/admin.css` | `.msqdx-glass-admin-header-bar \{` | L14 |
+| `/Users/m4-dev/Development/AUDION/apps/web/styles/admin.css` | `.msqdx-glass-admin-header-corner \{` | L21 |
+| `/Users/m4-dev/Development/AUDION/apps/web/styles/admin.css` | `[data-theme="dark"] .msqdx-glass-admin-header-bar \{` | L32 |
+| `/Users/m4-dev/Development/AUDION/apps/web/styles/admin.css` | `[data-theme="dark"] .msqdx-glass-admin-header-corner \{` | L36 |
 
 
 </details>
@@ -8167,7 +8167,7 @@ Prüfe die Header-Struktur und setze die mobilen Anpassungen um:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -8175,7 +8175,7 @@ Prüfe die Header-Struktur und setze die mobilen Anpassungen um:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -8193,7 +8193,7 @@ Suche, wo der Menu-Button gerendert wird:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -8202,7 +8202,7 @@ Suche, wo der Menu-Button gerendert wird:
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -8224,7 +8224,7 @@ Lines added: 1, lines removed: 1
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -8243,7 +8243,7 @@ Menu-Button auf Mobilgeräten links positionieren:
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 16, lines removed: 13
@@ -8297,7 +8297,7 @@ Lines added: 16, lines removed: 13
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-layout.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-layout.tsx`
 
 Lint results
 
@@ -8315,7 +8315,7 @@ Lint results
 
 Zwei responsive Anpassungen vorgenommen:
 
-1. **`udg-glass-admin-header-corner`**: Verschiebung um -200px nach links nur auf mobilen Geräten (xs-Breakpoint). Auf Desktop bleibt es bei -3px, auf Mobile wird es auf -203px gesetzt.
+1. **`msqdx-glass-admin-header-corner`**: Verschiebung um -200px nach links nur auf mobilen Geräten (xs-Breakpoint). Auf Desktop bleibt es bei -3px, auf Mobile wird es auf -203px gesetzt.
 
 2. **Menu-Button**: Auf mobilen Geräten links im Viewport positioniert mit:
    - `position: absolute` (nur auf Mobile)
@@ -8346,7 +8346,7 @@ Anpassen des Menu-Icons und des Logos:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -8354,7 +8354,7 @@ Anpassen des Menu-Icons und des Logos:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -8363,7 +8363,7 @@ Anpassen des Menu-Icons und des Logos:
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 3, lines removed: 2
@@ -8406,7 +8406,7 @@ Lines added: 1, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -8433,7 +8433,7 @@ Lines added: 1, lines removed: 1
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-layout.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-layout.tsx`
 
 Lint results
 
@@ -8481,7 +8481,7 @@ Logo auf `right: 22px` setzen und das Menu-Icon vergrößern:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -8489,7 +8489,7 @@ Logo auf `right: 22px` setzen und das Menu-Icon vergrößern:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -8498,7 +8498,7 @@ Logo auf `right: 22px` setzen und das Menu-Icon vergrößern:
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -8521,7 +8521,7 @@ Lines added: 1, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -8548,7 +8548,7 @@ Lines added: 1, lines removed: 1
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-layout.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-layout.tsx`
 
 Lint results
 
@@ -8576,7 +8576,7 @@ Das Logo sollte jetzt 22px vom rechten Rand entfernt sein, und das Menu-Icon sol
 
 _**User (2025-12-03 18:38Z)**_
 
-udg-glass-admin-container braucht mobile auch left 10px border
+msqdx-glass-admin-container braucht mobile auch left 10px border
 
 ---
 
@@ -8587,23 +8587,23 @@ _**Agent (model default, mode Agent)**_
 ---
 
 
-Hinzufügen eines `10px` linken Borders für `udg-glass-admin-container` auf mobilen Geräten:
+Hinzufügen eines `10px` linken Borders für `msqdx-glass-admin-container` auf mobilen Geräten:
 
 
 ---
 
 <tool-use data-tool-type="search" data-tool-name="grep">
 <details>
-<summary>Tool use: **grep** • Grep for "udg-glass-admin-container" in "apps/web" • 3 matches</summary>
+<summary>Tool use: **grep** • Grep for "msqdx-glass-admin-container" in "apps/web" • 3 matches</summary>
 
 Output mode: content
 
 
 | File | Content | Line |
 |------|------|------|
-| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/udg-glass-admin-layout.tsx` | `className="udg-glass-admin-container"` | L115 |
-| `/Users/m4-dev/Development/AUDION/apps/web/styles/admin.css` | `.udg-glass-admin-container \{` | L3 |
-| `/Users/m4-dev/Development/AUDION/apps/web/styles/admin.css` | `[data-theme="dark"] .udg-glass-admin-container \{` | L9 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/msqdx-glass-admin-layout.tsx` | `className="msqdx-glass-admin-container"` | L115 |
+| `/Users/m4-dev/Development/AUDION/apps/web/styles/admin.css` | `.msqdx-glass-admin-container \{` | L3 |
+| `/Users/m4-dev/Development/AUDION/apps/web/styles/admin.css` | `[data-theme="dark"] .msqdx-glass-admin-container \{` | L9 |
 
 
 </details>
@@ -8613,20 +8613,20 @@ Output mode: content
 
 <tool-use data-tool-type="search" data-tool-name="codebase_search">
 <details>
-                <summary>Tool use: **codebase_search** • Searched codebase "Where is udg-glass-admin-container styled with border properties?" • **10** results</summary>
+                <summary>Tool use: **codebase_search** • Searched codebase "Where is msqdx-glass-admin-container styled with border properties?" • **10** results</summary>
             
 | File | Lines |
 |------|-------|
-| `apps/web/components/admin/udg-glass-admin-layout.tsx` | L42-350 |
+| `apps/web/components/admin/msqdx-glass-admin-layout.tsx` | L42-350 |
 | `apps/web/styles/admin.css` | L83 |
 | `apps/web/styles/globals.css` | L86-198 |
 | `apps/web/styles/globals.css` | L196-293 |
-| `apps/web/components/admin/udg-glass-admin-dashboard.tsx` | L13-444 |
-| `apps/web/components/admin/udg-glass-admin-nav.tsx` | L35-336 |
+| `apps/web/components/admin/msqdx-glass-admin-dashboard.tsx` | L13-444 |
+| `apps/web/components/admin/msqdx-glass-admin-nav.tsx` | L35-336 |
 | `apps/web/styles/admin.css` | L78-155 |
 | `apps/web/styles/globals.css` | L28-92 |
 | `apps/web/app/admin/layout.tsx` | L14 |
-| `apps/web/components/admin/udg-glass-admin-dashboard.tsx` | L8-444 |
+| `apps/web/components/admin/msqdx-glass-admin-dashboard.tsx` | L8-444 |
 
 </details>
 </tool-use>
@@ -8634,7 +8634,7 @@ Output mode: content
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -8646,14 +8646,14 @@ Output mode: content
 ---
 
 
-Hinzufügen eines 10px linken Borders für `udg-glass-admin-container` auf mobilen Geräten:
+Hinzufügen eines 10px linken Borders für `msqdx-glass-admin-container` auf mobilen Geräten:
 
 
 ---
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -8680,7 +8680,7 @@ Lines added: 1, lines removed: 1
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-layout.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-layout.tsx`
 
 Lint results
 
@@ -8696,7 +8696,7 @@ Lint results
 ---
 
 
-Border-Anpassung umgesetzt: Der `udg-glass-admin-container` hat auf mobilen Geräten (`xs`) jetzt einen `10px` linken Border. Auf Desktop (`md`) bleibt `borderLeft` bei `0`.
+Border-Anpassung umgesetzt: Der `msqdx-glass-admin-container` hat auf mobilen Geräten (`xs`) jetzt einen `10px` linken Border. Auf Desktop (`md`) bleibt `borderLeft` bei `0`.
 
 Bitte auf einem mobilen Gerät oder im Browser-DevTools testen. Der linke Border sollte auf mobilen Geräten sichtbar sein.
 
@@ -8704,9 +8704,9 @@ Bitte auf einem mobilen Gerät oder im Browser-DevTools testen. Der linke Border
 
 _**User (2025-12-03 18:38Z)**_
 
-<Styled(div) as="nav" ref={null} className="udg-glass-admin-nav MuiBox-root" theme="[Object]" children="[Array]" sx="[Object]">dashboard Dashboard person Personas groups Target Groups route Journeys view_list Queue forum Chat history Chat History settings Settings light_mode Light Mode</Styled(div)>
-<nav class="udg-glass-admin-nav MuiBox-root mui-f35s1q">dashboard Dashboard person Personas groups Target Groups route Journeys view_list Queue forum Chat history Chat History settings Settings light_mode Light Mode</nav> sollte auf 95%  breite mobile gehen und die <LinkComponent className="MuiButtonBase-root MuiListItemButton-root MuiListItemButton-gutters MuiListItemButton-root MuiListItemButton-gutters udg-glass-admin-nav-item mui-1ebmctm-MuiButtonBase-root-MuiListItemButton-root" onBlur="[Function]" onClick="[Function]" onContextMenu="[Function]" onFocus="[Function]" onKeyDown="[Function]" onKeyUp="[Function]" onMouseDown="[Function]" onMouseLeave="[Function]" onMouseUp="[Function]" onDragLeave="[Function]" onTouchEnd="[Function]" onTouchMove="[Function]" onTouchStart="[Function]" tabIndex={0} href="/admin" suppressHydrationWarning={true} children="[Array]" ref="[Function]">dashboard Dashboard</LinkComponent>
-<a class="MuiButtonBase-root MuiListItemButton-root MuiListItemButton-gutters MuiListItemButton-root MuiListItemButton-gutters udg-glass-admin-nav-item mui-1ebmctm-MuiButtonBase-root-MuiListItemButton-root" tabindex="0" href="/admin">dashboard Dashboard</a> viel größer dann sein
+<Styled(div) as="nav" ref={null} className="msqdx-glass-admin-nav MuiBox-root" theme="[Object]" children="[Array]" sx="[Object]">dashboard Dashboard person Personas groups Target Groups route Journeys view_list Queue forum Chat history Chat History settings Settings light_mode Light Mode</Styled(div)>
+<nav class="msqdx-glass-admin-nav MuiBox-root mui-f35s1q">dashboard Dashboard person Personas groups Target Groups route Journeys view_list Queue forum Chat history Chat History settings Settings light_mode Light Mode</nav> sollte auf 95%  breite mobile gehen und die <LinkComponent className="MuiButtonBase-root MuiListItemButton-root MuiListItemButton-gutters MuiListItemButton-root MuiListItemButton-gutters msqdx-glass-admin-nav-item mui-1ebmctm-MuiButtonBase-root-MuiListItemButton-root" onBlur="[Function]" onClick="[Function]" onContextMenu="[Function]" onFocus="[Function]" onKeyDown="[Function]" onKeyUp="[Function]" onMouseDown="[Function]" onMouseLeave="[Function]" onMouseUp="[Function]" onDragLeave="[Function]" onTouchEnd="[Function]" onTouchMove="[Function]" onTouchStart="[Function]" tabIndex={0} href="/admin" suppressHydrationWarning={true} children="[Array]" ref="[Function]">dashboard Dashboard</LinkComponent>
+<a class="MuiButtonBase-root MuiListItemButton-root MuiListItemButton-gutters MuiListItemButton-root MuiListItemButton-gutters msqdx-glass-admin-nav-item mui-1ebmctm-MuiButtonBase-root-MuiListItemButton-root" tabindex="0" href="/admin">dashboard Dashboard</a> viel größer dann sein
 
 ---
 
@@ -8723,7 +8723,7 @@ Anpassen der Nav-Komponente: 95% Breite auf mobilen Geräten und größere Nav-I
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-nav.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-nav.tsx</summary>
 
 </details>
 </tool-use>
@@ -8732,15 +8732,15 @@ Anpassen der Nav-Komponente: 95% Breite auf mobilen Geräten und größere Nav-I
 
 <tool-use data-tool-type="search" data-tool-name="codebase_search">
 <details>
-                <summary>Tool use: **codebase_search** • Searched codebase "Where is the udg-glass-admin-nav component styled with width and nav item styling?" • **5** results</summary>
+                <summary>Tool use: **codebase_search** • Searched codebase "Where is the msqdx-glass-admin-nav component styled with width and nav item styling?" • **5** results</summary>
             
 | File | Lines |
 |------|-------|
-| `apps/web/components/admin/udg-glass-admin-nav.tsx` | L35-336 |
-| `apps/web/components/admin/udg-glass-admin-nav.tsx` | L15-336 |
-| `apps/web/components/admin/udg-glass-admin-layout.tsx` | L42-350 |
-| `apps/web/components/admin/udg-glass-admin-nav.tsx` | L22 |
-| `apps/web/components/admin/udg-glass-admin-nav.tsx` | L9-33 |
+| `apps/web/components/admin/msqdx-glass-admin-nav.tsx` | L35-336 |
+| `apps/web/components/admin/msqdx-glass-admin-nav.tsx` | L15-336 |
+| `apps/web/components/admin/msqdx-glass-admin-layout.tsx` | L42-350 |
+| `apps/web/components/admin/msqdx-glass-admin-nav.tsx` | L22 |
+| `apps/web/components/admin/msqdx-glass-admin-nav.tsx` | L9-33 |
 
 </details>
 </tool-use>
@@ -8759,7 +8759,7 @@ Nav auf Mobile auf 95% Breite setzen und Nav-Items vergrößern:
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-nav.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-nav.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -8782,7 +8782,7 @@ Lines added: 1, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-nav.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-nav.tsx</summary>
 
 **Chunk 1**
 Lines added: 3, lines removed: 3
@@ -8812,7 +8812,7 @@ Lines added: 3, lines removed: 3
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-nav.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-nav.tsx</summary>
 
 **Chunk 1**
 Lines added: 2, lines removed: 2
@@ -8854,7 +8854,7 @@ Lines added: 1, lines removed: 1
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-nav.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-nav.tsx`
 
 Lint results
 
@@ -8876,7 +8876,7 @@ Korrigieren des `marginRight`-Problems:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-nav.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-nav.tsx</summary>
 
 </details>
 </tool-use>
@@ -8885,7 +8885,7 @@ Korrigieren des `marginRight`-Problems:
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-nav.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-nav.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -8912,7 +8912,7 @@ Lines added: 1, lines removed: 1
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-nav.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-nav.tsx`
 
 Lint results
 
@@ -8934,7 +8934,7 @@ Anpassen der anderen Nav-Buttons (Hamburger und Theme Toggle) für Konsistenz:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-nav.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-nav.tsx</summary>
 
 </details>
 </tool-use>
@@ -8943,7 +8943,7 @@ Anpassen der anderen Nav-Buttons (Hamburger und Theme Toggle) für Konsistenz:
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-nav.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-nav.tsx</summary>
 
 **Chunk 1**
 Lines added: 3, lines removed: 3
@@ -8992,7 +8992,7 @@ Lines added: 3, lines removed: 3
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-nav.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-nav.tsx</summary>
 
 **Chunk 1**
 Lines added: 3, lines removed: 3
@@ -9045,7 +9045,7 @@ Lines added: 3, lines removed: 3
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-nav.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-nav.tsx`
 
 Lint results
 
@@ -9067,7 +9067,7 @@ Anpassen der externen Nav-Items für Konsistenz:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-nav.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-nav.tsx</summary>
 
 </details>
 </tool-use>
@@ -9076,7 +9076,7 @@ Anpassen der externen Nav-Items für Konsistenz:
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-nav.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-nav.tsx</summary>
 
 **Chunk 1**
 Lines added: 3, lines removed: 3
@@ -9132,7 +9132,7 @@ Lines added: 3, lines removed: 3
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-nav.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-nav.tsx`
 
 Lint results
 
@@ -9187,7 +9187,7 @@ Setzen des initialen States von `drawerOpen` auf `false`, damit die Navigation z
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -9196,7 +9196,7 @@ Setzen des initialen States von `drawerOpen` auf `false`, damit die Navigation z
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -9204,7 +9204,7 @@ Lines added: 1, lines removed: 1
 ```diff
 @@ -48,5 +48,5 @@
   
-  export const UdgGlassAdminLayoutClient = ({ children, title, subtitle }: UdgGlassAdminLayoutClientProps) =&gt; {
+  export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: MsqdxGlassAdminLayoutClientProps) =&gt; {
 -   const [drawerOpen, setDrawerOpen] = useState(true); // Default open on desktop
 +   const [drawerOpen, setDrawerOpen] = useState(false); // Default open on desktop
     const pathname = usePathname();
@@ -9223,7 +9223,7 @@ Lines added: 1, lines removed: 1
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-layout.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-layout.tsx`
 
 Lint results
 
@@ -9262,7 +9262,7 @@ Hinzufügen eines Close-Buttons oben rechts in der Navigation:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-nav.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-nav.tsx</summary>
 
 </details>
 </tool-use>
@@ -9270,7 +9270,7 @@ Hinzufügen eines Close-Buttons oben rechts in der Navigation:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-nav.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-nav.tsx</summary>
 
 </details>
 </tool-use>
@@ -9279,7 +9279,7 @@ Hinzufügen eines Close-Buttons oben rechts in der Navigation:
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-nav.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-nav.tsx</summary>
 
 **Chunk 1**
 Lines added: 28, lines removed: undefined
@@ -9332,7 +9332,7 @@ Lines added: 28, lines removed: undefined
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-nav.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-nav.tsx`
 
 Lint results
 
@@ -9378,7 +9378,7 @@ Close-Button doppelt so groß machen:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-nav.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-nav.tsx</summary>
 
 </details>
 </tool-use>
@@ -9387,7 +9387,7 @@ Close-Button doppelt so groß machen:
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-nav.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-nav.tsx</summary>
 
 **Chunk 1**
 Lines added: 3, lines removed: 3
@@ -9431,7 +9431,7 @@ Lines added: 1, lines removed: 1
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-nav.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-nav.tsx`
 
 Lint results
 
@@ -9476,7 +9476,7 @@ Vergrößern des Menu-Icons:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -9485,7 +9485,7 @@ Vergrößern des Menu-Icons:
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 5, lines removed: 3
@@ -9524,7 +9524,7 @@ Lines added: 5, lines removed: 3
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-layout.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-layout.tsx`
 
 Lint results
 
@@ -9594,7 +9594,7 @@ https://react.dev/link/hydration-mismatch
 
         <AdminHeaderProvider>
 
-          <UdgGlassAdminLayoutClient>
+          <MsqdxGlassAdminLayoutClient>
 
             <Box sx={{display:"flex", ...}}>
 
@@ -9604,15 +9604,15 @@ https://react.dev/link/hydration-mismatch
 
                 <div className="MuiBox-roo...">
 
-                  <UdgGlassAdminNav open={false} onClose={function handleDrawerClose} currentPath="/admin/jou..." ...>
+                  <MsqdxGlassAdminNav open={false} onClose={function handleDrawerClose} currentPath="/admin/jou..." ...>
 
-                    <Box component="nav" className="udg-glass-..." sx={{position:{...}, ...}}>
+                    <Box component="nav" className="msqdx-glass-..." sx={{position:{...}, ...}}>
 
-                      <Styled(div) as="nav" ref={null} className="udg-glass-..." theme={{...}} sx={{position:{...}, ...}}>
+                      <Styled(div) as="nav" ref={null} className="msqdx-glass-..." theme={{...}} sx={{position:{...}, ...}}>
 
                         <Insertion>
 
-                        <nav className="udg-glass-...">
+                        <nav className="msqdx-glass-...">
 
                           <Box sx={{display:"flex", ...}}>
 
@@ -9636,9 +9636,9 @@ https://react.dev/link/hydration-mismatch
 
     at div (<anonymous>:null:null)
 
-    at UdgGlassAdminNav (components/admin/udg-glass-admin-nav.tsx:106:11)
+    at MsqdxGlassAdminNav (components/admin/msqdx-glass-admin-nav.tsx:106:11)
 
-    at UdgGlassAdminLayoutClient (components/admin/udg-glass-admin-layout.tsx:105:7)
+    at MsqdxGlassAdminLayoutClient (components/admin/msqdx-glass-admin-layout.tsx:105:7)
 
     at AdminLayout (app/admin/layout.tsx:10:7)
 
@@ -9681,7 +9681,7 @@ Hydration-Mismatch: `isMobile` kann zwischen Server und Client abweichen. Lösun
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-nav.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-nav.tsx</summary>
 
 </details>
 </tool-use>
@@ -9690,7 +9690,7 @@ Hydration-Mismatch: `isMobile` kann zwischen Server und Client abweichen. Lösun
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-nav.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-nav.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -9717,7 +9717,7 @@ Lines added: 1, lines removed: 1
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-nav.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-nav.tsx`
 
 Lint results
 
@@ -9742,7 +9742,7 @@ Der Close-Button erscheint erst nach dem Mount, sodass Server- und Client-Render
 _**User (2025-12-03 18:38Z)**_
 
 <JourneyEditorPage params="[Object]" searchParams="[Object]">add New Phase</JourneyEditorPage>
-<button class="udg-glass-button --ghost" type="button">add New Phase</button>  es wird keine neue phase erstellt wenn ich new phase anklicke
+<button class="msqdx-glass-button --ghost" type="button">add New Phase</button>  es wird keine neue phase erstellt wenn ich new phase anklicke
 
 ---
 
@@ -9765,10 +9765,10 @@ Prüfen, warum der "add New Phase"-Button keine neue Phase erstellt:
 | File | Lines |
 |------|-------|
 | `apps/web/app/admin/journeys/[journeyId]/page.tsx` | L94-1324 |
-| `apps/web/components/journeys/udg-glass-journey-canvas.tsx` | L6-107 |
+| `apps/web/components/journeys/msqdx-glass-journey-canvas.tsx` | L6-107 |
 | `apps/web/app/admin/chat/page.tsx` | L262-2428 |
 | `apps/web/app/admin/journeys/page.tsx` | L4-100 |
-| `apps/web/components/journeys/udg-glass-phase-card.tsx` | L63-614 |
+| `apps/web/components/journeys/msqdx-glass-phase-card.tsx` | L63-614 |
 
 </details>
 </tool-use>
@@ -9898,13 +9898,13 @@ Suchen der `handleAddPhase` Funktion:
 ---
 
 
-Prüfe, welcher Button verwendet wird. Möglicherweise der in `UdgGlassJourneyCanvas`, der noch nicht verbunden ist:
+Prüfe, welcher Button verwendet wird. Möglicherweise der in `MsqdxGlassJourneyCanvas`, der noch nicht verbunden ist:
 
 
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/journeys/udg-glass-journey-canvas.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/journeys/msqdx-glass-journey-canvas.tsx</summary>
 
 </details>
 </tool-use>
@@ -9913,7 +9913,7 @@ Prüfe, welcher Button verwendet wird. Möglicherweise der in `UdgGlassJourneyCa
 
 <tool-use data-tool-type="search" data-tool-name="grep">
 <details>
-<summary>Tool use: **grep** • Grep for "UdgGlassJourneyCanvas|udg-glass-journey-canvas" in "apps/web/app/admin/journeys/[journeyId]/page.tsx" • 0 matches</summary>
+<summary>Tool use: **grep** • Grep for "MsqdxGlassJourneyCanvas|msqdx-glass-journey-canvas" in "apps/web/app/admin/journeys/[journeyId]/page.tsx" • 0 matches</summary>
 
 Output mode: content
 
@@ -9938,7 +9938,7 @@ _No matches found_
 ---
 
 
-In `UdgGlassJourneyCanvas` ist der Button nicht verbunden. Prüfen, ob diese Komponente verwendet wird und den Button entsprechend verknüpfen:
+In `MsqdxGlassJourneyCanvas` ist der Button nicht verbunden. Prüfen, ob diese Komponente verwendet wird und den Button entsprechend verknüpfen:
 
 
 ---
@@ -9953,7 +9953,7 @@ In `UdgGlassJourneyCanvas` ist der Button nicht verbunden. Prüfen, ob diese Kom
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/journeys/udg-glass-journey-canvas.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/journeys/msqdx-glass-journey-canvas.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: undefined
@@ -9975,7 +9975,7 @@ Lines added: 1, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/journeys/udg-glass-journey-canvas.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/journeys/msqdx-glass-journey-canvas.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: undefined
@@ -9985,7 +9985,7 @@ Lines added: 1, lines removed: undefined
     onPhaseSelect,
     onPhaseReorder,
 +   onAddPhase,
-  }: UdgGlassJourneyCanvasProps) =&gt; {
+  }: MsqdxGlassJourneyCanvasProps) =&gt; {
     return (
 ```
 
@@ -9997,7 +9997,7 @@ Lines added: 1, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/journeys/udg-glass-journey-canvas.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/journeys/msqdx-glass-journey-canvas.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: undefined
@@ -10005,7 +10005,7 @@ Lines added: 1, lines removed: undefined
 ```diff
 @@ -41,4 +41,5 @@
           &lt;button
-            className="udg-glass-button --ghost"
+            className="msqdx-glass-button --ghost"
 +           type="button"
             style={{
               minWidth: "200px",
@@ -10032,7 +10032,7 @@ Lines added: 1, lines removed: 1
 
 <tool-use data-tool-type="search" data-tool-name="grep">
 <details>
-<summary>Tool use: **grep** • Grep for "UdgGlassJourneyCanvas" in "apps/web/app/admin/journeys/[journeyId]/page.tsx" • 0 matches</summary>
+<summary>Tool use: **grep** • Grep for "MsqdxGlassJourneyCanvas" in "apps/web/app/admin/journeys/[journeyId]/page.tsx" • 0 matches</summary>
 
 Output mode: content
 
@@ -10050,7 +10050,7 @@ _No matches found_
       
 Lint paths:
 
-- `apps/web/components/journeys/udg-glass-journey-canvas.tsx`
+- `apps/web/components/journeys/msqdx-glass-journey-canvas.tsx`
 
 Lint results
 
@@ -10113,14 +10113,14 @@ cd /Users/m4-dev/Development/AUDION && grep -n "phaseFormExpanded" apps/web/app/
 ---
 
 
-Der Button in `UdgGlassJourneyCanvas` ruft nur `// TODO: Add phase` auf. Die Komponente wird vermutlich in der Journey-Seite verwendet, ohne dass `onAddPhase` übergeben wird. Prüfe, ob `UdgGlassJourneyCanvas` verwendet wird:
+Der Button in `MsqdxGlassJourneyCanvas` ruft nur `// TODO: Add phase` auf. Die Komponente wird vermutlich in der Journey-Seite verwendet, ohne dass `onAddPhase` übergeben wird. Prüfe, ob `MsqdxGlassJourneyCanvas` verwendet wird:
 
 
 ---
 
 <tool-use data-tool-type="search" data-tool-name="grep">
 <details>
-<summary>Tool use: **grep** • Grep for "from.*udg-glass-journey-canvas|import.*UdgGlassJourneyCanvas" in "apps/web" • 0 matches</summary>
+<summary>Tool use: **grep** • Grep for "from.*msqdx-glass-journey-canvas|import.*MsqdxGlassJourneyCanvas" in "apps/web" • 0 matches</summary>
 
 Output mode: content
 
@@ -10134,12 +10134,12 @@ _No matches found_
 
 <tool-use data-tool-type="search" data-tool-name="codebase_search">
 <details>
-                <summary>Tool use: **codebase_search** • Searched codebase "Where is UdgGlassJourneyCanvas component imported and used in the codebase?" • **15** results</summary>
+                <summary>Tool use: **codebase_search** • Searched codebase "Where is MsqdxGlassJourneyCanvas component imported and used in the codebase?" • **15** results</summary>
             
 | File | Lines |
 |------|-------|
-| `apps/web/components/journeys/udg-glass-journey-canvas.tsx` | L12 |
-| `apps/web/components/journeys/udg-glass-journey-canvas.tsx` | L6-110 |
+| `apps/web/components/journeys/msqdx-glass-journey-canvas.tsx` | L12 |
+| `apps/web/components/journeys/msqdx-glass-journey-canvas.tsx` | L6-110 |
 | `apps/web/app/page.tsx` | L6-55 |
 | `apps/web/app/admin/page.tsx` | L131-204 |
 | `apps/web/app/admin/journeys/[journeyId]/page.tsx` | L34 |
@@ -10150,9 +10150,9 @@ _No matches found_
 | `apps/web/app/upload/page.tsx` | L22-122 |
 | `apps/web/app/chat/[conversationId]/page.tsx` | L74 |
 | `apps/web/app/admin/journeys/[journeyId]/page.tsx` | L94-1324 |
-| `apps/web/components/udg-glass-knowledge-explorer.tsx` | L17-215 |
+| `apps/web/components/msqdx-glass-knowledge-explorer.tsx` | L17-215 |
 | `apps/web/app/chat/page.tsx` | L75 |
-| `apps/web/components/journeys/udg-glass-validation-panel.tsx` | L5-194 |
+| `apps/web/components/journeys/msqdx-glass-validation-panel.tsx` | L5-194 |
 
 </details>
 </tool-use>
@@ -10426,7 +10426,7 @@ Ich habe Debug-Logging hinzugefügt. Zusammenfassung der Änderungen:
 
 1. **Null-Prüfung hinzugefügt**: Die Funktion prüft, ob `journey` geladen ist, bevor eine Phase hinzugefügt wird.
 2. **Debug-Logging hinzugefügt**: Console-Logs zeigen, ob die Funktion aufgerufen wird und welchen Zustand sie hat.
-3. **Button in `UdgGlassJourneyCanvas` verbessert**: Falls diese Komponente verwendet wird, ruft der Button jetzt `onAddPhase` auf.
+3. **Button in `MsqdxGlassJourneyCanvas` verbessert**: Falls diese Komponente verwendet wird, ruft der Button jetzt `onAddPhase` auf.
 
 Bitte testen:
 - Öffnen Sie die Browser-Konsole (F12) und klicken Sie auf "Add New Phase".
@@ -10560,7 +10560,7 @@ Lines added: 1, lines removed: 1
             
 -           {journey.phases.length === 0 ? (
 +           {journey.phases.length === 0 &amp;&amp; !phaseFormExpanded ? (
-              &lt;p className="udg-glass-empty"&gt;No phases yet. Add your first phase to get started.&lt;/p&gt;
+              &lt;p className="msqdx-glass-empty"&gt;No phases yet. Add your first phase to get started.&lt;/p&gt;
             ) : (
 ```
 
@@ -10606,7 +10606,7 @@ Bitte testen: Beim Klick auf "Add New Phase" sollte das Formular jetzt angezeigt
 
 _**User (2025-12-03 18:38Z)**_
 
-<div class="udg-glass-admin-grid">Personas 1 entries refresh Refresh Clara Convenience PUBLISHED tests · Version 1.0.0 Last updated Dec 02, 2025, 08:37 PM New Persona Project ID Name Segment Headline add Persona anlegen person Cl</div> hast d eine idee wie wir das mobile beseer lösen mit den sections?
+<div class="msqdx-glass-admin-grid">Personas 1 entries refresh Refresh Clara Convenience PUBLISHED tests · Version 1.0.0 Last updated Dec 02, 2025, 08:37 PM New Persona Project ID Name Segment Headline add Persona anlegen person Cl</div> hast d eine idee wie wir das mobile beseer lösen mit den sections?
 
 ---
 
@@ -10624,19 +10624,19 @@ Untersuche die aktuelle Struktur der Personas-Seite und der Sections:
 
 <tool-use data-tool-type="search" data-tool-name="codebase_search">
 <details>
-                <summary>Tool use: **codebase_search** • Searched codebase "Where is the Personas page with udg-glass-admin-grid and refresh button implemented?" • **11** results</summary>
+                <summary>Tool use: **codebase_search** • Searched codebase "Where is the Personas page with msqdx-glass-admin-grid and refresh button implemented?" • **11** results</summary>
             
 | File | Lines |
 |------|-------|
-| `apps/web/components/udg-glass-persona-admin-panel.tsx` | L138-1662 |
+| `apps/web/components/msqdx-glass-persona-admin-panel.tsx` | L138-1662 |
 | `apps/web/app/admin/personas/page.tsx` | L7-63 |
-| `apps/web/components/admin/udg-glass-admin-dashboard.tsx` | L13-444 |
-| `apps/web/components/udg-glass-target-group-admin-panel.tsx` | L148-875 |
+| `apps/web/components/admin/msqdx-glass-admin-dashboard.tsx` | L13-444 |
+| `apps/web/components/msqdx-glass-target-group-admin-panel.tsx` | L148-875 |
 | `apps/web/app/admin/personas/page.tsx` | L38 |
-| `apps/web/components/udg-glass-persona-list.tsx` | L7-74 |
-| `apps/web/components/udg-glass-persona-admin-panel.tsx` | L97-1662 |
-| `apps/web/components/udg-glass-persona-admin-panel.tsx` | L38 |
-| `apps/web/components/udg-glass-target-group-admin-panel.tsx` | L107-875 |
+| `apps/web/components/msqdx-glass-persona-list.tsx` | L7-74 |
+| `apps/web/components/msqdx-glass-persona-admin-panel.tsx` | L97-1662 |
+| `apps/web/components/msqdx-glass-persona-admin-panel.tsx` | L38 |
+| `apps/web/components/msqdx-glass-target-group-admin-panel.tsx` | L107-875 |
 | `apps/web/app/admin/page.tsx` | L131-204 |
 | `apps/web/app/admin/target-groups/page.tsx` | L7-63 |
 
@@ -10647,27 +10647,27 @@ Untersuche die aktuelle Struktur der Personas-Seite und der Sections:
 
 <tool-use data-tool-type="search" data-tool-name="grep">
 <details>
-<summary>Tool use: **grep** • Grep for "udg-glass-admin-grid|Personas.*entries|refresh.*Refresh" in "apps/web" • 14 matches</summary>
+<summary>Tool use: **grep** • Grep for "msqdx-glass-admin-grid|Personas.*entries|refresh.*Refresh" in "apps/web" • 14 matches</summary>
 
 Output mode: content
 
 
 | File | Content | Line |
 |------|------|------|
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `const [listRefreshing, setListRefreshing] = useState(false);` | L151 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `<div className="udg-glass-admin-grid">` | L1263 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `<button className="udg-glass-button --ghost" onClick=\{refreshList\} disabled=\{listRefreshing\}>` | L1271 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `<MaterialSymbol icon="refresh" fontSize=\{16\} /> Refresh` | L1272 |
-| `/Users/m4-dev/Development/AUDION/apps/web/styles/globals.css` | `.udg-glass-admin-grid \{` | L169 |
-| `/Users/m4-dev/Development/AUDION/apps/web/styles/globals.css` | `.udg-glass-admin-grid > .udg-glass-panel-wrapper \{` | L179 |
-| `/Users/m4-dev/Development/AUDION/apps/web/styles/globals.css` | `.udg-glass-admin-grid:has(.udg-glass-panel-wrapper.--collapsed) \{` | L198 |
-| `/Users/m4-dev/Development/AUDION/apps/web/styles/globals.css` | `.udg-glass-admin-grid:has(.udg-glass-panel-wrapper.--expanded) \{` | L202 |
-| `/Users/m4-dev/Development/AUDION/apps/web/styles/globals.css` | `.udg-glass-admin-grid \{` | L207 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-target-group-admin-panel.tsx` | `const [listRefreshing, setListRefreshing] = useState(false);` | L167 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-target-group-admin-panel.tsx` | `<div className="udg-glass-admin-grid">` | L447 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-target-group-admin-panel.tsx` | `<MaterialSymbol icon="refresh" fontSize=\{16\} /> Refresh` | L460 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-queue-dashboard.tsx` | `<div className="udg-glass-admin-grid">` | L182 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-queue-dashboard.tsx` | `<MaterialSymbol icon="refresh" fontSize=\{18\} /> Refresh` | L189 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `const [listRefreshing, setListRefreshing] = useState(false);` | L151 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `<div className="msqdx-glass-admin-grid">` | L1263 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `<button className="msqdx-glass-button --ghost" onClick=\{refreshList\} disabled=\{listRefreshing\}>` | L1271 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `<MaterialSymbol icon="refresh" fontSize=\{16\} /> Refresh` | L1272 |
+| `/Users/m4-dev/Development/AUDION/apps/web/styles/globals.css` | `.msqdx-glass-admin-grid \{` | L169 |
+| `/Users/m4-dev/Development/AUDION/apps/web/styles/globals.css` | `.msqdx-glass-admin-grid > .msqdx-glass-panel-wrapper \{` | L179 |
+| `/Users/m4-dev/Development/AUDION/apps/web/styles/globals.css` | `.msqdx-glass-admin-grid:has(.msqdx-glass-panel-wrapper.--collapsed) \{` | L198 |
+| `/Users/m4-dev/Development/AUDION/apps/web/styles/globals.css` | `.msqdx-glass-admin-grid:has(.msqdx-glass-panel-wrapper.--expanded) \{` | L202 |
+| `/Users/m4-dev/Development/AUDION/apps/web/styles/globals.css` | `.msqdx-glass-admin-grid \{` | L207 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-target-group-admin-panel.tsx` | `const [listRefreshing, setListRefreshing] = useState(false);` | L167 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-target-group-admin-panel.tsx` | `<div className="msqdx-glass-admin-grid">` | L447 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-target-group-admin-panel.tsx` | `<MaterialSymbol icon="refresh" fontSize=\{16\} /> Refresh` | L460 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-queue-dashboard.tsx` | `<div className="msqdx-glass-admin-grid">` | L182 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-queue-dashboard.tsx` | `<MaterialSymbol icon="refresh" fontSize=\{18\} /> Refresh` | L189 |
 
 
 </details>
@@ -10713,7 +10713,7 @@ Untersuche die Struktur und das CSS:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/udg-glass-persona-admin-panel.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/msqdx-glass-persona-admin-panel.tsx</summary>
 
 </details>
 </tool-use>
@@ -10730,23 +10730,23 @@ Untersuche die Struktur und das CSS:
 
 <tool-use data-tool-type="search" data-tool-name="codebase_search">
 <details>
-                <summary>Tool use: **codebase_search** • Searched codebase "What is UdgGlassCollapsiblePanel and how does it work on mobile devices?" • **13** results</summary>
+                <summary>Tool use: **codebase_search** • Searched codebase "What is MsqdxGlassCollapsiblePanel and how does it work on mobile devices?" • **13** results</summary>
             
 | File | Lines |
 |------|-------|
-| `apps/web/components/admin/udg-glass-collapsible-panel.tsx` | L5-129 |
-| `apps/web/components/admin/udg-glass-collapsible-panel.tsx` | L7-129 |
-| `apps/web/components/admin/udg-glass-collapsible-panel.tsx` | L129 |
-| `apps/web/components/dashboard-cards/udg-glass-dashboard-card.tsx` | L15-99 |
-| `apps/web/components/admin/udg-glass-admin-nav.tsx` | L35-364 |
-| `apps/web/components/udg-glass-knowledge-explorer.tsx` | L411-519 |
-| `apps/web/components/admin/udg-glass-admin-nav.tsx` | L15-364 |
+| `apps/web/components/admin/msqdx-glass-collapsible-panel.tsx` | L5-129 |
+| `apps/web/components/admin/msqdx-glass-collapsible-panel.tsx` | L7-129 |
+| `apps/web/components/admin/msqdx-glass-collapsible-panel.tsx` | L129 |
+| `apps/web/components/dashboard-cards/msqdx-glass-dashboard-card.tsx` | L15-99 |
+| `apps/web/components/admin/msqdx-glass-admin-nav.tsx` | L35-364 |
+| `apps/web/components/msqdx-glass-knowledge-explorer.tsx` | L411-519 |
+| `apps/web/components/admin/msqdx-glass-admin-nav.tsx` | L15-364 |
 | `apps/web/components/prompt-builder/ResizablePanel.tsx` | L13-258 |
-| `apps/web/components/udg-glass-target-group-admin-panel.tsx` | L148-875 |
-| `apps/web/components/udg-glass-persona-admin-panel.tsx` | L38 |
-| `apps/web/components/udg-glass-persona-admin-panel.tsx` | L138-1662 |
-| `apps/web/components/admin/udg-glass-admin-layout.tsx` | L42-352 |
-| `apps/web/components/udg-glass-knowledge-explorer.tsx` | L17-215 |
+| `apps/web/components/msqdx-glass-target-group-admin-panel.tsx` | L148-875 |
+| `apps/web/components/msqdx-glass-persona-admin-panel.tsx` | L38 |
+| `apps/web/components/msqdx-glass-persona-admin-panel.tsx` | L138-1662 |
+| `apps/web/components/admin/msqdx-glass-admin-layout.tsx` | L42-352 |
+| `apps/web/components/msqdx-glass-knowledge-explorer.tsx` | L17-215 |
 
 </details>
 </tool-use>
@@ -10755,22 +10755,22 @@ Untersuche die Struktur und das CSS:
 
 <tool-use data-tool-type="search" data-tool-name="grep">
 <details>
-<summary>Tool use: **grep** • Grep for "UdgGlassCollapsiblePanel|udg-glass-collapsible" in "apps/web" • 9 matches</summary>
+<summary>Tool use: **grep** • Grep for "MsqdxGlassCollapsiblePanel|msqdx-glass-collapsible" in "apps/web" • 9 matches</summary>
 
 Output mode: content
 
 
 | File | Content | Line |
 |------|------|------|
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `import \{ UdgGlassCollapsiblePanel \} from "./admin/udg-glass-collapsible-panel";` | L25 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `<UdgGlassCollapsiblePanel title="Personas" defaultExpanded=\{true\}>` | L1264 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-persona-admin-panel.tsx` | `</UdgGlassCollapsiblePanel>` | L1320 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-target-group-admin-panel.tsx` | `import \{ UdgGlassCollapsiblePanel \} from "./admin/udg-glass-collapsible-panel";` | L36 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-target-group-admin-panel.tsx` | `<UdgGlassCollapsiblePanel title="Target Groups" defaultExpanded=\{true\}>` | L448 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/udg-glass-target-group-admin-panel.tsx` | `</UdgGlassCollapsiblePanel>` | L573 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/udg-glass-collapsible-panel.tsx` | `export type UdgGlassCollapsiblePanelProps = \{` | L8 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/udg-glass-collapsible-panel.tsx` | `export const UdgGlassCollapsiblePanel = (\{` | L14 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/udg-glass-collapsible-panel.tsx` | `\}: UdgGlassCollapsiblePanelProps) => \{` | L18 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `import \{ MsqdxGlassCollapsiblePanel \} from "./admin/msqdx-glass-collapsible-panel";` | L25 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `<MsqdxGlassCollapsiblePanel title="Personas" defaultExpanded=\{true\}>` | L1264 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-persona-admin-panel.tsx` | `</MsqdxGlassCollapsiblePanel>` | L1320 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-target-group-admin-panel.tsx` | `import \{ MsqdxGlassCollapsiblePanel \} from "./admin/msqdx-glass-collapsible-panel";` | L36 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-target-group-admin-panel.tsx` | `<MsqdxGlassCollapsiblePanel title="Target Groups" defaultExpanded=\{true\}>` | L448 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/msqdx-glass-target-group-admin-panel.tsx` | `</MsqdxGlassCollapsiblePanel>` | L573 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/msqdx-glass-collapsible-panel.tsx` | `export type MsqdxGlassCollapsiblePanelProps = \{` | L8 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/msqdx-glass-collapsible-panel.tsx` | `export const MsqdxGlassCollapsiblePanel = (\{` | L14 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/msqdx-glass-collapsible-panel.tsx` | `\}: MsqdxGlassCollapsiblePanelProps) => \{` | L18 |
 
 
 </details>
@@ -10789,7 +10789,7 @@ Optimieren der Mobile-Ansicht der Sections: Die Grid-Sidebar passt nicht für Mo
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-collapsible-panel.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-collapsible-panel.tsx</summary>
 
 </details>
 </tool-use>
@@ -10797,7 +10797,7 @@ Optimieren der Mobile-Ansicht der Sections: Die Grid-Sidebar passt nicht für Mo
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/udg-glass-persona-admin-panel.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/msqdx-glass-persona-admin-panel.tsx</summary>
 
 </details>
 </tool-use>
@@ -10816,7 +10816,7 @@ Optimieren des Mobile-Layouts: Sections als vertikaler Stack mit Accordion-Style
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-collapsible-panel.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-collapsible-panel.tsx</summary>
 
 **Chunk 1**
 Lines added: 2, lines removed: 2
@@ -10838,7 +10838,7 @@ Lines added: 14, lines removed: undefined
 
 ```diff
 @@ -18,4 +18,18 @@
-  }: UdgGlassCollapsiblePanelProps) =&gt; {
+  }: MsqdxGlassCollapsiblePanelProps) =&gt; {
     const [expanded, setExpanded] = useState(defaultExpanded);
 +   const [mounted, setMounted] = useState(false);
 +   const theme = useTheme();
@@ -11043,20 +11043,20 @@ Lines added: 13, lines removed: 1
 
 ```diff
 @@ -207,5 +207,17 @@
-    .udg-glass-admin-grid {
+    .msqdx-glass-admin-grid {
       grid-template-columns: 1fr;
 -   }
 +     gap: 0;
 +   }
 + 
-+   .udg-glass-admin-grid &gt; .udg-glass-panel-wrapper {
++   .msqdx-glass-admin-grid &gt; .msqdx-glass-panel-wrapper {
 +     width: 100% !important;
 +     min-width: 100% !important;
 +     max-width: 100% !important;
 +   }
 + 
-+   .udg-glass-admin-grid:has(.udg-glass-panel-wrapper.--collapsed),
-+   .udg-glass-admin-grid:has(.udg-glass-panel-wrapper.--expanded) {
++   .msqdx-glass-admin-grid:has(.msqdx-glass-panel-wrapper.--collapsed),
++   .msqdx-glass-admin-grid:has(.msqdx-glass-panel-wrapper.--expanded) {
 +     grid-template-columns: 1fr;
 +   }
   }
@@ -11075,7 +11075,7 @@ Lines added: 13, lines removed: 1
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-collapsible-panel.tsx`
+- `apps/web/components/admin/msqdx-glass-collapsible-panel.tsx`
 - `apps/web/styles/globals.css`
 
 Lint results
@@ -11127,7 +11127,7 @@ Positioniere den Accordion-Header oben, zwischen Nav-Icon und Logo. Prüfe die P
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -11135,7 +11135,7 @@ Positioniere den Accordion-Header oben, zwischen Nav-Icon und Logo. Prüfe die P
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-collapsible-panel.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-collapsible-panel.tsx</summary>
 
 </details>
 </tool-use>
@@ -11148,13 +11148,13 @@ Positioniere den Accordion-Header oben, zwischen Nav-Icon und Logo. Prüfe die P
             
 | File | Lines |
 |------|-------|
-| `apps/web/components/admin/udg-glass-admin-layout.tsx` | L42-352 |
-| `apps/web/components/admin/udg-glass-admin-nav.tsx` | L35-364 |
-| `apps/web/components/admin/udg-glass-admin-layout.tsx` | L40 |
-| `apps/web/components/admin/udg-glass-admin-nav.tsx` | L15-364 |
-| `apps/web/components/admin/udg-glass-admin-layout.tsx` | L40-352 |
-| `apps/web/components/admin/udg-glass-admin-nav.tsx` | L22 |
-| `apps/web/components/admin/udg-glass-collapsible-panel.tsx` | L11-187 |
+| `apps/web/components/admin/msqdx-glass-admin-layout.tsx` | L42-352 |
+| `apps/web/components/admin/msqdx-glass-admin-nav.tsx` | L35-364 |
+| `apps/web/components/admin/msqdx-glass-admin-layout.tsx` | L40 |
+| `apps/web/components/admin/msqdx-glass-admin-nav.tsx` | L15-364 |
+| `apps/web/components/admin/msqdx-glass-admin-layout.tsx` | L40-352 |
+| `apps/web/components/admin/msqdx-glass-admin-nav.tsx` | L22 |
+| `apps/web/components/admin/msqdx-glass-collapsible-panel.tsx` | L11-187 |
 
 </details>
 </tool-use>
@@ -11172,7 +11172,7 @@ Positioniere den Accordion-Header oben zwischen Nav-Icon und Logo. Anpassen der 
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -11181,7 +11181,7 @@ Positioniere den Accordion-Header oben zwischen Nav-Icon und Logo. Anpassen der 
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-collapsible-panel.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-collapsible-panel.tsx</summary>
 
 **Chunk 1**
 Lines added: 8, lines removed: 2
@@ -11263,7 +11263,7 @@ Lines added: 2, lines removed: 2
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-collapsible-panel.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-collapsible-panel.tsx</summary>
 
 </details>
 </tool-use>
@@ -11280,7 +11280,7 @@ Model supplied an ambiguous edit
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-collapsible-panel.tsx`
+- `apps/web/components/admin/msqdx-glass-collapsible-panel.tsx`
 
 Lint results
 
@@ -11302,7 +11302,7 @@ Lese die Datei erneut, um den aktuellen Zustand zu prüfen:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-collapsible-panel.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-collapsible-panel.tsx</summary>
 
 </details>
 </tool-use>
@@ -11310,7 +11310,7 @@ Lese die Datei erneut, um den aktuellen Zustand zu prüfen:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-collapsible-panel.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-collapsible-panel.tsx</summary>
 
 </details>
 </tool-use>
@@ -11329,7 +11329,7 @@ Hinzufügen des margin-top für den Panel Content, damit er nicht unter dem fixe
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-collapsible-panel.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-collapsible-panel.tsx</summary>
 
 **Chunk 1**
 Lines added: 2, lines removed: 1
@@ -11357,7 +11357,7 @@ Lines added: 2, lines removed: 1
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-collapsible-panel.tsx`
+- `apps/web/components/admin/msqdx-glass-collapsible-panel.tsx`
 
 Lint results
 
@@ -11407,7 +11407,7 @@ Rückgängigmachen der Änderungen, die Desktop beeinträchtigen. Sicherstellen,
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-collapsible-panel.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-collapsible-panel.tsx</summary>
 
 </details>
 </tool-use>
@@ -11416,7 +11416,7 @@ Rückgängigmachen der Änderungen, die Desktop beeinträchtigen. Sicherstellen,
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-collapsible-panel.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-collapsible-panel.tsx</summary>
 
 **Chunk 1**
 Lines added: 4, lines removed: 4
@@ -11448,7 +11448,7 @@ Lines added: 4, lines removed: 4
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-collapsible-panel.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-collapsible-panel.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -11475,7 +11475,7 @@ Lines added: 1, lines removed: 1
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-collapsible-panel.tsx`
+- `apps/web/components/admin/msqdx-glass-collapsible-panel.tsx`
 
 Lint results
 
@@ -11497,7 +11497,7 @@ Sicherstellen, dass das Desktop-Layout unverändert bleibt. Der Mobile-Header is
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-collapsible-panel.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-collapsible-panel.tsx</summary>
 
 </details>
 </tool-use>
@@ -11523,7 +11523,7 @@ Sicherstellen, dass auf Desktop alles unverändert bleibt. Der Mobile-Header ist
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-collapsible-panel.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-collapsible-panel.tsx</summary>
 
 </details>
 </tool-use>
@@ -11542,7 +11542,7 @@ Desktop-Layout wiederherstellen: Sicherstellen, dass auf Desktop alles wie zuvor
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-collapsible-panel.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-collapsible-panel.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 2
@@ -11570,7 +11570,7 @@ Lines added: 1, lines removed: 2
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-collapsible-panel.tsx`
+- `apps/web/components/admin/msqdx-glass-collapsible-panel.tsx`
 
 Lint results
 
@@ -11605,8 +11605,8 @@ Bitte auf Desktop testen – das Panel sollte wieder neben der Hauptsektion ersc
 
 _**User (2025-12-03 18:38Z)**_
 
-<Styled(div) as="div" ref={null} className="udg-glass-panel-wrapper --collapsed MuiBox-root" theme="[Object]" children="[Array]" sx="[Object]">PERSONAS expand_more</Styled(div)>
-<div class="udg-glass-panel-wrapper --collapsed MuiBox-root mui-195zewp">PERSONAS expand_more</div>  mobile dürfte das eigentlich nicht sichtbar sein und das <Styled(div) as="div" ref={null} className="MuiBox-root" theme="[Object]" onClick="[Function]" children="[Array]" sx="[Object]">PERSONAS expand_more</Styled(div)>
+<Styled(div) as="div" ref={null} className="msqdx-glass-panel-wrapper --collapsed MuiBox-root" theme="[Object]" children="[Array]" sx="[Object]">PERSONAS expand_more</Styled(div)>
+<div class="msqdx-glass-panel-wrapper --collapsed MuiBox-root mui-195zewp">PERSONAS expand_more</div>  mobile dürfte das eigentlich nicht sichtbar sein und das <Styled(div) as="div" ref={null} className="MuiBox-root" theme="[Object]" onClick="[Function]" children="[Array]" sx="[Object]">PERSONAS expand_more</Styled(div)>
 <div class="MuiBox-root mui-1xq22">PERSONAS expand_more</div>  sich eher wie modal verhalten und einfach über den contant legen
 
 ---
@@ -11623,7 +11623,7 @@ Panel-Wrapper auf Mobile ausblenden und den Accordion-Header als Overlay/Modal �
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-collapsible-panel.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-collapsible-panel.tsx</summary>
 
 </details>
 </tool-use>
@@ -11632,7 +11632,7 @@ Panel-Wrapper auf Mobile ausblenden und den Accordion-Header als Overlay/Modal �
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-collapsible-panel.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-collapsible-panel.tsx</summary>
 
 **Chunk 1**
 Lines added: 96, lines removed: 14
@@ -11642,7 +11642,7 @@ Lines added: 96, lines removed: 14
   
     return (
 -     &lt;Box
--       className={clsx("udg-glass-panel-wrapper", expanded &amp;&amp; "--expanded", !expanded &amp;&amp; "--collapsed")}
+-       className={clsx("msqdx-glass-panel-wrapper", expanded &amp;&amp; "--expanded", !expanded &amp;&amp; "--collapsed")}
 -       sx={{
 -         transition: "width 0.3s ease, min-width 0.3s ease, max-width 0.3s ease",
 -         overflow: "visible",
@@ -11724,7 +11724,7 @@ Lines added: 96, lines removed: 14
 +         &gt;
 +           &lt;Box
 +             component="section"
-+             className="udg-glass-panel"
++             className="msqdx-glass-panel"
 +             sx={{
 +               width: "100%",
 +               display: "flex",
@@ -11739,7 +11739,7 @@ Lines added: 96, lines removed: 14
 + 
 +       {/* Desktop: Panel Wrapper (hidden on mobile) */}
 +       &lt;Box
-+         className={clsx("udg-glass-panel-wrapper", expanded &amp;&amp; "--expanded", !expanded &amp;&amp; "--collapsed")}
++         className={clsx("msqdx-glass-panel-wrapper", expanded &amp;&amp; "--expanded", !expanded &amp;&amp; "--collapsed")}
 +         sx={{
 +           transition: "width 0.3s ease, min-width 0.3s ease, max-width 0.3s ease",
 +           overflow: "visible",
@@ -11763,7 +11763,7 @@ Lines added: 96, lines removed: 14
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-collapsible-panel.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-collapsible-panel.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 50
@@ -11836,7 +11836,7 @@ Lines added: 1, lines removed: 50
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-collapsible-panel.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-collapsible-panel.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -11886,7 +11886,7 @@ Lines added: 1, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-collapsible-panel.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-collapsible-panel.tsx</summary>
 
 **Chunk 1**
 Lines added: 2, lines removed: 1
@@ -11914,7 +11914,7 @@ Lines added: 2, lines removed: 1
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-collapsible-panel.tsx`
+- `apps/web/components/admin/msqdx-glass-collapsible-panel.tsx`
 
 Lint results
 
@@ -11935,7 +11935,7 @@ Hinzufügen eines Overlay-Backdrops, damit es wie ein Modal wirkt:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-collapsible-panel.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-collapsible-panel.tsx</summary>
 
 </details>
 </tool-use>
@@ -11944,7 +11944,7 @@ Hinzufügen eines Overlay-Backdrops, damit es wie ein Modal wirkt:
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-collapsible-panel.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-collapsible-panel.tsx</summary>
 
 **Chunk 1**
 Lines added: 18, lines removed: undefined
@@ -11991,7 +11991,7 @@ Lines added: 18, lines removed: undefined
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-collapsible-panel.tsx`
+- `apps/web/components/admin/msqdx-glass-collapsible-panel.tsx`
 
 Lint results
 
@@ -12047,7 +12047,7 @@ Anpassen des Mobile Headers: Positionierung und Breite optimieren, damit er zwis
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-collapsible-panel.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-collapsible-panel.tsx</summary>
 
 </details>
 </tool-use>
@@ -12060,13 +12060,13 @@ Anpassen des Mobile Headers: Positionierung und Breite optimieren, damit er zwis
             
 | File | Lines |
 |------|-------|
-| `apps/web/components/admin/udg-glass-admin-layout.tsx` | L42-352 |
-| `apps/web/components/admin/udg-glass-admin-nav.tsx` | L35-364 |
-| `apps/web/components/admin/udg-glass-admin-nav.tsx` | L15-364 |
-| `apps/web/components/admin/udg-glass-collapsible-panel.tsx` | L7-250 |
-| `apps/web/components/admin/udg-glass-admin-layout.tsx` | L40 |
-| `apps/web/components/admin/udg-glass-collapsible-panel.tsx` | L11-250 |
-| `apps/web/components/admin/udg-glass-admin-nav.tsx` | L22 |
+| `apps/web/components/admin/msqdx-glass-admin-layout.tsx` | L42-352 |
+| `apps/web/components/admin/msqdx-glass-admin-nav.tsx` | L35-364 |
+| `apps/web/components/admin/msqdx-glass-admin-nav.tsx` | L15-364 |
+| `apps/web/components/admin/msqdx-glass-collapsible-panel.tsx` | L7-250 |
+| `apps/web/components/admin/msqdx-glass-admin-layout.tsx` | L40 |
+| `apps/web/components/admin/msqdx-glass-collapsible-panel.tsx` | L11-250 |
+| `apps/web/components/admin/msqdx-glass-admin-nav.tsx` | L22 |
 
 </details>
 </tool-use>
@@ -12084,7 +12084,7 @@ Prüfe die genauen Positionen und Abmessungen von Hamburger-Icon und Logo:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -12102,7 +12102,7 @@ Suche die Position des Hamburger-Icons auf Mobile:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -12121,7 +12121,7 @@ Anpassen des Mobile Headers: Position, Höhe und Padding optimieren, damit er zw
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-collapsible-panel.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-collapsible-panel.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -12209,7 +12209,7 @@ Lines added: 2, lines removed: 2
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-collapsible-panel.tsx`
+- `apps/web/components/admin/msqdx-glass-collapsible-panel.tsx`
 
 Lint results
 
@@ -12231,7 +12231,7 @@ Anpassen des Modal-Overlays, damit es korrekt unter dem Header startet:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-collapsible-panel.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-collapsible-panel.tsx</summary>
 
 </details>
 </tool-use>
@@ -12240,7 +12240,7 @@ Anpassen des Modal-Overlays, damit es korrekt unter dem Header startet:
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-collapsible-panel.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-collapsible-panel.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -12280,7 +12280,7 @@ Lines added: 1, lines removed: 1
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-collapsible-panel.tsx`
+- `apps/web/components/admin/msqdx-glass-collapsible-panel.tsx`
 
 Lint results
 
@@ -12330,7 +12330,7 @@ Prüfe die Navigation, um das Off-Canvas-Verhalten zu verstehen:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-nav.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-nav.tsx</summary>
 
 </details>
 </tool-use>
@@ -12343,13 +12343,13 @@ Prüfe die Navigation, um das Off-Canvas-Verhalten zu verstehen:
             
 | File | Lines |
 |------|-------|
-| `apps/web/components/admin/udg-glass-admin-nav.tsx` | L35-364 |
-| `apps/web/components/admin/udg-glass-admin-nav.tsx` | L15-364 |
-| `apps/web/components/admin/udg-glass-admin-layout.tsx` | L42-352 |
-| `apps/web/components/admin/udg-glass-collapsible-panel.tsx` | L7-252 |
-| `apps/web/components/admin/udg-glass-collapsible-panel.tsx` | L11-252 |
-| `apps/web/components/admin/udg-glass-admin-layout.tsx` | L40-352 |
-| `apps/web/components/admin/udg-glass-admin-nav.tsx` | L22 |
+| `apps/web/components/admin/msqdx-glass-admin-nav.tsx` | L35-364 |
+| `apps/web/components/admin/msqdx-glass-admin-nav.tsx` | L15-364 |
+| `apps/web/components/admin/msqdx-glass-admin-layout.tsx` | L42-352 |
+| `apps/web/components/admin/msqdx-glass-collapsible-panel.tsx` | L7-252 |
+| `apps/web/components/admin/msqdx-glass-collapsible-panel.tsx` | L11-252 |
+| `apps/web/components/admin/msqdx-glass-admin-layout.tsx` | L40-352 |
+| `apps/web/components/admin/msqdx-glass-admin-nav.tsx` | L22 |
 
 </details>
 </tool-use>
@@ -12367,7 +12367,7 @@ Umstellen des Panels auf ein Off-Canvas-Drawer wie die Navigation. Zuerst den Ic
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -12375,7 +12375,7 @@ Umstellen des Panels auf ein Off-Canvas-Drawer wie die Navigation. Zuerst den Ic
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-collapsible-panel.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-collapsible-panel.tsx</summary>
 
 </details>
 </tool-use>
@@ -12406,7 +12406,7 @@ Umstellen des Panels auf ein Off-Canvas-Drawer wie die Navigation. Wir erstellen
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -12425,7 +12425,7 @@ Hinzufügen des Panel-Contexts und des Panel-States im Layout:
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 35, lines removed: undefined
@@ -12470,7 +12470,7 @@ Lines added: 35, lines removed: undefined
 +   );
 + };
   
-  export type UdgGlassAdminLayoutClientProps = {
+  export type MsqdxGlassAdminLayoutClientProps = {
 ```
 
 </details>
@@ -12480,7 +12480,7 @@ Lines added: 35, lines removed: undefined
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -12499,7 +12499,7 @@ Hinzufügen des Panel-State im Layout und des Icon-Buttons im Header. Dann das P
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 2, lines removed: undefined
@@ -12536,7 +12536,7 @@ Lines added: 4, lines removed: undefined
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -12555,7 +12555,7 @@ Hinzufügen des Icon-Buttons unter dem Hamburger-Button:
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 42, lines removed: 17
@@ -12634,7 +12634,7 @@ Lines added: 42, lines removed: 17
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -12652,7 +12652,7 @@ Hinzufügen des Panel-Backdrops am Ende des Layouts:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -12661,7 +12661,7 @@ Hinzufügen des Panel-Backdrops am Ende des Layouts:
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -12714,9 +12714,9 @@ Lines added: 14, lines removed: undefined
 | File | Lines |
 |------|-------|
 | `apps/web/app/admin/layout.tsx` | L14 |
-| `apps/web/components/admin/udg-glass-admin-layout.tsx` | L25-51 |
-| `apps/web/components/admin/udg-glass-admin-layout.tsx` | L40 |
-| `apps/web/components/admin/udg-glass-admin-layout.tsx` | L40-432 |
+| `apps/web/components/admin/msqdx-glass-admin-layout.tsx` | L25-51 |
+| `apps/web/components/admin/msqdx-glass-admin-layout.tsx` | L40 |
+| `apps/web/components/admin/msqdx-glass-admin-layout.tsx` | L40-432 |
 | `apps/web/app/admin/page.tsx` | L131-204 |
 | `apps/web/components/theme-registry.tsx` | L120-199 |
 | `apps/web/app/layout.tsx` | L8-42 |
@@ -12758,19 +12758,19 @@ Lines added: 6, lines removed: 4
 @@ -3,12 +3,14 @@
   import type { ReactNode } from "react";
   import "../../styles/admin.css";
-- import { UdgGlassAdminLayoutClient, AdminHeaderProvider } from "../../components/admin/udg-glass-admin-layout";
-+ import { UdgGlassAdminLayoutClient, AdminHeaderProvider, AdminPanelProvider } from "../../components/admin/udg-glass-admin-layout";
+- import { MsqdxGlassAdminLayoutClient, AdminHeaderProvider } from "../../components/admin/msqdx-glass-admin-layout";
++ import { MsqdxGlassAdminLayoutClient, AdminHeaderProvider, AdminPanelProvider } from "../../components/admin/msqdx-glass-admin-layout";
   
   export default function AdminLayout({ children }: { children: ReactNode }) {
     return (
       &lt;AdminHeaderProvider&gt;
--       &lt;UdgGlassAdminLayoutClient&gt;
+-       &lt;MsqdxGlassAdminLayoutClient&gt;
 -         {children}
--       &lt;/UdgGlassAdminLayoutClient&gt;
+-       &lt;/MsqdxGlassAdminLayoutClient&gt;
 +       &lt;AdminPanelProvider&gt;
-+         &lt;UdgGlassAdminLayoutClient&gt;
++         &lt;MsqdxGlassAdminLayoutClient&gt;
 +           {children}
-+         &lt;/UdgGlassAdminLayoutClient&gt;
++         &lt;/MsqdxGlassAdminLayoutClient&gt;
 +       &lt;/AdminPanelProvider&gt;
       &lt;/AdminHeaderProvider&gt;
     );
@@ -12784,7 +12784,7 @@ Lines added: 6, lines removed: 4
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 2, lines removed: undefined
@@ -12796,7 +12796,7 @@ Lines added: 2, lines removed: undefined
 + 
 + // Export AdminPanelProvider
   
-  export type UdgGlassAdminLayoutClientProps = {
+  export type MsqdxGlassAdminLayoutClientProps = {
 ```
 
 </details>
@@ -12816,7 +12816,7 @@ Umbauen des Panels, damit es auf Mobile als Off-Canvas-Drawer funktioniert:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-collapsible-panel.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-collapsible-panel.tsx</summary>
 
 </details>
 </tool-use>
@@ -12848,7 +12848,7 @@ Umbauen des Panels: Nutzung des Contexts und Off-Canvas-Drawer auf Mobile.
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-collapsible-panel.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-collapsible-panel.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: undefined
@@ -12857,9 +12857,9 @@ Lines added: 1, lines removed: undefined
 @@ -5,4 +5,5 @@
   import clsx from "clsx";
   import { MaterialSymbol } from "../material-symbol";
-+ import { useAdminPanel } from "./udg-glass-admin-layout";
++ import { useAdminPanel } from "./msqdx-glass-admin-layout";
   
-  export type UdgGlassCollapsiblePanelProps = {
+  export type MsqdxGlassCollapsiblePanelProps = {
 ```
 
 **Chunk 2**
@@ -12898,7 +12898,7 @@ Lines added: 4, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-collapsible-panel.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-collapsible-panel.tsx</summary>
 
 **Chunk 1**
 Lines added: 60, lines removed: 82
@@ -12914,7 +12914,7 @@ Lines added: 60, lines removed: 82
           &lt;Box
 -           onClick={handleToggle}
 +           component="aside"
-+           className="udg-glass-panel-wrapper"
++           className="msqdx-glass-panel-wrapper"
             sx={{
               position: "fixed",
 -             top: "12px", // Vertically centered in header (header is 56px, button is 32px, so ~12px from top)
@@ -13052,7 +13052,7 @@ Lines added: 60, lines removed: 82
 +           {/* Panel Content */}
             &lt;Box
               component="section"
-              className="udg-glass-panel"
+              className="msqdx-glass-panel"
               sx={{
 -               width: "100%",
 +               flex: 1,
@@ -13077,8 +13077,8 @@ Lines added: 60, lines removed: 82
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-collapsible-panel.tsx`
-- `apps/web/components/admin/udg-glass-admin-layout.tsx`
+- `apps/web/components/admin/msqdx-glass-collapsible-panel.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-layout.tsx`
 
 Lint results
 
@@ -13100,7 +13100,7 @@ Prüfen, ob alles korrekt verbunden ist. Abschließend: Todos aktualisieren:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-collapsible-panel.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-collapsible-panel.tsx</summary>
 
 </details>
 </tool-use>
@@ -13131,7 +13131,7 @@ Prüfen, ob alles korrekt verbunden ist. Abschließend: Todos aktualisieren:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -13140,14 +13140,14 @@ Prüfen, ob alles korrekt verbunden ist. Abschließend: Todos aktualisieren:
 
 <tool-use data-tool-type="search" data-tool-name="grep">
 <details>
-<summary>Tool use: **grep** • Grep for "export.*AdminPanelProvider" in "apps/web/components/admin/udg-glass-admin-layout.tsx" • 1 match</summary>
+<summary>Tool use: **grep** • Grep for "export.*AdminPanelProvider" in "apps/web/components/admin/msqdx-glass-admin-layout.tsx" • 1 match</summary>
 
 Output mode: content
 
 
 | File | Content | Line |
 |------|------|------|
-| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/udg-glass-admin-layout.tsx` | `export const AdminPanelProvider = (\{ children \}: \{ children: ReactNode \}) => \{` | L64 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/msqdx-glass-admin-layout.tsx` | `export const AdminPanelProvider = (\{ children \}: \{ children: ReactNode \}) => \{` | L64 |
 
 
 </details>
@@ -13167,7 +13167,7 @@ Entfernen des unnötigen Kommentars und Prüfen, ob alles korrekt zusammenhängt
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: undefined, lines removed: 2
@@ -13179,7 +13179,7 @@ Lines added: undefined, lines removed: 2
 - 
 - // Export AdminPanelProvider
   
-  export type UdgGlassAdminLayoutClientProps = {
+  export type MsqdxGlassAdminLayoutClientProps = {
 ```
 
 </details>
@@ -13265,7 +13265,7 @@ Anpassen des Panel-Toggle-Buttons: größerer Container mit Hintergrund in der B
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -13281,8 +13281,8 @@ Output mode: content
 
 | File | Content | Line |
 |------|------|------|
-| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/udg-glass-collapsible-panel.tsx` | `borderRight: "1px solid var(--audion-light-border-color, #0f172a)",` | L61 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/udg-glass-admin-layout.tsx` | `border: "10px solid var(--audion-light-border-color, #0f172a)",` | L165 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/msqdx-glass-collapsible-panel.tsx` | `borderRight: "1px solid var(--audion-light-border-color, #0f172a)",` | L61 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/msqdx-glass-admin-layout.tsx` | `border: "10px solid var(--audion-light-border-color, #0f172a)",` | L165 |
 
 
 </details>
@@ -13302,7 +13302,7 @@ Anpassen des Panel-Toggle-Buttons: größerer Container mit Hintergrund in der B
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 25, lines removed: 13
@@ -13365,7 +13365,7 @@ Lines added: 25, lines removed: 13
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-layout.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-layout.tsx`
 
 Lint results
 
@@ -13387,7 +13387,7 @@ Button-Container vergrößern und die Abmessungen optimieren:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -13396,7 +13396,7 @@ Button-Container vergrößern und die Abmessungen optimieren:
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 22, lines removed: 19
@@ -13466,7 +13466,7 @@ Lines added: 22, lines removed: 19
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-layout.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-layout.tsx`
 
 Lint results
 
@@ -13489,7 +13489,7 @@ Anpassen des Icon-Stylings, damit es auf dem dunklen Hintergrund gut sichtbar is
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 2
@@ -13517,7 +13517,7 @@ Lines added: 1, lines removed: 2
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-layout.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-layout.tsx`
 
 Lint results
 
@@ -13566,7 +13566,7 @@ Hintergrundfarbe des Panel-Toggle-Buttons auf `var(--color-secondary-dx-purple)`
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -13606,7 +13606,7 @@ Lines added: 1, lines removed: 1
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-layout.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-layout.tsx`
 
 Lint results
 
@@ -13658,7 +13658,7 @@ Anpassen des Panel-Toggle-Buttons an die angegebenen CSS-Eigenschaften:
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 7, lines removed: 3
@@ -13694,7 +13694,7 @@ Lines added: 7, lines removed: 3
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-layout.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-layout.tsx`
 
 Lint results
 
@@ -13757,7 +13757,7 @@ Aktualisieren der CSS-Eigenschaften des Panel-Toggle-Buttons:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -13766,7 +13766,7 @@ Aktualisieren der CSS-Eigenschaften des Panel-Toggle-Buttons:
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 4, lines removed: 5
@@ -13804,7 +13804,7 @@ Lines added: 4, lines removed: 5
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-layout.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-layout.tsx`
 
 Lint results
 
@@ -13826,7 +13826,7 @@ Entfernen des Paddings, da `min-width` und `min-height` die Größe bestimmen:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -13835,7 +13835,7 @@ Entfernen des Paddings, da `min-width` und `min-height` die Größe bestimmen:
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -13862,7 +13862,7 @@ Lines added: 1, lines removed: 1
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-layout.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-layout.tsx`
 
 Lint results
 
@@ -13919,10 +13919,10 @@ Prüfe die globalen Styles und Typography-Definitionen, um die Mobile-Typografie
 | `apps/web/styles/admin.css` | L83 |
 | `apps/web/app/layout.tsx` | L21 |
 | `apps/web/components/theme-registry.tsx` | L57-199 |
-| `apps/web/components/admin/udg-glass-admin-layout.tsx` | L77-449 |
+| `apps/web/components/admin/msqdx-glass-admin-layout.tsx` | L77-449 |
 | `apps/web/app/layout.tsx` | L8-42 |
 | `apps/web/styles/globals.css` | L196-290 |
-| `apps/web/components/admin/udg-glass-admin-dashboard.tsx` | L13-444 |
+| `apps/web/components/admin/msqdx-glass-admin-dashboard.tsx` | L13-444 |
 | `apps/web/styles/admin.css` | L78-155 |
 | `apps/web/lib/branding.ts` | L19 |
 | `apps/web/app/admin/layout.tsx` | L16 |
@@ -13978,7 +13978,7 @@ Directory: **/Users/m4-dev/Development/AUDION** (1 file)
 | `apps/web/styles/globals.css` | L86-198 |
 | `apps/web/app/layout.tsx` | L21 |
 | `apps/web/app/chat/page.tsx` | L75 |
-| `apps/web/components/admin/udg-glass-admin-nav.tsx` | L35-364 |
+| `apps/web/components/admin/msqdx-glass-admin-nav.tsx` | L35-364 |
 | `apps/web/styles/globals.css` | L28-92 |
 | `apps/web/app/chat/[conversationId]/page.tsx` | L74 |
 | `apps/web/components/material-symbol.tsx` | L47 |
@@ -14419,15 +14419,15 @@ Lines added: 134, lines removed: undefined
 +   }
 + 
 +   /* Admin-specific typography adjustments */
-+   .udg-glass-eyebrow {
++   .msqdx-glass-eyebrow {
 +     font-size: 0.75rem !important;
 +     font-weight: 600 !important;
 +     letter-spacing: 0.1em !important;
 +   }
 + 
-+   .udg-glass-admin-page h1,
-+   .udg-glass-admin-page h2,
-+   .udg-glass-admin-page h3 {
++   .msqdx-glass-admin-page h1,
++   .msqdx-glass-admin-page h2,
++   .msqdx-glass-admin-page h3 {
 +     letter-spacing: -0.01em;
 +   }
 + 
@@ -14444,24 +14444,24 @@ Lines added: 134, lines removed: undefined
 + 
 +   /* Chip and badge text */
 +   .MuiChip-label,
-+   .udg-glass-chip {
++   .msqdx-glass-chip {
 +     font-size: 0.75rem !important;
 +     font-weight: 500 !important;
 +   }
 + 
 +   /* Navigation items */
-+   .udg-glass-admin-nav-item {
++   .msqdx-glass-admin-nav-item {
 +     font-size: 0.9375rem !important;
 +     font-weight: 500 !important;
 +   }
 + 
 +   /* List items */
-+   .udg-glass-list-item strong {
++   .msqdx-glass-list-item strong {
 +     font-size: 0.8125rem !important;
 +     font-weight: 500 !important;
 +   }
 + 
-+   .udg-glass-list-item__meta {
++   .msqdx-glass-list-item__meta {
 +     font-size: 0.75rem !important;
 +   }
 + }
@@ -14513,7 +14513,7 @@ Prüfen, ob das Theme-TypeScript korrekt ist. MUI verwendet Breakpoints für res
 | `apps/web/app/layout.tsx` | L8-42 |
 | `apps/web/app/chat/page.tsx` | L75 |
 | `apps/web/app/chat/[conversationId]/page.tsx` | L74 |
-| `apps/web/components/admin/udg-glass-admin-nav.tsx` | L15-364 |
+| `apps/web/components/admin/msqdx-glass-admin-nav.tsx` | L15-364 |
 | `knowledge/persona-admin-ui-enhancement-plan.md` | L398-461 |
 | `apps/web/styles/globals.css` | L86-198 |
 | `apps/web/components/theme-registry.tsx` | L68-314 |
@@ -14633,7 +14633,7 @@ Prüfen der Logo-Positionierung und Anpassen, damit es auf Desktop links bleibt:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -14652,7 +14652,7 @@ Anpassen der Logo-Position: auf Desktop links, auf Mobile rechts.
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 3, lines removed: 3
@@ -14697,7 +14697,7 @@ Prüfen auf Lint-Fehler:
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-layout.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-layout.tsx`
 
 Lint results
 
@@ -14745,7 +14745,7 @@ Anpassen der Logo-Position (Desktop weiter links) und der Logo-Farbe im Dark The
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -14764,7 +14764,7 @@ Logo weiter links positionieren (Desktop) und im Dark Theme schwarz statt invert
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -14814,7 +14814,7 @@ Prüfe auf Lint-Fehler:
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-layout.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-layout.tsx`
 
 Lint results
 
@@ -14867,7 +14867,7 @@ Anpassen der Logo-Position auf Desktop: `left: -40px`, `right: auto`, `gap: 14px
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 2, lines removed: 2
@@ -14900,7 +14900,7 @@ Lines added: 2, lines removed: 2
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-layout.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-layout.tsx`
 
 Lint results
 
@@ -14927,7 +14927,7 @@ Keine Linter-Fehler. Änderungen sind fertig.
 
 _**User (2025-12-05 09:54Z)**_
 
-udg-glass-admin-container beim background-image müssen wir die striche weniger stark darstellen
+msqdx-glass-admin-container beim background-image müssen wir die striche weniger stark darstellen
 
 
 
@@ -14940,13 +14940,13 @@ _**Agent (model default, mode Agent)**_
 ---
 
 
-Reduzieren der Stärke der background-image-Striche in `udg-glass-admin-container`:
+Reduzieren der Stärke der background-image-Striche in `msqdx-glass-admin-container`:
 
 
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -14965,7 +14965,7 @@ Reduziere die Deckkraft des background-image, damit die Striche weniger sichtbar
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 4, lines removed: 4
@@ -15000,7 +15000,7 @@ Lines added: 4, lines removed: 4
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-layout.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-layout.tsx`
 
 Lint results
 
@@ -15045,7 +15045,7 @@ Erhöhen der Grid-Striche-Deckkraft auf `0.03` (dark) bzw. `0.03` (light), damit
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 4, lines removed: 4
@@ -15080,7 +15080,7 @@ Lines added: 4, lines removed: 4
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-layout.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-layout.tsx`
 
 Lint results
 
@@ -15104,8 +15104,8 @@ Sie sind nun etwas sichtbarer, bleiben aber dezent. Keine Linter-Fehler. Änderu
 
 _**User (2025-12-05 09:54Z)**_
 
-<Styled(div) as="header" ref={null} className="udg-glass-admin-header-bar MuiBox-root" theme="[Object]" suppressHydrationWarning={true} children="[Array]" sx="[Object]">AUDION personas</Styled(div)>
-<header class="udg-glass-admin-header-bar MuiBox-root mui-1m8m1nr">AUDION personas</header> können wir das svg für mobile duplizieren und mit anderer füllfarbe um 60px weiter nach rechts verschieben? mobile only
+<Styled(div) as="header" ref={null} className="msqdx-glass-admin-header-bar MuiBox-root" theme="[Object]" suppressHydrationWarning={true} children="[Array]" sx="[Object]">AUDION personas</Styled(div)>
+<header class="msqdx-glass-admin-header-bar MuiBox-root mui-1m8m1nr">AUDION personas</header> können wir das svg für mobile duplizieren und mit anderer füllfarbe um 60px weiter nach rechts verschieben? mobile only
 
 ---
 
@@ -15122,7 +15122,7 @@ Prüfe das aktuelle SVG-Element, dann erstellen wir ein dupliziertes SVG für Mo
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -15141,7 +15141,7 @@ Hinzufügen eines zweiten SVG-Elements für Mobile, 60px weiter rechts, mit ande
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 36, lines removed: undefined
@@ -15152,7 +15152,7 @@ Lines added: 36, lines removed: undefined
             &lt;/Box&gt;
 +           {/* Duplicated SVG for mobile - 60px further right with different fill color */}
 +           &lt;Box
-+             className="udg-glass-admin-header-corner-duplicate"
++             className="msqdx-glass-admin-header-corner-duplicate"
 +             sx={{
 +               position: "absolute",
 +               top: "-2px",
@@ -15202,7 +15202,7 @@ Lines added: 36, lines removed: undefined
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-layout.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-layout.tsx`
 
 Lint results
 
@@ -15250,7 +15250,7 @@ Anpassen der Position des Panel-Toggle-Buttons, damit er über dem neuen SVG lie
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -15268,7 +15268,7 @@ Aktuelle Position des Panel-Toggle-Buttons prüfen und anpassen:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -15286,7 +15286,7 @@ Anpassen der Button-Position, damit er über dem neuen SVG liegt:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -15305,7 +15305,7 @@ Anpassen der Button-Position, damit er über dem neuen SVG liegt, und Korrigiere
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -15347,7 +15347,7 @@ Lines added: 2, lines removed: 2
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-layout.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-layout.tsx`
 
 Lint results
 
@@ -15392,7 +15392,7 @@ Prüfe die Button-Position und stelle sicher, dass er sichtbar ist:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -15405,11 +15405,11 @@ Prüfe die Button-Position und stelle sicher, dass er sichtbar ist:
             
 | File | Lines |
 |------|-------|
-| `apps/web/components/admin/udg-glass-admin-layout.tsx` | L77-485 |
-| `apps/web/components/admin/udg-glass-collapsible-panel.tsx` | L8-237 |
-| `apps/web/components/admin/udg-glass-admin-nav.tsx` | L35-364 |
-| `apps/web/components/admin/udg-glass-collapsible-panel.tsx` | L6-237 |
-| `apps/web/components/admin/udg-glass-admin-layout.tsx` | L57-81 |
+| `apps/web/components/admin/msqdx-glass-admin-layout.tsx` | L77-485 |
+| `apps/web/components/admin/msqdx-glass-collapsible-panel.tsx` | L8-237 |
+| `apps/web/components/admin/msqdx-glass-admin-nav.tsx` | L35-364 |
+| `apps/web/components/admin/msqdx-glass-collapsible-panel.tsx` | L6-237 |
+| `apps/web/components/admin/msqdx-glass-admin-layout.tsx` | L57-81 |
 
 </details>
 </tool-use>
@@ -15427,7 +15427,7 @@ Anpassen der Button-Position: `left: -123px` ist zu weit links. Zentral über de
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -15436,7 +15436,7 @@ Anpassen der Button-Position: `left: -123px` ist zu weit links. Zentral über de
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -15481,7 +15481,7 @@ Button-Position anpassen, damit er über dem sichtbaren Bereich des SVGs liegt:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -15500,7 +15500,7 @@ Der Button ist relativ zu einem Container positioniert. Umstellen auf absolute P
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -15602,7 +15602,7 @@ Lines added: 32, lines removed: 32
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-layout.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-layout.tsx`
 
 Lint results
 
@@ -15625,7 +15625,7 @@ Button direkt im Header positioniert. Da das Icon nicht sichtbar ist, Position a
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -15652,7 +15652,7 @@ Lines added: 1, lines removed: 1
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-layout.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-layout.tsx`
 
 Lint results
 
@@ -15699,7 +15699,7 @@ Anpassen der Button-Position (top: 26px, left: 80px) und das duplizierte SVG etw
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -15718,7 +15718,7 @@ Anpassen der Button-Position und Verschieben des SVG etwas nach rechts:
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -15741,7 +15741,7 @@ Lines added: 1, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 2, lines removed: 2
@@ -15770,7 +15770,7 @@ Lines added: 2, lines removed: 2
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-layout.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-layout.tsx`
 
 Lint results
 
@@ -15815,7 +15815,7 @@ Entferne `background-color: var(--color-secondary-dx-purple);` vom Panel-Toggle-
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: undefined, lines removed: 1
@@ -15841,7 +15841,7 @@ Lines added: undefined, lines removed: 1
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-layout.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-layout.tsx`
 
 Lint results
 
@@ -15880,7 +15880,7 @@ Suchen der Navigation-Items, um die Icon-Zuordnung zu den Seiten zu ermitteln, d
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-nav.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-nav.tsx</summary>
 
 </details>
 </tool-use>
@@ -15898,7 +15898,7 @@ Icon basierend auf der aktuellen Route dynamisch setzen. Aktuellen Code prüfen 
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -15916,7 +15916,7 @@ Hinzufügen einer Funktion, die das Icon basierend auf dem Pfad zurückgibt, und
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -15925,7 +15925,7 @@ Hinzufügen einer Funktion, die das Icon basierend auf dem Pfad zurückgibt, und
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 32, lines removed: undefined
@@ -15978,7 +15978,7 @@ Lines added: 32, lines removed: undefined
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -16005,7 +16005,7 @@ Lines added: 1, lines removed: 1
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-layout.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-layout.tsx`
 
 Lint results
 
@@ -16058,7 +16058,7 @@ Anpassen der `top`-Position des Panel-Toggle-Buttons auf Mobile von `26px` auf `
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -16085,7 +16085,7 @@ Lines added: 1, lines removed: 1
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-layout.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-layout.tsx`
 
 Lint results
 
@@ -16125,7 +16125,7 @@ Setze die `top`-Position des Hamburger-Menü-Buttons auf `7px`.
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -16134,7 +16134,7 @@ Setze die `top`-Position des Hamburger-Menü-Buttons auf `7px`.
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -16161,7 +16161,7 @@ Lines added: 1, lines removed: 1
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-layout.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-layout.tsx`
 
 Lint results
 
@@ -16201,7 +16201,7 @@ Icon im Panel-Toggle-Button im Light Theme schwarz setzen und das SVG darunter u
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -16209,7 +16209,7 @@ Icon im Panel-Toggle-Button im Light Theme schwarz setzen und das SVG darunter u
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -16227,7 +16227,7 @@ Icon-Farbe im Panel-Toggle-Button anpassen (im Light Theme schwarz) und das SVG 
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -16236,7 +16236,7 @@ Icon-Farbe im Panel-Toggle-Button anpassen (im Light Theme schwarz) und das SVG 
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -16259,7 +16259,7 @@ Lines added: 1, lines removed: 1
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 2, lines removed: 2
@@ -16288,7 +16288,7 @@ Lines added: 2, lines removed: 2
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-layout.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-layout.tsx`
 
 Lint results
 
@@ -16325,16 +16325,16 @@ Prüfen, wie MaterialSymbol die Farbe setzt, da `sx` möglicherweise nicht direk
 |------|-------|
 | `apps/web/components/material-symbol.tsx` | L3-49 |
 | `apps/web/components/material-symbol.tsx` | L47 |
-| `apps/web/components/udg-glass-processing-timeline.tsx` | L30-93 |
-| `apps/web/components/dashboard-cards/udg-glass-dashboard-card.tsx` | L15-99 |
-| `apps/web/components/admin/udg-glass-admin-nav.tsx` | L35-364 |
+| `apps/web/components/msqdx-glass-processing-timeline.tsx` | L30-93 |
+| `apps/web/components/dashboard-cards/msqdx-glass-dashboard-card.tsx` | L15-99 |
+| `apps/web/components/admin/msqdx-glass-admin-nav.tsx` | L35-364 |
 | `apps/web/components/prompt-builder/VariablePalette.tsx` | L9-350 |
-| `apps/web/components/generic/udg-glass-ai-button-icon.tsx` | L5-67 |
-| `apps/web/components/udg-glass-persona-card.tsx` | L20-89 |
+| `apps/web/components/generic/msqdx-glass-ai-button-icon.tsx` | L5-67 |
+| `apps/web/components/msqdx-glass-persona-card.tsx` | L20-89 |
 | `apps/web/components/theme-registry.tsx` | L57-393 |
-| `apps/web/components/generic/udg-glass-edit-button.tsx` | L5-62 |
-| `apps/web/components/udg-glass-chat-panel.tsx` | L15-223 |
-| `apps/web/components/udg-glass-chat-panel.tsx` | L18-223 |
+| `apps/web/components/generic/msqdx-glass-edit-button.tsx` | L5-62 |
+| `apps/web/components/msqdx-glass-chat-panel.tsx` | L15-223 |
+| `apps/web/components/msqdx-glass-chat-panel.tsx` | L18-223 |
 
 </details>
 </tool-use>
@@ -16352,7 +16352,7 @@ MaterialSymbol unterstützt nur `style`, nicht `sx`. Farbe per `style` setzen un
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -16361,7 +16361,7 @@ MaterialSymbol unterstützt nur `style`, nicht `sx`. Farbe per `style` setzen un
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: 1
@@ -16383,7 +16383,7 @@ Lines added: 1, lines removed: 1
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -16396,7 +16396,7 @@ Model supplied an ambiguous edit
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 2, lines removed: 2
@@ -16425,7 +16425,7 @@ Lines added: 2, lines removed: 2
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-layout.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-layout.tsx`
 
 Lint results
 
@@ -16447,7 +16447,7 @@ MaterialSymbol unterstützt nur `style`, nicht `sx`. Farbe per `style` setzen un
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -16455,7 +16455,7 @@ MaterialSymbol unterstützt nur `style`, nicht `sx`. Farbe per `style` setzen un
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -16464,7 +16464,7 @@ MaterialSymbol unterstützt nur `style`, nicht `sx`. Farbe per `style` setzen un
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **search_replace** • Edit file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 **Chunk 1**
 Lines added: 1, lines removed: undefined
@@ -16490,7 +16490,7 @@ Lines added: 1, lines removed: undefined
       
 Lint paths:
 
-- `apps/web/components/admin/udg-glass-admin-layout.tsx`
+- `apps/web/components/admin/msqdx-glass-admin-layout.tsx`
 
 Lint results
 
@@ -16512,7 +16512,7 @@ Prüfen, ob `useTheme` bereits importiert ist, und sicherstellen, dass alles kor
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -16521,17 +16521,17 @@ Prüfen, ob `useTheme` bereits importiert ist, und sicherstellen, dass alles kor
 
 <tool-use data-tool-type="search" data-tool-name="grep">
 <details>
-<summary>Tool use: **grep** • Grep for "useTheme" in "apps/web/components/admin/udg-glass-admin-layout.tsx" • 4 matches</summary>
+<summary>Tool use: **grep** • Grep for "useTheme" in "apps/web/components/admin/msqdx-glass-admin-layout.tsx" • 4 matches</summary>
 
 Output mode: content
 
 
 | File | Content | Line |
 |------|------|------|
-| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/udg-glass-admin-layout.tsx` | `import \{ Box, Divider, IconButton, Typography, useTheme \} from "@mui/material";` | L7 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/udg-glass-admin-layout.tsx` | `import \{ useThemeMode \} from "../theme-registry";` | L9 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/udg-glass-admin-layout.tsx` | `const theme = useTheme();` | L87 |
-| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/udg-glass-admin-layout.tsx` | `const \{ themeMode, toggleTheme \} = useThemeMode();` | L88 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/msqdx-glass-admin-layout.tsx` | `import \{ Box, Divider, IconButton, Typography, useTheme \} from "@mui/material";` | L7 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/msqdx-glass-admin-layout.tsx` | `import \{ useThemeMode \} from "../theme-registry";` | L9 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/msqdx-glass-admin-layout.tsx` | `const theme = useTheme();` | L87 |
+| `/Users/m4-dev/Development/AUDION/apps/web/components/admin/msqdx-glass-admin-layout.tsx` | `const \{ themeMode, toggleTheme \} = useThemeMode();` | L88 |
 
 
 </details>
@@ -16550,7 +16550,7 @@ Zusammenfassung der Änderungen:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>
@@ -16558,7 +16558,7 @@ Zusammenfassung der Änderungen:
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/udg-glass-admin-layout.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: apps/web/components/admin/msqdx-glass-admin-layout.tsx</summary>
 
 </details>
 </tool-use>

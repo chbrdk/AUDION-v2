@@ -42,25 +42,25 @@ npm run build:analyze
 ## Verbleibende Code Splitting Möglichkeiten
 
 ### JourneyCanvas
-**Datei:** `apps/web/components/journeys/udg-glass-journey-canvas.tsx`
+**Datei:** `apps/web/components/journeys/msqdx-glass-journey-canvas.tsx`
 **Status:** ⏭️ Ausstehend
 
 **Empfehlung:**
 ```typescript
 const JourneyCanvas = dynamic(
-  () => import('@/components/journeys/udg-glass-journey-canvas'),
+  () => import('@/components/journeys/msqdx-glass-journey-canvas'),
   { ssr: false }
 );
 ```
 
 ### KnowledgeExplorer
-**Datei:** `apps/web/components/udg-glass-knowledge-explorer.tsx`
+**Datei:** `apps/web/components/msqdx-glass-knowledge-explorer.tsx`
 **Status:** ⏭️ Ausstehend
 
 **Empfehlung:**
 ```typescript
 const KnowledgeExplorer = dynamic(
-  () => import('@/components/udg-glass-knowledge-explorer'),
+  () => import('@/components/msqdx-glass-knowledge-explorer'),
   { ssr: false }
 );
 ```

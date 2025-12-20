@@ -1,5 +1,5 @@
 [project]
-name = "udg-glass-proto"
+name = "msqdx-glass-proto"
 version = "0.1.0"
 description = "Shared Pydantic schemas for Dynamic Persona Chat"
 readme = "README.md"

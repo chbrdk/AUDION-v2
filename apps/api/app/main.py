@@ -49,6 +49,9 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
         root_path=settings.root_path,  # For reverse proxy support
     )
+    @app.get("/health", include_in_schema=False)
+    async def health():
+        return {"status": "ok"}
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],

@@ -10,8 +10,8 @@ import {
   Typography,
   useTheme
 } from "@mui/material";
-import { UdgGlassUploadDropzone } from "../../components/udg-glass-upload-dropzone";
-import { UdgGlassProcessingTimeline } from "../../components/udg-glass-processing-timeline";
+import { MsqdxGlassUploadDropzone } from "../../components/msqdx-glass-upload-dropzone";
+import { MsqdxGlassProcessingTimeline } from "../../components/msqdx-glass-processing-timeline";
 import { pollUploadStatus, uploadResearch } from "../../lib/uploads";
 
 type UploadStatus =
@@ -109,11 +109,11 @@ export default function UploadPage() {
                 pipeline. Typical turnaround: 2–5 minutes.
               </Typography>
             </Stack>
-            <UdgGlassUploadDropzone onFileSelect={handleFileSelect} status={status} />
+            <MsqdxGlassUploadDropzone onFileSelect={handleFileSelect} status={status} />
             <Divider />
             <Stack spacing={2}>
               <Typography variant="subtitle1">Processing timeline</Typography>
-              <UdgGlassProcessingTimeline activeStage={activeStage} />
+              <MsqdxGlassProcessingTimeline activeStage={activeStage} />
             </Stack>
           </Stack>
         </CardContent>

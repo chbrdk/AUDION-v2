@@ -37,15 +37,15 @@ import {
   Tooltip,
   Badge
 } from "@mui/material";
-import { UdgGlassChatPanel } from "../../../components/udg-glass-chat-panel";
+import { MsqdxGlassChatPanel } from "../../../components/msqdx-glass-chat-panel";
 import { MaterialSymbol } from "../../../components/material-symbol";
 import { VariablePalette } from "../../../components/prompt-builder/VariablePalette";
 import { type VariableDefinition } from "../../../components/prompt-builder/variableDefinitions";
-import { getChatApiBase, getVoiceApiBase } from "../../api/_lib/backend";
+import { getChatApiBase, getVoiceApiBase, buildApiUrl } from "../../api/_lib/backend";
 import { useSpeechToText } from "../../../hooks/use-speech-to-text";
 import { useWhisperTranscription } from "../../../hooks/use-whisper-transcription";
 import { useAudioQueue } from "../../../hooks/use-audio-queue";
-import { useAdminHeader } from "../../../components/admin/udg-glass-admin-layout";
+import { useAdminHeader } from "../../../components/admin/msqdx-glass-admin-layout";
 import { journeysApi, type JourneyResponse } from "../../api/_lib/journeys";
 import { buildAdaptiveSystemPrompt, type ConversationLearning } from "../../../lib/adaptive-prompt";
 import { extractLearnings, mergeLearnings, saveLearningsToLocalStorage, loadLearningsFromLocalStorage } from "../../../lib/conversation-learnings";
@@ -224,11 +224,11 @@ const notify = (message: string) => {
     return;
   }
 
-  const existingToasts = document.querySelectorAll(".udg-glass-toast");
+  const existingToasts = document.querySelectorAll(".msqdx-glass-toast");
   existingToasts.forEach((toast) => toast.remove());
 
   const toast = document.createElement("div");
-  toast.className = "udg-glass-toast";
+  toast.className = "msqdx-glass-toast";
   toast.textContent = message;
 
   Object.assign(toast.style, {
@@ -458,7 +458,7 @@ function AdminChatPageContent() {
     const loadPersonas = async () => {
       try {
         setLoadingPersonas(true);
-        const response = await fetch("/api/personas");
+        const response = await fetch(buildApiUrl('/api/personas'));
         if (response.ok) {
           const data = await response.json();
           const personas = Array.isArray(data) ? data : (data.items || []);
@@ -1582,7 +1582,7 @@ function AdminChatPageContent() {
                 marginBottom: "1rem"
               }}
             >
-              <UdgGlassChatPanel messages={messages} systemPrompt={currentSystemPrompt} />
+              <MsqdxGlassChatPanel messages={messages} systemPrompt={currentSystemPrompt} />
             </Box>
 
             {/* Input Area - Fixed at Bottom */}
@@ -2155,7 +2155,7 @@ function AdminChatPageContent() {
           <DialogActions sx={{ px: 3, py: 2, gap: 0.75 }}>
             <button
               type="button"
-              className="udg-glass-button --ghost"
+              className="msqdx-glass-button --ghost"
               onClick={() => {
                 setJourneyDialogOpen(false);
                 setSelectedJourneyId(null);
@@ -2170,7 +2170,7 @@ function AdminChatPageContent() {
             {activeDialogTab === "phases" && (
               <button
                 type="button"
-                className="udg-glass-button"
+                className="msqdx-glass-button"
                 onClick={handleAddPhasesToChat}
                 disabled={selectedPhases.length === 0}
               >
@@ -2181,7 +2181,7 @@ function AdminChatPageContent() {
             {activeDialogTab === "attachments" && (
               <button
                 type="button"
-                className="udg-glass-button"
+                className="msqdx-glass-button"
                 onClick={handleAddAttachmentsToChat}
                 disabled={attachedImages.length === 0}
               >

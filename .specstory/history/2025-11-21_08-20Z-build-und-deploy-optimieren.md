@@ -2281,7 +2281,7 @@ Lines added: 222, lines removed: 1
 + 
 + #### Console.log Removal
 + 
-+ Removed all &#96;console.log&#96; statements from &#96;udg-glass-persona-admin-panel.tsx&#96; to satisfy ESLint &#96;--max-warnings=0&#96;:
++ Removed all &#96;console.log&#96; statements from &#96;msqdx-glass-persona-admin-panel.tsx&#96; to satisfy ESLint &#96;--max-warnings=0&#96;:
 + 
 + - Replaced with proper error handling
 + - Kept &#96;console.error&#96; for actual errors (allowed by ESLint config)
@@ -2309,7 +2309,7 @@ Lines added: 222, lines removed: 1
 + - &#96;apps/web/app/api/persona-admin/[personaId]/knowledge/route.ts&#96;
 + - &#96;apps/web/app/api/persona-admin/[personaId]/documents/[documentId]/route.ts&#96;
 + - &#96;apps/web/app/api/persona-admin/[personaId]/documents/[documentId]/retry/route.ts&#96;
-+ - &#96;apps/web/components/udg-glass-persona-admin-panel.tsx&#96;
++ - &#96;apps/web/components/msqdx-glass-persona-admin-panel.tsx&#96;
 + - &#96;apps/web/app/chat/[conversationId]/page.tsx&#96; (handleSend onClick fix)
 + 
 + ## Testing
@@ -3252,7 +3252,7 @@ commitLayoutEffectOnFiber @ react-dom-client.development.js:14981
 
 exports.jsxDEV @ react-jsx-dev-runtime.development.js:342
 
-UdgGlassPersonaAdminPanel @ udg-glass-persona-admin-panel.tsx:493
+MsqdxGlassPersonaAdminPanel @ msqdx-glass-persona-admin-panel.tsx:493
 
 react_stack_bottom_frame @ react-dom-client.development.js:28016
 
@@ -3392,9 +3392,9 @@ registerChunk @ dev-base.ts:1149
 
 (anonymous) @ dev-backend-dom.ts:126Understand this error
 
-udg-glass-persona-admin-panel.tsx:637  POST https://192.168.50.101/api/persona-backend/personas/a89ea3df-08ce-438b-a899-1ab5dddfc422/documents/1def71d0-a1c4-4324-a6f7-4f6bbf6958db/retry 502 (Bad Gateway)
+msqdx-glass-persona-admin-panel.tsx:637  POST https://192.168.50.101/api/persona-backend/personas/a89ea3df-08ce-438b-a899-1ab5dddfc422/documents/1def71d0-a1c4-4324-a6f7-4f6bbf6958db/retry 502 (Bad Gateway)
 
-onClick @ udg-glass-persona-admin-panel.tsx:637
+onClick @ msqdx-glass-persona-admin-panel.tsx:637
 
 executeDispatch @ react-dom-client.development.js:20541
 
@@ -3416,9 +3416,9 @@ dispatchDiscreteEvent @ react-dom-client.development.js:25639
 
 exports.jsxDEV @ react-jsx-dev-runtime.development.js:342
 
-(anonymous) @ udg-glass-persona-admin-panel.tsx:629
+(anonymous) @ msqdx-glass-persona-admin-panel.tsx:629
 
-UdgGlassPersonaAdminPanel @ udg-glass-persona-admin-panel.tsx:601
+MsqdxGlassPersonaAdminPanel @ msqdx-glass-persona-admin-panel.tsx:601
 
 react_stack_bottom_frame @ react-dom-client.development.js:28016
 
@@ -3560,7 +3560,7 @@ registerChunk @ dev-base.ts:1149
 
 installHook.js:1 Retry failed Error: Backend responded with 502
 
-    at onClick (udg-glass-persona-admin-panel.tsx:639:43)
+    at onClick (msqdx-glass-persona-admin-panel.tsx:639:43)
 
 ---
 
@@ -4645,7 +4645,7 @@ Ingestion läuft (407 Chunks, ~50% abgeschlossen). Prüfe, ob das Frontend den S
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: /Users/m4-dev/Development/persona_chat/apps/web/components/udg-glass-persona-admin-panel.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: /Users/m4-dev/Development/persona_chat/apps/web/components/msqdx-glass-persona-admin-panel.tsx</summary>
 
 </details>
 </tool-use>
@@ -4700,7 +4700,7 @@ Prüfe, wie `hasActiveIngestion` definiert ist und ob der Status korrekt erkannt
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: /Users/m4-dev/Development/persona_chat/apps/web/components/udg-glass-persona-admin-panel.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: /Users/m4-dev/Development/persona_chat/apps/web/components/msqdx-glass-persona-admin-panel.tsx</summary>
 
 </details>
 </tool-use>
@@ -4827,7 +4827,7 @@ Der Status wird korrekt aus `ProcessingJob` geladen. Prüfe, ob der Status im Fr
 ---
 
 <tool-use data-tool-type="read" data-tool-name="read_file">
-<details><summary>Tool use: **read_file** • Read file: /Users/m4-dev/Development/persona_chat/apps/web/components/udg-glass-persona-admin-panel.tsx</summary>
+<details><summary>Tool use: **read_file** • Read file: /Users/m4-dev/Development/persona_chat/apps/web/components/msqdx-glass-persona-admin-panel.tsx</summary>
 
 </details>
 </tool-use>
@@ -7706,12 +7706,12 @@ time=&quot;2025-11-21T14:11:34+01:00&quot; level=warning msg=&quot;/Users/m4-dev
 #20 [proto 2/2] RUN cd apps/api &amp;&amp; uv pip install -e /app/packages/proto
 #20 0.635 warning: The &#96;tool.uv.dev-dependencies&#96; field (used in &#96;pyproject.toml&#96;) is deprecated and will be removed in a future release; use &#96;dependency-groups.dev&#96; instead
 #20 0.877 Resolved 6 packages in 183ms
-#20 0.877    Building udg-glass-proto @ file:///app/packages/proto
-#20 1.736       Built udg-glass-proto @ file:///app/packages/proto
+#20 0.877    Building msqdx-glass-proto @ file:///app/packages/proto
+#20 1.736       Built msqdx-glass-proto @ file:///app/packages/proto
 #20 1.737 Prepared 1 package in 860ms
 #20 1.738 Installed 1 package in 0.68ms
 #20 2.002 Bytecode compiled 19419 files in 263ms
-#20 2.002  + udg-glass-proto==0.1.0 (from file:///app/packages/proto)
+#20 2.002  + msqdx-glass-proto==0.1.0 (from file:///app/packages/proto)
 #20 DONE 2.6s
 
 #21 [runtime 2/6] RUN apt-get update &amp;&amp; apt-get install -y --no-install-recommends     libgl1     libglib2.0-0     poppler-utils     tesseract-ocr     &amp;&amp; rm -rf /var/lib/apt/lists/*
@@ -8898,12 +8898,12 @@ time=&quot;2025-11-21T15:25:02+01:00&quot; level=warning msg=&quot;/Users/m4-dev
 #20 [proto 2/2] RUN cd apps/api &amp;&amp; uv pip install -e /app/packages/proto
 #20 17.84 warning: The &#96;tool.uv.dev-dependencies&#96; field (used in &#96;pyproject.toml&#96;) is deprecated and will be removed in a future release; use &#96;dependency-groups.dev&#96; instead
 #20 20.13 Resolved 6 packages in 956ms
-#20 20.13    Building udg-glass-proto @ file:///app/packages/proto
-#20 22.82       Built udg-glass-proto @ file:///app/packages/proto
+#20 20.13    Building msqdx-glass-proto @ file:///app/packages/proto
+#20 22.82       Built msqdx-glass-proto @ file:///app/packages/proto
 #20 22.82 Prepared 1 package in 2.68s
 #20 22.82 Installed 1 package in 1ms
 #20 23.32 Bytecode compiled 19419 files in 496ms
-#20 23.32  + udg-glass-proto==0.1.0 (from file:///app/packages/proto)
+#20 23.32  + msqdx-glass-proto==0.1.0 (from file:///app/packages/proto)
 #20 DONE 28.2s
 
 #21 [runtime 2/6] RUN apt-get update &amp;&amp; apt-get install -y --no-install-recommends     libgl1     libglib2.0-0     poppler-utils     tesseract-ocr     &amp;&amp; rm -rf /var/lib/apt/lists/*
@@ -10969,12 +10969,12 @@ time=&quot;2025-11-21T15:59:29+01:00&quot; level=warning msg=&quot;/Users/m4-dev
 #20 [proto 2/2] RUN cd apps/api &amp;&amp; uv pip install -e /app/packages/proto
 #20 0.583 warning: The &#96;tool.uv.dev-dependencies&#96; field (used in &#96;pyproject.toml&#96;) is deprecated and will be removed in a future release; use &#96;dependency-groups.dev&#96; instead
 #20 0.849 Resolved 6 packages in 204ms
-#20 0.849    Building udg-glass-proto @ file:///app/packages/proto
-#20 2.106       Built udg-glass-proto @ file:///app/packages/proto
+#20 0.849    Building msqdx-glass-proto @ file:///app/packages/proto
+#20 2.106       Built msqdx-glass-proto @ file:///app/packages/proto
 #20 2.107 Prepared 1 package in 1.25s
 #20 2.107 Installed 1 package in 0.52ms
 #20 2.410 Bytecode compiled 19419 files in 302ms
-#20 2.410  + udg-glass-proto==0.1.0 (from file:///app/packages/proto)
+#20 2.410  + msqdx-glass-proto==0.1.0 (from file:///app/packages/proto)
 #20 DONE 3.0s
 
 #21 [runtime 2/6] RUN apt-get update &amp;&amp; apt-get install -y --no-install-recommends     libgl1     libglib2.0-0     poppler-utils     tesseract-ocr     &amp;&amp; rm -rf /var/lib/apt/lists/*
@@ -11964,12 +11964,12 @@ time=&quot;2025-11-21T16:28:17+01:00&quot; level=warning msg=&quot;/Users/m4-dev
 #20 [proto 2/2] RUN cd apps/api &amp;&amp; uv pip install -e /app/packages/proto
 #20 1.123 warning: The &#96;tool.uv.dev-dependencies&#96; field (used in &#96;pyproject.toml&#96;) is deprecated and will be removed in a future release; use &#96;dependency-groups.dev&#96; instead
 #20 1.426 Resolved 6 packages in 191ms
-#20 1.428    Building udg-glass-proto @ file:///app/packages/proto
-#20 2.505       Built udg-glass-proto @ file:///app/packages/proto
+#20 1.428    Building msqdx-glass-proto @ file:///app/packages/proto
+#20 2.505       Built msqdx-glass-proto @ file:///app/packages/proto
 #20 2.505 Prepared 1 package in 1.07s
 #20 2.506 Installed 1 package in 0.61ms
 #20 2.825 Bytecode compiled 19419 files in 319ms
-#20 2.826  + udg-glass-proto==0.1.0 (from file:///app/packages/proto)
+#20 2.826  + msqdx-glass-proto==0.1.0 (from file:///app/packages/proto)
 #20 DONE 3.4s
 
 #21 [runtime 2/6] RUN apt-get update &amp;&amp; apt-get install -y --no-install-recommends     libgl1     libglib2.0-0     poppler-utils     tesseract-ocr     &amp;&amp; rm -rf /var/lib/apt/lists/*
@@ -12307,14 +12307,14 @@ Untersuche den 500-Fehler auf der Personas-Admin-Seite:
 | `apps/web/app/chat/[conversationId]/page.tsx` | L30-153 |
 | `apps/web/app/chat/[conversationId]/page.tsx` | L30-164 |
 | `apps/web/app/page.tsx` | L40 |
-| `apps/web/components/udg-glass-persona-card.tsx` | L15-87 |
+| `apps/web/components/msqdx-glass-persona-card.tsx` | L15-87 |
 | `apps/web/app/chat/[conversationId]/page.tsx` | L17 |
-| `apps/web/components/udg-glass-persona-card.tsx` | L13 |
-| `apps/web/components/udg-glass-chat-panel.tsx` | L17-142 |
-| `apps/web/components/udg-glass-persona-card.tsx` | L6-20 |
+| `apps/web/components/msqdx-glass-persona-card.tsx` | L13 |
+| `apps/web/components/msqdx-glass-chat-panel.tsx` | L17-142 |
+| `apps/web/components/msqdx-glass-persona-card.tsx` | L6-20 |
 | `apps/web/app/layout.tsx` | L12 |
 | `apps/web/app/chat/[conversationId]/page.tsx` | L11-24 |
-| `apps/web/components/udg-glass-chat-panel.tsx` | L15 |
+| `apps/web/components/msqdx-glass-chat-panel.tsx` | L15 |
 | `apps/web/package.json` | L34 |
 
 </details>
@@ -12389,12 +12389,12 @@ Prüfe die Personas-Admin-Seite und die API-Route:
 | `apps/web/app/chat/[conversationId]/page.tsx` | L30-1454 |
 | `apps/web/app/chat/[conversationId]/page.tsx` | L30-153 |
 | `apps/web/app/chat/[conversationId]/page.tsx` | L28-72 |
-| `apps/web/components/udg-glass-persona-card.tsx` | L15-87 |
+| `apps/web/components/msqdx-glass-persona-card.tsx` | L15-87 |
 | `apps/web/app/page.tsx` | L40 |
 | `apps/web/app/chat/[conversationId]/page.tsx` | L30-164 |
 | `apps/web/app/api/_lib/backend.ts` | L7 |
-| `apps/web/components/udg-glass-persona-card.tsx` | L13 |
-| `apps/web/components/udg-glass-chat-panel.tsx` | L17-142 |
+| `apps/web/components/msqdx-glass-persona-card.tsx` | L13 |
+| `apps/web/components/msqdx-glass-chat-panel.tsx` | L17-142 |
 | `apps/web/app/chat/[conversationId]/page.tsx` | L17 |
 | `apps/web/app/chat/[conversationId]/page.tsx` | L11-24 |
 | `apps/web/package.json` | L34 |
@@ -20130,12 +20130,12 @@ time=&quot;2025-11-21T19:48:42+01:00&quot; level=warning msg=&quot;Found orphan 
  Container persona-tempo  Started
 #20 4.932 warning: The &#96;tool.uv.dev-dependencies&#96; field (used in &#96;pyproject.toml&#96;) is deprecated and will be removed in a future release; use &#96;dependency-groups.dev&#96; instead
 #20 5.353 Resolved 6 packages in 347ms
-#20 5.354    Building udg-glass-proto @ file:///app/packages/proto
-#20 6.685       Built udg-glass-proto @ file:///app/packages/proto
+#20 5.354    Building msqdx-glass-proto @ file:///app/packages/proto
+#20 6.685       Built msqdx-glass-proto @ file:///app/packages/proto
 #20 6.686 Prepared 1 package in 1.33s
 #20 6.686 Installed 1 package in 0.57ms
 #20 7.000 Bytecode compiled 19419 files in 313ms
-#20 7.000  + udg-glass-proto==0.1.0 (from file:///app/packages/proto)
+#20 7.000  + msqdx-glass-proto==0.1.0 (from file:///app/packages/proto)
 #20 DONE 7.7s
 time=&quot;2025-11-21T19:49:06+01:00&quot; level=warning msg=&quot;/Users/m4-dev/Development/persona_chat/infrastructure/compose.yml: the attribute &#96;version&#96; is obsolete, it will be ignored, please remove it to avoid potential confusion&quot;
 NAME                     IMAGE                          COMMAND                  SERVICE          CREATED       STATUS          PORTS
@@ -21485,7 +21485,7 @@ commitLayoutEffectOnFiber @ react-dom-client.development.js:14981
 
 exports.jsxDEV @ react-jsx-dev-runtime.development.js:342
 
-UdgGlassPersonaAdminPanel @ udg-glass-persona-admin-panel.tsx:493
+MsqdxGlassPersonaAdminPanel @ msqdx-glass-persona-admin-panel.tsx:493
 
 react_stack_bottom_frame @ react-dom-client.development.js:28016
 
@@ -21625,9 +21625,9 @@ registerChunk @ dev-base.ts:1149
 
 (anonymous) @ dev-backend-dom.ts:126Understand this error
 
-udg-glass-persona-admin-panel.tsx:325  POST https://192.168.50.101/api/persona-backend/personas/a89ea3df-08ce-438b-a899-1ab5dddfc422/documents 502 (Bad Gateway)
+msqdx-glass-persona-admin-panel.tsx:325  POST https://192.168.50.101/api/persona-backend/personas/a89ea3df-08ce-438b-a899-1ab5dddfc422/documents 502 (Bad Gateway)
 
-handleDocumentInputChange @ udg-glass-persona-admin-panel.tsx:325
+handleDocumentInputChange @ msqdx-glass-persona-admin-panel.tsx:325
 
 executeDispatch @ react-dom-client.development.js:20541
 
@@ -21649,7 +21649,7 @@ dispatchDiscreteEvent @ react-dom-client.development.js:25639
 
 exports.jsxDEV @ react-jsx-dev-runtime.development.js:342
 
-UdgGlassPersonaAdminPanel @ udg-glass-persona-admin-panel.tsx:487
+MsqdxGlassPersonaAdminPanel @ msqdx-glass-persona-admin-panel.tsx:487
 
 react_stack_bottom_frame @ react-dom-client.development.js:28016
 
@@ -21791,7 +21791,7 @@ registerChunk @ dev-base.ts:1149
 
 installHook.js:1 Document upload failed Error: Backend responded with 502
 
-    at handleDocumentInputChange (udg-glass-persona-admin-panel.tsx:330:15)
+    at handleDocumentInputChange (msqdx-glass-persona-admin-panel.tsx:330:15)
 
 ---
 
@@ -23470,12 +23470,12 @@ time=&quot;2025-11-21T20:37:29+01:00&quot; level=warning msg=&quot;/Users/m4-dev
 #20 [proto 2/2] RUN cd apps/api &amp;&amp; uv pip install -e /app/packages/proto
 #20 1.789 warning: The &#96;tool.uv.dev-dependencies&#96; field (used in &#96;pyproject.toml&#96;) is deprecated and will be removed in a future release; use &#96;dependency-groups.dev&#96; instead
 #20 2.114 Resolved 6 packages in 259ms
-#20 2.116    Building udg-glass-proto @ file:///app/packages/proto
-#20 3.216       Built udg-glass-proto @ file:///app/packages/proto
+#20 2.116    Building msqdx-glass-proto @ file:///app/packages/proto
+#20 3.216       Built msqdx-glass-proto @ file:///app/packages/proto
 #20 3.217 Prepared 1 package in 1.10s
 #20 3.218 Installed 1 package in 1ms
 #20 3.529 Bytecode compiled 19419 files in 311ms
-#20 3.529  + udg-glass-proto==0.1.0 (from file:///app/packages/proto)
+#20 3.529  + msqdx-glass-proto==0.1.0 (from file:///app/packages/proto)
 #20 DONE 4.3s
 
 #21 [runtime 2/6] RUN apt-get update &amp;&amp; apt-get install -y --no-install-recommends     libgl1     libglib2.0-0     poppler-utils     tesseract-ocr     &amp;&amp; rm -rf /var/lib/apt/lists/*

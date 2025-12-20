@@ -6,11 +6,13 @@ import "../styles/dashboard-cards.css";
 import { ThemeRegistry } from "../components/theme-registry";
 import { GlobalErrorHandler } from "../components/global-error-handler";
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+
 export const metadata: Metadata = {
   title: "Audion",
   description: "Chat live with research-driven personas.",
   icons: {
-    icon: "/favicon.svg"
+    icon: `${basePath}/favicon.svg`
   }
 };
 
@@ -30,7 +32,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,200..700,0..1,-50..200"
         />
         <script
-          src="/suppress-extension-errors.js"
+          src={`${basePath}/suppress-extension-errors.js`}
           suppressHydrationWarning
         ></script>
       </head>

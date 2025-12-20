@@ -9,8 +9,8 @@ from uuid import UUID
 import structlog
 from anthropic import Anthropic
 from sqlalchemy import select
-from udg_glass_proto import PersonaProfile, PersonaPrompt
-from udg_glass_proto.personas import (
+from msqdx_glass_proto import PersonaProfile, PersonaPrompt
+from msqdx_glass_proto.personas import (
     PersonaCommunicationStyle,
     PersonaGoal,
     PersonaPainPoint,

@@ -10,7 +10,7 @@ from ..core.exceptions import InvalidFileTypeError
 from ..db import get_session
 from ..models import Document, ProcessingJob
 from ..schemas import DocumentUploadResponse
-from udg_glass_proto.uploads import UploadProcessingStatus, UploadCompletedStatus, UploadFailedStatus
+from msqdx_glass_proto.uploads import UploadProcessingStatus, UploadCompletedStatus, UploadFailedStatus
 from ..services.storage import StorageService
 from ..workers.process import enqueue_processing
 

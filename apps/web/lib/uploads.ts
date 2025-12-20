@@ -1,4 +1,4 @@
-import type { UploadJobStatus } from "@udg-glass/types";
+import type { UploadJobStatus } from "@msqdx-glass/types";
 
 const API_PREFIX = "/api/documents";
 

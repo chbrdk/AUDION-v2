@@ -1,13 +1,13 @@
 /* Dashboard Card Layout - Modern, minimalistic design with DX colors */
 
-.udg-glass-dashboard-grid {
+.msqdx-glass-dashboard-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 1.5rem;
   margin-top: 2rem;
 }
 
-.udg-glass-dashboard-card {
+.msqdx-glass-dashboard-card {
   border-radius: 24px;
   border: 1px solid var(--color-secondary-dx-grey-light-tint);
   padding: 0;
@@ -15,12 +15,12 @@
   transition: all 0.3s ease;
 }
 
-[data-theme="dark"] .udg-glass-dashboard-card {
+[data-theme="dark"] .msqdx-glass-dashboard-card {
   border-color: rgba(255, 255, 255, 0.1);
 }
 
 
-.udg-glass-dashboard-card-header {
+.msqdx-glass-dashboard-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -31,19 +31,19 @@
   transition: all 0.2s ease;
 }
 
-[data-theme="dark"] .udg-glass-dashboard-card-header {
+[data-theme="dark"] .msqdx-glass-dashboard-card-header {
   background: transparent;
 }
 
-.udg-glass-dashboard-card-header:hover {
+.msqdx-glass-dashboard-card-header:hover {
   background: transparent;
 }
 
-[data-theme="dark"] .udg-glass-dashboard-card-header:hover {
+[data-theme="dark"] .msqdx-glass-dashboard-card-header:hover {
   background: transparent;
 }
 
-.udg-glass-dashboard-card-header h3 {
+.msqdx-glass-dashboard-card-header h3 {
   margin: 0;
   font-size: 1.125rem;
   font-weight: 600;
@@ -53,7 +53,7 @@
   gap: 0.75rem;
 }
 
-.udg-glass-dashboard-card-icon {
+.msqdx-glass-dashboard-card-icon {
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 12px;
@@ -65,7 +65,7 @@
   flex-shrink: 0;
 }
 
-.udg-glass-dashboard-card-toggle {
+.msqdx-glass-dashboard-card-toggle {
   width: 2rem;
   height: 2rem;
   border-radius: 50%;
@@ -80,33 +80,33 @@
   flex-shrink: 0;
 }
 
-.udg-glass-dashboard-card-toggle:hover {
+.msqdx-glass-dashboard-card-toggle:hover {
   background: var(--color-secondary-dx-orange-tint);
   color: var(--color-secondary-dx-orange);
 }
 
-.udg-glass-dashboard-card-toggle.--expanded {
+.msqdx-glass-dashboard-card-toggle.--expanded {
   transform: rotate(180deg);
 }
 
-.udg-glass-dashboard-card-content {
+.msqdx-glass-dashboard-card-content {
   padding: 1.5rem;
   transition: all 0.3s ease;
 }
 
-.udg-glass-dashboard-card-content.--collapsed {
+.msqdx-glass-dashboard-card-content.--collapsed {
   display: none;
 }
 
-.udg-glass-dashboard-card-section {
+.msqdx-glass-dashboard-card-section {
   margin-bottom: 1.5rem;
 }
 
-.udg-glass-dashboard-card-section:last-child {
+.msqdx-glass-dashboard-card-section:last-child {
   margin-bottom: 0;
 }
 
-.udg-glass-dashboard-card-section h4 {
+.msqdx-glass-dashboard-card-section h4 {
   margin: 0 0 1rem 0;
   font-size: 0.875rem;
   font-weight: 600;
@@ -116,7 +116,7 @@
 }
 
 /* Dashboard-specific chip styles - cleaner, without badges */
-.udg-glass-chip.--dashboard {
+.msqdx-glass-chip.--dashboard {
   background: var(--color-secondary-dx-pink-tint);
   color: var(--color-text-primary);
   border: 1px solid var(--color-secondary-dx-pink);
@@ -128,47 +128,47 @@
   transition: all 0.2s ease;
 }
 
-.udg-glass-chip.--dashboard.--trait {
+.msqdx-glass-chip.--dashboard.--trait {
   background: var(--color-secondary-dx-green-tint);
   border: 1px solid var(--color-secondary-dx-green);
   color: var(--color-text-primary);
   font-size: 0.75rem;
 }
 
-.udg-glass-chip.--dashboard.--value {
+.msqdx-glass-chip.--dashboard.--value {
   background: var(--color-secondary-dx-green-tint);
   border: 1px solid var(--color-secondary-dx-green);
   color: var(--color-text-primary);
   font-size: 0.75rem;
 }
 
-.udg-glass-chip.--dashboard.--interest {
+.msqdx-glass-chip.--dashboard.--interest {
   background: var(--color-secondary-dx-yellow-tint);
   border-color: var(--color-secondary-dx-yellow);
   color: var(--color-text-primary);
 }
 
-.udg-glass-chip.--dashboard.--pain {
+.msqdx-glass-chip.--dashboard.--pain {
   background: var(--color-secondary-dx-pink-tint);
   border: 1px solid var(--color-secondary-dx-pink);
   color: var(--color-text-primary);
   font-size: 0.75rem;
 }
 
-.udg-glass-chip.--dashboard.--goal {
+.msqdx-glass-chip.--dashboard.--goal {
   background: var(--color-secondary-dx-blue-tint);
   border: 1px solid var(--color-secondary-dx-blue);
   color: var(--color-text-primary);
   font-size: 0.75rem;
 }
 
-.udg-glass-chip.--dashboard.--social {
+.msqdx-glass-chip.--dashboard.--social {
   background: var(--color-secondary-dx-orange-tint);
   border-color: var(--color-secondary-dx-orange);
   color: var(--color-secondary-dx-orange);
 }
 
-.udg-glass-chip.--dashboard.--vocab {
+.msqdx-glass-chip.--dashboard.--vocab {
   background: var(--color-secondary-dx-blue-tint);
   border: 1px solid var(--color-secondary-dx-blue);
   color: var(--color-text-primary);
@@ -176,36 +176,36 @@
 }
 
 
-[data-theme="dark"] .udg-glass-chip.--dashboard {
+[data-theme="dark"] .msqdx-glass-chip.--dashboard {
   opacity: 0.9;
 }
 
-[data-theme="dark"] .udg-glass-chip.--dashboard:hover {
+[data-theme="dark"] .msqdx-glass-chip.--dashboard:hover {
   opacity: 1;
 }
 
 /* Color-coded card borders for different sections */
-.udg-glass-dashboard-card.--bio {
+.msqdx-glass-dashboard-card.--bio {
   border-top: 3px solid var(--color-theme-accent);
 }
 
-.udg-glass-dashboard-card.--personality {
+.msqdx-glass-dashboard-card.--personality {
   border-top: 3px solid var(--color-secondary-dx-yellow);
 }
 
-.udg-glass-dashboard-card.--pain-goals {
+.msqdx-glass-dashboard-card.--pain-goals {
   border-top: 3px solid var(--color-secondary-dx-pink);
 }
 
-.udg-glass-dashboard-card.--communication {
+.msqdx-glass-dashboard-card.--communication {
   border-top: 3px solid var(--color-secondary-dx-blue);
 }
 
-.udg-glass-dashboard-card.--knowledge {
+.msqdx-glass-dashboard-card.--knowledge {
   border-top: 3px solid var(--color-secondary-dx-green);
 }
 
-.udg-glass-dashboard-card.--advanced {
+.msqdx-glass-dashboard-card.--advanced {
   border-top: 3px solid var(--color-secondary-dx-orange);
 }
 

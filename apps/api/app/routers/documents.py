@@ -6,7 +6,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, File, UploadFile
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-from udg_glass_proto import UploadJobStatus
+from msqdx_glass_proto import UploadJobStatus
 
 from ..db import get_session
 from ..models import Document, ProcessingJob

@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
-from udg_glass_proto import PersonaProfile
+from msqdx_glass_proto import PersonaProfile
 
 os.environ.setdefault("DATABASE_URL", "sqlite:///./tests_persona_service.db")
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")

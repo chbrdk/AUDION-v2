@@ -1,24 +1,24 @@
 /* Admin Layout Styles */
 
-.udg-glass-admin-container {
+.msqdx-glass-admin-container {
   /* Border and border-radius are set inline via sx prop */
   overflow-x: visible !important;
   overflow-y: visible !important;
 }
 
-[data-theme="dark"] .udg-glass-admin-container {
+[data-theme="dark"] .msqdx-glass-admin-container {
   border-color: #ffffff;
   background-color: #0f0f0f;
 }
 
-.udg-glass-admin-header-bar {
+.msqdx-glass-admin-header-bar {
   background: transparent;
   border-bottom: 0;
   position: relative;
   overflow: visible;
 }
 
-.udg-glass-admin-header-corner {
+.msqdx-glass-admin-header-corner {
   position: absolute;
   top: -2px;
   left: -3px;
@@ -29,48 +29,48 @@
   overflow: visible;
 }
 
-[data-theme="dark"] .udg-glass-admin-header-bar {
+[data-theme="dark"] .msqdx-glass-admin-header-bar {
   border-bottom-color: var(--color-theme-accent);
 }
 
-[data-theme="dark"] .udg-glass-admin-header-corner {
+[data-theme="dark"] .msqdx-glass-admin-header-corner {
   /* No background-color in dark theme */
 }
 
-.udg-glass-admin-nav {
+.msqdx-glass-admin-nav {
   background: var(--audion-light-border-color, #0f172a);
   border-right: 1px solid var(--audion-light-border-color, #0f172a);
 }
 
-[data-theme="dark"] .udg-glass-admin-nav {
+[data-theme="dark"] .msqdx-glass-admin-nav {
   background: var(--audion-light-border-color, #0f172a);
   border-right-color: var(--audion-light-border-color, #0f172a);
 }
 
-.udg-glass-admin-nav-item {
+.msqdx-glass-admin-nav-item {
   transition: all 0.2s ease;
 }
 
-.udg-glass-admin-nav-item.--active {
+.msqdx-glass-admin-nav-item.--active {
   background-color: rgba(255, 255, 255, 0.15) !important;
   color: var(--audion-sidebar-text-color, #ffffff) !important;
   border: none !important;
 }
 
-[data-theme="dark"] .udg-glass-admin-nav-item.--active {
+[data-theme="dark"] .msqdx-glass-admin-nav-item.--active {
   background-color: rgba(255, 255, 255, 0.15);
 }
 
-.udg-glass-admin-nav-item:hover {
+.msqdx-glass-admin-nav-item:hover {
   background-color: rgba(255, 255, 255, 0.1) !important;
   color: var(--audion-sidebar-text-color, #ffffff) !important;
 }
 
-[data-theme="dark"] .udg-glass-admin-nav-item:hover {
+[data-theme="dark"] .msqdx-glass-admin-nav-item:hover {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
-.udg-glass-admin-content {
+.msqdx-glass-admin-content {
   background: transparent;
   max-width: 100%;
   overflow-x: hidden;
@@ -80,54 +80,54 @@
   scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
 }
 
-[data-theme="dark"] .udg-glass-admin-content {
+[data-theme="dark"] .msqdx-glass-admin-content {
   scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
-.udg-glass-admin-content::-webkit-scrollbar {
+.msqdx-glass-admin-content::-webkit-scrollbar {
   width: 8px;
 }
 
-.udg-glass-admin-content::-webkit-scrollbar-track {
+.msqdx-glass-admin-content::-webkit-scrollbar-track {
   background: transparent;
   margin-left: 16px;
   margin-right: 8px;
 }
 
-.udg-glass-admin-content::-webkit-scrollbar-thumb {
+.msqdx-glass-admin-content::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.2);
   border-radius: 4px;
   border: 2px solid var(--color-neutral, #ffffff);
   background-clip: padding-box;
 }
 
-.udg-glass-admin-content::-webkit-scrollbar-thumb:hover {
+.msqdx-glass-admin-content::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.3);
 }
 
-[data-theme="dark"] .udg-glass-admin-content::-webkit-scrollbar-thumb {
+[data-theme="dark"] .msqdx-glass-admin-content::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.2);
   border-color: #0f0f0f;
 }
 
-[data-theme="dark"] .udg-glass-admin-content::-webkit-scrollbar-thumb:hover {
+[data-theme="dark"] .msqdx-glass-admin-content::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
 }
 
 /* Mobile adjustments */
 @media (max-width: 959px) {
-  .udg-glass-admin-nav {
+  .msqdx-glass-admin-nav {
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
   }
 
-  [data-theme="dark"] .udg-glass-admin-nav {
+  [data-theme="dark"] .msqdx-glass-admin-nav {
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
   }
 }
 
 /* Desktop adjustments */
 @media (min-width: 960px) {
-  .udg-glass-admin-nav {
+  .msqdx-glass-admin-nav {
     position: relative !important;
     transform: none !important;
     z-index: auto !important;

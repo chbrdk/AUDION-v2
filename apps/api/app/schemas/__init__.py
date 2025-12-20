@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
-from udg_glass_proto import (
+from msqdx_glass_proto import (
     ChatEvent,
     PersonaProfile,
     PersonaPrompt,
@@ -236,7 +236,7 @@ class PersonaListItem(BaseModel):
     )
     profile: PersonaProfile | None = Field(
         default=None,
-        description="Full PersonaProfile message from `udg_glass_proto` when included.",
+        description="Full PersonaProfile message from `msqdx_glass_proto` when included.",
     )
     prompt: PersonaPrompt | None = Field(
         default=None,

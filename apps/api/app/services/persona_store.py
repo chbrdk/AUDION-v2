@@ -13,7 +13,7 @@ from qdrant_client.http import models as qmodels
 from redis import Redis
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
-from udg_glass_proto import PersonaProfile, PersonaPrompt
+from msqdx_glass_proto import PersonaProfile, PersonaPrompt
 
 from ..core.config import get_settings
 from ..models import (
@@ -965,7 +965,7 @@ class PersonaService:
         if session:
             prompt_model = self._latest_prompt(session, persona.id)
             if prompt_model:
-                from udg_glass_proto.personas import PersonaPrompt
+                from msqdx_glass_proto.personas import PersonaPrompt
                 prompt_data = PersonaPrompt(
                     persona_id=str(persona.id),
                     system_prompt=prompt_model.system_prompt,

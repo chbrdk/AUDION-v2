@@ -50,7 +50,7 @@ export default function JourneysListPage() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
         <h1>Journeys</h1>
         <button
-          className="udg-glass-button"
+          className="msqdx-glass-button"
           onClick={() => {
             // TODO: Navigate to create journey
             window.location.href = "/admin/journeys/new";
@@ -70,7 +70,7 @@ export default function JourneysListPage() {
           {journeys.map((journey) => (
             <div
               key={journey.id}
-              className="udg-glass-card"
+              className="msqdx-glass-card"
               onClick={() => {
                 window.location.href = `/admin/journeys/${journey.id}`;
               }}
@@ -99,4 +99,6 @@ export default function JourneysListPage() {
     </div>
   );
 }
+
+
 

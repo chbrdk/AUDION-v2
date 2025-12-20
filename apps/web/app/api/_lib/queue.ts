@@ -3,7 +3,7 @@ import type {
   ProcessingJobDetailResponse,
   ProcessingJobListResponse,
   QueueStatsResponse,
-} from "@udg-glass/types";
+} from "@msqdx-glass/types";
 
 import { buildPersonaBackendUrl, forwardPersonaBackend } from "./persona";
 

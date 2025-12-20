@@ -10,12 +10,12 @@ export default function SettingsApiDocsPage() {
   const docsUrl = getPersonaBackendBase({ preferPublic: true }) + "/docs";
 
   return (
-    <div className="udg-glass-panel">
-      <header className="udg-glass-detail__header">
+    <div className="msqdx-glass-panel">
+      <header className="msqdx-glass-detail__header">
         <div>
-          <p className="udg-glass-eyebrow">API Reference</p>
+          <p className="msqdx-glass-eyebrow">API Reference</p>
           <h1 style={{ margin: 0 }}>API Documentation</h1>
-          <p className="udg-glass-muted" style={{ maxWidth: "640px" }}>
+          <p className="msqdx-glass-muted" style={{ maxWidth: "640px" }}>
             Interactive API documentation for the Persona Backend. Explore endpoints, test requests, and view response schemas.
           </p>
         </div>

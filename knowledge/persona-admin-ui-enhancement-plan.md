@@ -100,10 +100,10 @@ Wenn Tabs zu komplex sind, können Accordions verwendet werden:
 
 ### 2.1 Bio-Anzeige
 ```tsx
-<div className="udg-glass-bio-section">
+<div className="msqdx-glass-bio-section">
   <h3>Biografie</h3>
-  <div className="udg-glass-bio-text">
-    {detail.profile.bio || <span className="udg-glass-muted">Keine Biografie verfügbar</span>}
+  <div className="msqdx-glass-bio-text">
+    {detail.profile.bio || <span className="msqdx-glass-muted">Keine Biografie verfügbar</span>}
   </div>
 </div>
 ```
@@ -112,9 +112,9 @@ Wenn Tabs zu komplex sind, können Accordions verwendet werden:
 
 ### 2.2 Demographie-Block
 ```tsx
-<div className="udg-glass-demographics">
+<div className="msqdx-glass-demographics">
   <h3>Demographie</h3>
-  <dl className="udg-glass-meta-grid">
+  <dl className="msqdx-glass-meta-grid">
     {detail.profile.full_name && (
       <div>
         <dt>Vollständiger Name</dt>
@@ -141,13 +141,13 @@ Wenn Tabs zu komplex sind, können Accordions verwendet werden:
 
 ### 2.3 Interessen & Werte
 ```tsx
-<div className="udg-glass-interests-values">
+<div className="msqdx-glass-interests-values">
   {detail.profile.interests?.length > 0 && (
     <div>
       <h3>Interessen</h3>
-      <div className="udg-glass-chip-list">
+      <div className="msqdx-glass-chip-list">
         {detail.profile.interests.map((interest, idx) => (
-          <span key={idx} className="udg-glass-chip">
+          <span key={idx} className="msqdx-glass-chip">
             {interest}
           </span>
         ))}
@@ -157,9 +157,9 @@ Wenn Tabs zu komplex sind, können Accordions verwendet werden:
   {detail.profile.values?.length > 0 && (
     <div>
       <h3>Werte</h3>
-      <div className="udg-glass-chip-list">
+      <div className="msqdx-glass-chip-list">
         {detail.profile.values.map((value, idx) => (
-          <span key={idx} className="udg-glass-chip --value">
+          <span key={idx} className="msqdx-glass-chip --value">
             {value}
           </span>
         ))}
@@ -173,21 +173,21 @@ Wenn Tabs zu komplex sind, können Accordions verwendet werden:
 
 ### 2.4 Traits-Visualisierung
 ```tsx
-<div className="udg-glass-traits">
+<div className="msqdx-glass-traits">
   <h3>Persönlichkeit (Traits)</h3>
   {Object.keys(detail.profile.traits || {}).length === 0 ? (
-    <p className="udg-glass-muted">Keine Traits verfügbar</p>
+    <p className="msqdx-glass-muted">Keine Traits verfügbar</p>
   ) : (
-    <div className="udg-glass-traits-grid">
+    <div className="msqdx-glass-traits-grid">
       {Object.entries(detail.profile.traits || {}).map(([trait, score]) => (
-        <div key={trait} className="udg-glass-trait-item">
-          <div className="udg-glass-trait-header">
-            <span className="udg-glass-trait-label">{trait}</span>
-            <span className="udg-glass-trait-score">{(score * 100).toFixed(0)}%</span>
+        <div key={trait} className="msqdx-glass-trait-item">
+          <div className="msqdx-glass-trait-header">
+            <span className="msqdx-glass-trait-label">{trait}</span>
+            <span className="msqdx-glass-trait-score">{(score * 100).toFixed(0)}%</span>
           </div>
-          <div className="udg-glass-trait-bar">
+          <div className="msqdx-glass-trait-bar">
             <div 
-              className="udg-glass-trait-fill"
+              className="msqdx-glass-trait-fill"
               style={{ width: `${score * 100}%` }}
             />
           </div>
@@ -202,26 +202,26 @@ Wenn Tabs zu komplex sind, können Accordions verwendet werden:
 
 ### 2.5 Pain Points mit Evidence Count
 ```tsx
-<div className="udg-glass-pain-points">
+<div className="msqdx-glass-pain-points">
   <h3>Pain Points</h3>
   {detail.profile.pain_points?.length === 0 ? (
-    <p className="udg-glass-muted">Keine Pain Points identifiziert</p>
+    <p className="msqdx-glass-muted">Keine Pain Points identifiziert</p>
   ) : (
-    <ul className="udg-glass-pain-points-list">
+    <ul className="msqdx-glass-pain-points-list">
       {detail.profile.pain_points
         .sort((a, b) => (b.evidence_count || 0) - (a.evidence_count || 0))
         .map((pp, idx) => (
-          <li key={idx} className="udg-glass-pain-point-item">
-            <div className="udg-glass-pain-point-content">
-              <span className="udg-glass-pain-point-label">{pp.label}</span>
-              <span className="udg-glass-pain-point-evidence">
+          <li key={idx} className="msqdx-glass-pain-point-item">
+            <div className="msqdx-glass-pain-point-content">
+              <span className="msqdx-glass-pain-point-label">{pp.label}</span>
+              <span className="msqdx-glass-pain-point-evidence">
                 {pp.evidence_count || 0} Belege
               </span>
             </div>
             {pp.evidence_count > 0 && (
-              <div className="udg-glass-pain-point-bar">
+              <div className="msqdx-glass-pain-point-bar">
                 <div 
-                  className="udg-glass-pain-point-fill"
+                  className="msqdx-glass-pain-point-fill"
                   style={{ width: `${Math.min((pp.evidence_count / 10) * 100, 100)}%` }}
                 />
               </div>
@@ -238,19 +238,19 @@ Wenn Tabs zu komplex sind, können Accordions verwendet werden:
 
 ### 2.6 Goals mit Priority
 ```tsx
-<div className="udg-glass-goals">
+<div className="msqdx-glass-goals">
   <h3>Ziele</h3>
   {detail.profile.goals?.length === 0 ? (
-    <p className="udg-glass-muted">Keine Ziele definiert</p>
+    <p className="msqdx-glass-muted">Keine Ziele definiert</p>
   ) : (
-    <ol className="udg-glass-goals-list">
+    <ol className="msqdx-glass-goals-list">
       {detail.profile.goals
         .sort((a, b) => (a.priority || 999) - (b.priority || 999))
         .map((goal, idx) => (
-          <li key={idx} className="udg-glass-goal-item">
-            <div className="udg-glass-goal-content">
-              <span className="udg-glass-goal-priority">#{goal.priority || idx + 1}</span>
-              <span className="udg-glass-goal-label">{goal.label}</span>
+          <li key={idx} className="msqdx-glass-goal-item">
+            <div className="msqdx-glass-goal-content">
+              <span className="msqdx-glass-goal-priority">#{goal.priority || idx + 1}</span>
+              <span className="msqdx-glass-goal-label">{goal.label}</span>
             </div>
           </li>
         ))}
@@ -264,17 +264,17 @@ Wenn Tabs zu komplex sind, können Accordions verwendet werden:
 
 ### 2.7 Communication Style
 ```tsx
-<div className="udg-glass-communication-style">
+<div className="msqdx-glass-communication-style">
   <h3>Kommunikationsstil</h3>
   {detail.profile.communication_style && (
-    <div className="udg-glass-comm-style-grid">
+    <div className="msqdx-glass-comm-style-grid">
       {/* Vocabulary */}
       {detail.profile.communication_style.vocabulary?.length > 0 && (
         <div>
           <h4>Vokabular</h4>
-          <div className="udg-glass-chip-list">
+          <div className="msqdx-glass-chip-list">
             {detail.profile.communication_style.vocabulary.map((word, idx) => (
-              <span key={idx} className="udg-glass-chip --vocab">
+              <span key={idx} className="msqdx-glass-chip --vocab">
                 {word}
               </span>
             ))}
@@ -293,20 +293,20 @@ Wenn Tabs zu komplex sind, können Accordions verwendet werden:
       {/* Skepticism Level */}
       <div>
         <h4>Skeptizismus</h4>
-        <div className="udg-glass-skepticism">
-          <div className="udg-glass-skepticism-label">
+        <div className="msqdx-glass-skepticism">
+          <div className="msqdx-glass-skepticism-label">
             <span>Niedrig</span>
             <span>Hoch</span>
           </div>
-          <div className="udg-glass-skepticism-bar">
+          <div className="msqdx-glass-skepticism-bar">
             <div 
-              className="udg-glass-skepticism-fill"
+              className="msqdx-glass-skepticism-fill"
               style={{ 
                 width: `${((detail.profile.communication_style.skepticism_level || 0) / 5) * 100}%` 
               }}
             />
           </div>
-          <div className="udg-glass-skepticism-value">
+          <div className="msqdx-glass-skepticism-value">
             Level: {detail.profile.communication_style.skepticism_level || 0} / 5
           </div>
         </div>
@@ -321,11 +321,11 @@ Wenn Tabs zu komplex sind, können Accordions verwendet werden:
 ### 2.8 Social Media Usage
 ```tsx
 {detail.profile.social_media_usage?.length > 0 && (
-  <div className="udg-glass-social-media">
+  <div className="msqdx-glass-social-media">
     <h3>Social Media Nutzung</h3>
-    <div className="udg-glass-chip-list">
+    <div className="msqdx-glass-chip-list">
       {detail.profile.social_media_usage.map((platform, idx) => (
-        <span key={idx} className="udg-glass-chip --social">
+        <span key={idx} className="msqdx-glass-chip --social">
           {platform}
         </span>
       ))}
@@ -338,13 +338,13 @@ Wenn Tabs zu komplex sind, können Accordions verwendet werden:
 ### 2.9 Color Palette
 ```tsx
 {detail.profile.color_palette?.length > 0 && (
-  <div className="udg-glass-color-palette">
+  <div className="msqdx-glass-color-palette">
     <h3>Farbpalette</h3>
-    <div className="udg-glass-color-swatches">
+    <div className="msqdx-glass-color-swatches">
       {detail.profile.color_palette.map((color, idx) => (
         <div 
           key={idx} 
-          className="udg-glass-color-swatch"
+          className="msqdx-glass-color-swatch"
           style={{ backgroundColor: color }}
           title={color}
         />
@@ -358,11 +358,11 @@ Wenn Tabs zu komplex sind, können Accordions verwendet werden:
 ### 2.10 Target Group Link
 ```tsx
 {detail.profile.targetGroupId && (
-  <div className="udg-glass-target-group-link">
+  <div className="msqdx-glass-target-group-link">
     <h3>Target Group</h3>
     <a 
       href={`/target-groups/admin?selected=${detail.profile.targetGroupId}`}
-      className="udg-glass-button --ghost"
+      className="msqdx-glass-button --ghost"
     >
       <MaterialSymbol icon="groups" fontSize={16} />
       Zur Target Group
@@ -374,9 +374,9 @@ Wenn Tabs zu komplex sind, können Accordions verwendet werden:
 
 ### 2.11 Erweiterte Metadaten
 ```tsx
-<div className="udg-glass-extended-metadata">
+<div className="msqdx-glass-extended-metadata">
   <h3>Zeitstempel</h3>
-  <dl className="udg-glass-meta-grid">
+  <dl className="msqdx-glass-meta-grid">
     <div>
       <dt>Erstellt am</dt>
       <dd>{formatDate(detail.profile.created_at)}</dd>
@@ -420,7 +420,7 @@ Wenn Tabs zu komplex sind, können Accordions verwendet werden:
 - **Traits:** "Keine Traits verfügbar"
 
 ### 4.2 Placeholder-Styling
-- Verwende `udg-glass-muted` Klasse für leere Felder
+- Verwende `msqdx-glass-muted` Klasse für leere Felder
 - Icons optional für Empty States
 
 ## Phase 5: Erweiterte Features (Optional)
@@ -440,18 +440,18 @@ Wenn Tabs zu komplex sind, können Accordions verwendet werden:
 ## Phase 6: Implementierungsschritte
 
 ### Schritt 1: Basis-Struktur erweitern
-1. Neue Sections in `udg-glass-persona-admin-panel.tsx` hinzufügen
+1. Neue Sections in `msqdx-glass-persona-admin-panel.tsx` hinzufügen
 2. Conditional Rendering für alle neuen Felder
 3. Empty States implementieren
 
 ### Schritt 2: Komponenten erstellen
-1. `UdgGlassPersonaBio.tsx` - Bio-Anzeige
-2. `UdgGlassPersonaDemographics.tsx` - Demographie
-3. `UdgGlassPersonaTraits.tsx` - Traits-Visualisierung
-4. `UdgGlassPersonaPainPoints.tsx` - Pain Points Liste
-5. `UdgGlassPersonaGoals.tsx` - Goals Liste
-6. `UdgGlassPersonaCommunication.tsx` - Communication Style
-7. `UdgGlassPersonaInterestsValues.tsx` - Interessen & Werte
+1. `MsqdxGlassPersonaBio.tsx` - Bio-Anzeige
+2. `MsqdxGlassPersonaDemographics.tsx` - Demographie
+3. `MsqdxGlassPersonaTraits.tsx` - Traits-Visualisierung
+4. `MsqdxGlassPersonaPainPoints.tsx` - Pain Points Liste
+5. `MsqdxGlassPersonaGoals.tsx` - Goals Liste
+6. `MsqdxGlassPersonaCommunication.tsx` - Communication Style
+7. `MsqdxGlassPersonaInterestsValues.tsx` - Interessen & Werte
 
 ### Schritt 3: Styling & Responsiveness
 1. CSS für neue Komponenten
@@ -487,16 +487,16 @@ Wenn Tabs zu komplex sind, können Accordions verwendet werden:
 
 ## CSS-Klassen-Namenskonvention
 
-Verwende konsistent die Präfix `udg-glass-`:
-- `udg-glass-bio-section`
-- `udg-glass-demographics`
-- `udg-glass-traits-grid`
-- `udg-glass-pain-points-list`
-- `udg-glass-goals-list`
-- `udg-glass-communication-style`
-- `udg-glass-chip-list`
-- `udg-glass-trait-bar`
-- `udg-glass-skepticism-bar`
+Verwende konsistent die Präfix `msqdx-glass-`:
+- `msqdx-glass-bio-section`
+- `msqdx-glass-demographics`
+- `msqdx-glass-traits-grid`
+- `msqdx-glass-pain-points-list`
+- `msqdx-glass-goals-list`
+- `msqdx-glass-communication-style`
+- `msqdx-glass-chip-list`
+- `msqdx-glass-trait-bar`
+- `msqdx-glass-skepticism-bar`
 
 ## Material Symbols Icons
 

@@ -158,16 +158,18 @@ Target Group (z.B. "Enterprise Buyers")
 
 **Base URL:** `https://192.168.50.101`
 
+**Hinweis:** Audion läuft unter dem Pfad `/audion`, um parallelen Betrieb mit anderen Services (z.B. `/dashboard`) zu ermöglichen.
+
 | Service | Public URL | Internal URL | Beschreibung |
 |---------|-----------|--------------|--------------|
-| Web App | `https://192.168.50.101/` | `http://web:3000` | Next.js Frontend |
-| Chat API | `https://192.168.50.101/api/chat` | `http://chat-api:8001` | Real-time Chat Service |
-| Voice API | `https://192.168.50.101/api/voice` | `http://chat-api:8001` | Voice Streaming |
-| Persona Backend | `https://192.168.50.101/api/persona-backend` | `http://persona-api:8000` | Persona Management API |
-| Persona Docs | `https://192.168.50.101/api/persona-backend/docs` | - | FastAPI Swagger UI |
-| Indexing API | `https://192.168.50.101/api/indexing` | `http://indexing-api:8000` | Document Ingestion |
-| Neo4j Browser | `https://192.168.50.101/neo4j/browser` | `http://neo4j:7474` | Neo4j Web UI |
-| Qdrant Dashboard | `https://192.168.50.101/qdrant/` | `http://qdrant:6333` | Qdrant Web UI |
+| Web App | `https://192.168.50.101/audion/` | `http://web:3000` | Next.js Frontend |
+| Chat API | `https://192.168.50.101/audion/api/chat` | `http://chat-api:8001` | Real-time Chat Service |
+| Voice API | `https://192.168.50.101/audion/api/voice` | `http://chat-api:8001` | Voice Streaming |
+| Persona Backend | `https://192.168.50.101/audion/api/persona-backend` | `http://persona-api:8000` | Persona Management API |
+| Persona Docs | `https://192.168.50.101/audion/api/persona-backend/docs` | - | FastAPI Swagger UI |
+| Indexing API | `https://192.168.50.101/audion/api/indexing` | `http://indexing-api:8000` | Document Ingestion |
+| Neo4j Browser | `https://192.168.50.101/neo4j/browser` | `http://neo4j:7474` | Neo4j Web UI (global) |
+| Qdrant Dashboard | `https://192.168.50.101/qdrant/` | `http://qdrant:6333` | Qdrant Web UI (global) |
 
 ### Development URLs (Local)
 
@@ -187,11 +189,12 @@ Target Group (z.B. "Enterprise Buyers")
 
 **Frontend (Next.js):**
 ```bash
-NEXT_PUBLIC_INDEXING_API_URL=https://192.168.50.101/api/indexing
-NEXT_PUBLIC_CHAT_API_URL=https://192.168.50.101/api/chat
-NEXT_PUBLIC_WS_BASE_URL=wss://192.168.50.101/api/chat
-NEXT_PUBLIC_PERSONA_BACKEND_URL=https://192.168.50.101/api/persona-backend
-NEXT_PUBLIC_PERSONA_BACKEND_DOCS_URL=https://192.168.50.101/api/persona-backend/docs
+NEXT_PUBLIC_BASE_PATH=/audion
+NEXT_PUBLIC_INDEXING_API_URL=https://192.168.50.101/audion/api/indexing
+NEXT_PUBLIC_CHAT_API_URL=https://192.168.50.101/audion/api/chat
+NEXT_PUBLIC_WS_BASE_URL=wss://192.168.50.101/audion/api/chat
+NEXT_PUBLIC_PERSONA_BACKEND_URL=https://192.168.50.101/audion/api/persona-backend
+NEXT_PUBLIC_PERSONA_BACKEND_DOCS_URL=https://192.168.50.101/audion/api/persona-backend/docs
 NEXT_BACKEND_INTERNAL_URL=http://indexing-api:8000
 NEXT_CHAT_API_INTERNAL_URL=http://chat-api:8001
 NEXT_PERSONA_BACKEND_INTERNAL_URL=http://persona-api:8000
@@ -206,8 +209,8 @@ NEO4J_URI=bolt://neo4j:7687
 NEO4J_USER=neo4j
 NEO4J_PASSWORD=neo4j_password
 INDEXING_API_URL=http://indexing-api:8000
-PERSONA_BACKEND_PUBLIC_URL=https://192.168.50.101/api/persona-backend
-PERSONA_BACKEND_DOCS_URL=https://192.168.50.101/api/persona-backend/docs
+PERSONA_BACKEND_PUBLIC_URL=https://192.168.50.101/audion/api/persona-backend
+PERSONA_BACKEND_DOCS_URL=https://192.168.50.101/audion/api/persona-backend/docs
 ROOT_PATH=/api/persona-backend  # Für Reverse Proxy
 ```
 
@@ -1384,7 +1387,7 @@ Siehe: `knowledge/journey_mapper.md` für vollständige API-Dokumentation.
 ### Frontend
 
 - **Pages:** `/admin/journeys` (List), `/admin/journeys/[journeyId]` (Editor), `/admin/journeys/[journeyId]/dashboard` (Dashboard)
-- **Components:** `udg-glass-journey-canvas`, `udg-glass-phase-card`, `udg-glass-validation-panel`
+- **Components:** `msqdx-glass-journey-canvas`, `msqdx-glass-phase-card`, `msqdx-glass-validation-panel`
 
 ### Celery Tasks
 

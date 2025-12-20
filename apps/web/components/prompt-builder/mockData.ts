@@ -26,7 +26,7 @@ export const generateMockContext = (): Record<string, any> => ({
   persona_headline: "Early adopter of new technologies",
   persona_bio: "A tech-savvy professional in their mid-30s who loves trying new gadgets and innovative solutions. Values efficiency and cutting-edge technology.",
   persona_profile: "Age: 35, Occupation: Software Engineer, Location: Urban area, Income: High",
-  persona_pain_points: "Lack of time, budget constraints, information overload",
+  persona_pain_points: "Lack of time, bmsqdxet constraints, information overload",
   existing_traits: "organizer, tech-savvy, detail-oriented, early-adopter",
   graph_relationships_summary: "HAS_INTEREST: [technology, innovation], WORKS_WITH: [software, tools]",
   knowledge_context: "Research findings about tech-savvy consumers show preference for digital-first experiences and data-driven decision making.",
@@ -59,7 +59,7 @@ export const generateMockExtendedData = (): Record<string, any> => ({
       pain_points: [
         { label: "Information overload" },
         { label: "Time constraints" },
-        { label: "Budget limitations" },
+        { label: "Bmsqdxet limitations" },
       ],
     },
   },

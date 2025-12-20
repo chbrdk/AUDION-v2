@@ -1,6 +1,6 @@
-import type { QueueStatsResponse, PersonaListResponse, ServiceStatusResponse, TargetGroupListResponse } from "@udg-glass/types";
+import type { QueueStatsResponse, PersonaListResponse, ServiceStatusResponse, TargetGroupListResponse } from "@msqdx-glass/types";
 import { getPersonaBackendBase } from "../api/_lib/backend";
-import { UdgGlassAdminDashboard } from "../../components/admin/udg-glass-admin-dashboard";
+import { MsqdxGlassAdminDashboard } from "../../components/admin/msqdx-glass-admin-dashboard";
 
 export const dynamic = "force-dynamic";
 
@@ -194,7 +194,7 @@ export default async function AdminDashboardPage() {
           has fully started and reload the page.
         </div>
       )}
-      <UdgGlassAdminDashboard
+      <MsqdxGlassAdminDashboard
         personaStats={personaStats}
         targetGroupStats={targetGroupStats}
         queueStats={queueStats}

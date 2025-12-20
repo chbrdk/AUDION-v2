@@ -1,30 +1,30 @@
-export { UdgGlassDashboardCard } from "./udg-glass-dashboard-card";
-export type { UdgGlassDashboardCardProps, DashboardCardVariant } from "./udg-glass-dashboard-card";
+export { MsqdxGlassDashboardCard } from "./msqdx-glass-dashboard-card";
+export type { MsqdxGlassDashboardCardProps, DashboardCardVariant } from "./msqdx-glass-dashboard-card";
 
-export { UdgGlassDashboardCardSection } from "./udg-glass-dashboard-card-section";
-export type { UdgGlassDashboardCardSectionProps } from "./udg-glass-dashboard-card-section";
+export { MsqdxGlassDashboardCardSection } from "./msqdx-glass-dashboard-card-section";
+export type { MsqdxGlassDashboardCardSectionProps } from "./msqdx-glass-dashboard-card-section";
 
-export { UdgGlassPersonaBasicsCard } from "./udg-glass-persona-basics-card";
-export type { UdgGlassPersonaBasicsCardProps } from "./udg-glass-persona-basics-card";
+export { MsqdxGlassPersonaBasicsCard } from "./msqdx-glass-persona-basics-card";
+export type { MsqdxGlassPersonaBasicsCardProps } from "./msqdx-glass-persona-basics-card";
 
-export { UdgGlassBioCard } from "./udg-glass-bio-card";
-export type { UdgGlassBioCardProps } from "./udg-glass-bio-card";
+export { MsqdxGlassBioCard } from "./msqdx-glass-bio-card";
+export type { MsqdxGlassBioCardProps } from "./msqdx-glass-bio-card";
 
-export { UdgGlassBioCardEdit } from "./udg-glass-bio-card-edit";
-export type { UdgGlassBioCardEditProps } from "./udg-glass-bio-card-edit";
+export { MsqdxGlassBioCardEdit } from "./msqdx-glass-bio-card-edit";
+export type { MsqdxGlassBioCardEditProps } from "./msqdx-glass-bio-card-edit";
 
-export { UdgGlassPersonalityCard } from "./udg-glass-personality-card";
-export type { UdgGlassPersonalityCardProps } from "./udg-glass-personality-card";
+export { MsqdxGlassPersonalityCard } from "./msqdx-glass-personality-card";
+export type { MsqdxGlassPersonalityCardProps } from "./msqdx-glass-personality-card";
 
-export { UdgGlassPainPointsGoalsCard } from "./udg-glass-pain-points-goals-card";
-export type { UdgGlassPainPointsGoalsCardProps } from "./udg-glass-pain-points-goals-card";
+export { MsqdxGlassPainPointsGoalsCard } from "./msqdx-glass-pain-points-goals-card";
+export type { MsqdxGlassPainPointsGoalsCardProps } from "./msqdx-glass-pain-points-goals-card";
 
-export { UdgGlassCommunicationCard } from "./udg-glass-communication-card";
-export type { UdgGlassCommunicationCardProps } from "./udg-glass-communication-card";
+export { MsqdxGlassCommunicationCard } from "./msqdx-glass-communication-card";
+export type { MsqdxGlassCommunicationCardProps } from "./msqdx-glass-communication-card";
 
-export { UdgGlassKnowledgeSourcesCard } from "./udg-glass-knowledge-sources-card";
-export type { UdgGlassKnowledgeSourcesCardProps } from "./udg-glass-knowledge-sources-card";
+export { MsqdxGlassKnowledgeSourcesCard } from "./msqdx-glass-knowledge-sources-card";
+export type { MsqdxGlassKnowledgeSourcesCardProps } from "./msqdx-glass-knowledge-sources-card";
 
-export { UdgGlassAdvancedCard } from "./udg-glass-advanced-card";
-export type { UdgGlassAdvancedCardProps } from "./udg-glass-advanced-card";
+export { MsqdxGlassAdvancedCard } from "./msqdx-glass-advanced-card";
+export type { MsqdxGlassAdvancedCardProps } from "./msqdx-glass-advanced-card";
 

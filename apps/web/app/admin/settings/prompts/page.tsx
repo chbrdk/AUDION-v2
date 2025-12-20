@@ -208,29 +208,29 @@ export default function SettingsPromptsPage() {
 
   if (loading) {
     return (
-      <div className="udg-glass-panel">
+      <div className="msqdx-glass-panel">
         <div style={{ padding: "2rem", textAlign: "center" }}>
           <MaterialSymbol icon="hourglass_empty" fontSize={24} />
-          <p className="udg-glass-muted">Loading templates...</p>
+          <p className="msqdx-glass-muted">Loading templates...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="udg-glass-panel">
-      <header className="udg-glass-detail__header">
+    <div className="msqdx-glass-panel">
+      <header className="msqdx-glass-detail__header">
         <div>
-          <p className="udg-glass-eyebrow">AI Settings</p>
+          <p className="msqdx-glass-eyebrow">AI Settings</p>
           <h1 style={{ margin: 0 }}>Prompt Templates</h1>
-          <p className="udg-glass-muted" style={{ maxWidth: "640px" }}>
+          <p className="msqdx-glass-muted" style={{ maxWidth: "640px" }}>
             Every AI assisted feature references a reviewed template stored in the backend catalog. Edit templates directly here to update prompts and configurations.
           </p>
         </div>
       </header>
 
       {error && (
-        <div className="udg-glass-error" style={{ margin: "1rem 0", padding: "0.75rem", borderRadius: "8px" }}>
+        <div className="msqdx-glass-error" style={{ margin: "1rem 0", padding: "0.75rem", borderRadius: "8px" }}>
           <strong>Error:</strong> {error}
         </div>
       )}
@@ -509,7 +509,7 @@ export default function SettingsPromptsPage() {
                   <VariableItem name="persona_headline" description="Headline or tagline of the persona" example="Early adopter of new technologies" />
                   <VariableItem name="persona_bio" description="Full biography or description of the persona" example="Detailed persona profile with demographics, goals, challenges..." />
                   <VariableItem name="persona_profile" description="Full profile of the persona" example="Age, occupation, goals, challenges..." />
-                  <VariableItem name="persona_pain_points" description="Existing pain points of the persona" example="Lack of time, budget constraints..." />
+                  <VariableItem name="persona_pain_points" description="Existing pain points of the persona" example="Lack of time, bmsqdxet constraints..." />
                   <VariableItem name="existing_traits" description="List of currently defined personality traits" example="organizer, tech-savvy, detail-oriented" />
                   <VariableItem name="graph_relationships_summary" description="Formatted summary of Neo4j knowledge graph relationships connected to this persona" example="HAS_INTEREST: [technology, innovation], WORKS_WITH: [software, tools]" />
                   <VariableItem name="knowledge_context" description="Relevant research chunks from Qdrant vector database related to this persona" example="Research findings about user behavior, preferences, and characteristics..." />
@@ -655,7 +655,7 @@ export default function SettingsPromptsPage() {
                           type="button"
                           onClick={() => toggleTag(tag)}
                           className={clsx(
-                            "udg-glass-chip",
+                            "msqdx-glass-chip",
                             selectedTags.has(tag) && "--active"
                           )}
                           style={{
@@ -728,13 +728,13 @@ export default function SettingsPromptsPage() {
         </div>
       )}
 
-      <div className="udg-glass-settings-grid">
+      <div className="msqdx-glass-settings-grid">
         {/* Persona Prompts Section */}
         {personaPrompts.length > 0 && (
           <>
             <div style={{ gridColumn: "1 / -1", marginTop: "2rem", marginBottom: "1rem" }}>
               <h2 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 600 }}>Persona Prompts</h2>
-              <p className="udg-glass-muted" style={{ marginTop: "0.5rem" }}>
+              <p className="msqdx-glass-muted" style={{ marginTop: "0.5rem" }}>
                 System prompts used for persona chat interactions. These are dynamically generated and can be customized.
               </p>
             </div>
@@ -760,7 +760,7 @@ export default function SettingsPromptsPage() {
               filteredPersonaPrompts.map((template) => (
               <article
                 key={template.template_id}
-                className={clsx("udg-glass-settings-card", editingId === template.template_id && "--expanded")}
+                className={clsx("msqdx-glass-settings-card", editingId === template.template_id && "--expanded")}
               >
                 {editingId === template.template_id && editingTemplate ? (
                   <>
@@ -828,13 +828,13 @@ export default function SettingsPromptsPage() {
                   <>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "0.5rem" }}>
                       <div style={{ flex: 1 }}>
-                        <p className="udg-glass-eyebrow" style={{ marginBottom: "0.25rem" }}>
+                        <p className="msqdx-glass-eyebrow" style={{ marginBottom: "0.25rem" }}>
                           {template.category}
                         </p>
                         <h3 style={{ marginBottom: "0.5rem" }}>{template.label}</h3>
                       </div>
                       <button
-                        className="udg-glass-button --ghost"
+                        className="msqdx-glass-button --ghost"
                         onClick={() => startEditing(template.template_id)}
                         style={{ padding: "0.25rem 0.5rem" }}
                         title="Edit template"
@@ -842,17 +842,17 @@ export default function SettingsPromptsPage() {
                         <MaterialSymbol icon="edit" fontSize={16} />
                       </button>
                     </div>
-                    <p className="udg-glass-muted" style={{ minHeight: "48px" }}>
+                    <p className="msqdx-glass-muted" style={{ minHeight: "48px" }}>
                       {template.description}
                     </p>
                     <div style={{ marginTop: "0.75rem", display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>
-                      <span className="udg-glass-badge --outline">{template.default_provider}</span>
-                      {template.default_model && <span className="udg-glass-chip --dashboard">{template.default_model}</span>}
+                      <span className="msqdx-glass-badge --outline">{template.default_provider}</span>
+                      {template.default_model && <span className="msqdx-glass-chip --dashboard">{template.default_model}</span>}
                     </div>
                     {template.tags.length > 0 && (
                       <div style={{ marginTop: "0.75rem", display: "flex", flexWrap: "wrap", gap: "0.25rem" }}>
                         {template.tags.map((tag) => (
-                          <span key={tag} className="udg-glass-chip --dashboard --tag">
+                          <span key={tag} className="msqdx-glass-chip --dashboard --tag">
                             {tag}
                           </span>
                         ))}
@@ -872,7 +872,7 @@ export default function SettingsPromptsPage() {
             {personaPrompts.length > 0 && (
               <div style={{ gridColumn: "1 / -1", marginTop: "2rem", marginBottom: "1rem" }}>
                 <h2 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 600 }}>AI Templates</h2>
-                <p className="udg-glass-muted" style={{ marginTop: "0.5rem" }}>
+                <p className="msqdx-glass-muted" style={{ marginTop: "0.5rem" }}>
                   Standard templates for AI-assisted features like journey mapping and phase generation.
                 </p>
               </div>
@@ -900,7 +900,7 @@ export default function SettingsPromptsPage() {
               filteredTemplates.map((template) => (
           <article
             key={template.template_id}
-            className={clsx("udg-glass-settings-card", editingId === template.template_id && "--expanded")}
+            className={clsx("msqdx-glass-settings-card", editingId === template.template_id && "--expanded")}
           >
             {editingId === template.template_id && editingTemplate ? (
               <>
@@ -968,13 +968,13 @@ export default function SettingsPromptsPage() {
               <>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "0.5rem" }}>
                   <div style={{ flex: 1 }}>
-                    <p className="udg-glass-eyebrow" style={{ marginBottom: "0.25rem" }}>
+                    <p className="msqdx-glass-eyebrow" style={{ marginBottom: "0.25rem" }}>
                       {template.category}
                     </p>
                     <h3 style={{ marginBottom: "0.5rem" }}>{template.label}</h3>
                   </div>
                   <button
-                    className="udg-glass-button --ghost"
+                    className="msqdx-glass-button --ghost"
                     onClick={() => startEditing(template.template_id)}
                     style={{ padding: "0.25rem 0.5rem" }}
                     title="Edit template"
@@ -982,17 +982,17 @@ export default function SettingsPromptsPage() {
                     <MaterialSymbol icon="edit" fontSize={16} />
                   </button>
                 </div>
-                <p className="udg-glass-muted" style={{ minHeight: "48px" }}>
+                <p className="msqdx-glass-muted" style={{ minHeight: "48px" }}>
                   {template.description}
                 </p>
                 <div style={{ marginTop: "0.75rem", display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>
-                  <span className="udg-glass-badge --outline">{template.default_provider}</span>
-                  {template.default_model && <span className="udg-glass-chip --dashboard">{template.default_model}</span>}
+                  <span className="msqdx-glass-badge --outline">{template.default_provider}</span>
+                  {template.default_model && <span className="msqdx-glass-chip --dashboard">{template.default_model}</span>}
                 </div>
                 {template.tags.length > 0 && (
                   <div style={{ marginTop: "0.75rem", display: "flex", flexWrap: "wrap", gap: "0.25rem" }}>
                     {template.tags.map((tag) => (
-                      <span key={tag} className="udg-glass-chip --dashboard --tag">
+                      <span key={tag} className="msqdx-glass-chip --dashboard --tag">
                         {tag}
                       </span>
                     ))}
@@ -1163,10 +1163,10 @@ function TemplateEditForm({
       </div>
 
       <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", marginTop: "0.5rem" }}>
-        <button type="button" className="udg-glass-button --ghost" onClick={onCancel} disabled={saving}>
+        <button type="button" className="msqdx-glass-button --ghost" onClick={onCancel} disabled={saving}>
           Cancel
         </button>
-        <button type="submit" className="udg-glass-button" disabled={saving}>
+        <button type="submit" className="msqdx-glass-button" disabled={saving}>
           {saving ? (
             <>
               <MaterialSymbol icon="hourglass_empty" fontSize={14} /> Saving...

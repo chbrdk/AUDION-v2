@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pydantic import BaseModel
-from udg_glass_proto import UploadJobStatus
+from msqdx_glass_proto import UploadJobStatus
 
 
 class DocumentUploadResponse(BaseModel):

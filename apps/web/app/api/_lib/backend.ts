@@ -1,44 +1,106 @@
-const DEFAULT_INDEXING_API_URL = "http://localhost:8000";
-const DEFAULT_CHAT_API_URL = "http://localhost:8001";
-const DEFAULT_PERSONA_BACKEND_URL = "http://localhost:8000";
+/**
+ * Get the persona backend base URL
+ * @param options - Configuration options
+ * @param options.preferPublic - If true, prefer public URL; if false, prefer internal URL
+ * @returns The base URL for the persona backend
+ */
+export function getPersonaBackendBase(options?: { preferPublic?: boolean }): string {
+  const preferPublic = options?.preferPublic ?? false;
+  
+  if (preferPublic) {
+    const publicUrl = process.env.NEXT_PUBLIC_PERSONA_BACKEND_URL?.trim();
+    if (publicUrl) {
+      return publicUrl;
+    }
+  }
+  
+  const internalUrl = process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL?.trim();
+  if (internalUrl) {
+    return internalUrl;
+  }
+  
+  // Fallback to public URL if internal is not set
+  const fallbackUrl = process.env.NEXT_PUBLIC_PERSONA_BACKEND_URL?.trim();
+  if (fallbackUrl) {
+    return fallbackUrl;
+  }
+  
+  // Default fallback
+  return 'http://persona-api:8000';
+}
 
-export const getIndexingApiBase = () => {
-  const configured = process.env.NEXT_BACKEND_INTERNAL_URL?.trim();
-  return (configured && configured.length > 0 ? configured : DEFAULT_INDEXING_API_URL).replace(/\/$/, "");
-};
+/**
+ * Get the persona backend docs URL
+ * @param options - Configuration options
+ * @param options.preferPublic - If true, prefer public URL; if false, prefer internal URL
+ * @returns The docs URL for the persona backend
+ */
+export function getPersonaBackendDocsUrl(options?: { preferPublic?: boolean }): string {
+  const base = getPersonaBackendBase(options);
+  const docsUrl = process.env.NEXT_PUBLIC_PERSONA_BACKEND_DOCS_URL?.trim();
+  
+  if (docsUrl) {
+    return docsUrl;
+  }
+  
+  return `${base}/docs`;
+}
 
-export const getChatApiBase = () => {
-  // Check for internal URL first (for server-side), then public URL (for client-side)
-  const internal = process.env.NEXT_CHAT_API_INTERNAL_URL?.trim();
+/**
+ * Get the chat API base URL
+ * @returns The base URL for the chat API
+ */
+export function getChatApiBase(): string {
   const publicUrl = process.env.NEXT_PUBLIC_CHAT_API_URL?.trim();
-  const configured = internal || publicUrl;
-  return (configured && configured.length > 0 ? configured : DEFAULT_CHAT_API_URL).replace(/\/$/, "");
-};
-
-export const getVoiceApiBase = () => {
-  // Voice API uses /api/voice endpoint (different from chat API)
-  // Check for public URL first, then derive from chat API URL
-  const publicVoiceUrl = process.env.NEXT_PUBLIC_VOICE_API_URL?.trim();
-  if (publicVoiceUrl && publicVoiceUrl.length > 0) {
-    return publicVoiceUrl.replace(/\/$/, "");
+  if (publicUrl) {
+    return publicUrl;
   }
-  // Fallback: derive from chat API URL (replace /chat with /voice)
-  const chatApiBase = getChatApiBase();
-  return chatApiBase.replace(/\/chat$/, "/voice");
-};
-
-export const getPersonaBackendBase = (options?: { preferPublic?: boolean }) => {
-  const internal = process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL?.trim();
-  const publicUrl = process.env.NEXT_PUBLIC_PERSONA_BACKEND_URL?.trim();
-  const configured = options?.preferPublic ? publicUrl || internal : internal || publicUrl;
-  return (configured && configured.length > 0 ? configured : DEFAULT_PERSONA_BACKEND_URL).replace(/\/$/, "");
-};
-
-export const getPersonaBackendDocsUrl = () => {
-  const explicit = process.env.NEXT_PUBLIC_PERSONA_BACKEND_DOCS_URL?.trim();
-  if (explicit && explicit.length > 0) {
-    return explicit;
+  
+  const internalUrl = process.env.NEXT_CHAT_API_INTERNAL_URL?.trim();
+  if (internalUrl) {
+    return internalUrl;
   }
-  return `${getPersonaBackendBase({ preferPublic: true })}/docs`;
-};
+  
+  // Default fallback
+  return 'http://chat-api:8001';
+}
 
+/**
+ * Get the voice API base URL
+ * @returns The base URL for the voice API
+ */
+export function getVoiceApiBase(): string {
+  const publicUrl = process.env.NEXT_PUBLIC_VOICE_API_URL?.trim();
+  if (publicUrl) {
+    return publicUrl;
+  }
+  
+  const internalUrl = process.env.NEXT_VOICE_API_INTERNAL_URL?.trim();
+  if (internalUrl) {
+    return internalUrl;
+  }
+  
+  // Default fallback (usually same as chat API)
+  return 'http://chat-api:8001';
+}
+
+/**
+ * Get the base path for Next.js API routes
+ * This ensures client-side fetch calls include the basePath when configured
+ * @returns The base path (e.g., '/audion' or '')
+ */
+export function getApiBasePath(): string {
+  return process.env.NEXT_PUBLIC_BASE_PATH || '';
+}
+
+/**
+ * Build a full API route URL with basePath
+ * @param path - The API path (e.g., '/api/personas')
+ * @returns The full URL with basePath (e.g., '/audion/api/personas')
+ */
+export function buildApiUrl(path: string): string {
+  const basePath = getApiBasePath();
+  // Ensure path starts with /
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${basePath}${normalizedPath}`;
+}

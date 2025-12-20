@@ -168,12 +168,12 @@ export default function ThemeSettingsPage() {
   }
 
   return (
-    <div className="udg-glass-panel">
-      <header className="udg-glass-detail__header">
+    <div className="msqdx-glass-panel">
+      <header className="msqdx-glass-detail__header">
         <div>
-          <p className="udg-glass-eyebrow">Appearance</p>
+          <p className="msqdx-glass-eyebrow">Appearance</p>
           <h1 style={{ margin: 0 }}>Theme Settings</h1>
-          <p className="udg-glass-muted" style={{ maxWidth: "640px" }}>
+          <p className="msqdx-glass-muted" style={{ maxWidth: "640px" }}>
             Customize the sidebar background color to match your preference.
           </p>
         </div>
@@ -183,7 +183,7 @@ export default function ThemeSettingsPage() {
         <h2 style={{ fontSize: "1.25rem", fontWeight: 600, marginBottom: "1rem" }}>
           Sidebar Background Color
         </h2>
-        <p className="udg-glass-muted" style={{ marginBottom: "1.5rem" }}>
+        <p className="msqdx-glass-muted" style={{ marginBottom: "1.5rem" }}>
           Choose a color for the admin sidebar background. Changes apply immediately.
         </p>
 

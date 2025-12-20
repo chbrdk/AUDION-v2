@@ -9,7 +9,7 @@ import type {
   KnowledgeChunk,
   ClusterResult,
   SimilarChunk,
-} from "@udg-glass/types";
+} from "@msqdx-glass/types";
 
 // Re-export PersonaResponse for use in other modules
 export type { PersonaResponse };

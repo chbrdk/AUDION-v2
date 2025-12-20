@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Box, Button, Stack, Typography } from "@mui/material";
 import { MaterialSymbol } from "../components/material-symbol";
 
-const UdgGlassLandingHero = () => {
+const MsqdxGlassLandingHero = () => {
   return (
     <Stack spacing={4} alignItems="center" textAlign="center" sx={{ py: 12 }}>
       <Typography variant="h2" fontWeight={600}>
@@ -38,7 +38,7 @@ const UdgGlassLandingHero = () => {
   );
 };
 
-UdgGlassLandingHero.displayName = "udg-glass-landing-hero";
+MsqdxGlassLandingHero.displayName = "msqdx-glass-landing-hero";
 
 export default function Home() {
   return (
@@ -50,7 +50,7 @@ export default function Home() {
           "radial-gradient(circle at 20% 20%, rgba(90,232,255,0.15), transparent 40%), radial-gradient(circle at 80% 0%, rgba(254,122,255,0.12), transparent 35%)"
       }}
     >
-      <UdgGlassLandingHero />
+      <MsqdxGlassLandingHero />
     </Box>
   );
 }
