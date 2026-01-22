@@ -25,6 +25,7 @@ const nextConfig = {
   },
   
   // Configure webpack for development (HMR errors are suppressed client-side)
+  // Note: Next.js 16 uses Turbopack by default, but we use --webpack flag for builds
   webpack: (config, { dev, isServer }) => {
     if (dev && !isServer) {
       // Configure watch options for file changes
@@ -36,6 +37,8 @@ const nextConfig = {
     }
     return config;
   },
+  // Add empty turbopack config to silence the warning when webpack config is present
+  turbopack: {},
   
   // HMR is disabled to prevent WebSocket connection errors
   // Page will still reload on file changes, but without WebSocket connection
