@@ -1,9 +1,9 @@
+export const dynamic = "force-dynamic";
+
 import type { PersonaListResponse } from "@msqdx-glass/types";
 
 import { getPersonaBackendBase, getPersonaBackendDocsUrl } from "../../api/_lib/backend";
 import { MsqdxGlassPersonaAdminPanel } from "../../../components/msqdx-glass-persona-admin-panel";
-
-export const dynamic = "force-dynamic";
 
 async function fetchPersonaList(): Promise<PersonaListResponse> {
   const internalUrl = process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL?.trim();

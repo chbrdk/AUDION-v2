@@ -1,7 +1,7 @@
+export const dynamic = "force-dynamic";
+
 import type { QueueStatsResponse, PersonaListResponse, ServiceStatusResponse, TargetGroupListResponse } from "@msqdx-glass/types";
 import { MsqdxGlassAdminDashboard } from "../../components/admin/msqdx-glass-admin-dashboard";
-
-export const dynamic = "force-dynamic";
 
 async function fetchPersonaList(): Promise<PersonaListResponse> {
   // Use absolute URL for server-side fetch

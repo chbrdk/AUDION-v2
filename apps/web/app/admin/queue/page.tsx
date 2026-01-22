@@ -1,9 +1,9 @@
+export const dynamic = "force-dynamic";
+
 import type { QueueStatsResponse } from "@msqdx-glass/types";
 
 import { getPersonaBackendBase } from "../../api/_lib/backend";
 import { MsqdxGlassQueueDashboard } from "../../../components/msqdx-glass-queue-dashboard";
-
-export const dynamic = "force-dynamic";
 
 async function fetchQueueStats(): Promise<QueueStatsResponse> {
   const internalUrl = process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL?.trim();

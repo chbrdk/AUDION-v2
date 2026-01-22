@@ -1,9 +1,9 @@
+export const dynamic = "force-dynamic";
+
 import type { TargetGroupListResponse } from "@msqdx-glass/types";
 
 import { getPersonaBackendDocsUrl } from "../../api/_lib/backend";
 import { MsqdxGlassTargetGroupAdminPanel } from "../../../components/msqdx-glass-target-group-admin-panel";
-
-export const dynamic = "force-dynamic";
 
 async function fetchTargetGroupList(): Promise<TargetGroupListResponse> {
   // Use absolute URL for server-side fetch
