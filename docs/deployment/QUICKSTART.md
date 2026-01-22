@@ -31,10 +31,15 @@ Schnelle Anleitung zum Deployment von AUDION auf Coolify.
 2. **Docker Compose** auswählen
 3. Konfiguration:
    - **Name**: `audion`
-   - **Repository**: `https://github.com/chbrdk/AUDION-v2.git`
+   - **Repository**: Wähle **Private Repository (with GitHub App)**
+     - Klicke auf **Select Repository**
+     - Suche nach `AUDION-v2` oder `chbrdk/AUDION-v2`
+     - Wähle das Repository aus
    - **Branch**: `main`
    - **Build Pack**: Docker Compose (automatisch erkannt)
 4. **Create** klicken
+
+**Hinweis**: Falls du noch keine GitHub App in Coolify eingerichtet hast, siehe [GitHub App Setup](COOLIFY_GITHUB_SETUP.md).
 
 ## Schritt 3: Environment Variables setzen
 
