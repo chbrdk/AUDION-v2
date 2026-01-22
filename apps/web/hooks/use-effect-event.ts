@@ -3,9 +3,24 @@
  * 
  * Ermöglicht bessere Effect-Logik ohne Closure-Probleme.
  * Ideal für Stream-Processing und Event-Handler.
+ * 
+ * Polyfill für useEffectEvent (experimentell in React 19)
  */
 
-import { useEffectEvent } from "react";
+import { useRef, useCallback } from "react";
+
+/**
+ * Polyfill für useEffectEvent
+ * Erstellt eine stabile Funktion, die immer die neueste Version des Callbacks verwendet
+ */
+function useEffectEvent<T extends (...args: any[]) => any>(callback: T): T {
+  const ref = useRef(callback);
+  ref.current = callback;
+  
+  return useCallback((...args: Parameters<T>) => {
+    return ref.current(...args);
+  }, []) as T;
+}
 
 /**
  * Beispiel: useEffectEvent für Stream-Processing
