@@ -18,10 +18,13 @@ COPY apps/web/package.json apps/web/
 COPY packages/types/package.json packages/types/
 COPY packages/types/src packages/types/src
 COPY packages/types/tsconfig.json packages/types/
-# Install dependencies - ensure node_modules is created even if install has warnings
+# Install dependencies - clear npm cache if integrity check fails
+# Fix for corrupted @types/d3-dsv package
 RUN --mount=type=cache,target=/root/.npm \
-    (npm install --include-workspace-root --legacy-peer-deps || \
-     npm install --legacy-peer-deps || \
+    npm cache clean --force || true && \
+    (npm install --include-workspace-root --legacy-peer-deps --no-audit --no-fund || \
+     (npm cache clean --force && npm install --include-workspace-root --legacy-peer-deps --no-audit --no-fund) || \
+     (npm cache clean --force && npm install --legacy-peer-deps --no-audit --no-fund) || \
      (echo "npm install failed completely" && exit 1)) && \
     ls -la node_modules || (echo "node_modules not created" && exit 1)
 
