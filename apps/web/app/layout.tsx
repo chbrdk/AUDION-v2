@@ -6,7 +6,7 @@ import type { Metadata } from "next";
 import { Noto_Sans_JP } from "next/font/google";
 import "../styles/globals.css";
 import "../styles/dashboard-cards.css";
-import { ThemeRegistrySSRSafe } from "../components/theme-registry-ssr-safe";
+import { ThemeRegistryNoSSR } from "../components/theme-registry-no-ssr";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
 
