@@ -17,6 +17,8 @@ const nextConfig = {
   generateBuildId: async () => {
     return 'build-' + Date.now();
   },
+  // Disable static generation for error pages
+  output: 'standalone',
   // Optimize bundle size
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? {
