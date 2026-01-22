@@ -327,7 +327,9 @@ export const ThemeRegistry = ({ children }: { children: ReactNode }) => {
   // #region agent log
   // Workaround for Next.js 16 prerendering bug: check if we're in a browser context
   // During prerendering, React context is null, so we return children without theme
-  if (typeof window === 'undefined') {
+  // This prevents useContext from being called during prerendering
+  const isBrowser = typeof window !== 'undefined';
+  if (!isBrowser) {
     // During SSR/prerendering, return children without theme context
     return <>{children}</>;
   }
