@@ -104,7 +104,9 @@ See [docs/environment-variables.md](docs/environment-variables.md) for a complet
 
 ### Coolify Deployment
 
-See [docs/deployment/coolify.md](docs/deployment/coolify.md) for detailed Coolify deployment instructions.
+**Quick Start**: See [docs/deployment/QUICKSTART.md](docs/deployment/QUICKSTART.md) for a step-by-step guide.
+
+**Detailed Guide**: See [docs/deployment/coolify.md](docs/deployment/coolify.md) for comprehensive Coolify deployment instructions.
 
 ### Quick Deployment Steps
 
