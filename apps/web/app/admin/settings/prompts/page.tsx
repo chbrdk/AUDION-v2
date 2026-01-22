@@ -6,10 +6,10 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect, useMemo } from "react";
 import { aiAssistApi, type AiTemplateSummary, type AiTemplateDefinition, type AiTemplateUpdateRequest } from "../../../api/_lib/ai-assist";
 import { MaterialSymbol } from "../../../../components/material-symbol";
-import dynamic from "next/dynamic";
+import nextDynamic from "next/dynamic";
 
 // Code Splitting: PromptBuilder ist eine große Komponente
-const PromptBuilder = dynamic(
+const PromptBuilder = nextDynamic(
   () => import("../../../../components/prompt-builder/PromptBuilder").then((mod) => ({ default: mod.PromptBuilder })),
   {
     loading: () => <div>Loading prompt builder...</div>,
