@@ -4,8 +4,7 @@ ARG NODE_IMAGE=node:22.11.0-alpine
 
 FROM ${NODE_IMAGE} AS base
 WORKDIR /app
-ENV NODE_ENV=development \
-    NEXT_TELEMETRY_DISABLED=1 \
+ENV NEXT_TELEMETRY_DISABLED=1 \
     NEXT_CACHE_DIR=/app/apps/web/.next/cache
 RUN corepack enable && npm config set fund false && npm config set audit false
 
@@ -30,6 +29,8 @@ RUN --mount=type=cache,target=/root/.npm \
 
 FROM deps AS builder
 ARG RUN_WEB_BUILD=false
+ARG NODE_ENV=production
+ENV NODE_ENV=${NODE_ENV}
 COPY packages/types packages/types
 COPY apps/web apps/web
 RUN npm run build --workspace packages/types
