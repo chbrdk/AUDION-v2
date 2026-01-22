@@ -1,3 +1,6 @@
+// Disable static generation to prevent prerendering issues with ThemeRegistry (useContext)
+export const dynamic = 'force-dynamic';
+
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { Noto_Sans_JP } from "next/font/google";
