@@ -1,5 +1,9 @@
+"use client";
+
+// #region agent log
 // Disable static generation to prevent prerendering issues
 export const dynamic = 'force-dynamic';
+// #endregion
 
 import Link from "next/link";
 

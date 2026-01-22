@@ -1,5 +1,10 @@
 "use client";
 
+// #region agent log
+// Disable static generation to prevent prerendering issues with useState/useContext
+export const dynamic = 'force-dynamic';
+// #endregion
+
 import { useCallback, useState } from "react";
 import {
   Box,
