@@ -325,17 +325,18 @@ const darkTheme = createTheme({
 
 export const ThemeRegistry = ({ children }: { children: ReactNode }) => {
   // #region agent log
-  // Workaround for Next.js 16 prerendering bug: check if we're in a browser context
-  // During prerendering, React context is null, so we return children without theme
-  // This prevents useContext from being called during prerendering
+  // Hooks must be called unconditionally (Rules of Hooks)
+  // We'll check for browser context after hooks are called
+  const [themeMode, setThemeMode] = useState<ThemeMode>("light");
+  const [mounted, setMounted] = useState(false);
   const isBrowser = typeof window !== 'undefined';
+  
+  // During SSR/prerendering, return children without theme context
+  // This prevents useContext from being called during prerendering
   if (!isBrowser) {
-    // During SSR/prerendering, return children without theme context
     return <>{children}</>;
   }
   // #endregion
-  const [themeMode, setThemeMode] = useState<ThemeMode>("light");
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     // Load theme from localStorage on mount
