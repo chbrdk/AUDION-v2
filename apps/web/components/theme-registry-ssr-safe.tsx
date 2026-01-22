@@ -85,11 +85,18 @@ export const ThemeRegistrySSRSafe = ({ children }: { children: ReactNode }) => {
   const [mounted, setMounted] = useState(false);
   const isBrowser = typeof window !== 'undefined';
   
-  // During SSR/prerendering, we need to provide MUI ThemeProvider
-  // But MUI ThemeProvider uses useContext internally, which fails during prerendering
-  // Solution: Use a try-catch wrapper or provide a minimal theme setup
-  // For now, we'll provide the full ThemeProvider even during SSR
-  // The error might be coming from a different source
+  // During SSR/prerendering, provide minimal ThemeContext without MUI ThemeProvider
+  // MUI ThemeProvider uses useContext internally, which fails during prerendering
+  // We wrap MUI ThemeProvider in a try-catch or provide a fallback
+  if (!isBrowser) {
+    // During SSR, provide ThemeContext but skip MUI ThemeProvider
+    // MUI components will fall back to default theme during prerendering
+    return (
+      <ThemeContext.Provider value={{ themeMode: "light", toggleTheme: () => {} }}>
+        {children}
+      </ThemeContext.Provider>
+    );
+  }
   // #endregion
 
   useEffect(() => {
