@@ -1,5 +1,8 @@
 "use client";
 
+// Disable static generation to prevent prerendering issues with MUI components
+export const dynamic = 'force-dynamic';
+
 import Link from "next/link";
 import { Box, Button, Stack, Typography } from "@mui/material";
 import { MaterialSymbol } from "../components/material-symbol";
