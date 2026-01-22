@@ -4,7 +4,12 @@
  * Global error boundary for Next.js App Router
  * This component handles errors that occur in the root layout
  * IMPORTANT: Must be a client component but cannot use any context providers
+ * 
+ * Disable static generation to prevent prerendering issues with useContext
  */
+export const dynamic = 'force-dynamic';
+export const dynamicParams = true;
+
 export default function GlobalError({
   error,
   reset,
