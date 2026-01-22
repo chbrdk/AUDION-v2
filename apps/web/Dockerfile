@@ -16,10 +16,13 @@ COPY tsconfig.base.json ./
 # Copy workspace package.json files
 COPY apps/web/package.json apps/web/
 COPY packages/types/package.json packages/types/
-# Install dependencies with workspace support (npm workspaces handles linking automatically)
+# Install dependencies with workspace support
+# Create minimal workspace structure for npm to recognize workspaces
+RUN mkdir -p apps/web packages/types
 RUN --mount=type=cache,target=/root/.npm \
-    npm install --workspaces --legacy-peer-deps || \
-    npm install --include-workspace-root --legacy-peer-deps
+    npm install --include-workspace-root --legacy-peer-deps 2>&1 || \
+    (echo "npm install failed, trying without workspace flags..." && \
+     npm install --legacy-peer-deps)
 
 FROM deps AS builder
 ARG RUN_WEB_BUILD=false
