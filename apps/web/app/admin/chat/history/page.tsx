@@ -104,7 +104,11 @@ export default function ChatHistoryPage() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           InputProps={{
-            startAdornment: <MaterialSymbol icon="search" fontSize={20} sx={{ mr: 1, opacity: 0.6 }} />,
+            startAdornment: (
+              <Box component="span" sx={{ mr: 1, opacity: 0.6, display: 'flex', alignItems: 'center' }}>
+                <MaterialSymbol icon="search" fontSize={20} />
+              </Box>
+            ),
           }}
           sx={{ maxWidth: { md: 400 } }}
         />

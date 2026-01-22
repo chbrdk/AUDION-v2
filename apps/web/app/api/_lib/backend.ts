@@ -77,6 +77,20 @@ export function getVoiceApiBase(): string {
 }
 
 /**
+ * Get the indexing API base URL
+ * @returns The base URL for the indexing API
+ */
+export function getIndexingApiBase(): string {
+  const publicUrl = process.env.NEXT_PUBLIC_INDEXING_API_URL?.trim();
+  if (publicUrl) {
+    return publicUrl;
+  }
+  
+  // Default to internal Docker Compose service name
+  return process.env.INDEXING_API_URL || 'http://indexing-api:8000';
+}
+
+/**
  * Get the base path for Next.js API routes
  * This ensures client-side fetch calls include the basePath when configured
  * @returns The base path (e.g., '/audion' or '')
