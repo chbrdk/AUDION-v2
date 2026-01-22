@@ -85,10 +85,15 @@ export const ThemeRegistrySSRSafe = ({ children }: { children: ReactNode }) => {
   const [mounted, setMounted] = useState(false);
   const isBrowser = typeof window !== 'undefined';
   
-  // During SSR/prerendering, return children without theme to avoid useContext errors
+  // During SSR/prerendering, return children without MUI ThemeProvider
   // This prevents MUI components from trying to access a non-existent ThemeContext
+  // We still provide a basic ThemeContext for components that need it
   if (!isBrowser) {
-    return <>{children}</>;
+    return (
+      <ThemeContext.Provider value={{ themeMode: "light", toggleTheme: () => {} }}>
+        {children}
+      </ThemeContext.Provider>
+    );
   }
   // #endregion
 
