@@ -415,7 +415,9 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
               }}
               aria-label="Toggle navigation"
             >
-              <MaterialSymbol icon="menu" fontSize={{ xs: 48, md: 32 }} />
+              <Box sx={{ fontSize: { xs: 48, md: 32 }, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <MaterialSymbol icon="menu" />
+              </Box>
             </IconButton>
           </Box>
           
