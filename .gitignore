@@ -20,3 +20,6 @@ __pycache__/
 /coverage/
 /reports/
 
+.env.bak
+.env*
+*.bak
