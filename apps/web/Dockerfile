@@ -19,10 +19,20 @@ COPY packages/types/package.json packages/types/
 # Install dependencies with workspace support
 # Create minimal workspace structure for npm to recognize workspaces
 RUN mkdir -p apps/web packages/types
+# Debug: Show what we have
+RUN echo "=== Package files ===" && \
+    ls -la package.json package-lock.json && \
+    ls -la apps/web/package.json && \
+    ls -la packages/types/package.json && \
+    echo "=== Installing dependencies ==="
 RUN --mount=type=cache,target=/root/.npm \
-    npm install --include-workspace-root --legacy-peer-deps 2>&1 || \
-    (echo "npm install failed, trying without workspace flags..." && \
-     npm install --legacy-peer-deps)
+    npm install --include-workspace-root --legacy-peer-deps || \
+    (echo "=== First attempt failed, trying without workspace flags ===" && \
+     npm install --legacy-peer-deps || \
+     (echo "=== Both attempts failed ===" && \
+      cat package.json && \
+      cat apps/web/package.json && \
+      exit 1))
 
 FROM deps AS builder
 ARG RUN_WEB_BUILD=false
