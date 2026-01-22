@@ -19,6 +19,12 @@ const nextConfig = {
   },
   // Disable static generation for error pages
   output: 'standalone',
+  // Disable prerendering for error routes
+  experimental: {
+    ...nextConfig.experimental,
+    // Disable static optimization to prevent prerendering errors
+    isrMemoryCacheSize: 0,
+  },
   // Optimize bundle size
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? {
