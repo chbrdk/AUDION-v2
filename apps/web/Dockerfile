@@ -18,18 +18,12 @@ COPY apps/web/package.json apps/web/
 COPY packages/types/package.json packages/types/
 COPY packages/types/src packages/types/src
 COPY packages/types/tsconfig.json packages/types/
-# Install dependencies - try with verbose output to see errors
+# Install dependencies - ensure node_modules is created even if install has warnings
 RUN --mount=type=cache,target=/root/.npm \
-    npm install --include-workspace-root --legacy-peer-deps --loglevel=verbose 2>&1 | head -100 || \
-    (echo "=== First attempt failed, trying without workspace flags ===" && \
-     npm install --legacy-peer-deps --loglevel=verbose 2>&1 | head -100 || \
-     (echo "=== Both attempts failed, showing package files ===" && \
-      cat package.json && \
-      echo "---" && \
-      cat apps/web/package.json && \
-      echo "---" && \
-      cat packages/types/package.json && \
-      exit 1))
+    (npm install --include-workspace-root --legacy-peer-deps || \
+     npm install --legacy-peer-deps || \
+     (echo "npm install failed completely" && exit 1)) && \
+    ls -la node_modules || (echo "node_modules not created" && exit 1)
 
 FROM deps AS builder
 ARG RUN_WEB_BUILD=false
