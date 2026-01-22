@@ -17,13 +17,13 @@
     "format": "biome format ."
   },
   "devDependencies": {
+    "@biomejs/biome": "2.3.6",
     "@rushstack/eslint-patch": "1.15.0",
+    "@types/d3-dsv": "^3.0.7",
     "@typescript-eslint/eslint-plugin": "8.47.0",
     "@typescript-eslint/parser": "8.47.0",
-    "@biomejs/biome": "2.3.6",
-    "globals": "16.5.0",
     "eslint": "9.39.1",
+    "globals": "16.5.0",
     "typescript": "5.9.3"
   }
 }
-

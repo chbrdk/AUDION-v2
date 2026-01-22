@@ -1,5 +1,8 @@
 "use client";
 
+// Disable static generation to prevent prerendering issues with useState/useContext
+export const dynamic = 'force-dynamic';
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useParams } from "next/navigation";

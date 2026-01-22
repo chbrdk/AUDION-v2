@@ -1,5 +1,8 @@
 "use client";
 
+// Disable static generation to prevent prerendering issues with useState/useContext
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { journeysApi, type JourneyCreate, type JourneyGenerateRequest } from "../../../api/_lib/journeys";

@@ -12,13 +12,18 @@ Wenn du bereits eine GitHub App in Coolify eingerichtet hast, kannst du direkt z
 
 1. **In Coolify**: Gehe zu **Settings** → **Source Providers** (oder **Git Providers**)
 2. Klicke auf **GitHub** oder **Add GitHub App**
-3. Folge den Anweisungen:
+3. **Modal "New GitHub App" ausfüllen**:
+   - **Name**: `audion-github-app` (oder automatisch generierten Namen behalten)
+   - **Organization**: Leer lassen (für persönlichen Account) oder deine Organization auswählen
+   - **System Wide**: ✅ Ankreuzen (empfohlen, macht die App für alle verfügbar)
+   - Klicke **Create** oder **Save**
+4. **Folge den Anweisungen**:
    - Du wirst zu GitHub weitergeleitet
    - Autorisiere die Coolify GitHub App
    - Wähle die Repositories aus, auf die Coolify zugreifen soll
-   - Oder wähle "All repositories" für vollständigen Zugriff
+   - **Wichtig**: Wähle `AUDION-v2` aus (oder "All repositories" für vollständigen Zugriff)
 
-**Wichtig**: Stelle sicher, dass `chbrdk/AUDION-v2` in der Liste der autorisierten Repositories ist!
+**Detaillierte Anleitung**: Siehe [COOLIFY_GITHUB_APP_MODAL.md](COOLIFY_GITHUB_APP_MODAL.md) für eine Schritt-für-Schritt-Anleitung zum Modal.
 
 ## Schritt 2: Repository in Coolify verbinden
 

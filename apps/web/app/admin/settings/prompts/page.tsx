@@ -1,5 +1,8 @@
 "use client";
 
+// Disable static generation to prevent prerendering issues with useState/useContext
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect, useMemo } from "react";
 import { aiAssistApi, type AiTemplateSummary, type AiTemplateDefinition, type AiTemplateUpdateRequest } from "../../../api/_lib/ai-assist";
 import { MaterialSymbol } from "../../../../components/material-symbol";

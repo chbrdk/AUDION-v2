@@ -1,5 +1,8 @@
 "use client";
 
+// Disable static generation to prevent prerendering issues with useState/useContext
+export const dynamic = 'force-dynamic';
+
 import { useEffect, useMemo, useState, useRef, Suspense, type ReactNode } from "react";
 import {
   alpha,
