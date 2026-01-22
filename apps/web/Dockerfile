@@ -14,10 +14,9 @@ COPY package.json package-lock.json ./
 COPY tsconfig.base.json ./
 COPY apps/web/package.json apps/web/
 COPY packages/types/package.json packages/types/
-# Try npm ci first, fallback to npm install if it fails (more robust for workspaces)
+# Use npm install instead of npm ci for better workspace compatibility
 RUN --mount=type=cache,target=/root/.npm \
-    (npm ci --include-workspace-root --install-links || \
-     npm install --include-workspace-root --install-links --legacy-peer-deps)
+    npm install --include-workspace-root --install-links --legacy-peer-deps
 
 FROM deps AS builder
 ARG RUN_WEB_BUILD=false
