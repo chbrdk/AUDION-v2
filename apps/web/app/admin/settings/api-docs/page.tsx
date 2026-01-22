@@ -1,12 +1,12 @@
 "use client";
 
+// Disable static generation to prevent prerendering issues with useState/useContext
+export const dynamic = 'force-dynamic';
+
 import { useState } from "react";
 import { Box, Alert, Typography, Button } from "@mui/material";
 import { MaterialSymbol } from "../../../../components/material-symbol";
 import { getPersonaBackendBase } from "../../../api/_lib/backend";
-
-// Disable static generation to prevent prerendering issues with useState/useContext
-export const dynamic = 'force-dynamic';
 
 export default function SettingsApiDocsPage() {
   const [iframeError, setIframeError] = useState(false);
