@@ -10,11 +10,16 @@ ENV NODE_ENV=development \
 RUN corepack enable && npm config set fund false && npm config set audit false
 
 FROM base AS deps
+# Copy workspace configuration first
 COPY package.json package-lock.json ./
 COPY tsconfig.base.json ./
+# Copy workspace package.json files
 COPY apps/web/package.json apps/web/
 COPY packages/types/package.json packages/types/
-# Use npm install instead of npm ci for better workspace compatibility
+# Copy workspace source files (needed for --install-links to work)
+COPY packages/types/src packages/types/src
+COPY packages/types/tsconfig.json packages/types/
+# Install dependencies with workspace support
 RUN --mount=type=cache,target=/root/.npm \
     npm install --include-workspace-root --install-links --legacy-peer-deps
 
