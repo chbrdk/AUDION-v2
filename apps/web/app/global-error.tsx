@@ -3,7 +3,7 @@
 /**
  * Global error boundary for Next.js App Router
  * This component handles errors that occur in the root layout
- * and must not depend on any context providers that might not be available during build
+ * IMPORTANT: Must be a client component but cannot use any context providers
  */
 export default function GlobalError({
   error,
@@ -12,28 +12,44 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  // Use inline event handler to avoid any context dependencies
+  const handleReset = () => {
+    if (typeof window !== 'undefined') {
+      if (typeof reset === 'function') {
+        reset();
+      } else {
+        window.location.reload();
+      }
+    }
+  };
+
   return (
     <html lang="en">
-      <body>
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Error - Audion</title>
+      </head>
+      <body style={{ margin: 0, padding: 0, fontFamily: 'system-ui, sans-serif' }}>
         <div style={{ 
           padding: '2rem', 
           fontFamily: 'system-ui, sans-serif',
           maxWidth: '600px',
           margin: '0 auto'
         }}>
-          <h1 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>
+          <h1 style={{ fontSize: '1.5rem', marginBottom: '1rem', marginTop: 0 }}>
             Something went wrong!
           </h1>
           <p style={{ marginBottom: '1rem', color: '#666' }}>
-            {error.message || 'An unexpected error occurred'}
+            {error?.message || 'An unexpected error occurred'}
           </p>
-          {error.digest && (
+          {error?.digest && (
             <p style={{ fontSize: '0.875rem', color: '#999', marginBottom: '1rem' }}>
               Error ID: {error.digest}
             </p>
           )}
           <button
-            onClick={reset}
+            onClick={handleReset}
             style={{
               padding: '0.5rem 1rem',
               backgroundColor: '#000',
