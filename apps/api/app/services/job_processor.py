@@ -8,15 +8,21 @@ from uuid import UUID
 
 import structlog
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 
-from app.db import get_session
+from app.db import get_session, engine
 from app.models import ProcessingJob, Document
 from app.services.ingestion import IngestionService
 from app.services.celery_health import check_worker_available
 
 logger = structlog.get_logger(__name__)
 ingestion_service = IngestionService()
+
+# Ensure search_path is set before using models
+# This is done by the engine's connect event listener, but we ensure it here too
+def _ensure_search_path(session):
+    """Ensure search_path is set to audion schema."""
+    session.execute(text("SET search_path = audion, public"))
 
 
 def process_pending_jobs(max_age_seconds: int = 300) -> int:
@@ -35,6 +41,9 @@ def process_pending_jobs(max_age_seconds: int = 300) -> int:
     
     try:
         with get_session() as session:
+            # Ensure search_path is set to audion schema before querying
+            _ensure_search_path(session)
+            
             # Find pending jobs older than max_age_seconds
             cutoff_time = datetime.now(timezone.utc) - timedelta(seconds=max_age_seconds)
             pending_jobs = session.scalars(

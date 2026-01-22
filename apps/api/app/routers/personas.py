@@ -31,6 +31,12 @@ from ..schemas import (
     PersonaResponse,
 )
 from ..services.ai_assist import AiAssistService
+from ..services.persona_ai_context import (
+    build_persona_ai_context as _build_persona_ai_context,
+    build_persona_goals_ai_context as _build_persona_goals_ai_context,
+    build_persona_interests_ai_context as _build_persona_interests_ai_context,
+    build_persona_values_ai_context as _build_persona_values_ai_context,
+)
 from ..services.persona_generation import PersonaGenerationService
 from ..services.persona_store import PersonaService
 from ..services.target_group_store import TargetGroupService
@@ -197,58 +203,6 @@ def _persona_existing_values(persona: Persona) -> List[str]:
                 elif desc:
                     values.append(desc)
     return values
-
-
-def _build_persona_ai_context(session: Session, persona: Persona, max_items: int) -> Dict[str, Any]:
-    profile_json = json.dumps(persona.profile or {}, ensure_ascii=False, indent=2)
-    existing_pain_points = "\n".join(_persona_existing_pain_points(persona)) or "Keine Pain Points dokumentiert."
-    return {
-        "persona_name": persona.name,
-        "persona_segment": persona.segment,
-        "persona_profile": profile_json,
-        "persona_pain_points": existing_pain_points,
-        "target_group_summary": _persona_target_group_summary(session, persona),
-        "max_items": max_items,
-    }
-
-
-def _build_persona_goals_ai_context(session: Session, persona: Persona, max_items: int) -> Dict[str, Any]:
-    profile_json = json.dumps(persona.profile or {}, ensure_ascii=False, indent=2)
-    existing_goals = "\n".join(_persona_existing_goals(persona)) or "Keine Goals dokumentiert."
-    return {
-        "persona_name": persona.name,
-        "persona_segment": persona.segment,
-        "persona_profile": profile_json,
-        "persona_goals": existing_goals,
-        "target_group_summary": _persona_target_group_summary(session, persona),
-        "max_items": max_items,
-    }
-
-
-def _build_persona_interests_ai_context(session: Session, persona: Persona, max_items: int) -> Dict[str, Any]:
-    profile_json = json.dumps(persona.profile or {}, ensure_ascii=False, indent=2)
-    existing_interests = "\n".join(_persona_existing_interests(persona)) or "Keine Interests dokumentiert."
-    return {
-        "persona_name": persona.name,
-        "persona_segment": persona.segment,
-        "persona_profile": profile_json,
-        "persona_interests": existing_interests,
-        "target_group_summary": _persona_target_group_summary(session, persona),
-        "max_items": max_items,
-    }
-
-
-def _build_persona_values_ai_context(session: Session, persona: Persona, max_items: int) -> Dict[str, Any]:
-    profile_json = json.dumps(persona.profile or {}, ensure_ascii=False, indent=2)
-    existing_values = "\n".join(_persona_existing_values(persona)) or "Keine Values dokumentiert."
-    return {
-        "persona_name": persona.name,
-        "persona_segment": persona.segment,
-        "persona_profile": profile_json,
-        "persona_values": existing_values,
-        "target_group_summary": _persona_target_group_summary(session, persona),
-        "max_items": max_items,
-    }
 
 
 @router.post(
@@ -702,7 +656,48 @@ def delete_persona(persona_id: str, actor: str | None = Query(None), session: Se
     Documents may be in various states of processing (pending, processing, completed, or failed).
     """
 )
-def list_persona_documents(persona_id: str, session: Session = Depends(get_db)) -> List[PersonaDocument]:
+async def list_persona_documents(persona_id: str, session: Session = Depends(get_db)) -> List[PersonaDocument]:
+    from ..core.config import get_settings
+    from ..services.storion_client import storion_client
+    import structlog
+    import uuid as uuid_module
+    
+    logger = structlog.get_logger(__name__)
+    settings = get_settings()
+    
+    # Try to get from STORION if proxy enabled
+    if settings.use_storion_proxy:
+        try:
+            storion_files = await storion_client.list_files(
+                service="audion",
+                entity_type="persona",
+                entity_id=persona_id,
+            )
+            
+            # Convert STORION files to PersonaDocument format
+            documents = []
+            for file_data in storion_files:
+                # Create a minimal Document object for serialization
+                document = Document(
+                    id=uuid4(),  # Temporary ID, STORION file_id is in object_key
+                    filename=file_data.get("filename", ""),
+                    content_type=file_data.get("content_type", ""),
+                    size_bytes=file_data.get("size", 0),
+                    status=file_data.get("status", "pending"),
+                    object_key=file_data.get("id", ""),  # STORION file_id
+                    file_path=file_data.get("id", ""),
+                    persona_id=uuid_module.UUID(persona_id),
+                    uploaded_by=file_data.get("uploaded_by"),
+                )
+                documents.append(persona_service.serialize_document(document, session=session))
+            
+            if documents:
+                return documents
+        except Exception as e:
+            logger.warning("document.list.storion_failed", error=str(e), persona_id=persona_id)
+            # Fallback to local query
+    
+    # Local query (fallback or if proxy disabled)
     persona = _get_persona_or_404(session, persona_id)
     try:
         return persona_service.list_documents(session, persona_id)
@@ -741,12 +736,66 @@ async def upload_persona_document(
     uploaded_by: str = Form("persona-admin-ui"),
     session: Session = Depends(get_db),
 ) -> PersonaDocument:
+    from ..core.config import get_settings
+    from ..services.storion_client import storion_client
+    import structlog
+    
+    logger = structlog.get_logger(__name__)
+    settings = get_settings()
+    
     persona = _get_persona_or_404(session, persona_id)
     contents = await file.read()
     if not contents:
         raise HTTPException(status_code=400, detail="File was empty")
     content_type = file.content_type or "application/octet-stream"
     filename = file.filename or "upload.bin"
+    
+    # Proxy to STORION if enabled
+    if settings.use_storion_proxy:
+        try:
+            logger.info("document.upload.proxy_to_storion", persona_id=persona_id, filename=filename)
+            
+            # Upload to STORION
+            result = await storion_client.upload_file(
+                file_content=contents,
+                filename=filename,
+                service="audion",
+                entity_type="persona",
+                entity_id=str(persona.id),
+                uploaded_by=uploaded_by,
+            )
+            
+            # Create local document record for backward compatibility
+            document_id = uuid4()
+            document = Document(
+                id=document_id,
+                filename=filename,
+                content_type=content_type,
+                size_bytes=len(contents),
+                status="processing",  # Will be updated by STORION processing
+                object_key=result.get("file_id", ""),  # Store STORION file_id
+                file_path=result.get("file_id", ""),
+                persona_id=persona.id,
+                uploaded_by=uploaded_by,
+            )
+            session.add(document)
+            session.commit()
+            
+            logger.info("document.upload.storion_success", 
+                       document_id=str(document.id), 
+                       storion_file_id=result.get("file_id"),
+                       job_id=result.get("job_id"))
+            
+            session.refresh(document)
+            persona_service.invalidate_cache(persona_id)
+            return persona_service.serialize_document(document, session=session)
+        
+        except Exception as e:
+            logger.error("document.upload.storion_failed", error=str(e), exc_info=True)
+            # Fallback to local processing if STORION fails
+            logger.warning("document.upload.fallback_to_local", persona_id=persona_id)
+    
+    # Local processing (fallback or if proxy disabled)
     document_id = uuid4()
     key = f"personas/{persona_id}/documents/{document_id}/{filename}"
     
@@ -774,14 +823,10 @@ async def upload_persona_document(
     storage.upload(key=key, data=contents, content_type=content_type)
     
     # Get the persistent file path for ingestion (same as storage path)
-    from ..core.config import get_settings
-    settings = get_settings()
     data_dir = Path(settings.data_dir)
     persistent_file = data_dir / key.lstrip("/")
     
     # Enqueue ingestion task with persistent file path
-    import structlog
-    logger = structlog.get_logger(__name__)
     logger.info("document.upload.enqueue", document_id=str(document.id), file_path=str(persistent_file), persona_id=str(persona_id))
     enqueue_ingestion(str(document.id), str(persistent_file))
     logger.info("document.upload.enqueued", document_id=str(document.id))

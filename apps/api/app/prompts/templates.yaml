@@ -4,8 +4,8 @@ templates:
     description: "Generate concise actions, thoughts, touchpoints or opportunities for a single journey phase."
     category: journey
     tags: ["journey", "phase", "moments", "touchpoints"]
-    default_provider: anthropic
-    default_model: claude-haiku-4-5-20251001
+    default_provider: openai
+    default_model: gpt-5-mini
     temperature: 0.55
     max_tokens: 900
     prompt: |
@@ -61,8 +61,8 @@ templates:
     description: "Expand or improve the narrative description for a journey phase."
     category: journey
     tags: ["journey", "description"]
-    default_provider: anthropic
-    default_model: claude-haiku-4-5-20251001
+    default_provider: openai
+    default_model: gpt-5-mini
     temperature: 0.5
     max_tokens: 600
     prompt: |
@@ -85,8 +85,8 @@ templates:
     description: "Suggest additional pain points or frictions for a selected persona."
     category: persona
     tags: ["persona", "pain_points"]
-    default_provider: anthropic
-    default_model: claude-haiku-4-5-20251001
+    default_provider: openai
+    default_model: gpt-5-mini
     temperature: 0.65
     max_tokens: 800
     prompt: |
@@ -119,8 +119,8 @@ templates:
     description: "Suggest additional goals or aspirations for a selected persona."
     category: persona
     tags: ["persona", "goals"]
-    default_provider: anthropic
-    default_model: claude-haiku-4-5-20251001
+    default_provider: openai
+    default_model: gpt-5-mini
     temperature: 0.65
     max_tokens: 800
     prompt: |
@@ -153,8 +153,8 @@ templates:
     description: "Suggest additional interests or hobbies for a selected persona."
     category: persona
     tags: ["persona", "interests"]
-    default_provider: anthropic
-    default_model: claude-haiku-4-5-20251001
+    default_provider: openai
+    default_model: gpt-5-mini
     temperature: 0.65
     max_tokens: 800
     prompt: |
@@ -187,8 +187,8 @@ templates:
     description: "Suggest additional values or principles for a selected persona."
     category: persona
     tags: ["persona", "values"]
-    default_provider: anthropic
-    default_model: claude-haiku-4-5-20251001
+    default_provider: openai
+    default_model: gpt-5-mini
     temperature: 0.65
     max_tokens: 800
     prompt: |
@@ -221,8 +221,8 @@ templates:
     description: "Generate personality traits based on knowledge graph relationships and research context."
     category: persona
     tags: ["persona", "traits", "knowledge_graph"]
-    default_provider: anthropic
-    default_model: claude-haiku-4-5-20251001
+    default_provider: openai
+    default_model: gpt-5-mini
     temperature: 0.6
     max_tokens: 600
     prompt: |
@@ -282,8 +282,8 @@ templates:
     description: "Generate vocabulary words based on knowledge graph relationships and research context."
     category: persona
     tags: ["persona", "vocabulary", "communication", "knowledge_graph"]
-    default_provider: anthropic
-    default_model: claude-haiku-4-5-20251001
+    default_provider: openai
+    default_model: gpt-5-mini
     temperature: 0.6
     max_tokens: 600
     prompt: |
@@ -343,8 +343,8 @@ templates:
     description: "Generate a complete journey phase including name, description, duration, and expected emotion based on journey context."
     category: journey
     tags: ["journey", "phase", "emotion", "creation"]
-    default_provider: anthropic
-    default_model: claude-haiku-4-5-20251001
+    default_provider: openai
+    default_model: gpt-5-mini
     temperature: 0.6
     max_tokens: 1200
     prompt: |
@@ -421,8 +421,8 @@ templates:
     description: "Generate a complete customer journey map with multiple phases, elements, and emotions based on target group and personas."
     category: journey
     tags: ["journey", "generation", "full", "phases"]
-    default_provider: anthropic
-    default_model: claude-haiku-4-5-20251001
+    default_provider: openai
+    default_model: gpt-5-mini
     temperature: 0.6
     max_tokens: 4096
     prompt: |
@@ -491,8 +491,8 @@ templates:
     description: "Generate a concise, user-focused name for a journey phase."
     category: journey
     tags: ["journey", "phase", "name"]
-    default_provider: anthropic
-    default_model: claude-haiku-4-5-20251001
+    default_provider: openai
+    default_model: gpt-5-mini
     temperature: 0.6
     max_tokens: 200
     prompt: |
@@ -515,8 +515,8 @@ templates:
     description: "Suggest appropriate emotions for a journey phase based on context."
     category: journey
     tags: ["journey", "phase", "emotion"]
-    default_provider: anthropic
-    default_model: claude-haiku-4-5-20251001
+    default_provider: openai
+    default_model: gpt-5-mini
     temperature: 0.5
     max_tokens: 64
     prompt: |

@@ -48,7 +48,7 @@ def select_model_for_messages(messages: List[Dict[str, Any]]) -> str:
 
 def convert_message_with_images(msg: VoiceChatMessage) -> Dict[str, Any]:
     """
-    Konvertiert eine Message mit Bildern in Claude Vision Format.
+    Konvertiert eine Message mit Bildern in OpenAI Vision Format.
     Siehe chat.py für Details.
     """
     if not msg.images or len(msg.images) == 0:
@@ -67,22 +67,15 @@ def convert_message_with_images(msg: VoiceChatMessage) -> Dict[str, Any]:
     
     for image_data_url in msg.images:
         if image_data_url.startswith("data:image/"):
-            parts = image_data_url.split(",", 1)
-            if len(parts) == 2:
-                header = parts[0]
-                base64_data = parts[1]
-                media_type = header.split(";")[0].split(":")[1] if ":" in header else "image/jpeg"
-                
-                content_blocks.append({
-                    "type": "image",
-                    "source": {
-                        "type": "base64",
-                        "media_type": media_type,
-                        "data": base64_data
-                    }
-                })
+            # OpenAI Format: data URL direkt verwenden
+            content_blocks.append({
+                "type": "image_url",
+                "image_url": {
+                    "url": image_data_url
+                }
+            })
     
-    if not content_blocks or all(block.get("type") == "image" for block in content_blocks):
+    if not content_blocks or all(block.get("type") == "image_url" for block in content_blocks):
         content_blocks.insert(0, {
             "type": "text",
             "text": msg.content if msg.content else ""
@@ -176,7 +169,7 @@ async def voice_chat_stream(request: VoiceChatRequest) -> StreamingResponse:
             if msg.role == "system":
                 system_parts.append(msg.content)
             elif msg.role in ["user", "assistant"]:
-                # Konvertiere Message mit Bildern in Claude Vision Format
+                # Konvertiere Message mit Bildern in OpenAI Vision Format
                 anthropic_message = convert_message_with_images(msg)
                 anthropic_messages.append(anthropic_message)
         
@@ -249,34 +242,28 @@ async def voice_chat_stream(request: VoiceChatRequest) -> StreamingResponse:
 
             def collect_stream_deltas() -> None:
                 try:
-                    # Wähle Modell basierend auf Inhalt (Bilder = Sonnet, sonst Haiku)
-                    selected_model = select_model_for_messages(anthropic_messages)
+                    # Convert messages to OpenAI format
+                    openai_messages = [
+                        {"role": "system", "content": system_prompt}
+                    ]
+                    for msg in anthropic_messages:
+                        openai_messages.append({
+                            "role": msg.get("role", "user"),
+                            "content": msg.get("content", "")
+                        })
                     
-                    # Debug: Log wenn Bilder vorhanden sind
-                    has_images = any(
-                        isinstance(msg.get("content"), list) and 
-                        any(block.get("type") == "image" for block in msg.get("content", []))
-                        for msg in anthropic_messages
+                    stream = persona_agent._openai.chat.completions.create(
+                        model="gpt-5-mini",
+                        max_completion_tokens=600,
+                        messages=openai_messages,
+                        stream=True,
                     )
-                    if has_images:
-                        logger.info("voice.anthropic.streaming_with_images",
-                                   messages_count=len(anthropic_messages),
-                                   model=selected_model)
                     
-                    with persona_agent._anthropic.messages.stream(
-                        model=selected_model,
-                        max_tokens=600,
-                        temperature=0.4,
-                        system=system_prompt,
-                        messages=anthropic_messages,
-                    ) as stream:
-                        for event in stream:
-                            if event.type == "content_block_delta":
-                                delta_text = getattr(event.delta, "text", None)
-                                if delta_text is None and isinstance(event.delta, dict):
-                                    delta_text = event.delta.get("text")
-                                if delta_text:
-                                    stream_data_queue.put(delta_text)
+                    for chunk in stream:
+                        if chunk.choices and len(chunk.choices) > 0:
+                            delta = chunk.choices[0].delta
+                            if delta and delta.content:
+                                stream_data_queue.put(delta.content)
                 except Exception as exc:
                     stream_error[0] = exc
                 finally:

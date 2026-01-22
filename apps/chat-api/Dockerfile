@@ -30,5 +30,7 @@ RUN rm -f .venv/bin/python .venv/bin/python3 .venv/bin/python3.12 .venv/bin/pyth
     ln -s /usr/local/bin/python3 .venv/bin/python3.12
 ENV PATH="/app/apps/chat-api/.venv/bin:$PATH"
 ENV PYTHONPATH="/app/apps/chat-api:$PYTHONPATH"
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
+COPY apps/chat-api/start.sh /app/apps/chat-api/start.sh
+RUN chmod +x /app/apps/chat-api/start.sh
+CMD ["/app/apps/chat-api/start.sh"]
 

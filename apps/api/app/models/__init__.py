@@ -5,7 +5,7 @@ from enum import Enum as PyEnum
 from typing import Optional
 from uuid import uuid4
 
-from sqlalchemy import JSON, Column, DateTime, Enum, Float, ForeignKey, String, Text
+from sqlalchemy import Boolean, Column, DateTime, Enum, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
 
@@ -24,7 +24,81 @@ class PersonaAuditAction(PyEnum):
     published = "published"
     archived = "archived"
     restored = "restored"
-    deleted = "deleted"
+
+
+class JourneyCreationMode(PyEnum):
+    manual = "manual"
+    ai_generated = "ai_generated"
+    hybrid = "hybrid"
+
+
+class JourneyStatus(PyEnum):
+    draft = "draft"
+    active = "active"
+    validated = "validated"
+    archived = "archived"
+
+
+class JourneyElementType(PyEnum):
+    action = "action"
+    thought = "thought"
+    feeling = "feeling"
+    touchpoint = "touchpoint"
+    pain_point = "pain_point"
+    opportunity = "opportunity"
+    question = "question"
+    quote = "quote"
+
+
+class JourneyMetricType(PyEnum):
+    sessions = "sessions"
+    users = "users"
+    page_views = "page_views"
+    bounce_rate = "bounce_rate"
+    time_on_page = "time_on_page"
+    scroll_depth = "scroll_depth"
+    engagement_rate = "engagement_rate"
+    conversion_rate = "conversion_rate"
+    form_submissions = "form_submissions"
+    cta_clicks = "cta_clicks"
+    cta_click_rate = "cta_click_rate"
+    rage_clicks = "rage_clicks"
+    u_turns = "u_turns"
+    error_clicks = "error_clicks"
+    leads = "leads"
+    opportunities = "opportunities"
+    revenue = "revenue"
+
+
+class JourneyComparisonOperator(PyEnum):
+    equals = "equals"
+    not_equals = "not_equals"
+    greater_than = "greater_than"
+    less_than = "less_than"
+    greater_or_equal = "greater_or_equal"
+    less_or_equal = "less_or_equal"
+    between = "between"
+
+
+class JourneyMeasurementStatus(PyEnum):
+    good = "good"
+    warning = "warning"
+    critical = "critical"
+    no_data = "no_data"
+
+
+class JourneyInsightType(PyEnum):
+    confirmation = "confirmation"
+    contradiction = "contradiction"
+    discovery = "discovery"
+    anomaly = "anomaly"
+
+
+class JourneyInsightStatus(PyEnum):
+    new = "new"
+    acknowledged = "acknowledged"
+    actioned = "actioned"
+    dismissed = "dismissed"
 
 
 class Document(Base):
@@ -56,7 +130,7 @@ class DocumentChunk(Base):
     document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id"), nullable=False)
     knowledge_entry_id = Column(UUID(as_uuid=True), ForeignKey("target_group_knowledge_entries.id", ondelete="CASCADE"), nullable=True)
     content = Column(Text, nullable=False)
-    chunk_metadata = Column("chunk_metadata", JSON, nullable=False)
+    chunk_metadata = Column("chunk_metadata", JSONB, nullable=False)
 
     document = relationship("Document", back_populates="chunks")
     knowledge_entry = relationship("TargetGroupKnowledgeEntry", back_populates="chunks")
@@ -106,7 +180,7 @@ class Persona(Base):
     name = Column(String(128), nullable=False)
     segment = Column(String(128), nullable=False)
     headline = Column(String(256), nullable=False)
-    profile = Column(JSON, nullable=False)
+    profile = Column(JSONB, nullable=False)
     confidence = Column(Float, nullable=False)
     version = Column(String(32), nullable=False)
     target_group_id = Column(UUID(as_uuid=True), ForeignKey("target_groups.id", ondelete="SET NULL"), nullable=True)
@@ -140,7 +214,6 @@ class PersonaPrompt(Base):
     system_prompt = Column(Text, nullable=False)
     template_version = Column(String(32), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    template_metadata = Column(JSONB, nullable=True)
 
     persona = relationship("Persona", back_populates="prompt")
 
@@ -164,8 +237,8 @@ class PersonaAuditLog(Base):
     persona_id = Column(UUID(as_uuid=True), ForeignKey("personas.id"), nullable=False)
     action = Column(Enum(PersonaAuditAction, name="persona_audit_action"), nullable=False)
     actor = Column(String(128), nullable=False)
-    payload_before = Column(JSON, nullable=True)
-    payload_after = Column(JSON, nullable=True)
+    payload_before = Column(JSONB, nullable=True)
+    payload_after = Column(JSONB, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     persona = relationship("Persona", back_populates="audit_logs")
@@ -178,7 +251,7 @@ class PersonaKnowledgeEntry(Base):
     persona_id = Column(UUID(as_uuid=True), ForeignKey("personas.id", ondelete="CASCADE"), nullable=False)
     title = Column(String(256), nullable=False)
     content = Column(Text, nullable=False)
-    metadata_payload = Column("metadata", JSON, nullable=True)
+    metadata_payload = Column("metadata", JSONB, nullable=True)
     created_by = Column(String(128), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
@@ -203,7 +276,7 @@ class TargetGroupKnowledgeEntry(Base):
     target_group_id = Column(UUID(as_uuid=True), ForeignKey("target_groups.id", ondelete="CASCADE"), nullable=False)
     title = Column(String(256), nullable=False)
     content = Column(Text, nullable=False)
-    metadata_payload = Column("metadata", JSON, nullable=True)
+    metadata_payload = Column("metadata", JSONB, nullable=True)
     created_by = Column(String(128), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
@@ -211,22 +284,133 @@ class TargetGroupKnowledgeEntry(Base):
     chunks = relationship("DocumentChunk", back_populates="knowledge_entry", cascade="all, delete-orphan")
 
 
-# Import Journey models
-from .journey import (
-    Journey,
-    JourneyPhase,
-    JourneyPhaseElement,
-    JourneyExpectation,
-    JourneyMeasurement,
-    JourneyInsight,
-    JourneyChange,
-    JourneyCreationMode,
-    JourneyStatus,
-    JourneyElementType,
-    JourneyMetricType,
-    JourneyComparisonOperator,
-    JourneyMeasurementStatus,
-    JourneyInsightType,
-    JourneyInsightStatus,
-)
+class Journey(Base):
+    __tablename__ = "journeys"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    organization_id = Column(UUID(as_uuid=True), nullable=False)
+    project_id = Column(UUID(as_uuid=True), nullable=True)
+    target_group_id = Column(UUID(as_uuid=True), ForeignKey("target_groups.id", ondelete="SET NULL"), nullable=True)
+    name = Column(String(256), nullable=False)
+    description = Column(Text, nullable=True)
+    journey_type = Column(String(128), nullable=False)
+    creation_mode = Column(Enum(JourneyCreationMode, name="journey_creation_mode"), nullable=False)
+    status = Column(Enum(JourneyStatus, name="journey_status"), nullable=False, default=JourneyStatus.draft)
+    validation_score = Column(Float, nullable=True)
+    tracking_enabled = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_by = Column(String(128), nullable=True)
+
+    target_group = relationship("TargetGroup", back_populates="journeys")
+    phases = relationship("JourneyPhase", back_populates="journey", cascade="all, delete-orphan")
+
+
+class JourneyPhase(Base):
+    __tablename__ = "journey_phases"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    journey_id = Column(UUID(as_uuid=True), ForeignKey("journeys.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(256), nullable=False)
+    description = Column(Text, nullable=True)
+    phase_order = Column(Integer, nullable=False)
+    expected_duration_min = Column(Integer, nullable=True)
+    expected_duration_max = Column(Integer, nullable=True)
+    duration_unit = Column(String(32), nullable=True, default="minutes")
+    expected_emotion = Column(String(64), nullable=True)
+    emotion_intensity = Column(Float, nullable=True)
+    url_pattern = Column(JSONB, nullable=True)
+    form_id = Column(JSONB, nullable=True)
+    event_names = Column(JSONB, nullable=True)
+    validation_status = Column(String(64), nullable=True)
+    validation_score = Column(Float, nullable=True)
+    generated_by_ai = Column(Boolean, nullable=False, default=False)
+    generation_confidence = Column(Float, nullable=True)
+    source_chunks = Column(JSONB, nullable=True)
+
+    journey = relationship("Journey", back_populates="phases")
+    elements = relationship("JourneyPhaseElement", back_populates="phase", cascade="all, delete-orphan")
+    expectations = relationship("JourneyExpectation", back_populates="phase", cascade="all, delete-orphan")
+
+
+class JourneyPhaseElement(Base):
+    __tablename__ = "journey_phase_elements"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    phase_id = Column(UUID(as_uuid=True), ForeignKey("journey_phases.id", ondelete="CASCADE"), nullable=False)
+    element_type = Column(Enum(JourneyElementType, name="journey_element_type"), nullable=False)
+    content = Column(Text, nullable=False)
+    element_order = Column(Integer, nullable=False)
+    element_metadata = Column("metadata", JSONB, nullable=True)
+    source_type = Column(String(64), nullable=True)
+    source_chunk_ids = Column(JSONB, nullable=True)
+    confidence = Column(Float, nullable=True)
+
+    phase = relationship("JourneyPhase", back_populates="elements")
+
+
+class JourneyExpectation(Base):
+    __tablename__ = "journey_expectations"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    phase_id = Column(UUID(as_uuid=True), ForeignKey("journey_phases.id", ondelete="CASCADE"), nullable=False)
+    metric_type = Column(Enum(JourneyMetricType, name="journey_metric_type"), nullable=False)
+    metric_name = Column(String(128), nullable=False)
+    expected_value = Column(Float, nullable=True)
+    expected_value_max = Column(Float, nullable=True)
+    unit = Column(String(32), nullable=True)
+    comparison = Column(Enum(JourneyComparisonOperator, name="journey_comparison_operator"), nullable=False)
+    warning_threshold_percent = Column(Float, nullable=True)
+    critical_threshold_percent = Column(Float, nullable=True)
+    hypothesis = Column(Text, nullable=True)
+    based_on_persona_id = Column(UUID(as_uuid=True), ForeignKey("personas.id", ondelete="SET NULL"), nullable=True)
+    data_source = Column(String(64), nullable=False)
+    data_source_config = Column(JSONB, nullable=True)
+
+    phase = relationship("JourneyPhase", back_populates="expectations")
+    persona = relationship("Persona")
+    measurements = relationship("JourneyMeasurement", back_populates="expectation", cascade="all, delete-orphan")
+
+
+class JourneyMeasurement(Base):
+    __tablename__ = "journey_measurements"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    expectation_id = Column(UUID(as_uuid=True), ForeignKey("journey_expectations.id", ondelete="CASCADE"), nullable=False)
+    period_start = Column(DateTime, nullable=False)
+    period_end = Column(DateTime, nullable=False)
+    actual_value = Column(Float, nullable=False)
+    delta_absolute = Column(Float, nullable=True)
+    delta_percent = Column(Float, nullable=True)
+    status = Column(Enum(JourneyMeasurementStatus, name="journey_measurement_status"), nullable=False)
+    sample_size = Column(Integer, nullable=True)
+    data_source = Column(String(64), nullable=False)
+    raw_data = Column(JSONB, nullable=True)
+    synced_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    expectation = relationship("JourneyExpectation", back_populates="measurements")
+
+
+class JourneyInsight(Base):
+    __tablename__ = "journey_insights"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    journey_id = Column(UUID(as_uuid=True), ForeignKey("journeys.id", ondelete="CASCADE"), nullable=False)
+    phase_id = Column(UUID(as_uuid=True), ForeignKey("journey_phases.id", ondelete="SET NULL"), nullable=True)
+    expectation_id = Column(UUID(as_uuid=True), ForeignKey("journey_expectations.id", ondelete="SET NULL"), nullable=True)
+    insight_type = Column(Enum(JourneyInsightType, name="journey_insight_type"), nullable=False)
+    title = Column(String(256), nullable=False)
+    description = Column(Text, nullable=True)
+    ai_analysis = Column(JSONB, nullable=True)
+    ai_recommendations = Column(JSONB, nullable=True)
+    evidence = Column(JSONB, nullable=True)
+    confidence = Column(Float, nullable=True)
+    priority = Column(Float, nullable=True)
+    status = Column(Enum(JourneyInsightStatus, name="journey_insight_status"), nullable=False, default=JourneyInsightStatus.new)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    journey = relationship("Journey")
+    phase = relationship("JourneyPhase")
+    expectation = relationship("JourneyExpectation")
 

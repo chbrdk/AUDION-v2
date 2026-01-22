@@ -30,9 +30,11 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         compare_type=True,
         dialect_opts={"paramstyle": "named"},
+        version_table_schema="audion",  # Store version in audion schema
     )
 
     with context.begin_transaction():
+        # Note: search_path is set in db.py connection handler
         context.run_migrations()
 
 
@@ -44,7 +46,14 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata, compare_type=True)
+        # Set search_path to audion schema before running migrations
+        connection.execute("SET search_path = audion, public")
+        context.configure(
+            connection=connection, 
+            target_metadata=target_metadata, 
+            compare_type=True,
+            version_table_schema="audion",  # Store version in audion schema
+        )
 
         with context.begin_transaction():
             context.run_migrations()

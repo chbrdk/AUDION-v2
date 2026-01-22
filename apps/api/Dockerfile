@@ -5,7 +5,7 @@ ARG PYTHON_IMAGE=python:3.12-slim
 
 FROM ${UV_IMAGE} AS uv-base
 WORKDIR /app
-ENV UV_COMPILE_BYTECODE=1 \
+ENV UV_COMPILE_BYTECODE=0 \
     UV_LINK_MODE=copy
 
 FROM uv-base AS deps
@@ -35,6 +35,8 @@ ENV PYTHONUNBUFFERED=1
 COPY --from=proto /app/apps/api/.venv ./.venv
 COPY apps/api .
 COPY packages/proto /app/packages/proto
+COPY apps/api/start.sh /app/apps/api/start.sh
+RUN chmod +x /app/apps/api/start.sh
 ENV PATH="/app/apps/api/.venv/bin:$PATH"
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["/app/apps/api/start.sh"]
 

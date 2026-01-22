@@ -1,18 +1,18 @@
 import type { QueueStatsResponse, PersonaListResponse, ServiceStatusResponse, TargetGroupListResponse } from "@msqdx-glass/types";
-import { getPersonaBackendBase } from "../api/_lib/backend";
 import { MsqdxGlassAdminDashboard } from "../../components/admin/msqdx-glass-admin-dashboard";
 
 export const dynamic = "force-dynamic";
 
 async function fetchPersonaList(): Promise<PersonaListResponse> {
-  const internalUrl = process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL?.trim();
-  const base = internalUrl || getPersonaBackendBase({ preferPublic: false });
+  // Use absolute URL for server-side fetch
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '/audion';
+  const apiUrl = `http://localhost:3005${basePath}/api/personas?page=1&page_size=1`;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   try {
-    const response = await fetch(`${base}/personas?page=1&page_size=1`, {
+    const response = await fetch(apiUrl, {
       cache: "no-store",
       signal: controller.signal,
     });
@@ -31,21 +31,22 @@ async function fetchPersonaList(): Promise<PersonaListResponse> {
       throw new Error(`Persona backend request timeout: ${base}`);
     }
     if (error instanceof Error && error.message.includes("ECONNREFUSED")) {
-      throw new Error(`Persona backend unreachable at ${base}. Is the service running?`);
+      throw new Error(`Persona backend unreachable at ${apiUrl}. Is the service running?`);
     }
     throw error;
   }
 }
 
 async function fetchTargetGroupList(): Promise<TargetGroupListResponse> {
-  const internalUrl = process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL?.trim();
-  const base = internalUrl || getPersonaBackendBase({ preferPublic: false });
+  // Use absolute URL for server-side fetch
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '/audion';
+  const apiUrl = `http://localhost:3005${basePath}/api/target-groups?page=1&page_size=1`;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   try {
-    const response = await fetch(`${base}/target-groups?page=1&page_size=1`, {
+    const response = await fetch(apiUrl, {
       cache: "no-store",
       signal: controller.signal,
     });
@@ -64,21 +65,22 @@ async function fetchTargetGroupList(): Promise<TargetGroupListResponse> {
       throw new Error(`Target Group backend request timeout: ${base}`);
     }
     if (error instanceof Error && error.message.includes("ECONNREFUSED")) {
-      throw new Error(`Target Group backend unreachable at ${base}. Is the service running?`);
+      throw new Error(`Target Group backend unreachable at ${apiUrl}. Is the service running?`);
     }
     throw error;
   }
 }
 
 async function fetchQueueStats(): Promise<QueueStatsResponse> {
-  const internalUrl = process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL?.trim();
-  const base = internalUrl || getPersonaBackendBase({ preferPublic: false });
+  // Use absolute URL for server-side fetch
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '/audion';
+  const apiUrl = `http://localhost:3005${basePath}/api/queue/stats`;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   try {
-    const response = await fetch(`${base}/queue/stats`, {
+    const response = await fetch(apiUrl, {
       cache: "no-store",
       signal: controller.signal,
     });
@@ -97,21 +99,21 @@ async function fetchQueueStats(): Promise<QueueStatsResponse> {
       throw new Error(`Queue backend request timeout: ${base}`);
     }
     if (error instanceof Error && error.message.includes("ECONNREFUSED")) {
-      throw new Error(`Queue backend unreachable at ${base}. Is the service running?`);
+      throw new Error(`Queue backend unreachable at ${apiUrl}. Is the service running?`);
     }
     throw error;
   }
 }
 
 async function fetchServiceStatus(): Promise<ServiceStatusResponse | null> {
-  const internalUrl = process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL?.trim();
-  const base = internalUrl || getPersonaBackendBase({ preferPublic: false });
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '/audion';
+  const apiUrl = `http://localhost:3005${basePath}/api/persona-backend/health`;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   try {
-    const response = await fetch(`${base}/queue/service-status`, {
+    const response = await fetch(apiUrl, {
       cache: "no-store",
       signal: controller.signal,
     });

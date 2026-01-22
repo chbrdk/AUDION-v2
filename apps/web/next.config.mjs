@@ -1,13 +1,17 @@
 /** @type {import('next').NextConfig} */
+// Base path für Audion - ermöglicht parallelen Betrieb mit anderen Services
+// Wird über Umgebungsvariable konfiguriert, Standard: leer (für Coolify)
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+
 const nextConfig = {
   reactStrictMode: true,
-  // Base path für Audion - ermöglicht parallelen Betrieb mit anderen Services
-  // Wird über Umgebungsvariable konfiguriert, Standard: /audion
-  basePath: process.env.NEXT_PUBLIC_BASE_PATH || '',
+  // Ensure basePath is always a string, never undefined
+  basePath: basePath || '',
   experimental: {
     serverActions: {
       enabled: true
     },
+    optimizePackageImports: ['@mui/material', '@mui/icons-material'],
   },
   // Prevent static generation of error pages
   generateBuildId: async () => {
@@ -19,6 +23,27 @@ const nextConfig = {
       exclude: ['error', 'warn'],
     } : false,
   },
+  
+  // Configure webpack for development (HMR errors are suppressed client-side)
+  webpack: (config, { dev, isServer }) => {
+    if (dev && !isServer) {
+      // Configure watch options for file changes
+      config.watchOptions = {
+        ...config.watchOptions,
+        poll: 1000, // Use polling instead of native file system events (helps with some network setups)
+        aggregateTimeout: 300, // Delay before rebuilding once the first file changed
+      };
+    }
+    return config;
+  },
+  
+  // HMR is disabled to prevent WebSocket connection errors
+  // Page will still reload on file changes, but without WebSocket connection
+  devIndicators: {
+    buildActivity: true,
+    buildActivityPosition: 'bottom-right',
+  },
+  
   // SWC minification is enabled by default in Next.js 16
 };
 

@@ -36,7 +36,9 @@ class PromptTemplateRegistry:
 
     def __init__(self, template_path: str | Path | None = None) -> None:
         settings = get_settings()
-        self.template_path = Path(template_path or settings.ai_knowledge_templates_path)
+        from ..core.config import API_DIR
+        default_path = API_DIR / "app" / "prompts" / "templates.yaml"
+        self.template_path = Path(template_path or settings.ai_knowledge_templates_path or default_path)
         self._cache: dict[str, AiTemplateDefinition] = {}
         self._last_loaded_mtime: float = 0.0
 
@@ -112,7 +114,8 @@ class PromptTemplateRegistry:
         # Convert templates to YAML format
         templates_list = []
         for template in sorted(self._cache.values(), key=lambda t: t.template_id):
-            template_dict = template.model_dump()
+            # Use mode='json' to automatically convert Enums to their values
+            template_dict = template.model_dump(mode='json')
             # Convert output config properly
             if "output" in template_dict and isinstance(template_dict["output"], dict):
                 output = template_dict["output"]
@@ -575,6 +578,8 @@ class AiAssistService:
             prompt=rendered_prompt,
             context=prompt_context,
         )
+        
+        # Union logging removed - Audion is now autonomous
 
         raw_output, usage = await self._execute_prompt(
             provider=provider,
@@ -584,7 +589,21 @@ class AiAssistService:
             max_tokens=max_tokens,
         )
 
+        logger.info(
+            "ai.assist.raw_output_received",
+            template_id=template.template_id,
+            raw_output_length=len(raw_output) if raw_output else 0,
+            raw_output_preview=raw_output[:500] if raw_output else "",
+        )
+
         suggestions = self._parse_output(template, raw_output, request.max_suggestions)
+        
+        logger.info(
+            "ai.assist.parsing_complete",
+            template_id=template.template_id,
+            suggestions_count=len(suggestions),
+            raw_output_length=len(raw_output) if raw_output else 0,
+        )
         return AiAssistResponse(
             template_id=request.template_id,
             provider=provider,
@@ -661,8 +680,13 @@ class AiAssistService:
         max_tokens: int,
     ) -> tuple[str, Dict[str, Any]]:
         if provider == AiProvider.ANTHROPIC:
-            if not self._anthropic and self.settings.claude_api_key:
-                self._anthropic = Anthropic(api_key=self.settings.claude_api_key)
+            # Get API key from settings/environment variables only
+            api_key = self.settings.claude_api_key
+            if not api_key:
+                raise RuntimeError("Anthropic API key not configured. Set CLAUDE_API_KEY environment variable.")
+            
+            if not self._anthropic and api_key:
+                self._anthropic = Anthropic(api_key=api_key)
             if not self._anthropic:
                 raise RuntimeError("Anthropic API key not configured")
             message = self._anthropic.messages.create(
@@ -680,22 +704,61 @@ class AiAssistService:
             }
             return "\n".join(text_chunks).strip(), usage
 
-        if not self._openai and self.settings.openai_api_key:
-            self._openai = OpenAI(api_key=self.settings.openai_api_key)
+        # Get API key from settings/environment variables only
+        api_key = self.settings.openai_api_key
+        if not api_key:
+            raise RuntimeError("OpenAI API key not configured. Set OPENAI_API_KEY environment variable.")
+        
+        if not self._openai and api_key:
+            # Use http_client to avoid proxies parameter issues
+            import httpx
+            http_client = httpx.Client(
+                timeout=httpx.Timeout(60.0, connect=10.0),
+            )
+            self._openai = OpenAI(
+                api_key=api_key,
+                http_client=http_client,
+            )
         if not self._openai:
             raise RuntimeError("OpenAI API key not configured")
-        response = self._openai.responses.create(
+        # GPT-5 Mini only supports default temperature (1), so we don't pass temperature parameter
+        response = self._openai.chat.completions.create(
             model=model,
-            temperature=temperature,
-            max_output_tokens=max_tokens,
-            input=prompt,
+            max_completion_tokens=max_tokens,
+            messages=[{"role": "user", "content": prompt}],
         )
-        raw_text = getattr(response, "output_text", "").strip()
+        
+        # Extract response content
+        raw_text = ""
+        finish_reason = None
+        if response.choices:
+            choice = response.choices[0]
+            finish_reason = getattr(choice, "finish_reason", None)
+            raw_text = choice.message.content if choice.message.content else ""
+        
+        # Debug logging
+        logger.info(
+            "ai.assist.openai_response",
+            choices_count=len(response.choices) if response.choices else 0,
+            has_content=bool(raw_text),
+            content_length=len(raw_text) if raw_text else 0,
+            finish_reason=finish_reason,
+            content_preview=raw_text[:200] if raw_text else "",
+        )
+        
+        if not raw_text:
+            logger.warning(
+                "ai.assist.openai_empty_response",
+                choices_count=len(response.choices) if response.choices else 0,
+                finish_reason=finish_reason,
+                usage_output_tokens=getattr(response.usage, "completion_tokens", None) if hasattr(response, "usage") else None,
+            )
+        
         usage = {
-            "input_tokens": getattr(response.usage, "input_tokens", None),
-            "output_tokens": getattr(response.usage, "output_tokens", None),
+            "input_tokens": getattr(response.usage, "prompt_tokens", None),
+            "output_tokens": getattr(response.usage, "completion_tokens", None),
         }
-        return raw_text, usage
+        return raw_text.strip() if raw_text else "", usage
 
     def _parse_output(
         self,

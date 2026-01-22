@@ -5,7 +5,7 @@ from typing import List
 from uuid import UUID, uuid4
 
 import structlog
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -742,10 +742,49 @@ def delete_target_group_knowledge(
     - Document lifecycle also captured in {TARGET_GROUP_DOC_SECTION}
     """
 )
-def list_target_group_documents(
+async def list_target_group_documents(
     target_group_id: str,
     session: Session = Depends(get_db),
 ) -> List[PersonaDocument]:
+    from ..core.config import get_settings
+    from ..services.storion_client import storion_client
+    import structlog
+    import uuid as uuid_module
+    
+    logger = structlog.get_logger(__name__)
+    settings = get_settings()
+    
+    # Try to get from STORION if proxy enabled
+    if settings.use_storion_proxy:
+        try:
+            storion_files = await storion_client.list_files(
+                service="audion",
+                entity_type="target_group",
+                entity_id=target_group_id,
+            )
+            
+            # Convert STORION files to PersonaDocument format
+            documents = []
+            for file_data in storion_files:
+                document = Document(
+                    id=uuid4(),
+                    filename=file_data.get("filename", ""),
+                    content_type=file_data.get("content_type", ""),
+                    size_bytes=file_data.get("size", 0),
+                    status=file_data.get("status", "pending"),
+                    object_key=file_data.get("id", ""),
+                    file_path=file_data.get("id", ""),
+                    target_group_id=uuid_module.UUID(target_group_id),
+                    uploaded_by=file_data.get("uploaded_by"),
+                )
+                documents.append(service._to_document_payload(document, session=session, target_group_id=target_group_id))
+            
+            if documents:
+                return documents
+        except Exception as e:
+            logger.warning("document.list.storion_failed", error=str(e), target_group_id=target_group_id)
+    
+    # Local query (fallback)
     _get_target_group_or_404(session, target_group_id)
     try:
         return service.list_documents(session, target_group_id)
@@ -787,14 +826,111 @@ async def upload_target_group_document(
     target_group_id: str,
     file: UploadFile = File(...),
     uploaded_by: str = Form("target-group-admin-ui"),
+    background_tasks: BackgroundTasks = BackgroundTasks(),
     session: Session = Depends(get_db),
 ) -> PersonaDocument:
+    from ..core.config import get_settings
+    from ..services.storion_client import storion_client
+    from ..services.storion_sync import storion_sync_service
+    from ..db import get_session
+    import structlog
+    import asyncio
+    
+    logger = structlog.get_logger(__name__)
+    settings = get_settings()
+    
     tg = _get_target_group_or_404(session, target_group_id)
     contents = await file.read()
     if not contents:
         raise HTTPException(status_code=400, detail="File was empty")
     content_type = file.content_type or "application/octet-stream"
     filename = file.filename or "upload.bin"
+    
+    # Proxy to STORION if enabled
+    if settings.use_storion_proxy:
+        try:
+            logger.info("document.upload.proxy_to_storion", target_group_id=target_group_id, filename=filename)
+            
+            # Upload to STORION
+            result = await storion_client.upload_file(
+                file_content=contents,
+                filename=filename,
+                service="audion",
+                entity_type="target_group",
+                entity_id=str(tg.id),
+                uploaded_by=uploaded_by,
+            )
+            
+            storion_file_id = result.get("file_id", "")
+            job_id = result.get("job_id", "")
+            
+            # Create local document record for backward compatibility
+            document_id = uuid4()
+            document = Document(
+                id=document_id,
+                filename=filename,
+                content_type=content_type,
+                size_bytes=len(contents),
+                status="processing",
+                object_key=storion_file_id,
+                file_path=storion_file_id,
+                target_group_id=tg.id,
+                uploaded_by=uploaded_by,
+            )
+            session.add(document)
+            session.commit()
+            
+            logger.info("document.upload.storion_success", 
+                       document_id=str(document.id), 
+                       storion_file_id=storion_file_id,
+                       job_id=job_id)
+            
+            # Start background task for chunk synchronization
+            def sync_chunks_task():
+                """Background task to poll job status and sync chunks (runs async code)."""
+                import asyncio
+                try:
+                    # Create new event loop for background task
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    
+                    async def async_sync():
+                        # Get a new database session for the background task
+                        with get_session() as bg_session:
+                            # Poll job until complete
+                            await storion_sync_service.poll_job_until_complete(job_id)
+                            
+                            # Sync chunks after job completion
+                            await storion_sync_service.sync_chunks_for_target_group(
+                                session=bg_session,
+                                target_group_id=tg.id,
+                                document_id=document_id,
+                                storion_file_id=storion_file_id,
+                            )
+                    
+                    # Run async function
+                    loop.run_until_complete(async_sync())
+                    loop.close()
+                except Exception as e:
+                    logger.error(
+                        "document.upload.sync_task_failed",
+                        document_id=str(document_id),
+                        error=str(e),
+                        error_type=type(e).__name__,
+                        exc_info=True,
+                    )
+            
+            # Add background task (FastAPI will run it after response is sent)
+            background_tasks.add_task(sync_chunks_task)
+            
+            session.refresh(document)
+            return service._to_document_payload(document, session=session, target_group_id=target_group_id)
+        
+        except Exception as e:
+            logger.error("document.upload.storion_failed", error=str(e), exc_info=True)
+            logger.warning("document.upload.fallback_to_local", target_group_id=target_group_id)
+    
+    # Local processing (fallback)
     document_id = uuid4()
     key = f"target-groups/{target_group_id}/documents/{document_id}/{filename}"
 
@@ -822,8 +958,6 @@ async def upload_target_group_document(
     storage.upload(key=key, data=contents, content_type=content_type)
 
     # Get the persistent file path for ingestion (same as storage path)
-    from ..core.config import get_settings
-    settings = get_settings()
     data_dir = Path(settings.data_dir)
     persistent_file = data_dir / key.lstrip("/")
 

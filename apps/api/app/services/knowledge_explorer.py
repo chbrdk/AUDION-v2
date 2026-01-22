@@ -23,8 +23,27 @@ class KnowledgeExplorerService:
     """Service to explore and cluster knowledge chunks for target groups."""
 
     def __init__(self):
-        self._qdrant = QdrantClient(settings.qdrant_url, check_compatibility=False)
-        self._collection = "research_chunks"
+        # Determine which Qdrant to use based on STORION proxy setting
+        if settings.use_storion_proxy and settings.storion_qdrant_url:
+            # Use STORION's Qdrant directly
+            self._qdrant = QdrantClient(settings.storion_qdrant_url, check_compatibility=False)
+            self._collection = settings.storion_global_collection
+            self._use_storion = True
+            logger.info(
+                "knowledge_explorer.using_storion_qdrant",
+                qdrant_url=settings.storion_qdrant_url,
+                collection=self._collection,
+            )
+        else:
+            # Use local Qdrant (fallback or standalone mode)
+            self._qdrant = QdrantClient(settings.qdrant_url, check_compatibility=False)
+            self._collection = "research_chunks"
+            self._use_storion = False
+            logger.info(
+                "knowledge_explorer.using_local_qdrant",
+                qdrant_url=settings.qdrant_url,
+                collection=self._collection,
+            )
 
     def get_chunks_for_target_group(
         self,
@@ -48,6 +67,127 @@ class KnowledgeExplorerService:
         except ValueError as exc:
             logger.error("knowledge_explorer.invalid_target_group_id", target_group_id=target_group_id)
             raise ValueError("invalid_target_group_id") from exc
+
+        if self._use_storion:
+            # Read directly from STORION's Qdrant collection
+            return self._get_chunks_from_storion_qdrant(session, target_group_id, limit)
+        else:
+            # Fallback to local implementation (backward compatibility)
+            return self._get_chunks_from_local(session, target_group_id, limit)
+
+    def _get_chunks_from_storion_qdrant(
+        self,
+        session: Session,
+        target_group_id: str,
+        limit: int,
+    ) -> List[Dict]:
+        """Get chunks directly from STORION's Qdrant collection."""
+        try:
+            # Use scroll to get all chunks for this target group
+            # Filter by target_group_ids array in payload
+            search_filter = qmodels.Filter(
+                must=[
+                    qmodels.FieldCondition(
+                        key="target_group_ids",
+                        match=qmodels.MatchAny(any=[target_group_id]),
+                    )
+                ]
+            )
+
+            # Scroll through all points matching the filter
+            scroll_result = self._qdrant.scroll(
+                collection_name=self._collection,
+                scroll_filter=search_filter,
+                limit=limit,
+                with_payload=True,
+                with_vectors=True,
+            )
+
+            points, _ = scroll_result
+            if not points:
+                logger.info("knowledge_explorer.no_chunks_in_storion", target_group_id=target_group_id)
+                return []
+
+            logger.info(
+                "knowledge_explorer.chunks_from_storion",
+                target_group_id=target_group_id,
+                chunks_count=len(points),
+            )
+
+            # Get document lookup for filenames (from local DB)
+            chunk_ids = [str(point.id) for point in points]
+            document_ids = set()
+            for point in points:
+                payload = point.payload or {}
+                file_id = payload.get("file_id")
+                if file_id:
+                    # Try to find document by STORION file_id (stored in object_key)
+                    doc = session.scalar(
+                        select(Document).where(Document.object_key == file_id).limit(1)
+                    )
+                    if doc:
+                        document_ids.add(doc.id)
+
+            documents = session.scalars(
+                select(Document).where(Document.id.in_(document_ids))
+            ).all() if document_ids else []
+            document_map = {str(doc.id): doc for doc in documents}
+
+            # Build result from Qdrant points
+            result = []
+            for point in points:
+                payload = point.payload or {}
+                chunk_id_str = str(point.id)
+                content = payload.get("content", "")
+                
+                # Get document info
+                file_id = payload.get("file_id", "")
+                document = None
+                if file_id:
+                    # Find document by STORION file_id
+                    doc = session.scalar(
+                        select(Document).where(Document.object_key == file_id).limit(1)
+                    )
+                    if doc:
+                        document = doc
+
+                result.append({
+                    "id": chunk_id_str,
+                    "content": content,
+                    "document_id": str(document.id) if document else None,
+                    "document_filename": document.filename if document else None,
+                    "order": payload.get("order", payload.get("chunk_index", 0)),
+                    "embedding": point.vector if point.vector else None,
+                    "relevance_score": 1.0,  # Default relevance (could be enhanced)
+                    "metadata": payload.get("metadata", {}),
+                })
+
+            logger.info(
+                "knowledge_explorer.chunks_retrieved_from_storion",
+                target_group_id=target_group_id,
+                chunk_count=len(result),
+                embeddings_count=sum(1 for r in result if r.get("embedding")),
+            )
+
+            return result
+
+        except Exception as exc:
+            logger.error(
+                "knowledge_explorer.storion_qdrant_failed",
+                target_group_id=target_group_id,
+                error=str(exc),
+                exc_info=True,
+            )
+            raise
+
+    def _get_chunks_from_local(
+        self,
+        session: Session,
+        target_group_id: str,
+        limit: int,
+    ) -> List[Dict]:
+        """Get chunks from local Qdrant collection (backward compatibility)."""
+        tg_uuid = UUID(target_group_id)
 
         # Get chunk IDs from TargetGroupSource ordered by relevance
         sources = session.scalars(
@@ -363,14 +503,25 @@ class KnowledgeExplorerService:
 
         # Search for similar chunks in the same target group using query_points (new API)
         try:
-            search_filter = qmodels.Filter(
-                must=[
-                    qmodels.FieldCondition(
-                        key="target_group_id",
-                        match=qmodels.MatchValue(value=target_group_id),
-                    )
-                ]
-            )
+            # Use appropriate filter based on STORION or local mode
+            if self._use_storion:
+                search_filter = qmodels.Filter(
+                    must=[
+                        qmodels.FieldCondition(
+                            key="target_group_ids",
+                            match=qmodels.MatchAny(any=[target_group_id]),
+                        )
+                    ]
+                )
+            else:
+                search_filter = qmodels.Filter(
+                    must=[
+                        qmodels.FieldCondition(
+                            key="target_group_id",
+                            match=qmodels.MatchValue(value=target_group_id),
+                        )
+                    ]
+                )
             # Use query_points instead of search for newer Qdrant client versions
             # The query parameter accepts a vector directly
             query_result = self._qdrant.query_points(

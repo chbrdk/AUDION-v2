@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     neo4j_uri: str
     neo4j_user: str
     neo4j_password: str
-    anthropic_api_key: str
+    anthropic_api_key: str | None = None  # Deprecated, kept for backward compatibility
     indexing_api_url: str = "http://indexing-api:8000"
     elevenlabs_api_key: str | None = None
     elevenlabs_voice_id: str | None = None
@@ -39,7 +39,7 @@ class Settings(BaseSettings):
 
     otel_exporter_otlp_endpoint: str | None = None
     logfire_token: str | None = None
-    openai_api_key: str | None = None
+    openai_api_key: str  # Required for chat
     chat_use_tools: bool = True  # Enable tools/functions for chat (default: True)
 
 

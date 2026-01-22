@@ -26,7 +26,7 @@ dependencies = [
     "python-multipart==0.0.12",
     "httpx==0.28.1",
     "openai>=1.0.0",
-    "udg-glass-proto @ file:///app/packages/proto"
+    "msqdx-glass-proto @ file:///app/packages/proto"
 ]
 
 [build-system]

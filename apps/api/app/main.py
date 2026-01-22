@@ -59,6 +59,8 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    
+    # Union logging middleware removed - Audion is now autonomous
 
     app.include_router(documents_router)
     app.include_router(ai_router)

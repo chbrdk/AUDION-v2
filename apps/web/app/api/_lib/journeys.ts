@@ -270,7 +270,10 @@ export const journeysApi = {
   },
 
   getJourney: async (id: string): Promise<JourneyResponse> => {
-    const response = await fetch(`${getPersonaBackendBase()}/journeys/${id}`);
+    // Use Next.js API route instead of direct backend call
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+    const url = `${basePath}/api/persona-backend/journeys/${id}`;
+    const response = await fetch(url);
     if (!response.ok) {
       const error = await response.text().catch(() => "");
       throw new Error(error || `Backend responded with ${response.status}`);
@@ -313,7 +316,9 @@ export const journeysApi = {
     if (params?.page) searchParams.set("page", params.page.toString());
     if (params?.page_size) searchParams.set("page_size", params.page_size.toString());
     
-    const url = `${getPersonaBackendBase()}/journeys${searchParams.toString() ? `?${searchParams}` : ""}`;
+    // Use Next.js API route instead of direct backend call
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+    const url = `${basePath}/api/persona-backend/journeys${searchParams.toString() ? `?${searchParams}` : ""}`;
     const response = await fetch(url);
     if (!response.ok) {
       const error = await response.text().catch(() => "");

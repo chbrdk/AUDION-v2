@@ -72,7 +72,8 @@ export default function JourneysListPage() {
               key={journey.id}
               className="msqdx-glass-card"
               onClick={() => {
-                window.location.href = `/admin/journeys/${journey.id}`;
+                const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+                window.location.href = `${basePath}/admin/journeys/${journey.id}`;
               }}
               style={{ cursor: "pointer" }}
             >

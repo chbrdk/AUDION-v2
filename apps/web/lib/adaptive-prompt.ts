@@ -90,6 +90,9 @@ export function buildAdaptiveInstructions(context: PromptContext): string {
   const { conversationHistory, learnings, currentPhase, messageCount } = context;
   
   let instructions = `Instructions:\n`;
+  instructions += `- Always stay in character as this persona - never break character or refer to yourself as an AI\n`;
+  instructions += `- Respond from the persona's perspective, using their voice, knowledge, and experiences\n`;
+  instructions += `- Think and react as this persona would, not as an external observer\n`;
   
   // Wenn das Gespräch gerade beginnt
   if (messageCount < 3) {
@@ -255,11 +258,15 @@ export function buildAdaptiveSystemPrompt(context: PromptContext): string {
       },
     });
     
-    // KEINE adaptiven Elemente mehr hinzufügen - der Base-Prompt ist bereits vollständig
-    // Die adaptiven Elemente werden nur verwendet, wenn kein Base-Prompt vorhanden ist
+    // WICHTIG: Füge explizite Anweisung hinzu, sich in die Persona hineinzuversetzen
+    // Dies wird am Anfang hinzugefügt, damit es die höchste Priorität hat
+    const personaIdentityInstruction = `You are ${persona.name || persona.fullName || "this persona"}. You must fully embody and act as this persona. Think, speak, and respond exactly as this persona would - not as an AI assistant describing the persona, but AS the persona themselves. Immerse yourself completely in this role and maintain this identity throughout the entire conversation.\n\n`;
+    
+    prompt = personaIdentityInstruction + prompt;
   } else {
     // Fallback: Baue Prompt dynamisch aus Persona-Profil (alte Logik)
-    prompt = `You are ${persona.name || persona.fullName || "a persona"}.\n\n`;
+    // WICHTIG: Explizite Anweisung, sich in die Persona hineinzuversetzen
+    prompt = `You are ${persona.name || persona.fullName || "this persona"}. You must fully embody and act as this persona. Think, speak, and respond exactly as this persona would - not as an AI assistant describing the persona, but AS the persona themselves. Immerse yourself completely in this role and maintain this identity throughout the entire conversation.\n\n`;
     
     // Basis-Persona-Informationen
     if (persona.bio) {
@@ -270,6 +277,22 @@ export function buildAdaptiveSystemPrompt(context: PromptContext): string {
       prompt += `Headline: ${persona.headline}\n\n`;
     }
     
+    // Demografische Informationen
+    const demographics: string[] = [];
+    if (persona.age) {
+      demographics.push(`Age: ${persona.age}`);
+    }
+    if (persona.location) {
+      demographics.push(`Location: ${persona.location}`);
+    }
+    if (persona.gender) {
+      demographics.push(`Gender: ${persona.gender}`);
+    }
+    if (demographics.length > 0) {
+      prompt += `Demographics: ${demographics.join(", ")}\n\n`;
+    }
+    
+    // Communication Style
     if (persona.communicationStyle) {
       prompt += `Communication style:\n`;
       if (persona.communicationStyle.vocabulary && persona.communicationStyle.vocabulary.length > 0) {
@@ -284,12 +307,66 @@ export function buildAdaptiveSystemPrompt(context: PromptContext): string {
       prompt += `\n`;
     }
     
+    // Traits (Persönlichkeitsmerkmale)
+    if (persona.traits && Object.keys(persona.traits).length > 0) {
+      prompt += `Personality traits:\n`;
+      Object.entries(persona.traits).forEach(([trait, value]) => {
+        prompt += `- ${trait}: ${value}/10\n`;
+      });
+      prompt += `\n`;
+    }
+    
+    // Pain Points (Frustrationen/Probleme)
+    if (persona.painPoints && persona.painPoints.length > 0) {
+      prompt += `Pain points and frustrations:\n`;
+      persona.painPoints.forEach((pp) => {
+        const label = pp.label || "";
+        const evidence = pp.evidenceCount ? ` (${pp.evidenceCount} evidence)` : "";
+        prompt += `- ${label}${evidence}\n`;
+      });
+      prompt += `\n`;
+    }
+    
+    // Goals (Ziele)
+    if (persona.goals && persona.goals.length > 0) {
+      prompt += `Goals and aspirations:\n`;
+      persona.goals.forEach((goal) => {
+        const label = goal.label || "";
+        const priority = goal.priority ? ` (Priority: ${goal.priority})` : "";
+        prompt += `- ${label}${priority}\n`;
+      });
+      prompt += `\n`;
+    }
+    
+    // Interests
     if (persona.interests && persona.interests.length > 0) {
       prompt += `Interests: ${persona.interests.join(", ")}\n\n`;
     }
     
+    // Values
     if (persona.values && persona.values.length > 0) {
       prompt += `Values: ${persona.values.join(", ")}\n\n`;
+    }
+    
+    // Media Affinity & Attention Span
+    if (persona.media_affinity !== null && persona.media_affinity !== undefined) {
+      prompt += `Media affinity: ${persona.media_affinity}/10\n`;
+    }
+    if (persona.attentionSpan) {
+      prompt += `Attention span: ${persona.attentionSpan}\n`;
+    }
+    if (persona.media_affinity !== null || persona.attentionSpan) {
+      prompt += `\n`;
+    }
+    
+    // Social Media Usage
+    if (persona.socialMediaUsage && persona.socialMediaUsage.length > 0) {
+      prompt += `Social media usage: ${persona.socialMediaUsage.join(", ")}\n\n`;
+    }
+    
+    // Color Palette (Design-Präferenzen)
+    if (persona.colorPalette && persona.colorPalette.length > 0) {
+      prompt += `Preferred color palette: ${persona.colorPalette.join(", ")}\n\n`;
     }
     
     // Journey-Kontext (wenn vorhanden)

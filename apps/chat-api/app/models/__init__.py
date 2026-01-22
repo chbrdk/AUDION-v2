@@ -1,3 +1,7 @@
+"""
+Models for Chat API.
+All tables are in the audion schema in STORION database.
+"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -10,18 +14,38 @@ from sqlalchemy.orm import relationship
 from ..db import Base
 
 
+# Schema prefix for STORION database
+_SCHEMA_PREFIX = "audion"
+
+
+def _get_table_args():
+    """Get table args with schema."""
+    if _SCHEMA_PREFIX:
+        return {"schema": _SCHEMA_PREFIX}
+    return {}
+
+
+def _fk(table_column: str, **kwargs):
+    """Create ForeignKey with schema prefix if using STORION DB."""
+    if _SCHEMA_PREFIX:
+        return ForeignKey(f"{_SCHEMA_PREFIX}.{table_column}", **kwargs)
+    return ForeignKey(table_column, **kwargs)
+
+
 # DocumentChunk model - shared with indexing-api (same database)
 class DocumentChunk(Base):
     __tablename__ = "document_chunks"
+    __table_args__ = _get_table_args()
 
     id = Column(UUID(as_uuid=True), primary_key=True)
-    document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id"), nullable=False)
+    document_id = Column(UUID(as_uuid=True), _fk("documents.id"), nullable=False)
     content = Column(Text, nullable=False)
     chunk_metadata = Column(JSON, nullable=False)
 
 
 class Persona(Base):
     __tablename__ = "personas"
+    __table_args__ = _get_table_args()
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     project_id = Column(UUID(as_uuid=True), nullable=False)
@@ -42,9 +66,10 @@ class Persona(Base):
 
 class PersonaPrompt(Base):
     __tablename__ = "persona_prompts"
+    __table_args__ = _get_table_args()
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    persona_id = Column(UUID(as_uuid=True), ForeignKey("personas.id"), nullable=False)
+    persona_id = Column(UUID(as_uuid=True), _fk("personas.id"), nullable=False)
     system_prompt = Column(Text, nullable=False)
     template_version = Column(String(32), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -55,9 +80,10 @@ class PersonaPrompt(Base):
 
 class PersonaSource(Base):
     __tablename__ = "persona_sources"
+    __table_args__ = _get_table_args()
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    persona_id = Column(UUID(as_uuid=True), ForeignKey("personas.id"), nullable=False)
+    persona_id = Column(UUID(as_uuid=True), _fk("personas.id"), nullable=False)
     chunk_id = Column(UUID(as_uuid=True), nullable=False)  # Reference to document_chunks.id (table in indexing-api)
     confidence = Column(Float, nullable=False)
     rationale = Column(Text, nullable=True)

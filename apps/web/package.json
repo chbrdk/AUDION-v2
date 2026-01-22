@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack",
-    "build": "next build",
-    "build:analyze": "ANALYZE=true next build",
-    "start": "next start",
+    "dev": "NODE_TLS_REJECT_UNAUTHORIZED=0 NEXT_PUBLIC_BASE_PATH=/audion next dev --webpack --port 3005",
+    "build": "NEXT_PUBLIC_BASE_PATH=/audion next build",
+    "build:analyze": "NEXT_PUBLIC_BASE_PATH=/audion ANALYZE=true next build",
+    "start": "NEXT_PUBLIC_BASE_PATH=/audion next start --port 3005",
     "lint": "eslint . --ext ts,tsx --max-warnings=0",
     "typecheck": "tsc --noEmit"
   },

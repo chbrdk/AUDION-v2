@@ -50,14 +50,14 @@ def select_model_for_messages(messages: List[Dict[str, Any]]) -> str:
 
 def convert_message_with_images(msg: ChatMessage) -> Dict[str, Any]:
     """
-    Konvertiert eine Message mit Bildern (via Image-IDs) in Claude Vision Format.
+    Konvertiert eine Message mit Bildern (via Image-IDs) in OpenAI Vision Format.
     
-    Claude Vision erwartet Messages im Format:
+    OpenAI Vision erwartet Messages im Format:
     {
         "role": "user",
         "content": [
             {"type": "text", "text": "..."},
-            {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": "..."}}
+            {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,..."}}
         ]
     }
     """
@@ -93,42 +93,26 @@ def convert_message_with_images(msg: ChatMessage) -> Dict[str, Any]:
                          image_index=idx)
             continue
         
-        # Extrahiere base64 und media_type aus data URL
-        # Format: data:image/jpeg;base64,<base64-string>
+        # OpenAI Format: data URL direkt verwenden (nicht base64 extrahieren)
         if image_data_url.startswith("data:image/"):
-            parts = image_data_url.split(",", 1)
-            if len(parts) == 2:
-                header = parts[0]  # data:image/jpeg;base64
-                base64_data = parts[1]
-                
-                # Extrahiere media_type (z.B. "image/jpeg" aus "data:image/jpeg;base64")
-                media_type = header.split(";")[0].split(":")[1] if ":" in header else "image/jpeg"
-                
-                logger.info("chat.image.loaded",
-                           image_index=idx,
-                           image_id=image_id,
-                           media_type=media_type,
-                           data_length=len(base64_data))
-                
-                content_blocks.append({
-                    "type": "image",
-                    "source": {
-                        "type": "base64",
-                        "media_type": media_type,
-                        "data": base64_data
-                    }
-                })
-            else:
-                logger.warning("chat.image.invalid_format",
-                             image_id=image_id,
-                             image_index=idx)
+            logger.info("chat.image.loaded",
+                       image_index=idx,
+                       image_id=image_id,
+                       data_url_length=len(image_data_url))
+            
+            content_blocks.append({
+                "type": "image_url",
+                "image_url": {
+                    "url": image_data_url
+                }
+            })
         else:
             logger.warning("chat.image.invalid_data_url",
                          image_id=image_id,
                          image_index=idx)
     
     # Wenn nur Bilder und kein Text, füge leeren Text-Block hinzu
-    if not content_blocks or all(block.get("type") == "image" for block in content_blocks):
+    if not content_blocks or all(block.get("type") == "image_url" for block in content_blocks):
         content_blocks.insert(0, {
             "type": "text",
             "text": msg.content if msg.content else ""
@@ -138,7 +122,7 @@ def convert_message_with_images(msg: ChatMessage) -> Dict[str, Any]:
                role=msg.role,
                total_blocks=len(content_blocks),
                text_blocks=sum(1 for b in content_blocks if b.get("type") == "text"),
-               image_blocks=sum(1 for b in content_blocks if b.get("type") == "image"))
+               image_blocks=sum(1 for b in content_blocks if b.get("type") == "image_url"))
     
     return {
         "role": msg.role,
@@ -234,7 +218,7 @@ async def send_message(request: ChatMessageRequest) -> ChatMessageResponse:
                            image_id_count=len(msg.image_ids) if msg.image_ids else 0,
                            content_length=len(msg.content) if msg.content else 0)
                 
-                # Konvertiere Message mit Bildern (via Image-IDs) in Claude Vision Format
+                # Konvertiere Message mit Bildern (via Image-IDs) in OpenAI Vision Format
                 anthropic_message = convert_message_with_images(msg)
                 
                 # Debug: Log wenn Bilder vorhanden sind
@@ -251,6 +235,8 @@ async def send_message(request: ChatMessageRequest) -> ChatMessageResponse:
         system_prompt = "\n\n".join(system_parts)
         retrieval_query = next((m.content[:100] for m in request.messages if m.role == "user"), "")
         user_message_for_logging = retrieval_query
+        
+        # Union logging removed - Audion is now autonomous
     elif request.message:
         # Legacy format: single message string
         system_prompt = base_system_prompt
@@ -315,33 +301,26 @@ async def send_message(request: ChatMessageRequest) -> ChatMessageResponse:
         persona_agent = get_persona_agent()
         
         def generate_response() -> str:
-            """Generate response synchronously using Anthropic API."""
-            # Wähle Modell basierend auf Inhalt (Bilder = Sonnet, sonst Haiku)
-            selected_model = select_model_for_messages(anthropic_messages)
+            """Generate response synchronously using OpenAI API."""
+            # Convert messages to OpenAI format (content can be string or array for images)
+            openai_messages = [
+                {"role": "system", "content": system_prompt}
+            ]
+            for msg in anthropic_messages:
+                openai_messages.append({
+                    "role": msg.get("role", "user"),
+                    "content": msg.get("content", "")  # Can be string or array (for images)
+                })
             
-            # Debug: Log final messages format before sending to Claude
-            has_images = any(
-                isinstance(msg.get("content"), list) and 
-                any(block.get("type") == "image" for block in msg.get("content", []))
-                for msg in anthropic_messages
-            )
-            if has_images:
-                logger.info("chat.anthropic.sending_with_images",
-                           messages_count=len(anthropic_messages),
-                           model=selected_model)
-            
-            response = persona_agent._anthropic.messages.create(
-                model=selected_model,
-                max_tokens=600,
-                temperature=0.4,
-                system=system_prompt,
-                messages=anthropic_messages,
+            response = persona_agent._openai.chat.completions.create(
+                model="gpt-5-mini",
+                max_completion_tokens=600,
+                messages=openai_messages,
             )
             
             # Extract text content
-            if response.content and len(response.content) > 0:
-                text_content = response.content[0].text if hasattr(response.content[0], 'text') else str(response.content[0])
-                return text_content
+            if response.choices and len(response.choices) > 0:
+                return response.choices[0].message.content or ""
             return ""
         
         # Run in executor to avoid blocking
@@ -473,7 +452,7 @@ async def send_message_stream(request: ChatMessageRequest) -> StreamingResponse:
             if msg.role == "system":
                 system_parts.append(msg.content)
             elif msg.role in ["user", "assistant"]:
-                # Konvertiere Message mit Bildern (via Image-IDs) in Claude Vision Format
+                # Konvertiere Message mit Bildern (via Image-IDs) in OpenAI Vision Format
                 anthropic_message = convert_message_with_images(msg)
                 anthropic_messages.append(anthropic_message)
         
@@ -481,6 +460,8 @@ async def send_message_stream(request: ChatMessageRequest) -> StreamingResponse:
         # Get last user message for logging and retrieval
         user_msgs = [m.content for m in request.messages if m.role == "user"]
         user_message_for_logging = user_msgs[-1][:100] if user_msgs else "N/A"
+        
+        # Union logging removed - Audion is now autonomous
         
         # Ensure we have at least one message
         if not anthropic_messages:
@@ -543,6 +524,7 @@ async def send_message_stream(request: ChatMessageRequest) -> StreamingResponse:
                 
                 def send_event(event):
                     """Convert PersonaAgent events to queue items."""
+                    logger.debug("chat.stream.event_queued", event_type=type(event).__name__)
                     event_queue.put(event)
                 
                 # Prepare sources (empty for tools mode, tools handle retrieval dynamically)
@@ -551,9 +533,14 @@ async def send_message_stream(request: ChatMessageRequest) -> StreamingResponse:
                 # Run PersonaAgent.stream_response() with tools in executor
                 def run_persona_stream():
                     try:
+                        # Filter out system messages (they're already in system_prompt)
+                        user_assistant_messages = [
+                            msg for msg in anthropic_messages 
+                            if msg.get("role") in ["user", "assistant"]
+                        ]
                         persona_agent.stream_response(
                             system_prompt=system_prompt,
-                            question=retrieval_query,
+                            messages=user_assistant_messages,
                             sources=sources,
                             persona_id=request.persona_id,
                             send_event=send_event,
@@ -588,12 +575,14 @@ async def send_message_stream(request: ChatMessageRequest) -> StreamingResponse:
                     return delta_payload
                 
                 # Process events from PersonaAgent
+                logger.info("chat.stream.queue_processing_started", persona_id=request.persona_id)
                 while True:
                     try:
                         event = await loop.run_in_executor(
                             None,
                             lambda: event_queue.get(timeout=0.1)
                         )
+                        logger.debug("chat.stream.event_received", event_type=type(event).__name__ if event else "None")
                     except queue.Empty:
                         # Check if thread is still alive
                         if not stream_thread.is_alive():
@@ -631,6 +620,7 @@ async def send_message_stream(request: ChatMessageRequest) -> StreamingResponse:
                     
                     # Convert PersonaAgent events to SSE format
                     if isinstance(event, ContentDeltaEvent):
+                        logger.debug("chat.stream.content_delta_event", delta_length=len(event.delta) if event.delta else 0)
                         delta_payload = emit_sanitized_delta(event.delta)
                         if delta_payload:
                             yield f"data: {json.dumps({'type': 'delta', 'delta': delta_payload})}\n\n"
@@ -682,35 +672,29 @@ async def send_message_stream(request: ChatMessageRequest) -> StreamingResponse:
                     """Collect deltas from stream in a separate thread."""
                     stream_queue = queue_container["queue"]
                     try:
-                        # Wähle Modell basierend auf Inhalt (Bilder = Sonnet, sonst Haiku)
-                        selected_model = select_model_for_messages(anthropic_messages)
-                        
-                        # Debug: Log final messages format before sending to Claude
-                        has_images = any(
-                            isinstance(msg.get("content"), list) and 
-                            any(block.get("type") == "image" for block in msg.get("content", []))
-                            for msg in anthropic_messages
-                        )
-                        if has_images:
-                            logger.info("chat.anthropic.streaming_with_images",
-                                       messages_count=len(anthropic_messages),
-                                       model=selected_model)
+                        # Convert messages to OpenAI format (content can be string or array for images)
+                        openai_messages = [
+                            {"role": "system", "content": system_prompt}
+                        ]
+                        for msg in anthropic_messages:
+                            openai_messages.append({
+                                "role": msg.get("role", "user"),
+                                "content": msg.get("content", "")  # Can be string or array (for images)
+                            })
                         
                         # Legacy mode: No tools (backward compatibility)
-                        with persona_agent._anthropic.messages.stream(
-                            model=selected_model,
-                            max_tokens=600,
-                            temperature=0.4,
-                            system=system_prompt,
-                            messages=anthropic_messages,
-                        ) as stream:
-                            for event in stream:
-                                if event.type == "content_block_delta":
-                                    delta_text = getattr(event.delta, "text", None)
-                                    if delta_text is None and isinstance(event.delta, dict):
-                                        delta_text = event.delta.get("text")
-                                    if delta_text:
-                                        stream_queue.put(delta_text)
+                        stream = persona_agent._openai.chat.completions.create(
+                            model="gpt-5-mini",
+                            max_completion_tokens=600,
+                            messages=openai_messages,
+                            stream=True,
+                        )
+                        
+                        for chunk in stream:
+                            if chunk.choices and len(chunk.choices) > 0:
+                                delta = chunk.choices[0].delta
+                                if delta and delta.content:
+                                    stream_queue.put(delta.content)
                     except Exception as e:
                         logger.error("chat.stream.collect_failed", error=str(e), exc_info=True)
                         stream_error[0] = e

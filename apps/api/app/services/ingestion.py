@@ -21,6 +21,9 @@ logger = structlog.get_logger(__name__)
 settings = get_settings()
 
 
+# STANDALONE: Für spätere Standalone-Version beibehalten
+# Diese Klasse wird nur verwendet wenn use_storion_proxy=False
+# Bei aktiviertem STORION Proxy wird die Verarbeitung vollständig von STORION übernommen
 class IngestionService:
     def __init__(
         self,

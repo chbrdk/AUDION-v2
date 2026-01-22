@@ -1803,6 +1803,11 @@ function AdminChatPageContent() {
         <Dialog
           open={journeyDialogOpen}
           onClose={() => {
+            // Remove focus from any button inside dialog before closing to prevent aria-hidden error
+            const activeElement = document.activeElement as HTMLElement;
+            if (activeElement && activeElement.closest('[role="dialog"]')) {
+              activeElement.blur();
+            }
             setJourneyDialogOpen(false);
             setSelectedJourneyId(null);
             setSelectedPhases([]);
@@ -2196,7 +2201,14 @@ function AdminChatPageContent() {
         <Drawer
           anchor="right"
           open={personaDrawerOpen}
-          onClose={() => setPersonaDrawerOpen(false)}
+          onClose={() => {
+            // Remove focus from any button inside drawer before closing to prevent aria-hidden error
+            const activeElement = document.activeElement as HTMLElement;
+            if (activeElement && activeElement.closest('[role="presentation"]')) {
+              activeElement.blur();
+            }
+            setPersonaDrawerOpen(false);
+          }}
           PaperProps={{
             sx: {
               width: { xs: "100%", sm: 640 },

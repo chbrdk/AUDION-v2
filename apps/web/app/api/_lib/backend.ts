@@ -25,8 +25,8 @@ export function getPersonaBackendBase(options?: { preferPublic?: boolean }): str
     return fallbackUrl;
   }
   
-  // Default fallback
-  return 'http://persona-api:8000';
+  // Default fallback - use Docker Compose service name
+  return 'http://api:8000';
 }
 
 /**
@@ -56,13 +56,9 @@ export function getChatApiBase(): string {
     return publicUrl;
   }
   
-  const internalUrl = process.env.NEXT_CHAT_API_INTERNAL_URL?.trim();
-  if (internalUrl) {
-    return internalUrl;
-  }
-  
-  // Default fallback
-  return 'http://chat-api:8001';
+  // Default to Nginx-proxied URL for client-side usage
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+  return `${basePath}/api/chat`;
 }
 
 /**
@@ -75,13 +71,9 @@ export function getVoiceApiBase(): string {
     return publicUrl;
   }
   
-  const internalUrl = process.env.NEXT_VOICE_API_INTERNAL_URL?.trim();
-  if (internalUrl) {
-    return internalUrl;
-  }
-  
-  // Default fallback (usually same as chat API)
-  return 'http://chat-api:8001';
+  // Default to Nginx-proxied URL for client-side usage
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+  return `${basePath}/api/voice`;
 }
 
 /**
