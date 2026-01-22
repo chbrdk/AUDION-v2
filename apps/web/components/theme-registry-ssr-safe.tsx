@@ -79,15 +79,18 @@ const darkTheme = createTheme({
 
 export const ThemeRegistrySSRSafe = ({ children }: { children: ReactNode }) => {
   // #region agent log
-  // Check if we're in browser before using hooks
+  // Hooks must be called unconditionally (Rules of Hooks)
+  // But we check for browser context and return early to avoid useContext errors
+  const [themeMode, setThemeMode] = useState<ThemeMode>("light");
+  const [mounted, setMounted] = useState(false);
+  const isBrowser = typeof window !== 'undefined';
+  
   // During SSR/prerendering, return children without theme to avoid useContext errors
-  if (typeof window === 'undefined') {
+  // This prevents MUI components from trying to access a non-existent ThemeContext
+  if (!isBrowser) {
     return <>{children}</>;
   }
   // #endregion
-
-  const [themeMode, setThemeMode] = useState<ThemeMode>("light");
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("audion-theme-mode") as ThemeMode | null;
