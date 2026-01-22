@@ -22,8 +22,17 @@ const defaultThemeContext: ThemeContextType = {
 const ThemeContext = createContext<ThemeContextType>(defaultThemeContext);
 
 export const useThemeMode = () => {
-  const context = useContext(ThemeContext);
-  return context;
+  // #region agent log
+  // Workaround for Next.js 16 prerendering bug: check if we're in a browser context
+  // During prerendering, React context is null, so we return a default value
+  try {
+    const context = useContext(ThemeContext);
+    return context;
+  } catch (e) {
+    // During prerendering, context might be null - return default
+    return defaultThemeContext;
+  }
+  // #endregion
 };
 
 const lightShadows: Shadows = [
