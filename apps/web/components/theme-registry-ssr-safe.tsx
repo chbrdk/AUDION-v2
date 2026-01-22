@@ -130,14 +130,22 @@ export const ThemeRegistrySSRSafe = ({ children }: { children: ReactNode }) => {
   // #region agent log
   // Provide MUI ThemeProvider only in browser
   // During SSR, we already returned early, so this code only runs in browser
+  // AppRouterCacheProvider might use useContext, so we skip it during SSR
   return (
     <ThemeContext.Provider value={{ themeMode, toggleTheme }}>
-      <AppRouterCacheProvider options={{ enableCssLayer: false }}>
+      {isBrowser ? (
+        <AppRouterCacheProvider options={{ enableCssLayer: false }}>
+          <ThemeProvider theme={currentTheme}>
+            <CssBaseline />
+            {children}
+          </ThemeProvider>
+        </AppRouterCacheProvider>
+      ) : (
         <ThemeProvider theme={currentTheme}>
           <CssBaseline />
           {children}
         </ThemeProvider>
-      </AppRouterCacheProvider>
+      )}
     </ThemeContext.Provider>
   );
   // #endregion
