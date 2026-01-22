@@ -1,3 +1,6 @@
+// Disable static generation to prevent prerendering issues
+export const dynamic = 'force-dynamic';
+
 import Link from "next/link";
 
 export default function NotFound() {
