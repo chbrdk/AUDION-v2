@@ -6,7 +6,6 @@ import type { Metadata } from "next";
 import { Noto_Sans_JP } from "next/font/google";
 import "../styles/globals.css";
 import "../styles/dashboard-cards.css";
-import { ThemeRegistryNoSSR } from "../components/theme-registry-no-ssr";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
 
@@ -39,7 +38,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         ></script>
       </head>
       <body className={`${notoSansJp.variable} ${notoSansJp.className}`}>
-        <ThemeRegistryNoSSR>{children}</ThemeRegistryNoSSR>
+        {children}
       </body>
     </html>
   );

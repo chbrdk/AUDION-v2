@@ -4,6 +4,7 @@
 export const dynamic = 'force-dynamic';
 
 import Link from "next/link";
+import { ThemeRegistryNoSSR } from "../components/theme-registry-no-ssr";
 import { Box, Button, Stack, Typography } from "@mui/material";
 import { MaterialSymbol } from "../components/material-symbol";
 
@@ -45,16 +46,18 @@ MsqdxGlassLandingHero.displayName = "msqdx-glass-landing-hero";
 
 export default function Home() {
   return (
-    <Box
-      component="main"
-      sx={{
-        px: { xs: 3, md: 8 },
-        background:
-          "radial-gradient(circle at 20% 20%, rgba(90,232,255,0.15), transparent 40%), radial-gradient(circle at 80% 0%, rgba(254,122,255,0.12), transparent 35%)"
-      }}
-    >
-      <MsqdxGlassLandingHero />
-    </Box>
+    <ThemeRegistryNoSSR>
+      <Box
+        component="main"
+        sx={{
+          px: { xs: 3, md: 8 },
+          background:
+            "radial-gradient(circle at 20% 20%, rgba(90,232,255,0.15), transparent 40%), radial-gradient(circle at 80% 0%, rgba(254,122,255,0.12), transparent 35%)"
+        }}
+      >
+        <MsqdxGlassLandingHero />
+      </Box>
+    </ThemeRegistryNoSSR>
   );
 }
 
