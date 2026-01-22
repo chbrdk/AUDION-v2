@@ -123,14 +123,26 @@ export const ThemeRegistrySSRSafe = ({ children }: { children: ReactNode }) => {
 
   const currentTheme: Theme = themeMode === "dark" ? darkTheme : lightTheme;
 
-  return (
-    <ThemeContext.Provider value={{ themeMode, toggleTheme }}>
-      <AppRouterCacheProvider options={{ enableCssLayer: false }}>
-        <ThemeProvider theme={currentTheme}>
-          <CssBaseline />
-          {children}
-        </ThemeProvider>
-      </AppRouterCacheProvider>
-    </ThemeContext.Provider>
-  );
+  // #region agent log
+  // Wrap MUI ThemeProvider in try-catch to handle useContext errors during prerendering
+  try {
+    return (
+      <ThemeContext.Provider value={{ themeMode, toggleTheme }}>
+        <AppRouterCacheProvider options={{ enableCssLayer: false }}>
+          <ThemeProvider theme={currentTheme}>
+            <CssBaseline />
+            {children}
+          </ThemeProvider>
+        </AppRouterCacheProvider>
+      </ThemeContext.Provider>
+    );
+  } catch (e) {
+    // Fallback during prerendering if MUI ThemeProvider fails
+    return (
+      <ThemeContext.Provider value={{ themeMode, toggleTheme }}>
+        {children}
+      </ThemeContext.Provider>
+    );
+  }
+  // #endregion
 };
