@@ -39,7 +39,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         ></script>
       </head>
       <body className={`${notoSansJp.variable} ${notoSansJp.className}`}>
-        <ThemeRegistrySSRSafe>{children}</ThemeRegistrySSRSafe>
+        <ThemeRegistryNoSSR>{children}</ThemeRegistryNoSSR>
       </body>
     </html>
   );

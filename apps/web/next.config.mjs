@@ -12,8 +12,6 @@ const nextConfig = {
       enabled: true
     },
     optimizePackageImports: ['@mui/material', '@mui/icons-material'],
-    // Disable static optimization to prevent prerendering errors
-    isrMemoryCacheSize: 0,
   },
   // Prevent static generation of error pages
   generateBuildId: async () => {
