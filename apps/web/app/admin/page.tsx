@@ -28,7 +28,7 @@ async function fetchPersonaList(): Promise<PersonaListResponse> {
   } catch (error) {
     clearTimeout(timeoutId);
     if (error instanceof Error && error.name === "AbortError") {
-      throw new Error(`Persona backend request timeout: ${base}`);
+      throw new Error(`Persona backend request timeout: ${apiUrl}`);
     }
     if (error instanceof Error && error.message.includes("ECONNREFUSED")) {
       throw new Error(`Persona backend unreachable at ${apiUrl}. Is the service running?`);
@@ -62,7 +62,7 @@ async function fetchTargetGroupList(): Promise<TargetGroupListResponse> {
   } catch (error) {
     clearTimeout(timeoutId);
     if (error instanceof Error && error.name === "AbortError") {
-      throw new Error(`Target Group backend request timeout: ${base}`);
+      throw new Error(`Target Group backend request timeout: ${apiUrl}`);
     }
     if (error instanceof Error && error.message.includes("ECONNREFUSED")) {
       throw new Error(`Target Group backend unreachable at ${apiUrl}. Is the service running?`);
@@ -96,7 +96,7 @@ async function fetchQueueStats(): Promise<QueueStatsResponse> {
   } catch (error) {
     clearTimeout(timeoutId);
     if (error instanceof Error && error.name === "AbortError") {
-      throw new Error(`Queue backend request timeout: ${base}`);
+      throw new Error(`Queue backend request timeout: ${apiUrl}`);
     }
     if (error instanceof Error && error.message.includes("ECONNREFUSED")) {
       throw new Error(`Queue backend unreachable at ${apiUrl}. Is the service running?`);
