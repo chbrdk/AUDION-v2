@@ -4,13 +4,13 @@ export const dynamic = 'force-dynamic';
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { Noto_Sans_JP } from "next/font/google";
-import dynamic from "next/dynamic";
+import nextDynamic from "next/dynamic";
 import "../styles/globals.css";
 import "../styles/dashboard-cards.css";
 import { GlobalErrorHandler } from "../components/global-error-handler";
 
 // Load ThemeRegistry only client-side to avoid useContext during prerendering
-const ThemeRegistry = dynamic(
+const ThemeRegistry = nextDynamic(
   () => import("../components/theme-registry").then((mod) => ({ default: mod.ThemeRegistry })),
   { ssr: false }
 );
