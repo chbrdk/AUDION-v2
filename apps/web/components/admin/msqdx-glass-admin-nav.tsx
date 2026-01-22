@@ -125,7 +125,9 @@ export const MsqdxGlassAdminNav = ({ open, onClose, currentPath, themeMode, onTo
               }}
               aria-label="Close navigation"
             >
-              <MaterialSymbol icon="close" fontSize={{ xs: 56, md: 20 }} />
+              <Box sx={{ fontSize: { xs: 56, md: 20 }, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <MaterialSymbol icon="close" />
+              </Box>
             </IconButton>
           </Box>
         )}
@@ -170,11 +172,11 @@ export const MsqdxGlassAdminNav = ({ open, onClose, currentPath, themeMode, onTo
               }}
               aria-label={isExpanded ? "Collapse navigation" : "Expand navigation"}
             >
-              <MaterialSymbol 
-                icon={isExpanded ? "menu_open" : "menu"} 
-                fontSize={{ xs: 28, md: 20 }} 
-                style={{ marginRight: isExpanded ? (isMobile ? "1rem" : "0.75rem") : 0 }}
-              />
+              <Box sx={{ fontSize: { xs: 28, md: 20 }, display: "flex", alignItems: "center", justifyContent: "center", marginRight: isExpanded ? (isMobile ? "1rem" : "0.75rem") : 0 }}>
+                <MaterialSymbol 
+                  icon={isExpanded ? "menu_open" : "menu"} 
+                />
+              </Box>
               {isExpanded && (
                 <Typography
                   variant="body2"
@@ -222,11 +224,11 @@ export const MsqdxGlassAdminNav = ({ open, onClose, currentPath, themeMode, onTo
                   }}
                   title={!isExpanded ? item.label : undefined} // Tooltip nur wenn collapsed
                 >
-                  <MaterialSymbol 
-                    icon={item.icon} 
-                    fontSize={{ xs: 28, md: 20 }} 
-                    style={{ marginRight: isExpanded ? (isMobile ? "1rem" : "0.75rem") : 0 }}
-                  />
+                  <Box sx={{ fontSize: { xs: 28, md: 20 }, display: "flex", alignItems: "center", justifyContent: "center", marginRight: isExpanded ? (isMobile ? "1rem" : "0.75rem") : 0 }}>
+                    <MaterialSymbol 
+                      icon={item.icon} 
+                    />
+                  </Box>
                   {isExpanded && (
                     <Typography
                       variant="body2"
@@ -286,11 +288,11 @@ export const MsqdxGlassAdminNav = ({ open, onClose, currentPath, themeMode, onTo
                 }}
                 title={!isExpanded ? item.label : undefined}
               >
-                <MaterialSymbol 
-                  icon={item.icon} 
-                  fontSize={{ xs: 28, md: 20 }} 
-                  style={{ marginRight: isExpanded ? (isMobile ? "1rem" : "0.75rem") : 0 }}
-                />
+                <Box sx={{ fontSize: { xs: 28, md: 20 }, display: "flex", alignItems: "center", justifyContent: "center", marginRight: isExpanded ? (isMobile ? "1rem" : "0.75rem") : 0 }}>
+                  <MaterialSymbol 
+                    icon={item.icon} 
+                  />
+                </Box>
                 {isExpanded && (
                   <Typography 
                     variant="body2" 
@@ -339,11 +341,11 @@ export const MsqdxGlassAdminNav = ({ open, onClose, currentPath, themeMode, onTo
               }}
               aria-label="Toggle theme"
             >
-              <MaterialSymbol 
-                icon={themeMode === "dark" ? "light_mode" : "dark_mode"} 
-                fontSize={{ xs: 28, md: 20 }} 
-                style={{ marginRight: isExpanded ? (isMobile ? "1rem" : "0.75rem") : 0 }}
-              />
+              <Box sx={{ fontSize: { xs: 28, md: 20 }, display: "flex", alignItems: "center", justifyContent: "center", marginRight: isExpanded ? (isMobile ? "1rem" : "0.75rem") : 0 }}>
+                <MaterialSymbol 
+                  icon={themeMode === "dark" ? "light_mode" : "dark_mode"} 
+                />
+              </Box>
               {isExpanded && (
                 <Typography
                   variant="body2"

@@ -443,13 +443,11 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
             }}
             aria-label="Toggle panel"
           >
-            <MaterialSymbol 
-              icon={getPageIcon()} 
-              fontSize={{ xs: 32, md: 32 }}
-              style={{ 
-                color: theme.palette.mode === "dark" ? "#ffffff" : "#000000"
-              }}
-            />
+            <Box sx={{ fontSize: 32, display: "flex", alignItems: "center", justifyContent: "center", color: theme.palette.mode === "dark" ? "#ffffff" : "#000000" }}>
+              <MaterialSymbol 
+                icon={getPageIcon()} 
+              />
+            </Box>
           </Box>
         </Box>
 
