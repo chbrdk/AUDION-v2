@@ -1,5 +1,8 @@
 "use client";
 
+// Disable static generation - global-error must not be prerendered
+export const dynamic = 'force-dynamic';
+
 /**
  * Global error boundary for Next.js App Router
  * This component handles errors that occur in the root layout
