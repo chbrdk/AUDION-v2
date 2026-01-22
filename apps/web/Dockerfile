@@ -13,25 +13,22 @@ FROM base AS deps
 # Copy workspace configuration first
 COPY package.json package-lock.json ./
 COPY tsconfig.base.json ./
-# Copy workspace package.json files
+# Copy complete workspace structure (needed for npm workspaces)
 COPY apps/web/package.json apps/web/
 COPY packages/types/package.json packages/types/
-# Install dependencies with workspace support
-# Create minimal workspace structure for npm to recognize workspaces
-RUN mkdir -p apps/web packages/types
-# Debug: Show what we have
-RUN echo "=== Package files ===" && \
-    ls -la package.json package-lock.json && \
-    ls -la apps/web/package.json && \
-    ls -la packages/types/package.json && \
-    echo "=== Installing dependencies ==="
+COPY packages/types/src packages/types/src
+COPY packages/types/tsconfig.json packages/types/
+# Install dependencies - try with verbose output to see errors
 RUN --mount=type=cache,target=/root/.npm \
-    npm install --include-workspace-root --legacy-peer-deps || \
+    npm install --include-workspace-root --legacy-peer-deps --loglevel=verbose 2>&1 | head -100 || \
     (echo "=== First attempt failed, trying without workspace flags ===" && \
-     npm install --legacy-peer-deps || \
-     (echo "=== Both attempts failed ===" && \
+     npm install --legacy-peer-deps --loglevel=verbose 2>&1 | head -100 || \
+     (echo "=== Both attempts failed, showing package files ===" && \
       cat package.json && \
+      echo "---" && \
       cat apps/web/package.json && \
+      echo "---" && \
+      cat packages/types/package.json && \
       exit 1))
 
 FROM deps AS builder
