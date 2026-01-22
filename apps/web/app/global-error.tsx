@@ -1,11 +1,9 @@
-"use client";
-
 /**
  * Global error boundary for Next.js App Router
  * This component handles errors that occur in the root layout
- * IMPORTANT: Must be a client component but cannot use any context providers
+ * IMPORTANT: Must be a SERVER component (no "use client") to avoid useContext issues during build
  * 
- * Disable static generation to prevent prerendering issues with useContext
+ * Disable static generation to prevent prerendering issues
  */
 export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
@@ -17,17 +15,6 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  // Use inline event handler to avoid any context dependencies
-  const handleReset = () => {
-    if (typeof window !== 'undefined') {
-      if (typeof reset === 'function') {
-        reset();
-      } else {
-        window.location.reload();
-      }
-    }
-  };
-
   return (
     <html lang="en">
       <head>
@@ -53,20 +40,36 @@ export default function GlobalError({
               Error ID: {error.digest}
             </p>
           )}
-          <button
-            onClick={handleReset}
-            style={{
-              padding: '0.5rem 1rem',
-              backgroundColor: '#000',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '0.875rem'
+          <form action={reset}>
+            <button
+              type="submit"
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: '#000',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.875rem'
+              }}
+            >
+              Try again
+            </button>
+          </form>
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                // Fallback: reload page if form submit doesn't work
+                document.querySelector('form')?.addEventListener('submit', function(e) {
+                  if (!e.defaultPrevented) {
+                    setTimeout(function() {
+                      window.location.reload();
+                    }, 100);
+                  }
+                });
+              `,
             }}
-          >
-            Try again
-          </button>
+          />
         </div>
       </body>
     </html>
