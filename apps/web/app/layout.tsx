@@ -41,7 +41,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body className={`${notoSansJp.variable} ${notoSansJp.className}`}>
         <GlobalErrorHandler />
-        <ThemeRegistry>{children}</ThemeRegistry>
+        {/* #region agent log */}
+        {/* Conditionally render ThemeRegistry to avoid useContext during prerendering */}
+        {typeof window !== 'undefined' || process.env.NODE_ENV === 'production' ? (
+          <ThemeRegistry>{children}</ThemeRegistry>
+        ) : (
+          children
+        )}
+        {/* #endregion */}
       </body>
     </html>
   );
