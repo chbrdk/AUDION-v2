@@ -4,16 +4,10 @@ export const dynamic = 'force-dynamic';
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { Noto_Sans_JP } from "next/font/google";
-import nextDynamic from "next/dynamic";
 import "../styles/globals.css";
 import "../styles/dashboard-cards.css";
 import { GlobalErrorHandler } from "../components/global-error-handler";
-
-// Load ThemeRegistry only client-side to avoid useContext during prerendering
-const ThemeRegistry = nextDynamic(
-  () => import("../components/theme-registry").then((mod) => ({ default: mod.ThemeRegistry })),
-  { ssr: false }
-);
+import { ThemeRegistryWrapper } from "../components/theme-registry-wrapper";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
 
@@ -47,14 +41,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body className={`${notoSansJp.variable} ${notoSansJp.className}`}>
         <GlobalErrorHandler />
-        {/* #region agent log */}
-        {/* Conditionally render ThemeRegistry to avoid useContext during prerendering */}
-        {typeof window !== 'undefined' || process.env.NODE_ENV === 'production' ? (
-          <ThemeRegistry>{children}</ThemeRegistry>
-        ) : (
-          children
-        )}
-        {/* #endregion */}
+        <ThemeRegistryWrapper>{children}</ThemeRegistryWrapper>
       </body>
     </html>
   );
