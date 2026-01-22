@@ -400,6 +400,13 @@ export const ThemeRegistry = ({ children }: { children: ReactNode }) => {
 
   const currentTheme: Theme = themeMode === "dark" ? darkTheme : lightTheme;
 
+  // #region agent log
+  // During SSR/prerendering, return children without theme context to avoid useContext errors
+  if (!isBrowser) {
+    return <>{children}</>;
+  }
+  // #endregion
+
   // Always provide the context, even before mount, to prevent errors
   return (
     <ThemeContext.Provider value={{ themeMode, toggleTheme }}>
