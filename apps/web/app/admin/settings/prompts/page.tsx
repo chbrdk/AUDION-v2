@@ -7,7 +7,7 @@ import dynamic from "next/dynamic";
 
 // Code Splitting: PromptBuilder ist eine große Komponente
 const PromptBuilder = dynamic(
-  () => import("../../../../components/prompt-builder/PromptBuilder.js").then((mod) => ({ default: mod.PromptBuilder })),
+  () => import("../../../../components/prompt-builder/PromptBuilder").then((mod) => ({ default: mod.PromptBuilder })),
   {
     loading: () => <div>Loading prompt builder...</div>,
     ssr: false, // PromptBuilder benötigt Client-Side Features
