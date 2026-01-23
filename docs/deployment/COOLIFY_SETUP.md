@@ -42,7 +42,7 @@ In Coolify kannst du Database Resources erstellen, die automatisch verwaltet wer
    
    **Beispiel Connection String**:
    ```
-   postgresql://postgres:57DxyBIglyI5qKVTX6gx6D63KSPCTT5WrztWJsdE6lcjN03VPKUTjQIXHeXf53fI@audion-postgres:5432/audion
+postgres://postgres:57DxyBIglyI5qKVTX6gx6D63KSPCTT5WrztWJsdE6lcjN03VPKUTjQIXHeXf53fI@y4cos8wkk0sg0k88sgoscwso:5432/audion
    ```
 
 ### 1.2 Redis erstellen
@@ -59,6 +59,8 @@ In Coolify kannst du Database Resources erstellen, die automatisch verwaltet wer
    - Falls nicht sichtbar: Die Connection String setzt sich zusammen aus:
      ```
      redis://HOST:6379/0
+
+     redis://default:PJcQx4QWITPjBOelnVvHxNcOw7kR78hrqPg9rDc419RKjD5ffUqOHIMFg6YwX4oN@xgc8okk8gskock08wskwkwks:6379/0
      ```
    - **Host**: Der Name der Database Resource (z.B. `audion-redis`)
    - **Port**: `6379` (Standard Redis Port)
@@ -127,12 +129,13 @@ Füge die Connection Strings von Schritt 1 hinzu:
 
 ```bash
 # PostgreSQL (von Database Resource)
-# Format: postgresql://USER:PASSWORD@HOST:5432/DATABASE
-DATABASE_URL=postgresql://postgres:57DxyBIglyI5qKVTX6gx6D63KSPCTT5WrztWJsdE6lcjN03VPKUTjQIXHeXf53fI@audion-postgres:5432/audion
+# Format: postgres://USER:PASSWORD@HOST:5432/DATABASE
+# Hinweis: Coolify gibt "postgres://" zurück, nicht "postgresql://" - beide funktionieren
+DATABASE_URL=postgres://postgres:57DxyBIglyI5qKVTX6gx6D63KSPCTT5WrztWJsdE6lcjN03VPKUTjQIXHeXf53fI@y4cos8wkk0sg0k88sgoscwso:5432/audion
 
 # Redis (von Database Resource)
-# Format: redis://HOST:6379/0
-REDIS_URL=redis://audion-redis:6379/0
+# Format: redis://USER:PASSWORD@HOST:6379/0
+REDIS_URL=redis://default:PJcQx4QWITPjBOelnVvHxNcOw7kR78hrqPg9rDc419RKjD5ffUqOHIMFg6YwX4oN@xgc8okk8gskock08wskwkwks:6379/0
 ```
 
 **WICHTIG**: 
