@@ -109,13 +109,16 @@ Qdrant und Neo4j können als normale Docker Container in Coolify erstellt werden
      - `/data` (für Daten)
      - `/logs` (für Logs)
    - **Environment Variables**:
-     - `NEO4J_AUTH=neo4j/DEIN_PASSWORT` (ersetze DEIN_PASSWORT mit einem sicheren Passwort!)
+     - `NEO4J_AUTH=neo4j/DEIN_PASSWORT` (ersetze DEIN_PASSWORT mit einem sicheren Passwort! **WICHTIG: Passwort darf nicht leer sein!**)
      - `NEO4J_PLUGINS=["apoc"]`
      - `NEO4J_dbms_security_procedures_unrestricted=apoc.*`
      - `NEO4J_dbms_security_procedures_allowlist=apoc.*`
 4. Klicke auf **Create**
 
-**WICHTIG**: Notiere dir das Neo4j-Passwort, du brauchst es für die Environment Variables!
+**WICHTIG**: 
+- Notiere dir das Neo4j-Passwort, du brauchst es für die Environment Variables!
+- Das Passwort **MUSS** gesetzt sein - `neo4j/` ohne Passwort funktioniert nicht!
+- Verwende ein sicheres Passwort (mindestens 8 Zeichen)
 
 ---
 
@@ -141,8 +144,10 @@ REDIS_URL=redis://default:PJcQx4QWITPjBOelnVvHxNcOw7kR78hrqPg9rDc419RKjD5ffUqOHI
 
 **WICHTIG**: 
 - Ersetze die Werte mit deinen tatsächlichen Credentials
-- **Host**: Verwende den Namen der Database Resource (z.B. `audion-postgres`, `audion-redis`)
-- In Coolify können Services über ihre Namen erreicht werden (Docker Service Discovery)
+- **Host**: In Coolify sind Database Resources über ihre **automatisch generierten Hostnamen** erreichbar
+  - Diese findest du in der Database Resource unter "Connection Details" oder "Host"
+  - Beispiel: `y4cos8wkk0sg0k88sgoscwso` (nicht `audion-postgres`!)
+- **Netzwerk**: Database Resources sind im gleichen Docker-Netzwerk wie deine Application
 - Falls du die Connection String nicht findest, konstruiere sie manuell mit dem Format oben
 
 ### 3.2 Vector & Graph Database URLs
@@ -248,21 +253,30 @@ In Coolify sollten alle Services im gleichen Netzwerk sein. Prüfe:
 
 ### Database Connection Fehler
 
-**Problem**: `could not connect to database`
+**Problem**: `could not connect to database` oder `Temporary failure in name resolution`
 
 **Lösungen**:
 1. Prüfe, dass die Database Resources laufen
 2. Prüfe die Connection Strings (User, Password, Host, Port)
-3. In Coolify: Database Resources sind über ihren Namen erreichbar (z.B. `audion-postgres:5432`)
+3. **WICHTIG**: In Coolify sind Database Resources über ihre **automatisch generierten Hostnamen** erreichbar
+   - Nicht über den Resource-Namen (z.B. `audion-postgres`)
+   - Sondern über den generierten Hostnamen (z.B. `y4cos8wkk0sg0k88sgoscwso`)
+   - Finde den Hostnamen in der Database Resource unter "Connection Details" oder "Host"
+4. Stelle sicher, dass alle Services im gleichen Netzwerk sind
+5. Prüfe, dass die Ports korrekt sind (5432 für PostgreSQL, 6379 für Redis)
 
 ### Neo4j Connection Fehler
 
-**Problem**: `Unable to connect to Neo4j`
+**Problem**: `Unable to connect to Neo4j` oder `Invalid value for NEO4J_AUTH: 'neo4j/'`
 
 **Lösungen**:
-1. Prüfe, dass Neo4j Container läuft
-2. Prüfe `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`
-3. Prüfe, dass der Bolt-Port (`7687`) erreichbar ist
+1. **NEO4J_AUTH Problem**: Das Passwort darf nicht leer sein!
+   - `NEO4J_AUTH=neo4j/` → **FALSCH** (leeres Passwort)
+   - `NEO4J_AUTH=neo4j/meinPasswort123` → **RICHTIG** (mit Passwort)
+2. Prüfe, dass Neo4j Container läuft
+3. Prüfe `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD` in den Environment Variables
+4. Prüfe, dass der Bolt-Port (`7687`) erreichbar ist
+5. **Hostname**: Verwende den Container-Namen (z.B. `audion-neo4j`) oder den generierten Hostnamen
 
 ### Qdrant Connection Fehler
 
