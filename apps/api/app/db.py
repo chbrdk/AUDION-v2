@@ -18,8 +18,11 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 # Database URL - ensure psycopg driver and set search_path to audion schema
+# Coolify returns postgres:// but SQLAlchemy needs postgresql:// or postgresql+psycopg://
 database_url = settings.database_url
-if database_url.startswith("postgresql://"):
+if database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql+psycopg://", 1)
+elif database_url.startswith("postgresql://"):
     database_url = database_url.replace("postgresql://", "postgresql+psycopg://", 1)
 elif database_url.startswith("postgresql+psycopg2://"):
     database_url = database_url.replace("postgresql+psycopg2://", "postgresql+psycopg://", 1)
