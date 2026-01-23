@@ -130,7 +130,8 @@ Füge die Connection Strings von Schritt 1 hinzu:
 ```bash
 # PostgreSQL (von Database Resource)
 # Format: postgres://USER:PASSWORD@HOST:5432/DATABASE
-# Hinweis: Coolify gibt "postgres://" zurück, nicht "postgresql://" - beide funktionieren
+# Hinweis: Coolify gibt "postgres://" zurück, nicht "postgresql://"
+# Der Code konvertiert automatisch "postgres://" zu "postgresql+psycopg://" für SQLAlchemy
 DATABASE_URL=postgres://postgres:57DxyBIglyI5qKVTX6gx6D63KSPCTT5WrztWJsdE6lcjN03VPKUTjQIXHeXf53fI@y4cos8wkk0sg0k88sgoscwso:5432/audion
 
 # Redis (von Database Resource)
