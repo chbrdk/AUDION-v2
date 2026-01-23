@@ -24,10 +24,26 @@ In Coolify kannst du Database Resources erstellen, die automatisch verwaltet wer
    - **Name**: `audion-postgres` (oder wie du möchtest)
    - **Version**: `16` oder neuer
    - **Database Name**: `audion` (optional, wird automatisch erstellt)
-   - **User**: Wird automatisch generiert
-   - **Password**: Wird automatisch generiert (speichere es!)
+   - **User**: postgres
+   - **Password**: 57DxyBIglyI5qKVTX6gx6D63KSPCTT5WrztWJsdE6lcjN03VPKUTjQIXHeXf53fI
 4. Klicke auf **Create**
-5. **WICHTIG**: Notiere dir die **Connection String** (sieht aus wie: `postgresql://user:password@host:5432/database`)
+5. **WICHTIG**: Nach dem Erstellen findest du die Connection-Informationen:
+   - Gehe zur erstellten Database Resource
+   - Suche nach **"Connection String"**, **"Connection URL"** oder **"Database URL"**
+   - Falls nicht sichtbar: Die Connection String setzt sich zusammen aus:
+     ```
+     postgresql://USER:PASSWORD@HOST:5432/DATABASE
+     ```
+   - **Host**: Der Name der Database Resource (z.B. `audion-postgres`)
+   - **Port**: `5432` (Standard PostgreSQL Port)
+   - **User**: `postgres` (oder der von dir gesetzte User)
+   - **Password**: Das von dir gesetzte Passwort
+   - **Database**: `audion` (oder der von dir gesetzte Name)
+   
+   **Beispiel Connection String**:
+   ```
+   postgresql://postgres:57DxyBIglyI5qKVTX6gx6D63KSPCTT5WrztWJsdE6lcjN03VPKUTjQIXHeXf53fI@audion-postgres:5432/audion
+   ```
 
 ### 1.2 Redis erstellen
 
@@ -37,7 +53,21 @@ In Coolify kannst du Database Resources erstellen, die automatisch verwaltet wer
    - **Name**: `audion-redis`
    - **Version**: `7` oder neuer
 4. Klicke auf **Create**
-5. **WICHTIG**: Notiere dir die **Connection String** (sieht aus wie: `redis://host:6379/0`)
+5. **WICHTIG**: Nach dem Erstellen findest du die Connection-Informationen:
+   - Gehe zur erstellten Database Resource
+   - Suche nach **"Connection String"**, **"Connection URL"** oder **"Redis URL"**
+   - Falls nicht sichtbar: Die Connection String setzt sich zusammen aus:
+     ```
+     redis://HOST:6379/0
+     ```
+   - **Host**: Der Name der Database Resource (z.B. `audion-redis`)
+   - **Port**: `6379` (Standard Redis Port)
+   - **Database**: `0` (Standard Redis Database)
+   
+   **Beispiel Connection String**:
+   ```
+   redis://audion-redis:6379/0
+   ```
 
 ---
 
@@ -97,15 +127,19 @@ Füge die Connection Strings von Schritt 1 hinzu:
 
 ```bash
 # PostgreSQL (von Database Resource)
-DATABASE_URL=postgresql://user:password@audion-postgres:5432/audion
+# Format: postgresql://USER:PASSWORD@HOST:5432/DATABASE
+DATABASE_URL=postgresql://postgres:57DxyBIglyI5qKVTX6gx6D63KSPCTT5WrztWJsdE6lcjN03VPKUTjQIXHeXf53fI@audion-postgres:5432/audion
 
 # Redis (von Database Resource)
+# Format: redis://HOST:6379/0
 REDIS_URL=redis://audion-redis:6379/0
 ```
 
 **WICHTIG**: 
-- Ersetze `user`, `password` und `host` mit den tatsächlichen Werten aus deinen Database Resources
-- In Coolify können Services über ihre Namen erreicht werden (z.B. `audion-postgres` statt IP-Adresse)
+- Ersetze die Werte mit deinen tatsächlichen Credentials
+- **Host**: Verwende den Namen der Database Resource (z.B. `audion-postgres`, `audion-redis`)
+- In Coolify können Services über ihre Namen erreicht werden (Docker Service Discovery)
+- Falls du die Connection String nicht findest, konstruiere sie manuell mit dem Format oben
 
 ### 3.2 Vector & Graph Database URLs
 
