@@ -187,6 +187,10 @@ services:
       # Coolify may pass NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD to all services, including Neo4j
       # Neo4j tries to interpret them as config settings, which causes errors
       - NEO4J_server_config_strict_validation_enabled=false
+      # CRITICAL: These variables must NOT be set in Neo4j container environment
+      # Coolify may inject them globally, but Neo4j will try to interpret them as config settings
+      # We cannot unset them in docker-compose, but NEO4J_server_config_strict_validation_enabled=false
+      # should prevent Neo4j from failing. The errors are warnings and should not prevent startup.
     volumes:
       - neo4j_data:/data
       - neo4j_logs:/logs

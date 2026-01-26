@@ -388,6 +388,72 @@ In Coolify sollten alle Services im gleichen Netzwerk sein. Prüfe:
 2. Prüfe `QDRANT_URL` (sollte `http://audion-qdrant:6333` sein)
 3. Prüfe, dass Port `6333` erreichbar ist
 
+### Anwendung startet immer wieder neu
+
+**Problem**: Services starten kontinuierlich neu (Restart-Loop)
+
+**Mögliche Ursachen und Lösungen**:
+
+1. **Neo4j Config-Fehler (nur Warnungen)**
+   - **Symptom**: `Failed to read config: Unrecognized setting. No declared setting with name: URI`
+   - **Ursache**: Coolify injiziert `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD` global, Neo4j interpretiert sie als Config
+   - **Lösung**: Diese Fehler sind **nur Warnungen** und sollten Neo4j nicht am Starten hindern
+   - **Prüfen**: Neo4j sollte trotzdem laufen - prüfe mit `docker logs audion-neo4j`
+
+2. **Health Check schlägt fehl**
+   - **Symptom**: Service startet, Health Check schlägt fehl, Service wird neu gestartet
+   - **Lösung**: 
+     - Prüfe die Health Check Logs: `docker logs <service-name>`
+     - Prüfe, ob der Health Check Endpoint erreichbar ist
+     - Erhöhe `start_period` im Health Check, falls der Service länger zum Starten braucht
+
+3. **Service crasht beim Start**
+   - **Symptom**: Service startet, crasht sofort, wird neu gestartet
+   - **Lösung**:
+     - Prüfe die Logs des crashenden Services: `docker logs <service-name>`
+     - Prüfe, ob alle Environment Variables gesetzt sind
+     - Prüfe, ob alle Dependencies (Database, Redis, etc.) erreichbar sind
+
+4. **Database Connection Fehler**
+   - **Symptom**: Service kann nicht zur Database verbinden
+   - **Lösung**: Siehe "Database Connection Fehler" oben
+
+**Debugging-Schritte**:
+1. Prüfe, welcher Service genau neu startet: `docker ps -a` (schaue auf "Restart" Spalte)
+2. Prüfe die Logs des neu startenden Services: `docker logs <service-name>`
+3. Prüfe, ob alle Dependencies laufen: `docker ps`
+4. Prüfe Health Check Status: `docker inspect <service-name> | grep -A 10 Health`
+
+### Force Rebuild / Cache löschen (Coolify v4.0.0-beta)
+
+**Problem**: Code-Änderungen werden nicht übernommen, Container verwendet alten Build
+
+**Lösungen**:
+
+#### Methode 1: Force Deploy (Empfohlen)
+1. Gehe zu **Application** → **Deployments**
+2. Klicke auf **"Force Deploy"** oder **"Force Deploy (without cache)"**
+3. Dies startet einen Build mit `--no-cache` Docker-Option
+4. Warte, bis der Build abgeschlossen ist
+
+#### Methode 2: BuildKit Cache deaktivieren
+1. Gehe zu **Application** → **Settings** → **Build** → **Advanced**
+2. Aktiviere **"Disable BuildKit Cache"**
+3. Führe dann einen manuellen Deploy durch
+
+#### Workaround (falls Methoden 1 & 2 nicht funktionieren)
+**Bekannte Bugs in Coolify v4.0.0-beta:**
+- Force Deploy nutzt manchmal trotzdem Cache
+- "Disable BuildKit Cache" wird bei Webhook-Deployments nicht beachtet
+
+**Workaround:**
+1. **Stoppe** den Service (Application → Stop)
+2. Warte 10-15 Sekunden
+3. **Starte** den Service neu (Application → Start)
+4. Oder führe einen **manuellen Deploy** durch
+
+**Hinweis**: Nach Code-Änderungen (z.B. `db.py` Fixes) sollte immer ein Force Rebuild durchgeführt werden, um sicherzustellen, dass der neue Code verwendet wird.
+
 ---
 
 ## Checkliste
