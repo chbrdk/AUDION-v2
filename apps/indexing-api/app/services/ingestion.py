@@ -7,11 +7,11 @@ from uuid import UUID
 import structlog
 # Lazy import FlagEmbedding to avoid transformers compatibility issues at startup
 # FlagEmbedding 1.3.5 has compatibility issues with newer transformers versions
-try:
+# We import it only when actually needed, not at module level
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
     from FlagEmbedding import BGEM3FlagModel
-except ImportError as e:
-    # If import fails, we'll handle it when actually using the embedder
-    BGEM3FlagModel = None  # type: ignore
 
 from qdrant_client import QdrantClient
 from qdrant_client.http import models as qmodels
@@ -35,16 +35,19 @@ class IngestionService:
         self._collection = "research_chunks"
     
     @property
-    def embedder(self) -> BGEM3FlagModel:
+    def embedder(self):
         """Lazy load the embedder model on first use."""
         if self._embedder is None:
-            if BGEM3FlagModel is None:
+            # Import FlagEmbedding only when actually needed
+            try:
+                from FlagEmbedding import BGEM3FlagModel
+                # Disable FP16 to avoid SIGSEGV issues in Docker/Celery workers
+                self._embedder = BGEM3FlagModel("BAAI/bge-m3", use_fp16=False)
+            except ImportError as e:
                 raise ImportError(
-                    "FlagEmbedding konnte nicht importiert werden. "
+                    f"FlagEmbedding konnte nicht importiert werden: {e}. "
                     "Möglicherweise ein Kompatibilitätsproblem mit transformers."
-                )
-            # Disable FP16 to avoid SIGSEGV issues in Docker/Celery workers
-            self._embedder = BGEM3FlagModel("BAAI/bge-m3", use_fp16=False)
+                ) from e
         return self._embedder
 
     def _ensure_collection(self) -> None:

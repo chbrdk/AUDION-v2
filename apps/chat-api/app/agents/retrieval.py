@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-from typing import List, Tuple
+from typing import List, Tuple, TYPE_CHECKING
 
 # Lazy import FlagEmbedding to avoid transformers compatibility issues at startup
 # FlagEmbedding 1.3.5 has compatibility issues with newer transformers versions
-try:
+# We import it only when actually needed, not at module level
+if TYPE_CHECKING:
     from FlagEmbedding import BGEM3FlagModel
-except ImportError as e:
-    # If import fails, we'll handle it when actually using the embedder
-    BGEM3FlagModel = None  # type: ignore
 
 from qdrant_client import QdrantClient
 from qdrant_client.http import models as qmodels
@@ -25,15 +23,18 @@ class RetrievalAgent:
         self._collection = "research_chunks"
     
     @property
-    def embedder(self) -> BGEM3FlagModel:
+    def embedder(self):
         """Lazy load the embedder model on first use."""
         if self._embedder is None:
-            if BGEM3FlagModel is None:
+            # Import FlagEmbedding only when actually needed
+            try:
+                from FlagEmbedding import BGEM3FlagModel
+                self._embedder = BGEM3FlagModel("BAAI/bge-m3", use_fp16=True)
+            except ImportError as e:
                 raise ImportError(
-                    "FlagEmbedding konnte nicht importiert werden. "
+                    f"FlagEmbedding konnte nicht importiert werden: {e}. "
                     "Möglicherweise ein Kompatibilitätsproblem mit transformers."
-                )
-            self._embedder = BGEM3FlagModel("BAAI/bge-m3", use_fp16=True)
+                ) from e
         return self._embedder
 
     def run(self, *, query: str, persona_segment: str | None = None) -> Tuple[List[float], list]:
