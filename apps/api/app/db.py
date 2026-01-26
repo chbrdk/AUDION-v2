@@ -118,8 +118,17 @@ if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql+psycopg://", 1)
     logger.critical(f"EMERGENCY: After forced conversion: {database_url.split('@')[0]}@***")
 
+# CRITICAL: Convert URL directly in create_engine call as absolute last resort
+# This ensures the URL is ALWAYS normalized, even if something went wrong before
+final_url = database_url
+if final_url.startswith("postgres://"):
+    logger.critical("LAST RESORT: Converting postgres:// in create_engine call!")
+    final_url = final_url.replace("postgres://", "postgresql+psycopg://", 1)
+
+logger.info(f"FINAL: About to call create_engine with URL starting with: {final_url[:20]}...")
+
 engine = create_engine(
-    database_url,
+    final_url,
     pool_pre_ping=True,
     pool_size=5,
     max_overflow=10,
