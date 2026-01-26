@@ -10,6 +10,7 @@ type KnowledgeFormState = {
 import { MaterialSymbol } from "../material-symbol";
 import { MsqdxGlassDashboardCard } from "./msqdx-glass-dashboard-card";
 import { MsqdxGlassDashboardCardSection } from "./msqdx-glass-dashboard-card-section";
+import { buildApiUrl } from "../../app/api/_lib/backend";
 
 export type MsqdxGlassKnowledgeSourcesCardProps = {
   detail: PersonaResponse;
@@ -25,7 +26,6 @@ export type MsqdxGlassKnowledgeSourcesCardProps = {
   onLoadDetail: (id: string) => Promise<void>;
   formatDate: (value?: string | null) => string;
   notify: (message: string) => void;
-  personaBackendPublicBase: string;
 };
 
 export const MsqdxGlassKnowledgeSourcesCard = ({
@@ -41,8 +41,8 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
   onKnowledgeSubmit,
   onLoadDetail,
   formatDate,
-  notify,
-  personaBackendPublicBase
+  formatDate,
+  notify
 }: MsqdxGlassKnowledgeSourcesCardProps) => {
   const handleDocumentRetry = async (docId: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -53,9 +53,7 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
     }
     alert("Restarting ingestion...");
     try {
-      const target = personaBackendPublicBase
-        ? `${personaBackendPublicBase}/personas/${selectedId}/documents/${docId}/retry`
-        : `/api/persona-admin/${selectedId}/documents/${docId}/retry`;
+      const target = buildApiUrl(`/api/persona-admin/${selectedId}/documents/${docId}/retry`);
       const response = await fetch(target, { method: "POST" });
       if (!response.ok) {
         const errorText = await response.text().catch(() => "");
@@ -79,9 +77,7 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
       return;
     }
     try {
-      const target = personaBackendPublicBase
-        ? `${personaBackendPublicBase}/personas/${selectedId}/documents/${docId}`
-        : `/api/persona-admin/${selectedId}/documents/${docId}`;
+      const target = buildApiUrl(`/api/persona-admin/${selectedId}/documents/${docId}`);
       const response = await fetch(target, { method: "DELETE" });
       if (!response.ok) {
         throw new Error(`Backend responded with ${response.status}`);
@@ -118,9 +114,9 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
                 Updating status...
               </span>
             )}
-            <button 
-              className="msqdx-glass-button --ghost" 
-              onClick={onDocumentUpload} 
+            <button
+              className="msqdx-glass-button --ghost"
+              onClick={onDocumentUpload}
               disabled={documentUploadPending}
             >
               <MaterialSymbol icon="upload" fontSize={16} /> {documentUploadPending ? "Uploading..." : "Upload"}
@@ -155,24 +151,24 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
                   </div>
                   <div className="msqdx-glass-card-list__actions">
                     {doc.downloadUrl && (
-                      <a 
-                        className="msqdx-glass-button --ghost" 
-                        href={doc.downloadUrl} 
-                        target="_blank" 
+                      <a
+                        className="msqdx-glass-button --ghost"
+                        href={doc.downloadUrl}
+                        target="_blank"
                         rel="noreferrer"
                       >
                         <MaterialSymbol icon="download" fontSize={16} /> Download
                       </a>
                     )}
-                    {(doc.ingestionStatus === "failed" || doc.ingestionStatus === "pending" || 
+                    {(doc.ingestionStatus === "failed" || doc.ingestionStatus === "pending" ||
                       (doc.ingestionStatus === "processing" && doc.ingestionProgress && doc.ingestionProgress < 10)) && (
-                      <button
-                        className="msqdx-glass-button --ghost"
-                        onClick={(e) => handleDocumentRetry(doc.id, e)}
-                      >
-                        <MaterialSymbol icon="refresh" fontSize={16} /> Retry
-                      </button>
-                    )}
+                        <button
+                          className="msqdx-glass-button --ghost"
+                          onClick={(e) => handleDocumentRetry(doc.id, e)}
+                        >
+                          <MaterialSymbol icon="refresh" fontSize={16} /> Retry
+                        </button>
+                      )}
                     <button
                       className="msqdx-glass-button --ghost"
                       onClick={() => handleDocumentDelete(doc.id, doc.filename)}
@@ -206,19 +202,19 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
         <form className="msqdx-glass-field-grid" onSubmit={onKnowledgeSubmit}>
           <div className="msqdx-glass-field">
             <label>Title</label>
-            <input 
-              value={knowledgeForm.title} 
-              onChange={(event) => onKnowledgeField("title", event.target.value)} 
-              placeholder="e.g. Market Study 2025" 
+            <input
+              value={knowledgeForm.title}
+              onChange={(event) => onKnowledgeField("title", event.target.value)}
+              placeholder="e.g. Market Study 2025"
             />
           </div>
           <div className="msqdx-glass-field">
             <label>Content</label>
-            <textarea 
-              value={knowledgeForm.content} 
-              onChange={(event) => onKnowledgeField("content", event.target.value)} 
-              rows={3} 
-              placeholder="Short description or insights" 
+            <textarea
+              value={knowledgeForm.content}
+              onChange={(event) => onKnowledgeField("content", event.target.value)}
+              rows={3}
+              placeholder="Short description or insights"
             />
           </div>
           <div className="msqdx-glass-field">

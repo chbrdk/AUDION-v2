@@ -1234,9 +1234,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
         content: knowledgeForm.content,
         created_by: "persona-admin-ui",
       };
-      const target = personaBackendPublicBase
-        ? `${personaBackendPublicBase}/personas/${selectedId}/knowledge`
-        : buildApiUrl(`/api/persona-admin/${selectedId}/knowledge`);
+      const target = buildApiUrl(`/api/persona-admin/${selectedId}/knowledge`);
       const response = await fetch(target, {
         method: "POST",
         headers: {
@@ -1644,7 +1642,6 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
                 onLoadDetail={loadDetail}
                 formatDate={formatDate}
                 notify={notify}
-                personaBackendPublicBase={personaBackendPublicBase}
               />
 
               {/* Card: Erweitert */}
