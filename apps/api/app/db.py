@@ -67,21 +67,44 @@ if not database_url:
 original_url_preview = database_url.split("@")[0] if "@" in database_url else database_url[:50]
 logger.info(f"Original database URL: {original_url_preview}@***")
 
-# Normalize the database URL
+# Normalize the database URL - CRITICAL: This must happen before create_engine
 database_url = normalize_database_url(database_url)
 
 logger.info(f"Final database URL: {database_url.split('@')[0]}@***")  # Log without password
+
+# CRITICAL: Double-check that normalization worked
+# If this check fails, the URL was not properly normalized
+if database_url.startswith("postgres://"):
+    logger.critical(f"FATAL: Database URL normalization failed! URL still starts with 'postgres://': {original_url_preview}@***")
+    # Force re-normalization as last resort
+    database_url = normalize_database_url(database_url)
+    if database_url.startswith("postgres://"):
+        raise RuntimeError(
+            f"Database URL normalization completely failed! "
+            f"Original: {original_url_preview}@***, "
+            f"After normalization: {database_url.split('@')[0] if '@' in database_url else database_url[:50]}@***"
+        )
 
 # Use DATABASE_URL directly - no STORION dependencies
 # All STORION-specific logic has been removed for autonomous operation
 
 # Create engine with search_path set to audion schema
 # Use connect_args to set search_path at connection time (for psycopg)
-# IMPORTANT: Double-check URL before creating engine to ensure it's normalized
+# CRITICAL: Final check before create_engine - if URL still starts with postgres://, something is very wrong
 if database_url.startswith("postgres://"):
-    logger.error(f"CRITICAL: Database URL still starts with 'postgres://' before create_engine! URL: {database_url.split('@')[0]}@***")
+    logger.critical(f"FATAL ERROR: Database URL still starts with 'postgres://' right before create_engine!")
+    logger.critical(f"URL value: {database_url.split('@')[0] if '@' in database_url else database_url[:100]}@***")
+    logger.critical("This should NEVER happen if normalization worked correctly!")
+    # Force one more normalization attempt
     database_url = normalize_database_url(database_url)
-    logger.warning(f"Re-normalized URL: {database_url.split('@')[0]}@***")
+    if database_url.startswith("postgres://"):
+        raise RuntimeError(
+            "CRITICAL: Database URL normalization failed completely! "
+            "The URL still starts with 'postgres://' after multiple normalization attempts. "
+            "This will cause SQLAlchemy to fail with 'Can't load plugin: sqlalchemy.dialects:postgres'"
+        )
+
+logger.info(f"Creating SQLAlchemy engine with URL: {database_url.split('@')[0]}@***")
 
 engine = create_engine(
     database_url,
