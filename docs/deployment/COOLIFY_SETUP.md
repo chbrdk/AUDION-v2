@@ -273,14 +273,19 @@ In Coolify sollten alle Services im gleichen Netzwerk sein. Prüfe:
 **Problem**: `could not connect to database` oder `Temporary failure in name resolution`
 
 **Lösungen**:
-1. Prüfe, dass die Database Resources laufen
-2. Prüfe die Connection Strings (User, Password, Host, Port)
-3. **WICHTIG**: In Coolify sind Database Resources über ihre **automatisch generierten Hostnamen** erreichbar
+1. **WICHTIG**: Database Resources müssen zur Application verlinkt werden!
+   - Gehe zu **Application** → **Settings** → **Resources** (oder **Linked Resources**)
+   - Klicke auf **Link Resource** oder **Add Resource**
+   - Wähle deine PostgreSQL und Redis Database Resources aus
+   - Speichere die Änderungen
+2. Prüfe, dass die Database Resources laufen
+3. Prüfe die Connection Strings (User, Password, Host, Port)
+4. **WICHTIG**: In Coolify sind Database Resources über ihre **automatisch generierten Hostnamen** erreichbar
    - Nicht über den Resource-Namen (z.B. `audion-postgres`)
    - Sondern über den generierten Hostnamen (z.B. `y4cos8wkk0sg0k88sgoscwso`)
    - Finde den Hostnamen in der Database Resource unter "Connection Details" oder "Host"
-4. Stelle sicher, dass alle Services im gleichen Netzwerk sind
-5. Prüfe, dass die Ports korrekt sind (5432 für PostgreSQL, 6379 für Redis)
+5. Stelle sicher, dass alle Services im gleichen Netzwerk sind
+6. Prüfe, dass die Ports korrekt sind (5432 für PostgreSQL, 6379 für Redis)
 
 ### Neo4j Connection Fehler
 
@@ -290,10 +295,22 @@ In Coolify sollten alle Services im gleichen Netzwerk sein. Prüfe:
 1. **NEO4J_AUTH Problem**: Das Passwort darf nicht leer sein!
    - `NEO4J_AUTH=neo4j/` → **FALSCH** (leeres Passwort)
    - `NEO4J_AUTH=neo4j/meinPasswort123` → **RICHTIG** (mit Passwort)
+   - Setze es in den Neo4j Container Environment Variables
+   - Dann setze `NEO4J_PASSWORD=meinPasswort123` in den Application Environment Variables
 2. Prüfe, dass Neo4j Container läuft
 3. Prüfe `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD` in den Environment Variables
 4. Prüfe, dass der Bolt-Port (`7687`) erreichbar ist
 5. **Hostname**: Verwende den Container-Namen (z.B. `audion-neo4j`) oder den generierten Hostnamen
+
+### FlagEmbedding Import Fehler
+
+**Problem**: `ImportError: cannot import name 'is_torch_fx_available' from 'transformers.utils.import_utils'`
+
+**Lösung**: 
+- Der Code wurde bereits gefixt - FlagEmbedding wird jetzt lazy importiert
+- Der Import-Fehler tritt nur auf, wenn FlagEmbedding tatsächlich verwendet wird
+- Falls der Fehler weiterhin auftritt: Prüfe, ob FlagEmbedding 1.3.5 die neueste Version ist
+- Alternative: transformers-Version downgraden (nicht empfohlen)
 
 ### Qdrant Connection Fehler
 
