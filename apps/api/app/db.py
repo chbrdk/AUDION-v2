@@ -6,7 +6,7 @@ Uses PostgreSQL with audion schema.
 from __future__ import annotations
 
 from contextlib import contextmanager
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine as sqlalchemy_create_engine, event
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 import logging
 import os
@@ -16,6 +16,19 @@ from .core.config import get_settings
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
+
+# Wrapper function to ensure database URL is always normalized before create_engine
+def create_engine(url, *args, **kwargs):
+    """
+    Wrapper around SQLAlchemy's create_engine that ensures postgres:// URLs
+    are converted to postgresql+psycopg:// before passing to SQLAlchemy.
+    """
+    # CRITICAL: Always normalize the URL, even if it was already normalized
+    if isinstance(url, str) and url.startswith("postgres://"):
+        logger.critical(f"create_engine wrapper: Converting postgres:// URL!")
+        url = url.replace("postgres://", "postgresql+psycopg://", 1)
+        logger.critical(f"create_engine wrapper: Converted to: {url.split('@')[0] if '@' in url else url[:50]}@***")
+    return sqlalchemy_create_engine(url, *args, **kwargs)
 
 # Database URL - ensure psycopg driver and set search_path to audion schema
 # Coolify returns postgres:// but SQLAlchemy needs postgresql:// or postgresql+psycopg://
