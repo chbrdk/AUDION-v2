@@ -124,43 +124,96 @@ Qdrant und Neo4j können als normale Docker Container in Coolify erstellt werden
 
 ## Schritt 3: Environment Variables konfigurieren
 
+### 3.0 Wo setze ich die Environment Variables?
+
+**WICHTIG**: Es gibt zwei Stellen, wo du Environment Variables setzen musst:
+
+1. **Application Environment Variables** (für deine Docker Compose Services):
+   - Gehe zu deiner **Application** → **Settings** → **Environment Variables**
+   - Hier setzt du alle Variablen, die deine Services (api, chat-api, indexing-api, etc.) brauchen
+
+2. **Neo4j Container Environment Variables** (nur für Neo4j):
+   - Gehe zu deinem **Neo4j Container** (in docker-compose.yml oder als separater Service)
+   - Oder: In Coolify → **Resources** → **One-Click Apps** → dein Neo4j Service → **Environment Variables**
+   - Hier setzt du `NEO4J_AUTH=neo4j/DEIN_PASSWORT`
+
+### 3.1 Application Environment Variables setzen
+
 Gehe zu deiner **Application** → **Settings** → **Environment Variables**
 
-### 3.1 Database URLs
+### 3.1 Database URLs finden und setzen
 
-Füge die Connection Strings von Schritt 1 hinzu:
+#### Schritt 1: PostgreSQL Connection String finden
+
+1. Gehe zu **Resources** → **Database** → deine PostgreSQL Resource (z.B. `audion-postgres`)
+2. Suche nach **"Connection String"**, **"Connection URL"**, **"Internal URL"** oder **"Connection Details"**
+3. Klicke auf das **Auge-Icon** (👁️) neben der URL, um sie anzuzeigen
+4. **WICHTIG**: Notiere dir den **Container-Namen** (z.B. `y4cos8wkk0sg0k88sgoscwso`)
+   - Das ist NICHT der Resource-Name (`audion-postgres`), sondern der generierte Container-Name!
+5. Falls keine Connection String angezeigt wird, konstruiere sie manuell:
+   ```
+   postgres://USER:PASSWORD@CONTAINER_NAME:5432/DATABASE
+   ```
+   - **USER**: Meist `postgres`
+   - **PASSWORD**: Das Passwort, das du beim Erstellen gesetzt hast
+   - **CONTAINER_NAME**: Der generierte Container-Name (z.B. `y4cos8wkk0sg0k88sgoscwso`)
+   - **DATABASE**: Meist `postgres` oder `audion`
+
+#### Schritt 2: Redis Connection String finden
+
+1. Gehe zu **Resources** → **Database** → deine Redis Resource (z.B. `audion-redis`)
+2. Suche nach **"Connection String"**, **"Redis URL"**, **"Internal URL"** oder **"Connection Details"**
+3. Klicke auf das **Auge-Icon** (👁️) neben der URL, um sie anzuzeigen
+4. **WICHTIG**: Notiere dir den **Container-Namen** (z.B. `xgc8okk8gskock08wskwkwks`)
+5. Falls keine Connection String angezeigt wird, konstruiere sie manuell:
+   ```
+   redis://default:PASSWORD@CONTAINER_NAME:6379/0
+   ```
+   - **PASSWORD**: Das Passwort, das du beim Erstellen gesetzt hast (oder `default` für Redis)
+   - **CONTAINER_NAME**: Der generierte Container-Name
+
+#### Schritt 3: Environment Variables in Application setzen
+
+1. Gehe zu deiner **Application** → **Settings** → **Environment Variables**
+2. Klicke auf **"Add Environment Variable"** oder **"+"**
+3. Füge die folgenden Variablen hinzu:
 
 ```bash
 # PostgreSQL (von Database Resource)
-# Format: postgres://USER:PASSWORD@HOST:5432/DATABASE
+# Format: postgres://USER:PASSWORD@CONTAINER_NAME:5432/DATABASE
 # Hinweis: Coolify gibt "postgres://" zurück, nicht "postgresql://"
 # Der Code konvertiert automatisch "postgres://" zu "postgresql+psycopg://" für SQLAlchemy
-DATABASE_URL=postgres://postgres:57DxyBIglyI5qKVTX6gx6D63KSPCTT5WrztWJsdE6lcjN03VPKUTjQIXHeXf53fI@y4cos8wkk0sg0k88sgoscwso:5432/audion
+DATABASE_URL=postgres://postgres:DEIN_PASSWORT@CONTAINER_NAME:5432/audion
 
 # Redis (von Database Resource)
-# Format: redis://USER:PASSWORD@HOST:6379/0
-REDIS_URL=redis://default:PJcQx4QWITPjBOelnVvHxNcOw7kR78hrqPg9rDc419RKjD5ffUqOHIMFg6YwX4oN@xgc8okk8gskock08wskwkwks:6379/0
+# Format: redis://default:PASSWORD@CONTAINER_NAME:6379/0
+REDIS_URL=redis://default:DEIN_PASSWORT@CONTAINER_NAME:6379/0
 ```
 
 **WICHTIG**: 
-- Ersetze die Werte mit deinen tatsächlichen Credentials
-- **Host**: In Coolify sind Database Resources über ihre **automatisch generierten Hostnamen** erreichbar
-  - Diese findest du in der Database Resource unter "Connection Details" oder "Host"
-  - Beispiel: `y4cos8wkk0sg0k88sgoscwso` (nicht `audion-postgres`!)
-- **Netzwerk**: Database Resources sind im gleichen Docker-Netzwerk wie deine Application
-- Falls du die Connection String nicht findest, konstruiere sie manuell mit dem Format oben
+- Ersetze `DEIN_PASSWORT` mit deinen tatsächlichen Passwörtern
+- Ersetze `CONTAINER_NAME` mit den generierten Container-Namen (nicht den Resource-Namen!)
+- **Host**: Verwende den **Container-Namen**, nicht den Resource-Namen
+- **Netzwerk**: Stelle sicher, dass "Connect To Predefined Network" aktiviert ist (siehe Schritt 4)
 
 ### 3.2 Vector & Graph Database URLs
 
-```bash
-# Qdrant (von Container Service)
-QDRANT_URL=http://audion-qdrant:6333
+Füge diese Variablen in **Application** → **Settings** → **Environment Variables** hinzu:
 
-# Neo4j (von Container Service)
-NEO4J_URI=bolt://audion-neo4j:7687
+```bash
+# Qdrant (von Container Service im docker-compose.yml)
+QDRANT_URL=http://qdrant:6333
+
+# Neo4j (von Container Service im docker-compose.yml)
+NEO4J_URI=bolt://neo4j:7687
 NEO4J_USER=neo4j
-NEO4J_PASSWORD=DEIN_NEO4J_PASSWORT  # Das Passwort, das du in Schritt 2.2 gesetzt hast
+NEO4J_PASSWORD=DEIN_NEO4J_PASSWORT  # Das Passwort, das du für Neo4j setzt (siehe unten)
 ```
+
+**WICHTIG für Neo4j**:
+- `NEO4J_PASSWORD` muss in den **Application Environment Variables** gesetzt werden
+- Zusätzlich muss `NEO4J_AUTH=neo4j/DEIN_PASSWORT` im **Neo4j Container** gesetzt werden
+- Siehe Schritt 3.3 für Details
 
 ### 3.3 API Keys
 
