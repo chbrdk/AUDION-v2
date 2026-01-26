@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 // Base path für Audion - ermöglicht parallelen Betrieb mit anderen Services
 // Wird über Umgebungsvariable konfiguriert, Standard: leer (für Coolify)
-const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+const basePath = '';
 
 const nextConfig = {
   reactStrictMode: true,
@@ -18,14 +18,14 @@ const nextConfig = {
     return 'build-' + Date.now();
   },
   // Disable static generation for error pages
-  output: 'standalone',
+  // output: 'standalone',
   // Optimize bundle size
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? {
       exclude: ['error', 'warn'],
     } : false,
   },
-  
+
   // Configure webpack for development (HMR errors are suppressed client-side)
   // Note: Next.js 16 uses Turbopack by default, but we use --webpack flag for builds
   webpack: (config, { dev, isServer }) => {
@@ -41,14 +41,14 @@ const nextConfig = {
   },
   // Add empty turbopack config to silence the warning when webpack config is present
   turbopack: {},
-  
+
   // HMR is disabled to prevent WebSocket connection errors
   // Page will still reload on file changes, but without WebSocket connection
   devIndicators: {
     buildActivity: true,
     buildActivityPosition: 'bottom-right',
   },
-  
+
   // SWC minification is enabled by default in Next.js 16
 };
 

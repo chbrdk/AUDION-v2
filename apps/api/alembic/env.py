@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import engine_from_config, pool, text
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT / "app") not in sys.path:
@@ -47,7 +47,8 @@ def run_migrations_online() -> None:
 
     with connectable.connect() as connection:
         # Set search_path to audion schema before running migrations
-        connection.execute("SET search_path = audion, public")
+        connection.execute(text("CREATE SCHEMA IF NOT EXISTS audion"))
+        connection.execute(text("SET search_path = audion, public"))
         context.configure(
             connection=connection, 
             target_metadata=target_metadata, 
