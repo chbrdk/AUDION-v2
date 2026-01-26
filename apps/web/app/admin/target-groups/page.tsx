@@ -7,7 +7,7 @@ import { MsqdxGlassTargetGroupAdminPanel } from "../../../components/msqdx-glass
 
 async function fetchTargetGroupList(): Promise<TargetGroupListResponse> {
   // Use absolute URL for server-side fetch
-  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '/audion';
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
   const apiUrl = `http://localhost:3005${basePath}/api/target-groups?page=1&page_size=50`;
 
   const controller = new AbortController();

@@ -5,7 +5,7 @@ import { MsqdxGlassAdminDashboard } from "../../components/admin/msqdx-glass-adm
 
 async function fetchPersonaList(): Promise<PersonaListResponse> {
   // Use absolute URL for server-side fetch
-  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '/audion';
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
   const apiUrl = `http://localhost:3005${basePath}/api/personas?page=1&page_size=1`;
 
   const controller = new AbortController();
@@ -39,7 +39,7 @@ async function fetchPersonaList(): Promise<PersonaListResponse> {
 
 async function fetchTargetGroupList(): Promise<TargetGroupListResponse> {
   // Use absolute URL for server-side fetch
-  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '/audion';
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
   const apiUrl = `http://localhost:3005${basePath}/api/target-groups?page=1&page_size=1`;
 
   const controller = new AbortController();
@@ -73,7 +73,7 @@ async function fetchTargetGroupList(): Promise<TargetGroupListResponse> {
 
 async function fetchQueueStats(): Promise<QueueStatsResponse> {
   // Use absolute URL for server-side fetch
-  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '/audion';
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
   const apiUrl = `http://localhost:3005${basePath}/api/queue/stats`;
 
   const controller = new AbortController();
@@ -106,7 +106,7 @@ async function fetchQueueStats(): Promise<QueueStatsResponse> {
 }
 
 async function fetchServiceStatus(): Promise<ServiceStatusResponse | null> {
-  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '/audion';
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
   const apiUrl = `http://localhost:3005${basePath}/api/persona-backend/health`;
 
   const controller = new AbortController();
