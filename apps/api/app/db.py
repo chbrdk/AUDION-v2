@@ -19,6 +19,41 @@ settings = get_settings()
 
 # Database URL - ensure psycopg driver and set search_path to audion schema
 # Coolify returns postgres:// but SQLAlchemy needs postgresql:// or postgresql+psycopg://
+def normalize_database_url(url: str) -> str:
+    """
+    Normalize database URL to ensure SQLAlchemy compatibility.
+    Converts postgres:// to postgresql+psycopg://
+    """
+    if not url:
+        raise ValueError("Database URL is empty!")
+    
+    original_url = url
+    
+    # Convert postgres:// to postgresql+psycopg:// for SQLAlchemy compatibility
+    # SQLAlchemy 2.0+ requires postgresql:// or postgresql+psycopg://, not postgres://
+    if url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql+psycopg://", 1)
+        logger.info("Converted postgres:// to postgresql+psycopg://")
+    elif url.startswith("postgresql://") and "+psycopg" not in url:
+        url = url.replace("postgresql://", "postgresql+psycopg://", 1)
+        logger.info("Converted postgresql:// to postgresql+psycopg://")
+    elif url.startswith("postgresql+psycopg2://"):
+        url = url.replace("postgresql+psycopg2://", "postgresql+psycopg://", 1)
+        logger.info("Converted postgresql+psycopg2:// to postgresql+psycopg://")
+    
+    # Final validation - ensure we never use postgres://
+    if url.startswith("postgres://"):
+        error_msg = (
+            f"Database URL still starts with 'postgres://' after conversion! "
+            f"Original: {original_url.split('@')[0] if '@' in original_url else original_url[:50]}@***, "
+            f"Converted: {url.split('@')[0] if '@' in url else url[:50]}@***. "
+            f"This will cause SQLAlchemy errors: 'Can't load plugin: sqlalchemy.dialects:postgres'"
+        )
+        logger.error(error_msg)
+        raise ValueError(error_msg)
+    
+    return url
+
 try:
     database_url = settings.database_url
 except Exception as e:
@@ -32,29 +67,8 @@ if not database_url:
 original_url_preview = database_url.split("@")[0] if "@" in database_url else database_url[:50]
 logger.info(f"Original database URL: {original_url_preview}@***")
 
-# Convert postgres:// to postgresql+psycopg:// for SQLAlchemy compatibility
-# SQLAlchemy 2.0+ requires postgresql:// or postgresql+psycopg://, not postgres://
-original_database_url = database_url
-if database_url.startswith("postgres://"):
-    database_url = database_url.replace("postgres://", "postgresql+psycopg://", 1)
-    logger.info("Converted postgres:// to postgresql+psycopg://")
-elif database_url.startswith("postgresql://") and "+psycopg" not in database_url:
-    database_url = database_url.replace("postgresql://", "postgresql+psycopg://", 1)
-    logger.info("Converted postgresql:// to postgresql+psycopg://")
-elif database_url.startswith("postgresql+psycopg2://"):
-    database_url = database_url.replace("postgresql+psycopg2://", "postgresql+psycopg://", 1)
-    logger.info("Converted postgresql+psycopg2:// to postgresql+psycopg://")
-
-# Ensure we're using postgresql:// not postgres://
-if database_url.startswith("postgres://"):
-    error_msg = (
-        f"Database URL still starts with 'postgres://' after conversion! "
-        f"Original: {original_url_preview}@***, "
-        f"Converted: {database_url.split('@')[0] if '@' in database_url else database_url[:50]}@***. "
-        f"This will cause SQLAlchemy errors: 'Can't load plugin: sqlalchemy.dialects:postgres'"
-    )
-    logger.error(error_msg)
-    raise ValueError(error_msg)
+# Normalize the database URL
+database_url = normalize_database_url(database_url)
 
 logger.info(f"Final database URL: {database_url.split('@')[0]}@***")  # Log without password
 

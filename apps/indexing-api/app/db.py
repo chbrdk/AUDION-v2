@@ -11,17 +11,23 @@ settings = get_settings()
 
 # Database URL - ensure psycopg driver
 # Coolify returns postgres:// but SQLAlchemy needs postgresql:// or postgresql+psycopg://
+def normalize_database_url(url: str) -> str:
+    """Normalize database URL to ensure SQLAlchemy compatibility."""
+    if not url:
+        raise ValueError("Database URL is empty!")
+    if url.startswith("postgres://"):
+        return url.replace("postgres://", "postgresql+psycopg://", 1)
+    elif url.startswith("postgresql://") and "+psycopg" not in url:
+        return url.replace("postgresql://", "postgresql+psycopg://", 1)
+    elif url.startswith("postgresql+psycopg2://"):
+        return url.replace("postgresql+psycopg2://", "postgresql+psycopg://", 1)
+    return url
+
 database_url = settings.database_url or ""
 if not database_url:
     raise ValueError("DATABASE_URL environment variable is not set!")
 
-# Convert postgres:// to postgresql+psycopg:// for SQLAlchemy compatibility
-if database_url.startswith("postgres://"):
-    database_url = database_url.replace("postgres://", "postgresql+psycopg://", 1)
-elif database_url.startswith("postgresql://") and "+psycopg" not in database_url:
-    database_url = database_url.replace("postgresql://", "postgresql+psycopg://", 1)
-elif database_url.startswith("postgresql+psycopg2://"):
-    database_url = database_url.replace("postgresql+psycopg2://", "postgresql+psycopg://", 1)
+database_url = normalize_database_url(database_url)
 
 engine = create_engine(database_url, pool_pre_ping=True)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
