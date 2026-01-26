@@ -5,26 +5,32 @@
  * @returns The base URL for the persona backend
  */
 export function getPersonaBackendBase(options?: { preferPublic?: boolean }): string {
+  // Client-side: always use the Next.js API proxy to avoid Mixed Content / CORS issues
+  if (typeof window !== "undefined") {
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
+    return `${basePath}/api`;
+  }
+
   const preferPublic = options?.preferPublic ?? false;
-  
+
   if (preferPublic) {
     const publicUrl = process.env.NEXT_PUBLIC_PERSONA_BACKEND_URL?.trim();
     if (publicUrl) {
       return publicUrl;
     }
   }
-  
+
   const internalUrl = process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL?.trim();
   if (internalUrl) {
     return internalUrl;
   }
-  
+
   // Fallback to public URL if internal is not set
   const fallbackUrl = process.env.NEXT_PUBLIC_PERSONA_BACKEND_URL?.trim();
   if (fallbackUrl) {
     return fallbackUrl;
   }
-  
+
   // Default fallback - use Docker Compose service name
   return 'http://api:8000';
 }
@@ -36,13 +42,13 @@ export function getPersonaBackendBase(options?: { preferPublic?: boolean }): str
  * @returns The docs URL for the persona backend
  */
 export function getPersonaBackendDocsUrl(options?: { preferPublic?: boolean }): string {
-  const base = getPersonaBackendBase(options);
   const docsUrl = process.env.NEXT_PUBLIC_PERSONA_BACKEND_DOCS_URL?.trim();
-  
+
   if (docsUrl) {
     return docsUrl;
   }
-  
+
+  const base = getPersonaBackendBase(options);
   return `${base}/docs`;
 }
 
@@ -55,7 +61,7 @@ export function getChatApiBase(): string {
   if (publicUrl) {
     return publicUrl;
   }
-  
+
   // Default to Nginx-proxied URL for client-side usage
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
   return `${basePath}/api/chat`;
@@ -70,7 +76,7 @@ export function getVoiceApiBase(): string {
   if (publicUrl) {
     return publicUrl;
   }
-  
+
   // Default to Nginx-proxied URL for client-side usage
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
   return `${basePath}/api/voice`;
@@ -85,7 +91,7 @@ export function getIndexingApiBase(): string {
   if (publicUrl) {
     return publicUrl;
   }
-  
+
   // Default to internal Docker Compose service name
   return process.env.INDEXING_API_URL || 'http://indexing-api:8000';
 }

@@ -790,6 +790,9 @@ async def list_target_group_documents(
         return service.list_documents(session, target_group_id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.error("documents.list.failed", error=str(exc), target_group_id=target_group_id, exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal Server Error") from exc
 
 
 @router.post(
@@ -838,136 +841,122 @@ async def upload_target_group_document(
     
     logger = structlog.get_logger(__name__)
     settings = get_settings()
-    
-    tg = _get_target_group_or_404(session, target_group_id)
-    contents = await file.read()
-    if not contents:
-        raise HTTPException(status_code=400, detail="File was empty")
-    content_type = file.content_type or "application/octet-stream"
-    filename = file.filename or "upload.bin"
-    
-    # Proxy to STORION if enabled
-    if settings.use_storion_proxy:
-        try:
-            logger.info("document.upload.proxy_to_storion", target_group_id=target_group_id, filename=filename)
-            
-            # Upload to STORION
-            result = await storion_client.upload_file(
-                file_content=contents,
-                filename=filename,
-                service="audion",
-                entity_type="target_group",
-                entity_id=str(tg.id),
-                uploaded_by=uploaded_by,
-            )
-            
-            storion_file_id = result.get("file_id", "")
-            job_id = result.get("job_id", "")
-            
-            # Create local document record for backward compatibility
-            document_id = uuid4()
-            document = Document(
-                id=document_id,
-                filename=filename,
-                content_type=content_type,
-                size_bytes=len(contents),
-                status="processing",
-                object_key=storion_file_id,
-                file_path=storion_file_id,
-                target_group_id=tg.id,
-                uploaded_by=uploaded_by,
-            )
-            session.add(document)
-            session.commit()
-            
-            logger.info("document.upload.storion_success", 
-                       document_id=str(document.id), 
-                       storion_file_id=storion_file_id,
-                       job_id=job_id)
-            
-            # Start background task for chunk synchronization
-            def sync_chunks_task():
-                """Background task to poll job status and sync chunks (runs async code)."""
-                import asyncio
-                try:
-                    # Create new event loop for background task
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    
-                    async def async_sync():
-                        # Get a new database session for the background task
-                        with get_session() as bg_session:
-                            # Poll job until complete
-                            await storion_sync_service.poll_job_until_complete(job_id)
-                            
-                            # Sync chunks after job completion
-                            await storion_sync_service.sync_chunks_for_target_group(
-                                session=bg_session,
-                                target_group_id=tg.id,
-                                document_id=document_id,
-                                storion_file_id=storion_file_id,
-                            )
-                    
-                    # Run async function
-                    loop.run_until_complete(async_sync())
-                    loop.close()
-                except Exception as e:
-                    logger.error(
-                        "document.upload.sync_task_failed",
-                        document_id=str(document_id),
-                        error=str(e),
-                        error_type=type(e).__name__,
-                        exc_info=True,
-                    )
-            
-            # Add background task (FastAPI will run it after response is sent)
-            background_tasks.add_task(sync_chunks_task)
-            
-            session.refresh(document)
-            return service._to_document_payload(document, session=session, target_group_id=target_group_id)
+
+    try:
+        tg = _get_target_group_or_404(session, target_group_id)
+        contents = await file.read()
+        if not contents:
+            raise HTTPException(status_code=400, detail="File was empty")
+        content_type = file.content_type or "application/octet-stream"
+        filename = file.filename or "upload.bin"
         
-        except Exception as e:
-            logger.error("document.upload.storion_failed", error=str(e), exc_info=True)
-            logger.warning("document.upload.fallback_to_local", target_group_id=target_group_id)
-    
-    # Local processing (fallback)
-    document_id = uuid4()
-    key = f"target-groups/{target_group_id}/documents/{document_id}/{filename}"
+        # Proxy to STORION if enabled
+        if settings.use_storion_proxy:
+            try:
+                logger.info("document.upload.proxy_to_storion", target_group_id=target_group_id, filename=filename)
+                
+                # Upload to STORION
+                result = await storion_client.upload_file(
+                    file_content=contents,
+                    filename=filename,
+                    service="audion",
+                    entity_type="target_group",
+                    entity_id=str(tg.id),
+                    uploaded_by=uploaded_by,
+                )
+                
+                storion_file_id = result.get("file_id", "")
+                job_id = result.get("job_id", "")
+                
+                # Create local document record for backward compatibility
+                document_id = uuid4()
+                document = Document(
+                    id=document_id,
+                    filename=filename,
+                    content_type=content_type,
+                    size_bytes=len(contents),
+                    status="processing",
+                    object_key=storion_file_id,
+                    file_path=storion_file_id,
+                    target_group_id=tg.id,
+                    uploaded_by=uploaded_by,
+                )
+                session.add(document)
+                
+                # If we got a job_id from STORION, track it
+                if job_id:
+                    job = ProcessingJob(
+                        id=uuid4(),
+                        document_id=document_id,
+                        status="pending",
+                        progress=0.0
+                    )
+                    session.add(job)
+                
+                session.commit()
+                session.refresh(document)
+                
+                # Try to sync metadata back (best effort)
+                background_tasks.add_task(
+                    storion_sync_service.sync_document_from_storion,
+                    document.id,
+                    storion_file_id
+                )
+                
+                return service._to_document_payload(document, session=session, target_group_id=target_group_id)
+                
+            except Exception as e:
+                logger.error("document.upload.storion_failed", error=str(e), target_group_id=target_group_id)
+                # Fallback to local handling if configured?
+                # For now re-raise to fallback to local
+                raise e
+        
+        # Local handling (Standard Flow)
+        logger.info("document.upload.local", target_group_id=target_group_id, filename=filename)
+        
+        # Generate ID
+        document_id = uuid4()
+        
+        # Upload to object storage (MinIO/S3)
+        file_path = f"target-groups/{target_group_id}/documents/{document_id}/{filename}"
+        await storage.upload(file_path, contents, content_type)
+        
+        # Create document record
+        document = Document(
+            id=document_id,
+            filename=filename,
+            content_type=content_type,
+            size_bytes=len(contents),
+            status="pending",
+            object_key=file_path,
+            file_path=file_path,
+            target_group_id=tg.id,
+            uploaded_by=uploaded_by,
+        )
+        session.add(document)
+        
+        # Create processing job
+        job = ProcessingJob(
+            id=uuid4(),
+            document_id=document_id,
+            status="pending",
+            progress=0.0
+        )
+        session.add(job)
+        
+        session.commit()
+        session.refresh(document)
+        
+        # Enqueue processing task
+        enqueue_ingestion(str(document.id))
+        
+        return service._to_document_payload(document, session=session, target_group_id=target_group_id)
 
-    # Create document with processing status
-    document = Document(
-        id=document_id,
-        filename=filename,
-        content_type=content_type,
-        size_bytes=len(contents),
-        status="processing",
-        object_key=key,
-        file_path=key,
-        target_group_id=tg.id,
-        uploaded_by=uploaded_by,
-    )
-    session.add(document)
-    session.flush()
-
-    # Create processing job
-    job = ProcessingJob(document_id=document.id, status="pending", progress=0)
-    session.add(job)
-    session.commit()
-
-    # Store file in filesystem (persistent storage for ingestion)
-    storage.upload(key=key, data=contents, content_type=content_type)
-
-    # Get the persistent file path for ingestion (same as storage path)
-    data_dir = Path(settings.data_dir)
-    persistent_file = data_dir / key.lstrip("/")
-
-    # Enqueue ingestion task with persistent file path
-    logger.info("document.upload.enqueue", document_id=str(document.id), file_path=str(persistent_file), target_group_id=str(target_group_id))
-    enqueue_ingestion(str(document.id), str(persistent_file))
-    logger.info("document.upload.enqueued", document_id=str(document.id))
-
-    session.refresh(document)
-    return service._to_document_payload(document, session=session, target_group_id=target_group_id)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("document.upload.failed", error=str(exc), target_group_id=target_group_id, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(exc)}") from exc
 
 
 @router.get(

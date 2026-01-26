@@ -77,7 +77,7 @@ const defaultKnowledgeForm: KnowledgeFormState = {
   content: "",
 };
 
-const personaBackendPublicBase = process.env.NEXT_PUBLIC_PERSONA_BACKEND_URL?.replace(/\/$/, "") ?? "";
+// Removed unused personaBackendPublicBase constant to prevent Mixed Content errors
 
 const formatDate = (value?: string | null) => {
   if (!value) {
@@ -382,7 +382,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
         headline: updatedHeadline,
         segment: updatedSegment,
       };
-      
+
       // ALWAYS ensure optional demographic fields exist (even if null) so they're included in JSON
       // JSON.stringify excludes undefined but includes null, so we need to explicitly set them
       // We MUST set them as properties, not just check - use existing value or null
@@ -391,14 +391,14 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
       const existingLocation = detail.profile?.location;
       const existingMediaAffinity = detail.profile?.media_affinity;
       const existingFullName = detail.profile?.full_name;
-      
+
       // Explicitly assign to ensure they're properties (not undefined)
       completeProfile.gender = completeProfile.gender ?? existingGender ?? null;
       completeProfile.age = completeProfile.age ?? existingAge ?? null;
       completeProfile.location = completeProfile.location ?? existingLocation ?? null;
       completeProfile.media_affinity = completeProfile.media_affinity ?? existingMediaAffinity ?? null;
       completeProfile.full_name = completeProfile.full_name ?? existingFullName ?? null;
-      
+
       // Apply demographic updates explicitly to ensure they override existing values
       if (demographicUpdates) {
         if ('age' in demographicUpdates) {
@@ -430,7 +430,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
           }
         });
       }
-      
+
       // Also apply profileUpdates for any other fields that were set
       if (profileUpdates) {
         Object.keys(profileUpdates).forEach((key) => {
@@ -496,7 +496,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
         updated_by: updatedBy,
         profile: completeProfile,
       };
-      
+
       console.log('[DEBUG] Payload JSON:', JSON.stringify(payload, null, 2));
       console.log('[DEBUG] Profile keys before send:', Object.keys(completeProfile));
       console.log('[DEBUG] Gender in profile before send:', 'gender' in completeProfile, completeProfile.gender);
@@ -537,7 +537,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
         ...prev,
         items: prev.items.map((item) => (item.id === updated.metadata.personaId ? { ...item, ...updated.metadata, headline: updated.profile.headline } : item)),
       }));
-      
+
       // Update editForm state if we have form updates
       if (formUpdates) {
         setEditForm((prev) => ({
@@ -549,7 +549,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
           ...(formUpdates.updatedBy !== undefined && { updatedBy: formUpdates.updatedBy }),
         }));
       }
-      
+
       notify("Persona saved");
     } catch (error) {
       console.error("Persona save failed", error);
@@ -692,12 +692,12 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
     setDetail((prev) =>
       prev
         ? {
-            ...prev,
-            profile: {
-              ...prev.profile,
-              traits: traitsRecord
-            }
+          ...prev,
+          profile: {
+            ...prev.profile,
+            traits: traitsRecord
           }
+        }
         : prev
     );
   };
@@ -729,12 +729,12 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
     setDetail((prev) =>
       prev
         ? {
-            ...prev,
-            profile: {
-              ...prev.profile,
-              communication_style: updatedCommunicationStyle
-            }
+          ...prev,
+          profile: {
+            ...prev.profile,
+            communication_style: updatedCommunicationStyle
           }
+        }
         : prev
     );
     await handleDemographicSave({
@@ -752,7 +752,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
       setPersonaAiError(null);
 
       // Build existing traits summary
-      const existingTraits = Object.keys(detail.profile.traits || {}).map(trait => 
+      const existingTraits = Object.keys(detail.profile.traits || {}).map(trait =>
         trait.replace(/_/g, " ")
       );
       const existingTraitsSummary = existingTraits.length > 0
@@ -762,8 +762,8 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
       // Build graph relationships summary
       const graphRelationshipsSummary = detail.insights && detail.insights.graphRelationships && detail.insights.graphRelationships.length > 0
         ? detail.insights.graphRelationships
-            .map(rel => `${rel.relationship}: [${rel.nodes.join(", ")}]`)
-            .join("\n")
+          .map(rel => `${rel.relationship}: [${rel.nodes.join(", ")}]`)
+          .join("\n")
         : "Keine Graph-Relationen verfügbar";
 
       // Build knowledge context summary (using chunk IDs for now)
@@ -791,10 +791,10 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
 
       // Parse suggestions and add to existing traits
       if (result.suggestions && result.suggestions.length > 0) {
-        const currentTraits = Object.keys(detail.profile.traits || {}).map(trait => 
+        const currentTraits = Object.keys(detail.profile.traits || {}).map(trait =>
           trait.replace(/_/g, " ")
         );
-        
+
         // Extract trait names from suggestions
         const newTraits = result.suggestions
           .map(s => s.content || s.title || "")
@@ -837,8 +837,8 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
       // Build graph relationships summary
       const graphRelationshipsSummary = detail.insights && detail.insights.graphRelationships && detail.insights.graphRelationships.length > 0
         ? detail.insights.graphRelationships
-            .map(rel => `${rel.relationship}: [${rel.nodes.join(", ")}]`)
-            .join("\n")
+          .map(rel => `${rel.relationship}: [${rel.nodes.join(", ")}]`)
+          .join("\n")
         : "Keine Graph-Relationen verfügbar";
 
       // Build knowledge context summary (using chunk IDs for now)
@@ -867,7 +867,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
       // Parse suggestions and add to existing vocabulary
       if (result.suggestions && result.suggestions.length > 0) {
         const currentVocabulary = detail.profile.communication_style?.vocabulary || [];
-        
+
         // Extract vocabulary words from suggestions
         const newVocabulary = result.suggestions
           .map(s => s.content || s.title || "")
@@ -1103,16 +1103,16 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
     if (!selectedId || !detail) {
       return;
     }
-    
+
     const personaName = detail.profile.name || "this persona";
     const confirmed = window.confirm(
       `Are you sure you want to delete "${personaName}"?\n\nThis action cannot be undone. The persona will be permanently removed.`
     );
-    
+
     if (!confirmed) {
       return;
     }
-    
+
     setSavePending(true);
     try {
       const response = await fetch(buildApiUrl(`/api/persona-admin/${selectedId}?actor=persona-admin-ui`), {
@@ -1458,15 +1458,15 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
                     <button className="msqdx-glass-button --ghost" onClick={handleGenerateAvatar} disabled={avatarGeneratePending}>
                       <MaterialSymbol icon="photo_camera" fontSize={16} /> {avatarGeneratePending ? "Generating..." : "Generate avatar"}
                     </button>
-                    <button 
-                      className="msqdx-glass-button --ghost" 
+                    <button
+                      className="msqdx-glass-button --ghost"
                       onClick={handleArchive}
                       disabled={savePending}
                     >
                       <MaterialSymbol icon="archive" fontSize={16} /> Archive
                     </button>
-                    <button 
-                      className="msqdx-glass-button --ghost" 
+                    <button
+                      className="msqdx-glass-button --ghost"
                       onClick={handleDelete}
                       disabled={savePending}
                       style={{ color: "var(--color-secondary-dx-pink)" }}
@@ -1517,7 +1517,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
                     <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
                       <dt>Target Group</dt>
                       <dd>
-                        <a 
+                        <a
                           href={`/target-groups/admin?selected=${detail.profile.targetGroupId}`}
                           className="msqdx-glass-button --ghost"
                           style={{ fontSize: "0.875rem", padding: "4px 8px" }}
@@ -1611,25 +1611,25 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
               {/* Card: Pain Points & Goals - Full Width, zweispaltig */}
               {((detail.profile.pain_points && detail.profile.pain_points.length > 0) ||
                 (detail.profile.goals && detail.profile.goals.length > 0)) && (
-                <MsqdxGlassPainPointsGoalsCard
-                  profile={detail.profile}
-                  expanded={isAccordionExpanded("pain-points-goals")}
-                  onToggle={toggleAccordion}
-                  onSavePainPoints={handleSavePainPoints}
-                  onSaveGoals={handleSaveGoals}
-                  onAiSuggestGoals={handleGenerateGoalsIdeas}
-                  aiGoalsLoading={personaAiLoading}
-                  onAiSuggestPainPoints={handleGeneratePainPointIdeas}
-                  aiPainPointsLoading={personaAiLoading}
-                  painPointsToolbar={
-                    personaAiError ? (
-                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", width: "100%" }}>
-                        <span className="msqdx-glass-pain-toolbar__error">{personaAiError}</span>
-                      </div>
-                    ) : undefined
-                  }
-                />
-              )}
+                  <MsqdxGlassPainPointsGoalsCard
+                    profile={detail.profile}
+                    expanded={isAccordionExpanded("pain-points-goals")}
+                    onToggle={toggleAccordion}
+                    onSavePainPoints={handleSavePainPoints}
+                    onSaveGoals={handleSaveGoals}
+                    onAiSuggestGoals={handleGenerateGoalsIdeas}
+                    aiGoalsLoading={personaAiLoading}
+                    onAiSuggestPainPoints={handleGeneratePainPointIdeas}
+                    aiPainPointsLoading={personaAiLoading}
+                    painPointsToolbar={
+                      personaAiError ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", width: "100%" }}>
+                          <span className="msqdx-glass-pain-toolbar__error">{personaAiError}</span>
+                        </div>
+                      ) : undefined
+                    }
+                  />
+                )}
 
               {/* Card: Knowledge & Sources - Full Width */}
               <MsqdxGlassKnowledgeSourcesCard
