@@ -19,9 +19,14 @@ settings = get_settings()
 
 # Database URL - ensure psycopg driver and set search_path to audion schema
 # Coolify returns postgres:// but SQLAlchemy needs postgresql:// or postgresql+psycopg://
-database_url = settings.database_url or ""
+try:
+    database_url = settings.database_url
+except Exception as e:
+    logger.error(f"Failed to get database_url from settings: {e}")
+    raise ValueError("DATABASE_URL environment variable is not set!") from e
+
 if not database_url:
-    raise ValueError("DATABASE_URL environment variable is not set!")
+    raise ValueError("DATABASE_URL environment variable is empty or not set!")
 
 # Log original URL (without password) for debugging
 original_url_preview = database_url.split("@")[0] if "@" in database_url else database_url[:50]
@@ -29,6 +34,7 @@ logger.info(f"Original database URL: {original_url_preview}@***")
 
 # Convert postgres:// to postgresql+psycopg:// for SQLAlchemy compatibility
 # SQLAlchemy 2.0+ requires postgresql:// or postgresql+psycopg://, not postgres://
+original_database_url = database_url
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql+psycopg://", 1)
     logger.info("Converted postgres:// to postgresql+psycopg://")
@@ -41,10 +47,14 @@ elif database_url.startswith("postgresql+psycopg2://"):
 
 # Ensure we're using postgresql:// not postgres://
 if database_url.startswith("postgres://"):
-    raise ValueError(
+    error_msg = (
         f"Database URL still starts with 'postgres://' after conversion! "
-        f"This will cause SQLAlchemy errors. URL: {database_url.split('@')[0]}@***"
+        f"Original: {original_url_preview}@***, "
+        f"Converted: {database_url.split('@')[0] if '@' in database_url else database_url[:50]}@***. "
+        f"This will cause SQLAlchemy errors: 'Can't load plugin: sqlalchemy.dialects:postgres'"
     )
+    logger.error(error_msg)
+    raise ValueError(error_msg)
 
 logger.info(f"Final database URL: {database_url.split('@')[0]}@***")  # Log without password
 
