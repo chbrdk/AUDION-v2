@@ -22,12 +22,38 @@ def create_engine(url, *args, **kwargs):
     """
     Wrapper around SQLAlchemy's create_engine that ensures postgres:// URLs
     are converted to postgresql+psycopg:// before passing to SQLAlchemy.
+    
+    This is CRITICAL because Coolify returns postgres:// URLs, but SQLAlchemy 2.0+
+    requires postgresql:// or postgresql+psycopg://.
     """
     # CRITICAL: Always normalize the URL, even if it was already normalized
-    if isinstance(url, str) and url.startswith("postgres://"):
-        logger.critical(f"create_engine wrapper: Converting postgres:// URL!")
+    if not isinstance(url, str):
+        raise TypeError(f"Database URL must be a string, got {type(url)}")
+    
+    if not url:
+        raise ValueError("Database URL is empty!")
+    
+    original_url_for_logging = url.split("@")[0] if "@" in url else url[:50]
+    
+    # CRITICAL: Convert postgres:// to postgresql+psycopg://
+    # This MUST happen before passing to SQLAlchemy, otherwise we get:
+    # sqlalchemy.exc.NoSuchModuleError: Can't load plugin: sqlalchemy.dialects:postgres
+    if url.startswith("postgres://"):
+        logger.critical(f"create_engine wrapper: Converting postgres:// URL! Original: {original_url_for_logging}@***")
         url = url.replace("postgres://", "postgresql+psycopg://", 1)
         logger.critical(f"create_engine wrapper: Converted to: {url.split('@')[0] if '@' in url else url[:50]}@***")
+    elif url.startswith("postgresql://") and "+psycopg" not in url:
+        logger.info(f"create_engine wrapper: Converting postgresql:// to postgresql+psycopg://")
+        url = url.replace("postgresql://", "postgresql+psycopg://", 1)
+    
+    # Final safety check - this should NEVER happen after conversion
+    if url.startswith("postgres://"):
+        raise RuntimeError(
+            f"CRITICAL: URL still starts with 'postgres://' after wrapper conversion! "
+            f"This should NEVER happen. URL: {original_url_for_logging}@***"
+        )
+    
+    logger.info(f"create_engine wrapper: Calling SQLAlchemy with URL starting with: {url[:30]}...")
     return sqlalchemy_create_engine(url, *args, **kwargs)
 
 # Database URL - ensure psycopg driver and set search_path to audion schema
