@@ -205,8 +205,9 @@ volumes:
     driver: local
   neo4j_logs:
     driver: local
-  celery-beat-data:
-    driver: local
+  # REMOVED: celery-beat-data - was overwriting code from Docker build
+  # celery-beat-data:
+  #   driver: local
 
 networks:
   default:
