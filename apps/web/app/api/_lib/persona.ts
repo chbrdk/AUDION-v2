@@ -23,6 +23,13 @@ export const resolvePersonaParams = async <TParams extends ParamsRecord>(
 const normalizePath = (path: string) => (path.startsWith("/") ? path : `/${path}`);
 
 export const buildPersonaBackendUrl = (path: string, options?: { preferPublic?: boolean }) => {
+  // If running on client side, use the Next.js API proxy routes
+  if (typeof window !== "undefined") {
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+    return `${basePath}/api${normalizePath(path)}`;
+  }
+
+  // Server-side: use the internal Docker URL or public URL as configured
   const base = getPersonaBackendBase({ preferPublic: options?.preferPublic });
   return `${base}${normalizePath(path)}`;
 };
