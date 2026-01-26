@@ -23,7 +23,12 @@ database_url = settings.database_url or ""
 if not database_url:
     raise ValueError("DATABASE_URL environment variable is not set!")
 
+# Log original URL (without password) for debugging
+original_url_preview = database_url.split("@")[0] if "@" in database_url else database_url[:50]
+logger.info(f"Original database URL: {original_url_preview}@***")
+
 # Convert postgres:// to postgresql+psycopg:// for SQLAlchemy compatibility
+# SQLAlchemy 2.0+ requires postgresql:// or postgresql+psycopg://, not postgres://
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql+psycopg://", 1)
     logger.info("Converted postgres:// to postgresql+psycopg://")
@@ -34,7 +39,14 @@ elif database_url.startswith("postgresql+psycopg2://"):
     database_url = database_url.replace("postgresql+psycopg2://", "postgresql+psycopg://", 1)
     logger.info("Converted postgresql+psycopg2:// to postgresql+psycopg://")
 
-logger.info(f"Using database URL: {database_url.split('@')[0]}@***")  # Log without password
+# Ensure we're using postgresql:// not postgres://
+if database_url.startswith("postgres://"):
+    raise ValueError(
+        f"Database URL still starts with 'postgres://' after conversion! "
+        f"This will cause SQLAlchemy errors. URL: {database_url.split('@')[0]}@***"
+    )
+
+logger.info(f"Final database URL: {database_url.split('@')[0]}@***")  # Log without password
 
 # Use DATABASE_URL directly - no STORION dependencies
 # All STORION-specific logic has been removed for autonomous operation
