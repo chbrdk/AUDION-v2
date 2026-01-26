@@ -5,7 +5,14 @@ from pathlib import Path
 from uuid import UUID
 
 import structlog
-from FlagEmbedding import BGEM3FlagModel
+# Lazy import FlagEmbedding to avoid transformers compatibility issues at startup
+# FlagEmbedding 1.3.5 has compatibility issues with newer transformers versions
+try:
+    from FlagEmbedding import BGEM3FlagModel
+except ImportError as e:
+    # If import fails, we'll handle it when actually using the embedder
+    BGEM3FlagModel = None  # type: ignore
+
 from qdrant_client import QdrantClient
 from qdrant_client.http import models as qmodels
 from unstructured.partition.auto import partition
@@ -22,10 +29,23 @@ settings = get_settings()
 
 class IngestionService:
     def __init__(self) -> None:
-        # Disable FP16 to avoid SIGSEGV issues in Docker/Celery workers
-        self._embedder = BGEM3FlagModel("BAAI/bge-m3", use_fp16=False)
+        # Lazy load embedder to avoid transformers compatibility issues at startup
+        self._embedder: BGEM3FlagModel | None = None
         self._qdrant = QdrantClient(settings.qdrant_url)
         self._collection = "research_chunks"
+    
+    @property
+    def embedder(self) -> BGEM3FlagModel:
+        """Lazy load the embedder model on first use."""
+        if self._embedder is None:
+            if BGEM3FlagModel is None:
+                raise ImportError(
+                    "FlagEmbedding konnte nicht importiert werden. "
+                    "Möglicherweise ein Kompatibilitätsproblem mit transformers."
+                )
+            # Disable FP16 to avoid SIGSEGV issues in Docker/Celery workers
+            self._embedder = BGEM3FlagModel("BAAI/bge-m3", use_fp16=False)
+        return self._embedder
 
     def _ensure_collection(self) -> None:
         """Ensure the Qdrant collection exists."""
@@ -114,7 +134,7 @@ class IngestionService:
             for i in range(0, len(cleaned_chunks), batch_size):
                 batch = cleaned_chunks[i:i + batch_size]
                 logger.info("ingest.embedding_batch", document_id=str(document_id), batch_num=i//batch_size + 1, total_batches=(len(cleaned_chunks) + batch_size - 1) // batch_size)
-                batch_embeddings = self._embedder.encode(batch, batch_size=len(batch))["dense_vecs"]
+                batch_embeddings = self.embedder.encode(batch, batch_size=len(batch))["dense_vecs"]
                 embeddings.extend(batch_embeddings)
             logger.info("ingest.embedding_encode_complete", document_id=str(document_id), vectors_count=len(embeddings))
         except Exception as e:

@@ -199,7 +199,24 @@ NEXT_PERSONA_BACKEND_INTERNAL_URL=http://audion-api:8000
 
 ---
 
-## Schritt 4: Docker Compose Service-Namen prüfen
+## Schritt 4: Database Resources zur Application verlinken
+
+**WICHTIG**: Database Resources müssen zur Application verlinkt werden, damit sie im gleichen Netzwerk sind!
+
+1. Gehe zu deiner **Application** → **Settings** → **Resources** (oder **Linked Resources**)
+2. Klicke auf **Link Resource** oder **Add Resource**
+3. Wähle deine **PostgreSQL** Database Resource aus
+4. Wähle deine **Redis** Database Resource aus
+5. Speichere die Änderungen
+
+**Alternative**: Falls "Link Resource" nicht verfügbar ist, stelle sicher, dass:
+- Alle Services im gleichen Docker-Netzwerk sind
+- Die Database Resources laufen
+- Die Hostnamen in den Connection Strings korrekt sind
+
+---
+
+## Schritt 5: Docker Compose Service-Namen prüfen
 
 Stelle sicher, dass die Service-Namen in `docker-compose.yml` mit den Environment Variables übereinstimmen:
 
@@ -221,7 +238,7 @@ Die Environment Variables sollten diese Namen verwenden:
 
 ---
 
-## Schritt 5: Netzwerk-Konfiguration
+## Schritt 6: Netzwerk-Konfiguration
 
 In Coolify sollten alle Services im gleichen Netzwerk sein. Prüfe:
 
@@ -231,7 +248,7 @@ In Coolify sollten alle Services im gleichen Netzwerk sein. Prüfe:
 
 ---
 
-## Schritt 6: Deploy!
+## Schritt 7: Deploy!
 
 1. Gehe zu deiner **Application**
 2. Klicke auf **Deploy** oder **Redeploy**
