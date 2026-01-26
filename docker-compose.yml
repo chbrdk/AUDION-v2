@@ -145,8 +145,11 @@ services:
     depends_on:
       - api
     restart: unless-stopped
-    volumes:
-      - celery-beat-data:/app/apps/api
+    # REMOVED: celery-beat-data volume was overwriting the code from the build
+    # The code should come from the Docker image, not from a volume
+    # If you need persistent data, use a different path (e.g., /app/data)
+    # volumes:
+    #   - celery-beat-data:/app/apps/api
 
   # Qdrant - Vector Database
   qdrant:
