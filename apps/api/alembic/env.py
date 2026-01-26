@@ -11,21 +11,25 @@ if str(ROOT / "app") not in sys.path:
     sys.path.append(str(ROOT / "app"))
 
 from app.core.config import get_settings
-from app.db import Base  # noqa: E402
-from app import models  # noqa: F401,E402  # ensure metadata is loaded
+from app.db import Base, normalize_database_url  # noqa: E402
 
 config = context.config
 settings = get_settings()
 
 if settings.database_url:
-    config.set_main_option("sqlalchemy.url", settings.database_url)
+    normalized_url = normalize_database_url(settings.database_url)
+    config.set_main_option("sqlalchemy.url", normalized_url)
 
 target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
+    url = settings.database_url
+    if url:
+        url = normalize_database_url(url)
+    
     context.configure(
-        url=settings.database_url,
+        url=url,
         target_metadata=target_metadata,
         literal_binds=True,
         compare_type=True,

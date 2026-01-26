@@ -12,6 +12,9 @@ services:
     command: npm run start --workspace apps/web
     ports:
       - "3000:3005"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.audion-web.loadbalancer.server.port=3005"
     environment:
       - NODE_ENV=production
       - NEXT_PUBLIC_BASE_PATH=${NEXT_PUBLIC_BASE_PATH:-}

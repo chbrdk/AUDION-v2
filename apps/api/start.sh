@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/bin/bash
+set -e
 # Don't use set -e here, as it will exit on any error (even non-critical ones)
 
 cd /app/apps/api
