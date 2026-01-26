@@ -23,7 +23,6 @@ services:
       - chat-api
     healthcheck:
       # Node.js container - use node to check health endpoint
-      # Alternative: install curl/wget in Dockerfile if needed
       test: [ "CMD-SHELL", "node -e \"require('http').get('http://localhost:3005/api/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))\" || exit 1" ]
       interval: 30s
       timeout: 10s
@@ -42,20 +41,16 @@ services:
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=${REDIS_URL}
-      - QDRANT_URL=${QDRANT_URL:-http://qdrant:6333}
-      - NEO4J_URI=${NEO4J_URI:-bolt://neo4j:7687}
+      - QDRANT_URL=${QDRANT_URL:-http://audion-qdrant:6333}
+      - NEO4J_URI=${NEO4J_URI:-bolt://audion-neo4j:7687}
       - NEO4J_USER=${NEO4J_USER:-neo4j}
       - NEO4J_PASSWORD=${GRAPH_DB_PASSWORD}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - CLAUDE_API_KEY=${CLAUDE_API_KEY:-}
       - APP_ENV=${APP_ENV:-production}
-    depends_on:
-      - postgres
-      - redis
-      - qdrant
-      - neo4j
+    # Removed depends_on for Databases as they are now external services
     healthcheck:
-      # Use python to check health endpoint (wget/curl may not be available)
+      # Use python to check health endpoint
       test: [ "CMD-SHELL", "python3 -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/health\")' || exit 1" ]
       interval: 30s
       timeout: 10s
@@ -73,8 +68,8 @@ services:
       - "8001:8001"
     environment:
       - DATABASE_URL=${DATABASE_URL}
-      - QDRANT_URL=${QDRANT_URL:-http://qdrant:6333}
-      - NEO4J_URI=${NEO4J_URI:-bolt://neo4j:7687}
+      - QDRANT_URL=${QDRANT_URL:-http://audion-qdrant:6333}
+      - NEO4J_URI=${NEO4J_URI:-bolt://audion-neo4j:7687}
       - NEO4J_USER=${NEO4J_USER:-neo4j}
       - NEO4J_PASSWORD=${GRAPH_DB_PASSWORD}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
@@ -84,10 +79,8 @@ services:
     depends_on:
       - api
       - indexing-api
-      - qdrant
-      - neo4j
     healthcheck:
-      # Use python to check health endpoint (wget/curl may not be available)
+      # Use python to check health endpoint
       test: [ "CMD-SHELL", "python3 -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8001/health/\")' || exit 1" ]
       interval: 30s
       timeout: 10s
@@ -104,13 +97,12 @@ services:
     # No external port - only internal access
     environment:
       - DATABASE_URL=${DATABASE_URL}
-      - QDRANT_URL=${QDRANT_URL:-http://qdrant:6333}
+      - QDRANT_URL=${QDRANT_URL:-http://audion-qdrant:6333}
       - REDIS_URL=${REDIS_URL}
       - APP_ENV=${APP_ENV:-production}
-    depends_on:
-      - qdrant
+    # Removed depends_on for Databases
     healthcheck:
-      # Use python to check health endpoint (wget/curl may not be available)
+      # Use python to check health endpoint
       test: [ "CMD-SHELL", "python3 -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/health/\")' || exit 1" ]
       interval: 30s
       timeout: 10s
@@ -128,8 +120,8 @@ services:
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=${REDIS_URL}
-      - QDRANT_URL=${QDRANT_URL:-http://qdrant:6333}
-      - NEO4J_URI=${NEO4J_URI:-bolt://neo4j:7687}
+      - QDRANT_URL=${QDRANT_URL:-http://audion-qdrant:6333}
+      - NEO4J_URI=${NEO4J_URI:-bolt://audion-neo4j:7687}
       - NEO4J_USER=${NEO4J_USER:-neo4j}
       - NEO4J_PASSWORD=${GRAPH_DB_PASSWORD}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
@@ -137,8 +129,6 @@ services:
       - APP_ENV=${APP_ENV:-production}
     depends_on:
       - api
-      - qdrant
-      - neo4j
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "celery", "-A", "app.celery_app", "inspect", "ping" ]
@@ -161,119 +151,8 @@ services:
     depends_on:
       - api
     restart: unless-stopped
-    # REMOVED: celery-beat-data volume was overwriting the code from the build
-    # The code should come from the Docker image, not from a volume
-    # If you need persistent data, use a different path (e.g., /app/data)
-    # volumes:
-    #   - celery-beat-data:/app/apps/api
-
-    # PostgreSQL - Relational Database
-  postgres:
-    image: postgres:16-alpine
-    container_name: audion-postgres
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER:-persona}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-persona}
-      - POSTGRES_DB=${POSTGRES_DB:-persona}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-persona} -d ${POSTGRES_DB:-persona}" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-
-  # Redis - Cache and Message Broker
-  redis:
-    image: redis:7.4-alpine
-    container_name: audion-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-
-  # Qdrant - Vector Database
-  qdrant:
-    image: qdrant/qdrant:v1.11.3
-    container_name: audion-qdrant
-    ports:
-      - "6333:6333"
-      - "6334:6334"
-    volumes:
-      - qdrant_data:/qdrant/storage
-    environment:
-      - QDRANT__SERVICE__GRPC_PORT=6334
-    # Minimal image lacks wget/curl. 
-    # healthcheck:
-    #   test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:6333/health || curl -f http://localhost:6333/health || exit 1"]
-    #   interval: 30s
-    #   timeout: 10s
-    #   retries: 3
-    restart: unless-stopped
-
-  # Neo4j - Graph Database
-  neo4j:
-    image: neo4j:5.22.0
-    container_name: audion-neo4j
-    ports:
-      - "7474:7474" # HTTP
-      - "7687:7687" # Bolt
-    environment:
-      # NEO4J_AUTH must be in format: username/password (password cannot be empty!)
-      # If NEO4J_PASSWORD is not set, use a default password
-      - NEO4J_AUTH=${NEO4J_USER:-neo4j}/${GRAPH_DB_PASSWORD:-changeme123}
-      - NEO4J_PLUGINS=["apoc"]
-      - NEO4J_dbms_security_procedures_unrestricted=apoc.*
-      - NEO4J_dbms_security_procedures_allowlist=apoc.*
-      # Disable strict config validation to prevent errors from unrecognized environment variables
-      # Coolify may pass NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD to all services, including Neo4j
-      # Neo4j tries to interpret them as config settings, which causes errors
-      # - NEO4J_server_config_strict_validation_enabled=false
-      # CRITICAL: These variables must NOT be set in Neo4j container environment
-      # Coolify may inject them globally, but Neo4j will try to interpret them as config settings
-      # We cannot unset them in docker-compose, but NEO4J_server_config_strict_validation_enabled=false
-      # should prevent Neo4j from failing. The errors are warnings and should not prevent startup.
-    volumes:
-      - neo4j_data:/data
-      - neo4j_logs:/logs
-    healthcheck:
-      # Neo4j has wget available, but use curl as fallback
-      test: [ "CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:7474 || curl -f http://localhost:7474 || exit 1" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    restart: unless-stopped
-
-volumes:
-  postgres_data:
-    driver: local
-  redis_data:
-    driver: local
-  qdrant_data:
-    driver: local
-  neo4j_data:
-    driver: local
-  neo4j_logs:
-    driver: local
-  # REMOVED: celery-beat-data - was overwriting code from Docker build
-  # celery-beat-data:
-  #   driver: local
 
 networks:
   default:
     name: audion-network
     driver: bridge
-  # Optional: Connect to Coolify's predefined network to access Database Resources
-  # Uncomment this if "Connect To Predefined Network" is enabled in Coolify
-  # coolify:
-  #   external: true
