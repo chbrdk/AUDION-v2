@@ -199,20 +199,32 @@ NEXT_PERSONA_BACKEND_INTERNAL_URL=http://audion-api:8000
 
 ---
 
-## Schritt 4: Database Resources zur Application verlinken
+## Schritt 4: Database Resources mit Docker Compose verbinden
 
-**WICHTIG**: Database Resources müssen zur Application verlinkt werden, damit sie im gleichen Netzwerk sind!
+**WICHTIG**: Database Resources sind separate Container und müssen mit deiner Docker Compose Application verbunden werden!
 
-1. Gehe zu deiner **Application** → **Settings** → **Resources** (oder **Linked Resources**)
-2. Klicke auf **Link Resource** oder **Add Resource**
-3. Wähle deine **PostgreSQL** Database Resource aus
-4. Wähle deine **Redis** Database Resource aus
-5. Speichere die Änderungen
+### Option 1: "Connect To Predefined Network" aktivieren (EMPFOHLEN)
 
-**Alternative**: Falls "Link Resource" nicht verfügbar ist, stelle sicher, dass:
-- Alle Services im gleichen Docker-Netzwerk sind
-- Die Database Resources laufen
-- Die Hostnamen in den Connection Strings korrekt sind
+1. Gehe zu deiner **Application** → **Settings** → **Advanced** (oder **Networking**)
+2. Aktiviere die Option **"Connect To Predefined Network"** oder **"Connect to Coolify Network"**
+   - Diese Option erlaubt deiner Docker Compose Application, mit Database Resources zu kommunizieren
+3. Speichere die Änderungen
+
+### Option 2: Container-Namen der Database Resources finden
+
+Falls Option 1 nicht verfügbar ist:
+
+1. Gehe zu deiner **PostgreSQL Database Resource**
+2. Klicke auf das **Auge-Icon** neben "PostgreSQL URL (internal)" oder "Connection Details"
+3. Notiere dir den **Container-Namen** (z.B. `y4cos8wkk0sg0k88sgoscwso`)
+   - Das ist NICHT der Resource-Name (`audion-postgres`), sondern der generierte Container-Name!
+4. Wiederhole das für **Redis**
+5. Verwende diese Container-Namen in den Connection Strings (siehe Schritt 3)
+
+**WICHTIG**: 
+- Database Resources laufen im `coolify` Netzwerk
+- Docker Compose Services laufen in ihrem eigenen Netzwerk
+- "Connect To Predefined Network" verbindet beide Netzwerke automatisch
 
 ---
 
@@ -273,19 +285,21 @@ In Coolify sollten alle Services im gleichen Netzwerk sein. Prüfe:
 **Problem**: `could not connect to database` oder `Temporary failure in name resolution`
 
 **Lösungen**:
-1. **WICHTIG**: Database Resources müssen zur Application verlinkt werden!
-   - Gehe zu **Application** → **Settings** → **Resources** (oder **Linked Resources**)
-   - Klicke auf **Link Resource** oder **Add Resource**
-   - Wähle deine PostgreSQL und Redis Database Resources aus
-   - Speichere die Änderungen
+1. **WICHTIG**: "Connect To Predefined Network" muss aktiviert sein!
+   - Gehe zu **Application** → **Settings** → **Advanced** (oder **Networking**)
+   - Aktiviere **"Connect To Predefined Network"** oder **"Connect to Coolify Network"**
+   - Diese Option verbindet deine Docker Compose Services mit Database Resources
+   - **Redeploy** die Application nach dem Aktivieren!
 2. Prüfe, dass die Database Resources laufen
 3. Prüfe die Connection Strings (User, Password, Host, Port)
-4. **WICHTIG**: In Coolify sind Database Resources über ihre **automatisch generierten Hostnamen** erreichbar
+4. **WICHTIG**: In Coolify sind Database Resources über ihre **Container-Namen** erreichbar
    - Nicht über den Resource-Namen (z.B. `audion-postgres`)
-   - Sondern über den generierten Hostnamen (z.B. `y4cos8wkk0sg0k88sgoscwso`)
-   - Finde den Hostnamen in der Database Resource unter "Connection Details" oder "Host"
-5. Stelle sicher, dass alle Services im gleichen Netzwerk sind
-6. Prüfe, dass die Ports korrekt sind (5432 für PostgreSQL, 6379 für Redis)
+   - Sondern über den generierten Container-Namen (z.B. `y4cos8wkk0sg0k88sgoscwso`)
+   - Finde den Container-Namen in der Database Resource:
+     - Klicke auf das **Auge-Icon** neben "PostgreSQL URL (internal)" oder "Connection Details"
+     - Der Container-Name ist der Hostname in der Connection String
+5. Prüfe, dass die Ports korrekt sind (5432 für PostgreSQL, 6379 für Redis)
+6. Falls weiterhin Probleme: Prüfe, ob die Database Resources im `coolify` Netzwerk laufen
 
 ### Neo4j Connection Fehler
 

@@ -203,3 +203,7 @@ networks:
   default:
     name: audion-network
     driver: bridge
+  # Optional: Connect to Coolify's predefined network to access Database Resources
+  # Uncomment this if "Connect To Predefined Network" is enabled in Coolify
+  # coolify:
+  #   external: true
