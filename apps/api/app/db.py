@@ -106,6 +106,18 @@ if database_url.startswith("postgres://"):
 
 logger.info(f"Creating SQLAlchemy engine with URL: {database_url.split('@')[0]}@***")
 
+# ABSOLUTE FINAL CHECK: Print the actual URL string to verify it's correct
+# This will help us debug if the URL is somehow being modified
+logger.info(f"DEBUG: database_url type: {type(database_url)}, length: {len(database_url)}")
+logger.info(f"DEBUG: database_url starts with 'postgres://': {database_url.startswith('postgres://')}")
+logger.info(f"DEBUG: database_url starts with 'postgresql': {database_url.startswith('postgresql')}")
+
+# If somehow we still have postgres://, force convert it one more time
+if database_url.startswith("postgres://"):
+    logger.critical("EMERGENCY: URL still has postgres:// - forcing conversion!")
+    database_url = database_url.replace("postgres://", "postgresql+psycopg://", 1)
+    logger.critical(f"EMERGENCY: After forced conversion: {database_url.split('@')[0]}@***")
+
 engine = create_engine(
     database_url,
     pool_pre_ping=True,
