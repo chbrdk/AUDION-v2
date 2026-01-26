@@ -41,7 +41,6 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
   onKnowledgeSubmit,
   onLoadDetail,
   formatDate,
-  formatDate,
   notify
 }: MsqdxGlassKnowledgeSourcesCardProps) => {
   const handleDocumentRetry = async (docId: string, e: React.MouseEvent) => {
