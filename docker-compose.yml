@@ -22,12 +22,12 @@ services:
       - api
       - chat-api
     healthcheck:
-      # Node.js container - use node to check health endpoint
-      test: [ "CMD-SHELL", "node -e \"fetch('http://localhost:3005/api/health').then(r => process.exit(r.ok ? 0 : 1))\"" ]
+      # Use wget - modern Node images might not have fetch in a way that works for this
+      test: [ "CMD-SHELL", "wget -q --spider http://localhost:3005/api/health || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      start_period: 120s
     restart: unless-stopped
 
   # Backend API - FastAPI Service
@@ -55,7 +55,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      start_period: 120s
     restart: unless-stopped
 
   # Chat API - FastAPI Service for Chat
@@ -85,7 +85,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      start_period: 120s
     restart: unless-stopped
 
   # Indexing API - Document Processing Service
@@ -102,12 +102,12 @@ services:
       - APP_ENV=${APP_ENV:-production}
     # Removed depends_on for Databases
     healthcheck:
-      # Use python to check health endpoint
+      # Use python to check health endpoint - Note: indexing-api runs on 8000 internally
       test: [ "CMD-SHELL", "python3 -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/health/\")'" ]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      start_period: 120s
     restart: unless-stopped
 
   # Celery Worker - Background Job Processing

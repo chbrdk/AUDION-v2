@@ -37,9 +37,9 @@ elif command -v python3 >/dev/null 2>&1; then
   fi
 fi
 
-# Run database migrations
-echo "Running database migrations..."
-/app/apps/api/.venv/bin/alembic upgrade head
+# Run database initialization
+echo "Running database initialization..."
+PYTHONPATH=/app/apps/api /app/apps/api/.venv/bin/python3 app/scripts/init_db.py
 
 # Use exec to replace shell with uvicorn process (PID 1)
 # This ensures uvicorn is the main process and receives signals correctly
