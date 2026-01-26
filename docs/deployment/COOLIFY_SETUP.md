@@ -430,7 +430,14 @@ In Coolify sollten alle Services im gleichen Netzwerk sein. Prüfe:
 
 **Lösungen**:
 
-#### Methode 1: Force Deploy (Empfohlen)
+#### Methode 1: Force Deploy über Redeploy-Button (Empfohlen)
+1. Gehe zu deiner **Application** in Coolify
+2. Klicke auf den **"Redeploy"** Button (oben rechts, orange)
+3. Dies startet einen neuen Build und Deployment
+4. **Alternative**: Klicke auf **"Reload Compose File"** (unter "General" Tab) und dann auf **"Redeploy"**
+5. Warte, bis der Build abgeschlossen ist
+
+#### Methode 1b: Force Deploy über Deployments
 1. Gehe zu **Application** → **Deployments**
 2. Klicke auf **"Force Deploy"** oder **"Force Deploy (without cache)"**
 3. Dies startet einen Build mit `--no-cache` Docker-Option

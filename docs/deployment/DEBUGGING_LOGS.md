@@ -8,10 +8,12 @@ Wenn die Anwendung kontinuierlich neu startet, musst du herausfinden, welcher Se
 
 In Coolify v4.0.0-beta kannst du die Logs einzelner Services so anzeigen:
 
-### Option A: Über Docker Compose Services
+### Option A: Über den Logs-Tab (Empfohlen)
 1. Gehe zu deiner **Application** in Coolify
-2. Klicke auf **"Services"** oder **"Containers"** (je nach Coolify-Version)
-3. Du solltest eine Liste aller Services sehen:
+2. Klicke auf **"Logs"** im linken Menü (mit Warnsymbol ⚠️)
+3. Die Logs zeigen normalerweise den Container-Namen am Anfang jeder Zeile
+4. Suche nach Fehlermeldungen oder nach dem Container-Namen, der neu startet
+5. **WICHTIG**: Die Logs zeigen alle Services kombiniert - filtere nach Container-Namen:
    - `audion-web`
    - `audion-api`
    - `audion-chat-api`
@@ -20,9 +22,14 @@ In Coolify v4.0.0-beta kannst du die Logs einzelner Services so anzeigen:
    - `audion-celery-beat`
    - `audion-qdrant`
    - `audion-neo4j`
+
+### Option B: Über Docker Compose Services
+1. Gehe zu deiner **Application** in Coolify
+2. Klicke auf **"Services"** oder **"Containers"** (je nach Coolify-Version)
+3. Du solltest eine Liste aller Services sehen
 4. Klicke auf einen Service, um dessen Logs zu sehen
 
-### Option B: Über die Logs-Ansicht
+### Option C: Über die Logs-Ansicht
 1. Gehe zu **Application** → **Logs**
 2. Suche nach einem Filter oder Dropdown, um einzelne Services auszuwählen
 3. Falls nicht verfügbar: Die Logs zeigen normalerweise den Container-Namen am Anfang jeder Zeile
