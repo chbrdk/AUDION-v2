@@ -77,6 +77,12 @@ logger.info(f"Final database URL: {database_url.split('@')[0]}@***")  # Log with
 
 # Create engine with search_path set to audion schema
 # Use connect_args to set search_path at connection time (for psycopg)
+# IMPORTANT: Double-check URL before creating engine to ensure it's normalized
+if database_url.startswith("postgres://"):
+    logger.error(f"CRITICAL: Database URL still starts with 'postgres://' before create_engine! URL: {database_url.split('@')[0]}@***")
+    database_url = normalize_database_url(database_url)
+    logger.warning(f"Re-normalized URL: {database_url.split('@')[0]}@***")
+
 engine = create_engine(
     database_url,
     pool_pre_ping=True,
