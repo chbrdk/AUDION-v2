@@ -1144,9 +1144,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
       const formData = new FormData();
       formData.append("file", file);
       formData.append("uploaded_by", "persona-admin-ui");
-      const target = personaBackendPublicBase
-        ? `${personaBackendPublicBase}/personas/${selectedId}/documents`
-        : buildApiUrl(`/api/persona-admin/${selectedId}/documents`);
+      const target = buildApiUrl(`/api/persona-admin/${selectedId}/documents`);
       const response = await fetch(target, {
         method: "POST",
         body: formData,
