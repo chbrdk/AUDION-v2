@@ -41,6 +41,8 @@ services:
     container_name: audion-api
     ports:
       - "8000:8000"
+    volumes:
+      - audion-data:/app/data
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=${REDIS_URL}
@@ -139,6 +141,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    volumes:
+      - audion-data:/app/data
 
   # Celery Beat - Scheduled Tasks
   celery-beat:
@@ -159,3 +163,6 @@ networks:
   default:
     name: audion-network
     driver: bridge
+
+volumes:
+  audion-data:
