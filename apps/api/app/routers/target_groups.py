@@ -947,7 +947,7 @@ async def upload_target_group_document(
                 filename=filename,
                 content_type=content_type,
                 size_bytes=len(contents),
-                status="pending",
+                status="processing",
                 object_key=file_path,
                 file_path=file_path,
                 target_group_id=tg.id,
