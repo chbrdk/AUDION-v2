@@ -42,6 +42,58 @@ def init_db():
                         logger.info("Emergency fix applied: 'object_key' column added.")
                     else:
                         logger.info("Schema verification passed: 'object_key' column exists.")
+
+                # 2b. Emergency fix: Ensure target_groups tables exist (Migration 20251121_2138 might have failed)
+                logger.info("Verifying schema integrity for 'target_groups'...")
+                tg_check = conn.execute(text(
+                    "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'audion' AND table_name = 'target_groups')"
+                ))
+                if not tg_check.scalar():
+                    logger.warning("CRITICAL: 'target_groups' table missing. Creating tables...")
+                    conn.execute(text("""
+                        CREATE TABLE IF NOT EXISTS audion.target_groups (
+                            id UUID PRIMARY KEY,
+                            project_id UUID NOT NULL,
+                            name VARCHAR(128) NOT NULL,
+                            description TEXT,
+                            segment VARCHAR(128) NOT NULL,
+                            created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
+                            updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
+                            updated_by VARCHAR(128)
+                        );
+                        CREATE TABLE IF NOT EXISTS audion.target_group_sources (
+                            id UUID PRIMARY KEY,
+                            target_group_id UUID NOT NULL REFERENCES audion.target_groups(id) ON DELETE CASCADE,
+                            chunk_id UUID NOT NULL REFERENCES audion.document_chunks(id),
+                            relevance_score FLOAT DEFAULT 1.0 NOT NULL,
+                            rationale TEXT,
+                            created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL
+                        );
+                        CREATE TABLE IF NOT EXISTS audion.target_group_knowledge_entries (
+                            id UUID PRIMARY KEY,
+                            target_group_id UUID NOT NULL REFERENCES audion.target_groups(id) ON DELETE CASCADE,
+                            title VARCHAR(256) NOT NULL,
+                            content TEXT NOT NULL,
+                            metadata JSONB,
+                            created_by VARCHAR(128) NOT NULL,
+                            created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL
+                        );
+                    """))
+                    conn.commit()
+                    logger.info("Emergency fix applied: 'target_groups' and related tables created.")
+                
+                # Check personas.target_group_id column
+                logger.info("Verifying schema integrity for 'personas.target_group_id'...")
+                p_tg_check = conn.execute(text(
+                    "SELECT column_name FROM information_schema.columns "
+                    "WHERE table_schema = 'audion' AND table_name = 'personas' AND column_name = 'target_group_id'"
+                ))
+                if not p_tg_check.scalar():
+                    logger.warning("CRITICAL: 'target_group_id' missing in 'personas'. Adding column...")
+                    conn.execute(text("ALTER TABLE audion.personas ADD COLUMN IF NOT EXISTS target_group_id UUID REFERENCES audion.target_groups(id) ON DELETE SET NULL"))
+                    conn.commit()
+                    logger.info("Emergency fix applied: 'personas.target_group_id' added.")
+
         except Exception as e:
             logger.error(f"Emergency fix failed (ignoring to proceed with normal init): {e}")
 
