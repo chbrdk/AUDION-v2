@@ -8,6 +8,7 @@ from uuid import UUID
 import numpy as np
 import structlog
 from anthropic import Anthropic
+from openai import OpenAI
 from sqlalchemy import select, func
 from msqdx_glass_proto import PersonaProfile, PersonaPrompt
 
@@ -36,7 +37,18 @@ class PersonaGenerationResult:
 
 class PersonaGenerationService:
     def __init__(self) -> None:
-        self._anthropic = Anthropic(api_key=settings.claude_api_key)
+        self.provider = settings.ai_default_provider
+        self._anthropic = None
+        self._openai = None
+        
+        if self.provider == "openai":
+            if not settings.openai_api_key:
+                # Fallback to anthropic if env var not set but configured as default? 
+                # Or just let it fail if key is missing.
+                pass
+            self._openai = OpenAI(api_key=settings.openai_api_key)
+        else:
+            self._anthropic = Anthropic(api_key=settings.claude_api_key)
 
     def _sample_chunks_weighted(
         self,
@@ -278,27 +290,51 @@ class PersonaGenerationService:
             temperature_mode=variation_params.get("temperature_mode") if variation_params else "default",
         )
         
-        identity = self._anthropic.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=1000,
-            temperature=temperature,
-            messages=[{"role": "user", "content": identity_prompt}],
-        )
+        response_text = ""
+        
+        if self.provider == "openai" and self._openai:
+            # Use OpenAI
+            try:
+                chat_completion = self._openai.chat.completions.create(
+                    messages=[
+                        {"role": "system", "content": "You are a helpful persona generation assistant. You always output valid JSON."},
+                        {"role": "user", "content": identity_prompt}
+                    ],
+                    model=settings.ai_openai_model or "gpt-4o-mini",
+                    temperature=temperature,
+                    response_format={"type": "json_object"},
+                    max_tokens=2000,
+                )
+                response_text = chat_completion.choices[0].message.content or ""
+            except Exception as e:
+                logger.error("persona.generate.openai_error", error=str(e))
+                raise ValueError(f"OpenAI API Error: {str(e)}")
+        else:
+            # Use Anthropic (Fallback or Default)
+            if not self._anthropic:
+                 raise ValueError("Anthropic client not initialized and OpenAI not selected/available.")
+            
+            identity = self._anthropic.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=1000,
+                temperature=temperature,
+                messages=[{"role": "user", "content": identity_prompt}],
+            )
+            response_text = identity.content[0].text if identity.content else ""
 
         import json
         import re
 
         # Log the response for debugging
-        if not identity.content or len(identity.content) == 0:
+        if not response_text:
             logger.error("persona.generate.empty_response", persona_id=str(persona.id))
-            raise ValueError("Empty response from Anthropic API")
+            raise ValueError("Empty response from AI Provider")
         
-        response_text = identity.content[0].text if identity.content else ""
-        logger.info("persona.generate.anthropic_response", persona_id=str(persona.id), response_length=len(response_text), response_preview=response_text[:200])
+        logger.info("persona.generate.response", persona_id=str(persona.id), provider=self.provider, response_length=len(response_text), response_preview=response_text[:200])
         
         if not response_text or not response_text.strip():
             logger.error("persona.generate.empty_response_text", persona_id=str(persona.id))
-            raise ValueError("Empty response text from Anthropic API")
+            raise ValueError("Empty response text from AI Provider")
         
         # Remove markdown code blocks if present (```json ... ```)
         cleaned_text = response_text.strip()
@@ -332,7 +368,7 @@ class PersonaGenerationService:
                     cleaned_text=cleaned_text[:500],
                     error=str(exc),
                 )
-                raise ValueError(f"Failed to parse JSON response from Anthropic API: {str(exc)}") from exc
+                raise ValueError(f"Failed to parse JSON response from AI Provider: {str(exc)}") from exc
             payload = fallback_payload
         
         # Helper function to safely convert confidence to float
