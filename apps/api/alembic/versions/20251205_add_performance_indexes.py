@@ -19,8 +19,25 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    # Get all index names for involved tables
+    tables = [
+        'personas', 'documents', 'processing_jobs', 
+        'target_group_sources', 'document_chunks', 'persona_sources'
+    ]
+    existing_indexes = set()
+    for table in tables:
+        for idx in inspector.get_indexes(table):
+            existing_indexes.add(idx['name'])
+
+    # Helper to create index if not exists
+    def create_idx_if_not_exists(name, table, columns, unique=False):
+        if name not in existing_indexes:
+            op.create_index(name, table, columns, unique=unique)
+
     # Index for personas.target_group_id - frequently filtered
-    op.create_index(
+    create_idx_if_not_exists(
         'idx_personas_target_group_id',
         'personas',
         ['target_group_id'],
@@ -28,7 +45,7 @@ def upgrade() -> None:
     )
     
     # Index for documents.target_group_id - frequently filtered
-    op.create_index(
+    create_idx_if_not_exists(
         'idx_documents_target_group_id',
         'documents',
         ['target_group_id'],
@@ -36,7 +53,7 @@ def upgrade() -> None:
     )
     
     # Index for documents.persona_id - frequently filtered
-    op.create_index(
+    create_idx_if_not_exists(
         'idx_documents_persona_id',
         'documents',
         ['persona_id'],
@@ -44,7 +61,7 @@ def upgrade() -> None:
     )
     
     # Index for processing_jobs.document_id - frequently filtered and joined
-    op.create_index(
+    create_idx_if_not_exists(
         'idx_processing_jobs_document_id',
         'processing_jobs',
         ['document_id'],
@@ -52,7 +69,7 @@ def upgrade() -> None:
     )
     
     # Index for processing_jobs.status - frequently filtered
-    op.create_index(
+    create_idx_if_not_exists(
         'idx_processing_jobs_status',
         'processing_jobs',
         ['status'],
@@ -60,7 +77,7 @@ def upgrade() -> None:
     )
     
     # Index for target_group_sources.target_group_id - frequently filtered
-    op.create_index(
+    create_idx_if_not_exists(
         'idx_target_group_sources_target_group_id',
         'target_group_sources',
         ['target_group_id'],
@@ -68,7 +85,7 @@ def upgrade() -> None:
     )
     
     # Index for target_group_sources.chunk_id - frequently joined
-    op.create_index(
+    create_idx_if_not_exists(
         'idx_target_group_sources_chunk_id',
         'target_group_sources',
         ['chunk_id'],
@@ -76,7 +93,7 @@ def upgrade() -> None:
     )
     
     # Index for document_chunks.document_id - frequently filtered
-    op.create_index(
+    create_idx_if_not_exists(
         'idx_document_chunks_document_id',
         'document_chunks',
         ['document_id'],
@@ -84,7 +101,7 @@ def upgrade() -> None:
     )
     
     # Index for document_chunks.knowledge_entry_id - frequently filtered
-    op.create_index(
+    create_idx_if_not_exists(
         'idx_document_chunks_knowledge_entry_id',
         'document_chunks',
         ['knowledge_entry_id'],
@@ -92,7 +109,7 @@ def upgrade() -> None:
     )
     
     # Index for persona_sources.persona_id - frequently filtered
-    op.create_index(
+    create_idx_if_not_exists(
         'idx_persona_sources_persona_id',
         'persona_sources',
         ['persona_id'],
@@ -100,7 +117,7 @@ def upgrade() -> None:
     )
     
     # Composite index for personas (status + target_group_id) - common query pattern
-    op.create_index(
+    create_idx_if_not_exists(
         'idx_personas_status_target_group',
         'personas',
         ['status', 'target_group_id'],
@@ -108,7 +125,7 @@ def upgrade() -> None:
     )
     
     # Composite index for documents (status + target_group_id) - common query pattern
-    op.create_index(
+    create_idx_if_not_exists(
         'idx_documents_status_target_group',
         'documents',
         ['status', 'target_group_id'],

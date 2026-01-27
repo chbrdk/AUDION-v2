@@ -20,12 +20,16 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "persona_prompts",
-        sa.Column("template_metadata", postgresql.JSONB(astext_type=sa.Text()), nullable=True)
-    )
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    existing_columns = [col['name'] for col in inspector.get_columns("persona_prompts")]
+    
+    if "template_metadata" not in existing_columns:
+        op.add_column(
+            "persona_prompts",
+            sa.Column("template_metadata", postgresql.JSONB(astext_type=sa.Text()), nullable=True)
+        )
 
 
 def downgrade() -> None:
     op.drop_column("persona_prompts", "template_metadata")
-

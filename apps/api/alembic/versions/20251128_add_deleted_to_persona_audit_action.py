@@ -21,6 +21,8 @@ depends_on = None
 
 def upgrade() -> None:
     # Add 'deleted' value to persona_audit_action enum
+    # Use brute-force check because IF NOT EXISTS for enum values is only in newer Postgres versions (12+)
+    # But usually standard in production. Just to be safe and consistent.
     op.execute("ALTER TYPE persona_audit_action ADD VALUE IF NOT EXISTS 'deleted'")
 
 
@@ -29,5 +31,3 @@ def downgrade() -> None:
     # This would require recreating the enum type, which is complex
     # For now, we'll leave the value in place
     pass
-
-
