@@ -743,6 +743,29 @@ class PersonaService:
             else:
                 defaults[field_name] = None  # Explicitly None if not present
         
+        # Helper to normalize items to objects if they are strings (legacy data support)
+        def normalize_goals(items: List[Any]) -> List[Dict[str, Any]]:
+            normalized = []
+            for item in items:
+                if isinstance(item, str):
+                    normalized.append({"label": item, "priority": 1})
+                elif isinstance(item, dict):
+                    normalized.append(item)
+            return normalized
+
+        def normalize_pain_points(items: List[Any]) -> List[Dict[str, Any]]:
+            normalized = []
+            for item in items:
+                if isinstance(item, str):
+                    normalized.append({"label": item, "evidence_count": 1})
+                elif isinstance(item, dict):
+                    normalized.append(item)
+            return normalized
+
+        # Apply normalization to potentially legacy fields
+        defaults["goals"] = normalize_goals(defaults["goals"])
+        defaults["pain_points"] = normalize_pain_points(defaults["pain_points"])
+        
         # Create PersonaProfile instance
         profile = PersonaProfile(**defaults)
         
