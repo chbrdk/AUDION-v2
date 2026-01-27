@@ -115,14 +115,35 @@ def init_db():
                         conn.commit()
                         logger.info("Emergency fix applied: 'personas.target_group_id' added.")
 
+                # Check persona_prompts.template_metadata column (Fix for 500 error)
+                prompts_check = conn.execute(text(
+                    "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'audion' AND table_name = 'persona_prompts')"
+                ))
+                if prompts_check.scalar():
+                    logger.info("Verifying schema integrity for 'persona_prompts.template_metadata'...")
+                    pp_tm_check = conn.execute(text(
+                        "SELECT column_name FROM information_schema.columns "
+                        "WHERE table_schema = 'audion' AND table_name = 'persona_prompts' AND column_name = 'template_metadata'"
+                    ))
+                    if not pp_tm_check.scalar():
+                        logger.warning("CRITICAL: 'template_metadata' missing in 'persona_prompts'. Adding column...")
+                        conn.execute(text("ALTER TABLE audion.persona_prompts ADD COLUMN IF NOT EXISTS template_metadata JSONB"))
+                        conn.commit()
+                        logger.info("Emergency fix applied: 'persona_prompts.template_metadata' added.")
+
         except Exception as e:
             logger.error(f"Emergency fix failed (ignoring to proceed with normal init): {e}")
 
         # 3. Migration Logic
-        # Check if core tables exist. If so, we assume the DB is initialized and we should validat/fix the migration version.
+        # Check if core tables exist. If so, we assume the schema is initialized.
         with engine.connect() as conn:
             personas_exists = conn.execute(text(
                 "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'audion' AND table_name = 'personas')"
+            )).scalar()
+            
+            # Check if alembic version table exists
+            alembic_exists = conn.execute(text(
+                "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'audion' AND table_name = 'alembic_version')"
             )).scalar()
 
         alembic_cfg = Config("alembic.ini")
@@ -135,14 +156,18 @@ def init_db():
             logger.info("Stamping database with current migration version...")
             command.stamp(alembic_cfg, "head")
         else:
-            logger.info("Existing database detected (personas table found). Syncing migration state...")
-            # If the DB has tables but Alembic thinks it's outdated/empty, stamps it to head to prevent
-            # "DuplicateColumn" errors when it tries to re-run old migrations.
-            # We assume the schema is "mostly correct" because the app is running, and our emergency fixes handled the critical missing pieces.
-            logger.info("Forcing revision to head to match existing schema...")
-            command.stamp(alembic_cfg, "head")
+            logger.info("Existing database detected.")
+            if not alembic_exists:
+                # Only stamp if we have app tables BUT no alembic version (legacy/unmanaged state)
+                logger.info("No alembic_version table found. Stamping to head to capture current state...")
+                command.stamp(alembic_cfg, "head")
+            else:
+                logger.info("Alembic version table found. Proceeding with standard upgrade...")
             
-            logger.info("Running upgrade head (should be no-op)...")
+            # Always try to upgrade to catch any missing migrations that weren't covered by emergency fixes
+            # Since we made migrations idempotent, this is safe to run even if stamped to head (it'll just be no-op)
+            # But if we are behind (and have version table), this will apply updates.
+            logger.info("Running upgrade head...")
             command.upgrade(alembic_cfg, "head")
 
         logger.info("Database initialization completed successfully.")
