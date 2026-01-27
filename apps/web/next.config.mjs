@@ -57,13 +57,13 @@ const nextConfig = {
       {
         source: '/api/chat/:path*',
         destination: process.env.NEXT_PUBLIC_CHAT_API_URL
-          ? `${process.env.NEXT_PUBLIC_CHAT_API_URL}/:path*`
+          ? `${process.env.NEXT_PUBLIC_CHAT_API_URL}/chat/:path*`
           : 'http://chat-api:8001/chat/:path*',
       },
       {
         source: '/api/voice/:path*',
         destination: process.env.NEXT_PUBLIC_VOICE_API_URL
-          ? `${process.env.NEXT_PUBLIC_VOICE_API_URL}/:path*`
+          ? `${process.env.NEXT_PUBLIC_VOICE_API_URL}/voice/:path*`
           : 'http://chat-api:8001/voice/:path*',
       },
       {
