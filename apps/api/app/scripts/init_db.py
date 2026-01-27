@@ -148,6 +148,28 @@ def init_db():
                         conn.commit()
                         logger.info("Emergency fix applied: 'documents.object_key' added.")
 
+                    # Check for uploaded_by
+                    d_ub_check = conn.execute(text(
+                        "SELECT column_name FROM information_schema.columns "
+                        "WHERE table_schema = 'audion' AND table_name = 'documents' AND column_name = 'uploaded_by'"
+                    ))
+                    if not d_ub_check.scalar():
+                        logger.warning("CRITICAL: 'uploaded_by' missing in 'documents'. Adding column...")
+                        conn.execute(text("ALTER TABLE audion.documents ADD COLUMN IF NOT EXISTS uploaded_by VARCHAR(128)"))
+                        conn.commit()
+                        logger.info("Emergency fix applied: 'documents.uploaded_by' added.")
+
+                    # Check for insight_summary
+                    d_is_check = conn.execute(text(
+                        "SELECT column_name FROM information_schema.columns "
+                        "WHERE table_schema = 'audion' AND table_name = 'documents' AND column_name = 'insight_summary'"
+                    ))
+                    if not d_is_check.scalar():
+                        logger.warning("CRITICAL: 'insight_summary' missing in 'documents'. Adding column...")
+                        conn.execute(text("ALTER TABLE audion.documents ADD COLUMN IF NOT EXISTS insight_summary TEXT"))
+                        conn.commit()
+                        logger.info("Emergency fix applied: 'documents.insight_summary' added.")
+
                 # Check for processing_jobs table (Fix for 500 error on upload)
                 pj_check = conn.execute(text(
                     "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'audion' AND table_name = 'processing_jobs')"
