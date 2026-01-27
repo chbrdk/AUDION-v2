@@ -61,6 +61,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 120s
+    extra_hosts:
+      - "qdrant-uc0cck4w4ccswc804o4cgc8o.projects-a.plygrnd.tech:159.195.39.207"
     restart: unless-stopped
 
   # Chat API - FastAPI Service for Chat
@@ -143,6 +145,8 @@ services:
       start_period: 30s
     volumes:
       - audion-data:/app/data
+    extra_hosts:
+      - "qdrant-uc0cck4w4ccswc804o4cgc8o.projects-a.plygrnd.tech:159.195.39.207"
 
   # Celery Beat - Scheduled Tasks
   celery-beat:
