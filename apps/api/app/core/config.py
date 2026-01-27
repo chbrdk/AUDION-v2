@@ -57,7 +57,11 @@ class Settings(BaseSettings):
     persona_cache_ttl_seconds: int = 300
     persona_backend_public_url: str = "http://localhost:8000"
     persona_backend_docs_url: str = "http://localhost:8000/docs"
+    persona_backend_docs_url: str = "http://localhost:8000/docs"
     root_path: str = ""  # For reverse proxy support
+
+    # Feature Flags
+    use_storion_proxy: bool = False
 
 
 @lru_cache
