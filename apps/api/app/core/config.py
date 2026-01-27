@@ -4,6 +4,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -38,7 +39,7 @@ class Settings(BaseSettings):
     neo4j_bloom_url: str | None = None
 
     # AI Providers
-    claude_api_key: str | None = None  # Optional, can use OpenAI instead
+    claude_api_key: str | None = Field(default=None, validation_alias=AliasChoices("claude_api_key", "ANTHROPIC_API_KEY"))  # Optional, can use OpenAI instead
     openai_api_key: str | None = None
     ai_anthropic_model: str = "claude-3-5-sonnet-20241022"
     ai_openai_model: str = "gpt-4o-mini"
