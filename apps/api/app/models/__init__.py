@@ -103,6 +103,7 @@ class JourneyInsightStatus(PyEnum):
 
 class Document(Base):
     __tablename__ = "documents"
+    __table_args__ = {"schema": "audion"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     filename = Column(String(512), nullable=False)
@@ -125,6 +126,7 @@ class Document(Base):
 
 class DocumentChunk(Base):
     __tablename__ = "document_chunks"
+    __table_args__ = {"schema": "audion"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id"), nullable=False)
@@ -138,6 +140,7 @@ class DocumentChunk(Base):
 
 class ProcessingJob(Base):
     __tablename__ = "processing_jobs"
+    __table_args__ = {"schema": "audion"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id"), nullable=False)
@@ -155,6 +158,7 @@ class ProcessingJob(Base):
 
 class TargetGroup(Base):
     __tablename__ = "target_groups"
+    __table_args__ = {"schema": "audion"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     project_id = Column(UUID(as_uuid=True), nullable=False)
@@ -174,6 +178,7 @@ class TargetGroup(Base):
 
 class Persona(Base):
     __tablename__ = "personas"
+    __table_args__ = {"schema": "audion"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     project_id = Column(UUID(as_uuid=True), nullable=False)
@@ -208,6 +213,7 @@ class Persona(Base):
 
 class PersonaPrompt(Base):
     __tablename__ = "persona_prompts"
+    __table_args__ = {"schema": "audion"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     persona_id = Column(UUID(as_uuid=True), ForeignKey("personas.id"), nullable=False)
@@ -220,6 +226,7 @@ class PersonaPrompt(Base):
 
 class PersonaSource(Base):
     __tablename__ = "persona_sources"
+    __table_args__ = {"schema": "audion"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     persona_id = Column(UUID(as_uuid=True), ForeignKey("personas.id"), nullable=False)
@@ -232,6 +239,7 @@ class PersonaSource(Base):
 
 class PersonaAuditLog(Base):
     __tablename__ = "persona_audit_logs"
+    __table_args__ = {"schema": "audion"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     persona_id = Column(UUID(as_uuid=True), ForeignKey("personas.id"), nullable=False)
@@ -246,6 +254,7 @@ class PersonaAuditLog(Base):
 
 class PersonaKnowledgeEntry(Base):
     __tablename__ = "persona_knowledge_entries"
+    __table_args__ = {"schema": "audion"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     persona_id = Column(UUID(as_uuid=True), ForeignKey("personas.id", ondelete="CASCADE"), nullable=False)
@@ -258,6 +267,7 @@ class PersonaKnowledgeEntry(Base):
 
 class TargetGroupSource(Base):
     __tablename__ = "target_group_sources"
+    __table_args__ = {"schema": "audion"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     target_group_id = Column(UUID(as_uuid=True), ForeignKey("target_groups.id", ondelete="CASCADE"), nullable=False)
@@ -271,6 +281,7 @@ class TargetGroupSource(Base):
 
 class TargetGroupKnowledgeEntry(Base):
     __tablename__ = "target_group_knowledge_entries"
+    __table_args__ = {"schema": "audion"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     target_group_id = Column(UUID(as_uuid=True), ForeignKey("target_groups.id", ondelete="CASCADE"), nullable=False)
@@ -286,6 +297,7 @@ class TargetGroupKnowledgeEntry(Base):
 
 class Journey(Base):
     __tablename__ = "journeys"
+    __table_args__ = {"schema": "audion"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     organization_id = Column(UUID(as_uuid=True), nullable=False)
@@ -308,6 +320,7 @@ class Journey(Base):
 
 class JourneyPhase(Base):
     __tablename__ = "journey_phases"
+    __table_args__ = {"schema": "audion"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     journey_id = Column(UUID(as_uuid=True), ForeignKey("journeys.id", ondelete="CASCADE"), nullable=False)
@@ -335,6 +348,7 @@ class JourneyPhase(Base):
 
 class JourneyPhaseElement(Base):
     __tablename__ = "journey_phase_elements"
+    __table_args__ = {"schema": "audion"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     phase_id = Column(UUID(as_uuid=True), ForeignKey("journey_phases.id", ondelete="CASCADE"), nullable=False)
@@ -351,6 +365,7 @@ class JourneyPhaseElement(Base):
 
 class JourneyExpectation(Base):
     __tablename__ = "journey_expectations"
+    __table_args__ = {"schema": "audion"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     phase_id = Column(UUID(as_uuid=True), ForeignKey("journey_phases.id", ondelete="CASCADE"), nullable=False)
@@ -374,6 +389,7 @@ class JourneyExpectation(Base):
 
 class JourneyMeasurement(Base):
     __tablename__ = "journey_measurements"
+    __table_args__ = {"schema": "audion"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     expectation_id = Column(UUID(as_uuid=True), ForeignKey("journey_expectations.id", ondelete="CASCADE"), nullable=False)
@@ -393,6 +409,7 @@ class JourneyMeasurement(Base):
 
 class JourneyInsight(Base):
     __tablename__ = "journey_insights"
+    __table_args__ = {"schema": "audion"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     journey_id = Column(UUID(as_uuid=True), ForeignKey("journeys.id", ondelete="CASCADE"), nullable=False)
