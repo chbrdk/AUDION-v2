@@ -8,7 +8,7 @@ from uuid import UUID
 import numpy as np
 import structlog
 from anthropic import Anthropic
-from sqlalchemy import select
+from sqlalchemy import select, func
 from msqdx_glass_proto import PersonaProfile, PersonaPrompt
 
 from ..core.config import get_settings
@@ -177,7 +177,15 @@ class PersonaGenerationService:
                     chunks = chunks[:limit_chunks]
 
         if not chunks:
-            raise ValueError("No chunks available for persona generation")
+            # Check if there are any documents for this target group to give a better error
+            doc_count = session.execute(
+                select(func.count(Document.id)).where(Document.target_group_id == target_group_id)
+            ).scalar() if target_group_id else 0
+            
+            if doc_count == 0 and not chunk_ids:
+                raise ValueError("No documents found for this target group. Please upload documents first.")
+            
+            raise ValueError("No processed knowledge chunks available. Please wait for document processing to complete or check for failures.")
 
         # Log chunk selection for debugging
         logger.info(
