@@ -14,9 +14,7 @@ COPY apps/api/README.md ./apps/api/
 COPY apps/api/app ./apps/api/app
 COPY apps/api/worker ./apps/api/worker
 RUN --mount=type=cache,target=/root/.cache/uv \
-    cd apps/api && uv sync --no-dev --frozen
-RUN --mount=type=cache,target=/root/.cache/uv \
-    cd apps/api && uv pip install 'unstructured[pdf]' --reinstall-package unstructured
+    cd apps/api && uv sync --no-dev
 
 FROM deps AS proto
 COPY packages/proto ./packages/proto
