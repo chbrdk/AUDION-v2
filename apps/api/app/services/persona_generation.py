@@ -40,15 +40,29 @@ class PersonaGenerationService:
         self.provider = settings.ai_default_provider
         self._anthropic = None
         self._openai = None
+
+        # Smart provider detection:
+        # If default is anthropic but no key is present, and we have an OpenAI key, switch to OpenAI.
+        if self.provider == "anthropic" and not settings.claude_api_key:
+            if settings.openai_api_key:
+                logger.info("persona.generate.provider_switch", reason="missing_anthropic_key", new_provider="openai")
+                self.provider = "openai"
         
         if self.provider == "openai":
             if not settings.openai_api_key:
-                # Fallback to anthropic if env var not set but configured as default? 
-                # Or just let it fail if key is missing.
-                pass
-            self._openai = OpenAI(api_key=settings.openai_api_key)
+                logger.warning("persona.generate.missing_openai_key")
+            # Only init OpenAI if we have a key (or let it fail later with a clear error)
+            # But the client might be needed even if key is late-bound? OpenAI client usually requires api_key.
+            if settings.openai_api_key:
+                self._openai = OpenAI(api_key=settings.openai_api_key)
         else:
-            self._anthropic = Anthropic(api_key=settings.claude_api_key)
+            # Default to Anthropic
+            if settings.claude_api_key:
+                self._anthropic = Anthropic(api_key=settings.claude_api_key)
+            elif not settings.openai_api_key:
+                # If neither key is present, we can't do much. 
+                # But we shouldn't crash yet, maybe the user isn't generating personas.
+                pass
 
     def _sample_chunks_weighted(
         self,
