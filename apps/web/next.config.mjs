@@ -50,6 +50,24 @@ const nextConfig = {
   },
 
   // SWC minification is enabled by default in Next.js 16
+
+  // Proxy API requests to backend services to avoid CORS and Mixed Content issues
+  async rewrites() {
+    return [
+      {
+        source: '/api/chat/:path*',
+        destination: process.env.NEXT_PUBLIC_CHAT_API_URL || 'http://chat-api:8001/:path*',
+      },
+      {
+        source: '/api/voice/:path*',
+        destination: process.env.NEXT_PUBLIC_VOICE_API_URL || 'http://chat-api:8001/:path*',
+      },
+      {
+        source: '/api/personas/:path*',
+        destination: process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL || 'http://api:8000/:path*',
+      }
+    ];
+  },
 };
 
 // Bundle Analyzer ist optional - nur wenn ANALYZE=true und Paket installiert

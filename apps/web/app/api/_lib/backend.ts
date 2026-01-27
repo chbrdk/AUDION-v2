@@ -57,14 +57,19 @@ export function getPersonaBackendDocsUrl(options?: { preferPublic?: boolean }): 
  * @returns The base URL for the chat API
  */
 export function getChatApiBase(): string {
+  // Client-side: always use the Next.js API proxy to avoid Mixed Content / CORS issues
+  if (typeof window !== "undefined") {
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+    return `${basePath}/api/chat`;
+  }
+
   const publicUrl = process.env.NEXT_PUBLIC_CHAT_API_URL?.trim();
   if (publicUrl) {
     return publicUrl;
   }
 
-  // Default to Nginx-proxied URL for client-side usage
-  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
-  return `${basePath}/api/chat`;
+  // Default to internal Docker URL for server-side usage
+  return 'http://chat-api:8001';
 }
 
 /**
@@ -72,14 +77,19 @@ export function getChatApiBase(): string {
  * @returns The base URL for the voice API
  */
 export function getVoiceApiBase(): string {
+  // Client-side: always use the Next.js API proxy to avoid Mixed Content / CORS issues
+  if (typeof window !== "undefined") {
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+    return `${basePath}/api/voice`;
+  }
+
   const publicUrl = process.env.NEXT_PUBLIC_VOICE_API_URL?.trim();
   if (publicUrl) {
     return publicUrl;
   }
 
-  // Default to Nginx-proxied URL for client-side usage
-  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
-  return `${basePath}/api/voice`;
+  // Default to internal Docker URL for server-side usage
+  return 'http://chat-api:8001';
 }
 
 /**
