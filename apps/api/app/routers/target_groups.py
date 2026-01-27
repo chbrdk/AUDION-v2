@@ -934,7 +934,7 @@ async def upload_target_group_document(
         
         try:
             logger.info("document.upload.storage_upload", file_path=file_path)
-            await storage.upload(key=file_path, data=contents, content_type=content_type)
+            storage.upload(key=file_path, data=contents, content_type=content_type)
         except Exception as e:
             logger.error("document.upload.storage_failed", error=str(e))
             raise HTTPException(status_code=500, detail=f"Storage upload failed: {str(e)}")
