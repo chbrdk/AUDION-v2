@@ -112,8 +112,8 @@ class Document(Base):
     size_bytes = Column(Float, nullable=False)
     status = Column(Enum("processing", "completed", "failed", name="document_status"), nullable=False)
     object_key = Column(String(512), nullable=True)
-    persona_id = Column(UUID(as_uuid=True), ForeignKey("personas.id", ondelete="SET NULL"), nullable=True)
-    target_group_id = Column(UUID(as_uuid=True), ForeignKey("target_groups.id", ondelete="SET NULL"), nullable=True)
+    persona_id = Column(UUID(as_uuid=True), ForeignKey("audion.personas.id", ondelete="SET NULL"), nullable=True)
+    target_group_id = Column(UUID(as_uuid=True), ForeignKey("audion.target_groups.id", ondelete="SET NULL"), nullable=True)
     uploaded_by = Column(String(128), nullable=True)
     insight_summary = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -129,8 +129,8 @@ class DocumentChunk(Base):
     __table_args__ = {"schema": "audion"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id"), nullable=False)
-    knowledge_entry_id = Column(UUID(as_uuid=True), ForeignKey("target_group_knowledge_entries.id", ondelete="CASCADE"), nullable=True)
+    document_id = Column(UUID(as_uuid=True), ForeignKey("audion.documents.id"), nullable=False)
+    knowledge_entry_id = Column(UUID(as_uuid=True), ForeignKey("audion.target_group_knowledge_entries.id", ondelete="CASCADE"), nullable=True)
     content = Column(Text, nullable=False)
     chunk_metadata = Column("chunk_metadata", JSONB, nullable=False)
 
@@ -143,7 +143,7 @@ class ProcessingJob(Base):
     __table_args__ = {"schema": "audion"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id"), nullable=False)
+    document_id = Column(UUID(as_uuid=True), ForeignKey("audion.documents.id"), nullable=False)
     status = Column(
         Enum("pending", "processing", "completed", "failed", name="processing_status"),
         nullable=False,
@@ -188,7 +188,7 @@ class Persona(Base):
     profile = Column(JSONB, nullable=False)
     confidence = Column(Float, nullable=False)
     version = Column(String(32), nullable=False)
-    target_group_id = Column(UUID(as_uuid=True), ForeignKey("target_groups.id", ondelete="SET NULL"), nullable=True)
+    target_group_id = Column(UUID(as_uuid=True), ForeignKey("audion.target_groups.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     updated_by = Column(String(128), nullable=True)
@@ -216,7 +216,7 @@ class PersonaPrompt(Base):
     __table_args__ = {"schema": "audion"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    persona_id = Column(UUID(as_uuid=True), ForeignKey("personas.id"), nullable=False)
+    persona_id = Column(UUID(as_uuid=True), ForeignKey("audion.personas.id"), nullable=False)
     system_prompt = Column(Text, nullable=False)
     template_version = Column(String(32), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -229,8 +229,8 @@ class PersonaSource(Base):
     __table_args__ = {"schema": "audion"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    persona_id = Column(UUID(as_uuid=True), ForeignKey("personas.id"), nullable=False)
-    chunk_id = Column(UUID(as_uuid=True), ForeignKey("document_chunks.id"), nullable=False)
+    persona_id = Column(UUID(as_uuid=True), ForeignKey("audion.personas.id"), nullable=False)
+    chunk_id = Column(UUID(as_uuid=True), ForeignKey("audion.document_chunks.id"), nullable=False)
     confidence = Column(Float, nullable=False)
     rationale = Column(Text, nullable=True)
 
@@ -242,7 +242,7 @@ class PersonaAuditLog(Base):
     __table_args__ = {"schema": "audion"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    persona_id = Column(UUID(as_uuid=True), ForeignKey("personas.id"), nullable=False)
+    persona_id = Column(UUID(as_uuid=True), ForeignKey("audion.personas.id"), nullable=False)
     action = Column(Enum(PersonaAuditAction, name="persona_audit_action"), nullable=False)
     actor = Column(String(128), nullable=False)
     payload_before = Column(JSONB, nullable=True)
@@ -257,7 +257,7 @@ class PersonaKnowledgeEntry(Base):
     __table_args__ = {"schema": "audion"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    persona_id = Column(UUID(as_uuid=True), ForeignKey("personas.id", ondelete="CASCADE"), nullable=False)
+    persona_id = Column(UUID(as_uuid=True), ForeignKey("audion.personas.id", ondelete="CASCADE"), nullable=False)
     title = Column(String(256), nullable=False)
     content = Column(Text, nullable=False)
     metadata_payload = Column("metadata", JSONB, nullable=True)
@@ -270,8 +270,8 @@ class TargetGroupSource(Base):
     __table_args__ = {"schema": "audion"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    target_group_id = Column(UUID(as_uuid=True), ForeignKey("target_groups.id", ondelete="CASCADE"), nullable=False)
-    chunk_id = Column(UUID(as_uuid=True), ForeignKey("document_chunks.id"), nullable=False)
+    target_group_id = Column(UUID(as_uuid=True), ForeignKey("audion.target_groups.id", ondelete="CASCADE"), nullable=False)
+    chunk_id = Column(UUID(as_uuid=True), ForeignKey("audion.document_chunks.id"), nullable=False)
     relevance_score = Column(Float, nullable=False, default=1.0)
     rationale = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -284,7 +284,7 @@ class TargetGroupKnowledgeEntry(Base):
     __table_args__ = {"schema": "audion"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    target_group_id = Column(UUID(as_uuid=True), ForeignKey("target_groups.id", ondelete="CASCADE"), nullable=False)
+    target_group_id = Column(UUID(as_uuid=True), ForeignKey("audion.target_groups.id", ondelete="CASCADE"), nullable=False)
     title = Column(String(256), nullable=False)
     content = Column(Text, nullable=False)
     metadata_payload = Column("metadata", JSONB, nullable=True)
@@ -302,7 +302,7 @@ class Journey(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     organization_id = Column(UUID(as_uuid=True), nullable=False)
     project_id = Column(UUID(as_uuid=True), nullable=True)
-    target_group_id = Column(UUID(as_uuid=True), ForeignKey("target_groups.id", ondelete="SET NULL"), nullable=True)
+    target_group_id = Column(UUID(as_uuid=True), ForeignKey("audion.target_groups.id", ondelete="SET NULL"), nullable=True)
     name = Column(String(256), nullable=False)
     description = Column(Text, nullable=True)
     journey_type = Column(String(128), nullable=False)
@@ -323,7 +323,7 @@ class JourneyPhase(Base):
     __table_args__ = {"schema": "audion"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    journey_id = Column(UUID(as_uuid=True), ForeignKey("journeys.id", ondelete="CASCADE"), nullable=False)
+    journey_id = Column(UUID(as_uuid=True), ForeignKey("audion.journeys.id", ondelete="CASCADE"), nullable=False)
     name = Column(String(256), nullable=False)
     description = Column(Text, nullable=True)
     phase_order = Column(Integer, nullable=False)
@@ -351,7 +351,7 @@ class JourneyPhaseElement(Base):
     __table_args__ = {"schema": "audion"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    phase_id = Column(UUID(as_uuid=True), ForeignKey("journey_phases.id", ondelete="CASCADE"), nullable=False)
+    phase_id = Column(UUID(as_uuid=True), ForeignKey("audion.journey_phases.id", ondelete="CASCADE"), nullable=False)
     element_type = Column(Enum(JourneyElementType, name="journey_element_type"), nullable=False)
     content = Column(Text, nullable=False)
     element_order = Column(Integer, nullable=False)
@@ -368,7 +368,7 @@ class JourneyExpectation(Base):
     __table_args__ = {"schema": "audion"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    phase_id = Column(UUID(as_uuid=True), ForeignKey("journey_phases.id", ondelete="CASCADE"), nullable=False)
+    phase_id = Column(UUID(as_uuid=True), ForeignKey("audion.journey_phases.id", ondelete="CASCADE"), nullable=False)
     metric_type = Column(Enum(JourneyMetricType, name="journey_metric_type"), nullable=False)
     metric_name = Column(String(128), nullable=False)
     expected_value = Column(Float, nullable=True)
@@ -378,7 +378,7 @@ class JourneyExpectation(Base):
     warning_threshold_percent = Column(Float, nullable=True)
     critical_threshold_percent = Column(Float, nullable=True)
     hypothesis = Column(Text, nullable=True)
-    based_on_persona_id = Column(UUID(as_uuid=True), ForeignKey("personas.id", ondelete="SET NULL"), nullable=True)
+    based_on_persona_id = Column(UUID(as_uuid=True), ForeignKey("audion.personas.id", ondelete="SET NULL"), nullable=True)
     data_source = Column(String(64), nullable=False)
     data_source_config = Column(JSONB, nullable=True)
 
@@ -392,7 +392,7 @@ class JourneyMeasurement(Base):
     __table_args__ = {"schema": "audion"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    expectation_id = Column(UUID(as_uuid=True), ForeignKey("journey_expectations.id", ondelete="CASCADE"), nullable=False)
+    expectation_id = Column(UUID(as_uuid=True), ForeignKey("audion.journey_expectations.id", ondelete="CASCADE"), nullable=False)
     period_start = Column(DateTime, nullable=False)
     period_end = Column(DateTime, nullable=False)
     actual_value = Column(Float, nullable=False)
@@ -412,9 +412,9 @@ class JourneyInsight(Base):
     __table_args__ = {"schema": "audion"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    journey_id = Column(UUID(as_uuid=True), ForeignKey("journeys.id", ondelete="CASCADE"), nullable=False)
-    phase_id = Column(UUID(as_uuid=True), ForeignKey("journey_phases.id", ondelete="SET NULL"), nullable=True)
-    expectation_id = Column(UUID(as_uuid=True), ForeignKey("journey_expectations.id", ondelete="SET NULL"), nullable=True)
+    journey_id = Column(UUID(as_uuid=True), ForeignKey("audion.journeys.id", ondelete="CASCADE"), nullable=False)
+    phase_id = Column(UUID(as_uuid=True), ForeignKey("audion.journey_phases.id", ondelete="SET NULL"), nullable=True)
+    expectation_id = Column(UUID(as_uuid=True), ForeignKey("audion.journey_expectations.id", ondelete="SET NULL"), nullable=True)
     insight_type = Column(Enum(JourneyInsightType, name="journey_insight_type"), nullable=False)
     title = Column(String(256), nullable=False)
     description = Column(Text, nullable=True)
