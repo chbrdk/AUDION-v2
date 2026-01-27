@@ -170,6 +170,28 @@ def init_db():
                         conn.commit()
                         logger.info("Emergency fix applied: 'documents.insight_summary' added.")
 
+                    # Check for target_group_id (CRITICAL for upload)
+                    d_tg_check = conn.execute(text(
+                        "SELECT column_name FROM information_schema.columns "
+                        "WHERE table_schema = 'audion' AND table_name = 'documents' AND column_name = 'target_group_id'"
+                    ))
+                    if not d_tg_check.scalar():
+                        logger.warning("CRITICAL: 'target_group_id' missing in 'documents'. Adding column...")
+                        conn.execute(text("ALTER TABLE audion.documents ADD COLUMN IF NOT EXISTS target_group_id UUID REFERENCES audion.target_groups(id) ON DELETE SET NULL"))
+                        conn.commit()
+                        logger.info("Emergency fix applied: 'documents.target_group_id' added.")
+
+                    # Check for persona_id
+                    d_p_check = conn.execute(text(
+                        "SELECT column_name FROM information_schema.columns "
+                        "WHERE table_schema = 'audion' AND table_name = 'documents' AND column_name = 'persona_id'"
+                    ))
+                    if not d_p_check.scalar():
+                        logger.warning("CRITICAL: 'persona_id' missing in 'documents'. Adding column...")
+                        conn.execute(text("ALTER TABLE audion.documents ADD COLUMN IF NOT EXISTS persona_id UUID REFERENCES audion.personas(id) ON DELETE SET NULL"))
+                        conn.commit()
+                        logger.info("Emergency fix applied: 'documents.persona_id' added.")
+
                 # Check for processing_jobs table (Fix for 500 error on upload)
                 pj_check = conn.execute(text(
                     "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'audion' AND table_name = 'processing_jobs')"
