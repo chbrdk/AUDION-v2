@@ -20,6 +20,7 @@ from ..models import (
     PersonaPrompt as PersonaPromptModel,
     PersonaSource,
     TargetGroupSource,
+    TargetGroup,
 )
 
 logger = structlog.get_logger(__name__)
@@ -176,29 +177,34 @@ class PersonaGenerationService:
                 if not (variation_params and variation_params.get("chunk_sample_size")):
                     chunks = chunks[:limit_chunks]
 
+        # Prepare excerpts
+        excerpts = ""
+        
         if not chunks:
-            # Check if there are any documents for this target group to give a better error
-            doc_count = session.execute(
-                select(func.count(Document.id)).where(Document.target_group_id == target_group_id)
-            ).scalar() if target_group_id else 0
+            # Check if there are any documents for this target group
+            doc_count = 0
+            if target_group_id:
+                doc_count = session.execute(
+                    select(func.count(Document.id)).where(Document.target_group_id == target_group_id)
+                ).scalar()
             
-            if doc_count == 0 and not chunk_ids:
+            # If no documents/chunks, try to use Target Group description as fallback
+            target_group = session.get(TargetGroup, target_group_id) if target_group_id else None
+            
+            if doc_count == 0 and target_group:
+                logger.info("persona.generate.no_documents_fallback", target_group_id=str(target_group_id))
+                excerpts = (
+                    f"Target Group: {target_group.name}\n"
+                    f"Segment: {target_group.segment}\n"
+                    f"Description: {target_group.description or 'No description provided.'}\n"
+                    f"Note: No specific documents were provided, so generate a persona based on this high-level description."
+                )
+            elif doc_count == 0 and not chunk_ids:
                 raise ValueError("No documents found for this target group. Please upload documents first.")
-            
-            raise ValueError("No processed knowledge chunks available. Please wait for document processing to complete or check for failures.")
-
-        # Log chunk selection for debugging
-        logger.info(
-            "persona.generate.chunks_selected",
-            persona_id=str(persona.id),
-            chunk_count=len(chunks),
-            chunk_ids=[str(c.id) for c in chunks[:10]],  # First 10 for logging
-            randomize_chunks=variation_params.get("randomize_chunks", False) if variation_params else False,
-            chunk_sample_size=variation_params.get("chunk_sample_size") if variation_params else None,
-            seed=variation_params.get("seed") if variation_params else None,
-        )
-
-        excerpts = "\n".join(f"- {chunk.content}" for chunk in chunks)
+            elif not chunks:
+                raise ValueError("No processed knowledge chunks available. Please wait for document processing to complete or check for failures.")
+        else:
+            excerpts = "\n".join(f"- {chunk.content}" for chunk in chunks)
         
         # Define prompt variations
         prompt_templates = {
