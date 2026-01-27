@@ -213,6 +213,30 @@ def init_db():
                     conn.commit()
                     logger.info("Emergency fix applied: 'processing_jobs' table created.")
 
+                # Check for document_status enum values (Fix for invalid input value: "pending")
+                try:
+                    # Attempt to add 'pending' to the enum type.
+                    # This command will fail if 'pending' already exists, so we wrap it in a transaction block or just try/except
+                    # but ALTER TYPE ADD VALUE IF NOT EXISTS is only supported in newer Postgres (12+).
+                    # We can query pg_enum to check first.
+                    enum_check = conn.execute(text(
+                        "SELECT 1 FROM pg_enum JOIN pg_type ON pg_enum.enumtypid = pg_type.oid "
+                        "WHERE pg_type.typname = 'document_status' AND pg_enum.enumlabel = 'pending'"
+                    ))
+                    if not enum_check.scalar():
+                         logger.warning("CRITICAL: 'pending' missing from 'document_status' enum. Adding value...")
+                         # We must run this outside a transaction block usually, but SQLAlchemy execute might handle it.
+                         # Actually ALTER TYPE ADD VALUE cannot run inside a transaction block that has other commands?
+                         # "ALTER TYPE ... ADD VALUE ... cannot run inside a transaction block" is a common error.
+                         # However, we are in `with engine.connect() as conn`.
+                         # We need to commit current transaction first.
+                         conn.commit()
+                         conn.execute(text("ALTER TYPE audion.document_status ADD VALUE 'pending'"))
+                         conn.commit()
+                         logger.info("Emergency fix applied: 'pending' added to 'document_status'.")
+                except Exception as e:
+                     logger.warning(f"Could not patch document_status enum (might already exist or permission issue): {e}")
+
         except Exception as e:
             logger.error(f"Emergency fix failed (ignoring to proceed with normal init): {e}")
 

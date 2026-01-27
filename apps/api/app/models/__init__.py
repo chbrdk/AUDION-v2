@@ -110,7 +110,7 @@ class Document(Base):
     file_path = Column(String(1024), nullable=False)
     content_type = Column(String(128), nullable=False)
     size_bytes = Column(Float, nullable=False)
-    status = Column(Enum("processing", "completed", "failed", name="document_status"), nullable=False)
+    status = Column(Enum("pending", "processing", "completed", "failed", name="document_status"), nullable=False)
     object_key = Column(String(512), nullable=True)
     persona_id = Column(UUID(as_uuid=True), ForeignKey("audion.personas.id", ondelete="SET NULL"), nullable=True)
     target_group_id = Column(UUID(as_uuid=True), ForeignKey("audion.target_groups.id", ondelete="SET NULL"), nullable=True)
