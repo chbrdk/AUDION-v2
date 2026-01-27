@@ -63,6 +63,8 @@ class Settings(BaseSettings):
 
     # Feature Flags
     use_storion_proxy: bool = False
+    storion_sync_poll_interval: float = 5.0
+    storion_sync_poll_timeout: float = 300.0
 
 
 @lru_cache
