@@ -131,6 +131,23 @@ def init_db():
                         conn.commit()
                         logger.info("Emergency fix applied: 'persona_prompts.template_metadata' added.")
 
+                # Check documents.object_key column (Fix for 500 error on upload)
+                docs_check = conn.execute(text(
+                    "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'audion' AND table_name = 'documents')"
+                ))
+                if docs_check.scalar():
+                    logger.info("Verifying schema integrity for 'documents.object_key'...")
+                    d_ok_check = conn.execute(text(
+                        "SELECT column_name FROM information_schema.columns "
+                        "WHERE table_schema = 'audion' AND table_name = 'documents' AND column_name = 'object_key'"
+                    ))
+                    if not d_ok_check.scalar():
+                        logger.warning("CRITICAL: 'object_key' missing in 'documents'. Adding column...")
+                        conn.execute(text("ALTER TABLE audion.documents ADD COLUMN IF NOT EXISTS object_key VARCHAR(512)"))
+                        conn.execute(text("UPDATE audion.documents SET object_key = file_path WHERE object_key IS NULL")) # Backfill
+                        conn.commit()
+                        logger.info("Emergency fix applied: 'documents.object_key' added.")
+
         except Exception as e:
             logger.error(f"Emergency fix failed (ignoring to proceed with normal init): {e}")
 
