@@ -72,7 +72,9 @@ const nextConfig = {
       },
       {
         source: '/api/journeys/:path*',
-        destination: process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL || 'http://api:8000/journeys/:path*',
+        destination: process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL
+          ? `${process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL}/journeys/:path*`
+          : 'http://api:8000/journeys/:path*',
       }
     ];
   },
