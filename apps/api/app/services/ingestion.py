@@ -33,7 +33,7 @@ class IngestionService:
         collection_name: str = "research_chunks",
     ) -> None:
         self._embedder_instance = embedder
-        self._qdrant = qdrant or QdrantClient(url=settings.qdrant_url, api_key=settings.qdrant_api_key)
+        self._qdrant = qdrant or QdrantClient(url=settings.qdrant_url, api_key=settings.qdrant_api_key, verify=settings.qdrant_verify_ssl)
         self._collection = collection_name
 
     @property

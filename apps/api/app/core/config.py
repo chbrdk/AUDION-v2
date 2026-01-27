@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     data_dir: str = "/app/data/uploads"
     qdrant_url: str
     qdrant_api_key: str | None = None
+    qdrant_verify_ssl: bool = True
     neo4j_uri: str
     neo4j_user: str
     neo4j_password: str
