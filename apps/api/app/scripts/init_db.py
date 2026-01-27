@@ -148,6 +148,27 @@ def init_db():
                         conn.commit()
                         logger.info("Emergency fix applied: 'documents.object_key' added.")
 
+                # Check for processing_jobs table (Fix for 500 error on upload)
+                pj_check = conn.execute(text(
+                    "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'audion' AND table_name = 'processing_jobs')"
+                ))
+                if not pj_check.scalar():
+                    logger.warning("CRITICAL: 'processing_jobs' table missing. Creating table...")
+                    # Manually create table to avoid complex metadata binding issues inside migration script
+                    conn.execute(text("""
+                        CREATE TABLE audion.processing_jobs (
+                            id UUID PRIMARY KEY,
+                            document_id UUID NOT NULL REFERENCES audion.documents(id),
+                            status VARCHAR(32) NOT NULL,
+                            progress FLOAT NOT NULL DEFAULT 0.0,
+                            error TEXT,
+                            created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT now(),
+                            updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT now()
+                        )
+                    """))
+                    conn.commit()
+                    logger.info("Emergency fix applied: 'processing_jobs' table created.")
+
         except Exception as e:
             logger.error(f"Emergency fix failed (ignoring to proceed with normal init): {e}")
 
