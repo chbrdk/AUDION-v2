@@ -20,7 +20,32 @@ def init_db():
             conn.execute(text("CREATE SCHEMA IF NOT EXISTS audion"))
             conn.commit()
 
-        # 2. Check if alembic_version table exists
+        # 2. Emergency partial fix: Ensure object_key column exists
+        # We run this BEFORE Alembic to guarantee the column is present even if migrations fail
+        try:
+            with engine.connect() as conn:
+                logger.info("Verifying schema integrity for 'documents' table...")
+                # Check if table exists first
+                table_check = conn.execute(text(
+                    "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'audion' AND table_name = 'documents')"
+                ))
+                if table_check.scalar():
+                    # Check if column exists
+                    col_check = conn.execute(text(
+                        "SELECT column_name FROM information_schema.columns "
+                        "WHERE table_schema = 'audion' AND table_name = 'documents' AND column_name = 'object_key'"
+                    ))
+                    if not col_check.scalar():
+                        logger.warning("CRITICAL: 'object_key' column missing from 'audion.documents'. Applying emergency fix...")
+                        conn.execute(text("ALTER TABLE audion.documents ADD COLUMN IF NOT EXISTS object_key VARCHAR(512)"))
+                        conn.commit()
+                        logger.info("Emergency fix applied: 'object_key' column added.")
+                    else:
+                        logger.info("Schema verification passed: 'object_key' column exists.")
+        except Exception as e:
+            logger.error(f"Emergency fix failed (ignoring to proceed with normal init): {e}")
+
+        # 3. Check if alembic_version table exists
         with engine.connect() as conn:
             result = conn.execute(text(
                 "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'audion' AND table_name = 'alembic_version')"
