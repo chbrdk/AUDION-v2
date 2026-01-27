@@ -8,6 +8,8 @@ from sqlalchemy import text
 from alembic.config import Config
 from alembic import command
 from app.db import engine, Base, SessionLocal
+# CRITICAL: Must import models for Base.metadata.create_all to work!
+from app import models 
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -18,7 +20,14 @@ def init_db():
         with engine.connect() as conn:
             logger.info("Ensuring schema 'audion' exists...")
             conn.execute(text("CREATE SCHEMA IF NOT EXISTS audion"))
+            conn.execute(text("SET search_path = audion, public"))
             conn.commit()
+            
+            # DEBUG: List all tables in audion schema
+            tables = conn.execute(text(
+                "SELECT table_name FROM information_schema.tables WHERE table_schema = 'audion'"
+            )).fetchall()
+            logger.info(f"DEBUG: Tables in 'audion' schema: {[t[0] for t in tables]}")
 
         # 2. Emergency partial fix: Ensure object_key column exists
         # We run this BEFORE Alembic to guarantee the column is present even if migrations fail
