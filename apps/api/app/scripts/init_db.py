@@ -145,24 +145,6 @@ def init_db():
             logger.info("Running upgrade head (should be no-op)...")
             command.upgrade(alembic_cfg, "head")
 
-        # 3. Emergency partial fix: Ensure object_key column exists
-        # This bypasses Alembic to guarantee the column is present regardless of migration history state
-        with engine.connect() as conn:
-            logger.info("Verifying schema integrity for 'documents' table...")
-            
-            # Check if column exists in the correct schema
-            result = conn.execute(text(
-                "SELECT column_name FROM information_schema.columns "
-                "WHERE table_schema = 'audion' AND table_name = 'documents' AND column_name = 'object_key'"
-            ))
-            if not result.scalar():
-                logger.warning("CRITICAL: 'object_key' column missing from 'audion.documents'. Applying emergency fix...")
-                conn.execute(text("ALTER TABLE audion.documents ADD COLUMN IF NOT EXISTS object_key VARCHAR(512)"))
-                conn.commit()
-                logger.info("Emergency fix applied: 'object_key' column added.")
-            else:
-                logger.info("Schema verification passed: 'object_key' column exists.")
-
         logger.info("Database initialization completed successfully.")
 
     except Exception as e:
