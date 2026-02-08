@@ -14,11 +14,12 @@ import {
   MsqdxFormField,
   MsqdxTextareaField,
   MsqdxSelect,
+  MsqdxSnackbar,
 } from "@msqdx/react";
 import { MsqdxGlassAiFieldButton } from "../ai/msqdx-glass-ai-field-button";
 import { MsqdxGlassAiButton } from "../ai/msqdx-glass-ai-button";
 import { MsqdxGlassEditButton } from "../generic/msqdx-glass-edit-button";
-import { useAiAssist } from "../../hooks/use-ai-assist";
+import { useAiAssist, type UiAiAssistResult, type AiAssistExecuteOptions } from "../../hooks/use-ai-assist";
 import { BRAND_COLOR } from "../../lib/branding";
 import { MSQDX_SPACING, MSQDX_EFFECTS } from "@msqdx/tokens";
 
@@ -87,7 +88,39 @@ export const MsqdxGlassJourneyPhaseCard = ({
 }: MsqdxGlassJourneyPhaseCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [aiSnackbar, setAiSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    autoHide: number | null;
+    key: number;
+  }>({ open: false, message: "", autoHide: null, key: 0 });
   const { execute: runAiAssist, loading: aiAssistLoading } = useAiAssist();
+
+  const runAiWithSnackbar = async <T = UiAiAssistResult>(
+    options: AiAssistExecuteOptions,
+    successMessage: string
+  ): Promise<T> => {
+    setAiSnackbar({ open: true, message: "Generating suggestion...", autoHide: null, key: 0 });
+    try {
+      const result = (await runAiAssist(options)) as T;
+      setAiSnackbar((prev) => ({
+        open: true,
+        message: successMessage,
+        autoHide: 5000,
+        key: prev.key + 1,
+      }));
+      return result;
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : "AI request failed";
+      setAiSnackbar((prev) => ({
+        open: true,
+        message: errMsg,
+        autoHide: 5000,
+        key: prev.key + 1,
+      }));
+      throw err;
+    }
+  };
   const [formData, setFormData] = useState({
     name: phase.name,
     description: phase.description || "",
@@ -212,16 +245,19 @@ export const MsqdxGlassJourneyPhaseCard = ({
   const handleAiMomentsSuggestion = async () => {
     if (!journey || (!formData.name.trim() && !formData.description?.trim())) return;
     try {
-      const result = await runAiAssist({
-        templateId: "journey.moments",
-        journeyId,
-        phaseContext: {
-          name: formData.name,
-          description: formData.description,
-          expected_emotion: formData.expected_emotion,
+      const result = await runAiWithSnackbar<UiAiAssistResult>(
+        {
+          templateId: "journey.moments",
+          journeyId,
+          phaseContext: {
+            name: formData.name,
+            description: formData.description,
+            expected_emotion: formData.expected_emotion,
+          },
+          maxSuggestions: 4,
         },
-        maxSuggestions: 4,
-      });
+        "Journey moments suggestion generated"
+      );
       if (result.suggestions?.length) {
         const newMoments: MomentDraft[] = result.suggestions.map((s) => ({
           id: typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36),
@@ -237,17 +273,20 @@ export const MsqdxGlassJourneyPhaseCard = ({
 
   const handleAiNameSuggestion = async () => {
     try {
-      const result = await runAiAssist({
-        templateId: "journey.phase.name",
-        journeyId,
-        context: {
-          journey_name: journey?.name || "",
-          journey_type: journey?.journey_type || "",
-          phase_description: formData.description,
-          phase_expected_emotion: formData.expected_emotion,
-          target_group_summary: getTargetGroupSummary(),
+      const result = await runAiWithSnackbar<UiAiAssistResult>(
+        {
+          templateId: "journey.phase.name",
+          journeyId,
+          context: {
+            journey_name: journey?.name || "",
+            journey_type: journey?.journey_type || "",
+            phase_description: formData.description,
+            phase_expected_emotion: formData.expected_emotion,
+            target_group_summary: getTargetGroupSummary(),
+          },
         },
-      });
+        "Phase name suggestion generated"
+      );
       if (result.rawOutput) setFormData({ ...formData, name: result.rawOutput.trim() });
     } catch (err) {
       console.error("AI name suggestion failed:", err);
@@ -256,18 +295,21 @@ export const MsqdxGlassJourneyPhaseCard = ({
 
   const handleAiDescriptionSuggestion = async () => {
     try {
-      const result = await runAiAssist({
-        templateId: "journey.description",
-        journeyId,
-        context: {
-          journey_name: journey?.name || "",
-          journey_type: journey?.journey_type || "",
-          phase_name: formData.name,
-          phase_description: formData.description,
-          phase_expected_emotion: formData.expected_emotion,
-          target_group_summary: getTargetGroupSummary(),
+      const result = await runAiWithSnackbar<UiAiAssistResult>(
+        {
+          templateId: "journey.description",
+          journeyId,
+          context: {
+            journey_name: journey?.name || "",
+            journey_type: journey?.journey_type || "",
+            phase_name: formData.name,
+            phase_description: formData.description,
+            phase_expected_emotion: formData.expected_emotion,
+            target_group_summary: getTargetGroupSummary(),
+          },
         },
-      });
+        "Phase description suggestion generated"
+      );
       if (result.rawOutput) setFormData({ ...formData, description: result.rawOutput.trim() });
     } catch (err) {
       console.error("AI description suggestion failed:", err);
@@ -276,16 +318,19 @@ export const MsqdxGlassJourneyPhaseCard = ({
 
   const handleAiEmotionSuggestion = async () => {
     try {
-      const result = await runAiAssist({
-        templateId: "journey.phase.emotion",
-        journeyId,
-        context: {
-          journey_name: journey?.name || "",
-          phase_name: formData.name,
-          phase_description: formData.description,
-          target_group_summary: getTargetGroupSummary(),
+      const result = await runAiWithSnackbar<UiAiAssistResult>(
+        {
+          templateId: "journey.phase.emotion",
+          journeyId,
+          context: {
+            journey_name: journey?.name || "",
+            phase_name: formData.name,
+            phase_description: formData.description,
+            target_group_summary: getTargetGroupSummary(),
+          },
         },
-      });
+        "Emotion suggestion generated"
+      );
       if (result.rawOutput) {
         const validEmotions = ["frustrated", "anxious", "neutral", "hopeful", "satisfied", "delighted"];
         const cleaned = result.rawOutput.trim().toLowerCase();
@@ -298,8 +343,13 @@ export const MsqdxGlassJourneyPhaseCard = ({
     }
   };
 
+  const aiSnackbarClose = (_event: React.SyntheticEvent | Event, reason: string) => {
+    setAiSnackbar((prev) => ({ ...prev, open: false }));
+  };
+
   if (isEditing) {
     return (
+      <>
       <Box
         component="article"
         data-phase-index={index}
@@ -563,6 +613,17 @@ export const MsqdxGlassJourneyPhaseCard = ({
           </Box>
         </MsqdxCard>
       </Box>
+      <MsqdxSnackbar
+        key={aiSnackbar.key}
+        open={aiSnackbar.open}
+        onClose={aiSnackbarClose}
+        message={aiSnackbar.message}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        autoHideDuration={aiSnackbar.autoHide}
+        brandColor={BRAND_COLOR as "purple" | "yellow" | "pink" | "orange" | "green" | "black"}
+        variant="outlined"
+      />
+      </>
     );
   }
 
@@ -582,7 +643,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
           boxShadow: isActive ? MSQDX_EFFECTS.tripleBorder.focus : undefined,
         }}
       >
-        <Box sx={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        <Box sx={{ display: "flex", flexDirection: "row", flexWrap: "wrap", gap: "24px" }}>
           <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flex: 1, minWidth: 0 }}>
               <Box
