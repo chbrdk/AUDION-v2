@@ -3,8 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import type { PersonaProfile } from "@msqdx-glass/types";
 import { Box, Slider, TextField, MenuItem, Select, FormControl, InputLabel, Typography, Stack } from "@mui/material";
-import { MsqdxIcon } from "@msqdx/react";
-import { MsqdxGlassDashboardCard } from "./msqdx-glass-dashboard-card";
+import { MsqdxIcon, MsqdxDashboardCard } from "@msqdx/react";
 import { MsqdxGlassDashboardCardSection } from "./msqdx-glass-dashboard-card-section";
 import { MsqdxGlassInlineEditControls } from "../msqdx-glass-inline-edit-controls";
 import { useInlineEdit } from "../hooks/use-inline-edit";
@@ -117,17 +116,13 @@ export const MsqdxGlassBioCardEdit = ({
   };
 
   return (
-    <>
-      <MsqdxGlassDashboardCard
+    <Box sx={{ gridColumn: "1 / -1" }}>
+      <MsqdxDashboardCard
         id="bio-demographics"
         title="Biography & Demographics"
         icon="person"
-        variant="bio"
-        fullWidth={true}
-        iconColor={{
-          color: "var(--color-theme-accent)"
-        }}
-        borderColor="var(--color-theme-accent)"
+        brandColor="black"
+        iconColor={{ color: "var(--color-theme-accent)" }}
         expanded={expanded}
         onToggle={onToggle}
       >
@@ -284,8 +279,8 @@ export const MsqdxGlassBioCardEdit = ({
             </Box>
           </Stack>
         </MsqdxGlassDashboardCardSection>
-      </MsqdxGlassDashboardCard>
-      
+      </MsqdxDashboardCard>
+
       {/* Add CSS animation for slideIn */}
       <style jsx global>{`
         @keyframes slideIn {
@@ -299,6 +294,6 @@ export const MsqdxGlassBioCardEdit = ({
           }
         }
       `}</style>
-    </>
+    </Box>
   );
 };

@@ -2,8 +2,7 @@
 
 import { useRef } from "react";
 import type { PersonaResponse } from "@msqdx-glass/types";
-import { MsqdxIcon } from "@msqdx/react";
-import { MsqdxGlassDashboardCard } from "./msqdx-glass-dashboard-card";
+import { MsqdxIcon, MsqdxDashboardCard, MsqdxButton } from "@msqdx/react";
 import { MsqdxGlassDashboardCardSection } from "./msqdx-glass-dashboard-card-section";
 import { MsqdxGlassInlineEditControls } from "../msqdx-glass-inline-edit-controls";
 import { useInlineEdit } from "../hooks/use-inline-edit";
@@ -121,16 +120,13 @@ export const MsqdxGlassPersonaBasicsCard = ({
   };
 
   return (
-    <MsqdxGlassDashboardCard
+    <Box sx={{ gridColumn: "1 / -1" }}>
+    <MsqdxDashboardCard
       id="persona-basics"
       title="Persona Basics"
       icon="info"
-      variant="persona-basics"
-      iconColor={{
-        color: "var(--color-theme-accent)"
-      }}
-      borderColor="var(--color-theme-accent)"
-      fullWidth={true}
+      brandColor="black"
+      iconColor={{ color: "var(--color-theme-accent)" }}
       expanded={expanded}
       onToggle={onToggle}
     >
@@ -172,13 +168,16 @@ export const MsqdxGlassPersonaBasicsCard = ({
               <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
                 <dt>Target Group</dt>
                 <dd>
-                  <a 
+                  <MsqdxButton
+                    variant="text"
+                    size="small"
+                    component="a"
                     href={`/target-groups/admin?selected=${detail.profile.targetGroupId}`}
-                    className="msqdx-glass-button --ghost"
-                    style={{ fontSize: "0.875rem", padding: "4px 8px" }}
+                    startIcon={<MsqdxIcon name="groups" customSize={14} />}
+                    sx={{ fontSize: "0.875rem", p: "4px 8px" }}
                   >
-                    <MsqdxIcon name="groups" customSize={14} /> To Target Group
-                  </a>
+                    To Target Group
+                  </MsqdxButton>
                 </dd>
               </div>
             )}
@@ -280,30 +279,35 @@ export const MsqdxGlassPersonaBasicsCard = ({
             />
           </Box>
 
-          <div className="msqdx-glass-detail__actions" style={{ marginTop: "1rem", display: "flex", gap: "0.5rem" }}>
+          <Box sx={{ marginTop: "1rem", display: "flex", gap: "0.5rem" }}>
             {onArchive && (
-              <button 
-                className="msqdx-glass-button --ghost" 
+              <MsqdxButton
+                variant="text"
+                size="small"
                 onClick={onArchive}
                 disabled={savePending}
+                startIcon={<MsqdxIcon name="archive" customSize={18} />}
               >
-                <MsqdxIcon name="archive" customSize={18} /> Archive
-              </button>
+                Archive
+              </MsqdxButton>
             )}
             {onDelete && (
-              <button 
-                className="msqdx-glass-button --ghost" 
+              <MsqdxButton
+                variant="text"
+                size="small"
+                brandColor="pink"
                 onClick={onDelete}
                 disabled={savePending}
                 title="Delete persona"
-                style={{ padding: "0.375rem", fontSize: "0.75rem", color: "var(--color-secondary-dx-pink)" }}
+                aria-label="Delete persona"
               >
                 <MsqdxIcon name="delete" customSize={16} />
-              </button>
+              </MsqdxButton>
             )}
-          </div>
+          </Box>
         </MsqdxGlassDashboardCardSection>
       </div>
-    </MsqdxGlassDashboardCard>
+    </MsqdxDashboardCard>
+    </Box>
   );
 };

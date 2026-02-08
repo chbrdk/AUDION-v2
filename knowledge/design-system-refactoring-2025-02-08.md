@@ -20,7 +20,7 @@ AUDION has been refactored to use components and tokens from the msqdx-design-sy
 ### Icon Migration (MaterialSymbol → MsqdxIcon)
 - All `MaterialSymbol` imports replaced with `MsqdxIcon` from `@msqdx/react`
 - Props: `icon=` → `name=`, `fontSize=` → `customSize=` for MsqdxIcon
-- **Exception**: `MsqdxGlassEditButton` and `MsqdxGlassAiButtonIcon` use `fontSize`, not `customSize`
+- **MsqdxGlassEditButton** and **MsqdxGlassAiButtonIcon** now use DS `MsqdxButton` (fontSize → customSize for MsqdxIcon)
 - Removed `components/material-symbol.tsx` after migration
 
 ### Phase 3: Token Compliance
@@ -58,8 +58,18 @@ AUDION has been refactored to use components and tokens from the msqdx-design-sy
 - Label/value pairs use `MsqdxTypography` (caption + body2); grid layout via MUI `Box` with `borderLeft` for visual separation.
 - "metadata" added to initial `expandedAccordions` set.
 
+## Dashboard Cards & Buttons → DS (Feb 2025)
+- **MsqdxGlassDashboardCard** → **MsqdxDashboardCard** in all dashboard cards (personality, pain-points-goals, communication, knowledge-sources, advanced, bio, bio-edit, persona-basics, admin panel bio card).
+- **MsqdxGlassAiButtonIcon** → **MsqdxButton** (variant="outlined", brandColor="purple", icon-only).
+- **MsqdxGlassEditButton** → **MsqdxButton** (variant="outlined", brandColor="purple", icon-only).
+- **MsqdxGlassDashboardCardSection** → uses **MsqdxTypography** for section titles.
+- **Chip editor** IconButtons (close, add) → **MsqdxButton** (variant="text").
+- **Knowledge card** buttons (Upload, Download, Retry, Delete, Add knowledge) → **MsqdxButton**.
+- **Persona basics** Archive/Delete → **MsqdxButton**.
+- fullWidth cards wrapped in `Box sx={{ gridColumn: "1 / -1" }}`.
+
 ## Remaining Opportunities
 - Replace remaining `msqdx-glass-button --ghost` with `MsqdxButton variant="text"` across journey page and other components
 - Replace MUI Typography/Box with MsqdxTypography/MsqdxCard where feasible
-- Replace MsqdxGlassDashboardCard with DS MsqdxDashboardCard (requires structural changes for MsqdxDashboardCardSection)
+- MsqdxGlassDashboardCard file still exists (index export) but is unused; can be removed
 - Add more token variables for remaining hardcoded values in components

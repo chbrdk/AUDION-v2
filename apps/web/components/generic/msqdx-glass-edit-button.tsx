@@ -1,7 +1,6 @@
 "use client";
 
-import { IconButton } from "@mui/material";
-import { MsqdxIcon } from "@msqdx/react";
+import { MsqdxButton, MsqdxIcon } from "@msqdx/react";
 
 export type MsqdxGlassEditButtonProps = {
   onClick?: () => void;
@@ -11,10 +10,10 @@ export type MsqdxGlassEditButtonProps = {
   fontSize?: number;
 };
 
+const sizeMap = { small: "small" as const, medium: "medium" as const, large: "large" as const };
+
 /**
- * Generic Edit Button Component using MUI IconButton.
- * Consistent styling across the application with border and background.
- * Matches the styling of other icon buttons in the admin panel.
+ * Edit icon button using DS MsqdxButton.
  */
 export const MsqdxGlassEditButton = ({
   onClick,
@@ -22,43 +21,24 @@ export const MsqdxGlassEditButton = ({
   "aria-label": ariaLabel = "Edit",
   size = "medium",
   fontSize = 16,
-}: MsqdxGlassEditButtonProps) => {
-  // Calculate dimensions based on size
-  const dimensions = {
-    small: { size: "28px", padding: "0.375rem" },
-    medium: { size: "32px", padding: "0.5rem" },
-    large: { size: "36px", padding: "0.625rem" },
-  };
-
-  const { size: buttonSize, padding } = dimensions[size] || dimensions.medium;
-
-  return (
-    <IconButton
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={ariaLabel}
-      sx={{
-        color: "var(--color-text-primary)",
-        padding: padding,
-        backgroundColor: "var(--color-neutral)",
-        border: "1px solid var(--color-theme-accent)",
-        width: buttonSize,
-        height: buttonSize,
-        minWidth: buttonSize,
-        minHeight: buttonSize,
-        "&:hover": {
-          backgroundColor: "rgba(182, 56, 255, 0.1)",
-        },
-        "&:disabled": {
-          backgroundColor: "var(--color-neutral)",
-          borderColor: "var(--color-theme-accent)",
-          opacity: 0.5,
-        },
-        transition: "all 0.2s ease",
-      }}
-    >
-      <MsqdxIcon name="edit" customSize={fontSize} />
-    </IconButton>
-  );
-};
+}: MsqdxGlassEditButtonProps) => (
+  <MsqdxButton
+    variant="outlined"
+    size={sizeMap[size]}
+    brandColor="purple"
+    onClick={onClick}
+    disabled={disabled}
+    aria-label={ariaLabel}
+    sx={{
+      minWidth: 28,
+      minHeight: 28,
+      width: size === "small" ? 28 : size === "large" ? 36 : 32,
+      height: size === "small" ? 28 : size === "large" ? 36 : 32,
+      p: 0,
+      borderRadius: "rounded",
+    }}
+  >
+    <MsqdxIcon name="edit" customSize={fontSize} />
+  </MsqdxButton>
+);
 

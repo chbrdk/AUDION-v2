@@ -2,7 +2,7 @@
 
 import type { PersonaProfile } from "@msqdx-glass/types";
 import { Box } from "@mui/material";
-import { MsqdxGlassDashboardCard } from "./msqdx-glass-dashboard-card";
+import { MsqdxDashboardCard } from "@msqdx/react";
 import { MsqdxGlassDashboardCardSection } from "./msqdx-glass-dashboard-card-section";
 import { MsqdxGlassChipEditor } from "../generic/msqdx-glass-chip-editor";
 import { MsqdxGlassFieldEditor } from "../generic/msqdx-glass-field-editor";
@@ -35,15 +35,12 @@ export const MsqdxGlassCommunicationCard = ({
   }
 
   return (
-    <MsqdxGlassDashboardCard
+    <MsqdxDashboardCard
       id="communication"
       title="Communication"
       icon="chat_bubble"
-      variant="communication"
-      iconColor={{
-        color: "var(--color-theme-accent)"
-      }}
-      borderColor="var(--color-theme-accent)"
+      brandColor="black"
+      iconColor={{ color: "var(--color-theme-accent)" }}
       expanded={expanded}
       onToggle={onToggle}
     >
@@ -122,7 +119,7 @@ export const MsqdxGlassCommunicationCard = ({
           )}
         </div>
       </MsqdxGlassDashboardCardSection>
-    </MsqdxGlassDashboardCard>
+    </MsqdxDashboardCard>
   );
 };
 

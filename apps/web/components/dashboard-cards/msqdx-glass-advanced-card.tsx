@@ -1,7 +1,7 @@
 "use client";
 
 import type { PersonaProfile } from "@msqdx-glass/types";
-import { MsqdxGlassDashboardCard } from "./msqdx-glass-dashboard-card";
+import { MsqdxDashboardCard } from "@msqdx/react";
 import { MsqdxGlassDashboardCardSection } from "./msqdx-glass-dashboard-card-section";
 
 export type MsqdxGlassAdvancedCardProps = {
@@ -21,15 +21,12 @@ export const MsqdxGlassAdvancedCard = ({
   }
 
   return (
-    <MsqdxGlassDashboardCard
+    <MsqdxDashboardCard
       id="advanced"
       title="Erweitert"
       icon="tune"
-      variant="advanced"
-      iconColor={{
-        color: "var(--color-theme-accent)"
-      }}
-      borderColor="var(--color-theme-accent)"
+      brandColor="black"
+      iconColor={{ color: "var(--color-theme-accent)" }}
       expanded={expanded}
       onToggle={onToggle}
     >
@@ -62,7 +59,7 @@ export const MsqdxGlassAdvancedCard = ({
           <p style={{ margin: 0 }}>{profile.attention_span}</p>
         </MsqdxGlassDashboardCardSection>
       )}
-    </MsqdxGlassDashboardCard>
+    </MsqdxDashboardCard>
   );
 };
 

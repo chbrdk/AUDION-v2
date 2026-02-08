@@ -1,8 +1,7 @@
 "use client";
 
 import type { PersonaProfile } from "@msqdx-glass/types";
-import { MsqdxGlassDashboardCard } from "./msqdx-glass-dashboard-card";
-import { MsqdxGlassDashboardCardSection } from "./msqdx-glass-dashboard-card-section";
+import { MsqdxDashboardCard } from "@msqdx/react";
 import { MsqdxGlassChipEditor } from "../generic/msqdx-glass-chip-editor";
 
 export type MsqdxGlassPersonalityCardProps = {
@@ -44,15 +43,12 @@ export const MsqdxGlassPersonalityCard = ({
   );
 
   return (
-    <MsqdxGlassDashboardCard
+    <MsqdxDashboardCard
       id="personality-values"
       title="Personality & Values"
       icon="psychology"
-      variant="personality"
-      iconColor={{
-        color: "var(--color-theme-accent)"
-      }}
-      borderColor="var(--color-theme-accent)"
+      brandColor="black"
+      iconColor={{ color: "var(--color-theme-accent)" }}
       expanded={expanded}
       onToggle={onToggle}
     >
@@ -98,7 +94,7 @@ export const MsqdxGlassPersonalityCard = ({
         editable={!!onSaveSocialMedia}
         emptyMessage="No social media usage"
       />
-    </MsqdxGlassDashboardCard>
+    </MsqdxDashboardCard>
   );
 };
 

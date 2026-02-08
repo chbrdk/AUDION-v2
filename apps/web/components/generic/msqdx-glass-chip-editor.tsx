@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Box, TextField, IconButton, useTheme, alpha } from "@mui/material";
-import { MsqdxIcon } from "@msqdx/react";
+import { Box, TextField, useTheme, alpha } from "@mui/material";
+import { MsqdxIcon, MsqdxButton, MsqdxTypography } from "@msqdx/react";
 import { MsqdxGlassEditButton, MsqdxGlassAiButtonIcon } from "./";
 import { useInlineEdit } from "../hooks/use-inline-edit";
 import { MsqdxGlassInlineEditControls } from "../msqdx-glass-inline-edit-controls";
@@ -226,7 +226,19 @@ export const MsqdxGlassChipEditor = ({
           mb: 1
         }}
       >
-        {label && <h4>{label}</h4>}
+        {label && (
+          <MsqdxTypography
+            variant="caption"
+            sx={{
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              color: "text.secondary",
+            }}
+          >
+            {label}
+          </MsqdxTypography>
+        )}
         {editable && !isEditing && (
           <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
             {onAiSuggest && (
@@ -308,18 +320,22 @@ export const MsqdxGlassChipEditor = ({
                   </MsqdxGlassChip>
                 )}
                 {isEditing && editingIndex !== idx && (
-                  <IconButton
+                  <MsqdxButton
+                    variant="text"
                     size="small"
                     onClick={() => handleRemoveChip(idx)}
+                    aria-label="Remove"
                     sx={{
-                      padding: "2px",
+                      minWidth: 24,
+                      minHeight: 24,
+                      p: "2px",
                       "&:hover": {
-                        backgroundColor: alpha(theme.palette.error.main, 0.1)
-                      }
+                        backgroundColor: alpha(theme.palette.error.main, 0.1),
+                      },
                     }}
                   >
                     <MsqdxIcon name="close" customSize={16} />
-                  </IconButton>
+                  </MsqdxButton>
                 )}
               </Box>
             ))}
@@ -373,20 +389,15 @@ export const MsqdxGlassChipEditor = ({
               </Box>
             </Box>
           )}
-          <IconButton
+          <MsqdxButton
+            variant="text"
             size="small"
             onClick={handleStartEdit}
-            sx={{
-              "&:hover": {
-                backgroundColor: alpha(theme.palette.primary.main, 0.1)
-              }
-            }}
+            startIcon={<MsqdxIcon name="add" customSize={18} />}
+            aria-label="Add"
           >
-            <MsqdxIcon name="add" customSize={18} />
-            <Box component="span" sx={{ ml: 0.5, fontSize: "0.875rem" }}>
-              Add
-            </Box>
-          </IconButton>
+            Add
+          </MsqdxButton>
         </Box>
       )}
     </div>

@@ -1,14 +1,14 @@
 "use client";
 
 import type { FormEvent } from "react";
+import { Box } from "@mui/material";
 import type { PersonaResponse } from "@msqdx-glass/types";
 
 type KnowledgeFormState = {
   title: string;
   content: string;
 };
-import { MsqdxIcon } from "@msqdx/react";
-import { MsqdxGlassDashboardCard } from "./msqdx-glass-dashboard-card";
+import { MsqdxIcon, MsqdxDashboardCard, MsqdxButton } from "@msqdx/react";
 import { MsqdxGlassDashboardCardSection } from "./msqdx-glass-dashboard-card-section";
 import { buildApiUrl } from "../../app/api/_lib/backend";
 
@@ -90,16 +90,13 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
   };
 
   return (
-    <MsqdxGlassDashboardCard
+    <Box sx={{ gridColumn: "1 / -1" }}>
+    <MsqdxDashboardCard
       id="knowledge-sources"
       title="Knowledge & Sources"
       icon="lightbulb"
-      variant="knowledge"
-      iconColor={{
-        color: "var(--color-theme-accent)"
-      }}
-      borderColor="var(--color-theme-accent)"
-      fullWidth={true}
+      brandColor="black"
+      iconColor={{ color: "var(--color-theme-accent)" }}
       expanded={expanded}
       onToggle={onToggle}
     >
@@ -113,13 +110,15 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
                 Updating status...
               </span>
             )}
-            <button
-              className="msqdx-glass-button --ghost"
+            <MsqdxButton
+              variant="text"
+              size="small"
               onClick={onDocumentUpload}
               disabled={documentUploadPending}
+              startIcon={<MsqdxIcon name="upload" customSize={16} />}
             >
-              <MsqdxIcon name="upload" customSize={16} /> {documentUploadPending ? "Uploading..." : "Upload"}
-            </button>
+              {documentUploadPending ? "Uploading..." : "Upload"}
+            </MsqdxButton>
           </div>
         </div>
         {detail.documents.length === 0 && (
@@ -150,30 +149,36 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
                   </div>
                   <div className="msqdx-glass-card-list__actions">
                     {doc.downloadUrl && (
-                      <a
-                        className="msqdx-glass-button --ghost"
-                        href={doc.downloadUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        <MsqdxIcon name="download" customSize={16} /> Download
-                      </a>
+                      <Box component="a" href={doc.downloadUrl} target="_blank" rel="noreferrer" sx={{ textDecoration: "none" }}>
+                        <MsqdxButton
+                          variant="text"
+                          size="small"
+                          startIcon={<MsqdxIcon name="download" customSize={16} />}
+                        >
+                          Download
+                        </MsqdxButton>
+                      </Box>
                     )}
                     {(doc.ingestionStatus === "failed" || doc.ingestionStatus === "pending" ||
                       (doc.ingestionStatus === "processing" && doc.ingestionProgress && doc.ingestionProgress < 10)) && (
-                        <button
-                          className="msqdx-glass-button --ghost"
+                        <MsqdxButton
+                          variant="text"
+                          size="small"
                           onClick={(e) => handleDocumentRetry(doc.id, e)}
+                          startIcon={<MsqdxIcon name="refresh" customSize={16} />}
                         >
-                          <MsqdxIcon name="refresh" customSize={16} /> Retry
-                        </button>
+                          Retry
+                        </MsqdxButton>
                       )}
-                    <button
-                      className="msqdx-glass-button --ghost"
+                    <MsqdxButton
+                      variant="text"
+                      size="small"
+                      brandColor="pink"
                       onClick={() => handleDocumentDelete(doc.id, doc.filename)}
+                      startIcon={<MsqdxIcon name="delete" customSize={16} />}
                     >
-                      <MsqdxIcon name="delete" customSize={16} /> Delete
-                    </button>
+                      Delete
+                    </MsqdxButton>
                   </div>
                   {doc.ingestionStatus === "processing" && doc.ingestionProgress !== null && (
                     <div style={{ marginTop: "8px" }}>
@@ -217,9 +222,17 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
             />
           </div>
           <div className="msqdx-glass-field">
-            <button className="msqdx-glass-button" type="submit" disabled={knowledgePending}>
-              <MsqdxIcon name="lightbulb" customSize={16} /> {knowledgePending ? "Saving..." : "Add knowledge"}
-            </button>
+            <MsqdxButton
+              variant="contained"
+              size="small"
+              type="submit"
+              disabled={knowledgePending}
+              loading={knowledgePending}
+              startIcon={<MsqdxIcon name="lightbulb" customSize={16} />}
+              brandColor="purple"
+            >
+              {knowledgePending ? "Saving..." : "Add knowledge"}
+            </MsqdxButton>
           </div>
         </form>
         {detail.knowledge.length === 0 && (
@@ -284,7 +297,8 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
           )}
         </MsqdxGlassDashboardCardSection>
       )}
-    </MsqdxGlassDashboardCard>
+    </MsqdxDashboardCard>
+    </Box>
   );
 };
 

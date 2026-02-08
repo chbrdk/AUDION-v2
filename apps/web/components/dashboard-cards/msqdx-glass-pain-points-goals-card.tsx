@@ -1,9 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
-
+import { Box } from "@mui/material";
 import type { PersonaProfile } from "@msqdx-glass/types";
-import { MsqdxGlassDashboardCard } from "./msqdx-glass-dashboard-card";
+import { MsqdxDashboardCard } from "@msqdx/react";
 import { MsqdxGlassChipEditor } from "../generic/msqdx-glass-chip-editor";
 
 export type MsqdxGlassPainPointsGoalsCardProps = {
@@ -38,16 +38,13 @@ export const MsqdxGlassPainPointsGoalsCard = ({
   const goalsArray = (profile.goals || []).map(goal => goal.label);
 
   return (
-    <MsqdxGlassDashboardCard
+    <Box sx={{ gridColumn: "1 / -1" }}>
+    <MsqdxDashboardCard
       id="pain-points-goals"
       title="Pain Points & Goals"
       icon="target"
-      variant="pain-goals"
-      fullWidth={true}
-      iconColor={{
-        color: "var(--color-theme-accent)"
-      }}
-      borderColor="var(--color-theme-accent)"
+      brandColor="black"
+      iconColor={{ color: "var(--color-theme-accent)" }}
       expanded={expanded}
       onToggle={onToggle}
     >
@@ -78,7 +75,8 @@ export const MsqdxGlassPainPointsGoalsCard = ({
           />
         </div>
       </div>
-    </MsqdxGlassDashboardCard>
+    </MsqdxDashboardCard>
+    </Box>
   );
 };
 

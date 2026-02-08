@@ -1,7 +1,8 @@
 "use client";
 
+import { Box } from "@mui/material";
 import type { PersonaProfile } from "@msqdx-glass/types";
-import { MsqdxGlassDashboardCard } from "./msqdx-glass-dashboard-card";
+import { MsqdxDashboardCard } from "@msqdx/react";
 import { MsqdxGlassDashboardCardSection } from "./msqdx-glass-dashboard-card-section";
 
 export type MsqdxGlassBioCardProps = {
@@ -16,16 +17,13 @@ export const MsqdxGlassBioCard = ({
   onToggle
 }: MsqdxGlassBioCardProps) => {
   return (
-    <MsqdxGlassDashboardCard
+    <Box sx={{ gridColumn: "1 / -1" }}>
+    <MsqdxDashboardCard
       id="bio-demographics"
       title="Biography & Demographics"
       icon="person"
-      variant="bio"
-      fullWidth={true}
-      iconColor={{
-        color: "var(--color-theme-accent)"
-      }}
-      borderColor="var(--color-theme-accent)"
+      brandColor="black"
+      iconColor={{ color: "var(--color-theme-accent)" }}
       expanded={expanded}
       onToggle={onToggle}
     >
@@ -77,7 +75,8 @@ export const MsqdxGlassBioCard = ({
           </dl>
         </MsqdxGlassDashboardCardSection>
       )}
-    </MsqdxGlassDashboardCard>
+    </MsqdxDashboardCard>
+    </Box>
   );
 };
 

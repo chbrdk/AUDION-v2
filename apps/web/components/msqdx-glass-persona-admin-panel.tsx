@@ -14,7 +14,6 @@ import {
   MsqdxGlassCommunicationCard,
   MsqdxGlassKnowledgeSourcesCard,
   MsqdxGlassAdvancedCard,
-  MsqdxGlassDashboardCard,
   MsqdxGlassDashboardCardSection,
 } from "./dashboard-cards";
 import { MsqdxGlassEntityEditor, MsqdxGlassFieldEditor, MsqdxGlassEditButton } from "./generic";
@@ -1602,43 +1601,41 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
 
               {/* Card: Biografie & Demographie */}
               {(detail.profile.bio || detail.profile.full_name || detail.profile.age || detail.profile.location || detail.profile.gender || (detail.profile.media_affinity !== null && detail.profile.media_affinity !== undefined)) && (
-                <MsqdxGlassDashboardCard
-                  id="bio-demographics"
-                  title="Biography & Demographics"
-                  icon="person"
-                  variant="bio"
-                  fullWidth={true}
-                  iconColor={{
-                    color: "var(--color-theme-accent)"
-                  }}
-                  borderColor="var(--color-theme-accent)"
-                  expanded={isAccordionExpanded("bio-demographics")}
-                  onToggle={toggleAccordion}
-                >
-                  {detail.profile.bio && (
-                    <MsqdxGlassDashboardCardSection title="Biography">
-                      <p style={{ lineHeight: "1.6", whiteSpace: "pre-wrap", margin: 0 }}>
-                        {detail.profile.bio}
-                      </p>
+                <Box sx={{ gridColumn: "1 / -1" }}>
+                  <MsqdxDashboardCard
+                    id="bio-demographics"
+                    title="Biography & Demographics"
+                    icon="person"
+                    brandColor="black"
+                    iconColor={{ color: "var(--color-theme-accent)" }}
+                    expanded={isAccordionExpanded("bio-demographics")}
+                    onToggle={toggleAccordion}
+                  >
+                    {detail.profile.bio && (
+                      <MsqdxGlassDashboardCardSection title="Biography">
+                        <p style={{ lineHeight: "1.6", whiteSpace: "pre-wrap", margin: 0 }}>
+                          {detail.profile.bio}
+                        </p>
+                      </MsqdxGlassDashboardCardSection>
+                    )}
+                    <MsqdxGlassDashboardCardSection title="Demographics">
+                      <MsqdxGlassEntityEditor
+                        entityType="persona"
+                        entity={detail.profile}
+                        onSave={async (updates) => {
+                          await handleDemographicSave(updates as Partial<PersonaProfile>);
+                        }}
+                        inline={true}
+                        fieldOverrides={{
+                          // Filter out non-demographic fields
+                          name: undefined,
+                          headline: undefined,
+                          segment: undefined,
+                        }}
+                      />
                     </MsqdxGlassDashboardCardSection>
-                  )}
-                  <MsqdxGlassDashboardCardSection title="Demographics">
-                    <MsqdxGlassEntityEditor
-                      entityType="persona"
-                      entity={detail.profile}
-                      onSave={async (updates) => {
-                        await handleDemographicSave(updates as Partial<PersonaProfile>);
-                      }}
-                      inline={true}
-                      fieldOverrides={{
-                        // Filter out non-demographic fields
-                        name: undefined,
-                        headline: undefined,
-                        segment: undefined,
-                      }}
-                    />
-                  </MsqdxGlassDashboardCardSection>
-                </MsqdxGlassDashboardCard>
+                  </MsqdxDashboardCard>
+                </Box>
               )}
 
               {/* Card: Persönlichkeit & Werte - 50% width */}
