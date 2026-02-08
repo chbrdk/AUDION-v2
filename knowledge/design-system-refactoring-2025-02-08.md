@@ -34,6 +34,10 @@ AUDION has been refactored to use components and tokens from the msqdx-design-sy
 - Design system: `msqdx-design-system/packages/react`, `msqdx-design-system/packages/tokens`
 - AUDION web: `AUDION/apps/web/`
 
+## Docker/CI Build
+- AUDION uses `file:../../../msqdx-design-system/packages/*` for @msqdx/react and @msqdx/tokens
+- The Dockerfile clones and builds the design system from GitHub before `npm install`, since the design system is not in the AUDION repo
+
 ## Remaining Opportunities
 - Replace remaining `msqdx-glass-button --ghost` with `MsqdxButton variant="text"` across journey page and other components
 - Replace MUI Typography/Box with MsqdxTypography/MsqdxCard where feasible

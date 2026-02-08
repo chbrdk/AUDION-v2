@@ -9,6 +9,12 @@ ENV NEXT_TELEMETRY_DISABLED=1 \
 RUN corepack enable && npm config set fund false && npm config set audit false
 
 FROM base AS deps
+# Install git for cloning design system
+RUN apk add --no-cache git
+# Clone and build msqdx-design-system (required by @msqdx/react, @msqdx/tokens file: deps)
+# Path file:../../../msqdx-design-system resolves from apps/web to /msqdx-design-system
+RUN git clone --depth 1 https://github.com/chbrdk/msqdx-design-system.git /msqdx-design-system && \
+    cd /msqdx-design-system && npm install && npm run build
 # Copy workspace configuration first
 COPY package.json package-lock.json ./
 COPY tsconfig.base.json ./
