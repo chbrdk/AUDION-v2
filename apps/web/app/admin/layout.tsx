@@ -1,8 +1,36 @@
 "use client";
 
 import type { ReactNode } from "react";
+import dynamic from "next/dynamic";
 import "../../styles/admin.css";
-import { MsqdxGlassAdminLayoutClient, AdminHeaderProvider, AdminPanelProvider } from "../../components/admin/msqdx-glass-admin-layout";
+import { AdminHeaderProvider, AdminPanelProvider } from "../../components/admin/admin-layout-providers";
+
+// Dynamic import to avoid "Cannot access 'i' before initialization" (TDZ/circular import)
+// when loading @msqdx/react in the same chunk as the layout. The layout client imports
+// MsqdxAppLayout, MsqdxAdminNav, etc. from @msqdx/react – deferring this breaks the cycle.
+const MsqdxGlassAdminLayoutClient = dynamic(
+  () =>
+    import("../../components/admin/msqdx-glass-admin-layout").then((m) => ({
+      default: m.MsqdxGlassAdminLayoutClient,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: "100vh",
+          background: "#0f0f0f",
+          color: "#fff",
+        }}
+      >
+        Loading…
+      </div>
+    ),
+  }
+);
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (

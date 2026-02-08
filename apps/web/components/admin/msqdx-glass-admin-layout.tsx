@@ -1,64 +1,17 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useState, createContext, useContext } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Box, IconButton, useTheme } from "@mui/material";
 import { useThemeMode } from "../theme-registry";
 import { MsqdxIcon, MsqdxAdminNav, MsqdxAppLayout, MsqdxTypography } from "@msqdx/react";
 import type { AdminNavItem } from "@msqdx/react";
+import { useAdminHeader, useAdminPanel } from "./admin-layout-providers";
 
-// Context für benutzerdefinierten Header-Content
-// Use a default value to avoid SSR issues
-const defaultHeaderContext: {
-  headerContent: ReactNode | null;
-  setHeaderContent: (content: ReactNode | null) => void;
-} = {
-  headerContent: null,
-  setHeaderContent: () => {}
-};
-
-const AdminHeaderContext = createContext<{
-  headerContent: ReactNode | null;
-  setHeaderContent: (content: ReactNode | null) => void;
-}>(defaultHeaderContext);
-
-export const useAdminHeader = () => {
-  return useContext(AdminHeaderContext);
-};
-
-export const AdminHeaderProvider = ({ children }: { children: ReactNode }) => {
-  // Use useState with null initial value - safe for SSR
-  const [headerContent, setHeaderContent] = useState<ReactNode | null>(null);
-
-  return (
-    <AdminHeaderContext.Provider value={{ headerContent, setHeaderContent }}>
-      {children}
-    </AdminHeaderContext.Provider>
-  );
-};
-
-// Context für Panel-State (Mobile Off-Canvas)
-const defaultPanelContext: {
-  panelOpen: boolean;
-  setPanelOpen: (open: boolean) => void;
-  togglePanel: () => void;
-} = {
-  panelOpen: false,
-  setPanelOpen: () => {},
-  togglePanel: () => {}
-};
-
-const AdminPanelContext = createContext<{
-  panelOpen: boolean;
-  setPanelOpen: (open: boolean) => void;
-  togglePanel: () => void;
-}>(defaultPanelContext);
-
-export const useAdminPanel = () => {
-  return useContext(AdminPanelContext);
-};
+// Re-export for consumers that import from this file
+export { useAdminHeader, useAdminPanel } from "./admin-layout-providers";
 
 const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { label: "Dashboard", path: "/admin", icon: "dashboard", exact: true },
@@ -68,22 +21,8 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { label: "Queue", path: "/admin/queue", icon: "view_list" },
   { label: "Chat", path: "/admin/chat", icon: "forum" },
   { label: "Chat History", path: "/admin/chat/history", icon: "history" },
-  { label: "Settings", path: "/admin/settings", icon: "settings" },
+  { label: "Settings", path: "/admin/settings",   icon: "settings" },
 ];
-
-export const AdminPanelProvider = ({ children }: { children: ReactNode }) => {
-  const [panelOpen, setPanelOpen] = useState(false);
-
-  const togglePanel = () => {
-    setPanelOpen((prev) => !prev);
-  };
-
-  return (
-    <AdminPanelContext.Provider value={{ panelOpen, setPanelOpen, togglePanel }}>
-      {children}
-    </AdminPanelContext.Provider>
-  );
-};
 
 export type MsqdxGlassAdminLayoutClientProps = {
   children: ReactNode;
