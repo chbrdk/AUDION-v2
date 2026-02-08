@@ -305,7 +305,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
         aria-label={`Phase ${index + 1}: ${formData.name}`}
         sx={{ minWidth: 380 }}
       >
-        <MsqdxCard variant="flat" brandColor={BRAND_COLOR} borderRadius="button" sx={{ p: 2 }}>
+        <MsqdxCard variant="flat" brandColor={BRAND_COLOR} borderRadius="button">
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
               <Box
@@ -552,15 +552,19 @@ export const MsqdxGlassJourneyPhaseCard = ({
       component="article"
       data-phase-index={index}
       aria-label={`Phase ${index + 1}: ${phase.name}`}
-      sx={{
-        minWidth: 380,
-        outline: isActive ? "2px solid" : undefined,
-        outlineColor: isActive ? "primary.main" : undefined,
-        borderRadius: 2,
-      }}
+      sx={{ minWidth: 380 }}
     >
-      <MsqdxCard variant="flat" brandColor={BRAND_COLOR} borderRadius="button" sx={{ p: 2, height: "100%" }}>
-        <Box sx={{ display: "flex", flexDirection: "column", gap: MSQDX_SPACING.scale.sm }}>
+      <MsqdxCard
+        variant="flat"
+        brandColor={BRAND_COLOR}
+        borderRadius="button"
+        sx={{
+          height: "100%",
+          outline: isActive ? "2px solid" : undefined,
+          outlineColor: isActive ? "primary.main" : undefined,
+        }}
+      >
+        <Box sx={{ display: "flex", flexDirection: "column", gap: `${MSQDX_SPACING.scale.md}px` }}>
           <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flex: 1, minWidth: 0 }}>
               <Box
@@ -593,7 +597,8 @@ export const MsqdxGlassJourneyPhaseCard = ({
               <MsqdxGlassEditButton onClick={handleStartEdit} size="small" fontSize={16} aria-label="Edit phase" />
               {onDelete && (
                 <MsqdxButton
-                  variant="text"
+                  variant="contained"
+                  color="error"
                   size="small"
                   onClick={async (e) => {
                     e.stopPropagation();
@@ -606,6 +611,14 @@ export const MsqdxGlassJourneyPhaseCard = ({
                     }
                   }}
                   aria-label="Delete phase"
+                  sx={{
+                    minWidth: 28,
+                    minHeight: 28,
+                    width: 28,
+                    height: 28,
+                    p: 0,
+                    borderRadius: "rounded",
+                  }}
                 >
                   <MsqdxIcon name="delete" customSize={16} />
                 </MsqdxButton>

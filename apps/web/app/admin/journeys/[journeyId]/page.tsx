@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   journeysApi,
   type JourneyAiGenerateRequest,
@@ -13,7 +13,7 @@ import {
   type PhaseCreate,
 } from "../../../api/_lib/journeys";
 import { fetchTargetGroupPersonas, type PersonaResponse } from "../../../api/_lib/target-group";
-import { MsqdxIcon, MsqdxButton, MsqdxTypography, MsqdxFormField, MsqdxTextareaField, MsqdxSelect, MsqdxCard } from "@msqdx/react";
+import { MsqdxIcon, MsqdxButton, MsqdxTypography, MsqdxFormField, MsqdxTextareaField, MsqdxSelect, MsqdxCard, MsqdxDashboardCard } from "@msqdx/react";
 import { MsqdxGlassJourneyPhaseCard } from "../../../../components/journeys/msqdx-glass-phase-card";
 import { BRAND_COLOR } from "../../../../lib/branding";
 import { Box } from "@mui/material";
@@ -100,6 +100,7 @@ const notify = (message: string) => {
 
 export default function JourneyEditorPage() {
   const params = useParams();
+  const router = useRouter();
   const journeyId = params.journeyId as string;
   const [journey, setJourney] = useState<JourneyResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -126,7 +127,17 @@ export default function JourneyEditorPage() {
   const [momentDrafts, setMomentDrafts] = useState<JourneyMomentDraft[]>([]);
   const [momentsError, setMomentsError] = useState<string | null>(null);
   const [editingPhaseId, setEditingPhaseId] = useState<string | null>(null);
+  const [expandedAccordions, setExpandedAccordions] = useState<Set<string>>(() => new Set(["metadata"]));
   const { execute: runAiAssist, loading: aiAssistLoading } = useAiAssist();
+
+  const isAccordionExpanded = (id: string) => expandedAccordions.has(id);
+  const toggleAccordion = (id: string) =>
+    setExpandedAccordions((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   useEffect(() => {
     if (journeyId) {
@@ -740,12 +751,18 @@ export default function JourneyEditorPage() {
   return (
     <div className="msqdx-glass-panel">
       <div className="msqdx-glass-detail">
-        <header className="msqdx-glass-detail__header">
-          <div className="msqdx-glass-detail__title">
+        <MsqdxCard
+          variant="flat"
+          brandColor={BRAND_COLOR}
+          borderRadius="md"
+          component="header"
+          sx={{ display: "flex", flexDirection: "column", gap: 1 }}
+        >
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, flex: 1, minWidth: 0 }}>
             {editingName ? (
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <input
-                  type="text"
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <MsqdxFormField
+                  label=""
                   value={nameValue}
                   onChange={(e) => setNameValue(e.target.value)}
                   onBlur={saveName}
@@ -758,37 +775,31 @@ export default function JourneyEditorPage() {
                       setNameValue(journey?.name || "");
                     }
                   }}
-                  autoFocus
                   disabled={savePending}
-                  style={{
-                    fontSize: "1.5rem",
-                    fontWeight: 600,
-                    border: "1px solid var(--color-theme-accent)",
-                    borderRadius: "4px",
-                    padding: "0.5rem",
-                    backgroundColor: "var(--color-surface)",
-                    color: "var(--color-text-primary)",
-                    flex: 1,
-                  }}
+                  fullWidth
+                  size="small"
+                  borderColor={BRAND_COLOR}
+                  sx={{ "& .MuiInputBase-input": { fontSize: "1.25rem", fontWeight: 600 } }}
                 />
-                <MsqdxButton variant="text" size="small" onClick={saveName} disabled={savePending} sx={{ p: "0.25rem 0.5rem" }}>
+                <MsqdxButton variant="text" size="small" onClick={saveName} disabled={savePending} sx={{ minWidth: 28, minHeight: 28, p: 0 }} aria-label="Save name">
                   <MsqdxIcon name="check" customSize={16} />
                 </MsqdxButton>
-                <MsqdxButton variant="text" size="small" onClick={() => { setEditingName(false); setNameValue(journey?.name || ""); }} disabled={savePending} sx={{ p: "0.25rem 0.5rem" }}>
+                <MsqdxButton variant="text" size="small" onClick={() => { setEditingName(false); setNameValue(journey?.name || ""); }} disabled={savePending} sx={{ minWidth: 28, minHeight: 28, p: 0 }} aria-label="Cancel">
                   <MsqdxIcon name="close" customSize={16} />
                 </MsqdxButton>
-              </div>
+              </Box>
             ) : (
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <h1 style={{ fontSize: "1.5rem", fontWeight: 600, margin: 0 }}>{journey.name}</h1>
-                <MsqdxButton variant="text" size="small" onClick={startEditingName} disabled={savePending} sx={{ p: "0.25rem 0.5rem" }} aria-label="Edit name">
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <MsqdxTypography variant="h5" weight="semibold" sx={{ flex: 1 }}>{journey.name}</MsqdxTypography>
+                <MsqdxButton variant="text" size="small" onClick={startEditingName} disabled={savePending} sx={{ minWidth: 28, minHeight: 28, p: 0 }} aria-label="Edit name">
                   <MsqdxIcon name="edit" customSize={16} />
                 </MsqdxButton>
-              </div>
+              </Box>
             )}
             {editingDescription ? (
-              <div style={{ display: "flex", alignItems: "start", gap: "0.5rem", marginTop: "0.5rem" }}>
-                <textarea
+              <Box sx={{ display: "flex", alignItems: "flex-start", gap: 0.5, mt: 0.5 }}>
+                <MsqdxTextareaField
+                  label=""
                   value={descriptionValue}
                   onChange={(e) => setDescriptionValue(e.target.value)}
                   onBlur={saveDescription}
@@ -798,113 +809,110 @@ export default function JourneyEditorPage() {
                       setDescriptionValue(journey?.description || "");
                     }
                   }}
-                  autoFocus
                   disabled={savePending}
-                  rows={2}
-                  style={{
-                    fontSize: "0.875rem",
-                    border: "1px solid var(--color-theme-accent)",
-                    borderRadius: "4px",
-                    padding: "0.5rem",
-                    backgroundColor: "var(--color-surface)",
-                    color: "var(--color-text-secondary)",
-                    flex: 1,
-                    fontFamily: "inherit",
-                  }}
+                  fullWidth
+                  minRows={2}
+                  borderColor={BRAND_COLOR}
                 />
-                <button
-                  className="msqdx-glass-button --ghost"
-                  onClick={saveDescription}
-                  disabled={savePending}
-                  style={{ padding: "0.25rem 0.5rem" }}
-                >
+                <MsqdxButton variant="text" size="small" onClick={saveDescription} disabled={savePending} sx={{ minWidth: 28, minHeight: 28, p: 0 }} aria-label="Save description">
                   <MsqdxIcon name="check" customSize={16} />
-                </button>
-                <button
-                  className="msqdx-glass-button --ghost"
-                  onClick={() => {
-                    setEditingDescription(false);
-                    setDescriptionValue(journey?.description || "");
-                  }}
-                  disabled={savePending}
-                  style={{ padding: "0.25rem 0.5rem" }}
-                >
+                </MsqdxButton>
+                <MsqdxButton variant="text" size="small" onClick={() => { setEditingDescription(false); setDescriptionValue(journey?.description || ""); }} disabled={savePending} sx={{ minWidth: 28, minHeight: 28, p: 0 }} aria-label="Cancel">
                   <MsqdxIcon name="close" customSize={16} />
-                </button>
-              </div>
+                </MsqdxButton>
+              </Box>
             ) : (
               journey.description ? (
-                <div style={{ display: "flex", alignItems: "start", gap: "0.5rem", marginTop: "0.5rem" }}>
-                  <p style={{ fontSize: "0.875rem", color: "var(--color-text-secondary)", margin: 0 }}>{journey.description}</p>
-                  <button
-                    className="msqdx-glass-button --ghost"
-                    onClick={startEditingDescription}
-                    disabled={savePending}
-                    style={{ padding: "0.25rem 0.5rem" }}
-                    title="Edit description"
-                  >
+                <Box sx={{ display: "flex", alignItems: "flex-start", gap: 0.5, mt: 0.5 }}>
+                  <MsqdxTypography variant="body2" sx={{ color: "text.secondary", flex: 1 }}>{journey.description}</MsqdxTypography>
+                  <MsqdxButton variant="text" size="small" onClick={startEditingDescription} disabled={savePending} sx={{ minWidth: 28, minHeight: 28, p: 0 }} aria-label="Edit description">
                     <MsqdxIcon name="edit" customSize={14} />
-                  </button>
-                </div>
+                  </MsqdxButton>
+                </Box>
               ) : (
-                <button
-                  className="msqdx-glass-button --ghost"
-                  onClick={startEditingDescription}
-                  disabled={savePending}
-                  style={{ padding: "0.25rem 0.5rem", marginTop: "0.5rem", fontSize: "0.75rem", color: "var(--color-text-secondary)" }}
-                >
+                <MsqdxButton variant="text" size="small" onClick={startEditingDescription} disabled={savePending} sx={{ mt: 0.5, alignSelf: "flex-start", color: "text.secondary" }}>
                   <MsqdxIcon name="add" customSize={14} /> Add description
-                </button>
+                </MsqdxButton>
               )
             )}
-          </div>
-          <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
-            <MsqdxButton variant="text" size="small" onClick={() => { window.location.href = `/admin/journeys/${journeyId}/dashboard`; }} sx={{ p: "0.375rem 0.75rem", fontSize: "0.8125rem" }}>
-              <MsqdxIcon name="dashboard" customSize={14} /> Dashboard
+          </Box>
+          <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+            <MsqdxButton variant="outlined" size="small" onClick={() => router.push(`/admin/journeys/${journeyId}/dashboard`)} startIcon={<MsqdxIcon name="dashboard" customSize={14} />}>
+              Dashboard
             </MsqdxButton>
-            <MsqdxButton variant="text" size="small" onClick={() => { window.location.href = "/admin/journeys"; }} sx={{ p: "0.375rem 0.75rem", fontSize: "0.8125rem" }}>
-              <MsqdxIcon name="arrow_back" customSize={14} /> Back
+            <MsqdxButton variant="outlined" size="small" onClick={() => router.push("/admin/journeys")} startIcon={<MsqdxIcon name="arrow_back" customSize={14} />}>
+              Back
             </MsqdxButton>
-          </div>
-        </header>
+          </Box>
+        </MsqdxCard>
 
-        <div className="msqdx-glass-detail__grid">
-          <div style={{ border: "1px solid var(--color-theme-accent)", borderRadius: "12px", padding: "0.75rem", marginTop: "1rem" }}>
-            <h3 style={{ fontSize: "1.5rem", fontWeight: 100, marginBottom: "2rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Metadaten</h3>
-            <dl className="msqdx-glass-meta-grid">
-              <div>
-                <dt>Type</dt>
-                <dd>{journey.journey_type}</dd>
-              </div>
-              <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
-                <dt>Creation Mode</dt>
-                <dd>{journey.creation_mode}</dd>
-              </div>
-              <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
-                <dt>Status</dt>
-                <dd>{journey.status}</dd>
-              </div>
-              {typeof journey.validation_score === "number" && (
-                <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
-                  <dt>Validation Score</dt>
-                  <dd>{journey.validation_score.toFixed(1)}%</dd>
-                </div>
-              )}
-              <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
-                <dt>Tracking</dt>
-                <dd>{journey.tracking_enabled ? "Enabled" : "Disabled"}</dd>
-              </div>
-              <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
-                <dt>Created</dt>
-                <dd>{formatDate(journey.created_at)}</dd>
-              </div>
-              <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
-                <dt>Updated</dt>
-                <dd>{formatDate(journey.updated_at)}</dd>
-              </div>
-            </dl>
-          </div>
-        </div>
+        <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 2, mt: 2 }}>
+          <Box sx={{ gridColumn: "1 / -1" }}>
+            <MsqdxDashboardCard
+              id="metadata"
+              title="Metadaten"
+              icon="info"
+              brandColor={BRAND_COLOR}
+              iconColor={{ color: "var(--color-theme-accent)" }}
+              expanded={isAccordionExpanded("metadata")}
+              onToggle={toggleAccordion}
+            >
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+                  gap: "8px",
+                  pt: 1,
+                }}
+              >
+                <Box>
+                  <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
+                    Type
+                  </MsqdxTypography>
+                  <MsqdxTypography variant="body2" weight="medium">{journey.journey_type}</MsqdxTypography>
+                </Box>
+                <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
+                  <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
+                    Creation Mode
+                  </MsqdxTypography>
+                  <MsqdxTypography variant="body2" weight="medium">{journey.creation_mode}</MsqdxTypography>
+                </Box>
+                <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
+                  <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
+                    Status
+                  </MsqdxTypography>
+                  <MsqdxTypography variant="body2" weight="medium">{journey.status}</MsqdxTypography>
+                </Box>
+                {typeof journey.validation_score === "number" && (
+                  <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
+                    <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
+                      Validation Score
+                    </MsqdxTypography>
+                    <MsqdxTypography variant="body2" weight="medium">{journey.validation_score.toFixed(1)}%</MsqdxTypography>
+                  </Box>
+                )}
+                <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
+                  <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
+                    Tracking
+                  </MsqdxTypography>
+                  <MsqdxTypography variant="body2" weight="medium">{journey.tracking_enabled ? "Enabled" : "Disabled"}</MsqdxTypography>
+                </Box>
+                <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
+                  <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
+                    Created
+                  </MsqdxTypography>
+                  <MsqdxTypography variant="body2" weight="medium">{formatDate(journey.created_at)}</MsqdxTypography>
+                </Box>
+                <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
+                  <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
+                    Updated
+                  </MsqdxTypography>
+                  <MsqdxTypography variant="body2" weight="medium">{formatDate(journey.updated_at)}</MsqdxTypography>
+                </Box>
+              </Box>
+            </MsqdxDashboardCard>
+          </Box>
+        </Box>
 
         <div className="msqdx-glass-detail__section">
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, mb: 2 }}>
