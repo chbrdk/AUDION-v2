@@ -8,7 +8,8 @@
 }
 
 /* Cards: same white background as MsqdxCard (persona list). Match persona list cards exactly. */
-.msqdx-glass-dashboard-grid .msqdx-dashboard-card {
+.msqdx-glass-dashboard-grid .msqdx-dashboard-card,
+.msqdx-glass-dashboard-grid [role="region"][aria-label="Accordion"] {
   background-color: var(--color-primary-white, #ffffff) !important;
   box-shadow: none;
 }
