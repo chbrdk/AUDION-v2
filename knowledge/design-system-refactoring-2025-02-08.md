@@ -68,6 +68,12 @@ AUDION has been refactored to use components and tokens from the msqdx-design-sy
 - **Persona basics** Archive/Delete → **MsqdxButton**.
 - fullWidth cards wrapped in `Box sx={{ gridColumn: "1 / -1" }}`.
 
+## MsqdxGlassFieldEditor Select → MsqdxSelect (Feb 2025)
+- **MsqdxGlassFieldEditor**: Replaced MUI `Select`/`FormControl`/`MenuItem` with DS `MsqdxSelect` for `field.type === "select"`.
+- Affects Gender, Status, and any other select fields rendered via `MsqdxGlassEntityEditor` (persona Demographics, target group, etc.).
+- Options include empty `{ value: "", label: "—" }` for nullable fields.
+- In inline mode, label is passed as `""` to avoid duplicate with EntityEditor's column label.
+
 ## Remaining Opportunities
 - Replace remaining `msqdx-glass-button --ghost` with `MsqdxButton variant="text"` across journey page and other components
 - Replace MUI Typography/Box with MsqdxTypography/MsqdxCard where feasible

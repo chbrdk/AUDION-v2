@@ -2,8 +2,8 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import type { FieldDefinition } from "@msqdx-glass/types";
-import { TextField, MenuItem, Select, FormControl, InputLabel, Slider, Typography, Stack, Box, Checkbox } from "@mui/material";
-import { MsqdxIcon } from "@msqdx/react";
+import { TextField, Slider, Typography, Stack, Box, Checkbox } from "@mui/material";
+import { MsqdxIcon, MsqdxSelect } from "@msqdx/react";
 import { MsqdxGlassEditButton } from "./msqdx-glass-edit-button";
 import { useInlineEdit } from "../hooks/use-inline-edit";
 import { MsqdxGlassInlineEditControls } from "../msqdx-glass-inline-edit-controls";
@@ -146,30 +146,28 @@ export const MsqdxGlassFieldEditor = ({
           </Box>
         );
 
-      case "select":
+      case "select": {
+        const options = field.config?.options ?? [];
+        const selectOptions = [
+          { value: "" as const, label: "—" },
+          ...options.map((opt) => ({ value: opt.value, label: opt.label })),
+        ];
         return (
-          <FormControl fullWidth size="small">
-            {!inline && <InputLabel>{field.label}</InputLabel>}
-            <Select
-              inputRef={inlineEdit.elementRef as React.RefObject<HTMLInputElement>}
-              value={currentValue ?? ""}
-              onChange={(e) => inlineEdit.setValue(e.target.value || null)}
-              disabled={disabled}
-              required={field.config?.required}
-              autoFocus
-              label={!inline ? field.label : undefined}
-            >
-              <MenuItem value="">
-                <em>—</em>
-              </MenuItem>
-              {field.config?.options?.map((opt) => (
-                <MenuItem key={String(opt.value)} value={opt.value}>
-                  {opt.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <MsqdxSelect
+            label={inline ? "" : field.label}
+            options={selectOptions}
+            value={currentValue ?? ""}
+            onChange={(e) => inlineEdit.setValue(e.target.value || null)}
+            inputRef={inlineEdit.elementRef as React.RefObject<HTMLInputElement>}
+            disabled={disabled}
+            required={field.config?.required}
+            autoFocus
+            fullWidth
+            size="small"
+            displayEmpty
+          />
         );
+      }
 
       case "boolean":
         return (

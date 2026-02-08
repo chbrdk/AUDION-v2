@@ -140,8 +140,10 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
         className="msqdx-glass-admin-header-bar"
         suppressHydrationWarning
         sx={{
-          position: "sticky",
+          position: "absolute",
           top: 0,
+          left: 0,
+          right: 0,
           zIndex: 1100,
           display: "flex",
           alignItems: "center",
