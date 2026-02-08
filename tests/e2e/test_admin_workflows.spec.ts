@@ -23,6 +23,13 @@ test.describe('Admin Workflows', () => {
     expect(content).toBeTruthy();
   });
 
+  test('should load target groups admin panel', async ({ page }) => {
+    await page.goto('http://localhost:3000/admin/target-groups');
+    
+    // Should show Target Groups header or empty state
+    await expect(page.locator('text=Target Groups')).toBeVisible();
+  });
+
   test('should handle API errors gracefully', async ({ page }) => {
     // Navigate to personas page
     await page.goto('http://localhost:3000/admin/personas');

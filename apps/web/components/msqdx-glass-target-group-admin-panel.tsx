@@ -4,8 +4,6 @@ import type { ChangeEvent, FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
-import clsx from "clsx";
-
 import type {
   PersonaDocument,
   TargetGroupKnowledgeEntry,
@@ -29,12 +27,14 @@ import {
   updateTargetGroup,
 } from "../app/api/_lib/target-group";
 import type { PersonaListItem } from "@msqdx-glass/types";
-import { MsqdxIcon, MsqdxFormField, MsqdxTextareaField, MsqdxButton } from "@msqdx/react";
+import { MsqdxIcon, MsqdxFormField, MsqdxTextareaField, MsqdxButton, MsqdxTypography, MsqdxCard, MsqdxChip, MsqdxDashboardCard } from "@msqdx/react";
 import { MsqdxGlassKnowledgeExplorer } from "./msqdx-glass-knowledge-explorer";
+import { MsqdxGlassDashboardCardSection } from "./dashboard-cards/msqdx-glass-dashboard-card-section";
 import { MsqdxGlassPersonaList } from "./msqdx-glass-persona-list";
 import { MsqdxGlassEntityEditor } from "./generic";
 import { BRAND_COLOR } from "../lib/branding";
 import { MsqdxGlassCollapsiblePanel } from "./admin/msqdx-glass-collapsible-panel";
+import { Box } from "@mui/material";
 
 type MsqdxGlassTargetGroupAdminPanelProps = {
   initialList: TargetGroupListResponse;
@@ -158,7 +158,6 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
   const [detail, setDetail] = useState<TargetGroupResponse | null>(null);
   const [createFormExpanded, setCreateFormExpanded] = useState(false);
   const [knowledgeFormExpanded, setKnowledgeFormExpanded] = useState(false);
-  const [documentUploadExpanded, setDocumentUploadExpanded] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [detailLoading, setDetailLoading] = useState<boolean>(false);
   const [editForm, setEditForm] = useState<EditFormState>(defaultEditFormState);
@@ -178,6 +177,19 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
   const [createPersonaPending, setCreatePersonaPending] = useState(false);
   const [personaFormExpanded, setPersonaFormExpanded] = useState(false);
   const [personaForm, setPersonaForm] = useState<PersonaFormState>(defaultPersonaForm);
+  const [expandedAccordions, setExpandedAccordions] = useState<Set<string>>(
+    () => new Set(["basic", "metadata", "personas", "knowledge", "documents", "knowledge-explorer"])
+  );
+
+  const isAccordionExpanded = (id: string) => expandedAccordions.has(id);
+  const toggleAccordion = (id: string) => {
+    setExpandedAccordions((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const selectedListItem: TargetGroupListItem | undefined = useMemo(
     () => list.items.find((item) => item.id === selectedId),
@@ -367,7 +379,6 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
       await uploadTargetGroupDocument(selectedId, file, "target-group-admin-ui");
       await loadDetail(selectedId);
       notify("Document uploaded");
-      setDocumentUploadExpanded(false);
     } catch (error) {
       console.error("Document upload failed", error);
       notify("Failed to upload document");
@@ -450,168 +461,221 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
         <section className="msqdx-glass-panel">
           <header className="msqdx-glass-panel__header">
             <div>
-              <h2>Target Groups</h2>
-              <p>{list.total} Einträge</p>
+              <MsqdxTypography variant="h5" weight="semibold">Target Groups</MsqdxTypography>
+              <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>{list.total} Einträge</MsqdxTypography>
             </div>
-            <button
-              className="msqdx-glass-button --ghost"
-              onClick={refreshList}
-              disabled={listRefreshing}
-            >
-              <MsqdxIcon name="refresh" customSize={16} /> Refresh
-            </button>
+            <MsqdxButton variant="text" size="small" onClick={refreshList} disabled={listRefreshing} startIcon={<MsqdxIcon name="refresh" customSize={16} />}>
+              Refresh
+            </MsqdxButton>
           </header>
-          <div className="msqdx-glass-list">
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: { xs: "column", md: "row" },
+              flexWrap: { xs: "nowrap", md: "nowrap" },
+              gap: 1,
+              overflowX: { xs: "visible", md: "auto" },
+              overflowY: "visible",
+              minWidth: 0,
+              WebkitOverflowScrolling: "touch",
+              pb: { md: 0.5 },
+              "&::-webkit-scrollbar": { height: 6 },
+              "&::-webkit-scrollbar-thumb": {
+                backgroundColor: "action.disabled",
+                borderRadius: 3,
+                "&:hover": { backgroundColor: "action.active" },
+              },
+            }}
+          >
             {list.items.length === 0 && (
-              <p className="msqdx-glass-empty">No target groups available yet.</p>
+              <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+                No target groups available yet.
+              </MsqdxTypography>
             )}
-            {list.items.map((item) => {
-              return (
-                <button
-                  key={item.id}
-                  className={clsx("msqdx-glass-list-item", selectedId === item.id && "is-active")}
-                  onClick={() => setSelectedId(item.id)}
-                >
-                  <div className="msqdx-glass-list-item__row">
-                    <strong>{item.name}</strong>
-                    <span className="msqdx-glass-chip --published">{item.segment}</span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-          <div className="msqdx-glass-create-form">
-            <button
-              type="button"
-              className="msqdx-glass-create-form__header"
-              onClick={() => setCreateFormExpanded(!createFormExpanded)}
-            >
-              <h3 style={{ fontSize: "0.875rem", fontWeight: 600, margin: 0 }}>New Target Group</h3>
-              <MsqdxIcon 
-                name={createFormExpanded ? "expand_less" : "expand_more"} 
-                customSize={20} 
-              />
-            </button>
-            {createFormExpanded && (
-              <div className="msqdx-glass-create-form__content">
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  <MsqdxFormField
-                    label="Project ID"
-                    value={createForm.projectId}
-                    onChange={(e) =>
-                      setCreateForm((prev) => ({ ...prev, projectId: e.target.value }))
+            {list.items.map((item) => (
+              <MsqdxCard
+                key={item.id}
+                variant="flat"
+                clickable
+                onClick={() => setSelectedId(item.id)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setSelectedId(item.id);
+                  }
+                }}
+                sx={{
+                  p: 1.5,
+                  textAlign: "left",
+                  width: { xs: "100%", md: "auto" },
+                  minWidth: { xs: undefined, md: 220 },
+                  flexShrink: { xs: 0, md: 0 },
+                  borderColor: selectedId === item.id ? "primary.main" : undefined,
+                  borderWidth: selectedId === item.id ? 2 : undefined,
+                }}
+              >
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
+                    <MsqdxTypography variant="subtitle1" weight="semibold">
+                      {item.name}
+                    </MsqdxTypography>
+                    <MsqdxChip variant="filled" brandColor="green" label={item.segment} size="small" />
+                  </Box>
+                </Box>
+              </MsqdxCard>
+            ))}
+          </Box>
+          <MsqdxCard variant="flat" borderRadius="button" sx={{ mt: 2, p: 2, border: "1px solid", borderColor: "divider" }}>
+            <MsqdxTypography variant="h6" weight="semibold" sx={{ mb: 1.5 }}>
+              New Target Group
+            </MsqdxTypography>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+                <MsqdxFormField
+                  label="Project ID"
+                  value={createForm.projectId}
+                  onChange={(e) =>
+                    setCreateForm((prev) => ({ ...prev, projectId: e.target.value }))
+                  }
+                  placeholder="123e4567-e89b-12d3-a456-426614174000"
+                  fullWidth
+                  size="small"
+                  borderColor={BRAND_COLOR}
+                />
+                <MsqdxButton
+                  variant="text"
+                  size="small"
+                  onClick={() => {
+                    let uuid: string;
+                    if (typeof crypto !== "undefined" && crypto.randomUUID) {
+                      uuid = crypto.randomUUID();
+                    } else {
+                      uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+                        const r = (Math.random() * 16) | 0;
+                        const v = c === "x" ? r : (r & 0x3) | 0x8;
+                        return v.toString(16);
+                      });
                     }
-                    placeholder="123e4567-e89b-12d3-a456-426614174000"
-                    fullWidth
-                    borderColor={BRAND_COLOR}
-                  />
-                  <MsqdxButton
-                    variant="text"
-                    size="small"
-                    onClick={() => {
-                      let uuid: string;
-                      if (typeof crypto !== "undefined" && crypto.randomUUID) {
-                        uuid = crypto.randomUUID();
-                      } else {
-                        uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-                          const r = (Math.random() * 16) | 0;
-                          const v = c === "x" ? r : (r & 0x3) | 0x8;
-                          return v.toString(16);
-                        });
-                      }
-                      setCreateForm((prev) => ({ ...prev, projectId: uuid }));
-                    }}
-                    startIcon={<MsqdxIcon name="refresh" customSize={14} />}
-                    sx={{ alignSelf: "flex-start" }}
-                  >
-                    Generate
-                  </MsqdxButton>
-                </div>
-                <MsqdxFormField
-                  label="Name"
-                  value={createForm.name}
-                  onChange={(e) => setCreateForm((prev) => ({ ...prev, name: e.target.value }))}
-                  placeholder="Target Group Name"
-                  fullWidth
-                  borderColor={BRAND_COLOR}
-                />
-                <MsqdxFormField
-                  label="Segment"
-                  value={createForm.segment}
-                  onChange={(e) =>
-                    setCreateForm((prev) => ({ ...prev, segment: e.target.value }))
-                  }
-                  placeholder="B2B / Enterprise / etc."
-                  fullWidth
-                  borderColor={BRAND_COLOR}
-                />
-                <MsqdxTextareaField
-                  label="Description"
-                  value={createForm.description}
-                  onChange={(e) =>
-                    setCreateForm((prev) => ({ ...prev, description: e.target.value }))
-                  }
-                  placeholder="Beschreibung"
-                  minRows={3}
-                  fullWidth
-                  borderColor={BRAND_COLOR}
-                />
-                <button
-              className="msqdx-glass-button"
-              onClick={handleCreate}
-              disabled={createPending}
-              style={{ padding: "0.375rem 0.75rem", fontSize: "0.8125rem" }}
-            >
-              <MsqdxIcon name="add" customSize={14} /> Target Group anlegen
-            </button>
-              </div>
-            )}
-          </div>
+                    setCreateForm((prev) => ({ ...prev, projectId: uuid }));
+                  }}
+                  startIcon={<MsqdxIcon name="refresh" customSize={14} />}
+                  sx={{ alignSelf: "flex-start" }}
+                >
+                  Generate
+                </MsqdxButton>
+              </Box>
+              <MsqdxFormField
+                label="Name"
+                value={createForm.name}
+                onChange={(e) => setCreateForm((prev) => ({ ...prev, name: e.target.value }))}
+                placeholder="Target Group Name"
+                fullWidth
+                size="small"
+                borderColor={BRAND_COLOR}
+              />
+              <MsqdxFormField
+                label="Segment"
+                value={createForm.segment}
+                onChange={(e) =>
+                  setCreateForm((prev) => ({ ...prev, segment: e.target.value }))
+                }
+                placeholder="B2B / Enterprise / etc."
+                fullWidth
+                size="small"
+                borderColor={BRAND_COLOR}
+              />
+              <MsqdxTextareaField
+                label="Description"
+                value={createForm.description}
+                onChange={(e) =>
+                  setCreateForm((prev) => ({ ...prev, description: e.target.value }))
+                }
+                placeholder="Beschreibung"
+                minRows={3}
+                fullWidth
+                borderColor={BRAND_COLOR}
+              />
+              <MsqdxButton
+                variant="contained"
+                brandColor="green"
+                size="small"
+                onClick={handleCreate}
+                disabled={createPending}
+                startIcon={<MsqdxIcon name="add" customSize={16} />}
+              >
+                Target Group anlegen
+              </MsqdxButton>
+            </Box>
+          </MsqdxCard>
         </section>
       </MsqdxGlassCollapsiblePanel>
 
       <section className="msqdx-glass-panel">
-        {!selectedId && <p className="msqdx-glass-empty">Please select a Target Group.</p>}
-        {selectedId && detailLoading && <p className="msqdx-glass-muted">Loading Target Group...</p>}
-        {detailError && <p className="msqdx-glass-error">{detailError}</p>}
+        {!selectedId && <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>Please select a Target Group.</MsqdxTypography>}
+        {selectedId && detailLoading && <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>Loading Target Group...</MsqdxTypography>}
+        {detailError && <MsqdxTypography variant="body2" color="error">{detailError}</MsqdxTypography>}
         {detail && (
           <div className="msqdx-glass-detail">
-            <header className="msqdx-glass-detail__header">
-              <div className="msqdx-glass-detail__title">
-                <MsqdxGlassEntityEditor
-                  entityType="targetGroup"
-                  entity={detail}
-                  onSave={handleFieldSave}
-                  inline={true}
-                  disabled={savePending}
-                />
-              </div>
-            </header>
+            <div className="msqdx-glass-dashboard-grid">
+              <Box sx={{ gridColumn: "1 / -1" }}>
+                <MsqdxDashboardCard
+                  id="basic"
+                  title="Basic"
+                  icon="groups"
+                  brandColor={BRAND_COLOR}
+                  iconColor={{ color: "var(--color-theme-accent)" }}
+                  expanded={isAccordionExpanded("basic")}
+                  onToggle={toggleAccordion}
+                >
+                  <MsqdxGlassEntityEditor
+                    entityType="targetGroup"
+                    entity={detail}
+                    onSave={handleFieldSave}
+                    inline={true}
+                    disabled={savePending}
+                  />
+                </MsqdxDashboardCard>
+              </Box>
 
-            <div className="msqdx-glass-detail__grid">
-              <div style={{ border: "1px solid var(--color-theme-accent)", borderRadius: "12px", padding: "0.75rem", marginTop: "1rem" }}>
-                <h3 style={{ fontSize: "1.5rem", fontWeight: 100, marginBottom: "2rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Metadaten</h3>
-                <dl className="msqdx-glass-meta-grid">
-                  <div>
-                    <dt>Project ID</dt>
-                    <dd>{detail.projectId ?? (detail as any).project_id ?? ""}</dd>
-                  </div>
-                  <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
-                    <dt>Created</dt>
-                    <dd>{formatDate(detail.createdAt ?? (detail as any).created_at ?? "")}</dd>
-                  </div>
-                  <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
-                    <dt>Updated</dt>
-                    <dd>{formatDate(detail.updatedAt ?? (detail as any).updated_at ?? "")}</dd>
-                  </div>
-                </dl>
-              </div>
-            </div>
+              <Box sx={{ gridColumn: "1 / -1" }}>
+                <MsqdxDashboardCard
+                  id="metadata"
+                  title="Metadaten"
+                  icon="info"
+                  brandColor={BRAND_COLOR}
+                  iconColor={{ color: "var(--color-theme-accent)" }}
+                  expanded={isAccordionExpanded("metadata")}
+                  onToggle={toggleAccordion}
+                >
+                  <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" }, gap: 2, borderLeft: "1px solid", borderColor: "divider", pl: 2 }}>
+                    <Box>
+                      <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>Project ID</MsqdxTypography>
+                      <MsqdxTypography variant="body2">{detail.projectId ?? (detail as any).project_id ?? "—"}</MsqdxTypography>
+                    </Box>
+                    <Box>
+                      <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>Created</MsqdxTypography>
+                      <MsqdxTypography variant="body2">{formatDate(detail.createdAt ?? (detail as any).created_at ?? "")}</MsqdxTypography>
+                    </Box>
+                    <Box>
+                      <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>Updated</MsqdxTypography>
+                      <MsqdxTypography variant="body2">{formatDate(detail.updatedAt ?? (detail as any).updated_at ?? "")}</MsqdxTypography>
+                    </Box>
+                  </Box>
+                </MsqdxDashboardCard>
+              </Box>
 
-            <div className="msqdx-glass-detail__section">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-                <h3 style={{ fontSize: "1.5rem", fontWeight: 100, marginBottom: "2rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Personas ({personas.length})</h3>
-              </div>
+            <Box sx={{ gridColumn: "1 / -1" }}>
+                <MsqdxDashboardCard
+                  id="personas"
+                  title={`Personas (${personas.length})`}
+                  icon="person"
+                  brandColor={BRAND_COLOR}
+                  iconColor={{ color: "var(--color-theme-accent)" }}
+                  expanded={isAccordionExpanded("personas")}
+                  onToggle={toggleAccordion}
+                >
               <MsqdxGlassPersonaList 
                 personas={personas} 
                 onDelete={async (personaId: string) => {
@@ -644,209 +708,215 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                   }
                 }}
               />
-              
-              <div className="msqdx-glass-create-form" style={{ marginTop: "0.75rem" }}>
-                <button
-                  type="button"
-                  className="msqdx-glass-create-form__header"
-                  onClick={() => setPersonaFormExpanded(!personaFormExpanded)}
+              <Box sx={{ mt: 2, p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
+                <MsqdxTypography variant="subtitle2" weight="semibold" sx={{ mb: 1.5 }}>Neue Persona erstellen</MsqdxTypography>
+                <Box
+                  component="form"
+                  onSubmit={handlePersonaSubmit}
+                  sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}
                 >
-                  <h3 style={{ fontSize: "0.875rem", fontWeight: 600, margin: 0 }}>Neue Persona erstellen</h3>
-                  <MsqdxIcon 
-                    name={personaFormExpanded ? "expand_less" : "expand_more"} 
-                    customSize={20} 
+                  <MsqdxFormField
+                    label="Segment Name"
+                    value={personaForm.segment}
+                    onChange={(e) => handlePersonaField("segment", e.target.value)}
+                    placeholder="z.B. Skeptischer CFO, Technikaffiner CTO"
+                    required
+                    disabled={createPersonaPending}
+                    fullWidth
+                    size="small"
+                    borderColor={BRAND_COLOR}
                   />
-                </button>
-                {personaFormExpanded && (
-                  <form onSubmit={handlePersonaSubmit} className="msqdx-glass-create-form__content">
-                    <MsqdxFormField
-                      label="Segment Name"
-                      value={personaForm.segment}
-                      onChange={(e) => handlePersonaField("segment", e.target.value)}
-                      placeholder="z.B. Skeptischer CFO, Technikaffiner CTO"
-                      required
-                      disabled={createPersonaPending}
-                      fullWidth
-                      borderColor={BRAND_COLOR}
-                    />
-                    <MsqdxTextareaField
-                      label="Beschreibung (optional)"
-                      value={personaForm.description}
-                      onChange={(e) => handlePersonaField("description", e.target.value)}
-                      placeholder="Optionale Beschreibung was diese Persona repräsentiert"
-                      minRows={3}
-                      disabled={createPersonaPending}
-                      fullWidth
-                      borderColor={BRAND_COLOR}
-                    />
-                    <button
-                      className="msqdx-glass-button --ghost"
-                      type="submit"
-                      disabled={createPersonaPending || !personaForm.segment.trim()}
-                      style={{ padding: "0.375rem 0.75rem", fontSize: "0.8125rem" }}
-                    >
-                      <MsqdxIcon name={createPersonaPending ? "hourglass_empty" : "add"} customSize={14} />{" "}
-                      {createPersonaPending ? "Erstelle..." : "Erstellen"}
-                    </button>
-                  </form>
-                )}
-              </div>
-            </div>
+                  <MsqdxTextareaField
+                    label="Beschreibung (optional)"
+                    value={personaForm.description}
+                    onChange={(e) => handlePersonaField("description", e.target.value)}
+                    placeholder="Optionale Beschreibung was diese Persona repräsentiert"
+                    minRows={3}
+                    disabled={createPersonaPending}
+                    fullWidth
+                    borderColor={BRAND_COLOR}
+                  />
+                  <MsqdxButton
+                    variant="outlined"
+                    size="small"
+                    type="submit"
+                    disabled={createPersonaPending || !personaForm.segment.trim()}
+                    startIcon={<MsqdxIcon name={createPersonaPending ? "hourglass_empty" : "add"} customSize={14} />}
+                  >
+                    {createPersonaPending ? "Erstelle..." : "Erstellen"}
+                  </MsqdxButton>
+                </Box>
+              </Box>
+                </MsqdxDashboardCard>
+              </Box>
 
-            <div className="msqdx-glass-detail__section">
-              <h3 style={{ fontSize: "1.5rem", fontWeight: 100, marginBottom: "2rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Knowledge ({knowledgeEntries.length})</h3>
+            <Box sx={{ gridColumn: "1 / -1" }}>
+                <MsqdxDashboardCard
+                  id="knowledge"
+                  title={`Knowledge (${knowledgeEntries.length})`}
+                  icon="menu_book"
+                  brandColor={BRAND_COLOR}
+                  iconColor={{ color: "var(--color-theme-accent)" }}
+                  expanded={isAccordionExpanded("knowledge")}
+                  onToggle={toggleAccordion}
+                >
               {knowledgeEntries.length === 0 ? (
-                <p className="msqdx-glass-empty">No knowledge entries yet.</p>
+                <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>No knowledge entries yet.</MsqdxTypography>
               ) : (
-                <div className="msqdx-glass-list">
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
                   {knowledgeEntries.map((entry) => (
-                    <div key={entry.id} className="msqdx-glass-list-item">
-                      <div className="msqdx-glass-list-item__row">
-                        <strong>{entry.title}</strong>
-                        <button
-                          className="msqdx-glass-button --ghost"
-                          onClick={() => handleDeleteKnowledge(entry.id)}
-                          style={{ padding: "0.375rem", fontSize: "0.75rem", color: "var(--color-secondary-dx-pink)" }}
-                          title="Knowledge Eintrag löschen"
-                        >
-                          <MsqdxIcon name="delete" customSize={18} />
-                        </button>
-                      </div>
-                    </div>
+                    <Box
+                      key={entry.id}
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        p: 1,
+                        border: "1px solid",
+                        borderColor: "divider",
+                        borderRadius: 1,
+                      }}
+                    >
+                      <MsqdxTypography variant="body2" weight="semibold">{entry.title}</MsqdxTypography>
+                      <MsqdxButton
+                        variant="text"
+                        size="small"
+                        brandColor="pink"
+                        onClick={() => handleDeleteKnowledge(entry.id)}
+                        startIcon={<MsqdxIcon name="delete" customSize={18} />}
+                        aria-label="Knowledge Eintrag löschen"
+                      />
+                    </Box>
                   ))}
-                </div>
+                </Box>
               )}
 
-              <div className="msqdx-glass-create-form" style={{ marginTop: "0.75rem" }}>
-                <button
-                  type="button"
-                  className="msqdx-glass-create-form__header"
-                  onClick={() => setKnowledgeFormExpanded(!knowledgeFormExpanded)}
+              <Box sx={{ mt: 2, p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
+                <MsqdxTypography variant="subtitle2" weight="semibold" sx={{ mb: 1.5 }}>Neuer Knowledge Eintrag</MsqdxTypography>
+                <Box
+                  component="form"
+                  onSubmit={handleKnowledgeSubmit}
+                  sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}
                 >
-                  <h3 style={{ fontSize: "0.875rem", fontWeight: 600, margin: 0 }}>Neuer Knowledge Eintrag</h3>
-                  <MsqdxIcon 
-                    name={knowledgeFormExpanded ? "expand_less" : "expand_more"} 
-                    customSize={20} 
+                  <MsqdxFormField
+                    label="Titel"
+                    value={knowledgeForm.title}
+                    onChange={(e) => handleKnowledgeField("title", e.target.value)}
+                    placeholder="Titel"
+                    fullWidth
+                    size="small"
+                    borderColor={BRAND_COLOR}
                   />
-                </button>
-                {knowledgeFormExpanded && (
-                  <form onSubmit={handleKnowledgeSubmit} className="msqdx-glass-create-form__content">
-                    <MsqdxFormField
-                      label="Titel"
-                      value={knowledgeForm.title}
-                      onChange={(e) => handleKnowledgeField("title", e.target.value)}
-                      placeholder="Titel"
-                      fullWidth
-                      borderColor={BRAND_COLOR}
-                    />
-                    <MsqdxTextareaField
-                      label="Inhalt"
-                      value={knowledgeForm.content}
-                      onChange={(e) => handleKnowledgeField("content", e.target.value)}
-                      placeholder="Inhalt"
-                      minRows={3}
-                      fullWidth
-                      borderColor={BRAND_COLOR}
-                    />
-                    <button
-                      className="msqdx-glass-button --ghost"
-                      type="submit"
-                      disabled={knowledgePending}
-                      style={{ padding: "0.375rem 0.75rem", fontSize: "0.8125rem" }}
-                    >
-                      <MsqdxIcon name="add" customSize={14} />{" "}
-                      {knowledgePending ? "Adding..." : "Add"}
-                    </button>
-                  </form>
-                )}
-              </div>
-            </div>
+                  <MsqdxTextareaField
+                    label="Inhalt"
+                    value={knowledgeForm.content}
+                    onChange={(e) => handleKnowledgeField("content", e.target.value)}
+                    placeholder="Inhalt"
+                    minRows={3}
+                    fullWidth
+                    borderColor={BRAND_COLOR}
+                  />
+                  <MsqdxButton
+                    variant="outlined"
+                    size="small"
+                    type="submit"
+                    disabled={knowledgePending}
+                    startIcon={<MsqdxIcon name="add" customSize={14} />}
+                  >
+                    {knowledgePending ? "Adding..." : "Add"}
+                  </MsqdxButton>
+                </Box>
+              </Box>
+                </MsqdxDashboardCard>
+              </Box>
 
-            <div className="msqdx-glass-detail__section">
-              <h3 style={{ fontSize: "1.5rem", fontWeight: 100, marginBottom: "2rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                Dokumente ({documents.length})
-                {documents.some((doc) => doc.ingestionStatus === "pending" || doc.ingestionStatus === "processing") && (
-                  <span className="msqdx-glass-muted" style={{ fontSize: "0.75rem", display: "inline-flex", alignItems: "center", gap: "4px", marginLeft: "0.5rem", fontWeight: 400, textTransform: "none" }}>
-                    <MsqdxIcon name="sync" customSize={14} style={{ animation: "spin 2s linear infinite" }} />
-                    Updating...
-                  </span>
-                )}
-              </h3>
-              {documents.length === 0 && <p className="msqdx-glass-empty">No documents uploaded.</p>}
+            <Box sx={{ gridColumn: "1 / -1" }}>
+                <MsqdxDashboardCard
+                  id="documents"
+                  title={`Dokumente (${documents.length})${documents.some((d) => d.ingestionStatus === "pending" || d.ingestionStatus === "processing") ? " · Updating…" : ""}`}
+                  icon="description"
+                  brandColor={BRAND_COLOR}
+                  iconColor={{ color: "var(--color-theme-accent)" }}
+                  expanded={isAccordionExpanded("documents")}
+                  onToggle={toggleAccordion}
+                >
+              {documents.length === 0 && (
+                <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>No documents uploaded.</MsqdxTypography>
+              )}
               {documents.length > 0 && (
-                <div className="msqdx-glass-list">
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
                   {documents.map((doc) => {
-                    const ingestionChip = doc.ingestionStatus
-                      ? doc.ingestionStatus === "completed"
-                        ? { label: "INDEXED", className: "msqdx-glass-chip --published" }
+                    const chipConfig =
+                      doc.ingestionStatus === "completed"
+                        ? { label: "INDEXED", brandColor: "green" as const }
                         : doc.ingestionStatus === "processing"
-                          ? { label: `PROCESSING ${doc.ingestionProgress ? Math.round(doc.ingestionProgress) : 0}%`, className: "msqdx-glass-chip --pending" }
+                          ? { label: `PROCESSING ${doc.ingestionProgress ? Math.round(doc.ingestionProgress) : 0}%`, brandColor: "orange" as const }
                           : doc.ingestionStatus === "failed"
-                            ? { label: "ERROR", className: "msqdx-glass-chip --error" }
-                            : { label: "PENDING", className: "msqdx-glass-chip --pending" }
-                      : null;
+                            ? { label: "ERROR", brandColor: "pink" as const }
+                            : { label: "PENDING", brandColor: "orange" as const };
                     return (
-                      <div key={doc.id} className="msqdx-glass-list-item">
-                        <div className="msqdx-glass-list-item__row">
-                          <strong>{doc.filename}</strong>
-                          <div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-                            {ingestionChip && <span className={ingestionChip.className}>{ingestionChip.label}</span>}
-                          </div>
-                        </div>
-                        {doc.ingestionStatus === "processing" && doc.ingestionProgress !== null && (
-                          <div style={{ marginTop: "0.5rem" }}>
-                            <div style={{ width: "100%", height: "4px", backgroundColor: "var(--color-neutral)", borderRadius: "2px", overflow: "hidden" }}>
-                              <div
-                                style={{
-                                  width: `${doc.ingestionProgress}%`,
-                                  height: "100%",
-                                  backgroundColor: "var(--color-theme-accent)",
-                                  transition: "width 0.3s ease",
-                                }}
-                              />
-                            </div>
-                          </div>
+                      <Box
+                        key={doc.id}
+                        sx={{
+                          p: 1.5,
+                          border: "1px solid",
+                          borderColor: "divider",
+                          borderRadius: 1,
+                        }}
+                      >
+                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
+                          <MsqdxTypography variant="body2" weight="semibold">{doc.filename}</MsqdxTypography>
+                          <MsqdxChip variant="filled" brandColor={chipConfig.brandColor} label={chipConfig.label} size="small" />
+                        </Box>
+                        {doc.ingestionStatus === "processing" && doc.ingestionProgress != null && (
+                          <Box sx={{ mt: 1, height: 4, bgcolor: "action.hover", borderRadius: 1, overflow: "hidden" }}>
+                            <Box
+                              sx={{
+                                width: `${doc.ingestionProgress}%`,
+                                height: "100%",
+                                bgcolor: "primary.main",
+                                transition: "width 0.3s ease",
+                              }}
+                            />
+                          </Box>
                         )}
-                      </div>
+                      </Box>
                     );
                   })}
-                </div>
+                </Box>
               )}
 
-              <div className="msqdx-glass-create-form" style={{ marginTop: "0.75rem" }}>
-                <button
-                  type="button"
-                  className={clsx("msqdx-glass-create-form__header", documentUploadExpanded && "--expanded")}
-                  onClick={() => setDocumentUploadExpanded(!documentUploadExpanded)}
+              <Box sx={{ mt: 2, p: 2, border: "1px dashed", borderColor: "divider", borderRadius: 2, textAlign: "center" }}>
+                <MsqdxIcon name="upload_file" customSize={32} style={{ color: "var(--color-theme-accent)", marginBottom: "0.5rem", display: "block" }} />
+                <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 1 }}>
+                  PDF, DOCX, PPTX, MP3 — Drag file here or click to select
+                </MsqdxTypography>
+                <MsqdxButton
+                  variant="outlined"
+                  size="small"
+                  onClick={triggerDocumentUpload}
                   disabled={documentUploadPending}
+                  startIcon={<MsqdxIcon name="upload" customSize={14} />}
                 >
-                  <h3 style={{ fontSize: "0.875rem", fontWeight: 600, margin: 0 }}>
-                    {documentUploadPending ? "Uploading..." : "Upload Document"}
-                  </h3>
-                  <MsqdxIcon 
-                    name={documentUploadExpanded ? "expand_less" : "expand_more"} 
-                    customSize={20} 
-                  />
-                </button>
-                {documentUploadExpanded && (
-                  <div className="msqdx-glass-create-form__content">
-                    <div style={{ padding: "1rem", border: "1px dashed var(--color-theme-accent)", borderRadius: "8px", textAlign: "center" }}>
-                      <MsqdxIcon name="upload_file" customSize={32} style={{ color: "var(--color-theme-accent)", marginBottom: "0.5rem" }} />
-                      <p style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.75rem" }}>
-                        PDF, DOCX, PPTX, MP3 — Drag file here or click to select
-                      </p>
-                      <button
-                        type="button"
-                        className="msqdx-glass-button --ghost"
-                        onClick={triggerDocumentUpload}
-                        style={{ padding: "0.375rem 0.75rem", fontSize: "0.8125rem" }}
-                      >
-                        <MsqdxIcon name="upload" customSize={14} /> Select File
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+                  {documentUploadPending ? "Uploading..." : "Select File"}
+                </MsqdxButton>
+              </Box>
+                </MsqdxDashboardCard>
+              </Box>
+
+            <Box sx={{ gridColumn: "1 / -1" }}>
+                <MsqdxDashboardCard
+                  id="knowledge-explorer"
+                  title="Knowledge Explorer"
+                  icon="search"
+                  brandColor={BRAND_COLOR}
+                  iconColor={{ color: "var(--color-theme-accent)" }}
+                  expanded={isAccordionExpanded("knowledge-explorer")}
+                  onToggle={toggleAccordion}
+                >
+                  <MsqdxGlassKnowledgeExplorer targetGroupId={selectedId || ""} />
+                </MsqdxDashboardCard>
+              </Box>
               <input
                 ref={documentInputRef}
                 type="file"
@@ -857,16 +927,10 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                   if (file) {
                     await handleDocumentUpload(file);
                     event.target.value = "";
-                    setDocumentUploadExpanded(false);
                   }
                 }}
               />
             </div>
-
-            <div className="msqdx-glass-detail__section">
-              <MsqdxGlassKnowledgeExplorer targetGroupId={selectedId || ""} />
-            </div>
-          </div>
         )}
       </section>
     </div>
