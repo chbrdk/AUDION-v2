@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import type { PersonaProfile } from "@msqdx-glass/types";
-import { Box, Slider, TextField, MenuItem, Select, FormControl, InputLabel, Typography, Stack } from "@mui/material";
-import { MsqdxIcon, MsqdxDashboardCard } from "@msqdx/react";
+import { Box, Slider, Typography, Stack } from "@mui/material";
+import { MsqdxIcon, MsqdxDashboardCard, MsqdxSelect, MsqdxFormField } from "@msqdx/react";
 import { MsqdxGlassDashboardCardSection } from "./msqdx-glass-dashboard-card-section";
 import { MsqdxGlassInlineEditControls } from "../msqdx-glass-inline-edit-controls";
 import { useInlineEdit } from "../hooks/use-inline-edit";
@@ -148,7 +148,7 @@ export const MsqdxGlassBioCardEdit = ({
               </Box>
               <Slider
                 value={ageEdit.value ?? 25}
-                onChange={(_, value) => ageEdit.setValue(typeof value === "number" ? value : value[0])}
+                onChange={(_, value) => ageEdit.setValue(typeof value === "number" ? value : (Array.isArray(value) ? value[0] : 25) ?? 25)}
                 min={18}
                 max={100}
                 step={1}
@@ -157,12 +157,7 @@ export const MsqdxGlassBioCardEdit = ({
                   { value: 50, label: "50" },
                   { value: 100, label: "100" }
                 ]}
-                sx={{
-                  '& .MuiSlider-thumb': {
-                    width: 20,
-                    height: 20
-                  }
-                }}
+                sx={{ color: "var(--color-theme-accent)" }}
               />
               <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.5 }}>
                 <Typography variant="caption" sx={{ color: "text.secondary" }}>18</Typography>
@@ -180,32 +175,19 @@ export const MsqdxGlassBioCardEdit = ({
 
             {/* Gender Select */}
             <Box ref={genderRef} sx={{ position: "relative" }}>
-              <FormControl fullWidth size="small">
-                <InputLabel id="gender-select-label">Gender</InputLabel>
-                <Select
-                  labelId="gender-select-label"
-                  id="gender-select"
-                  value={genderEdit.value}
-                  label="Gender"
-                  onChange={(e) => genderEdit.setValue(e.target.value)}
-                  displayEmpty
-                  sx={{
-                    '& .MuiSelect-select': {
-                      display: "flex",
-                      alignItems: "center"
-                    }
-                  }}
-                >
-                  <MenuItem value="">
-                    <em>None</em>
-                  </MenuItem>
-                  {GENDER_OPTIONS.map((option) => (
-                    <MenuItem key={option.value} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <MsqdxSelect
+                label="Gender"
+                value={genderEdit.value}
+                onChange={(e) => genderEdit.setValue(String(e.target.value ?? ""))}
+                options={[
+                  { value: "", label: "None" },
+                  ...GENDER_OPTIONS
+                ]}
+                displayEmpty
+                fullWidth
+                size="small"
+                borderColor="black"
+              />
               <MsqdxGlassInlineEditControls
                 hasChanges={genderEdit.hasChanges}
                 saving={savePending}
@@ -218,13 +200,12 @@ export const MsqdxGlassBioCardEdit = ({
 
             {/* Location Text Field */}
             <Box ref={locationRef} sx={{ position: "relative" }}>
-              <TextField
+              <MsqdxFormField
                 label="Location"
                 value={locationEdit.value}
                 onChange={(e) => locationEdit.setValue(e.target.value)}
                 placeholder="e.g., Berlin, Germany"
                 fullWidth
-                size="small"
               />
               <MsqdxGlassInlineEditControls
                 hasChanges={locationEdit.hasChanges}
@@ -248,7 +229,7 @@ export const MsqdxGlassBioCardEdit = ({
               </Box>
               <Slider
                 value={mediaAffinityEdit.value ?? 50}
-                onChange={(_, value) => mediaAffinityEdit.setValue(typeof value === "number" ? value : value[0])}
+                onChange={(_, value) => mediaAffinityEdit.setValue(typeof value === "number" ? value : (Array.isArray(value) ? value[0] : 50) ?? 50)}
                 min={0}
                 max={100}
                 step={1}
@@ -257,12 +238,7 @@ export const MsqdxGlassBioCardEdit = ({
                   { value: 50, label: "50" },
                   { value: 100, label: "High" }
                 ]}
-                sx={{
-                  '& .MuiSlider-thumb': {
-                    width: 20,
-                    height: 20
-                  }
-                }}
+                sx={{ color: "var(--color-theme-accent)" }}
               />
               <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.5 }}>
                 <Typography variant="caption" sx={{ color: "text.secondary" }}>Low</Typography>

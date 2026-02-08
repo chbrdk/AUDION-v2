@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import type { PersonaResponse } from "@msqdx-glass/types";
-import { MsqdxIcon, MsqdxDashboardCard, MsqdxButton } from "@msqdx/react";
+import { MsqdxIcon, MsqdxDashboardCard, MsqdxButton, MsqdxSelect } from "@msqdx/react";
 import { MsqdxGlassDashboardCardSection } from "./msqdx-glass-dashboard-card-section";
 import { MsqdxGlassInlineEditControls } from "../msqdx-glass-inline-edit-controls";
 import { useInlineEdit } from "../hooks/use-inline-edit";
@@ -240,17 +240,19 @@ export const MsqdxGlassPersonaBasicsCard = ({
           </Box>
 
           <Box ref={statusRef} sx={{ position: "relative" }}>
-            <div className="msqdx-glass-field">
-              <label>Status</label>
-              <select 
-                value={statusEdit.value} 
-                onChange={(event) => statusEdit.setValue(event.target.value)}
-              >
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-                <option value="archived">Archived</option>
-              </select>
-            </div>
+            <MsqdxSelect
+              label="Status"
+              value={statusEdit.value}
+              onChange={(e) => statusEdit.setValue(String(e.target.value ?? ""))}
+              options={[
+                { value: "draft", label: "Draft" },
+                { value: "published", label: "Published" },
+                { value: "archived", label: "Archived" }
+              ]}
+              fullWidth
+              size="small"
+              borderColor="black"
+            />
             <MsqdxGlassInlineEditControls
               hasChanges={statusEdit.hasChanges}
               saving={savePending}
