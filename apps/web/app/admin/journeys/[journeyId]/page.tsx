@@ -756,9 +756,9 @@ export default function JourneyEditorPage() {
           brandColor={BRAND_COLOR}
           borderRadius="md"
           component="header"
-          sx={{ display: "flex", flexDirection: "column", gap: 1 }}
+          sx={{ display: "flex", flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: "8px", flexWrap: "wrap" }}
         >
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, flex: 1, minWidth: 0 }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: "8px", flex: 1, minWidth: 0 }}>
             {editingName ? (
               <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                 <MsqdxFormField
@@ -836,7 +836,7 @@ export default function JourneyEditorPage() {
               )
             )}
           </Box>
-          <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+          <Box sx={{ display: "flex", gap: "8px", flexShrink: 0 }}>
             <MsqdxButton variant="outlined" size="small" onClick={() => router.push(`/admin/journeys/${journeyId}/dashboard`)} startIcon={<MsqdxIcon name="dashboard" customSize={14} />}>
               Dashboard
             </MsqdxButton>
@@ -852,6 +852,7 @@ export default function JourneyEditorPage() {
               id="metadata"
               title="Metadaten"
               icon="info"
+              size="small"
               brandColor={BRAND_COLOR}
               iconColor={{ color: "var(--color-theme-accent)" }}
               expanded={isAccordionExpanded("metadata")}
@@ -862,7 +863,7 @@ export default function JourneyEditorPage() {
                   display: "grid",
                   gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
                   gap: "8px",
-                  pt: 1,
+                  pt: 0,
                 }}
               >
                 <Box>
@@ -871,39 +872,39 @@ export default function JourneyEditorPage() {
                   </MsqdxTypography>
                   <MsqdxTypography variant="body2" weight="medium">{journey.journey_type}</MsqdxTypography>
                 </Box>
-                <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
+                <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1 }}>
                   <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
                     Creation Mode
                   </MsqdxTypography>
                   <MsqdxTypography variant="body2" weight="medium">{journey.creation_mode}</MsqdxTypography>
                 </Box>
-                <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
+                <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1 }}>
                   <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
                     Status
                   </MsqdxTypography>
                   <MsqdxTypography variant="body2" weight="medium">{journey.status}</MsqdxTypography>
                 </Box>
                 {typeof journey.validation_score === "number" && (
-                  <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
+                  <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1 }}>
                     <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
                       Validation Score
                     </MsqdxTypography>
                     <MsqdxTypography variant="body2" weight="medium">{journey.validation_score.toFixed(1)}%</MsqdxTypography>
                   </Box>
                 )}
-                <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
+                <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1 }}>
                   <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
                     Tracking
                   </MsqdxTypography>
                   <MsqdxTypography variant="body2" weight="medium">{journey.tracking_enabled ? "Enabled" : "Disabled"}</MsqdxTypography>
                 </Box>
-                <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
+                <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1 }}>
                   <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
                     Created
                   </MsqdxTypography>
                   <MsqdxTypography variant="body2" weight="medium">{formatDate(journey.created_at)}</MsqdxTypography>
                 </Box>
-                <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
+                <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1 }}>
                   <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
                     Updated
                   </MsqdxTypography>
@@ -921,9 +922,9 @@ export default function JourneyEditorPage() {
             </MsqdxTypography>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               {journey.phases.length > 0 && (
-                <Box role="group" aria-label="Timeline navigation" sx={{ display: "flex", gap: 0.5 }}>
+                <Box role="group" aria-label="Timeline navigation" sx={{ display: "flex", gap: "8px" }}>
                   <MsqdxButton
-                    variant="text"
+                    variant="outlined"
                     size="small"
                     onClick={() => scrollRelative(-1)}
                     disabled={activePhaseIndex === 0}
@@ -932,7 +933,7 @@ export default function JourneyEditorPage() {
                     <MsqdxIcon name="chevron_left" customSize={18} />
                   </MsqdxButton>
                   <MsqdxButton
-                    variant="text"
+                    variant="outlined"
                     size="small"
                     onClick={() => scrollRelative(1)}
                     disabled={journey.phases.length === 0 || activePhaseIndex === journey.phases.length - 1}

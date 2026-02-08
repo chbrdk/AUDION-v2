@@ -10,6 +10,7 @@ import {
   MsqdxTypography,
   MsqdxCard,
   MsqdxChip,
+  MsqdxDivider,
   MsqdxFormField,
   MsqdxTextareaField,
   MsqdxSelect,
@@ -19,7 +20,7 @@ import { MsqdxGlassAiButton } from "../ai/msqdx-glass-ai-button";
 import { MsqdxGlassEditButton } from "../generic/msqdx-glass-edit-button";
 import { useAiAssist } from "../../hooks/use-ai-assist";
 import { BRAND_COLOR } from "../../lib/branding";
-import { MSQDX_SPACING } from "@msqdx/tokens";
+import { MSQDX_SPACING, MSQDX_EFFECTS } from "@msqdx/tokens";
 
 type JourneyPhase = JourneyResponse["phases"][number];
 
@@ -560,11 +561,10 @@ export const MsqdxGlassJourneyPhaseCard = ({
         borderRadius="button"
         sx={{
           height: "100%",
-          outline: isActive ? "2px solid" : undefined,
-          outlineColor: isActive ? "primary.main" : undefined,
+          boxShadow: isActive ? MSQDX_EFFECTS.tripleBorder.focus : undefined,
         }}
       >
-        <Box sx={{ display: "flex", flexDirection: "column", gap: `${MSQDX_SPACING.scale.md}px` }}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flex: 1, minWidth: 0 }}>
               <Box
@@ -626,7 +626,10 @@ export const MsqdxGlassJourneyPhaseCard = ({
             </Box>
           </Box>
 
+          <MsqdxDivider color={BRAND_COLOR as "purple" | "yellow" | "pink" | "orange" | "green" | "black"} spacing="xs" />
+
           {chips.length > 0 && (
+            <>
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
               {chips.map((chip) => (
                 <MsqdxChip
@@ -638,6 +641,8 @@ export const MsqdxGlassJourneyPhaseCard = ({
                 />
               ))}
             </Box>
+            <MsqdxDivider color={BRAND_COLOR as "purple" | "yellow" | "pink" | "orange" | "green" | "black"} spacing="xs" />
+            </>
           )}
 
           <Box>
@@ -648,6 +653,8 @@ export const MsqdxGlassJourneyPhaseCard = ({
               {phase.description || "No description yet. Capture the goal and emotional state of this phase."}
             </MsqdxTypography>
           </Box>
+
+          <MsqdxDivider color={BRAND_COLOR as "purple" | "yellow" | "pink" | "orange" | "green" | "black"} spacing="xs" />
 
           <Box>
             <MsqdxTypography variant="caption" weight="semibold" sx={{ display: "block", mb: 0.5 }}>
