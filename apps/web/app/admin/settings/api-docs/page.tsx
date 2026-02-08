@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 
 import { useState } from "react";
 import { Box, Alert, Typography, Button } from "@mui/material";
-import { MaterialSymbol } from "../../../../components/material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 import { getPersonaBackendBase } from "../../../api/_lib/backend";
 
 export default function SettingsApiDocsPage() {
@@ -49,7 +49,7 @@ export default function SettingsApiDocsPage() {
               p: 3,
             }}
           >
-            <MaterialSymbol icon="error" fontSize={48} style={{ color: "var(--color-error)" }} />
+            <MsqdxIcon name="error" customSize={48} style={{ color: "var(--color-error)" }} />
             <Alert severity="error" sx={{ width: "100%", maxWidth: "600px" }}>
               <Typography variant="h6" gutterBottom>
                 Failed to load API documentation
@@ -65,7 +65,7 @@ export default function SettingsApiDocsPage() {
                     // Force iframe reload by changing key
                     window.location.reload();
                   }}
-                  startIcon={<MaterialSymbol icon="refresh" fontSize={16} />}
+                  startIcon={<MsqdxIcon name="refresh" customSize={16} />}
                 >
                   Retry
                 </Button>
@@ -75,7 +75,7 @@ export default function SettingsApiDocsPage() {
                   target="_blank"
                   rel="noopener noreferrer"
                   variant="text"
-                  startIcon={<MaterialSymbol icon="open_in_new" fontSize={16} />}
+                  startIcon={<MsqdxIcon name="open_in_new" customSize={16} />}
                 >
                   Open in new tab
                 </Button>

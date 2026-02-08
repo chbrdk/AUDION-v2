@@ -1,3 +1,24 @@
+/* MSQDX Design Token CSS variables - from @msqdx/tokens */
+:root {
+  --msqdx-radius-xs: 4px;
+  --msqdx-radius-sm: 8px;
+  --msqdx-radius-md: 20px;
+  --msqdx-radius-3xl: 24px;
+  --msqdx-radius-lg: 40px;
+  --msqdx-spacing-xxs: 4px;
+  --msqdx-spacing-xs: 8px;
+  --msqdx-spacing-sm: 12px;
+  --msqdx-spacing-md: 16px;
+  --msqdx-spacing-lg: 18px;
+  --msqdx-spacing-xl: 24px;
+  --msqdx-spacing-xxl: 32px;
+  --msqdx-font-size-sm: 0.875rem;
+  --msqdx-font-size-base: 1rem;
+  --msqdx-font-size-lg: 1.125rem;
+  --msqdx-transition: 0.3s ease;
+  --msqdx-transition-fast: 0.2s ease;
+}
+
 :root {
   color-scheme: light;
   font-family: var(--font-noto-sans-jp), 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', system-ui,

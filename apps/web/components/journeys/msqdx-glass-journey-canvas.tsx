@@ -1,7 +1,7 @@
 "use client";
 
 import { type PhaseResponse } from "../../app/api/_lib/journeys";
-import { MaterialSymbol } from "../material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 import { MsqdxGlassPhaseCard } from "./msqdx-glass-phase-card";
 
 export type MsqdxGlassJourneyCanvasProps = {
@@ -56,7 +56,7 @@ export const MsqdxGlassJourneyCanvas = ({
             onAddPhase?.();
           }}
         >
-          <MaterialSymbol icon="add" fontSize={24} />
+          <MsqdxIcon name="add" customSize={24} />
           <span>Add Phase</span>
         </button>
       </div>

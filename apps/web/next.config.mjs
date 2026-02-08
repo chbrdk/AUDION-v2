@@ -11,7 +11,7 @@ const nextConfig = {
     serverActions: {
       enabled: true
     },
-    optimizePackageImports: ['@mui/material', '@mui/icons-material'],
+    optimizePackageImports: ['@mui/material', '@mui/icons-material', '@msqdx/react', '@msqdx/tokens'],
   },
   // Prevent static generation of error pages
   generateBuildId: async () => {

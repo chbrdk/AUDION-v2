@@ -1,14 +1,15 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useState, createContext, useContext, useEffect } from "react";
+import { useState, createContext, useContext } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Box, Divider, IconButton, Typography, useTheme } from "@mui/material";
 import { BRAND_LOGO } from "../../lib/branding";
 import { useThemeMode } from "../theme-registry";
-import { MaterialSymbol } from "../material-symbol";
-import { MsqdxGlassAdminNav } from "./msqdx-glass-admin-nav";
+import { MsqdxIcon, MsqdxAdminNav } from "@msqdx/react";
+import type { AdminNavItem } from "@msqdx/react";
 
 // Context für benutzerdefinierten Header-Content
 // Use a default value to avoid SSR issues
@@ -60,6 +61,17 @@ const AdminPanelContext = createContext<{
 export const useAdminPanel = () => {
   return useContext(AdminPanelContext);
 };
+
+const ADMIN_NAV_ITEMS: AdminNavItem[] = [
+  { label: "Dashboard", path: "/admin", icon: "dashboard", exact: true },
+  { label: "Personas", path: "/admin/personas", icon: "person" },
+  { label: "Target Groups", path: "/admin/target-groups", icon: "groups" },
+  { label: "Journeys", path: "/admin/journeys", icon: "route" },
+  { label: "Queue", path: "/admin/queue", icon: "view_list" },
+  { label: "Chat", path: "/admin/chat", icon: "forum" },
+  { label: "Chat History", path: "/admin/chat/history", icon: "history" },
+  { label: "Settings", path: "/admin/settings", icon: "settings" },
+];
 
 export const AdminPanelProvider = ({ children }: { children: ReactNode }) => {
   const [panelOpen, setPanelOpen] = useState(false);
@@ -176,12 +188,16 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
             }}
           >
       {/* Sidebar - Outside Container, Full Height */}
-      <MsqdxGlassAdminNav 
-        open={drawerOpen} 
+      <MsqdxAdminNav
+        open={drawerOpen}
         onClose={handleDrawerClose}
         currentPath={pathname || ""}
+        items={ADMIN_NAV_ITEMS}
+        externalItems={[]}
         themeMode={themeMode}
         onToggleTheme={toggleTheme}
+        linkComponent={Link as any}
+        brandColor="black"
       />
 
       {/* Container: Header + Main with Border and Border-Radius */}
@@ -416,7 +432,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
               aria-label="Toggle navigation"
             >
               <Box sx={{ fontSize: { xs: 48, md: 32 }, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <MaterialSymbol icon="menu" />
+                <MsqdxIcon name="menu" />
               </Box>
             </IconButton>
           </Box>
@@ -444,8 +460,8 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
             aria-label="Toggle panel"
           >
             <Box sx={{ fontSize: 32, display: "flex", alignItems: "center", justifyContent: "center", color: theme.palette.mode === "dark" ? "#ffffff" : "#000000" }}>
-              <MaterialSymbol 
-                icon={getPageIcon()} 
+              <MsqdxIcon
+                name={getPageIcon()}
               />
             </Box>
           </Box>

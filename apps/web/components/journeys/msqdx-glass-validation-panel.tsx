@@ -1,7 +1,7 @@
 "use client";
 
 import { type JourneyValidationReport, type PhaseValidationResult } from "../../app/api/_lib/journeys";
-import { MaterialSymbol } from "../material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 
 export type MsqdxGlassValidationPanelProps = {
   validationReport: JourneyValidationReport | null;
@@ -38,7 +38,7 @@ export const MsqdxGlassValidationPanel = ({
   if (loading) {
     return (
       <div className="msqdx-glass-card" style={{ padding: "2rem", textAlign: "center" }}>
-        <MaterialSymbol icon="hourglass_empty" fontSize={24} />
+        <MsqdxIcon name="hourglass_empty" customSize={24} />
         <p>Validating journey...</p>
       </div>
     );
@@ -59,7 +59,7 @@ export const MsqdxGlassValidationPanel = ({
               onValidate(personaIds);
             }}
           >
-            <MaterialSymbol icon="verified" fontSize={16} /> Validate Journey
+            <MsqdxIcon name="verified" customSize={16} /> Validate Journey
           </button>
         )}
         {availablePersonas.length === 0 && (
@@ -188,7 +188,7 @@ export const MsqdxGlassValidationPanel = ({
       </div>
 
       <div style={{ marginTop: "1.5rem", padding: "1rem", backgroundColor: "var(--color-surface)", borderRadius: "8px", fontSize: "0.875rem", color: "var(--color-text-secondary)" }}>
-        <MaterialSymbol icon="info" fontSize={16} /> Validated at: {new Date(validationReport.validated_at).toLocaleString()}
+        <MsqdxIcon name="info" customSize={16} /> Validated at: {new Date(validationReport.validated_at).toLocaleString()}
       </div>
     </div>
   );

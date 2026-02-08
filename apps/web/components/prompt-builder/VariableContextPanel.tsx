@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MaterialSymbol } from "../material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 import { journeysApi, type JourneyResponse } from "../../app/api/_lib/journeys";
 import { targetGroupsApi, type TargetGroupResponse } from "../../app/api/_lib/target-groups";
 
@@ -210,9 +210,9 @@ export function VariableContextPanel({ context, onChange, requiredVars = [] }: V
           ))}
         </select>
         {isEmpty(key) && isRequired(key) && (
-          <MaterialSymbol
-            icon="warning"
-            fontSize={16}
+          <MsqdxIcon
+            name="warning"
+            customSize={16}
             style={{
               position: "absolute",
               right: "0.5rem",
@@ -223,9 +223,9 @@ export function VariableContextPanel({ context, onChange, requiredVars = [] }: V
             }}
           />
         )}
-        <MaterialSymbol
-          icon="arrow_drop_down"
-          fontSize={20}
+        <MsqdxIcon
+          name="arrow_drop_down"
+          customSize={20}
           style={{
             position: "absolute",
             right: "0.5rem",

@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useMemo } from "react";
 import { aiAssistApi, type AiTemplateSummary, type AiTemplateDefinition, type AiTemplateUpdateRequest } from "../../../api/_lib/ai-assist";
-import { MaterialSymbol } from "../../../../components/material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 import nextDynamic from "next/dynamic";
 
 // Code Splitting: PromptBuilder ist eine große Komponente
@@ -213,7 +213,7 @@ export default function SettingsPromptsPage() {
     return (
       <div className="msqdx-glass-panel">
         <div style={{ padding: "2rem", textAlign: "center" }}>
-          <MaterialSymbol icon="hourglass_empty" fontSize={24} />
+          <MsqdxIcon name="hourglass_empty" customSize={24} />
           <p className="msqdx-glass-muted">Loading templates...</p>
         </div>
       </div>
@@ -260,7 +260,7 @@ export default function SettingsPromptsPage() {
               Available variables you can use in your prompts with ${`{variable_name}`} syntax
             </p>
           </div>
-          <MaterialSymbol icon={showGlossary ? "expand_less" : "expand_more"} fontSize={24} />
+          <MsqdxIcon name={showGlossary ? "expand_less" : "expand_more"} customSize={24} />
         </button>
         {showGlossary && (
           <div style={{ padding: "1.5rem", borderTop: "1px solid rgba(148, 163, 184, 0.3)" }}>
@@ -268,7 +268,7 @@ export default function SettingsPromptsPage() {
               {/* Extended Variable Syntax Section */}
               <div style={{ padding: "1.25rem", background: "rgba(34, 197, 94, 0.08)", borderRadius: "12px", border: "2px solid rgba(34, 197, 94, 0.25)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
-                  <MaterialSymbol icon="auto_awesome" fontSize={20} style={{ color: "rgba(34, 197, 94, 1)" }} />
+                  <MsqdxIcon name="auto_awesome" customSize={20} style={{ color: "rgba(34, 197, 94, 1)" }} />
                   <h4 style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "rgba(34, 197, 94, 1)" }}>
                     Extended Variable Syntax
                   </h4>
@@ -447,7 +447,7 @@ export default function SettingsPromptsPage() {
 
                   <div style={{ padding: "1rem", background: "rgba(234, 179, 8, 0.1)", borderRadius: "8px", border: "1px solid rgba(234, 179, 8, 0.3)" }}>
                     <div style={{ display: "flex", alignItems: "start", gap: "0.5rem", marginBottom: "0.75rem" }}>
-                      <MaterialSymbol icon="info" fontSize={18} style={{ color: "rgba(234, 179, 8, 1)", flexShrink: 0, marginTop: "0.125rem" }} />
+                      <MsqdxIcon name="info" customSize={18} style={{ color: "rgba(234, 179, 8, 1)", flexShrink: 0, marginTop: "0.125rem" }} />
                       <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 600, color: "var(--color-text-primary)" }}>Important Notes:</p>
                     </div>
                     <ul style={{ margin: 0, paddingLeft: "1.75rem", fontSize: "0.8125rem", color: "var(--color-text-secondary)", lineHeight: "1.6" }}>
@@ -557,9 +557,9 @@ export default function SettingsPromptsPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
                 {/* Search Input */}
                 <div style={{ position: "relative" }}>
-                  <MaterialSymbol
-                    icon="search"
-                    fontSize={18}
+                  <MsqdxIcon
+                    name="search"
+                    customSize={18}
                     style={{
                       position: "absolute",
                       left: "0.75rem",
@@ -610,7 +610,7 @@ export default function SettingsPromptsPage() {
                       }}
                       title="Clear search"
                     >
-                      <MaterialSymbol icon="close" fontSize={16} />
+                      <MsqdxIcon name="close" customSize={16} />
                     </button>
                   )}
                 </div>
@@ -712,7 +712,7 @@ export default function SettingsPromptsPage() {
                         e.currentTarget.style.color = "var(--color-text-secondary)";
                       }}
                     >
-                      <MaterialSymbol icon="filter_alt_off" fontSize={14} />
+                      <MsqdxIcon name="filter_alt_off" customSize={14} />
                       Clear Filters
                     </button>
                   )}
@@ -751,7 +751,7 @@ export default function SettingsPromptsPage() {
                   color: "var(--color-text-secondary)",
                 }}
               >
-                <MaterialSymbol icon="search_off" fontSize={48} style={{ marginBottom: "1rem", opacity: 0.5 }} />
+                <MsqdxIcon name="search_off" customSize={48} style={{ marginBottom: "1rem", opacity: 0.5 }} />
                 <p style={{ margin: 0, fontSize: "1rem", fontWeight: 500 }}>No persona prompts found</p>
                 <p style={{ margin: "0.5rem 0 0", fontSize: "0.875rem" }}>
                   {hasActiveFilters
@@ -784,7 +784,7 @@ export default function SettingsPromptsPage() {
                           transition: "all 0.2s ease",
                         }}
                       >
-                        <MaterialSymbol icon="edit" fontSize={16} style={{ marginRight: "0.25rem", verticalAlign: "middle" }} />
+                        <MsqdxIcon name="edit" customSize={16} style={{ marginRight: "0.25rem", verticalAlign: "middle" }} />
                         Edit
                       </button>
                       <button
@@ -802,7 +802,7 @@ export default function SettingsPromptsPage() {
                           transition: "all 0.2s ease",
                         }}
                       >
-                        <MaterialSymbol icon="science" fontSize={16} style={{ marginRight: "0.25rem", verticalAlign: "middle" }} />
+                        <MsqdxIcon name="science" customSize={16} style={{ marginRight: "0.25rem", verticalAlign: "middle" }} />
                         Test & Preview
                       </button>
                     </div>
@@ -842,7 +842,7 @@ export default function SettingsPromptsPage() {
                         style={{ padding: "0.25rem 0.5rem" }}
                         title="Edit template"
                       >
-                        <MaterialSymbol icon="edit" fontSize={16} />
+                        <MsqdxIcon name="edit" customSize={16} />
                       </button>
                     </div>
                     <p className="msqdx-glass-muted" style={{ minHeight: "48px" }}>
@@ -891,7 +891,7 @@ export default function SettingsPromptsPage() {
                   color: "var(--color-text-secondary)",
                 }}
               >
-                <MaterialSymbol icon="search_off" fontSize={48} style={{ marginBottom: "1rem", opacity: 0.5 }} />
+                <MsqdxIcon name="search_off" customSize={48} style={{ marginBottom: "1rem", opacity: 0.5 }} />
                 <p style={{ margin: 0, fontSize: "1rem", fontWeight: 500 }}>No templates found</p>
                 <p style={{ margin: "0.5rem 0 0", fontSize: "0.875rem" }}>
                   {hasActiveFilters
@@ -924,7 +924,7 @@ export default function SettingsPromptsPage() {
                       transition: "all 0.2s ease",
                     }}
                   >
-                    <MaterialSymbol icon="edit" fontSize={16} style={{ marginRight: "0.25rem", verticalAlign: "middle" }} />
+                    <MsqdxIcon name="edit" customSize={16} style={{ marginRight: "0.25rem", verticalAlign: "middle" }} />
                     Edit
                   </button>
                   <button
@@ -942,7 +942,7 @@ export default function SettingsPromptsPage() {
                       transition: "all 0.2s ease",
                     }}
                   >
-                    <MaterialSymbol icon="science" fontSize={16} style={{ marginRight: "0.25rem", verticalAlign: "middle" }} />
+                    <MsqdxIcon name="science" customSize={16} style={{ marginRight: "0.25rem", verticalAlign: "middle" }} />
                     Test & Preview
                   </button>
                 </div>
@@ -982,7 +982,7 @@ export default function SettingsPromptsPage() {
                     style={{ padding: "0.25rem 0.5rem" }}
                     title="Edit template"
                   >
-                    <MaterialSymbol icon="edit" fontSize={16} />
+                    <MsqdxIcon name="edit" customSize={16} />
                   </button>
                 </div>
                 <p className="msqdx-glass-muted" style={{ minHeight: "48px" }}>
@@ -1172,11 +1172,11 @@ function TemplateEditForm({
         <button type="submit" className="msqdx-glass-button" disabled={saving}>
           {saving ? (
             <>
-              <MaterialSymbol icon="hourglass_empty" fontSize={14} /> Saving...
+              <MsqdxIcon name="hourglass_empty" customSize={14} /> Saving...
             </>
           ) : (
             <>
-              <MaterialSymbol icon="save" fontSize={14} /> Save
+              <MsqdxIcon name="save" customSize={14} /> Save
             </>
           )}
         </button>

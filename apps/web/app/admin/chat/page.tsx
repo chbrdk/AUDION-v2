@@ -41,7 +41,7 @@ import {
   Badge
 } from "@mui/material";
 import { MsqdxGlassChatPanel } from "../../../components/msqdx-glass-chat-panel";
-import { MaterialSymbol } from "../../../components/material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 import { VariablePalette } from "../../../components/prompt-builder/VariablePalette";
 import { type VariableDefinition } from "../../../components/prompt-builder/variableDefinitions";
 import { getChatApiBase, getVoiceApiBase, buildApiUrl } from "../../api/_lib/backend";
@@ -1427,7 +1427,7 @@ function AdminChatPageContent() {
               View persona profile
             </Typography>
           </Box>
-          <MaterialSymbol icon="chevron_right" fontSize={20} />
+          <MsqdxIcon name="chevron_right" customSize={20} />
         </Button>
       );
     } else {
@@ -1524,7 +1524,7 @@ function AdminChatPageContent() {
               <Button
                 variant="contained"
                 size="large"
-                startIcon={<MaterialSymbol icon="person_add" fontSize={22} />}
+                startIcon={<MsqdxIcon name="person_add" customSize={22} />}
                 onClick={(event) => setPersonaMenuAnchor(event.currentTarget)}
                 disabled={loadingPersonas}
                 sx={{
@@ -1639,7 +1639,7 @@ function AdminChatPageContent() {
                         borderRadius: 999
                       }}
                     >
-                      <MaterialSymbol icon="add" fontSize={22} />
+                      <MsqdxIcon name="add" customSize={22} />
                     </IconButton>
                   </Badge>
                 </Tooltip>
@@ -1654,7 +1654,7 @@ function AdminChatPageContent() {
                       borderRadius: 999
                     }}
                   >
-                    <MaterialSymbol icon="keyboard_voice" fontSize={22} />
+                    <MsqdxIcon name="keyboard_voice" customSize={22} />
                   </IconButton>
                 </Tooltip>
                 <TextField
@@ -1678,7 +1678,7 @@ function AdminChatPageContent() {
                       borderRadius: 999
                     }}
                   >
-                    <MaterialSymbol icon="headphones" fontSize={22} />
+                    <MsqdxIcon name="headphones" customSize={22} />
                   </IconButton>
                 </Tooltip>
                 <IconButton
@@ -1692,7 +1692,7 @@ function AdminChatPageContent() {
                     borderRadius: 999
                   }}
                 >
-                  <MaterialSymbol icon="send" fontSize={22} />
+                  <MsqdxIcon name="send" customSize={22} />
                 </IconButton>
               </Box>
               {(whisperRecording || whisperTranscribing || whisperError || speechListening || speechError) && (
@@ -1729,11 +1729,11 @@ function AdminChatPageContent() {
                 <Button
                   variant="text"
                   color="primary"
-                  startIcon={<MaterialSymbol icon="info" fontSize={18} />}
+                  startIcon={<MsqdxIcon name="info" customSize={18} />}
                   endIcon={
-                    <MaterialSymbol
-                      icon="expand_more"
-                      fontSize={20}
+                    <MsqdxIcon
+                      name="expand_more"
+                      customSize={20}
                       style={{
                         transform: showEvidence ? "rotate(180deg)" : "rotate(0deg)",
                         transition: "transform 150ms ease"
@@ -1767,9 +1767,9 @@ function AdminChatPageContent() {
                         <Box key={`${source.chunk_id}-${index}`}>
                           <ListItem alignItems="flex-start" disableGutters>
                             <ListItemAvatar>
-                              <MaterialSymbol
-                                icon="description"
-                                fontSize={22}
+                              <MsqdxIcon
+                                name="description"
+                                customSize={22}
                                 style={{ color: theme.palette.primary.main }}
                               />
                             </ListItemAvatar>
@@ -1830,7 +1830,7 @@ function AdminChatPageContent() {
           }}
         >
           <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 0.75, pb: 1, pt: 2.5, px: 3 }}>
-            <MaterialSymbol icon="add_circle" fontSize={16} />
+            <MsqdxIcon name="add_circle" customSize={16} />
             <Typography variant="body2" component="span" sx={{ fontSize: "0.8125rem", fontWeight: 600 }}>
               Add Context
             </Typography>
@@ -1855,19 +1855,19 @@ function AdminChatPageContent() {
               <Tab
                 value="phases"
                 label="Journey Phases"
-                icon={<MaterialSymbol icon="route" fontSize={14} />}
+                icon={<MsqdxIcon name="route" customSize={14} />}
                 iconPosition="start"
               />
               <Tab
                 value="variables"
                 label="Variables"
-                icon={<MaterialSymbol icon="code" fontSize={14} />}
+                icon={<MsqdxIcon name="code" customSize={14} />}
                 iconPosition="start"
               />
               <Tab
                 value="attachments"
                 label="Attachments"
-                icon={<MaterialSymbol icon="image" fontSize={14} />}
+                icon={<MsqdxIcon name="image" customSize={14} />}
                 iconPosition="start"
               />
             </Tabs>
@@ -2038,7 +2038,7 @@ function AdminChatPageContent() {
                                       }}
                                       onClick={(e) => e.stopPropagation()}
                                     >
-                                      <MaterialSymbol icon="info" fontSize={16} />
+                                      <MsqdxIcon name="info" customSize={16} />
                                     </IconButton>
                                   </Tooltip>
                                 )}
@@ -2050,7 +2050,7 @@ function AdminChatPageContent() {
 
                     {selectedJourney && selectedJourney.phases.length === 0 && (
                       <Box sx={{ textAlign: "center", py: 1.5 }}>
-                        <MaterialSymbol icon="info" fontSize={24} style={{ opacity: 0.5 }} />
+                        <MsqdxIcon name="info" customSize={24} style={{ opacity: 0.5 }} />
                         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5, fontSize: "0.6875rem" }}>
                           No phases
                         </Typography>
@@ -2098,7 +2098,7 @@ function AdminChatPageContent() {
                     input.click();
                   }}
                 >
-                  <MaterialSymbol icon="upload_file" fontSize={32} style={{ opacity: 0.6, marginBottom: "0.5rem" }} />
+                  <MsqdxIcon name="upload_file" customSize={32} style={{ opacity: 0.6, marginBottom: "0.5rem" }} />
                   <Typography variant="caption" sx={{ display: "block", fontSize: "0.75rem", fontWeight: 500 }}>
                     Upload Images
                   </Typography>
@@ -2149,7 +2149,7 @@ function AdminChatPageContent() {
                             }}
                             sx={{ p: 0.5 }}
                           >
-                            <MaterialSymbol icon="close" fontSize={16} />
+                            <MsqdxIcon name="close" customSize={16} />
                           </IconButton>
                         </Paper>
                       ))}
@@ -2182,7 +2182,7 @@ function AdminChatPageContent() {
                 onClick={handleAddPhasesToChat}
                 disabled={selectedPhases.length === 0}
               >
-                <MaterialSymbol icon="add" fontSize={14} />
+                <MsqdxIcon name="add" customSize={14} />
                 Add {selectedPhases.length}
               </button>
             )}
@@ -2193,7 +2193,7 @@ function AdminChatPageContent() {
                 onClick={handleAddAttachmentsToChat}
                 disabled={attachedImages.length === 0}
               >
-                <MaterialSymbol icon="add" fontSize={14} />
+                <MsqdxIcon name="add" customSize={14} />
                 Add {attachedImages.length} image{attachedImages.length !== 1 ? "s" : ""}
               </button>
             )}
@@ -2238,7 +2238,7 @@ function AdminChatPageContent() {
                 Persona overview
               </Typography>
               <IconButton size="small" onClick={() => setPersonaDrawerOpen(false)}>
-                <MaterialSymbol icon="close" fontSize={20} />
+                <MsqdxIcon name="close" customSize={20} />
               </IconButton>
             </Stack>
             <Stack spacing={1.5} alignItems="center">
@@ -2261,7 +2261,7 @@ function AdminChatPageContent() {
                 {personaChipData.map((chip) => (
                   <Chip
                     key={`${chip.icon}-${chip.label}`}
-                    icon={<MaterialSymbol icon={chip.icon} fontSize={16} />}
+                    icon={<MsqdxIcon name={chip.icon} customSize={16} />}
                     label={chip.label}
                     size="small"
                     sx={{ borderRadius: 999 }}
@@ -2307,7 +2307,7 @@ function AdminChatPageContent() {
                         key={`fact-${index}`}
                         label={fact}
                         size="small"
-                        icon={<MaterialSymbol icon="star" fontSize={14} />}
+                        icon={<MsqdxIcon name="star" customSize={14} />}
                         sx={{ borderRadius: 999 }}
                       />
                     ))}
@@ -2325,7 +2325,7 @@ function AdminChatPageContent() {
                         key={`goal-${index}`}
                         label={goal}
                         size="small"
-                        icon={<MaterialSymbol icon="check" fontSize={14} />}
+                        icon={<MsqdxIcon name="check" customSize={14} />}
                         sx={{ borderRadius: 999 }}
                       />
                     ))}
@@ -2343,7 +2343,7 @@ function AdminChatPageContent() {
                         key={`frustration-${index}`}
                         label={item}
                         size="small"
-                        icon={<MaterialSymbol icon="warning" fontSize={14} />}
+                        icon={<MsqdxIcon name="warning" customSize={14} />}
                         sx={{ borderRadius: 999 }}
                       />
                     ))}
@@ -2361,7 +2361,7 @@ function AdminChatPageContent() {
                         key={`interest-${index}`}
                         label={interest}
                         size="small"
-                        icon={<MaterialSymbol icon="favorite" fontSize={14} />}
+                        icon={<MsqdxIcon name="favorite" customSize={14} />}
                         sx={{ borderRadius: 999 }}
                       />
                     ))}
@@ -2379,7 +2379,7 @@ function AdminChatPageContent() {
                         key={`value-${index}`}
                         label={value}
                         size="small"
-                        icon={<MaterialSymbol icon="psychology" fontSize={14} />}
+                        icon={<MsqdxIcon name="psychology" customSize={14} />}
                         sx={{ borderRadius: 999 }}
                       />
                     ))}
@@ -2389,7 +2389,7 @@ function AdminChatPageContent() {
             </Stack>
             <Button
               variant="outlined"
-              startIcon={<MaterialSymbol icon="swap_horiz" fontSize={16} />}
+              startIcon={<MsqdxIcon name="swap_horiz" customSize={16} />}
               onClick={(event) => setPersonaMenuAnchor(event.currentTarget)}
               sx={{
                 borderRadius: 999

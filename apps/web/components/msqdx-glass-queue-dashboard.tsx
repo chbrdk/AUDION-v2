@@ -18,7 +18,7 @@ import {
   fetchQueueStats,
   retryJob,
 } from "../app/api/_lib/queue";
-import { MaterialSymbol } from "./material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 
 type MsqdxGlassQueueDashboardProps = {
   initialStats: QueueStatsResponse;
@@ -186,7 +186,7 @@ export const MsqdxGlassQueueDashboard = ({ initialStats }: MsqdxGlassQueueDashbo
             <h2>Queue Statistics</h2>
           </div>
           <button className="msqdx-glass-button --ghost" onClick={loadStats}>
-            <MaterialSymbol icon="refresh" fontSize={18} /> Refresh
+            <MsqdxIcon name="refresh" customSize={18} /> Refresh
           </button>
         </header>
         <div className="msqdx-glass-stats-grid">
@@ -278,7 +278,7 @@ export const MsqdxGlassQueueDashboard = ({ initialStats }: MsqdxGlassQueueDashbo
                 disabled={page === 1}
                 onClick={() => setPage(page - 1)}
               >
-                <MaterialSymbol icon="chevron_left" fontSize={18} />
+                <MsqdxIcon name="chevron_left" customSize={18} />
               </button>
               <span className="msqdx-glass-muted">
                 Page {page} of {Math.ceil(jobs.total / jobs.page_size)}
@@ -288,7 +288,7 @@ export const MsqdxGlassQueueDashboard = ({ initialStats }: MsqdxGlassQueueDashbo
                 disabled={page >= Math.ceil(jobs.total / jobs.page_size)}
                 onClick={() => setPage(page + 1)}
               >
-                <MaterialSymbol icon="chevron_right" fontSize={18} />
+                <MsqdxIcon name="chevron_right" customSize={18} />
               </button>
             </div>
           )}
@@ -310,7 +310,7 @@ export const MsqdxGlassQueueDashboard = ({ initialStats }: MsqdxGlassQueueDashbo
                     className="msqdx-glass-button"
                     onClick={() => handleRetry(selectedJobDetail.id)}
                   >
-                    <MaterialSymbol icon="refresh" fontSize={18} /> Retry
+                    <MsqdxIcon name="refresh" customSize={18} /> Retry
                   </button>
                 )}
               </div>

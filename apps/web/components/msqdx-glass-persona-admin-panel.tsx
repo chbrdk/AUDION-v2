@@ -7,7 +7,7 @@ import clsx from "clsx";
 
 import type { PersonaListItem, PersonaListResponse, PersonaProfile, PersonaResponse } from "@msqdx-glass/types";
 
-import { MaterialSymbol } from "./material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 import { MsqdxGlassAiButtonIcon } from "./generic/msqdx-glass-ai-button-icon";
 import {
   MsqdxGlassBioCard,
@@ -1266,7 +1266,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
               <p>{list.total} entries</p>
             </div>
             <button className="msqdx-glass-button --ghost" onClick={refreshList} disabled={listRefreshing}>
-              <MaterialSymbol icon="refresh" fontSize={16} /> Refresh
+              <MsqdxIcon name="refresh" customSize={16} /> Refresh
             </button>
           </header>
           <div className="msqdx-glass-list">
@@ -1310,7 +1310,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
               <input value={createForm.headline} onChange={(event) => setCreateForm((prev) => ({ ...prev, headline: event.target.value }))} placeholder="Kurzbeschreibung" />
             </div>
             <button className="msqdx-glass-button" onClick={handleCreate} disabled={createPending}>
-              <MaterialSymbol icon="add" fontSize={16} /> Persona anlegen
+              <MsqdxIcon name="add" customSize={16} /> Persona anlegen
             </button>
           </div>
         </section>
@@ -1329,7 +1329,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
                   {detail.metadata.avatarUrl ? (
                     <img src={detail.metadata.avatarUrl} alt={`${detail.profile.name} Avatar`} />
                   ) : (
-                    <MaterialSymbol icon="person" fontSize={32} />
+                    <MsqdxIcon name="person" customSize={32} />
                   )}
                 </div>
                 <div style={{ flex: 1 }}>
@@ -1452,14 +1452,14 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
                   })()}
                   <div className="msqdx-glass-detail__links" style={{ marginTop: "0.5rem", display: "flex", gap: "0.5rem", alignItems: "center" }}>
                     <button className="msqdx-glass-button --ghost" onClick={handleGenerateAvatar} disabled={avatarGeneratePending}>
-                      <MaterialSymbol icon="photo_camera" fontSize={16} /> {avatarGeneratePending ? "Generating..." : "Generate avatar"}
+                      <MsqdxIcon name="photo_camera" customSize={16} /> {avatarGeneratePending ? "Generating..." : "Generate avatar"}
                     </button>
                     <button
                       className="msqdx-glass-button --ghost"
                       onClick={handleArchive}
                       disabled={savePending}
                     >
-                      <MaterialSymbol icon="archive" fontSize={16} /> Archive
+                      <MsqdxIcon name="archive" customSize={16} /> Archive
                     </button>
                     <button
                       className="msqdx-glass-button --ghost"
@@ -1467,7 +1467,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
                       disabled={savePending}
                       style={{ color: "var(--color-secondary-dx-pink)" }}
                     >
-                      <MaterialSymbol icon="delete" fontSize={16} /> Delete
+                      <MsqdxIcon name="delete" customSize={16} /> Delete
                     </button>
                   </div>
                 </div>
@@ -1518,7 +1518,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
                           className="msqdx-glass-button --ghost"
                           style={{ fontSize: "0.875rem", padding: "4px 8px" }}
                         >
-                          <MaterialSymbol icon="groups" fontSize={14} /> To Target Group
+                          <MsqdxIcon name="groups" customSize={14} /> To Target Group
                         </a>
                       </dd>
                     </div>

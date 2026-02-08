@@ -4,7 +4,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from "react";
-import { MaterialSymbol } from "../../../../components/material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 import { useThemeMode } from "../../../../components/theme-registry";
 
 // Helper function to determine if a color is light (needs dark text)
@@ -233,9 +233,9 @@ export default function ThemeSettingsPage() {
                 }}
               >
                 {isSelected && (
-                  <MaterialSymbol 
-                    icon="check_circle" 
-                    fontSize={24} 
+                  <MsqdxIcon 
+                    name="check_circle" 
+                    customSize={24} 
                     style={{ 
                       position: "absolute", 
                       top: "0.5rem", 

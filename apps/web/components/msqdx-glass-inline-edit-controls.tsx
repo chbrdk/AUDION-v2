@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Box, IconButton, Tooltip, useTheme, alpha, Typography } from "@mui/material";
-import { MaterialSymbol } from "./material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 
 export type MsqdxGlassInlineEditControlsProps = {
   /**
@@ -256,7 +256,7 @@ export const MsqdxGlassInlineEditControls = ({
             }
           }}
         >
-          <MaterialSymbol icon={saving ? "hourglass_empty" : "check"} fontSize={20} />
+          <MsqdxIcon name={saving ? "hourglass_empty" : "check"} customSize={20} />
         </IconButton>
       </Tooltip>
       <Tooltip title="Discard changes" arrow>
@@ -275,7 +275,7 @@ export const MsqdxGlassInlineEditControls = ({
             }
           }}
         >
-          <MaterialSymbol icon="close" fontSize={20} />
+          <MsqdxIcon name="close" customSize={20} />
         </IconButton>
       </Tooltip>
     </Box>

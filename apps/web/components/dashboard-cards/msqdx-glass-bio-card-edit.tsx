@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import type { PersonaProfile } from "@msqdx-glass/types";
 import { Box, Slider, TextField, MenuItem, Select, FormControl, InputLabel, Typography, Stack } from "@mui/material";
-import { MaterialSymbol } from "../material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 import { MsqdxGlassDashboardCard } from "./msqdx-glass-dashboard-card";
 import { MsqdxGlassDashboardCardSection } from "./msqdx-glass-dashboard-card-section";
 import { MsqdxGlassInlineEditControls } from "../msqdx-glass-inline-edit-controls";

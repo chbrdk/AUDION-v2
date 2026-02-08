@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Box, TextField, IconButton, useTheme, alpha } from "@mui/material";
-import { MaterialSymbol } from "../material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 import { MsqdxGlassEditButton, MsqdxGlassAiButtonIcon } from "./";
 import { useInlineEdit } from "../hooks/use-inline-edit";
 import { MsqdxGlassInlineEditControls } from "../msqdx-glass-inline-edit-controls";
@@ -318,7 +318,7 @@ export const MsqdxGlassChipEditor = ({
                       }
                     }}
                   >
-                    <MaterialSymbol icon="close" fontSize={16} />
+                    <MsqdxIcon name="close" customSize={16} />
                   </IconButton>
                 )}
               </Box>
@@ -382,7 +382,7 @@ export const MsqdxGlassChipEditor = ({
               }
             }}
           >
-            <MaterialSymbol icon="add" fontSize={18} />
+            <MsqdxIcon name="add" customSize={18} />
             <Box component="span" sx={{ ml: 0.5, fontSize: "0.875rem" }}>
               Add
             </Box>

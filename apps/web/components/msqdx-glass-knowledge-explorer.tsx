@@ -13,7 +13,7 @@ import {
   fetchSimilarChunks,
   type ClusterOptions,
 } from "../app/api/_lib/target-group";
-import { MaterialSymbol } from "./material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 
 interface KnowledgeExplorerProps {
   targetGroupId: string;
@@ -146,7 +146,7 @@ export function MsqdxGlassKnowledgeExplorer({ targetGroupId }: KnowledgeExplorer
           disabled={loading}
           style={{ padding: "0.375rem 0.75rem", fontSize: "0.8125rem" }}
         >
-          <MaterialSymbol icon="refresh" fontSize={14} />
+          <MsqdxIcon name="refresh" customSize={14} />
           {loading ? "Loading..." : "Re-cluster"}
         </button>
         {chunks.length > 0 && (
@@ -155,9 +155,9 @@ export function MsqdxGlassKnowledgeExplorer({ targetGroupId }: KnowledgeExplorer
             onClick={() => setViewMode(viewMode === "scatter" ? "list" : "scatter")}
             style={{ padding: "0.375rem 0.75rem", fontSize: "0.8125rem" }}
           >
-            <MaterialSymbol
-              icon={viewMode === "scatter" ? "view_list" : "scatter_plot"}
-              fontSize={14}
+            <MsqdxIcon
+              name={viewMode === "scatter" ? "view_list" : "scatter_plot"}
+              customSize={14}
             />
             {viewMode === "scatter" ? "List View" : "Scatter Plot"}
           </button>
@@ -449,7 +449,7 @@ function ChunkDetailPanel({ chunk, similarChunks, onClose }: ChunkDetailPanelPro
           onClick={onClose}
           style={{ padding: "0.375rem", fontSize: "0.75rem" }}
         >
-          <MaterialSymbol icon="close" fontSize={18} />
+          <MsqdxIcon name="close" customSize={18} />
         </button>
       </div>
       <div

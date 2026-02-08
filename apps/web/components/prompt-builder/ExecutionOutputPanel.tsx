@@ -1,6 +1,6 @@
 "use client";
 
-import { MaterialSymbol } from "../material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 import { type AiAssistResponse } from "../../app/api/_lib/ai-assist";
 
 interface ExecutionOutputPanelProps {
@@ -47,7 +47,7 @@ export function ExecutionOutputPanel({ testResult, testError, testing, onClear }
               }}
               title="Clear output"
             >
-              <MaterialSymbol icon="close" fontSize={18} />
+              <MsqdxIcon name="close" customSize={18} />
             </button>
           )}
         </div>
@@ -66,7 +66,7 @@ export function ExecutionOutputPanel({ testResult, testError, testing, onClear }
               color: "var(--color-text-secondary)",
             }}
           >
-            <MaterialSymbol icon="hourglass_empty" fontSize={48} style={{ opacity: 0.5 }} />
+            <MsqdxIcon name="hourglass_empty" customSize={48} style={{ opacity: 0.5 }} />
             <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 500 }}>Executing prompt with AI...</p>
             <p style={{ margin: 0, fontSize: "0.75rem", opacity: 0.7 }}>This may take a few moments</p>
           </div>
@@ -85,7 +85,7 @@ export function ExecutionOutputPanel({ testResult, testError, testing, onClear }
               textAlign: "center",
             }}
           >
-            <MaterialSymbol icon="play_arrow" fontSize={32} style={{ opacity: 0.3, marginBottom: "0.5rem" }} />
+            <MsqdxIcon name="play_arrow" customSize={32} style={{ opacity: 0.3, marginBottom: "0.5rem" }} />
             <p style={{ margin: 0, fontSize: "0.8125rem" }}>Click "Test Prompt with AI" to see results here</p>
           </div>
         )}
@@ -193,7 +193,7 @@ export function ExecutionOutputPanel({ testResult, testError, testing, onClear }
             }}
           >
             <div style={{ display: "flex", alignItems: "start", gap: "0.5rem" }}>
-              <MaterialSymbol icon="error" fontSize={18} style={{ color: "rgba(239, 68, 68, 1)", flexShrink: 0 }} />
+              <MsqdxIcon name="error" customSize={18} style={{ color: "rgba(239, 68, 68, 1)", flexShrink: 0 }} />
               <div style={{ flex: 1 }}>
                 <p style={{ margin: "0 0 0.25rem", fontSize: "0.8125rem", fontWeight: 600, color: "rgba(239, 68, 68, 1)" }}>
                   Test Failed:

@@ -1,7 +1,7 @@
 "use client";
 
 import { IconButton } from "@mui/material";
-import { MaterialSymbol } from "../material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 
 export type MsqdxGlassAiButtonIconProps = {
   onClick?: () => void;
@@ -62,7 +62,7 @@ export const MsqdxGlassAiButtonIcon = ({
         transition: "all 0.2s ease",
       }}
     >
-      <MaterialSymbol icon={loading ? "hourglass_empty" : "auto_awesome"} fontSize={fontSize} />
+      <MsqdxIcon name={loading ? "hourglass_empty" : "auto_awesome"} customSize={fontSize} />
     </IconButton>
   );
 };

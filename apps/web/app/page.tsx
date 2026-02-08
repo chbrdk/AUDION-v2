@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 import Link from "next/link";
 import { ThemeRegistryNoSSR } from "../components/theme-registry-no-ssr";
 import { Box, Button, Stack, Typography } from "@mui/material";
-import { MaterialSymbol } from "../components/material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 
 const MsqdxGlassLandingHero = () => {
   return (
@@ -23,7 +23,7 @@ const MsqdxGlassLandingHero = () => {
           component={Link}
           href="/upload"
           variant="contained"
-          startIcon={<MaterialSymbol icon="upload_file" fontSize={20} />}
+          startIcon={<MsqdxIcon name="upload_file" customSize={20} />}
           sx={{ borderRadius: 999 }}
         >
           Upload Research
@@ -32,7 +32,7 @@ const MsqdxGlassLandingHero = () => {
           component={Link}
           href="/chat"
           variant="outlined"
-          startIcon={<MaterialSymbol icon="chat_bubble" fontSize={20} />}
+          startIcon={<MsqdxIcon name="chat_bubble" customSize={20} />}
           sx={{ borderRadius: 999 }}
         >
           Peek the Chat

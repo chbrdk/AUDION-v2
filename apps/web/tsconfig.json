@@ -10,19 +10,8 @@
     "jsx": "preserve",
     "module": "preserve",
     "moduleResolution": "bundler",
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ]
+    "plugins": [{ "name": "next" }]
   },
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules", "stories", ".storybook"]
 }
-

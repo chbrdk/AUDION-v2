@@ -3,16 +3,16 @@
 .msqdx-glass-dashboard-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 1.5rem;
-  margin-top: 2rem;
+  gap: var(--msqdx-spacing-xl);
+  margin-top: var(--msqdx-spacing-xxl);
 }
 
 .msqdx-glass-dashboard-card {
-  border-radius: 24px;
+  border-radius: var(--msqdx-radius-3xl);
   border: 1px solid var(--color-secondary-dx-grey-light-tint);
   padding: 0;
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: all var(--msqdx-transition);
 }
 
 [data-theme="dark"] .msqdx-glass-dashboard-card {
@@ -24,7 +24,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.25rem 1.5rem;
+  padding: var(--msqdx-spacing-md) var(--msqdx-spacing-xl);
   background: transparent;
   cursor: pointer;
   user-select: none;
@@ -45,12 +45,12 @@
 
 .msqdx-glass-dashboard-card-header h3 {
   margin: 0;
-  font-size: 1.125rem;
+  font-size: var(--msqdx-font-size-lg);
   font-weight: 600;
   color: var(--color-text-primary);
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--msqdx-spacing-sm);
 }
 
 .msqdx-glass-dashboard-card-icon {
@@ -66,8 +66,8 @@
 }
 
 .msqdx-glass-dashboard-card-toggle {
-  width: 2rem;
-  height: 2rem;
+  width: var(--msqdx-spacing-xxl);
+  height: var(--msqdx-spacing-xxl);
   border-radius: 50%;
   border: none;
   background: transparent;
@@ -76,7 +76,7 @@
   justify-content: center;
   cursor: pointer;
   color: var(--color-text-secondary);
-  transition: all 0.2s ease;
+  transition: all var(--msqdx-transition-fast);
   flex-shrink: 0;
 }
 
@@ -90,8 +90,8 @@
 }
 
 .msqdx-glass-dashboard-card-content {
-  padding: 1.5rem;
-  transition: all 0.3s ease;
+  padding: var(--msqdx-spacing-xl);
+  transition: all var(--msqdx-transition);
 }
 
 .msqdx-glass-dashboard-card-content.--collapsed {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, ReactNode } from "react";
-import { MaterialSymbol } from "../material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 
 interface ResizablePanelProps {
   children: ReactNode;
@@ -157,7 +157,7 @@ export function ResizablePanel({ children, initialWidth, minWidth = 200, maxWidt
             }}
             title={isCollapsed ? "Expand panel" : "Collapse panel"}
           >
-            <MaterialSymbol icon={collapseIcon} fontSize={20} />
+            <MsqdxIcon name={collapseIcon} customSize={20} />
           </button>
         </div>
       )}
@@ -193,7 +193,7 @@ export function ResizablePanel({ children, initialWidth, minWidth = 200, maxWidt
           }}
           title="Collapse panel"
         >
-          <MaterialSymbol icon={collapseIcon} fontSize={18} />
+          <MsqdxIcon name={collapseIcon} customSize={18} />
         </button>
       )}
       {side === "right" && !isCollapsed && (

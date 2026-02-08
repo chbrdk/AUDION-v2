@@ -1,7 +1,7 @@
 "use client";
 
 import { IconButton } from "@mui/material";
-import { MaterialSymbol } from "../material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 
 export type MsqdxGlassEditButtonProps = {
   onClick?: () => void;
@@ -57,7 +57,7 @@ export const MsqdxGlassEditButton = ({
         transition: "all 0.2s ease",
       }}
     >
-      <MaterialSymbol icon="edit" fontSize={fontSize} />
+      <MsqdxIcon name="edit" customSize={fontSize} />
     </IconButton>
   );
 };

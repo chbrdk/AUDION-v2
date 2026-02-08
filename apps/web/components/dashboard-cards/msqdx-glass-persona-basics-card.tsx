@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import type { PersonaResponse } from "@msqdx-glass/types";
-import { MaterialSymbol } from "../material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 import { MsqdxGlassDashboardCard } from "./msqdx-glass-dashboard-card";
 import { MsqdxGlassDashboardCardSection } from "./msqdx-glass-dashboard-card-section";
 import { MsqdxGlassInlineEditControls } from "../msqdx-glass-inline-edit-controls";
@@ -177,7 +177,7 @@ export const MsqdxGlassPersonaBasicsCard = ({
                     className="msqdx-glass-button --ghost"
                     style={{ fontSize: "0.875rem", padding: "4px 8px" }}
                   >
-                    <MaterialSymbol icon="groups" fontSize={14} /> To Target Group
+                    <MsqdxIcon name="groups" customSize={14} /> To Target Group
                   </a>
                 </dd>
               </div>
@@ -287,7 +287,7 @@ export const MsqdxGlassPersonaBasicsCard = ({
                 onClick={onArchive}
                 disabled={savePending}
               >
-                <MaterialSymbol icon="archive" fontSize={18} /> Archive
+                <MsqdxIcon name="archive" customSize={18} /> Archive
               </button>
             )}
             {onDelete && (
@@ -298,7 +298,7 @@ export const MsqdxGlassPersonaBasicsCard = ({
                 title="Delete persona"
                 style={{ padding: "0.375rem", fontSize: "0.75rem", color: "var(--color-secondary-dx-pink)" }}
               >
-                <MaterialSymbol icon="delete" fontSize={16} />
+                <MsqdxIcon name="delete" customSize={16} />
               </button>
             )}
           </div>

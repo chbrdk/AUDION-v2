@@ -7,7 +7,7 @@ type KnowledgeFormState = {
   title: string;
   content: string;
 };
-import { MaterialSymbol } from "../material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 import { MsqdxGlassDashboardCard } from "./msqdx-glass-dashboard-card";
 import { MsqdxGlassDashboardCardSection } from "./msqdx-glass-dashboard-card-section";
 import { buildApiUrl } from "../../app/api/_lib/backend";
@@ -109,7 +109,7 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             {detail.documents.some((doc) => doc.ingestionStatus === "pending" || doc.ingestionStatus === "processing") && (
               <span className="msqdx-glass-muted" style={{ fontSize: "0.75rem", display: "flex", alignItems: "center", gap: "4px" }}>
-                <MaterialSymbol icon="sync" fontSize={14} style={{ animation: "spin 2s linear infinite" }} />
+                <MsqdxIcon name="sync" customSize={14} style={{ animation: "spin 2s linear infinite" }} />
                 Updating status...
               </span>
             )}
@@ -118,7 +118,7 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
               onClick={onDocumentUpload}
               disabled={documentUploadPending}
             >
-              <MaterialSymbol icon="upload" fontSize={16} /> {documentUploadPending ? "Uploading..." : "Upload"}
+              <MsqdxIcon name="upload" customSize={16} /> {documentUploadPending ? "Uploading..." : "Upload"}
             </button>
           </div>
         </div>
@@ -156,7 +156,7 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
                         target="_blank"
                         rel="noreferrer"
                       >
-                        <MaterialSymbol icon="download" fontSize={16} /> Download
+                        <MsqdxIcon name="download" customSize={16} /> Download
                       </a>
                     )}
                     {(doc.ingestionStatus === "failed" || doc.ingestionStatus === "pending" ||
@@ -165,14 +165,14 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
                           className="msqdx-glass-button --ghost"
                           onClick={(e) => handleDocumentRetry(doc.id, e)}
                         >
-                          <MaterialSymbol icon="refresh" fontSize={16} /> Retry
+                          <MsqdxIcon name="refresh" customSize={16} /> Retry
                         </button>
                       )}
                     <button
                       className="msqdx-glass-button --ghost"
                       onClick={() => handleDocumentDelete(doc.id, doc.filename)}
                     >
-                      <MaterialSymbol icon="delete" fontSize={16} /> Delete
+                      <MsqdxIcon name="delete" customSize={16} /> Delete
                     </button>
                   </div>
                   {doc.ingestionStatus === "processing" && doc.ingestionProgress !== null && (
@@ -218,7 +218,7 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
           </div>
           <div className="msqdx-glass-field">
             <button className="msqdx-glass-button" type="submit" disabled={knowledgePending}>
-              <MaterialSymbol icon="lightbulb" fontSize={16} /> {knowledgePending ? "Saving..." : "Add knowledge"}
+              <MsqdxIcon name="lightbulb" customSize={16} /> {knowledgePending ? "Saving..." : "Add knowledge"}
             </button>
           </div>
         </form>

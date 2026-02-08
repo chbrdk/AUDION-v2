@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { MaterialSymbol } from "../material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 import { STANDARD_VARIABLES, EXTENDED_VARIABLES, type VariableDefinition, type VariableCategory } from "./variableDefinitions";
 
 interface VariablePaletteProps {
@@ -105,7 +105,7 @@ export function VariablePalette({ onVariableDrag, onVariableClick }: VariablePal
         e.currentTarget.style.cursor = "grab";
       }}
     >
-      <MaterialSymbol icon="drag_indicator" fontSize={16} style={{ color: "var(--color-text-secondary)", marginTop: "0.125rem", flexShrink: 0 }} />
+      <MsqdxIcon name="drag_indicator" customSize={16} style={{ color: "var(--color-text-secondary)", marginTop: "0.125rem", flexShrink: 0 }} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <code
           style={{
@@ -195,9 +195,9 @@ export function VariablePalette({ onVariableDrag, onVariableClick }: VariablePal
           Variables
         </h3>
         <div style={{ position: "relative" }}>
-          <MaterialSymbol
-            icon="search"
-            fontSize={18}
+          <MsqdxIcon
+            name="search"
+            customSize={18}
             style={{
               position: "absolute",
               left: "0.5rem",
@@ -252,9 +252,9 @@ export function VariablePalette({ onVariableDrag, onVariableClick }: VariablePal
             <h4 style={{ margin: 0, fontSize: "0.8125rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
               Standard Variables
             </h4>
-            <MaterialSymbol
-              icon={isStandardExpanded ? "expand_less" : "expand_more"}
-              fontSize={18}
+            <MsqdxIcon
+              name={isStandardExpanded ? "expand_less" : "expand_more"}
+              customSize={18}
               style={{ color: "var(--color-text-secondary)" }}
             />
           </button>
@@ -290,9 +290,9 @@ export function VariablePalette({ onVariableDrag, onVariableClick }: VariablePal
                       <h5 style={{ margin: 0, fontSize: "0.75rem", fontWeight: 600, color: "var(--color-text-secondary)", textTransform: "capitalize" }}>
                         {category}
                       </h5>
-                      <MaterialSymbol
-                        icon={isCategoryExpanded ? "expand_less" : "expand_more"}
-                        fontSize={16}
+                      <MsqdxIcon
+                        name={isCategoryExpanded ? "expand_less" : "expand_more"}
+                        customSize={16}
                         style={{ color: "var(--color-text-secondary)" }}
                       />
                     </button>
@@ -328,9 +328,9 @@ export function VariablePalette({ onVariableDrag, onVariableClick }: VariablePal
             <h4 style={{ margin: 0, fontSize: "0.8125rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
               Extended Variables
             </h4>
-            <MaterialSymbol
-              icon={isExtendedExpanded ? "expand_less" : "expand_more"}
-              fontSize={18}
+            <MsqdxIcon
+              name={isExtendedExpanded ? "expand_less" : "expand_more"}
+              customSize={18}
               style={{ color: "var(--color-text-secondary)" }}
             />
           </button>

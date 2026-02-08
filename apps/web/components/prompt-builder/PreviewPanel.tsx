@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { MaterialSymbol } from "../material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 import { generateMockContext, generateMockExtendedData, resolveExtendedVariable } from "./mockData";
 import { journeysApi, type JourneyResponse } from "../../app/api/_lib/journeys";
 import { targetGroupsApi, type TargetGroupResponse } from "../../app/api/_lib/target-groups";
@@ -265,7 +265,7 @@ export function PreviewPanel({ prompt, context, useMockData = false }: PreviewPa
             Live Preview
           </h3>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>
-            <MaterialSymbol icon={useMockData ? "science" : "database"} fontSize={16} />
+            <MsqdxIcon name={useMockData ? "science" : "database"} customSize={16} />
             <span>{useMockData ? "Mock Data" : "Real Data"}</span>
           </div>
         </div>
@@ -292,12 +292,12 @@ export function PreviewPanel({ prompt, context, useMockData = false }: PreviewPa
         >
           {testing ? (
             <>
-              <MaterialSymbol icon="hourglass_empty" fontSize={16} />
+              <MsqdxIcon name="hourglass_empty" customSize={16} />
               <span>Testing...</span>
             </>
           ) : (
             <>
-              <MaterialSymbol icon="play_arrow" fontSize={16} />
+              <MsqdxIcon name="play_arrow" customSize={16} />
               <span>Test Prompt with AI</span>
             </>
           )}
@@ -307,7 +307,7 @@ export function PreviewPanel({ prompt, context, useMockData = false }: PreviewPa
       <div style={{ flex: 1, overflowY: "auto", padding: "1rem", position: "relative" }}>
         {loading && (
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "var(--color-text-secondary)", marginBottom: "1rem" }}>
-            <MaterialSymbol icon="hourglass_empty" fontSize={16} />
+            <MsqdxIcon name="hourglass_empty" customSize={16} />
             <span style={{ fontSize: "0.8125rem" }}>Rendering...</span>
           </div>
         )}
@@ -323,7 +323,7 @@ export function PreviewPanel({ prompt, context, useMockData = false }: PreviewPa
             }}
           >
             <div style={{ display: "flex", alignItems: "start", gap: "0.5rem" }}>
-              <MaterialSymbol icon="error" fontSize={18} style={{ color: "rgba(239, 68, 68, 1)", flexShrink: 0 }} />
+              <MsqdxIcon name="error" customSize={18} style={{ color: "rgba(239, 68, 68, 1)", flexShrink: 0 }} />
               <div style={{ flex: 1 }}>
                 <p style={{ margin: "0 0 0.25rem", fontSize: "0.8125rem", fontWeight: 600, color: "rgba(239, 68, 68, 1)" }}>Errors:</p>
                 <ul style={{ margin: 0, paddingLeft: "1.25rem", fontSize: "0.75rem", color: "rgba(239, 68, 68, 0.9)" }}>
@@ -356,7 +356,7 @@ export function PreviewPanel({ prompt, context, useMockData = false }: PreviewPa
 
         {!loading && !rendered && !errors.length && !testResult && (
           <div style={{ textAlign: "center", padding: "2rem", color: "var(--color-text-secondary)" }}>
-            <MaterialSymbol icon="description" fontSize={32} style={{ marginBottom: "0.5rem", opacity: 0.5 }} />
+            <MsqdxIcon name="description" customSize={32} style={{ marginBottom: "0.5rem", opacity: 0.5 }} />
             <p style={{ margin: 0, fontSize: "0.8125rem" }}>Enter a prompt to see the preview</p>
           </div>
         )}
@@ -393,7 +393,7 @@ export function PreviewPanel({ prompt, context, useMockData = false }: PreviewPa
                   }}
                   title="Close result"
                 >
-                  <MaterialSymbol icon="close" fontSize={18} />
+                  <MsqdxIcon name="close" customSize={18} />
                 </button>
               </div>
               <div style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.75rem" }}>
@@ -483,7 +483,7 @@ export function PreviewPanel({ prompt, context, useMockData = false }: PreviewPa
             }}
           >
             <div style={{ display: "flex", alignItems: "start", gap: "0.5rem" }}>
-              <MaterialSymbol icon="error" fontSize={18} style={{ color: "rgba(239, 68, 68, 1)", flexShrink: 0 }} />
+              <MsqdxIcon name="error" customSize={18} style={{ color: "rgba(239, 68, 68, 1)", flexShrink: 0 }} />
               <div style={{ flex: 1 }}>
                 <p style={{ margin: "0 0 0.25rem", fontSize: "0.8125rem", fontWeight: 600, color: "rgba(239, 68, 68, 1)" }}>
                   Test Failed:
@@ -503,7 +503,7 @@ export function PreviewPanel({ prompt, context, useMockData = false }: PreviewPa
                 }}
                 title="Close error"
               >
-                <MaterialSymbol icon="close" fontSize={18} />
+                <MsqdxIcon name="close" customSize={18} />
               </button>
             </div>
           </div>

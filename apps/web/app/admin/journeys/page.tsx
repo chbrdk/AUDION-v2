@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from "react";
 import { journeysApi, type JourneyResponse } from "../../api/_lib/journeys";
-import { MaterialSymbol } from "../../../components/material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 
 export default function JourneysListPage() {
   const [journeys, setJourneys] = useState<JourneyResponse[]>([]);
@@ -32,7 +32,7 @@ export default function JourneysListPage() {
   if (loading) {
     return (
       <div style={{ padding: "2rem", textAlign: "center" }}>
-        <MaterialSymbol icon="hourglass_empty" fontSize={24} />
+        <MsqdxIcon name="hourglass_empty" customSize={24} />
         <p>Loading journeys...</p>
       </div>
     );
@@ -59,13 +59,13 @@ export default function JourneysListPage() {
             window.location.href = "/admin/journeys/new";
           }}
         >
-          <MaterialSymbol icon="add" fontSize={16} /> Create Journey
+          <MsqdxIcon name="add" customSize={16} /> Create Journey
         </button>
       </div>
 
       {journeys.length === 0 ? (
         <div style={{ padding: "2rem", textAlign: "center", color: "var(--color-text-secondary)" }}>
-          <MaterialSymbol icon="route" fontSize={48} />
+          <MsqdxIcon name="route" customSize={48} />
           <p>No journeys yet. Create your first journey to get started.</p>
         </div>
       ) : (
@@ -84,10 +84,10 @@ export default function JourneysListPage() {
               {journey.description && <p style={{ color: "var(--color-text-secondary)", marginTop: "0.5rem" }}>{journey.description}</p>}
               <div style={{ display: "flex", gap: "1rem", marginTop: "1rem", fontSize: "0.875rem", color: "var(--color-text-secondary)" }}>
                 <span>
-                  <MaterialSymbol icon="route" fontSize={14} /> {journey.phases.length} phases
+                  <MsqdxIcon name="route" customSize={14} /> {journey.phases.length} phases
                 </span>
                 <span>
-                  <MaterialSymbol icon="label" fontSize={14} /> {journey.journey_type}
+                  <MsqdxIcon name="label" customSize={14} /> {journey.journey_type}
                 </span>
               </div>
               {typeof journey.validation_score === "number" && (

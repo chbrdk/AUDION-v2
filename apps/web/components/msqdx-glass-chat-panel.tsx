@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { alpha, Box, Stack, Typography, useTheme, IconButton, Tooltip } from "@mui/material";
 import { keyframes } from "@emotion/react";
-import { MaterialSymbol } from "./material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 
 type Message = {
   id: string;
@@ -161,7 +161,7 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                         },
                       }}
                     >
-                      <MaterialSymbol icon="info" fontSize={14} />
+                      <MsqdxIcon name="info" customSize={14} />
                     </IconButton>
                   </Tooltip>
                 )}

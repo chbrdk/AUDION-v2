@@ -29,7 +29,7 @@ import {
   updateTargetGroup,
 } from "../app/api/_lib/target-group";
 import type { PersonaListItem } from "@msqdx-glass/types";
-import { MaterialSymbol } from "./material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 import { MsqdxGlassKnowledgeExplorer } from "./msqdx-glass-knowledge-explorer";
 import { MsqdxGlassPersonaList } from "./msqdx-glass-persona-list";
 import { MsqdxGlassEntityEditor } from "./generic";
@@ -457,7 +457,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
               onClick={refreshList}
               disabled={listRefreshing}
             >
-              <MaterialSymbol icon="refresh" fontSize={16} /> Refresh
+              <MsqdxIcon name="refresh" customSize={16} /> Refresh
             </button>
           </header>
           <div className="msqdx-glass-list">
@@ -486,9 +486,9 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
               onClick={() => setCreateFormExpanded(!createFormExpanded)}
             >
               <h3 style={{ fontSize: "0.875rem", fontWeight: 600, margin: 0 }}>New Target Group</h3>
-              <MaterialSymbol 
-                icon={createFormExpanded ? "expand_less" : "expand_more"} 
-                fontSize={20} 
+              <MsqdxIcon 
+                name={createFormExpanded ? "expand_less" : "expand_more"} 
+                customSize={20} 
               />
             </button>
             {createFormExpanded && (
@@ -525,7 +525,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                   style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem", alignSelf: "flex-start", whiteSpace: "nowrap" }}
                   title="Generate new UUID"
                 >
-                  <MaterialSymbol icon="refresh" fontSize={14} /> Generate
+                  <MsqdxIcon name="refresh" customSize={14} /> Generate
                 </button>
               </div>
             </div>
@@ -564,7 +564,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
               disabled={createPending}
               style={{ padding: "0.375rem 0.75rem", fontSize: "0.8125rem" }}
             >
-              <MaterialSymbol icon="add" fontSize={14} /> Target Group anlegen
+              <MsqdxIcon name="add" customSize={14} /> Target Group anlegen
             </button>
               </div>
             )}
@@ -654,9 +654,9 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                   onClick={() => setPersonaFormExpanded(!personaFormExpanded)}
                 >
                   <h3 style={{ fontSize: "0.875rem", fontWeight: 600, margin: 0 }}>Neue Persona erstellen</h3>
-                  <MaterialSymbol 
-                    icon={personaFormExpanded ? "expand_less" : "expand_more"} 
-                    fontSize={20} 
+                  <MsqdxIcon 
+                    name={personaFormExpanded ? "expand_less" : "expand_more"} 
+                    customSize={20} 
                   />
                 </button>
                 {personaFormExpanded && (
@@ -687,7 +687,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                       disabled={createPersonaPending || !personaForm.segment.trim()}
                       style={{ padding: "0.375rem 0.75rem", fontSize: "0.8125rem" }}
                     >
-                      <MaterialSymbol icon={createPersonaPending ? "hourglass_empty" : "add"} fontSize={14} />{" "}
+                      <MsqdxIcon name={createPersonaPending ? "hourglass_empty" : "add"} customSize={14} />{" "}
                       {createPersonaPending ? "Erstelle..." : "Erstellen"}
                     </button>
                   </form>
@@ -711,7 +711,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                           style={{ padding: "0.375rem", fontSize: "0.75rem", color: "var(--color-secondary-dx-pink)" }}
                           title="Knowledge Eintrag löschen"
                         >
-                          <MaterialSymbol icon="delete" fontSize={18} />
+                          <MsqdxIcon name="delete" customSize={18} />
                         </button>
                       </div>
                     </div>
@@ -726,9 +726,9 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                   onClick={() => setKnowledgeFormExpanded(!knowledgeFormExpanded)}
                 >
                   <h3 style={{ fontSize: "0.875rem", fontWeight: 600, margin: 0 }}>Neuer Knowledge Eintrag</h3>
-                  <MaterialSymbol 
-                    icon={knowledgeFormExpanded ? "expand_less" : "expand_more"} 
-                    fontSize={20} 
+                  <MsqdxIcon 
+                    name={knowledgeFormExpanded ? "expand_less" : "expand_more"} 
+                    customSize={20} 
                   />
                 </button>
                 {knowledgeFormExpanded && (
@@ -756,7 +756,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                       disabled={knowledgePending}
                       style={{ padding: "0.375rem 0.75rem", fontSize: "0.8125rem" }}
                     >
-                      <MaterialSymbol icon="add" fontSize={14} />{" "}
+                      <MsqdxIcon name="add" customSize={14} />{" "}
                       {knowledgePending ? "Adding..." : "Add"}
                     </button>
                   </form>
@@ -769,7 +769,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                 Dokumente ({documents.length})
                 {documents.some((doc) => doc.ingestionStatus === "pending" || doc.ingestionStatus === "processing") && (
                   <span className="msqdx-glass-muted" style={{ fontSize: "0.75rem", display: "inline-flex", alignItems: "center", gap: "4px", marginLeft: "0.5rem", fontWeight: 400, textTransform: "none" }}>
-                    <MaterialSymbol icon="sync" fontSize={14} style={{ animation: "spin 2s linear infinite" }} />
+                    <MsqdxIcon name="sync" customSize={14} style={{ animation: "spin 2s linear infinite" }} />
                     Updating...
                   </span>
                 )}
@@ -825,15 +825,15 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                   <h3 style={{ fontSize: "0.875rem", fontWeight: 600, margin: 0 }}>
                     {documentUploadPending ? "Uploading..." : "Upload Document"}
                   </h3>
-                  <MaterialSymbol 
-                    icon={documentUploadExpanded ? "expand_less" : "expand_more"} 
-                    fontSize={20} 
+                  <MsqdxIcon 
+                    name={documentUploadExpanded ? "expand_less" : "expand_more"} 
+                    customSize={20} 
                   />
                 </button>
                 {documentUploadExpanded && (
                   <div className="msqdx-glass-create-form__content">
                     <div style={{ padding: "1rem", border: "1px dashed var(--color-theme-accent)", borderRadius: "8px", textAlign: "center" }}>
-                      <MaterialSymbol icon="upload_file" fontSize={32} style={{ color: "var(--color-theme-accent)", marginBottom: "0.5rem" }} />
+                      <MsqdxIcon name="upload_file" customSize={32} style={{ color: "var(--color-theme-accent)", marginBottom: "0.5rem" }} />
                       <p style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)", marginBottom: "0.75rem" }}>
                         PDF, DOCX, PPTX, MP3 — Drag file here or click to select
                       </p>
@@ -843,7 +843,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                         onClick={triggerDocumentUpload}
                         style={{ padding: "0.375rem 0.75rem", fontSize: "0.8125rem" }}
                       >
-                        <MaterialSymbol icon="upload" fontSize={14} /> Select File
+                        <MsqdxIcon name="upload" customSize={14} /> Select File
                       </button>
                     </div>
                   </div>

@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import type { FieldDefinition } from "@msqdx-glass/types";
 import { TextField, MenuItem, Select, FormControl, InputLabel, Slider, Typography, Stack, Box, Checkbox } from "@mui/material";
-import { MaterialSymbol } from "../material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 import { MsqdxGlassEditButton } from "./msqdx-glass-edit-button";
 import { useInlineEdit } from "../hooks/use-inline-edit";
 import { MsqdxGlassInlineEditControls } from "../msqdx-glass-inline-edit-controls";

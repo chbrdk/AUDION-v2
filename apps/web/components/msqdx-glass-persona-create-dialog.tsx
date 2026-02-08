@@ -3,7 +3,7 @@
 import type { ChangeEvent, FormEvent } from "react";
 import { useState } from "react";
 import type { TargetGroupPersonaGenerateRequest } from "../app/api/_lib/target-group";
-import { MaterialSymbol } from "./material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 
 type MsqdxGlassPersonaCreateDialogProps = {
   open: boolean;
@@ -112,7 +112,7 @@ export const MsqdxGlassPersonaCreateDialog = ({
             disabled={loading}
             style={{ padding: "8px" }}
           >
-            <MaterialSymbol icon="close" fontSize={20} />
+            <MsqdxIcon name="close" customSize={20} />
           </button>
         </div>
 
@@ -165,11 +165,11 @@ export const MsqdxGlassPersonaCreateDialog = ({
             >
               {loading ? (
                 <>
-                  <MaterialSymbol icon="hourglass_empty" fontSize={18} /> Erstelle...
+                  <MsqdxIcon name="hourglass_empty" customSize={18} /> Erstelle...
                 </>
               ) : (
                 <>
-                  <MaterialSymbol icon="add" fontSize={18} /> Erstellen
+                  <MsqdxIcon name="add" customSize={18} /> Erstellen
                 </>
               )}
             </button>

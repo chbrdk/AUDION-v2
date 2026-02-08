@@ -4,7 +4,7 @@ import { useState } from "react";
 import clsx from "clsx";
 
 import type { JourneyResponse } from "../../app/api/_lib/journeys";
-import { MaterialSymbol } from "../material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 import { MsqdxGlassAiFieldButton } from "../ai/msqdx-glass-ai-field-button";
 import { MsqdxGlassAiButton } from "../ai/msqdx-glass-ai-button";
 import { MsqdxGlassEditButton } from "../generic/msqdx-glass-edit-button";
@@ -350,7 +350,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
               style={{ padding: "0.375rem" }}
               title="Cancel"
             >
-              <MaterialSymbol icon="close" fontSize={16} />
+              <MsqdxIcon name="close" customSize={16} />
             </button>
             <button
               type="button"
@@ -360,7 +360,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
               style={{ padding: "0.375rem" }}
               title="Save"
             >
-              <MaterialSymbol icon={saving ? "hourglass_empty" : "check"} fontSize={16} />
+              <MsqdxIcon name={saving ? "hourglass_empty" : "check"} customSize={16} />
             </button>
           </div>
         </div>
@@ -472,7 +472,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
                 onClick={addMomentDraft}
                 disabled={saving}
               >
-                <MaterialSymbol icon="add_circle" fontSize={14} /> Moment hinzufügen
+                <MsqdxIcon name="add_circle" customSize={14} /> Moment hinzufügen
               </button>
             </div>
           </div>
@@ -518,7 +518,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
                     style={{ alignSelf: "flex-start", marginTop: "1.75rem" }}
                     title="Moment entfernen"
                   >
-                    <MaterialSymbol icon="close" fontSize={14} />
+                    <MsqdxIcon name="close" customSize={14} />
                   </button>
                 </div>
               ))}
@@ -566,7 +566,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
               title="Delete phase"
               aria-label="Delete phase"
             >
-              <MaterialSymbol icon="delete" fontSize={16} />
+              <MsqdxIcon name="delete" customSize={16} />
             </button>
           )}
         </div>
@@ -576,7 +576,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
         <div className="msqdx-glass-journey-phase__chips">
           {chips.map((chip) => (
             <span key={chip.label} className="msqdx-glass-journey-phase__chip">
-              <MaterialSymbol icon={chip.icon} fontSize={14} /> {chip.label}
+              <MsqdxIcon name={chip.icon} customSize={14} /> {chip.label}
             </span>
           ))}
         </div>
@@ -598,7 +598,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
             {highlightedElements.map((element) => (
               <li key={element.id}>
                 <span className="msqdx-glass-journey-phase__list-icon">
-                  <MaterialSymbol icon={elementIconMap[element.element_type] ?? "trip"} fontSize={14} />
+                  <MsqdxIcon name={elementIconMap[element.element_type] ?? "trip"} customSize={14} />
                 </span>
                 <div>
                   <p className="msqdx-glass-journey-phase__list-label">{element.element_type.replace("_", " ")}</p>
@@ -696,25 +696,25 @@ export const MsqdxGlassPhaseCard = ({
       <div style={{ display: "flex", gap: "1rem", fontSize: "0.75rem", color: "var(--color-text-secondary)", marginTop: "0.5rem" }}>
         {phase.expected_duration_min && phase.expected_duration_max && (
           <span style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-            <MaterialSymbol icon="schedule" fontSize={14} />
+            <MsqdxIcon name="schedule" customSize={14} />
             {phase.expected_duration_min}-{phase.expected_duration_max} {phase.duration_unit}
           </span>
         )}
         {phase.expected_emotion && (
           <span style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-            <MaterialSymbol icon="mood" fontSize={14} />
+            <MsqdxIcon name="mood" customSize={14} />
             {phase.expected_emotion}
           </span>
         )}
         <span style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-          <MaterialSymbol icon="list" fontSize={14} />
+          <MsqdxIcon name="list" customSize={14} />
           {phase.elements.length} elements
         </span>
       </div>
 
       {phase.generated_by_ai && (
         <div style={{ marginTop: "0.5rem", padding: "0.25rem 0.5rem", backgroundColor: "var(--color-surface)", borderRadius: "4px", fontSize: "0.75rem" }}>
-          <MaterialSymbol icon="auto_awesome" fontSize={12} /> AI Generated
+          <MsqdxIcon name="auto_awesome" customSize={12} /> AI Generated
         </div>
       )}
     </div>

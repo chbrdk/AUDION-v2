@@ -13,7 +13,7 @@ import {
   type PhaseCreate,
 } from "../../../api/_lib/journeys";
 import { fetchTargetGroupPersonas, type PersonaResponse } from "../../../api/_lib/target-group";
-import { MaterialSymbol } from "../../../../components/material-symbol";
+import { MsqdxIcon, MsqdxButton, MsqdxTypography } from "@msqdx/react";
 import { MsqdxGlassJourneyPhaseCard } from "../../../../components/journeys/msqdx-glass-phase-card";
 import { MsqdxGlassAiButton } from "../../../../components/ai/msqdx-glass-ai-button";
 import { useAiAssist } from "../../../../hooks/use-ai-assist";
@@ -722,8 +722,8 @@ export default function JourneyEditorPage() {
   if (loading) {
     return (
       <div style={{ padding: "2rem", textAlign: "center" }}>
-        <MaterialSymbol icon="hourglass_empty" fontSize={24} />
-        <p className="msqdx-glass-muted">Loading journey...</p>
+        <MsqdxIcon name="hourglass_empty" customSize={24} />
+        <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>Loading journey...</MsqdxTypography>
       </div>
     );
   }
@@ -731,7 +731,7 @@ export default function JourneyEditorPage() {
   if (error || !journey) {
     return (
       <div style={{ padding: "2rem" }}>
-        <p className="msqdx-glass-error">{error || "Journey not found"}</p>
+        <MsqdxTypography variant="body2" sx={{ color: "error.main" }}>{error || "Journey not found"}</MsqdxTypography>
       </div>
     );
   }
@@ -770,38 +770,19 @@ export default function JourneyEditorPage() {
                     flex: 1,
                   }}
                 />
-                <button
-                  className="msqdx-glass-button --ghost"
-                  onClick={saveName}
-                  disabled={savePending}
-                  style={{ padding: "0.25rem 0.5rem" }}
-                >
-                  <MaterialSymbol icon="check" fontSize={16} />
-                </button>
-                <button
-                  className="msqdx-glass-button --ghost"
-                  onClick={() => {
-                    setEditingName(false);
-                    setNameValue(journey?.name || "");
-                  }}
-                  disabled={savePending}
-                  style={{ padding: "0.25rem 0.5rem" }}
-                >
-                  <MaterialSymbol icon="close" fontSize={16} />
-                </button>
+                <MsqdxButton variant="text" size="small" onClick={saveName} disabled={savePending} sx={{ p: "0.25rem 0.5rem" }}>
+                  <MsqdxIcon name="check" customSize={16} />
+                </MsqdxButton>
+                <MsqdxButton variant="text" size="small" onClick={() => { setEditingName(false); setNameValue(journey?.name || ""); }} disabled={savePending} sx={{ p: "0.25rem 0.5rem" }}>
+                  <MsqdxIcon name="close" customSize={16} />
+                </MsqdxButton>
               </div>
             ) : (
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 <h1 style={{ fontSize: "1.5rem", fontWeight: 600, margin: 0 }}>{journey.name}</h1>
-                <button
-                  className="msqdx-glass-button --ghost"
-                  onClick={startEditingName}
-                  disabled={savePending}
-                  style={{ padding: "0.25rem 0.5rem" }}
-                  title="Edit name"
-                >
-                  <MaterialSymbol icon="edit" fontSize={16} />
-                </button>
+                <MsqdxButton variant="text" size="small" onClick={startEditingName} disabled={savePending} sx={{ p: "0.25rem 0.5rem" }} aria-label="Edit name">
+                  <MsqdxIcon name="edit" customSize={16} />
+                </MsqdxButton>
               </div>
             )}
             {editingDescription ? (
@@ -836,7 +817,7 @@ export default function JourneyEditorPage() {
                   disabled={savePending}
                   style={{ padding: "0.25rem 0.5rem" }}
                 >
-                  <MaterialSymbol icon="check" fontSize={16} />
+                  <MsqdxIcon name="check" customSize={16} />
                 </button>
                 <button
                   className="msqdx-glass-button --ghost"
@@ -847,7 +828,7 @@ export default function JourneyEditorPage() {
                   disabled={savePending}
                   style={{ padding: "0.25rem 0.5rem" }}
                 >
-                  <MaterialSymbol icon="close" fontSize={16} />
+                  <MsqdxIcon name="close" customSize={16} />
                 </button>
               </div>
             ) : (
@@ -861,7 +842,7 @@ export default function JourneyEditorPage() {
                     style={{ padding: "0.25rem 0.5rem" }}
                     title="Edit description"
                   >
-                    <MaterialSymbol icon="edit" fontSize={14} />
+                    <MsqdxIcon name="edit" customSize={14} />
                   </button>
                 </div>
               ) : (
@@ -871,30 +852,18 @@ export default function JourneyEditorPage() {
                   disabled={savePending}
                   style={{ padding: "0.25rem 0.5rem", marginTop: "0.5rem", fontSize: "0.75rem", color: "var(--color-text-secondary)" }}
                 >
-                  <MaterialSymbol icon="add" fontSize={14} /> Add description
+                  <MsqdxIcon name="add" customSize={14} /> Add description
                 </button>
               )
             )}
           </div>
           <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
-            <button
-              className="msqdx-glass-button --ghost"
-              onClick={() => {
-                window.location.href = `/admin/journeys/${journeyId}/dashboard`;
-              }}
-              style={{ padding: "0.375rem 0.75rem", fontSize: "0.8125rem" }}
-            >
-              <MaterialSymbol icon="dashboard" fontSize={14} /> Dashboard
-            </button>
-            <button
-              className="msqdx-glass-button --ghost"
-              onClick={() => {
-                window.location.href = "/admin/journeys";
-              }}
-              style={{ padding: "0.375rem 0.75rem", fontSize: "0.8125rem" }}
-            >
-              <MaterialSymbol icon="arrow_back" fontSize={14} /> Back
-            </button>
+            <MsqdxButton variant="text" size="small" onClick={() => { window.location.href = `/admin/journeys/${journeyId}/dashboard`; }} sx={{ p: "0.375rem 0.75rem", fontSize: "0.8125rem" }}>
+              <MsqdxIcon name="dashboard" customSize={14} /> Dashboard
+            </MsqdxButton>
+            <MsqdxButton variant="text" size="small" onClick={() => { window.location.href = "/admin/journeys"; }} sx={{ p: "0.375rem 0.75rem", fontSize: "0.8125rem" }}>
+              <MsqdxIcon name="arrow_back" customSize={14} /> Back
+            </MsqdxButton>
           </div>
         </header>
 
@@ -951,7 +920,7 @@ export default function JourneyEditorPage() {
                     disabled={activePhaseIndex === 0}
                     aria-label="Scroll to previous phase"
                   >
-                    <MaterialSymbol icon="chevron_left" fontSize={18} />
+                    <MsqdxIcon name="chevron_left" customSize={18} />
                   </button>
                   <button
                     type="button"
@@ -960,7 +929,7 @@ export default function JourneyEditorPage() {
                     disabled={journey.phases.length === 0 || activePhaseIndex === journey.phases.length - 1}
                     aria-label="Scroll to next phase"
                   >
-                    <MaterialSymbol icon="chevron_right" fontSize={18} />
+                    <MsqdxIcon name="chevron_right" customSize={18} />
                   </button>
                 </div>
               )}
@@ -970,7 +939,7 @@ export default function JourneyEditorPage() {
                 onClick={handleAddPhase}
                 disabled={addingPhase}
               >
-                <MaterialSymbol icon="add" fontSize={16} /> New Phase
+                <MsqdxIcon name="add" customSize={16} /> New Phase
               </button>
             </div>
           </div>
@@ -999,7 +968,7 @@ export default function JourneyEditorPage() {
                   onClick={handleAddPhase}
                   disabled={addingPhase}
                 >
-                  <MaterialSymbol icon="add" fontSize={16} /> Phase hinzufügen
+                  <MsqdxIcon name="add" customSize={16} /> Phase hinzufügen
                 </button>
               </div>
               <div
@@ -1072,7 +1041,7 @@ export default function JourneyEditorPage() {
                           style={{ padding: "0.375rem" }}
                           title="Cancel editing"
                         >
-                          <MaterialSymbol icon="close" fontSize={18} />
+                          <MsqdxIcon name="close" customSize={18} />
                         </button>
                       )}
                     </div>
@@ -1177,7 +1146,7 @@ export default function JourneyEditorPage() {
                             title="AI Vorschlag"
                           />
                           <button type="button" className="msqdx-glass-button --ghost" onClick={addMomentDraft}>
-                            <MaterialSymbol icon="add_circle" fontSize={14} /> Moment hinzufügen
+                            <MsqdxIcon name="add_circle" customSize={14} /> Moment hinzufügen
                           </button>
                         </div>
                       </div>
@@ -1228,7 +1197,7 @@ export default function JourneyEditorPage() {
                                 style={{ alignSelf: "flex-start", marginTop: "1.75rem" }}
                                 title="Moment entfernen"
                               >
-                                <MaterialSymbol icon="close" fontSize={14} />
+                                <MsqdxIcon name="close" customSize={14} />
                               </button>
                             </div>
                           ))}
@@ -1268,11 +1237,11 @@ export default function JourneyEditorPage() {
                       >
                         {addingPhase ? (
                           <>
-                            <MaterialSymbol icon="hourglass_empty" fontSize={14} /> {editingPhaseId ? "Updating..." : "Adding..."}
+                            <MsqdxIcon name="hourglass_empty" customSize={14} /> {editingPhaseId ? "Updating..." : "Adding..."}
                           </>
                         ) : (
                           <>
-                            <MaterialSymbol icon={editingPhaseId ? "save" : "add"} fontSize={14} /> {editingPhaseId ? "Update Phase" : "Add Phase"}
+                            <MsqdxIcon name={editingPhaseId ? "save" : "add"} customSize={14} /> {editingPhaseId ? "Update Phase" : "Add Phase"}
                           </>
                         )}
                       </button>
@@ -1295,7 +1264,7 @@ export default function JourneyEditorPage() {
                       }}
                     >
                       <div className="msqdx-glass-journey-phase__cta-icon">
-                        <MaterialSymbol icon="add" fontSize={28} />
+                        <MsqdxIcon name="add" customSize={28} />
                       </div>
                       <p className="msqdx-glass-journey-phase__cta-title">Add phase</p>
                       <p className="msqdx-glass-journey-phase__cta-subtitle">

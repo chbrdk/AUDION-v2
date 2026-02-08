@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Typography } from "@mui/material";
+import { MsqdxTypography } from "@msqdx/react";
 import type { PersonaListItem } from "@msqdx-glass/types";
-import { MaterialSymbol } from "./material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 
 type MsqdxGlassPersonaListProps = {
   personas: PersonaListItem[];
@@ -21,7 +21,7 @@ export const MsqdxGlassPersonaList = ({
   if (personas.length === 0) {
     return (
       <div className="msqdx-glass-empty">
-        <Typography variant="body2">No personas in this Target Group.</Typography>
+        <MsqdxTypography variant="body2">No personas in this Target Group.</MsqdxTypography>
       </div>
     );
   }
@@ -48,7 +48,7 @@ export const MsqdxGlassPersonaList = ({
                 style={{ display: "flex", alignItems: "center", padding: "0.375rem" }}
                 title="Open persona"
               >
-                <MaterialSymbol icon="open_in_new" fontSize={18} />
+                <MsqdxIcon name="open_in_new" customSize={18} />
               </Link>
               {onDelete && (
                 <button
@@ -63,7 +63,7 @@ export const MsqdxGlassPersonaList = ({
                   style={{ padding: "0.375rem", fontSize: "0.75rem", color: "var(--color-secondary-dx-pink)" }}
                   title="Delete persona"
                 >
-                  <MaterialSymbol icon="delete" fontSize={18} />
+                  <MsqdxIcon name="delete" customSize={18} />
                 </button>
               )}
             </div>

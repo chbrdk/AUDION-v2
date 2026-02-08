@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { journeysApi, type JourneyCreate, type JourneyGenerateRequest } from "../../../api/_lib/journeys";
 import { targetGroupsApi, type TargetGroupResponse } from "../../../api/_lib/target-groups";
-import { MaterialSymbol } from "../../../../components/material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 
 function generateUUID(): string {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
@@ -149,7 +149,7 @@ export default function NewJourneyPage() {
           onClick={() => router.push("/admin/journeys")}
           disabled={loading}
         >
-          <MaterialSymbol icon="arrow_back" fontSize={16} /> Cancel
+          <MsqdxIcon name="arrow_back" customSize={16} /> Cancel
         </button>
       </div>
 
@@ -288,7 +288,7 @@ export default function NewJourneyPage() {
                 title="Generate new Organization ID"
                 style={{ whiteSpace: "nowrap" }}
               >
-                <MaterialSymbol icon="refresh" fontSize={16} /> Generate
+                <MsqdxIcon name="refresh" customSize={16} /> Generate
               </button>
             </div>
             <p style={{ fontSize: "0.875rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>
@@ -374,11 +374,11 @@ export default function NewJourneyPage() {
               >
                 {generating ? (
                   <>
-                    <MaterialSymbol icon="hourglass_empty" fontSize={16} /> Generating...
+                    <MsqdxIcon name="hourglass_empty" customSize={16} /> Generating...
                   </>
                 ) : (
                   <>
-                    <MaterialSymbol icon="auto_awesome" fontSize={16} /> Generate with AI
+                    <MsqdxIcon name="auto_awesome" customSize={16} /> Generate with AI
                   </>
                 )}
               </button>
@@ -390,11 +390,11 @@ export default function NewJourneyPage() {
             >
               {loading ? (
                 <>
-                  <MaterialSymbol icon="hourglass_empty" fontSize={16} /> Creating...
+                  <MsqdxIcon name="hourglass_empty" customSize={16} /> Creating...
                 </>
               ) : (
                 <>
-                  <MaterialSymbol icon="add" fontSize={16} /> Create Journey
+                  <MsqdxIcon name="add" customSize={16} /> Create Journey
                 </>
               )}
             </button>

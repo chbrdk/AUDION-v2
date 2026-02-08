@@ -1,0 +1,41 @@
+# AUDION Design System Refactoring (Feb 8, 2025)
+
+## Summary
+AUDION has been refactored to use components and tokens from the msqdx-design-system. This document captures what was done and important details for future work.
+
+## Completed Phases
+
+### Phase 1: Dependencies
+- Added `@msqdx/react` and `@msqdx/tokens` as `file:../../../msqdx-design-system/packages/...` in `apps/web/package.json`
+- Added both to `optimizePackageImports` in `next.config.mjs`
+
+### Phase 2: Component Replacements
+- **PersonaCard, TargetGroupCard, UploadDropzone, ProcessingTimeline**: Replaced with DS components via wrappers
+- **MsqdxAdminNav**: Replaced `MsqdxGlassAdminNav` with DS `MsqdxAdminNav`; routing in `ADMIN_NAV_ITEMS` array
+- **MsqdxCollapsiblePanel**: Thin wrapper around DS `MsqdxCollapsiblePanel` that wires `useAdminPanel()` context for mobile off-canvas
+
+### Icon Migration (MaterialSymbol → MsqdxIcon)
+- All `MaterialSymbol` imports replaced with `MsqdxIcon` from `@msqdx/react`
+- Props: `icon=` → `name=`, `fontSize=` → `customSize=` for MsqdxIcon
+- **Exception**: `MsqdxGlassEditButton` and `MsqdxGlassAiButtonIcon` use `fontSize`, not `customSize`
+- Removed `components/material-symbol.tsx` after migration
+
+### Phase 3: Token Compliance
+- Added MSQDX token CSS variables in `globals.css` (`--msqdx-radius-*`, `--msqdx-spacing-*`, etc.)
+- Updated `dashboard-cards.css` to use these variables instead of hardcoded values
+
+## Design System Additions
+- **AdminNavItem.exact**: Added `exact?: boolean` to DS `AdminNavItem` for Dashboard (path `/admin`) to only highlight on exact match
+
+## Link Component
+- Next.js `Link` passed to `MsqdxAdminNav` via `linkComponent={Link as any}` to satisfy type compatibility
+
+## Paths
+- Design system: `msqdx-design-system/packages/react`, `msqdx-design-system/packages/tokens`
+- AUDION web: `AUDION/apps/web/`
+
+## Remaining Opportunities
+- Replace remaining `msqdx-glass-button --ghost` with `MsqdxButton variant="text"` across journey page and other components
+- Replace MUI Typography/Box with MsqdxTypography/MsqdxCard where feasible
+- Replace MsqdxGlassDashboardCard with DS MsqdxDashboardCard (requires structural changes for MsqdxDashboardCardSection)
+- Add more token variables for remaining hardcoded values in components

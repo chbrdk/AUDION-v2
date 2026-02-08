@@ -16,7 +16,7 @@ import {
   Chip,
   Tooltip,
 } from "@mui/material";
-import { MaterialSymbol } from "../material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 import type { ConversationSummary } from "../../lib/chat-history";
 
 type ChatItemProps = {
@@ -179,7 +179,7 @@ export function MsqdxGlassChatItem({
                       height: "24px",
                     }}
                   >
-                    <MaterialSymbol icon="more_vert" fontSize={16} />
+                    <MsqdxIcon name="more_vert" customSize={16} />
                   </IconButton>
                 </>
               )}
@@ -264,7 +264,7 @@ export function MsqdxGlassChatItem({
                         },
                       }}
                     >
-                      <MaterialSymbol icon="info" fontSize={14} />
+                      <MsqdxIcon name="info" customSize={14} />
                     </IconButton>
                   </Tooltip>
                 )}
@@ -308,22 +308,22 @@ export function MsqdxGlassChatItem({
       >
         <MenuItem onClick={handleEditTitle}>
           <Box component="span" sx={{ mr: 1, display: "inline-flex", alignItems: "center" }}>
-            <MaterialSymbol icon="edit" fontSize={16} />
+            <MsqdxIcon name="edit" customSize={16} />
           </Box>
           Edit Title
         </MenuItem>
         <MenuItem onClick={handleArchive}>
           <Box component="span" sx={{ mr: 1, display: "inline-flex", alignItems: "center" }}>
-            <MaterialSymbol
-              icon={conversation.isArchived ? "unarchive" : "archive"}
-              fontSize={16}
+            <MsqdxIcon
+              name={conversation.isArchived ? "unarchive" : "archive"}
+              customSize={16}
             />
           </Box>
           {conversation.isArchived ? "Unarchive" : "Archive"}
         </MenuItem>
         <MenuItem onClick={handleDelete} sx={{ color: "error.main" }}>
           <Box component="span" sx={{ mr: 1, display: "inline-flex", alignItems: "center" }}>
-            <MaterialSymbol icon="delete" fontSize={16} />
+            <MsqdxIcon name="delete" customSize={16} />
           </Box>
           Delete
         </MenuItem>

@@ -2,7 +2,7 @@
 
 import type { ReactNode, CSSProperties } from "react";
 import clsx from "clsx";
-import { MaterialSymbol } from "../material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 
 export type DashboardCardVariant = 
   | "persona-basics" 
@@ -73,9 +73,9 @@ export const MsqdxGlassDashboardCard = ({
         onClick={handleToggle}
       >
         <h3>
-          <MaterialSymbol 
-            icon={icon} 
-            fontSize={20} 
+          <MsqdxIcon
+            name={icon}
+            customSize={20}
             style={iconColor?.color ? { color: iconColor.color } : {}}
           />
           {title}
@@ -87,7 +87,7 @@ export const MsqdxGlassDashboardCard = ({
           )}
           onClick={handleButtonToggle}
         >
-          <MaterialSymbol icon="expand_more" fontSize={20} />
+          <MsqdxIcon name="expand_more" customSize={20} />
         </button>
       </div>
       {expanded && (

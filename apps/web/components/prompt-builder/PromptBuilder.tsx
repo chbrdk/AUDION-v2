@@ -7,7 +7,7 @@ import { LivePreviewPanel } from "./LivePreviewPanel";
 import { ExecutionOutputPanel } from "./ExecutionOutputPanel";
 import { VariableContextPanel } from "./VariableContextPanel";
 import { ResizablePanel } from "./ResizablePanel";
-import { MaterialSymbol } from "../material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 import { aiAssistApi, type AiAssistResponse } from "../../app/api/_lib/ai-assist";
 import { generateMockContext } from "./mockData";
 
@@ -182,7 +182,7 @@ export function PromptBuilder({ initialPrompt, onPromptChange }: PromptBuilderPr
                 transition: "all 0.2s ease",
               }}
             >
-              <MaterialSymbol icon="edit" fontSize={18} />
+              <MsqdxIcon name="edit" customSize={18} />
               <span>Editor</span>
             </button>
             <button
@@ -204,7 +204,7 @@ export function PromptBuilder({ initialPrompt, onPromptChange }: PromptBuilderPr
                 transition: "all 0.2s ease",
               }}
             >
-              <MaterialSymbol icon="visibility" fontSize={18} />
+              <MsqdxIcon name="visibility" customSize={18} />
               <span>Live Preview</span>
             </button>
           </div>
@@ -270,12 +270,12 @@ export function PromptBuilder({ initialPrompt, onPromptChange }: PromptBuilderPr
               >
                 {testing ? (
                   <>
-                    <MaterialSymbol icon="hourglass_empty" fontSize={18} />
+                    <MsqdxIcon name="hourglass_empty" customSize={18} />
                     <span>Testing...</span>
                   </>
                 ) : (
                   <>
-                    <MaterialSymbol icon="play_arrow" fontSize={18} />
+                    <MsqdxIcon name="play_arrow" customSize={18} />
                     <span>Test Prompt with AI</span>
                   </>
                 )}

@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import type { QueueStatsResponse, ServiceStatusResponse } from "@msqdx-glass/types";
 import { alpha, Box, Button, Collapse, Stack, Typography, useTheme } from "@mui/material";
-import { MaterialSymbol } from "../material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 
 export type MsqdxGlassAdminDashboardProps = {
   personaStats: { total: number };
@@ -74,7 +74,7 @@ export const MsqdxGlassAdminDashboard = ({
         >
           <Stack spacing={0.125}>
             <Box sx={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-              <MaterialSymbol icon="person" fontSize={24} style={{ color: "var(--color-theme-accent)" }} />
+              <MsqdxIcon name="person" customSize={24} style={{ color: "var(--color-theme-accent)" }} />
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 Personas
               </Typography>
@@ -115,7 +115,7 @@ export const MsqdxGlassAdminDashboard = ({
         >
           <Stack spacing={0.125}>
             <Box sx={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-              <MaterialSymbol icon="groups" fontSize={24} style={{ color: "var(--color-theme-accent)" }} />
+              <MsqdxIcon name="groups" customSize={24} style={{ color: "var(--color-theme-accent)" }} />
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 Target Groups
               </Typography>
@@ -156,7 +156,7 @@ export const MsqdxGlassAdminDashboard = ({
         >
           <Stack spacing={0.125}>
             <Box sx={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-              <MaterialSymbol icon="view_list" fontSize={24} style={{ color: "var(--color-theme-accent)" }} />
+              <MsqdxIcon name="view_list" customSize={24} style={{ color: "var(--color-theme-accent)" }} />
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 Queue Jobs
               </Typography>
@@ -197,10 +197,10 @@ export const MsqdxGlassAdminDashboard = ({
         >
           <Stack spacing={0.125}>
             <Box sx={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-              <MaterialSymbol 
-                icon={serviceStatus?.allServicesUp ? "check_circle" : (serviceStatus ? "error" : "help")} 
-                fontSize={24} 
-                style={{ color: "var(--color-theme-accent)" }} 
+              <MsqdxIcon
+                name={serviceStatus?.allServicesUp ? "check_circle" : (serviceStatus ? "error" : "help")}
+                customSize={24}
+                style={{ color: "var(--color-theme-accent)" }}
               />
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 Services
@@ -259,10 +259,10 @@ export const MsqdxGlassAdminDashboard = ({
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
               Service Status Details
             </Typography>
-            <MaterialSymbol 
-              icon={showServices ? "expand_less" : "expand_more"} 
-              fontSize={24} 
-              style={{ color: "var(--color-theme-accent)" }} 
+            <MsqdxIcon
+              name={showServices ? "expand_less" : "expand_more"}
+              customSize={24}
+              style={{ color: "var(--color-theme-accent)" }}
             />
           </Box>
           <Collapse in={showServices}>
@@ -284,9 +284,9 @@ export const MsqdxGlassAdminDashboard = ({
                       border: `1px solid ${alpha(getStatusColor(service.status), 0.3)}`
                     }}
                   >
-                    <MaterialSymbol 
-                      icon={getStatusIcon(service.status)} 
-                      fontSize={20} 
+                    <MsqdxIcon
+                      name={getStatusIcon(service.status)}
+                      customSize={20} 
                       style={{ color: getStatusColor(service.status) }} 
                     />
                     <Typography variant="body1" sx={{ flex: 1, fontWeight: 500 }}>
@@ -348,7 +348,7 @@ export const MsqdxGlassAdminDashboard = ({
             <Button
               variant="contained"
               size="small"
-              startIcon={<MaterialSymbol icon="person" fontSize={14} />}
+              startIcon={<MsqdxIcon name="person" customSize={14} />}
               sx={{
                 backgroundColor: "var(--color-theme-accent)",
                 color: "white",
@@ -364,7 +364,7 @@ export const MsqdxGlassAdminDashboard = ({
             <Button
               variant="contained"
               size="small"
-              startIcon={<MaterialSymbol icon="groups" fontSize={14} />}
+              startIcon={<MsqdxIcon name="groups" customSize={14} />}
               sx={{
                 backgroundColor: "var(--color-theme-accent)",
                 color: "white",

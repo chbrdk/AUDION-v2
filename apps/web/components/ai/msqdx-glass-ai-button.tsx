@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { MaterialSymbol } from "../material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 
 type TemplateOption = {
   id: string;
@@ -64,7 +64,7 @@ export const MsqdxGlassAiButton = ({
         disabled={disabled || loading}
         title={title}
       >
-        <MaterialSymbol icon="auto_awesome" fontSize={size === "small" ? 14 : 16} />
+        <MsqdxIcon name="auto_awesome" customSize={size === "small" ? 14 : 16} />
         <span>{loading ? "Generating..." : title}</span>
       </button>
     </div>

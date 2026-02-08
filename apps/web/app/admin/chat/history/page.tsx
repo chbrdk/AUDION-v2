@@ -18,7 +18,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import { MaterialSymbol } from "../../../../components/material-symbol";
+import { MsqdxIcon } from "@msqdx/react";
 import { MsqdxGlassChatHistoryList } from "../../../../components/chat/msqdx-glass-chat-history-list";
 import {
   loadConversationsFromLocalStorage,
@@ -109,7 +109,7 @@ export default function ChatHistoryPage() {
           InputProps={{
             startAdornment: (
               <Box component="span" sx={{ mr: 1, opacity: 0.6, display: 'flex', alignItems: 'center' }}>
-                <MaterialSymbol icon="search" fontSize={20} />
+                <MsqdxIcon name="search" customSize={20} />
               </Box>
             ),
           }}
