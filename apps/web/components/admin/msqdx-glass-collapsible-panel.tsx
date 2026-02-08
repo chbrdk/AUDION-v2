@@ -21,7 +21,6 @@ export const MsqdxGlassCollapsiblePanel = ({
       defaultExpanded={defaultExpanded}
       mobileOpen={panelOpen}
       onMobileClose={() => setPanelOpen(false)}
-      expandedWidth={220}
       {...rest}
     >
       {children}
