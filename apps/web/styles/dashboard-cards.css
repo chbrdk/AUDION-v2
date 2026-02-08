@@ -7,13 +7,14 @@
   margin-top: var(--msqdx-spacing-xxl);
 }
 
-/* Cards: background on the actual card (MsqdxAccordion with .msqdx-dashboard-card), not wrapper divs */
+/* Cards: same white background as MsqdxCard (persona list). Match persona list cards exactly. */
 .msqdx-glass-dashboard-grid .msqdx-dashboard-card {
-  background-color: #ffffff;
+  background-color: var(--color-primary-white, #ffffff) !important;
+  box-shadow: none;
 }
 
 [data-theme="dark"] .msqdx-glass-dashboard-grid .msqdx-dashboard-card {
-  background-color: var(--color-background, #1a1a1a);
+  background-color: var(--color-background, #1a1a1a) !important;
 }
 
 /* Header padding */

@@ -1268,7 +1268,25 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
               Refresh
             </MsqdxButton>
           </header>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: { xs: "column", md: "row" },
+              flexWrap: { xs: "nowrap", md: "nowrap" },
+              gap: 1,
+              overflowX: { xs: "visible", md: "auto" },
+              overflowY: "visible",
+              minWidth: 0,
+              WebkitOverflowScrolling: "touch",
+              pb: { md: 0.5 },
+              "&::-webkit-scrollbar": { height: 6 },
+              "&::-webkit-scrollbar-thumb": {
+                backgroundColor: "action.disabled",
+                borderRadius: 3,
+                "&:hover": { backgroundColor: "action.active" },
+              },
+            }}
+          >
             {list.items.length === 0 && (
               <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
                 No personas available yet.
@@ -1293,7 +1311,9 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
                   sx={{
                     p: 1.5,
                     textAlign: "left",
-                    width: "100%",
+                    width: { xs: "100%", md: "auto" },
+                    minWidth: { xs: undefined, md: 220 },
+                    flexShrink: { xs: 0, md: 0 },
                     borderColor: selectedId === item.id ? "primary.main" : undefined,
                     borderWidth: selectedId === item.id ? 2 : undefined,
                   }}
@@ -1316,7 +1336,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
               );
             })}
           </Box>
-          <MsqdxCard variant="flat" sx={{ mt: 2, p: 2, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
+          <MsqdxCard variant="flat" borderRadius="button" sx={{ mt: 2, p: 2, border: "1px solid", borderColor: "divider" }}>
             <MsqdxTypography variant="h6" weight="semibold" sx={{ mb: 1.5 }}>
               New Persona
             </MsqdxTypography>
