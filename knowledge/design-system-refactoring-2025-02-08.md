@@ -52,6 +52,12 @@ AUDION has been refactored to use components and tokens from the msqdx-design-sy
 - **MsqdxGlassPersonaList**: Uses `MsqdxCard`, `MsqdxChip`, `MsqdxButton`, `MsqdxTypography`; status chips use DS brandColor.
 - **MsqdxGlassPersonaCreateDialog**: Uses `MsqdxDialog`, `MsqdxFormField`, `MsqdxTextareaField`, `MsqdxButton` instead of custom modal and `msqdx-glass-field`.
 
+## Metadata Section → MsqdxDashboardCard (Feb 2025)
+- **Persona admin panel**: Metadata box (`msqdx-glass-detail__grid`, `msqdx-glass-meta-grid`) replaced with DS `MsqdxDashboardCard`.
+- Metadata card is the first card in the dashboard grid; uses accordion ID `metadata`, icon `info`, brandColor `black`, iconColor `var(--color-theme-accent)`.
+- Label/value pairs use `MsqdxTypography` (caption + body2); grid layout via MUI `Box` with `borderLeft` for visual separation.
+- "metadata" added to initial `expandedAccordions` set.
+
 ## Remaining Opportunities
 - Replace remaining `msqdx-glass-button --ghost` with `MsqdxButton variant="text"` across journey page and other components
 - Replace MUI Typography/Box with MsqdxTypography/MsqdxCard where feasible
