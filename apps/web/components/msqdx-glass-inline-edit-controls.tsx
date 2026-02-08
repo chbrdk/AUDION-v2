@@ -75,6 +75,20 @@ export const MsqdxGlassInlineEditControls = ({
       anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       variant="outlined"
       brandColor="purple"
+      sx={{
+        padding: "6px 10px",
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 1,
+        "& .MuiSnackbarContent-message": { flex: 1, padding: 0 },
+        "& .MuiSnackbarContent-action": {
+          marginTop: 0,
+          marginBottom: 0,
+          marginRight: 0,
+          paddingLeft: 0,
+          alignSelf: "center",
+        },
+      }}
     />
   );
 };

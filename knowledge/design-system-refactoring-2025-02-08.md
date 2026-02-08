@@ -74,6 +74,18 @@ AUDION has been refactored to use components and tokens from the msqdx-design-sy
 - Options include empty `{ value: "", label: "—" }` for nullable fields.
 - In inline mode, label is passed as `""` to avoid duplicate with EntityEditor's column label.
 
+## Chip Editor, Persona Basics, Target Group, Chat → DS Inputs (Feb 2025)
+- **MsqdxGlassChipEditor**: Replaced MUI TextField with DS `MsqdxInput` for inline chip edit and "Neuen Eintrag hinzufügen" (Pain Points, Goals, Interests, Values, Traits, Social Media).
+- **MsqdxGlassPersonaBasicsCard**: Replaced raw `<input>` with `MsqdxFormField` for Name, Segment, Headline, Updated by.
+- **MsqdxGlassTargetGroupAdminPanel**: Replaced raw inputs/textareas with `MsqdxFormField` and `MsqdxTextareaField` for create forms (Target Group, Persona, Knowledge).
+- **MsqdxGlassChatItem**: Replaced MUI TextField with `MsqdxInput` for inline title edit.
+
+## MsqdxGlassFieldEditor Text/Slider/Textarea/Date → DS Components (Feb 2025)
+- **Text, Number, Date**: MUI `TextField` replaced with DS `MsqdxFormField` (`borderColor="black"`).
+- **Textarea**: MUI `TextField` replaced with DS `MsqdxTextareaField` (`minRows={3}`, `size="small"`).
+- **Slider**: MUI `Slider` replaced with DS `MsqdxSlider` (`brandColor="black"`, `valueLabelDisplay="on"`, `size="small"`).
+- Affects Age, Media Affinity, Location, Full Name and all entity editor fields.
+
 ## Remaining Opportunities
 - Replace remaining `msqdx-glass-button --ghost` with `MsqdxButton variant="text"` across journey page and other components
 - Replace MUI Typography/Box with MsqdxTypography/MsqdxCard where feasible

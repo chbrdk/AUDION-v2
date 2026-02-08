@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import type { PersonaResponse } from "@msqdx-glass/types";
-import { MsqdxIcon, MsqdxDashboardCard, MsqdxButton, MsqdxSelect } from "@msqdx/react";
+import { MsqdxIcon, MsqdxDashboardCard, MsqdxButton, MsqdxSelect, MsqdxFormField } from "@msqdx/react";
 import { MsqdxGlassDashboardCardSection } from "./msqdx-glass-dashboard-card-section";
 import { MsqdxGlassInlineEditControls } from "../msqdx-glass-inline-edit-controls";
 import { useInlineEdit } from "../hooks/use-inline-edit";
@@ -186,13 +186,13 @@ export const MsqdxGlassPersonaBasicsCard = ({
 
         <MsqdxGlassDashboardCardSection title="Edit">
           <Box ref={nameRef} sx={{ position: "relative", marginTop: "0.5rem" }}>
-            <div className="msqdx-glass-field">
-              <label>Name</label>
-              <input 
-                value={nameEdit.value} 
-                onChange={(event) => nameEdit.setValue(event.target.value)} 
-              />
-            </div>
+            <MsqdxFormField
+              label="Name"
+              value={nameEdit.value ?? ""}
+              onChange={(e) => nameEdit.setValue(e.target.value)}
+              fullWidth
+              borderColor="black"
+            />
             <MsqdxGlassInlineEditControls
               hasChanges={nameEdit.hasChanges}
               saving={savePending}
@@ -204,13 +204,13 @@ export const MsqdxGlassPersonaBasicsCard = ({
           </Box>
 
           <Box ref={segmentRef} sx={{ position: "relative" }}>
-            <div className="msqdx-glass-field">
-              <label>Segment</label>
-              <input 
-                value={segmentEdit.value} 
-                onChange={(event) => segmentEdit.setValue(event.target.value)} 
-              />
-            </div>
+            <MsqdxFormField
+              label="Segment"
+              value={segmentEdit.value ?? ""}
+              onChange={(e) => segmentEdit.setValue(e.target.value)}
+              fullWidth
+              borderColor="black"
+            />
             <MsqdxGlassInlineEditControls
               hasChanges={segmentEdit.hasChanges}
               saving={savePending}
@@ -222,13 +222,13 @@ export const MsqdxGlassPersonaBasicsCard = ({
           </Box>
 
           <Box ref={headlineRef} sx={{ position: "relative" }}>
-            <div className="msqdx-glass-field">
-              <label>Headline</label>
-              <input 
-                value={headlineEdit.value} 
-                onChange={(event) => headlineEdit.setValue(event.target.value)} 
-              />
-            </div>
+            <MsqdxFormField
+              label="Headline"
+              value={headlineEdit.value ?? ""}
+              onChange={(e) => headlineEdit.setValue(e.target.value)}
+              fullWidth
+              borderColor="black"
+            />
             <MsqdxGlassInlineEditControls
               hasChanges={headlineEdit.hasChanges}
               saving={savePending}
@@ -264,13 +264,13 @@ export const MsqdxGlassPersonaBasicsCard = ({
           </Box>
 
           <Box ref={updatedByRef} sx={{ position: "relative" }}>
-            <div className="msqdx-glass-field">
-              <label>Updated by</label>
-              <input 
-                value={updatedByEdit.value} 
-                onChange={(event) => updatedByEdit.setValue(event.target.value)} 
-              />
-            </div>
+            <MsqdxFormField
+              label="Updated by"
+              value={updatedByEdit.value ?? ""}
+              onChange={(e) => updatedByEdit.setValue(e.target.value)}
+              fullWidth
+              borderColor="black"
+            />
             <MsqdxGlassInlineEditControls
               hasChanges={updatedByEdit.hasChanges}
               saving={savePending}

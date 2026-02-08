@@ -29,7 +29,7 @@ import {
   updateTargetGroup,
 } from "../app/api/_lib/target-group";
 import type { PersonaListItem } from "@msqdx-glass/types";
-import { MsqdxIcon } from "@msqdx/react";
+import { MsqdxIcon, MsqdxFormField, MsqdxTextareaField, MsqdxButton } from "@msqdx/react";
 import { MsqdxGlassKnowledgeExplorer } from "./msqdx-glass-knowledge-explorer";
 import { MsqdxGlassPersonaList } from "./msqdx-glass-persona-list";
 import { MsqdxGlassEntityEditor } from "./generic";
@@ -493,72 +493,69 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
             </button>
             {createFormExpanded && (
               <div className="msqdx-glass-create-form__content">
-                <div className="msqdx-glass-field">
-              <label>Project ID</label>
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <input
-                  value={createForm.projectId}
-                  onChange={(event) =>
-                    setCreateForm((prev) => ({ ...prev, projectId: event.target.value }))
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <MsqdxFormField
+                    label="Project ID"
+                    value={createForm.projectId}
+                    onChange={(e) =>
+                      setCreateForm((prev) => ({ ...prev, projectId: e.target.value }))
+                    }
+                    placeholder="123e4567-e89b-12d3-a456-426614174000"
+                    fullWidth
+                    borderColor="black"
+                  />
+                  <MsqdxButton
+                    variant="text"
+                    size="small"
+                    onClick={() => {
+                      let uuid: string;
+                      if (typeof crypto !== "undefined" && crypto.randomUUID) {
+                        uuid = crypto.randomUUID();
+                      } else {
+                        uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+                          const r = (Math.random() * 16) | 0;
+                          const v = c === "x" ? r : (r & 0x3) | 0x8;
+                          return v.toString(16);
+                        });
+                      }
+                      setCreateForm((prev) => ({ ...prev, projectId: uuid }));
+                    }}
+                    startIcon={<MsqdxIcon name="refresh" customSize={14} />}
+                    sx={{ alignSelf: "flex-start" }}
+                  >
+                    Generate
+                  </MsqdxButton>
+                </div>
+                <MsqdxFormField
+                  label="Name"
+                  value={createForm.name}
+                  onChange={(e) => setCreateForm((prev) => ({ ...prev, name: e.target.value }))}
+                  placeholder="Target Group Name"
+                  fullWidth
+                  borderColor="black"
+                />
+                <MsqdxFormField
+                  label="Segment"
+                  value={createForm.segment}
+                  onChange={(e) =>
+                    setCreateForm((prev) => ({ ...prev, segment: e.target.value }))
                   }
-                  placeholder="123e4567-e89b-12d3-a456-426614174000"
-                  style={{ width: "100%" }}
+                  placeholder="B2B / Enterprise / etc."
+                  fullWidth
+                  borderColor="black"
+                />
+                <MsqdxTextareaField
+                  label="Description"
+                  value={createForm.description}
+                  onChange={(e) =>
+                    setCreateForm((prev) => ({ ...prev, description: e.target.value }))
+                  }
+                  placeholder="Beschreibung"
+                  minRows={3}
+                  fullWidth
+                  borderColor="black"
                 />
                 <button
-                  type="button"
-                  className="msqdx-glass-button --ghost"
-                  onClick={() => {
-                    // Generate a new UUID v4
-                    let uuid: string;
-                    if (typeof crypto !== "undefined" && crypto.randomUUID) {
-                      uuid = crypto.randomUUID();
-                    } else {
-                      // Fallback for older browsers
-                      uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-                        const r = (Math.random() * 16) | 0;
-                        const v = c === "x" ? r : (r & 0x3) | 0x8;
-                        return v.toString(16);
-                      });
-                    }
-                    setCreateForm((prev) => ({ ...prev, projectId: uuid }));
-                  }}
-                  style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem", alignSelf: "flex-start", whiteSpace: "nowrap" }}
-                  title="Generate new UUID"
-                >
-                  <MsqdxIcon name="refresh" customSize={14} /> Generate
-                </button>
-              </div>
-            </div>
-            <div className="msqdx-glass-field">
-              <label>Name</label>
-              <input
-                value={createForm.name}
-                onChange={(event) => setCreateForm((prev) => ({ ...prev, name: event.target.value }))}
-                placeholder="Target Group Name"
-              />
-            </div>
-            <div className="msqdx-glass-field">
-              <label>Segment</label>
-              <input
-                value={createForm.segment}
-                onChange={(event) =>
-                  setCreateForm((prev) => ({ ...prev, segment: event.target.value }))
-                }
-                placeholder="B2B / Enterprise / etc."
-              />
-            </div>
-            <div className="msqdx-glass-field">
-              <label>Description</label>
-              <textarea
-                value={createForm.description}
-                onChange={(event) =>
-                  setCreateForm((prev) => ({ ...prev, description: event.target.value }))
-                }
-                placeholder="Beschreibung"
-                rows={3}
-              />
-            </div>
-            <button
               className="msqdx-glass-button"
               onClick={handleCreate}
               disabled={createPending}
@@ -661,26 +658,26 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                 </button>
                 {personaFormExpanded && (
                   <form onSubmit={handlePersonaSubmit} className="msqdx-glass-create-form__content">
-                    <div className="msqdx-glass-field">
-                      <label>Segment Name <span style={{ color: "var(--color-secondary-dx-pink)" }}>*</span></label>
-                      <input
-                        value={personaForm.segment}
-                        onChange={(event) => handlePersonaField("segment", event.target.value)}
-                        placeholder="z.B. Skeptischer CFO, Technikaffiner CTO"
-                        required
-                        disabled={createPersonaPending}
-                      />
-                    </div>
-                    <div className="msqdx-glass-field">
-                      <label>Beschreibung (optional)</label>
-                      <textarea
-                        value={personaForm.description}
-                        onChange={(event) => handlePersonaField("description", event.target.value)}
-                        placeholder="Optionale Beschreibung was diese Persona repräsentiert"
-                        rows={3}
-                        disabled={createPersonaPending}
-                      />
-                    </div>
+                    <MsqdxFormField
+                      label="Segment Name"
+                      value={personaForm.segment}
+                      onChange={(e) => handlePersonaField("segment", e.target.value)}
+                      placeholder="z.B. Skeptischer CFO, Technikaffiner CTO"
+                      required
+                      disabled={createPersonaPending}
+                      fullWidth
+                      borderColor="black"
+                    />
+                    <MsqdxTextareaField
+                      label="Beschreibung (optional)"
+                      value={personaForm.description}
+                      onChange={(e) => handlePersonaField("description", e.target.value)}
+                      placeholder="Optionale Beschreibung was diese Persona repräsentiert"
+                      minRows={3}
+                      disabled={createPersonaPending}
+                      fullWidth
+                      borderColor="black"
+                    />
                     <button
                       className="msqdx-glass-button --ghost"
                       type="submit"
@@ -733,23 +730,23 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                 </button>
                 {knowledgeFormExpanded && (
                   <form onSubmit={handleKnowledgeSubmit} className="msqdx-glass-create-form__content">
-                    <div className="msqdx-glass-field">
-                      <label>Titel</label>
-                      <input
-                        value={knowledgeForm.title}
-                        onChange={(event) => handleKnowledgeField("title", event.target.value)}
-                        placeholder="Titel"
-                      />
-                    </div>
-                    <div className="msqdx-glass-field">
-                      <label>Inhalt</label>
-                      <textarea
-                        value={knowledgeForm.content}
-                        onChange={(event) => handleKnowledgeField("content", event.target.value)}
-                        placeholder="Inhalt"
-                        rows={3}
-                      />
-                    </div>
+                    <MsqdxFormField
+                      label="Titel"
+                      value={knowledgeForm.title}
+                      onChange={(e) => handleKnowledgeField("title", e.target.value)}
+                      placeholder="Titel"
+                      fullWidth
+                      borderColor="black"
+                    />
+                    <MsqdxTextareaField
+                      label="Inhalt"
+                      value={knowledgeForm.content}
+                      onChange={(e) => handleKnowledgeField("content", e.target.value)}
+                      placeholder="Inhalt"
+                      minRows={3}
+                      fullWidth
+                      borderColor="black"
+                    />
                     <button
                       className="msqdx-glass-button --ghost"
                       type="submit"

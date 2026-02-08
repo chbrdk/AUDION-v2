@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Box, TextField, useTheme, alpha } from "@mui/material";
-import { MsqdxIcon, MsqdxButton, MsqdxTypography } from "@msqdx/react";
+import { Box, useTheme, alpha } from "@mui/material";
+import { MsqdxIcon, MsqdxButton, MsqdxTypography, MsqdxInput } from "@msqdx/react";
 import { MsqdxGlassEditButton, MsqdxGlassAiButtonIcon } from "./";
 import { useInlineEdit } from "../hooks/use-inline-edit";
 import { MsqdxGlassInlineEditControls } from "../msqdx-glass-inline-edit-controls";
@@ -65,8 +65,8 @@ export const MsqdxGlassChipEditor = ({
   const [editingValue, setEditingValue] = useState("");
   const [newChipValue, setNewChipValue] = useState("");
   const [savePending, setSavePending] = useState(false);
-  const editInputRef = useRef<HTMLInputElement>(null);
-  const newInputRef = useRef<HTMLInputElement>(null);
+  const editInputWrapperRef = useRef<HTMLDivElement>(null);
+  const newInputWrapperRef = useRef<HTMLDivElement>(null);
 
   // Array comparison function (order-independent for hasChanges)
   const arrayIsEqual = useCallback((a: string[], b: string[]): boolean => {
@@ -92,16 +92,18 @@ export const MsqdxGlassChipEditor = ({
 
   // Focus input when entering edit mode
   useEffect(() => {
-    if (isEditing && editingIndex === null && newInputRef.current) {
-      newInputRef.current.focus();
+    if (isEditing && editingIndex === null) {
+      const input = newInputWrapperRef.current?.querySelector("input");
+      input?.focus();
     }
   }, [isEditing, editingIndex]);
 
   // Focus edit input when editing a chip
   useEffect(() => {
-    if (editingIndex !== null && editInputRef.current) {
-      editInputRef.current.focus();
-      editInputRef.current.select();
+    if (editingIndex !== null) {
+      const input = editInputWrapperRef.current?.querySelector("input");
+      input?.focus();
+      input?.select();
     }
   }, [editingIndex]);
 
@@ -288,21 +290,16 @@ export const MsqdxGlassChipEditor = ({
                 }}
               >
                 {isEditing && editingIndex === idx ? (
-                  <TextField
-                    inputRef={editInputRef}
-                    value={editingValue}
-                    onChange={(e) => setEditingValue(e.target.value)}
-                    onKeyDown={(e) => handleKeyDown(e, true, idx)}
-                    onBlur={handleSaveEditChip}
-                    size="small"
-                    sx={{
-                      minWidth: "120px",
-                      "& .MuiOutlinedInput-root": {
-                        fontSize: "0.875rem",
-                        height: "28px"
-                      }
-                    }}
-                  />
+                  <Box ref={editInputWrapperRef} sx={{ minWidth: "120px" }}>
+                    <MsqdxInput
+                      value={editingValue}
+                      onChange={(e) => setEditingValue(e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(e, true, idx)}
+                      onBlur={handleSaveEditChip}
+                      size="small"
+                      borderColor="black"
+                    />
+                  </Box>
                 ) : (
                   <MsqdxGlassChip
                     variant={chipClassName.includes("--trait") ? "trait" : 
@@ -340,21 +337,16 @@ export const MsqdxGlassChipEditor = ({
               </Box>
             ))}
             {isEditing && (
-              <TextField
-                inputRef={newInputRef}
-                value={newChipValue}
-                onChange={(e) => setNewChipValue(e.target.value)}
-                onKeyDown={(e) => handleKeyDown(e, false, null)}
-                placeholder="Neuen Eintrag hinzufügen..."
-                size="small"
-                sx={{
-                  minWidth: "180px",
-                  "& .MuiOutlinedInput-root": {
-                    fontSize: "0.875rem",
-                    height: "28px"
-                  }
-                }}
-              />
+              <Box ref={newInputWrapperRef} sx={{ minWidth: "180px" }}>
+                <MsqdxInput
+                  value={newChipValue}
+                  onChange={(e) => setNewChipValue(e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(e, false, null)}
+                  placeholder="Neuen Eintrag hinzufügen..."
+                  size="small"
+                  borderColor="black"
+                />
+              </Box>
             )}
           </Box>
 

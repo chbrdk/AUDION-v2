@@ -8,7 +8,6 @@ import {
   IconButton,
   Menu,
   MenuItem,
-  TextField,
   Typography,
   useTheme,
   alpha,
@@ -16,7 +15,7 @@ import {
   Chip,
   Tooltip,
 } from "@mui/material";
-import { MsqdxIcon } from "@msqdx/react";
+import { MsqdxIcon, MsqdxInput } from "@msqdx/react";
 import type { ConversationSummary } from "../../lib/chat-history";
 
 type ChatItemProps = {
@@ -133,27 +132,24 @@ export function MsqdxGlassChatItem({
             {/* Header with Title and Menu */}
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
               {isEditingTitle ? (
-                <TextField
-                  value={editedTitle}
-                  onChange={(e) => setEditedTitle(e.target.value)}
-                  onBlur={handleSaveTitle}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      handleSaveTitle();
-                    } else if (e.key === "Escape") {
-                      handleCancelEdit();
-                    }
-                  }}
-                  autoFocus
-                  size="small"
-                  sx={{
-                    flex: 1,
-                    "& .MuiOutlinedInput-root": {
-                      fontSize: "0.875rem",
-                      py: 0.25,
-                    },
-                  }}
-                />
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <MsqdxInput
+                    value={editedTitle}
+                    onChange={(e) => setEditedTitle(e.target.value)}
+                    onBlur={handleSaveTitle}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleSaveTitle();
+                      } else if (e.key === "Escape") {
+                        handleCancelEdit();
+                      }
+                    }}
+                    autoFocus
+                    size="small"
+                    fullWidth
+                    borderColor="black"
+                  />
+                </Box>
               ) : (
                 <>
                   <Typography

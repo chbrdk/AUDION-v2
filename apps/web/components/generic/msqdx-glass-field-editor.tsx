@@ -2,8 +2,8 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import type { FieldDefinition } from "@msqdx-glass/types";
-import { TextField, Slider, Typography, Stack, Box, Checkbox } from "@mui/material";
-import { MsqdxIcon, MsqdxSelect } from "@msqdx/react";
+import { Typography, Box, Checkbox } from "@mui/material";
+import { MsqdxIcon, MsqdxSelect, MsqdxFormField, MsqdxTextareaField, MsqdxSlider } from "@msqdx/react";
 import { MsqdxGlassEditButton } from "./msqdx-glass-edit-button";
 import { useInlineEdit } from "../hooks/use-inline-edit";
 import { MsqdxGlassInlineEditControls } from "../msqdx-glass-inline-edit-controls";
@@ -91,60 +91,78 @@ export const MsqdxGlassFieldEditor = ({
 
     switch (field.type) {
       case "text":
-      case "textarea":
         return (
-          <TextField
-            inputRef={inlineEdit.elementRef as React.RefObject<HTMLInputElement>}
+          <MsqdxFormField
+            label={inline ? "" : field.label}
             value={currentValue ?? ""}
             onChange={(e) => inlineEdit.setValue(e.target.value || null)}
+            inputRef={inlineEdit.elementRef as React.RefObject<HTMLInputElement>}
             placeholder={field.config?.placeholder}
-            multiline={field.type === "textarea"}
-            rows={field.type === "textarea" ? 3 : undefined}
             disabled={disabled}
             required={field.config?.required}
             autoFocus
-            size="small"
             fullWidth
+            borderColor="black"
+          />
+        );
+
+      case "textarea":
+        return (
+          <MsqdxTextareaField
+            label={inline ? "" : field.label}
+            value={currentValue ?? ""}
+            onChange={(e) => inlineEdit.setValue(e.target.value || null)}
+            inputRef={inlineEdit.elementRef as React.RefObject<HTMLInputElement>}
+            placeholder={field.config?.placeholder}
+            disabled={disabled}
+            required={field.config?.required}
+            autoFocus
+            fullWidth
+            minRows={3}
+            size="small"
+            borderColor="black"
           />
         );
 
       case "number":
         return (
-          <TextField
-            inputRef={inlineEdit.elementRef as React.RefObject<HTMLInputElement>}
+          <MsqdxFormField
+            label={inline ? "" : field.label}
             type="number"
             value={currentValue ?? ""}
             onChange={(e) => {
               const numValue = e.target.value ? Number(e.target.value) : null;
               inlineEdit.setValue(numValue);
             }}
+            inputRef={inlineEdit.elementRef as React.RefObject<HTMLInputElement>}
             placeholder={field.config?.placeholder}
             disabled={disabled}
             required={field.config?.required}
             autoFocus
-            size="small"
             fullWidth
+            borderColor="black"
           />
         );
 
-      case "slider":
+      case "slider": {
         const sliderValue = typeof currentValue === "number" ? currentValue : (field.config?.min ?? 0);
         return (
           <Box>
-            <Slider
+            {/* @ts-expect-error MsqdxSlider ForwardRef type conflicts with React 19 inference */}
+            <MsqdxSlider
               value={sliderValue}
-              onChange={(_, newValue) => inlineEdit.setValue(newValue as number)}
+              onChange={(_, newValue) => inlineEdit.setValue(Array.isArray(newValue) ? newValue[0] : newValue)}
               min={field.config?.min ?? 0}
               max={field.config?.max ?? 100}
               step={field.config?.step ?? 1}
               disabled={disabled}
               size="small"
+              brandColor="black"
+              valueLabelDisplay="on"
             />
-            <Typography variant="caption" sx={{ mt: 0.5, display: "block", textAlign: "center" }}>
-              {sliderValue}
-            </Typography>
           </Box>
         );
+      }
 
       case "select": {
         const options = field.config?.options ?? [];
@@ -182,19 +200,20 @@ export const MsqdxGlassFieldEditor = ({
 
       case "date":
         return (
-          <TextField
-            inputRef={inlineEdit.elementRef as React.RefObject<HTMLInputElement>}
+          <MsqdxFormField
+            label={inline ? "" : field.label}
             type="date"
             value={currentValue ? new Date(currentValue).toISOString().split("T")[0] : ""}
             onChange={(e) => {
               const dateValue = e.target.value ? new Date(e.target.value).toISOString() : null;
               inlineEdit.setValue(dateValue);
             }}
+            inputRef={inlineEdit.elementRef as React.RefObject<HTMLInputElement>}
             disabled={disabled}
             required={field.config?.required}
             autoFocus
-            size="small"
             fullWidth
+            borderColor="black"
             InputLabelProps={{ shrink: true }}
           />
         );
