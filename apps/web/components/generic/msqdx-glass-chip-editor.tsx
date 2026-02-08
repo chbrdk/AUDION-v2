@@ -7,6 +7,7 @@ import { MsqdxGlassEditButton, MsqdxGlassAiButtonIcon } from "./";
 import { useInlineEdit } from "../hooks/use-inline-edit";
 import { MsqdxGlassInlineEditControls } from "../msqdx-glass-inline-edit-controls";
 import { MsqdxGlassChip } from "./msqdx-glass-chip";
+import { BRAND_COLOR } from "../../lib/branding";
 
 export type MsqdxGlassChipEditorProps = {
   /**
@@ -297,7 +298,7 @@ export const MsqdxGlassChipEditor = ({
                       onKeyDown={(e) => handleKeyDown(e, true, idx)}
                       onBlur={handleSaveEditChip}
                       size="small"
-                      borderColor="black"
+                      borderColor={BRAND_COLOR}
                     />
                   </Box>
                 ) : (
@@ -344,7 +345,7 @@ export const MsqdxGlassChipEditor = ({
                   onKeyDown={(e) => handleKeyDown(e, false, null)}
                   placeholder="Neuen Eintrag hinzufügen..."
                   size="small"
-                  borderColor="black"
+                  borderColor={BRAND_COLOR}
                 />
               </Box>
             )}

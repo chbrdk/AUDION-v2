@@ -54,7 +54,7 @@ AUDION has been refactored to use components and tokens from the msqdx-design-sy
 
 ## Metadata Section → MsqdxDashboardCard (Feb 2025)
 - **Persona admin panel**: Metadata box (`msqdx-glass-detail__grid`, `msqdx-glass-meta-grid`) replaced with DS `MsqdxDashboardCard`.
-- Metadata card is the first card in the dashboard grid; uses accordion ID `metadata`, icon `info`, brandColor `black`, iconColor `var(--color-theme-accent)`.
+- Metadata card is the first card in the dashboard grid; uses accordion ID `metadata`, icon `info`, brandColor from `BRAND_COLOR` (green) in `lib/branding.ts`, iconColor `var(--color-theme-accent)`.
 - Label/value pairs use `MsqdxTypography` (caption + body2); grid layout via MUI `Box` with `borderLeft` for visual separation.
 - "metadata" added to initial `expandedAccordions` set.
 
@@ -81,10 +81,15 @@ AUDION has been refactored to use components and tokens from the msqdx-design-sy
 - **MsqdxGlassChatItem**: Replaced MUI TextField with `MsqdxInput` for inline title edit.
 
 ## MsqdxGlassFieldEditor Text/Slider/Textarea/Date → DS Components (Feb 2025)
-- **Text, Number, Date**: MUI `TextField` replaced with DS `MsqdxFormField` (`borderColor="black"`).
+- **Text, Number, Date**: MUI `TextField` replaced with DS `MsqdxFormField` (`borderColor={BRAND_COLOR}`).
 - **Textarea**: MUI `TextField` replaced with DS `MsqdxTextareaField` (`minRows={3}`, `size="small"`).
-- **Slider**: MUI `Slider` replaced with DS `MsqdxSlider` (`brandColor="black"`, `valueLabelDisplay="on"`, `size="small"`).
+- **Slider**: MUI `Slider` replaced with DS `MsqdxSlider` (`brandColor={BRAND_COLOR}`, `valueLabelDisplay="on"`, `size="small"`).
 - Affects Age, Media Affinity, Location, Full Name and all entity editor fields.
+
+## Brand Color (Feb 2025)
+- **Central definition**: `BRAND_COLOR = "green"` in `apps/web/lib/branding.ts`. Maps to MSQDX token `green`.
+- **Usage**: All `MsqdxAppLayout`, `MsqdxAdminNav`, `MsqdxDashboardCard`, form fields (`MsqdxFormField`, `MsqdxTextareaField`, `MsqdxInput`, `MsqdxSlider`, `MsqdxSelect`) use `brandColor={BRAND_COLOR}` or `borderColor={BRAND_COLOR}`.
+- **Semantic colors** (edit, AI, delete, draft) remain explicit: `brandColor="purple"` for edit/AI, `brandColor="pink"` for delete, `brandColor="orange"` for draft.
 
 ## Remaining Opportunities
 - Replace remaining `msqdx-glass-button --ghost` with `MsqdxButton variant="text"` across journey page and other components

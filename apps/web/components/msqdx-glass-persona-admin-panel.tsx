@@ -22,6 +22,7 @@ import { useAiAssist } from "../hooks/use-ai-assist";
 import { MsqdxGlassCollapsiblePanel } from "./admin/msqdx-glass-collapsible-panel";
 import { Box } from "@mui/material";
 import { buildApiUrl } from "../app/api/_lib/backend";
+import { BRAND_COLOR } from "../lib/branding";
 
 type MsqdxGlassPersonaAdminPanelProps = {
   initialList: PersonaListResponse;
@@ -1315,53 +1316,55 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
               );
             })}
           </Box>
-          <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 1.5 }}>
-            <MsqdxTypography variant="h6" weight="semibold">
+          <MsqdxCard variant="flat" sx={{ mt: 2, p: 2, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
+            <MsqdxTypography variant="h6" weight="semibold" sx={{ mb: 1.5 }}>
               New Persona
             </MsqdxTypography>
-            <MsqdxFormField
-              label="Project ID"
-              value={createForm.projectId}
-              onChange={(e) => setCreateForm((prev) => ({ ...prev, projectId: e.target.value }))}
-              placeholder="123e4567-e89b-12d3-a456-426614174000"
-              fullWidth
-              size="small"
-            />
-            <MsqdxFormField
-              label="Name"
-              value={createForm.name}
-              onChange={(e) => setCreateForm((prev) => ({ ...prev, name: e.target.value }))}
-              placeholder="Persona Name"
-              fullWidth
-              size="small"
-            />
-            <MsqdxFormField
-              label="Segment"
-              value={createForm.segment}
-              onChange={(e) => setCreateForm((prev) => ({ ...prev, segment: e.target.value }))}
-              placeholder="B2B / Enterprise / etc."
-              fullWidth
-              size="small"
-            />
-            <MsqdxFormField
-              label="Headline"
-              value={createForm.headline}
-              onChange={(e) => setCreateForm((prev) => ({ ...prev, headline: e.target.value }))}
-              placeholder="Kurzbeschreibung"
-              fullWidth
-              size="small"
-            />
-            <MsqdxButton
-              variant="contained"
-              brandColor="green"
-              size="small"
-              onClick={handleCreate}
-              disabled={createPending}
-              startIcon={<MsqdxIcon name="add" customSize={16} />}
-            >
-              Persona anlegen
-            </MsqdxButton>
-          </Box>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+              <MsqdxFormField
+                label="Project ID"
+                value={createForm.projectId}
+                onChange={(e) => setCreateForm((prev) => ({ ...prev, projectId: e.target.value }))}
+                placeholder="123e4567-e89b-12d3-a456-426614174000"
+                fullWidth
+                size="small"
+              />
+              <MsqdxFormField
+                label="Name"
+                value={createForm.name}
+                onChange={(e) => setCreateForm((prev) => ({ ...prev, name: e.target.value }))}
+                placeholder="Persona Name"
+                fullWidth
+                size="small"
+              />
+              <MsqdxFormField
+                label="Segment"
+                value={createForm.segment}
+                onChange={(e) => setCreateForm((prev) => ({ ...prev, segment: e.target.value }))}
+                placeholder="B2B / Enterprise / etc."
+                fullWidth
+                size="small"
+              />
+              <MsqdxFormField
+                label="Headline"
+                value={createForm.headline}
+                onChange={(e) => setCreateForm((prev) => ({ ...prev, headline: e.target.value }))}
+                placeholder="Kurzbeschreibung"
+                fullWidth
+                size="small"
+              />
+              <MsqdxButton
+                variant="contained"
+                brandColor="green"
+                size="small"
+                onClick={handleCreate}
+                disabled={createPending}
+                startIcon={<MsqdxIcon name="add" customSize={16} />}
+              >
+                Persona anlegen
+              </MsqdxButton>
+            </Box>
+          </MsqdxCard>
         </section>
       </MsqdxGlassCollapsiblePanel>
 
@@ -1372,157 +1375,161 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
         {detail && (
           <div className="msqdx-glass-detail">
             <input ref={documentInputRef} type="file" className="msqdx-glass-sr-only" onChange={handleDocumentInputChange} />
-            <header className="msqdx-glass-detail__header">
-              <div className="msqdx-glass-detail__title">
-                <div className="msqdx-glass-avatar">
-                  {detail.metadata.avatarUrl ? (
-                    <img src={detail.metadata.avatarUrl} alt={`${detail.profile.name} Avatar`} />
-                  ) : (
-                    <MsqdxIcon name="person" customSize={32} />
-                  )}
-                </div>
-                <div style={{ flex: 1 }}>
-                  {(() => {
-                    const fieldDefinitions = getFieldDefinitions("persona");
-                    const nameField = fieldDefinitions.find(f => f.key === "name");
-                    const headlineField = fieldDefinitions.find(f => f.key === "headline");
-                    const segmentField = fieldDefinitions.find(f => f.key === "segment");
-
-                    const handleFieldSave = async (key: string, value: any) => {
-                      await handleSave({ [key]: value } as Partial<EditFormState>);
-                      setEditingField(null);
-                    };
-
-                    const handleFieldChange = (key: string, value: any) => {
-                      // Just update local state, save is handled by onSave
-                    };
-
-                    return (
-                      <div>
-                        {/* Name as large headline */}
-                        {nameField && (
-                          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                            {editingField === "name" ? (
-                              <Box sx={{ flex: 1 }}>
-                                <MsqdxGlassFieldEditor
-                                  field={nameField}
-                                  value={detail.profile.name}
-                                  onChange={handleFieldChange}
-                                  onSave={(key, value) => handleFieldSave(key, value)}
-                                  inline={true}
-                                  disabled={savePending}
-                                  forceEditMode={true}
-                                  onEditEnd={() => setEditingField(null)}
-                                />
-                              </Box>
-                            ) : (
-                              <>
-                                <h2 style={{ margin: 0, fontSize: "2rem", fontWeight: 600, flex: 1 }}>
-                                  {detail.profile.name}
-                                </h2>
-                                <MsqdxGlassEditButton
-                                  onClick={() => setEditingField("name")}
-                                  disabled={savePending}
-                                  aria-label="Edit name"
-                                  size="small"
-                                  fontSize={16}
-                                />
-                              </>
-                            )}
-                          </div>
-                        )}
-                        {/* Headline and Segment without labels */}
-                        <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-                          {headlineField && (
-                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                              {editingField === "headline" ? (
-                                <Box sx={{ flex: 1 }}>
-                                  <MsqdxGlassFieldEditor
-                                    field={headlineField}
-                                    value={detail.profile.headline}
-                                    onChange={handleFieldChange}
-                                    onSave={(key, value) => handleFieldSave(key, value)}
-                                    inline={true}
-                                    disabled={savePending}
-                                    forceEditMode={true}
-                                    onEditEnd={() => setEditingField(null)}
-                                  />
-                                </Box>
-                              ) : (
-                                <>
-                                  <span style={{ fontSize: "1rem", color: "var(--color-text-secondary)" }}>
-                                    {detail.profile.headline || "—"}
-                                  </span>
-                                  <MsqdxGlassEditButton
-                                    onClick={() => setEditingField("headline")}
-                                    disabled={savePending}
-                                    aria-label="Edit headline"
-                                    size="small"
-                                    fontSize={14}
-                                  />
-                                </>
-                              )}
-                            </div>
-                          )}
-                          {segmentField && (
-                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                              {editingField === "segment" ? (
-                                <Box sx={{ flex: 1 }}>
-                                  <MsqdxGlassFieldEditor
-                                    field={segmentField}
-                                    value={detail.profile.segment}
-                                    onChange={handleFieldChange}
-                                    onSave={(key, value) => handleFieldSave(key, value)}
-                                    inline={true}
-                                    disabled={savePending}
-                                    forceEditMode={true}
-                                    onEditEnd={() => setEditingField(null)}
-                                  />
-                                </Box>
-                              ) : (
-                                <>
-                                  <span style={{ fontSize: "0.875rem", color: "var(--color-text-secondary)" }}>
-                                    {detail.profile.segment || "—"}
-                                  </span>
-                                  <MsqdxGlassEditButton
-                                    onClick={() => setEditingField("segment")}
-                                    disabled={savePending}
-                                    aria-label="Edit segment"
-                                    size="small"
-                                    fontSize={14}
-                                  />
-                                </>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })()}
-                  <div className="msqdx-glass-detail__links" style={{ marginTop: "0.5rem", display: "flex", gap: "0.5rem", alignItems: "center" }}>
-                    <MsqdxButton variant="text" size="small" onClick={handleGenerateAvatar} disabled={avatarGeneratePending} startIcon={<MsqdxIcon name="photo_camera" customSize={16} />}>
-                      {avatarGeneratePending ? "Generating..." : "Generate avatar"}
-                    </MsqdxButton>
-                    <MsqdxButton variant="text" size="small" onClick={handleArchive} disabled={savePending} startIcon={<MsqdxIcon name="archive" customSize={16} />}>
-                      Archive
-                    </MsqdxButton>
-                    <MsqdxButton variant="text" size="small" onClick={handleDelete} disabled={savePending} brandColor="pink" startIcon={<MsqdxIcon name="delete" customSize={16} />}>
-                      Delete
-                    </MsqdxButton>
-                  </div>
-                </div>
-              </div>
-            </header>
 
             {/* Dashboard Cards Grid */}
             <div className="msqdx-glass-dashboard-grid">
 
-              {/* Card: Metadata */}
+              {/* Hero Card: Persona Header + Biography + Demographics */}
+              <Box sx={{ gridColumn: "1 / -1" }}>
+                <MsqdxDashboardCard
+                  id="bio-demographics"
+                  title="Biography & Demographics"
+                  icon="person"
+                  brandColor={BRAND_COLOR}
+                  iconColor={{ color: "var(--color-theme-accent)" }}
+                  expanded={isAccordionExpanded("bio-demographics")}
+                  onToggle={toggleAccordion}
+                >
+                  <Box sx={{ display: "flex", gap: 2, alignItems: "flex-start", mb: 2 }}>
+                    <div className="msqdx-glass-avatar" style={{ flexShrink: 0 }}>
+                      {detail.metadata.avatarUrl ? (
+                        <img src={detail.metadata.avatarUrl} alt={`${detail.profile.name} Avatar`} />
+                      ) : (
+                        <MsqdxIcon name="person" customSize={32} />
+                      )}
+                    </div>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      {(() => {
+                        const fieldDefinitions = getFieldDefinitions("persona");
+                        const nameField = fieldDefinitions.find(f => f.key === "name");
+                        const headlineField = fieldDefinitions.find(f => f.key === "headline");
+                        const segmentField = fieldDefinitions.find(f => f.key === "segment");
+                        const handleFieldSave = async (key: string, value: any) => {
+                          await handleSave({ [key]: value } as Partial<EditFormState>);
+                          setEditingField(null);
+                        };
+                        const handleFieldChange = () => {};
+                        return (
+                          <div>
+                            {nameField && (
+                              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                                {editingField === "name" ? (
+                                  <Box sx={{ flex: 1 }}>
+                                    <MsqdxGlassFieldEditor
+                                      field={nameField}
+                                      value={detail.profile.name}
+                                      onChange={handleFieldChange}
+                                      onSave={(k, v) => handleFieldSave(k, v)}
+                                      inline={true}
+                                      disabled={savePending}
+                                      forceEditMode={true}
+                                      onEditEnd={() => setEditingField(null)}
+                                    />
+                                  </Box>
+                                ) : (
+                                  <>
+                                    <h2 style={{ margin: 0, fontSize: "2rem", fontWeight: 600, flex: 1 }}>
+                                      {detail.profile.name}
+                                    </h2>
+                                    <MsqdxGlassEditButton onClick={() => setEditingField("name")} disabled={savePending} aria-label="Edit name" size="small" fontSize={16} />
+                                  </>
+                                )}
+                              </div>
+                            )}
+                            <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                              {headlineField && (
+                                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                                  {editingField === "headline" ? (
+                                    <Box sx={{ flex: 1 }}>
+                                      <MsqdxGlassFieldEditor
+                                        field={headlineField}
+                                        value={detail.profile.headline}
+                                        onChange={handleFieldChange}
+                                        onSave={(k, v) => handleFieldSave(k, v)}
+                                        inline={true}
+                                        disabled={savePending}
+                                        forceEditMode={true}
+                                        onEditEnd={() => setEditingField(null)}
+                                      />
+                                    </Box>
+                                  ) : (
+                                    <>
+                                      <span style={{ fontSize: "1rem", color: "var(--color-text-secondary)" }}>{detail.profile.headline || "—"}</span>
+                                      <MsqdxGlassEditButton onClick={() => setEditingField("headline")} disabled={savePending} aria-label="Edit headline" size="small" fontSize={14} />
+                                    </>
+                                  )}
+                                </div>
+                              )}
+                              {segmentField && (
+                                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                                  {editingField === "segment" ? (
+                                    <Box sx={{ flex: 1 }}>
+                                      <MsqdxGlassFieldEditor
+                                        field={segmentField}
+                                        value={detail.profile.segment}
+                                        onChange={handleFieldChange}
+                                        onSave={(k, v) => handleFieldSave(k, v)}
+                                        inline={true}
+                                        disabled={savePending}
+                                        forceEditMode={true}
+                                        onEditEnd={() => setEditingField(null)}
+                                      />
+                                    </Box>
+                                  ) : (
+                                    <>
+                                      <span style={{ fontSize: "0.875rem", color: "var(--color-text-secondary)" }}>{detail.profile.segment || "—"}</span>
+                                      <MsqdxGlassEditButton onClick={() => setEditingField("segment")} disabled={savePending} aria-label="Edit segment" size="small" fontSize={14} />
+                                    </>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            <Box sx={{ display: "flex", gap: 0.5, alignItems: "center", mt: 1, flexWrap: "wrap" }}>
+                              <MsqdxButton variant="text" size="small" onClick={handleGenerateAvatar} disabled={avatarGeneratePending} startIcon={<MsqdxIcon name="photo_camera" customSize={16} />}>
+                                {avatarGeneratePending ? "Generating..." : "Generate avatar"}
+                              </MsqdxButton>
+                              <MsqdxButton variant="text" size="small" onClick={handleArchive} disabled={savePending} startIcon={<MsqdxIcon name="archive" customSize={16} />}>
+                                Archive
+                              </MsqdxButton>
+                              <MsqdxButton variant="text" size="small" onClick={handleDelete} disabled={savePending} brandColor="pink" startIcon={<MsqdxIcon name="delete" customSize={16} />}>
+                                Delete
+                              </MsqdxButton>
+                            </Box>
+                          </div>
+                        );
+                      })()}
+                    </Box>
+                  </Box>
+                  {detail.profile.bio && (
+                    <MsqdxGlassDashboardCardSection title="Biography">
+                      <p style={{ lineHeight: "1.6", whiteSpace: "pre-wrap", margin: 0 }}>
+                        {detail.profile.bio}
+                      </p>
+                    </MsqdxGlassDashboardCardSection>
+                  )}
+                  {(detail.profile.full_name || detail.profile.age || detail.profile.location || detail.profile.gender || (detail.profile.media_affinity !== null && detail.profile.media_affinity !== undefined)) && (
+                    <MsqdxGlassDashboardCardSection title="Demographics">
+                      <MsqdxGlassEntityEditor
+                        entityType="persona"
+                        entity={detail.profile}
+                        onSave={async (updates) => {
+                          await handleDemographicSave(updates as Partial<PersonaProfile>);
+                        }}
+                        inline={true}
+                        fieldOverrides={{ name: undefined, headline: undefined, segment: undefined }}
+                      />
+                    </MsqdxGlassDashboardCardSection>
+                  )}
+                </MsqdxDashboardCard>
+              </Box>
+
+              {/* Card: Metadata - full width */}
+              <Box sx={{ gridColumn: "1 / -1" }}>
               <MsqdxDashboardCard
                 id="metadata"
                 title="Metadata"
                 icon="info"
-                brandColor="black"
+                brandColor={BRAND_COLOR}
                 iconColor={{ color: "var(--color-theme-accent)" }}
                 expanded={isAccordionExpanded("metadata")}
                 onToggle={toggleAccordion}
@@ -1598,45 +1605,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
                   )}
                 </Box>
               </MsqdxDashboardCard>
-
-              {/* Card: Biografie & Demographie */}
-              {(detail.profile.bio || detail.profile.full_name || detail.profile.age || detail.profile.location || detail.profile.gender || (detail.profile.media_affinity !== null && detail.profile.media_affinity !== undefined)) && (
-                <Box sx={{ gridColumn: "1 / -1" }}>
-                  <MsqdxDashboardCard
-                    id="bio-demographics"
-                    title="Biography & Demographics"
-                    icon="person"
-                    brandColor="black"
-                    iconColor={{ color: "var(--color-theme-accent)" }}
-                    expanded={isAccordionExpanded("bio-demographics")}
-                    onToggle={toggleAccordion}
-                  >
-                    {detail.profile.bio && (
-                      <MsqdxGlassDashboardCardSection title="Biography">
-                        <p style={{ lineHeight: "1.6", whiteSpace: "pre-wrap", margin: 0 }}>
-                          {detail.profile.bio}
-                        </p>
-                      </MsqdxGlassDashboardCardSection>
-                    )}
-                    <MsqdxGlassDashboardCardSection title="Demographics">
-                      <MsqdxGlassEntityEditor
-                        entityType="persona"
-                        entity={detail.profile}
-                        onSave={async (updates) => {
-                          await handleDemographicSave(updates as Partial<PersonaProfile>);
-                        }}
-                        inline={true}
-                        fieldOverrides={{
-                          // Filter out non-demographic fields
-                          name: undefined,
-                          headline: undefined,
-                          segment: undefined,
-                        }}
-                      />
-                    </MsqdxGlassDashboardCardSection>
-                  </MsqdxDashboardCard>
-                </Box>
-              )}
+              </Box>
 
               {/* Card: Persönlichkeit & Werte - 50% width */}
               <MsqdxGlassPersonalityCard

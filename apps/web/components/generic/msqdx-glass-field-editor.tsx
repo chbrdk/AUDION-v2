@@ -7,6 +7,7 @@ import { MsqdxIcon, MsqdxSelect, MsqdxFormField, MsqdxTextareaField, MsqdxSlider
 import { MsqdxGlassEditButton } from "./msqdx-glass-edit-button";
 import { useInlineEdit } from "../hooks/use-inline-edit";
 import { MsqdxGlassInlineEditControls } from "../msqdx-glass-inline-edit-controls";
+import { BRAND_COLOR } from "../../lib/branding";
 
 export type MsqdxGlassFieldEditorProps = {
   field: FieldDefinition;
@@ -102,7 +103,7 @@ export const MsqdxGlassFieldEditor = ({
             required={field.config?.required}
             autoFocus
             fullWidth
-            borderColor="black"
+            borderColor={BRAND_COLOR}
           />
         );
 
@@ -120,7 +121,7 @@ export const MsqdxGlassFieldEditor = ({
             fullWidth
             minRows={3}
             size="small"
-            borderColor="black"
+            borderColor={BRAND_COLOR}
           />
         );
 
@@ -140,7 +141,7 @@ export const MsqdxGlassFieldEditor = ({
             required={field.config?.required}
             autoFocus
             fullWidth
-            borderColor="black"
+            borderColor={BRAND_COLOR}
           />
         );
 
@@ -157,7 +158,7 @@ export const MsqdxGlassFieldEditor = ({
               step={field.config?.step ?? 1}
               disabled={disabled}
               size="small"
-              brandColor="black"
+              brandColor={BRAND_COLOR}
               valueLabelDisplay="on"
             />
           </Box>
@@ -213,7 +214,7 @@ export const MsqdxGlassFieldEditor = ({
             required={field.config?.required}
             autoFocus
             fullWidth
-            borderColor="black"
+            borderColor={BRAND_COLOR}
             InputLabelProps={{ shrink: true }}
           />
         );

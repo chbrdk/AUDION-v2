@@ -189,7 +189,7 @@ main {
 
 .msqdx-glass-admin-grid {
   display: grid;
-  grid-template-columns: minmax(64px, 280px) minmax(0, 1fr);
+  grid-template-columns: minmax(64px, 220px) minmax(0, 1fr);
   gap: 1rem;
   width: 100%;
   max-width: 100%;
@@ -210,9 +210,9 @@ main {
 }
 
 .msqdx-glass-panel-wrapper.--expanded {
-  width: 280px;
-  min-width: 280px;
-  max-width: 280px;
+  width: 220px;
+  min-width: 220px;
+  max-width: 220px;
 }
 
 /* Grid-Layout anpassen wenn Panel collapsed */
@@ -221,7 +221,7 @@ main {
 }
 
 .msqdx-glass-admin-grid:has(.msqdx-glass-panel-wrapper.--expanded) {
-  grid-template-columns: 280px minmax(0, 1fr);
+  grid-template-columns: 220px minmax(0, 1fr);
 }
 
 @media (max-width: 1200px) {

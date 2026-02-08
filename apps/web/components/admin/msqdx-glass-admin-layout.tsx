@@ -9,6 +9,7 @@ import { useThemeMode } from "../theme-registry";
 import { MsqdxIcon, MsqdxAdminNav, MsqdxAppLayout, MsqdxTypography } from "@msqdx/react";
 import type { AdminNavItem } from "@msqdx/react";
 import { useAdminHeader, useAdminPanel } from "./admin-layout-providers";
+import { BRAND_COLOR } from "../../lib/branding";
 
 // Re-export for consumers that import from this file
 export { useAdminHeader, useAdminPanel } from "./admin-layout-providers";
@@ -125,12 +126,12 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
           themeMode={themeMode}
           onToggleTheme={toggleTheme}
           linkComponent={Link as any}
-          brandColor="black"
+          brandColor={BRAND_COLOR}
         />
       }
       logo
       appName="Audion"
-      brandColor="black"
+      brandColor={BRAND_COLOR}
       innerBackground="grid"
       borderWidth="thick"
     >

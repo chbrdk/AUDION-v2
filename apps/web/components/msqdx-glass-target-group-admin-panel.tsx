@@ -33,6 +33,7 @@ import { MsqdxIcon, MsqdxFormField, MsqdxTextareaField, MsqdxButton } from "@msq
 import { MsqdxGlassKnowledgeExplorer } from "./msqdx-glass-knowledge-explorer";
 import { MsqdxGlassPersonaList } from "./msqdx-glass-persona-list";
 import { MsqdxGlassEntityEditor } from "./generic";
+import { BRAND_COLOR } from "../lib/branding";
 import { MsqdxGlassCollapsiblePanel } from "./admin/msqdx-glass-collapsible-panel";
 
 type MsqdxGlassTargetGroupAdminPanelProps = {
@@ -502,7 +503,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                     }
                     placeholder="123e4567-e89b-12d3-a456-426614174000"
                     fullWidth
-                    borderColor="black"
+                    borderColor={BRAND_COLOR}
                   />
                   <MsqdxButton
                     variant="text"
@@ -532,7 +533,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                   onChange={(e) => setCreateForm((prev) => ({ ...prev, name: e.target.value }))}
                   placeholder="Target Group Name"
                   fullWidth
-                  borderColor="black"
+                  borderColor={BRAND_COLOR}
                 />
                 <MsqdxFormField
                   label="Segment"
@@ -542,7 +543,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                   }
                   placeholder="B2B / Enterprise / etc."
                   fullWidth
-                  borderColor="black"
+                  borderColor={BRAND_COLOR}
                 />
                 <MsqdxTextareaField
                   label="Description"
@@ -553,7 +554,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                   placeholder="Beschreibung"
                   minRows={3}
                   fullWidth
-                  borderColor="black"
+                  borderColor={BRAND_COLOR}
                 />
                 <button
               className="msqdx-glass-button"
@@ -666,7 +667,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                       required
                       disabled={createPersonaPending}
                       fullWidth
-                      borderColor="black"
+                      borderColor={BRAND_COLOR}
                     />
                     <MsqdxTextareaField
                       label="Beschreibung (optional)"
@@ -676,7 +677,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                       minRows={3}
                       disabled={createPersonaPending}
                       fullWidth
-                      borderColor="black"
+                      borderColor={BRAND_COLOR}
                     />
                     <button
                       className="msqdx-glass-button --ghost"
@@ -736,7 +737,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                       onChange={(e) => handleKnowledgeField("title", e.target.value)}
                       placeholder="Titel"
                       fullWidth
-                      borderColor="black"
+                      borderColor={BRAND_COLOR}
                     />
                     <MsqdxTextareaField
                       label="Inhalt"
@@ -745,7 +746,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                       placeholder="Inhalt"
                       minRows={3}
                       fullWidth
-                      borderColor="black"
+                      borderColor={BRAND_COLOR}
                     />
                     <button
                       className="msqdx-glass-button --ghost"

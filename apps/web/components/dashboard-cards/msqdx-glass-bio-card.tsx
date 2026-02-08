@@ -4,6 +4,7 @@ import { Box } from "@mui/material";
 import type { PersonaProfile } from "@msqdx-glass/types";
 import { MsqdxDashboardCard } from "@msqdx/react";
 import { MsqdxGlassDashboardCardSection } from "./msqdx-glass-dashboard-card-section";
+import { BRAND_COLOR } from "../../lib/branding";
 
 export type MsqdxGlassBioCardProps = {
   profile: PersonaProfile;
@@ -22,7 +23,7 @@ export const MsqdxGlassBioCard = ({
       id="bio-demographics"
       title="Biography & Demographics"
       icon="person"
-      brandColor="black"
+      brandColor={BRAND_COLOR}
       iconColor={{ color: "var(--color-theme-accent)" }}
       expanded={expanded}
       onToggle={onToggle}

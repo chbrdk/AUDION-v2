@@ -5,6 +5,7 @@ import type { PersonaProfile } from "@msqdx-glass/types";
 import { Box, Slider, Typography, Stack } from "@mui/material";
 import { MsqdxIcon, MsqdxDashboardCard, MsqdxSelect, MsqdxFormField } from "@msqdx/react";
 import { MsqdxGlassDashboardCardSection } from "./msqdx-glass-dashboard-card-section";
+import { BRAND_COLOR } from "../../lib/branding";
 import { MsqdxGlassInlineEditControls } from "../msqdx-glass-inline-edit-controls";
 import { useInlineEdit } from "../hooks/use-inline-edit";
 
@@ -121,7 +122,7 @@ export const MsqdxGlassBioCardEdit = ({
         id="bio-demographics"
         title="Biography & Demographics"
         icon="person"
-        brandColor="black"
+        brandColor={BRAND_COLOR}
         iconColor={{ color: "var(--color-theme-accent)" }}
         expanded={expanded}
         onToggle={onToggle}
@@ -186,7 +187,7 @@ export const MsqdxGlassBioCardEdit = ({
                 displayEmpty
                 fullWidth
                 size="small"
-                borderColor="black"
+                borderColor={BRAND_COLOR}
               />
               <MsqdxGlassInlineEditControls
                 hasChanges={genderEdit.hasChanges}

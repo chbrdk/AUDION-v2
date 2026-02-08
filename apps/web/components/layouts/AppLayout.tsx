@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { MsqdxAppLayout, MsqdxAdminNav } from "@msqdx/react";
 import type { AdminNavItem } from "@msqdx/react";
 import { useThemeMode } from "../theme-registry";
+import { BRAND_COLOR } from "../../lib/branding";
 import "../../styles/admin.css";
 
 const ADMIN_NAV_ITEMS: AdminNavItem[] = [
@@ -41,10 +42,10 @@ export function AppLayout({ children }: AppLayoutProps) {
           themeMode={themeMode}
           onToggleTheme={toggleTheme}
           linkComponent={Link as any}
-          brandColor="black"
+          brandColor={BRAND_COLOR}
         />
       }
-      brandColor="black"
+      brandColor={BRAND_COLOR}
       innerBackground="grid"
     >
       {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}

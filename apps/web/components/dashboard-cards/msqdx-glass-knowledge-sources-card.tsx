@@ -10,6 +10,7 @@ type KnowledgeFormState = {
 };
 import { MsqdxIcon, MsqdxDashboardCard, MsqdxButton, MsqdxFormField, MsqdxTextareaField } from "@msqdx/react";
 import { MsqdxGlassDashboardCardSection } from "./msqdx-glass-dashboard-card-section";
+import { BRAND_COLOR } from "../../lib/branding";
 import { buildApiUrl } from "../../app/api/_lib/backend";
 
 export type MsqdxGlassKnowledgeSourcesCardProps = {
@@ -95,7 +96,7 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
       id="knowledge-sources"
       title="Knowledge & Sources"
       icon="lightbulb"
-      brandColor="black"
+      brandColor={BRAND_COLOR}
       iconColor={{ color: "var(--color-theme-accent)" }}
       expanded={expanded}
       onToggle={onToggle}

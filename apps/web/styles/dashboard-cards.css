@@ -7,12 +7,12 @@
   margin-top: var(--msqdx-spacing-xxl);
 }
 
-/* Cards: white background */
-.msqdx-glass-dashboard-grid > div:has(.summary-button) {
+/* Cards: background on the actual card (MsqdxAccordion with .msqdx-dashboard-card), not wrapper divs */
+.msqdx-glass-dashboard-grid .msqdx-dashboard-card {
   background-color: #ffffff;
 }
 
-[data-theme="dark"] .msqdx-glass-dashboard-grid > div:has(.summary-button) {
+[data-theme="dark"] .msqdx-glass-dashboard-grid .msqdx-dashboard-card {
   background-color: var(--color-background, #1a1a1a);
 }
 

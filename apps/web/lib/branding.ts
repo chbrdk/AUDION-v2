@@ -21,3 +21,6 @@ export const BRAND_LOGO = {
   alt: "MSQDX logo"
 } as const;
 
+/** Primary brand color for nav, layout, cards. Uses MSQDX token green. */
+export const BRAND_COLOR = "green" as const;
+

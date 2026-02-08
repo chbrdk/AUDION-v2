@@ -6,6 +6,7 @@ import { MsqdxDashboardCard } from "@msqdx/react";
 import { MsqdxGlassDashboardCardSection } from "./msqdx-glass-dashboard-card-section";
 import { MsqdxGlassChipEditor } from "../generic/msqdx-glass-chip-editor";
 import { MsqdxGlassFieldEditor } from "../generic/msqdx-glass-field-editor";
+import { BRAND_COLOR } from "../../lib/branding";
 
 export type MsqdxGlassCommunicationCardProps = {
   profile: PersonaProfile;
@@ -39,7 +40,7 @@ export const MsqdxGlassCommunicationCard = ({
       id="communication"
       title="Communication"
       icon="chat_bubble"
-      brandColor="black"
+      brandColor={BRAND_COLOR}
       iconColor={{ color: "var(--color-theme-accent)" }}
       expanded={expanded}
       onToggle={onToggle}
