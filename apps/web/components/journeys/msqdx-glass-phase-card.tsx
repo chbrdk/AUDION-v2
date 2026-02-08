@@ -307,8 +307,8 @@ export const MsqdxGlassJourneyPhaseCard = ({
         sx={{ minWidth: 380 }}
       >
         <MsqdxCard variant="flat" brandColor={BRAND_COLOR} borderRadius="button">
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
+          <Box sx={{ display: "flex", flexDirection: "row", flexWrap: "wrap", gap: "8px", alignItems: "flex-start" }}>
+            <Box sx={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
               <Box
                 sx={{
                   width: 32,
@@ -345,7 +345,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
                   <MsqdxGlassAiFieldButton onClick={handleAiNameSuggestion} loading={aiAssistLoading} disabled={saving} />
                 </Box>
               </Box>
-              <Box sx={{ display: "flex", gap: 0.5 }}>
+              <Box sx={{ display: "flex", gap: "8px" }}>
                 <MsqdxButton variant="text" size="small" onClick={handleCancel} disabled={saving} aria-label="Cancel">
                   <MsqdxIcon name="close" customSize={16} />
                 </MsqdxButton>
@@ -361,6 +361,8 @@ export const MsqdxGlassJourneyPhaseCard = ({
                 </MsqdxButton>
               </Box>
             </Box>
+
+            <MsqdxDivider color={BRAND_COLOR as "purple" | "yellow" | "pink" | "orange" | "green" | "black"} orientation="vertical" spacing="xs" sx={{ alignSelf: "stretch" }} />
 
             <Box sx={{ position: "relative" }}>
               <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
@@ -386,7 +388,9 @@ export const MsqdxGlassJourneyPhaseCard = ({
               </Box>
             </Box>
 
-            <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 1.5 }}>
+            <MsqdxDivider color={BRAND_COLOR as "purple" | "yellow" | "pink" | "orange" | "green" | "black"} orientation="vertical" spacing="xs" sx={{ alignSelf: "stretch" }} />
+
+            <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
               <MsqdxFormField
                 label="Duration Min"
                 value={String(formData.expected_duration_min ?? "")}
@@ -431,6 +435,9 @@ export const MsqdxGlassJourneyPhaseCard = ({
                 borderColor={BRAND_COLOR}
               />
             </Box>
+
+            <MsqdxDivider color={BRAND_COLOR as "purple" | "yellow" | "pink" | "orange" | "green" | "black"} orientation="vertical" spacing="xs" sx={{ alignSelf: "stretch" }} />
+
             <Box sx={{ position: "relative" }}>
               <MsqdxFormField
                 label="Expected Emotion"
@@ -452,24 +459,35 @@ export const MsqdxGlassJourneyPhaseCard = ({
               </Box>
             </Box>
 
-            <Box>
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-                <Box>
+            <MsqdxDivider color={BRAND_COLOR as "purple" | "yellow" | "pink" | "orange" | "green" | "black"} orientation="vertical" spacing="xs" sx={{ alignSelf: "stretch" }} />
+
+            <Box sx={{ display: "flex", flexDirection: "column", gap: `${MSQDX_SPACING.gap.xs}px` }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: `${MSQDX_SPACING.gap.xs}px`,
+                }}
+              >
+                <Box sx={{ display: "flex", flexDirection: "column", gap: "2px" }}>
                   <MsqdxTypography variant="caption" weight="semibold" sx={{ display: "block" }}>
                     Journey Moments
                   </MsqdxTypography>
                   <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
-                    Erfasse zentrale Aktionen, Gedanken oder Touchpoints dieser Phase.
+                    Capture key actions, thoughts or touchpoints of this phase.
                   </MsqdxTypography>
                 </Box>
-                <Box sx={{ display: "flex", gap: 0.5 }}>
+                <Box sx={{ display: "flex", flexDirection: "row", flexWrap: "wrap", gap: `${MSQDX_SPACING.gap.xs}px` }}>
                   <MsqdxGlassAiButton
-                    templates={[{ id: "journey.moments", label: "AI Vorschlag", maxSuggestions: 4 }]}
+                    templates={[{ id: "journey.moments", label: "AI suggestion", maxSuggestions: 4 }]}
                     onClick={handleAiMomentsSuggestion}
                     disabled={!journey || saving || aiAssistLoading}
                     loading={aiAssistLoading}
                     size="small"
-                    title="AI Vorschlag"
+                    title="AI suggestion"
                   />
                   <MsqdxButton
                     variant="outlined"
@@ -478,27 +496,27 @@ export const MsqdxGlassJourneyPhaseCard = ({
                     disabled={saving}
                     startIcon={<MsqdxIcon name="add_circle" customSize={14} />}
                   >
-                    Moment hinzufügen
+                    Add moment
                   </MsqdxButton>
                 </Box>
               </Box>
               {momentDrafts.length === 0 ? (
                 <MsqdxTypography variant="body2" sx={{ color: "text.secondary", py: 2 }}>
-                  Keine Journey Moments hinzugefügt.
+                  No journey moments added yet.
                 </MsqdxTypography>
               ) : (
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: `${MSQDX_SPACING.gap.xs}px` }}>
                   {momentDrafts.map((moment) => (
-                    <Box
+                    <MsqdxCard
                       key={moment.id}
+                      variant="flat"
                       sx={{
                         display: "flex",
-                        gap: 1.5,
+                        flexDirection: "row",
+                        flexWrap: "wrap",
+                        gap: `${MSQDX_SPACING.gap.xs}px`,
                         alignItems: "flex-start",
                         p: 1.5,
-                        border: "1px solid",
-                        borderColor: "divider",
-                        borderRadius: 1,
                       }}
                     >
                       <Box sx={{ width: 140, flexShrink: 0 }}>
@@ -515,12 +533,12 @@ export const MsqdxGlassJourneyPhaseCard = ({
                           borderColor={BRAND_COLOR}
                         />
                       </Box>
-                      <Box sx={{ flex: 1 }}>
+                      <Box sx={{ flex: 1, minWidth: 120 }}>
                         <MsqdxTextareaField
-                          label="Beschreibung"
+                          label="Description"
                           value={moment.content}
                           onChange={(e) => updateMomentDraft(moment.id, { content: e.target.value })}
-                          placeholder="Beschreibe den Touchpoint oder Gedanken..."
+                          placeholder="Describe the touchpoint or thought..."
                           minRows={2}
                           disabled={saving}
                           fullWidth
@@ -532,12 +550,12 @@ export const MsqdxGlassJourneyPhaseCard = ({
                         size="small"
                         onClick={() => removeMomentDraft(moment.id)}
                         disabled={saving}
-                        aria-label="Moment entfernen"
+                        aria-label="Remove moment"
                         sx={{ alignSelf: "flex-start", mt: 2 }}
                       >
                         <MsqdxIcon name="close" customSize={14} />
                       </MsqdxButton>
-                    </Box>
+                    </MsqdxCard>
                   ))}
                 </Box>
               )}
@@ -602,7 +620,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
                   size="small"
                   onClick={async (e) => {
                     e.stopPropagation();
-                    if (confirm(`Möchtest du die Phase "${phase.name}" wirklich löschen?`)) {
+                    if (confirm(`Do you really want to delete the phase "${phase.name}"?`)) {
                       try {
                         await onDelete(phase.id);
                       } catch (err) {

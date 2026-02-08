@@ -756,11 +756,20 @@ export default function JourneyEditorPage() {
           brandColor={BRAND_COLOR}
           borderRadius="md"
           component="header"
-          sx={{ display: "flex", flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: "8px", flexWrap: "wrap" }}
+          sx={{
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "8px",
+            flexWrap: "wrap",
+            backgroundColor: "background.paper",
+            "& > div": { padding: "8px", gap: "8px", display: "flex", flexDirection: "row", alignItems: "center", flexWrap: "wrap" },
+          }}
         >
-          <Box sx={{ display: "flex", flexDirection: "column", gap: "8px", flex: 1, minWidth: 0 }}>
+          <Box sx={{ display: "flex", flexDirection: "row", gap: "8px", flex: 1, minWidth: 0, flexWrap: "wrap", alignItems: "center" }}>
             {editingName ? (
-              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <MsqdxFormField
                   label=""
                   value={nameValue}
@@ -789,7 +798,7 @@ export default function JourneyEditorPage() {
                 </MsqdxButton>
               </Box>
             ) : (
-              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <MsqdxTypography variant="h5" weight="semibold" sx={{ flex: 1 }}>{journey.name}</MsqdxTypography>
                 <MsqdxButton variant="text" size="small" onClick={startEditingName} disabled={savePending} sx={{ minWidth: 28, minHeight: 28, p: 0 }} aria-label="Edit name">
                   <MsqdxIcon name="edit" customSize={16} />
@@ -797,7 +806,7 @@ export default function JourneyEditorPage() {
               </Box>
             )}
             {editingDescription ? (
-              <Box sx={{ display: "flex", alignItems: "flex-start", gap: 0.5, mt: 0.5 }}>
+              <Box sx={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
                 <MsqdxTextareaField
                   label=""
                   value={descriptionValue}
@@ -823,14 +832,14 @@ export default function JourneyEditorPage() {
               </Box>
             ) : (
               journey.description ? (
-                <Box sx={{ display: "flex", alignItems: "flex-start", gap: 0.5, mt: 0.5 }}>
+                <Box sx={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
                   <MsqdxTypography variant="body2" sx={{ color: "text.secondary", flex: 1 }}>{journey.description}</MsqdxTypography>
                   <MsqdxButton variant="text" size="small" onClick={startEditingDescription} disabled={savePending} sx={{ minWidth: 28, minHeight: 28, p: 0 }} aria-label="Edit description">
                     <MsqdxIcon name="edit" customSize={14} />
                   </MsqdxButton>
                 </Box>
               ) : (
-                <MsqdxButton variant="text" size="small" onClick={startEditingDescription} disabled={savePending} sx={{ mt: 0.5, alignSelf: "flex-start", color: "text.secondary" }}>
+                <MsqdxButton variant="text" size="small" onClick={startEditingDescription} disabled={savePending} sx={{ alignSelf: "flex-start", color: "text.secondary" }}>
                   <MsqdxIcon name="add" customSize={14} /> Add description
                 </MsqdxButton>
               )
