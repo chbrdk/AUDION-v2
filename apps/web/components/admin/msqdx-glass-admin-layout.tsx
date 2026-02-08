@@ -22,7 +22,10 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { label: "Queue", path: "/admin/queue", icon: "view_list" },
   { label: "Chat", path: "/admin/chat", icon: "forum" },
   { label: "Chat History", path: "/admin/chat/history", icon: "history" },
-  { label: "Settings", path: "/admin/settings",   icon: "settings" },
+];
+
+const ADMIN_NAV_EXTERNAL_ITEMS: AdminNavItem[] = [
+  { label: "Settings", path: "/admin/settings", icon: "settings" },
 ];
 
 export type MsqdxGlassAdminLayoutClientProps = {
@@ -122,7 +125,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
           onClose={handleDrawerClose}
           currentPath={pathname || ""}
           items={ADMIN_NAV_ITEMS}
-          externalItems={[]}
+          externalItems={ADMIN_NAV_EXTERNAL_ITEMS}
           themeMode={themeMode}
           onToggleTheme={toggleTheme}
           linkComponent={Link as any}
