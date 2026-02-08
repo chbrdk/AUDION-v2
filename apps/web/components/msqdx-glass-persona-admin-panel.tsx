@@ -7,7 +7,7 @@ import clsx from "clsx";
 
 import type { PersonaListItem, PersonaListResponse, PersonaProfile, PersonaResponse } from "@msqdx-glass/types";
 
-import { MsqdxIcon } from "@msqdx/react";
+import { MsqdxIcon, MsqdxButton, MsqdxChip, MsqdxTypography } from "@msqdx/react";
 import { MsqdxGlassAiButtonIcon } from "./generic/msqdx-glass-ai-button-icon";
 import {
   MsqdxGlassBioCard,
@@ -51,10 +51,10 @@ type KnowledgeFormState = {
   content: string;
 };
 
-const statusChips: Record<string, { label: string; className: string }> = {
-  draft: { label: "Draft", className: "msqdx-glass-chip --draft" },
-  published: { label: "Published", className: "msqdx-glass-chip --published" },
-  archived: { label: "Archived", className: "msqdx-glass-chip --archived" },
+const statusChipConfig: Record<string, { label: string; brandColor: "orange" | "green" | "purple" }> = {
+  draft: { label: "Draft", brandColor: "orange" },
+  published: { label: "Published", brandColor: "green" },
+  archived: { label: "Archived", brandColor: "purple" },
 };
 
 const defaultEditFormState: EditFormState = {
@@ -1262,17 +1262,17 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
         <section className="msqdx-glass-panel">
           <header className="msqdx-glass-panel__header">
             <div>
-              <h2>Personas</h2>
-              <p>{list.total} entries</p>
+              <MsqdxTypography variant="h5" weight="semibold">Personas</MsqdxTypography>
+              <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>{list.total} entries</MsqdxTypography>
             </div>
-            <button className="msqdx-glass-button --ghost" onClick={refreshList} disabled={listRefreshing}>
-              <MsqdxIcon name="refresh" customSize={16} /> Refresh
-            </button>
+            <MsqdxButton variant="text" size="small" onClick={refreshList} disabled={listRefreshing} startIcon={<MsqdxIcon name="refresh" customSize={16} />}>
+              Refresh
+            </MsqdxButton>
           </header>
           <div className="msqdx-glass-list">
-            {list.items.length === 0 && <p className="msqdx-glass-empty">No personas available yet.</p>}
+            {list.items.length === 0 && <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>No personas available yet.</MsqdxTypography>}
             {list.items.map((item) => {
-              const chip = statusChips[item.status] ?? statusChips.draft;
+              const config = statusChipConfig[item.status] ?? statusChipConfig.draft;
               return (
                 <button
                   key={item.id}
@@ -1281,18 +1281,18 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
                 >
                   <div className="msqdx-glass-list-item__row">
                     <strong>{item.name}</strong>
-                    <span className={chip.className}>{chip.label}</span>
+                    <MsqdxChip variant="filled" brandColor={config.brandColor} label={config.label} size="small" />
                   </div>
-                  <p className="msqdx-glass-list-item__meta">
+                  <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
                     {item.segment} · Version {item.version}
-                  </p>
-                  <p className="msqdx-glass-list-item__meta">Last updated {formatDate(item.updatedAt)}</p>
+                  </MsqdxTypography>
+                  <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Last updated {formatDate(item.updatedAt)}</MsqdxTypography>
                 </button>
               );
             })}
           </div>
           <div className="msqdx-glass-create-form">
-            <h3>New Persona</h3>
+            <MsqdxTypography variant="h6" weight="semibold" sx={{ marginBottom: 1 }}>New Persona</MsqdxTypography>
             <div className="msqdx-glass-field">
               <label>Project ID</label>
               <input value={createForm.projectId} onChange={(event) => setCreateForm((prev) => ({ ...prev, projectId: event.target.value }))} placeholder="123e4567-e89b-12d3-a456-426614174000" />
@@ -1309,17 +1309,17 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
               <label>Headline</label>
               <input value={createForm.headline} onChange={(event) => setCreateForm((prev) => ({ ...prev, headline: event.target.value }))} placeholder="Kurzbeschreibung" />
             </div>
-            <button className="msqdx-glass-button" onClick={handleCreate} disabled={createPending}>
-              <MsqdxIcon name="add" customSize={16} /> Persona anlegen
-            </button>
+            <MsqdxButton variant="contained" brandColor="green" size="small" onClick={handleCreate} disabled={createPending} startIcon={<MsqdxIcon name="add" customSize={16} />}>
+              Persona anlegen
+            </MsqdxButton>
           </div>
         </section>
       </MsqdxGlassCollapsiblePanel>
 
       <section className="msqdx-glass-panel">
-        {!selectedId && <p className="msqdx-glass-empty">Please select a persona.</p>}
-        {selectedId && detailLoading && <p className="msqdx-glass-muted">Lade Persona...</p>}
-        {detailError && <p className="msqdx-glass-error">{detailError}</p>}
+        {!selectedId && <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>Please select a persona.</MsqdxTypography>}
+        {selectedId && detailLoading && <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>Lade Persona...</MsqdxTypography>}
+        {detailError && <MsqdxTypography variant="body2" sx={{ color: "error.main" }}>{detailError}</MsqdxTypography>}
         {detail && (
           <div className="msqdx-glass-detail">
             <input ref={documentInputRef} type="file" className="msqdx-glass-sr-only" onChange={handleDocumentInputChange} />
@@ -1451,24 +1451,15 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
                     );
                   })()}
                   <div className="msqdx-glass-detail__links" style={{ marginTop: "0.5rem", display: "flex", gap: "0.5rem", alignItems: "center" }}>
-                    <button className="msqdx-glass-button --ghost" onClick={handleGenerateAvatar} disabled={avatarGeneratePending}>
-                      <MsqdxIcon name="photo_camera" customSize={16} /> {avatarGeneratePending ? "Generating..." : "Generate avatar"}
-                    </button>
-                    <button
-                      className="msqdx-glass-button --ghost"
-                      onClick={handleArchive}
-                      disabled={savePending}
-                    >
-                      <MsqdxIcon name="archive" customSize={16} /> Archive
-                    </button>
-                    <button
-                      className="msqdx-glass-button --ghost"
-                      onClick={handleDelete}
-                      disabled={savePending}
-                      style={{ color: "var(--color-secondary-dx-pink)" }}
-                    >
-                      <MsqdxIcon name="delete" customSize={16} /> Delete
-                    </button>
+                    <MsqdxButton variant="text" size="small" onClick={handleGenerateAvatar} disabled={avatarGeneratePending} startIcon={<MsqdxIcon name="photo_camera" customSize={16} />}>
+                      {avatarGeneratePending ? "Generating..." : "Generate avatar"}
+                    </MsqdxButton>
+                    <MsqdxButton variant="text" size="small" onClick={handleArchive} disabled={savePending} startIcon={<MsqdxIcon name="archive" customSize={16} />}>
+                      Archive
+                    </MsqdxButton>
+                    <MsqdxButton variant="text" size="small" onClick={handleDelete} disabled={savePending} brandColor="pink" startIcon={<MsqdxIcon name="delete" customSize={16} />}>
+                      Delete
+                    </MsqdxButton>
                   </div>
                 </div>
               </div>
@@ -1477,7 +1468,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
             {/* Metadata Box */}
             <div className="msqdx-glass-detail__grid">
               <div style={{ border: "1px solid var(--color-theme-accent)", borderRadius: "12px", padding: "0.75rem", marginTop: "1rem" }}>
-                <h3 style={{ fontSize: "1.5rem", fontWeight: 100, marginBottom: "2rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>METADATA</h3>
+                <MsqdxTypography variant="h6" weight="light" sx={{ fontSize: "1.5rem", marginBottom: "2rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>METADATA</MsqdxTypography>
                 <dl className="msqdx-glass-meta-grid">
                   <div>
                     <dt>Status</dt>
@@ -1513,13 +1504,16 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
                     <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
                       <dt>Target Group</dt>
                       <dd>
-                        <a
+                        <MsqdxButton
+                          variant="text"
+                          size="small"
+                          component="a"
                           href={`/target-groups/admin?selected=${detail.profile.targetGroupId}`}
-                          className="msqdx-glass-button --ghost"
-                          style={{ fontSize: "0.875rem", padding: "4px 8px" }}
+                          sx={{ fontSize: "0.875rem", p: "4px 8px" }}
+                          startIcon={<MsqdxIcon name="groups" customSize={14} />}
                         >
-                          <MsqdxIcon name="groups" customSize={14} /> To Target Group
-                        </a>
+                          To Target Group
+                        </MsqdxButton>
                       </dd>
                     </div>
                   )}
