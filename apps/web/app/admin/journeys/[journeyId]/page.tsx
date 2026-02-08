@@ -127,7 +127,7 @@ export default function JourneyEditorPage() {
   const [momentDrafts, setMomentDrafts] = useState<JourneyMomentDraft[]>([]);
   const [momentsError, setMomentsError] = useState<string | null>(null);
   const [editingPhaseId, setEditingPhaseId] = useState<string | null>(null);
-  const [expandedAccordions, setExpandedAccordions] = useState<Set<string>>(() => new Set(["metadata"]));
+  const [expandedAccordions, setExpandedAccordions] = useState<Set<string>>(() => new Set());
   const { execute: runAiAssist, loading: aiAssistLoading } = useAiAssist();
 
   const isAccordionExpanded = (id: string) => expandedAccordions.has(id);
@@ -855,11 +855,11 @@ export default function JourneyEditorPage() {
           </Box>
         </MsqdxCard>
 
-        <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 2, mt: 2 }}>
+        <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "8px", mt: 2 }}>
           <Box sx={{ gridColumn: "1 / -1" }}>
             <MsqdxDashboardCard
               id="metadata"
-              title="Metadaten"
+              title="Metadata"
               icon="info"
               size="small"
               brandColor={BRAND_COLOR}
@@ -869,10 +869,12 @@ export default function JourneyEditorPage() {
             >
               <Box
                 sx={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+                  display: "flex",
+                  flexDirection: "row",
+                  flexWrap: "wrap",
                   gap: "8px",
                   pt: 0,
+                  alignItems: "flex-start",
                 }}
               >
                 <Box>

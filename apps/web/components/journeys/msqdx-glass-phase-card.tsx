@@ -307,7 +307,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
         sx={{ minWidth: 380 }}
       >
         <MsqdxCard variant="flat" brandColor={BRAND_COLOR} borderRadius="button">
-          <Box sx={{ display: "flex", flexDirection: "row", flexWrap: "wrap", gap: "8px", alignItems: "flex-start" }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: "8px", alignItems: "stretch" }}>
             <Box sx={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
               <Box
                 sx={{
@@ -362,7 +362,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
               </Box>
             </Box>
 
-            <MsqdxDivider color={BRAND_COLOR as "purple" | "yellow" | "pink" | "orange" | "green" | "black"} orientation="vertical" spacing="xs" sx={{ alignSelf: "stretch" }} />
+            <MsqdxDivider color={BRAND_COLOR as "purple" | "yellow" | "pink" | "orange" | "green" | "black"} orientation="horizontal" spacing="xs" />
 
             <Box sx={{ position: "relative" }}>
               <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
@@ -388,7 +388,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
               </Box>
             </Box>
 
-            <MsqdxDivider color={BRAND_COLOR as "purple" | "yellow" | "pink" | "orange" | "green" | "black"} orientation="vertical" spacing="xs" sx={{ alignSelf: "stretch" }} />
+            <MsqdxDivider color={BRAND_COLOR as "purple" | "yellow" | "pink" | "orange" | "green" | "black"} orientation="horizontal" spacing="xs" />
 
             <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
               <MsqdxFormField
@@ -436,7 +436,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
               />
             </Box>
 
-            <MsqdxDivider color={BRAND_COLOR as "purple" | "yellow" | "pink" | "orange" | "green" | "black"} orientation="vertical" spacing="xs" sx={{ alignSelf: "stretch" }} />
+            <MsqdxDivider color={BRAND_COLOR as "purple" | "yellow" | "pink" | "orange" | "green" | "black"} orientation="horizontal" spacing="xs" />
 
             <Box sx={{ position: "relative" }}>
               <MsqdxFormField
@@ -459,7 +459,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
               </Box>
             </Box>
 
-            <MsqdxDivider color={BRAND_COLOR as "purple" | "yellow" | "pink" | "orange" | "green" | "black"} orientation="vertical" spacing="xs" sx={{ alignSelf: "stretch" }} />
+            <MsqdxDivider color={BRAND_COLOR as "purple" | "yellow" | "pink" | "orange" | "green" | "black"} orientation="horizontal" spacing="xs" />
 
             <Box sx={{ display: "flex", flexDirection: "column", gap: `${MSQDX_SPACING.gap.xs}px` }}>
               <Box
