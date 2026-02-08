@@ -16,14 +16,14 @@
   background-color: var(--color-background, #1a1a1a);
 }
 
-/* Reduced header padding */
+/* Header padding */
 .msqdx-glass-dashboard-grid .summary-button {
-  padding: var(--msqdx-spacing-xs) var(--msqdx-spacing-sm) !important;
+  padding: var(--msqdx-spacing-sm) var(--msqdx-spacing-md) !important;
 }
 
-/* Reduced content padding */
+/* Content padding */
 .msqdx-glass-dashboard-grid [id$="-panel"] {
-  padding: var(--msqdx-spacing-xs) var(--msqdx-spacing-sm) !important;
+  padding: var(--msqdx-spacing-sm) var(--msqdx-spacing-md) !important;
 }
 
 .msqdx-glass-dashboard-card {
