@@ -8,7 +8,7 @@ type KnowledgeFormState = {
   title: string;
   content: string;
 };
-import { MsqdxIcon, MsqdxDashboardCard, MsqdxButton } from "@msqdx/react";
+import { MsqdxIcon, MsqdxDashboardCard, MsqdxButton, MsqdxFormField, MsqdxTextareaField } from "@msqdx/react";
 import { MsqdxGlassDashboardCardSection } from "./msqdx-glass-dashboard-card-section";
 import { buildApiUrl } from "../../app/api/_lib/backend";
 
@@ -203,25 +203,23 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
       </MsqdxGlassDashboardCardSection>
 
       <MsqdxGlassDashboardCardSection title="Knowledge Base">
-        <form className="msqdx-glass-field-grid" onSubmit={onKnowledgeSubmit}>
-          <div className="msqdx-glass-field">
-            <label>Title</label>
-            <input
+        <form onSubmit={onKnowledgeSubmit}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <MsqdxFormField
+              label="Title"
               value={knowledgeForm.title}
-              onChange={(event) => onKnowledgeField("title", event.target.value)}
+              onChange={(e) => onKnowledgeField("title", e.target.value)}
               placeholder="e.g. Market Study 2025"
+              fullWidth
             />
-          </div>
-          <div className="msqdx-glass-field">
-            <label>Content</label>
-            <textarea
+            <MsqdxTextareaField
+              label="Content"
               value={knowledgeForm.content}
-              onChange={(event) => onKnowledgeField("content", event.target.value)}
-              rows={3}
+              onChange={(e) => onKnowledgeField("content", e.target.value)}
               placeholder="Short description or insights"
+              minRows={3}
+              fullWidth
             />
-          </div>
-          <div className="msqdx-glass-field">
             <MsqdxButton
               variant="contained"
               size="small"
@@ -233,7 +231,7 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
             >
               {knowledgePending ? "Saving..." : "Add knowledge"}
             </MsqdxButton>
-          </div>
+          </Box>
         </form>
         {detail.knowledge.length === 0 && (
           <p className="msqdx-glass-muted" style={{ marginTop: "1rem", marginBottom: 0 }}>

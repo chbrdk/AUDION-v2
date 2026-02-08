@@ -7,6 +7,25 @@
   margin-top: var(--msqdx-spacing-xxl);
 }
 
+/* Cards: white background */
+.msqdx-glass-dashboard-grid > div:has(.summary-button) {
+  background-color: #ffffff;
+}
+
+[data-theme="dark"] .msqdx-glass-dashboard-grid > div:has(.summary-button) {
+  background-color: var(--color-background, #1a1a1a);
+}
+
+/* Reduced header padding */
+.msqdx-glass-dashboard-grid .summary-button {
+  padding: var(--msqdx-spacing-xs) var(--msqdx-spacing-sm) !important;
+}
+
+/* Reduced content padding */
+.msqdx-glass-dashboard-grid [id$="-panel"] {
+  padding: var(--msqdx-spacing-xs) var(--msqdx-spacing-sm) !important;
+}
+
 .msqdx-glass-dashboard-card {
   border-radius: var(--msqdx-radius-3xl);
   border: 1px solid var(--color-secondary-dx-grey-light-tint);
