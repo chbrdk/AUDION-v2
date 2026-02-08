@@ -931,6 +931,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                 }}
               />
             </div>
+          </div>
         )}
       </section>
     </div>
