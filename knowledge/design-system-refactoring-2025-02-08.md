@@ -1,5 +1,8 @@
 # AUDION Design System Refactoring (Feb 8, 2025)
 
+## Konvention: Theme Provider
+**Bei Theme-Provider-Problemen entscheiden wir uns konsequent dafür, wie es im Design System definiert ist.** Keine eigenen ThemeProvider-/ThemeRegistry-Abweichungen – die DS-Definition hat Vorrang.
+
 ## Summary
 AUDION has been refactored to use components and tokens from the msqdx-design-system. This document captures what was done and important details for future work.
 
@@ -35,15 +38,19 @@ AUDION has been refactored to use components and tokens from the msqdx-design-sy
 - AUDION web: `AUDION/apps/web/`
 
 ## TDZ / Circular Import Fix (Cannot access 'i' before initialization)
-- **Issue**: Runtime error `ReferenceError: Cannot access 'i' before initialization` when loading admin layout with @msqdx/react in the same chunk (likely circular dependency / temporal dead zone in minified code).
-- **Fix**: Split admin layout to avoid synchronous import of @msqdx/react at layout load:
-  1. Created `admin-layout-providers.tsx` – lightweight providers (AdminHeaderProvider, AdminPanelProvider, useAdminHeader, useAdminPanel) with no @msqdx/react
-  2. Admin layout (`app/admin/layout.tsx`) statically imports providers from `admin-layout-providers`, and uses `next/dynamic` with `ssr: false` to load `MsqdxGlassAdminLayoutClient` from `msqdx-glass-admin-layout`
-  3. `msqdx-glass-admin-layout.tsx` imports from `admin-layout-providers` and re-exports useAdminHeader/useAdminPanel for existing consumers
+- **Issue**: Runtime error `ReferenceError: Cannot access 'i' before initialization` when loading @msqdx/react (chunk 8505). Causes: (1) optimizePackageImports rewriting DS barrel imports, (2) admin layout loading @msqdx/react synchronously.
+- **Fixes applied**:
+  1. **next.config.mjs**: Remove `@msqdx/react` from `optimizePackageImports` – the optimization can trigger TDZ when rewriting the DS barrel.
+  2. **admin-layout-providers.tsx**: Lightweight providers without @msqdx/react; admin layout uses `next/dynamic` for `MsqdxGlassAdminLayoutClient`.
 
 ## Docker/CI Build
 - AUDION uses `file:../../../msqdx-design-system/packages/*` for @msqdx/react and @msqdx/tokens
 - The Dockerfile clones and builds the design system from GitHub before `npm install`, since the design system is not in the AUDION repo
+
+## Persona Listing & Create (Feb 2025)
+- **Persona admin panel**: List items use `MsqdxCard` (clickable, flat), create form uses `MsqdxFormField` + `MsqdxButton`. Replaced `msqdx-glass-list`, `msqdx-glass-list-item`, `msqdx-glass-field`, `msqdx-glass-create-form`.
+- **MsqdxGlassPersonaList**: Uses `MsqdxCard`, `MsqdxChip`, `MsqdxButton`, `MsqdxTypography`; status chips use DS brandColor.
+- **MsqdxGlassPersonaCreateDialog**: Uses `MsqdxDialog`, `MsqdxFormField`, `MsqdxTextareaField`, `MsqdxButton` instead of custom modal and `msqdx-glass-field`.
 
 ## Remaining Opportunities
 - Replace remaining `msqdx-glass-button --ghost` with `MsqdxButton variant="text"` across journey page and other components

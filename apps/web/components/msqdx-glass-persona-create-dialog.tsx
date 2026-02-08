@@ -1,9 +1,10 @@
 "use client";
 
-import type { ChangeEvent, FormEvent } from "react";
+import type { FormEvent } from "react";
 import { useState } from "react";
+import { Box } from "@mui/material";
 import type { TargetGroupPersonaGenerateRequest } from "../app/api/_lib/target-group";
-import { MsqdxIcon } from "@msqdx/react";
+import { MsqdxIcon, MsqdxDialog, MsqdxFormField, MsqdxTextareaField, MsqdxButton } from "@msqdx/react";
 
 type MsqdxGlassPersonaCreateDialogProps = {
   open: boolean;
@@ -30,10 +31,6 @@ export const MsqdxGlassPersonaCreateDialog = ({
 }: MsqdxGlassPersonaCreateDialogProps) => {
   const [form, setForm] = useState<QuickCreateFormState>(defaultQuickFormState);
 
-  if (!open) {
-    return null;
-  }
-
   const handleFieldChange = (field: keyof QuickCreateFormState, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
@@ -54,7 +51,6 @@ export const MsqdxGlassPersonaCreateDialog = ({
       await onSubmit(request);
       setForm(defaultQuickFormState);
     } catch (error) {
-      // Error handling is done in parent component
       throw error;
     }
   };
@@ -67,116 +63,51 @@ export const MsqdxGlassPersonaCreateDialog = ({
   };
 
   return (
-    <div
-      className="msqdx-glass-modal-overlay"
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: "rgba(0, 0, 0, 0.5)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 1000,
-      }}
-      onClick={handleClose}
+    <MsqdxDialog
+      open={open}
+      onClose={handleClose}
+      title="Neue Persona erstellen"
+      size="sm"
+      brandColor="green"
     >
-      <div
-        className="msqdx-glass-modal"
-        style={{
-          backgroundColor: "var(--color-background)",
-          borderRadius: "8px",
-          padding: "24px",
-          maxWidth: "500px",
-          width: "90%",
-          maxHeight: "90vh",
-          overflow: "auto",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "20px",
-          }}
-        >
-          <h2 style={{ margin: 0 }}>Neue Persona erstellen</h2>
-          <button
-            type="button"
-            className="msqdx-glass-button --ghost"
-            onClick={handleClose}
+      <form onSubmit={handleSubmit}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <MsqdxFormField
+            label="Segment Name"
+            required
+            value={form.segment}
+            onChange={(e) => handleFieldChange("segment", e.target.value)}
+            placeholder="z.B. Skeptischer CFO, Technikaffiner CTO"
             disabled={loading}
-            style={{ padding: "8px" }}
+            fullWidth
+            helperText="Kurze Beschreibung des Persona-Segments"
+          />
+          <MsqdxTextareaField
+            label="Beschreibung (optional)"
+            value={form.description}
+            onChange={(e) => handleFieldChange("description", e.target.value)}
+            placeholder="Optionale Beschreibung was diese Persona repräsentiert"
+            minRows={3}
+            disabled={loading}
+            fullWidth
+          />
+        </Box>
+        <Box sx={{ display: "flex", gap: 1.5, justifyContent: "flex-end", mt: 2 }}>
+          <MsqdxButton variant="text" onClick={handleClose} disabled={loading}>
+            Abbrechen
+          </MsqdxButton>
+          <MsqdxButton
+            type="submit"
+            variant="contained"
+            brandColor="green"
+            disabled={loading || !form.segment.trim()}
+            startIcon={<MsqdxIcon name={loading ? "hourglass_empty" : "add"} customSize={18} />}
           >
-            <MsqdxIcon name="close" customSize={20} />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit}>
-          <div className="msqdx-glass-field" style={{ marginBottom: "16px" }}>
-            <label htmlFor="segment">
-              Segment Name <span style={{ color: "var(--color-error)" }}>*</span>
-            </label>
-            <input
-              id="segment"
-              type="text"
-              value={form.segment}
-              onChange={(e) => handleFieldChange("segment", e.target.value)}
-              placeholder="z.B. Skeptischer CFO, Technikaffiner CTO"
-              required
-              disabled={loading}
-              style={{ width: "100%" }}
-            />
-            <p style={{ fontSize: "0.75rem", color: "var(--color-muted)", marginTop: "4px" }}>
-              Kurze Beschreibung des Persona-Segments
-            </p>
-          </div>
-
-          <div className="msqdx-glass-field" style={{ marginBottom: "24px" }}>
-            <label htmlFor="description">Beschreibung (optional)</label>
-            <textarea
-              id="description"
-              value={form.description}
-              onChange={(e) => handleFieldChange("description", e.target.value)}
-              placeholder="Optionale Beschreibung was diese Persona repräsentiert"
-              rows={3}
-              disabled={loading}
-              style={{ width: "100%" }}
-            />
-          </div>
-
-          <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
-            <button
-              type="button"
-              className="msqdx-glass-button --ghost"
-              onClick={handleClose}
-              disabled={loading}
-            >
-              Abbrechen
-            </button>
-            <button
-              type="submit"
-              className="msqdx-glass-button"
-              disabled={loading || !form.segment.trim()}
-            >
-              {loading ? (
-                <>
-                  <MsqdxIcon name="hourglass_empty" customSize={18} /> Erstelle...
-                </>
-              ) : (
-                <>
-                  <MsqdxIcon name="add" customSize={18} /> Erstellen
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+            {loading ? "Erstelle…" : "Erstellen"}
+          </MsqdxButton>
+        </Box>
+      </form>
+    </MsqdxDialog>
   );
 };
 

@@ -11,7 +11,8 @@ const nextConfig = {
     serverActions: {
       enabled: true
     },
-    optimizePackageImports: ['@mui/material', '@mui/icons-material', '@msqdx/react', '@msqdx/tokens'],
+    // @msqdx/react excluded: optimizePackageImports can trigger TDZ with DS barrel
+    optimizePackageImports: ['@mui/material', '@mui/icons-material', '@msqdx/tokens'],
   },
   // Prevent static generation of error pages
   generateBuildId: async () => {

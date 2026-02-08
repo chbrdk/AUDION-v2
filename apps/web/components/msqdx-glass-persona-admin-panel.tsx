@@ -3,11 +3,9 @@
 import type { ChangeEvent, FormEvent } from "react";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import clsx from "clsx";
-
 import type { PersonaListItem, PersonaListResponse, PersonaProfile, PersonaResponse } from "@msqdx-glass/types";
 
-import { MsqdxIcon, MsqdxButton, MsqdxChip, MsqdxTypography } from "@msqdx/react";
+import { MsqdxIcon, MsqdxButton, MsqdxChip, MsqdxTypography, MsqdxCard, MsqdxFormField } from "@msqdx/react";
 import { MsqdxGlassAiButtonIcon } from "./generic/msqdx-glass-ai-button-icon";
 import {
   MsqdxGlassBioCard,
@@ -1269,50 +1267,101 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
               Refresh
             </MsqdxButton>
           </header>
-          <div className="msqdx-glass-list">
-            {list.items.length === 0 && <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>No personas available yet.</MsqdxTypography>}
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+            {list.items.length === 0 && (
+              <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+                No personas available yet.
+              </MsqdxTypography>
+            )}
             {list.items.map((item) => {
               const config = statusChipConfig[item.status] ?? statusChipConfig.draft;
               return (
-                <button
+                <MsqdxCard
                   key={item.id}
-                  className={clsx("msqdx-glass-list-item", selectedId === item.id && "is-active")}
+                  variant="flat"
+                  clickable
                   onClick={() => setSelectedId(item.id)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelectedId(item.id);
+                    }
+                  }}
+                  sx={{
+                    p: 1.5,
+                    textAlign: "left",
+                    width: "100%",
+                    borderColor: selectedId === item.id ? "primary.main" : undefined,
+                    borderWidth: selectedId === item.id ? 2 : undefined,
+                  }}
                 >
-                  <div className="msqdx-glass-list-item__row">
-                    <strong>{item.name}</strong>
-                    <MsqdxChip variant="filled" brandColor={config.brandColor} label={config.label} size="small" />
-                  </div>
-                  <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                    {item.segment} · Version {item.version}
-                  </MsqdxTypography>
-                  <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Last updated {formatDate(item.updatedAt)}</MsqdxTypography>
-                </button>
+                  <Box sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
+                      <MsqdxTypography variant="subtitle1" weight="semibold">
+                        {item.name}
+                      </MsqdxTypography>
+                      <MsqdxChip variant="filled" brandColor={config.brandColor} label={config.label} size="small" />
+                    </Box>
+                    <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
+                      {item.segment} · Version {item.version}
+                    </MsqdxTypography>
+                    <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
+                      Last updated {formatDate(item.updatedAt)}
+                    </MsqdxTypography>
+                  </Box>
+                </MsqdxCard>
               );
             })}
-          </div>
-          <div className="msqdx-glass-create-form">
-            <MsqdxTypography variant="h6" weight="semibold" sx={{ marginBottom: 1 }}>New Persona</MsqdxTypography>
-            <div className="msqdx-glass-field">
-              <label>Project ID</label>
-              <input value={createForm.projectId} onChange={(event) => setCreateForm((prev) => ({ ...prev, projectId: event.target.value }))} placeholder="123e4567-e89b-12d3-a456-426614174000" />
-            </div>
-            <div className="msqdx-glass-field">
-              <label>Name</label>
-              <input value={createForm.name} onChange={(event) => setCreateForm((prev) => ({ ...prev, name: event.target.value }))} placeholder="Persona Name" />
-            </div>
-            <div className="msqdx-glass-field">
-              <label>Segment</label>
-              <input value={createForm.segment} onChange={(event) => setCreateForm((prev) => ({ ...prev, segment: event.target.value }))} placeholder="B2B / Enterprise / etc." />
-            </div>
-            <div className="msqdx-glass-field">
-              <label>Headline</label>
-              <input value={createForm.headline} onChange={(event) => setCreateForm((prev) => ({ ...prev, headline: event.target.value }))} placeholder="Kurzbeschreibung" />
-            </div>
-            <MsqdxButton variant="contained" brandColor="green" size="small" onClick={handleCreate} disabled={createPending} startIcon={<MsqdxIcon name="add" customSize={16} />}>
+          </Box>
+          <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 1.5 }}>
+            <MsqdxTypography variant="h6" weight="semibold">
+              New Persona
+            </MsqdxTypography>
+            <MsqdxFormField
+              label="Project ID"
+              value={createForm.projectId}
+              onChange={(e) => setCreateForm((prev) => ({ ...prev, projectId: e.target.value }))}
+              placeholder="123e4567-e89b-12d3-a456-426614174000"
+              fullWidth
+              size="small"
+            />
+            <MsqdxFormField
+              label="Name"
+              value={createForm.name}
+              onChange={(e) => setCreateForm((prev) => ({ ...prev, name: e.target.value }))}
+              placeholder="Persona Name"
+              fullWidth
+              size="small"
+            />
+            <MsqdxFormField
+              label="Segment"
+              value={createForm.segment}
+              onChange={(e) => setCreateForm((prev) => ({ ...prev, segment: e.target.value }))}
+              placeholder="B2B / Enterprise / etc."
+              fullWidth
+              size="small"
+            />
+            <MsqdxFormField
+              label="Headline"
+              value={createForm.headline}
+              onChange={(e) => setCreateForm((prev) => ({ ...prev, headline: e.target.value }))}
+              placeholder="Kurzbeschreibung"
+              fullWidth
+              size="small"
+            />
+            <MsqdxButton
+              variant="contained"
+              brandColor="green"
+              size="small"
+              onClick={handleCreate}
+              disabled={createPending}
+              startIcon={<MsqdxIcon name="add" customSize={16} />}
+            >
               Persona anlegen
             </MsqdxButton>
-          </div>
+          </Box>
         </section>
       </MsqdxGlassCollapsiblePanel>
 
