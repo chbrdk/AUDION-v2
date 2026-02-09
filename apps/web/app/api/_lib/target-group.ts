@@ -14,7 +14,7 @@ import type {
 // Re-export PersonaResponse for use in other modules
 export type { PersonaResponse };
 
-import { buildPersonaBackendUrl, forwardPersonaBackend } from "./persona";
+import { buildApiUrl } from "./backend";
 
 type TargetGroupCreateRequest = {
   project_id: string;
@@ -37,6 +37,13 @@ type TargetGroupKnowledgeUpsertRequest = {
   created_by?: string;
 };
 
+const buildTargetGroupUrl = (path: string, params?: URLSearchParams) => {
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  const base = buildApiUrl(`/api${normalized}`);
+  const query = params?.toString();
+  return query ? `${base}?${query}` : base;
+};
+
 export async function fetchTargetGroupList(
   projectId?: string,
   page: number = 1,
@@ -49,8 +56,9 @@ export async function fetchTargetGroupList(
   if (projectId) {
     params.append("project_id", projectId);
   }
-  const response = await forwardPersonaBackend(`/target-groups?${params.toString()}`, {
+  const response = await fetch(buildTargetGroupUrl("/target-groups", params), {
     method: "GET",
+    cache: "no-store",
   });
   if (!response.ok) {
     throw new Error(`Failed to fetch target groups: ${response.status}`);
@@ -59,8 +67,9 @@ export async function fetchTargetGroupList(
 }
 
 export async function fetchTargetGroup(targetGroupId: string): Promise<TargetGroupResponse> {
-  const response = await forwardPersonaBackend(`/target-groups/${targetGroupId}`, {
+  const response = await fetch(buildTargetGroupUrl(`/target-groups/${targetGroupId}`), {
     method: "GET",
+    cache: "no-store",
   });
   if (!response.ok) {
     throw new Error(`Failed to fetch target group: ${response.status}`);
@@ -71,7 +80,7 @@ export async function fetchTargetGroup(targetGroupId: string): Promise<TargetGro
 export async function createTargetGroup(
   payload: TargetGroupCreateRequest
 ): Promise<TargetGroupResponse> {
-  const response = await forwardPersonaBackend("/target-groups", {
+  const response = await fetch(buildTargetGroupUrl("/target-groups"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -89,7 +98,7 @@ export async function updateTargetGroup(
   targetGroupId: string,
   payload: TargetGroupUpdateRequest
 ): Promise<TargetGroupResponse> {
-  const response = await forwardPersonaBackend(`/target-groups/${targetGroupId}`, {
+  const response = await fetch(buildTargetGroupUrl(`/target-groups/${targetGroupId}`), {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -106,8 +115,9 @@ export async function updateTargetGroup(
 export async function fetchTargetGroupKnowledge(
   targetGroupId: string
 ): Promise<TargetGroupKnowledgeEntry[]> {
-  const response = await forwardPersonaBackend(`/target-groups/${targetGroupId}/knowledge`, {
+  const response = await fetch(buildTargetGroupUrl(`/target-groups/${targetGroupId}/knowledge`), {
     method: "GET",
+    cache: "no-store",
   });
   if (!response.ok) {
     throw new Error(`Failed to fetch target group knowledge: ${response.status}`);
@@ -119,7 +129,7 @@ export async function createTargetGroupKnowledge(
   targetGroupId: string,
   payload: TargetGroupKnowledgeUpsertRequest
 ): Promise<TargetGroupKnowledgeEntry> {
-  const response = await forwardPersonaBackend(`/target-groups/${targetGroupId}/knowledge`, {
+  const response = await fetch(buildTargetGroupUrl(`/target-groups/${targetGroupId}/knowledge`), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -137,11 +147,9 @@ export async function deleteTargetGroupKnowledge(
   targetGroupId: string,
   knowledgeId: string
 ): Promise<void> {
-  const response = await forwardPersonaBackend(
-    `/target-groups/${targetGroupId}/knowledge/${knowledgeId}`,
-    {
-      method: "DELETE",
-    }
+  const response = await fetch(
+    buildTargetGroupUrl(`/target-groups/${targetGroupId}/knowledge/${knowledgeId}`),
+    { method: "DELETE" }
   );
   if (!response.ok) {
     throw new Error(`Failed to delete target group knowledge: ${response.status}`);
@@ -151,8 +159,9 @@ export async function deleteTargetGroupKnowledge(
 export async function fetchTargetGroupDocuments(
   targetGroupId: string
 ): Promise<PersonaDocument[]> {
-  const response = await forwardPersonaBackend(`/target-groups/${targetGroupId}/documents`, {
+  const response = await fetch(buildTargetGroupUrl(`/target-groups/${targetGroupId}/documents`), {
     method: "GET",
+    cache: "no-store",
   });
   if (!response.ok) {
     throw new Error(`Failed to fetch target group documents: ${response.status}`);
@@ -171,7 +180,7 @@ export async function uploadTargetGroupDocument(
     formData.append("uploaded_by", uploadedBy);
   }
 
-  const response = await forwardPersonaBackend(`/target-groups/${targetGroupId}/documents`, {
+  const response = await fetch(buildTargetGroupUrl(`/target-groups/${targetGroupId}/documents`), {
     method: "POST",
     body: formData,
   });
@@ -188,11 +197,9 @@ export async function fetchTargetGroupChunks(
   targetGroupId: string,
   limit: number = 1000
 ): Promise<KnowledgeChunk[]> {
-  const response = await forwardPersonaBackend(
-    `/target-groups/${targetGroupId}/knowledge/chunks?limit=${limit}`,
-    {
-      method: "GET",
-    }
+  const response = await fetch(
+    buildTargetGroupUrl(`/target-groups/${targetGroupId}/knowledge/chunks?limit=${limit}`),
+    { method: "GET", cache: "no-store" }
   );
   if (!response.ok) {
     throw new Error(`Failed to fetch target group chunks: ${response.status}`);
@@ -225,11 +232,9 @@ export async function fetchTargetGroupClusters(
     limit: limit.toString(),
   });
 
-  const response = await forwardPersonaBackend(
-    `/target-groups/${targetGroupId}/knowledge/clusters?${params.toString()}`,
-    {
-      method: "GET",
-    }
+  const response = await fetch(
+    buildTargetGroupUrl(`/target-groups/${targetGroupId}/knowledge/clusters?${params.toString()}`),
+    { method: "GET", cache: "no-store" }
   );
   if (!response.ok) {
     const errorText = await response.text();
@@ -243,11 +248,9 @@ export async function fetchSimilarChunks(
   chunkId: string,
   limit: number = 10
 ): Promise<SimilarChunk[]> {
-  const response = await forwardPersonaBackend(
-    `/target-groups/${targetGroupId}/knowledge/chunks/${chunkId}/similar?limit=${limit}`,
-    {
-      method: "GET",
-    }
+  const response = await fetch(
+    buildTargetGroupUrl(`/target-groups/${targetGroupId}/knowledge/chunks/${chunkId}/similar?limit=${limit}`),
+    { method: "GET", cache: "no-store" }
   );
   if (!response.ok) {
     const errorText = await response.text();
@@ -284,9 +287,10 @@ export async function fetchTargetGroupPersonas(
   if (search) {
     params.append("q", search);
   }
-  const response = await forwardPersonaBackend(`/target-groups/${targetGroupId}/personas?${params.toString()}`, {
-    method: "GET",
-  });
+  const response = await fetch(
+    buildTargetGroupUrl(`/target-groups/${targetGroupId}/personas?${params.toString()}`),
+    { method: "GET", cache: "no-store" }
+  );
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(`Failed to fetch target group personas: ${response.status} - ${errorText}`);
@@ -299,7 +303,7 @@ export async function generateTargetGroupPersona(
   request: TargetGroupPersonaGenerateRequest
 ): Promise<PersonaResponse> {
   // Use the Next.js API route instead of calling backend directly
-  const response = await fetch(`/api/target-groups/${targetGroupId}/personas/generate`, {
+  const response = await fetch(buildApiUrl(`/api/target-groups/${targetGroupId}/personas/generate`), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -321,4 +325,3 @@ export async function generateTargetGroupPersona(
   }
   return (await response.json()) as PersonaResponse;
 }
-

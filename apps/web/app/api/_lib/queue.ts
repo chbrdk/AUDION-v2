@@ -5,9 +5,10 @@ import type {
   QueueStatsResponse,
 } from "@msqdx-glass/types";
 
-import { buildPersonaBackendUrl, forwardPersonaBackend } from "./persona";
+import { buildApiUrl } from "./backend";
 
 type FetchProcessingJobsParams = {
+  projectId?: string;
   status?: string;
   documentId?: string;
   page?: number;
@@ -16,10 +17,21 @@ type FetchProcessingJobsParams = {
   dateTo?: string;
 };
 
+const buildQueueUrl = (path: string, params?: URLSearchParams) => {
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  const base = buildApiUrl(`/api/queue${normalized}`);
+  const query = params?.toString();
+  return query ? `${base}?${query}` : base;
+};
+
 export async function fetchProcessingJobs(
   params: FetchProcessingJobsParams = {}
 ): Promise<ProcessingJobListResponse> {
+  if (!params.projectId) {
+    throw new Error("Project selection is required.");
+  }
   const searchParams = new URLSearchParams();
+  searchParams.append("project_id", params.projectId);
   if (params.status) {
     searchParams.append("status", params.status);
   }
@@ -39,8 +51,9 @@ export async function fetchProcessingJobs(
     searchParams.append("date_to", params.dateTo);
   }
 
-  const response = await forwardPersonaBackend(`/queue/jobs?${searchParams.toString()}`, {
+  const response = await fetch(buildQueueUrl("/jobs", searchParams), {
     method: "GET",
+    cache: "no-store",
   });
   if (!response.ok) {
     throw new Error(`Failed to fetch processing jobs: ${response.status}`);
@@ -64,11 +77,11 @@ export async function fetchProcessingJobs(
 }
 
 export async function fetchProcessingJob(
-  jobId: string
+  jobId: string,
+  projectId: string
 ): Promise<ProcessingJobDetailResponse> {
-  const response = await forwardPersonaBackend(`/queue/jobs/${jobId}`, {
-    method: "GET",
-  });
+  const params = new URLSearchParams({ project_id: projectId });
+  const response = await fetch(buildQueueUrl(`/jobs/${jobId}`, params), { method: "GET", cache: "no-store" });
   if (!response.ok) {
     throw new Error(`Failed to fetch processing job: ${response.status}`);
   }
@@ -88,10 +101,13 @@ export async function fetchProcessingJob(
 }
 
 export async function fetchCeleryTaskStatus(
-  jobId: string
+  jobId: string,
+  projectId: string
 ): Promise<CeleryTaskStatus> {
-  const response = await forwardPersonaBackend(`/queue/jobs/${jobId}/task`, {
+  const params = new URLSearchParams({ project_id: projectId });
+  const response = await fetch(buildQueueUrl(`/jobs/${jobId}/task`, params), {
     method: "GET",
+    cache: "no-store",
   });
   if (!response.ok) {
     throw new Error(`Failed to fetch celery task status: ${response.status}`);
@@ -108,10 +124,9 @@ export async function fetchCeleryTaskStatus(
   };
 }
 
-export async function fetchQueueStats(): Promise<QueueStatsResponse> {
-  const response = await forwardPersonaBackend("/queue/stats", {
-    method: "GET",
-  });
+export async function fetchQueueStats(projectId: string): Promise<QueueStatsResponse> {
+  const params = new URLSearchParams({ project_id: projectId });
+  const response = await fetch(buildQueueUrl("/stats", params), { method: "GET", cache: "no-store" });
   if (!response.ok) {
     throw new Error(`Failed to fetch queue stats: ${response.status}`);
   }
@@ -126,10 +141,9 @@ export async function fetchQueueStats(): Promise<QueueStatsResponse> {
   };
 }
 
-export async function retryJob(jobId: string): Promise<ProcessingJobDetailResponse> {
-  const response = await forwardPersonaBackend(`/queue/jobs/${jobId}/retry`, {
-    method: "POST",
-  });
+export async function retryJob(jobId: string, projectId: string): Promise<ProcessingJobDetailResponse> {
+  const params = new URLSearchParams({ project_id: projectId, job_id: jobId });
+  const response = await fetch(buildQueueUrl("/jobs", params), { method: "POST", cache: "no-store" });
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(`Failed to retry job: ${response.status} - ${errorText}`);
@@ -148,4 +162,3 @@ export async function retryJob(jobId: string): Promise<ProcessingJobDetailRespon
     celeryTaskId: data.celery_task_id,
   };
 }
-

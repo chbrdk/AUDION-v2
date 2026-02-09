@@ -1,4 +1,4 @@
-import { getPersonaBackendBase } from "./backend";
+import { buildApiUrl } from "./backend";
 
 export type AiProvider = "anthropic" | "openai";
 
@@ -81,9 +81,25 @@ export interface AiPromptTestRequest {
   max_tokens?: number;
 }
 
+const buildAiAssistUrl = (path: string, params?: URLSearchParams) => {
+  const normalized = path ? (path.startsWith("/") ? path : `/${path}`) : "";
+  const base = buildApiUrl(`/api/ai-assist${normalized}`);
+  const query = params?.toString();
+  return query ? `${base}?${query}` : base;
+};
+
+const buildSettingsUrl = (path: string, params?: URLSearchParams) => {
+  const normalized = path ? (path.startsWith("/") ? path : `/${path}`) : "";
+  const base = buildApiUrl(`/api/settings${normalized}`);
+  const query = params?.toString();
+  return query ? `${base}?${query}` : base;
+};
+
 export const aiAssistApi = {
-  listTemplates: async (): Promise<AiTemplateSummary[]> => {
-    const response = await fetch(`${getPersonaBackendBase()}/ai-assist/templates`);
+  listTemplates: async (projectId?: string): Promise<AiTemplateSummary[]> => {
+    const params = new URLSearchParams();
+    if (projectId) params.set("project_id", projectId);
+    const response = await fetch(buildAiAssistUrl("/templates", params), { cache: "no-store" });
     if (!response.ok) {
       const error = await response.text().catch(() => "");
       throw new Error(error || `Backend responded with ${response.status}`);
@@ -91,8 +107,10 @@ export const aiAssistApi = {
     return response.json();
   },
 
-  getTemplate: async (templateId: string): Promise<AiTemplateDefinition> => {
-    const response = await fetch(`${getPersonaBackendBase()}/settings/ai/templates/${templateId}`);
+  getTemplate: async (templateId: string, projectId?: string): Promise<AiTemplateDefinition> => {
+    const params = new URLSearchParams();
+    if (projectId) params.set("project_id", projectId);
+    const response = await fetch(buildSettingsUrl(`/ai/templates/${templateId}`, params), { cache: "no-store" });
     if (!response.ok) {
       const error = await response.text().catch(() => "");
       throw new Error(error || `Backend responded with ${response.status}`);
@@ -100,8 +118,14 @@ export const aiAssistApi = {
     return response.json();
   },
 
-  updateTemplate: async (templateId: string, payload: AiTemplateUpdateRequest): Promise<AiTemplateDefinition> => {
-    const response = await fetch(`${getPersonaBackendBase()}/settings/ai/templates/${templateId}`, {
+  updateTemplate: async (
+    templateId: string,
+    payload: AiTemplateUpdateRequest,
+    projectId?: string
+  ): Promise<AiTemplateDefinition> => {
+    const params = new URLSearchParams();
+    if (projectId) params.set("project_id", projectId);
+    const response = await fetch(buildSettingsUrl(`/ai/templates/${templateId}`, params), {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -113,8 +137,10 @@ export const aiAssistApi = {
     return response.json();
   },
 
-  execute: async (payload: AiAssistRequest): Promise<AiAssistResponse> => {
-    const response = await fetch(`${getPersonaBackendBase()}/ai-assist`, {
+  execute: async (payload: AiAssistRequest, projectId?: string): Promise<AiAssistResponse> => {
+    const params = new URLSearchParams();
+    if (projectId) params.set("project_id", projectId);
+    const response = await fetch(buildAiAssistUrl("", params), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -127,7 +153,7 @@ export const aiAssistApi = {
   },
 
   testPrompt: async (payload: AiPromptTestRequest): Promise<AiAssistResponse> => {
-    const response = await fetch(`${getPersonaBackendBase()}/ai-assist/test`, {
+    const response = await fetch(buildAiAssistUrl("/test"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -141,7 +167,7 @@ export const aiAssistApi = {
 
   // Persona Prompts
   listPersonaPrompts: async (): Promise<AiTemplateSummary[]> => {
-    const response = await fetch(`${getPersonaBackendBase()}/settings/ai/persona-prompts`);
+    const response = await fetch(buildSettingsUrl("/ai/persona-prompts"), { cache: "no-store" });
     if (!response.ok) {
       const error = await response.text().catch(() => "");
       throw new Error(error || `Backend responded with ${response.status}`);
@@ -150,7 +176,7 @@ export const aiAssistApi = {
   },
 
   getPersonaPrompt: async (personaId: string): Promise<AiTemplateDefinition> => {
-    const response = await fetch(`${getPersonaBackendBase()}/settings/ai/persona-prompts/${personaId}`);
+    const response = await fetch(buildSettingsUrl(`/ai/persona-prompts/${personaId}`), { cache: "no-store" });
     if (!response.ok) {
       const error = await response.text().catch(() => "");
       throw new Error(error || `Backend responded with ${response.status}`);
@@ -159,7 +185,7 @@ export const aiAssistApi = {
   },
 
   updatePersonaPrompt: async (personaId: string, payload: AiTemplateUpdateRequest): Promise<AiTemplateDefinition> => {
-    const response = await fetch(`${getPersonaBackendBase()}/settings/ai/persona-prompts/${personaId}`, {
+    const response = await fetch(buildSettingsUrl(`/ai/persona-prompts/${personaId}`), {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -171,4 +197,3 @@ export const aiAssistApi = {
     return response.json();
   },
 };
-

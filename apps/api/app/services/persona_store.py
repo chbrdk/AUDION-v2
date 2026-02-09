@@ -142,6 +142,7 @@ class PersonaService:
         self,
         session: Session,
         *,
+        allowed_project_ids: list[UUID] | None = None,
         project_id: str | None = None,
         target_group_id: str | None = None,
         status: str | None = None,
@@ -150,11 +151,18 @@ class PersonaService:
         page_size: int = 20,
     ) -> PersonaListResponse:
         query = select(Persona)
+        if allowed_project_ids is not None:
+            if not allowed_project_ids:
+                return PersonaListResponse(items=[], total=0, page=page, page_size=page_size)
+            query = query.where(Persona.project_id.in_(allowed_project_ids))
         if project_id:
             try:
-                query = query.where(Persona.project_id == UUID(project_id))
+                project_uuid = UUID(project_id)
             except ValueError as exc:
                 raise ValueError("invalid_project_id") from exc
+            if allowed_project_ids is not None and project_uuid not in allowed_project_ids:
+                raise ValueError("project_access_denied")
+            query = query.where(Persona.project_id == project_uuid)
         if target_group_id:
             try:
                 query = query.where(Persona.target_group_id == UUID(target_group_id))
@@ -1074,4 +1082,3 @@ class PersonaService:
             self._redis.delete(self._cache_key(persona_id))
         except Exception as exc:
             logger.warning("persona.cache.delete_failed", error=str(exc))
-

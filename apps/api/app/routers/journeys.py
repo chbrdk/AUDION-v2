@@ -6,11 +6,11 @@ from uuid import UUID
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from ..db import get_session
-from ..models import Journey, JourneyPhase, JourneyPhaseElement, JourneyExpectation
+from ..models import Journey, JourneyPhase, JourneyPhaseElement, JourneyExpectation, TargetGroup, User
 from ..schemas import AiAssistRequest
 from ..schemas.journey import (
     ChangeResponse,
@@ -34,6 +34,8 @@ from ..schemas.journey import (
 from ..services.ai_assist import AiAssistService
 from ..services.persona_store import PersonaService
 from ..services.target_group_store import TargetGroupService
+from ..services.auth import get_current_user
+from ..services.access_control import list_accessible_project_ids
 
 logger = structlog.get_logger(__name__)
 
@@ -42,19 +44,35 @@ target_group_service = TargetGroupService()
 persona_service = PersonaService()
 
 
-def get_db():
+def get_db(current_user: User = Depends(get_current_user)):
     with get_session() as session:
+        session.info["current_user_id"] = current_user.id
+        session.info["allowed_project_ids"] = list_accessible_project_ids(session, current_user.id)
         yield session
 
 
-def _get_journey_or_404(session: Session, journey_id: str) -> Journey:
+def _get_journey_or_404(
+    session: Session,
+    journey_id: str,
+    allowed_project_ids: list[UUID] | None = None,
+) -> Journey:
     try:
         journey_uuid = UUID(journey_id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid journey id") from exc
     journey = session.get(Journey, journey_uuid)
+    if allowed_project_ids is None:
+        allowed_project_ids = session.info.get("allowed_project_ids") if session.info else None
     if not journey:
-        raise HTTPException(status_code=404, detail="Journey not found") from exc
+        raise HTTPException(status_code=404, detail="Journey not found")
+    if allowed_project_ids is not None:
+        if journey.project_id and journey.project_id in allowed_project_ids:
+            return journey
+        if journey.target_group_id:
+            target_group = session.get(TargetGroup, journey.target_group_id)
+            if target_group and target_group.project_id in allowed_project_ids:
+                return journey
+        raise HTTPException(status_code=404, detail="Journey not found")
     return journey
 
 
@@ -142,6 +160,7 @@ async def generate_journey(
     from ..tasks.journey_tasks import generate_journey_task
     
     try:
+        allowed_project_ids = session.info.get("allowed_project_ids") if session.info else None
         # Validate UUIDs
         try:
             target_group_uuid = UUID(payload.target_group_id)
@@ -155,6 +174,18 @@ async def generate_journey(
                 project_uuid = UUID(payload.project_id)
             except ValueError as exc:
                 raise HTTPException(status_code=400, detail=f"Invalid project_id format: {payload.project_id}") from exc
+            if allowed_project_ids is not None and project_uuid not in allowed_project_ids:
+                raise HTTPException(status_code=403, detail="Project access denied")
+
+        target_group = session.get(TargetGroup, target_group_uuid)
+        if not target_group:
+            raise HTTPException(status_code=404, detail="Target group not found")
+        if allowed_project_ids is not None and target_group.project_id not in allowed_project_ids:
+            raise HTTPException(status_code=403, detail="Target group access denied")
+        if project_uuid and target_group.project_id != project_uuid:
+            raise HTTPException(status_code=400, detail="project_id does not match target group")
+        if not project_uuid:
+            project_uuid = target_group.project_id
         
         # If async mode, start Celery task
         if payload.use_async:
@@ -217,6 +248,7 @@ def create_journey(
     session: Session = Depends(get_db),
 ) -> JourneyResponse:
     try:
+        allowed_project_ids = session.info.get("allowed_project_ids") if session.info else None
         # Validate UUIDs
         if not payload.organization_id:
             raise HTTPException(status_code=400, detail="organization_id is required")
@@ -231,6 +263,8 @@ def create_journey(
                 project_uuid = UUID(payload.project_id)
             except ValueError as exc:
                 raise HTTPException(status_code=400, detail=f"Invalid project_id format: {payload.project_id}") from exc
+            if allowed_project_ids is not None and project_uuid not in allowed_project_ids:
+                raise HTTPException(status_code=403, detail="Project access denied")
         
         target_group_uuid = None
         if payload.target_group_id:
@@ -238,6 +272,18 @@ def create_journey(
                 target_group_uuid = UUID(payload.target_group_id)
             except ValueError as exc:
                 raise HTTPException(status_code=400, detail=f"Invalid target_group_id format: {payload.target_group_id}") from exc
+            target_group = session.get(TargetGroup, target_group_uuid)
+            if not target_group:
+                raise HTTPException(status_code=404, detail="Target group not found")
+            if allowed_project_ids is not None and target_group.project_id not in allowed_project_ids:
+                raise HTTPException(status_code=403, detail="Target group access denied")
+            if project_uuid and target_group.project_id != project_uuid:
+                raise HTTPException(status_code=400, detail="project_id does not match target group")
+            if not project_uuid:
+                project_uuid = target_group.project_id
+
+        if not project_uuid:
+            raise HTTPException(status_code=400, detail="project_id is required")
         
         journey = Journey(
             organization_id=organization_uuid,
@@ -332,11 +378,28 @@ def list_journeys(
     page_size: int = Query(20, ge=1, le=100),
     session: Session = Depends(get_db),
 ) -> List[JourneyResponse]:
+    if not project_id:
+        raise HTTPException(status_code=400, detail="project_id is required")
+    allowed_project_ids = session.info.get("allowed_project_ids") if session.info else None
+    try:
+        project_uuid = UUID(project_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid project_id") from exc
+    if allowed_project_ids is not None and project_uuid not in allowed_project_ids:
+        raise HTTPException(status_code=403, detail="Project access denied")
+
     stmt = select(Journey)
     if target_group_id:
         stmt = stmt.where(Journey.target_group_id == UUID(target_group_id))
-    if project_id:
-        stmt = stmt.where(Journey.project_id == UUID(project_id))
+    stmt = (
+        stmt.outerjoin(TargetGroup, Journey.target_group_id == TargetGroup.id)
+        .where(
+            or_(
+                Journey.project_id == project_uuid,
+                TargetGroup.project_id == project_uuid,
+            )
+        )
+    )
     
     journeys = session.scalars(
         stmt.offset((page - 1) * page_size).limit(page_size)
@@ -1101,4 +1164,3 @@ def _expectation_to_response(expectation: JourneyExpectation) -> ExpectationResp
         data_source_config=expectation.data_source_config,
         latest_measurement=latest_measurement,
     )
-

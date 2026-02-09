@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Any
 
 import structlog
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
@@ -13,9 +13,11 @@ from uuid import UUID
 
 from ..core.config import get_settings
 from ..db import get_session
-from ..models import Persona, PersonaPrompt
+from ..models import Persona, PersonaPrompt, User
 from ..schemas import AiTemplateDefinition, AiTemplateSummary, AiTemplateUpdateRequest
-from ..services.ai_assist import PromptTemplateRegistry
+from ..services.ai_assist import AiAssistService, PromptTemplateRegistry
+from ..services.auth import get_current_user
+from ..services.access_control import list_accessible_project_ids
 
 logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/settings", tags=["settings"])
@@ -23,7 +25,7 @@ registry = PromptTemplateRegistry()
 
 
 @router.get("/ai/providers")
-def list_ai_providers() -> dict:
+def list_ai_providers(_current_user: User = Depends(get_current_user)) -> dict:
     settings = get_settings()
     providers = [
         {
@@ -45,24 +47,74 @@ def list_ai_providers() -> dict:
     }
 
 
+def _allowed_project_ids(
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> list[UUID]:
+    return list_accessible_project_ids(session, current_user.id)
+
+
 @router.get("/ai/templates", response_model=list[AiTemplateSummary])
-def list_ai_templates() -> list[AiTemplateSummary]:
-    return registry.list_templates()
+def list_ai_templates(
+    project_id: str | None = Query(None),
+    allowed_project_ids: list[UUID] = Depends(_allowed_project_ids),
+    session: Session = Depends(get_session),
+) -> list[AiTemplateSummary]:
+    if not project_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="project_id is required")
+    try:
+        project_uuid = UUID(project_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid project_id") from exc
+    if project_uuid not in allowed_project_ids:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Project access denied")
+    service = AiAssistService(registry=registry)
+    return service.list_templates_for_project(session=session, project_id=project_id)
 
 
 @router.get("/ai/templates/{template_id}", response_model=AiTemplateDefinition)
-def get_ai_template(template_id: str) -> AiTemplateDefinition:
+def get_ai_template(
+    template_id: str,
+    project_id: str | None = Query(None),
+    allowed_project_ids: list[UUID] = Depends(_allowed_project_ids),
+    session: Session = Depends(get_session),
+) -> AiTemplateDefinition:
     """Get full template definition including prompt and output config."""
+    if not project_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="project_id is required")
     try:
-        return registry.get_full_template(template_id)
+        project_uuid = UUID(project_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid project_id") from exc
+    if project_uuid not in allowed_project_ids:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Project access denied")
+    try:
+        service = AiAssistService(registry=registry)
+        return service.get_template_for_project(session=session, project_id=project_id, template_id=template_id)
     except KeyError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
 
 @router.put("/ai/templates/{template_id}", response_model=AiTemplateDefinition)
-def update_ai_template(template_id: str, payload: AiTemplateUpdateRequest) -> AiTemplateDefinition:
+def update_ai_template(
+    template_id: str,
+    payload: AiTemplateUpdateRequest,
+    project_id: str | None = Query(None),
+    allowed_project_ids: list[UUID] = Depends(_allowed_project_ids),
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> AiTemplateDefinition:
     """Update a template's metadata, prompt, or configuration."""
     try:
+        if not project_id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="project_id is required")
+        try:
+            project_uuid = UUID(project_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid project_id") from exc
+        if project_uuid not in allowed_project_ids:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Project access denied")
+
         # Convert Pydantic model to dict, excluding None values
         updates = payload.model_dump(exclude_unset=True, exclude_none=False)
         # Remove None values manually to allow partial updates
@@ -70,9 +122,17 @@ def update_ai_template(template_id: str, payload: AiTemplateUpdateRequest) -> Ai
         
         if not updates:
             # No updates provided, return current template
-            return registry.get_full_template(template_id)
-        
-        return registry.update_template(template_id, updates)
+            service = AiAssistService(registry=registry)
+            return service.get_template_for_project(session=session, project_id=project_id, template_id=template_id)
+
+        service = AiAssistService(registry=registry)
+        return service.update_template_override(
+            session=session,
+            project_id=project_id,
+            template_id=template_id,
+            updates=updates,
+            updated_by=current_user.email,
+        )
     except KeyError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except Exception as exc:
@@ -84,11 +144,13 @@ def update_ai_template(template_id: str, payload: AiTemplateUpdateRequest) -> Ai
 
 
 @router.get("/ai/persona-prompts")
-def list_persona_prompts() -> list[dict]:
+def list_persona_prompts(
+    allowed_project_ids: list[UUID] = Depends(_allowed_project_ids),
+) -> list[dict]:
     """List all persona prompts as template-like entries."""
     with get_session() as session:
         # Get all personas with their prompts
-        personas = session.scalars(select(Persona)).all()
+        personas = session.scalars(select(Persona).where(Persona.project_id.in_(allowed_project_ids))).all()
         prompts = []
         
         for persona in personas:
@@ -118,7 +180,10 @@ def list_persona_prompts() -> list[dict]:
 
 
 @router.get("/ai/persona-prompts/{persona_id}", response_model=AiTemplateDefinition)
-def get_persona_prompt(persona_id: str) -> AiTemplateDefinition:
+def get_persona_prompt(
+    persona_id: str,
+    allowed_project_ids: list[UUID] = Depends(_allowed_project_ids),
+) -> AiTemplateDefinition:
     """Get persona prompt as a template definition."""
     try:
         persona_uuid = UUID(persona_id)
@@ -130,7 +195,7 @@ def get_persona_prompt(persona_id: str) -> AiTemplateDefinition:
     
     with get_session() as session:
         persona = session.get(Persona, persona_uuid)
-        if not persona:
+        if not persona or persona.project_id not in allowed_project_ids:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Persona not found: {persona_id}"
@@ -187,7 +252,11 @@ def get_persona_prompt(persona_id: str) -> AiTemplateDefinition:
 
 
 @router.put("/ai/persona-prompts/{persona_id}", response_model=AiTemplateDefinition)
-def update_persona_prompt(persona_id: str, payload: AiTemplateUpdateRequest) -> AiTemplateDefinition:
+def update_persona_prompt(
+    persona_id: str,
+    payload: AiTemplateUpdateRequest,
+    allowed_project_ids: list[UUID] = Depends(_allowed_project_ids),
+) -> AiTemplateDefinition:
     """Update a persona prompt."""
     try:
         persona_uuid = UUID(persona_id)
@@ -199,7 +268,7 @@ def update_persona_prompt(persona_id: str, payload: AiTemplateUpdateRequest) -> 
     
     with get_session() as session:
         persona = session.get(Persona, persona_uuid)
-        if not persona:
+        if not persona or persona.project_id not in allowed_project_ids:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Persona not found: {persona_id}"
@@ -348,4 +417,3 @@ def update_persona_prompt(persona_id: str, payload: AiTemplateUpdateRequest) -> 
                 "template_version": prompt.template_version,
             }
         )
-

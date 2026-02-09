@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getPersonaBackendBase } from "./backend";
+import { getServerAuthToken } from "./auth";
 
 type ParamsRecord = Record<string, string | undefined>;
 type MaybePromise<T> = T | Promise<T>;
@@ -39,9 +40,17 @@ type PersonaForwardOptions = RequestInit & { preferPublic?: boolean };
 export const forwardPersonaBackend = async (path: string, options?: PersonaForwardOptions) => {
   const { preferPublic, cache, ...requestInit } = options ?? {};
   const target = buildPersonaBackendUrl(path, { preferPublic });
+  const headers = new Headers(requestInit.headers);
+  if (!headers.has("Authorization")) {
+    const token = getServerAuthToken();
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+  }
   const upstream = await fetch(target, {
     cache: cache ?? "no-store",
     ...requestInit,
+    headers,
   });
   const headers = new Headers(upstream.headers);
   if (!headers.has("content-type")) {
@@ -52,4 +61,3 @@ export const forwardPersonaBackend = async (path: string, options?: PersonaForwa
     headers,
   });
 };
-

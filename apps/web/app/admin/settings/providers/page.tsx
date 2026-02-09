@@ -1,4 +1,5 @@
 import { getPersonaBackendBase } from "../../../api/_lib/backend";
+import { buildAuthHeaders, getServerAuthToken } from "../../../api/_lib/auth";
 
 type ProviderInfo = {
   id: string;
@@ -13,8 +14,10 @@ type ProvidersResponse = {
 };
 
 const fetchProviders = async (): Promise<ProvidersResponse> => {
-  const response = await fetch(`${getPersonaBackendBase()}/settings/ai/providers`, {
+  const headers = buildAuthHeaders(getServerAuthToken());
+  const response = await fetch(`${getPersonaBackendBase({ preferPublic: false })}/settings/ai/providers`, {
     cache: "no-store",
+    headers,
   });
   if (!response.ok) {
     throw new Error("Failed to load provider information");
@@ -66,5 +69,3 @@ export default async function SettingsProvidersPage() {
     </div>
   );
 }
-
-

@@ -10,6 +10,8 @@ from .core.logging import configure_logging
 from .core.telemetry import configure_tracing
 from .db import Base, engine
 from . import models  # noqa: F401
+from .routers.auth import router as auth_router
+from .routers.projects import router as projects_router
 from .routers.documents import router as documents_router
 from .routers.ai_assist import router as ai_router
 from .routers.settings import router as settings_router
@@ -62,6 +64,8 @@ def create_app() -> FastAPI:
     
     # Union logging middleware removed - Audion is now autonomous
 
+    app.include_router(auth_router)
+    app.include_router(projects_router)
     app.include_router(documents_router)
     app.include_router(ai_router)
     app.include_router(settings_router)
@@ -75,4 +79,3 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
-

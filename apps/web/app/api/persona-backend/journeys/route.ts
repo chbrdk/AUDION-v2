@@ -1,7 +1,9 @@
+import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getPersonaBackendBase } from "../../_lib/backend";
+import { buildAuthHeaders, getAuthTokenFromRequest } from "../../_lib/auth";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     // Use internal URL for server-side requests
     const personaBackendBase = getPersonaBackendBase({ preferPublic: false });
@@ -9,11 +11,13 @@ export async function GET() {
     
     const url = `${personaBackendBase}/journeys`;
     console.log("[api/persona-backend/journeys] Fetching from:", url);
+    const token = getAuthTokenFromRequest(request);
     
     const response = await fetch(url, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
+        ...buildAuthHeaders(token),
       },
       cache: "no-store",
       // Add timeout to avoid hanging requests

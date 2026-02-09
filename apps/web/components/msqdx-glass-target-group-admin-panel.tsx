@@ -35,6 +35,8 @@ import { MsqdxGlassEntityEditor } from "./generic";
 import { BRAND_COLOR } from "../lib/branding";
 import { MsqdxGlassCollapsiblePanel } from "./admin/msqdx-glass-collapsible-panel";
 import { Box } from "@mui/material";
+import { useProject } from "./projects/project-provider";
+import { buildApiUrl } from "../app/api/_lib/backend";
 
 type MsqdxGlassTargetGroupAdminPanelProps = {
   initialList: TargetGroupListResponse;
@@ -49,7 +51,6 @@ type EditFormState = {
 };
 
 type CreateFormState = {
-  projectId: string;
   name: string;
   segment: string;
   description: string;
@@ -73,7 +74,6 @@ const defaultEditFormState: EditFormState = {
 };
 
 const defaultCreateFormState: CreateFormState = {
-  projectId: "",
   name: "",
   segment: "",
   description: "",
@@ -153,6 +153,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
   initialList,
   docsUrl,
 }: MsqdxGlassTargetGroupAdminPanelProps) => {
+  const { activeProjectId, activeProject } = useProject();
   const [list, setList] = useState<TargetGroupListResponse>(initialList);
   const [selectedId, setSelectedId] = useState<string | null>(initialList.items[0]?.id ?? null);
   const [detail, setDetail] = useState<TargetGroupResponse | null>(null);
@@ -252,9 +253,15 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
   }, [selectedId, loadDetail]);
 
   const refreshList = useCallback(async () => {
+    if (!activeProjectId) {
+      setList({ items: [], total: 0, page: 1, page_size: 20 });
+      setSelectedId(null);
+      setDetail(null);
+      return;
+    }
     setListRefreshing(true);
     try {
-      const updated = await fetchTargetGroupList();
+      const updated = await fetchTargetGroupList(activeProjectId);
       setList(updated);
       if (selectedId && !updated.items.find((item) => item.id === selectedId)) {
         setSelectedId(null);
@@ -267,7 +274,11 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
     } finally {
       setListRefreshing(false);
     }
-  }, [selectedId]);
+  }, [selectedId, activeProjectId]);
+
+  useEffect(() => {
+    void refreshList();
+  }, [refreshList, activeProjectId]);
 
   const handleEditField = (field: keyof EditFormState, value: string) => {
     setEditForm((prev) => ({ ...prev, [field]: value }));
@@ -298,14 +309,14 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
   };
 
   const handleCreate = async () => {
-    if (!createForm.projectId || !createForm.name || !createForm.segment) {
-      notify("Project ID, Name and Segment are required.");
+    if (!activeProjectId || !createForm.name || !createForm.segment) {
+      notify("Project, Name and Segment are required.");
       return;
     }
     setCreatePending(true);
     try {
       const payload = {
-        project_id: createForm.projectId,
+        project_id: activeProjectId,
         name: createForm.name,
         segment: createForm.segment,
         description: createForm.description || null,
@@ -532,40 +543,13 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
               New Target Group
             </MsqdxTypography>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-                <MsqdxFormField
-                  label="Project ID"
-                  value={createForm.projectId}
-                  onChange={(e) =>
-                    setCreateForm((prev) => ({ ...prev, projectId: e.target.value }))
-                  }
-                  placeholder="123e4567-e89b-12d3-a456-426614174000"
-                  fullWidth
-                  size="small"
-                  borderColor={BRAND_COLOR}
-                />
-                <MsqdxButton
-                  variant="text"
-                  size="small"
-                  onClick={() => {
-                    let uuid: string;
-                    if (typeof crypto !== "undefined" && crypto.randomUUID) {
-                      uuid = crypto.randomUUID();
-                    } else {
-                      uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-                        const r = (Math.random() * 16) | 0;
-                        const v = c === "x" ? r : (r & 0x3) | 0x8;
-                        return v.toString(16);
-                      });
-                    }
-                    setCreateForm((prev) => ({ ...prev, projectId: uuid }));
-                  }}
-                  startIcon={<MsqdxIcon name="refresh" customSize={14} />}
-                  sx={{ alignSelf: "flex-start" }}
-                >
-                  Generate
-                </MsqdxButton>
-              </Box>
+              <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+                {activeProject?.name
+                  ? `Project: ${activeProject.name}`
+                  : activeProjectId
+                  ? `Project: ${activeProjectId}`
+                  : "Select a project to create target groups."}
+              </MsqdxTypography>
               <MsqdxFormField
                 label="Name"
                 value={createForm.name}
@@ -602,7 +586,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                 brandColor="green"
                 size="small"
                 onClick={handleCreate}
-                disabled={createPending}
+                disabled={createPending || !activeProjectId}
                 startIcon={<MsqdxIcon name="add" customSize={16} />}
               >
                 Target Group anlegen
@@ -690,7 +674,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                   }
                   
                   try {
-                    const response = await fetch(`/api/persona-admin/${personaId}?actor=persona-admin-ui`, {
+                    const response = await fetch(buildApiUrl(`/api/persona-admin/${personaId}?actor=persona-admin-ui`), {
                       method: "DELETE",
                     });
                     if (!response.ok) {
@@ -937,4 +921,3 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
     </div>
   );
 };
-

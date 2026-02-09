@@ -61,6 +61,7 @@ import {
   type Conversation
 } from "../../../lib/chat-history";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useProject } from "../../../components/projects/project-provider";
 
 type PersonaProfileCard = {
   display_name?: string | null;
@@ -270,6 +271,7 @@ function AdminChatPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setHeaderContent } = useAdminHeader();
+  const { activeProjectId } = useProject();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [availablePersonas, setAvailablePersonas] = useState<PersonaSummary[]>([]);
@@ -461,7 +463,12 @@ function AdminChatPageContent() {
     const loadPersonas = async () => {
       try {
         setLoadingPersonas(true);
-        const response = await fetch(buildApiUrl('/api/personas'));
+        if (!activeProjectId) {
+          setAvailablePersonas([]);
+          return;
+        }
+        const query = new URLSearchParams({ project_id: activeProjectId });
+        const response = await fetch(buildApiUrl(`/api/personas?${query.toString()}`));
         if (response.ok) {
           const data = await response.json();
           const personas = Array.isArray(data) ? data : (data.items || []);
@@ -506,7 +513,7 @@ function AdminChatPageContent() {
     };
 
     loadPersonas();
-  }, []);
+  }, [activeProjectId]);
 
   useEffect(() => {
     if (!speechSessionActiveRef.current) {
@@ -925,10 +932,14 @@ function AdminChatPageContent() {
 
   // Load journeys when dialog opens
   useEffect(() => {
+    if (!activeProjectId) {
+      setJourneys([]);
+      return;
+    }
     if (journeyDialogOpen && journeys.length === 0) {
       loadJourneys();
     }
-  }, [journeyDialogOpen]);
+  }, [journeyDialogOpen, activeProjectId]);
 
   // Load selected journey details when journey is selected
   useEffect(() => {
@@ -943,7 +954,11 @@ function AdminChatPageContent() {
   const loadJourneys = async () => {
     try {
       setLoadingJourneys(true);
-      const data = await journeysApi.listJourneys();
+      if (!activeProjectId) {
+        setJourneys([]);
+        return;
+      }
+      const data = await journeysApi.listJourneys({ project_id: activeProjectId });
       setJourneys(data);
     } catch (error) {
       console.error("Failed to load journeys:", error);
@@ -2454,4 +2469,3 @@ export default function AdminChatPage() {
     </Suspense>
   );
 }
-

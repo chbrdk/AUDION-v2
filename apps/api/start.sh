@@ -39,6 +39,40 @@ elif command -v python3 >/dev/null 2>&1; then
 fi
 
 # Run database initialization
+echo "Waiting for database to be ready..."
+PYTHONPATH=/app/apps/api /app/apps/api/.venv/bin/python3 - <<'PY'
+import os
+import sys
+import time
+
+from sqlalchemy import text
+
+try:
+    from app.db import engine
+except Exception as exc:
+    print(f"Failed to import database engine: {exc}", file=sys.stderr)
+    sys.exit(1)
+
+timeout_seconds = int(os.getenv("DB_WAIT_TIMEOUT_SECONDS", "60"))
+interval_seconds = float(os.getenv("DB_WAIT_INTERVAL_SECONDS", "2"))
+start_time = time.time()
+
+while True:
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        print("Database is ready.")
+        break
+    except Exception as exc:
+        elapsed = time.time() - start_time
+        if elapsed >= timeout_seconds:
+            print(f"Database not ready after {timeout_seconds}s: {exc}", file=sys.stderr)
+            sys.exit(1)
+        print("Database not ready yet, retrying...")
+        time.sleep(interval_seconds)
+
+PY
+
 echo "Running database initialization..."
 PYTHONPATH=/app/apps/api /app/apps/api/.venv/bin/python3 app/scripts/init_db.py
 
@@ -46,4 +80,3 @@ PYTHONPATH=/app/apps/api /app/apps/api/.venv/bin/python3 app/scripts/init_db.py
 # This ensures uvicorn is the main process and receives signals correctly
 echo "Starting uvicorn..."
 exec /app/apps/api/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
-

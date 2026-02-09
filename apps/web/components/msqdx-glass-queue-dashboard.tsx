@@ -19,6 +19,7 @@ import {
   retryJob,
 } from "../app/api/_lib/queue";
 import { MsqdxIcon } from "@msqdx/react";
+import { useProject } from "./projects/project-provider";
 
 type MsqdxGlassQueueDashboardProps = {
   initialStats: QueueStatsResponse;
@@ -92,6 +93,7 @@ const notify = (message: string) => {
 };
 
 export const MsqdxGlassQueueDashboard = ({ initialStats }: MsqdxGlassQueueDashboardProps) => {
+  const { activeProjectId } = useProject();
   const [stats, setStats] = useState<QueueStatsResponse>(initialStats);
   const [jobs, setJobs] = useState<ProcessingJobListResponse>({
     items: [],
@@ -109,17 +111,35 @@ export const MsqdxGlassQueueDashboard = ({ initialStats }: MsqdxGlassQueueDashbo
 
   const loadStats = useCallback(async () => {
     try {
-      const statsData = await fetchQueueStats();
+      if (!activeProjectId) {
+        setStats({
+          pendingCount: 0,
+          processingCount: 0,
+          completedCount: 0,
+          failedCount: 0,
+          workerAvailable: false,
+          workerCount: 0,
+        });
+        return;
+      }
+      const statsData = await fetchQueueStats(activeProjectId);
       setStats(statsData);
     } catch (error) {
       console.error("Failed to load stats:", error);
     }
-  }, []);
+  }, [activeProjectId]);
 
   const loadJobs = useCallback(async () => {
     setLoading(true);
     try {
+      if (!activeProjectId) {
+        setJobs({ items: [], total: 0, page: 1, page_size: 20 });
+        setSelectedJobId(null);
+        setSelectedJobDetail(null);
+        return;
+      }
       const jobsData = await fetchProcessingJobs({
+        projectId: activeProjectId,
         status: filterStatus || undefined,
         page,
         pageSize: 20,
@@ -131,17 +151,21 @@ export const MsqdxGlassQueueDashboard = ({ initialStats }: MsqdxGlassQueueDashbo
     } finally {
       setLoading(false);
     }
-  }, [filterStatus, page]);
+  }, [filterStatus, page, activeProjectId]);
 
   const loadJobDetail = useCallback(async (jobId: string) => {
     try {
-      const detail = await fetchProcessingJob(jobId);
+      if (!activeProjectId) {
+        setSelectedJobDetail(null);
+        return;
+      }
+      const detail = await fetchProcessingJob(jobId, activeProjectId);
       setSelectedJobDetail(detail);
     } catch (error) {
       console.error("Failed to load job detail:", error);
       notify("Error loading job details");
     }
-  }, []);
+  }, [activeProjectId]);
 
   useEffect(() => {
     void loadJobs();
@@ -168,7 +192,11 @@ export const MsqdxGlassQueueDashboard = ({ initialStats }: MsqdxGlassQueueDashbo
       return;
     }
     try {
-      await retryJob(jobId);
+      if (!activeProjectId) {
+        notify("Select a project to retry jobs.");
+        return;
+      }
+      await retryJob(jobId, activeProjectId);
       notify("Job retried");
       await loadJobs();
       await loadStats();
@@ -177,6 +205,17 @@ export const MsqdxGlassQueueDashboard = ({ initialStats }: MsqdxGlassQueueDashbo
       notify("Error retrying job");
     }
   };
+
+  if (!activeProjectId) {
+    return (
+      <div className="msqdx-glass-panel" style={{ padding: "1.5rem" }}>
+        <h3>Queue</h3>
+        <p className="msqdx-glass-muted" style={{ marginTop: "0.5rem" }}>
+          Select a project to view queue activity.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="msqdx-glass-admin-grid">
@@ -393,4 +432,3 @@ export const MsqdxGlassQueueDashboard = ({ initialStats }: MsqdxGlassQueueDashbo
     </div>
   );
 };
-

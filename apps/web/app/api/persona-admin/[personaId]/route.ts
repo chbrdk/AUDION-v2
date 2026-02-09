@@ -2,11 +2,17 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { getPersonaBackendBase } from "../../_lib/backend";
+import { buildAuthHeaders, getAuthTokenFromRequest } from "../../_lib/auth";
 
-const forward = async (target: string, init?: RequestInit) => {
+const forward = async (request: NextRequest, target: string, init?: RequestInit) => {
+  const token = getAuthTokenFromRequest(request);
   const upstream = await fetch(target, {
     cache: "no-store",
     ...init,
+    headers: {
+      ...(init?.headers ?? {}),
+      ...buildAuthHeaders(token),
+    },
   });
 
   const contentType = upstream.headers.get("content-type") ?? "application/json";
@@ -38,7 +44,7 @@ export async function GET(_: NextRequest, context: PersonaContext) {
     return NextResponse.json({ error: "Persona ID missing" }, { status: 400 });
   }
   const target = buildTarget(personaId);
-  return forward(target);
+  return forward(_, target);
 }
 
 export async function PATCH(request: NextRequest, context: PersonaContext) {
@@ -49,7 +55,7 @@ export async function PATCH(request: NextRequest, context: PersonaContext) {
   }
   const target = buildTarget(personaId);
   const body = await request.text();
-  return forward(target, {
+  return forward(request, target, {
     method: "PATCH",
     headers: {
       "Content-Type": request.headers.get("content-type") ?? "application/json",
@@ -66,8 +72,7 @@ export async function DELETE(request: NextRequest, context: PersonaContext) {
   }
   const urlQuery = request.nextUrl.searchParams.toString();
   const target = buildTarget(personaId, urlQuery);
-  return forward(target, {
+  return forward(request, target, {
     method: "DELETE",
   });
 }
-

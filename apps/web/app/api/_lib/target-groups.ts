@@ -1,4 +1,4 @@
-import { getPersonaBackendBase } from "./backend";
+import { buildApiUrl } from "./backend";
 
 export interface TargetGroupResponse {
   id: string;
@@ -29,22 +29,18 @@ export const targetGroupsApi = {
     if (params?.page) searchParams.set("page", params.page.toString());
     if (params?.page_size) searchParams.set("page_size", params.page_size.toString());
     
-    // Use public URL for client-side requests
-    const baseUrl = getPersonaBackendBase({ preferPublic: true });
-    const url = `${baseUrl}/target-groups${searchParams.toString() ? `?${searchParams}` : ""}`;
-    console.log("Fetching target groups from:", url); // Debug log
-    const response = await fetch(url);
+    const url = buildApiUrl(`/api/target-groups${searchParams.toString() ? `?${searchParams}` : ""}`);
+    const response = await fetch(url, { cache: "no-store" });
     if (!response.ok) {
       const error = await response.text().catch(() => "");
       throw new Error(error || `Backend responded with ${response.status}`);
     }
     const data = await response.json();
-    console.log("Target groups response:", data); // Debug log
     return data;
   },
 
   getTargetGroup: async (id: string): Promise<TargetGroupResponse> => {
-    const response = await fetch(`${getPersonaBackendBase()}/target-groups/${id}`);
+    const response = await fetch(buildApiUrl(`/api/target-groups/${id}`), { cache: "no-store" });
     if (!response.ok) {
       const error = await response.text().catch(() => "");
       throw new Error(error || `Backend responded with ${response.status}`);
@@ -52,4 +48,3 @@ export const targetGroupsApi = {
     return response.json();
   },
 };
-

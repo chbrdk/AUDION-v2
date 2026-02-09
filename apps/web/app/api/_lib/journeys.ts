@@ -1,4 +1,4 @@
-import { getPersonaBackendBase } from "./backend";
+import { buildApiUrl } from "./backend";
 
 // Types (should match backend schemas)
 export interface JourneyCreate {
@@ -239,11 +239,18 @@ export interface JourneyAiGenerationResponse {
   raw_output: string;
 }
 
+const buildJourneysUrl = (path: string, params?: URLSearchParams) => {
+  const normalized = path ? (path.startsWith("/") ? path : `/${path}`) : "";
+  const base = buildApiUrl(`/api/journeys${normalized}`);
+  const query = params?.toString();
+  return query ? `${base}?${query}` : base;
+};
+
 // API Client
 export const journeysApi = {
   // AI Generation
   generateJourney: async (data: JourneyGenerateRequest): Promise<JourneyResponse> => {
-    const response = await fetch(`${getPersonaBackendBase()}/journeys/generate`, {
+    const response = await fetch(buildJourneysUrl("/generate"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -257,7 +264,7 @@ export const journeysApi = {
 
   // CRUD Operations
   createJourney: async (data: JourneyCreate): Promise<JourneyResponse> => {
-    const response = await fetch(`${getPersonaBackendBase()}/journeys`, {
+    const response = await fetch(buildJourneysUrl(""), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -270,10 +277,7 @@ export const journeysApi = {
   },
 
   getJourney: async (id: string): Promise<JourneyResponse> => {
-    // Use Next.js API route instead of direct backend call
-    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
-    const url = `${basePath}/api/persona-backend/journeys/${id}`;
-    const response = await fetch(url);
+    const response = await fetch(buildJourneysUrl(`/${id}`), { cache: "no-store" });
     if (!response.ok) {
       const error = await response.text().catch(() => "");
       throw new Error(error || `Backend responded with ${response.status}`);
@@ -282,7 +286,7 @@ export const journeysApi = {
   },
 
   updateJourney: async (id: string, data: Partial<JourneyCreate>): Promise<JourneyResponse> => {
-    const response = await fetch(`${getPersonaBackendBase()}/journeys/${id}`, {
+    const response = await fetch(buildJourneysUrl(`/${id}`), {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -295,7 +299,7 @@ export const journeysApi = {
   },
 
   deleteJourney: async (id: string): Promise<void> => {
-    const response = await fetch(`${getPersonaBackendBase()}/journeys/${id}`, {
+    const response = await fetch(buildJourneysUrl(`/${id}`), {
       method: "DELETE",
     });
     if (!response.ok) {
@@ -316,10 +320,7 @@ export const journeysApi = {
     if (params?.page) searchParams.set("page", params.page.toString());
     if (params?.page_size) searchParams.set("page_size", params.page_size.toString());
     
-    // Use Next.js API route instead of direct backend call
-    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
-    const url = `${basePath}/api/persona-backend/journeys${searchParams.toString() ? `?${searchParams}` : ""}`;
-    const response = await fetch(url);
+    const response = await fetch(buildJourneysUrl("", searchParams), { cache: "no-store" });
     if (!response.ok) {
       const error = await response.text().catch(() => "");
       throw new Error(error || `Backend responded with ${response.status}`);
@@ -329,7 +330,7 @@ export const journeysApi = {
 
   // Phase Operations
   createPhase: async (journeyId: string, data: PhaseCreate): Promise<PhaseResponse> => {
-    const response = await fetch(`${getPersonaBackendBase()}/journeys/${journeyId}/phases`, {
+    const response = await fetch(buildJourneysUrl(`/${journeyId}/phases`), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -342,7 +343,7 @@ export const journeysApi = {
   },
 
   updatePhase: async (journeyId: string, phaseId: string, data: Partial<PhaseCreate>): Promise<PhaseResponse> => {
-    const response = await fetch(`${getPersonaBackendBase()}/journeys/${journeyId}/phases/${phaseId}`, {
+    const response = await fetch(buildJourneysUrl(`/${journeyId}/phases/${phaseId}`), {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -355,7 +356,7 @@ export const journeysApi = {
   },
 
   deletePhase: async (journeyId: string, phaseId: string): Promise<void> => {
-    const response = await fetch(`${getPersonaBackendBase()}/journeys/${journeyId}/phases/${phaseId}`, {
+    const response = await fetch(buildJourneysUrl(`/${journeyId}/phases/${phaseId}`), {
       method: "DELETE",
     });
     if (!response.ok) {
@@ -366,7 +367,10 @@ export const journeysApi = {
 
   reorderPhases: async (journeyId: string, phaseId: string, newOrder: number): Promise<void> => {
     const response = await fetch(
-      `${getPersonaBackendBase()}/journeys/${journeyId}/phases/${phaseId}/reorder?new_order=${newOrder}`,
+      buildJourneysUrl(
+        `/${journeyId}/phases/${phaseId}/reorder`,
+        new URLSearchParams({ new_order: newOrder.toString() })
+      ),
       { method: "POST" }
     );
     if (!response.ok) {
@@ -379,7 +383,7 @@ export const journeysApi = {
     journeyId: string,
     payload: JourneyAiGenerateRequest
   ): Promise<JourneyAiGenerationResponse> => {
-    const response = await fetch(`${getPersonaBackendBase()}/journeys/${journeyId}/ai/generate`, {
+    const response = await fetch(buildJourneysUrl(`/${journeyId}/ai/generate`), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -393,14 +397,11 @@ export const journeysApi = {
 
   // Element Operations
   createElement: async (journeyId: string, phaseId: string, data: ElementCreate): Promise<ElementResponse> => {
-    const response = await fetch(
-      `${getPersonaBackendBase()}/journeys/${journeyId}/phases/${phaseId}/elements`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      }
-    );
+    const response = await fetch(buildJourneysUrl(`/${journeyId}/phases/${phaseId}/elements`), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
     if (!response.ok) {
       const error = await response.text().catch(() => "");
       throw new Error(error || `Backend responded with ${response.status}`);
@@ -414,14 +415,11 @@ export const journeysApi = {
     elementId: string,
     data: Partial<ElementCreate>
   ): Promise<ElementResponse> => {
-    const response = await fetch(
-      `${getPersonaBackendBase()}/journeys/${journeyId}/phases/${phaseId}/elements/${elementId}`,
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      }
-    );
+    const response = await fetch(buildJourneysUrl(`/${journeyId}/phases/${phaseId}/elements/${elementId}`), {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
     if (!response.ok) {
       const error = await response.text().catch(() => "");
       throw new Error(error || `Backend responded with ${response.status}`);
@@ -430,10 +428,9 @@ export const journeysApi = {
   },
 
   deleteElement: async (journeyId: string, phaseId: string, elementId: string): Promise<void> => {
-    const response = await fetch(
-      `${getPersonaBackendBase()}/journeys/${journeyId}/phases/${phaseId}/elements/${elementId}`,
-      { method: "DELETE" }
-    );
+    const response = await fetch(buildJourneysUrl(`/${journeyId}/phases/${phaseId}/elements/${elementId}`), {
+      method: "DELETE",
+    });
     if (!response.ok) {
       const error = await response.text().catch(() => "");
       throw new Error(error || `Backend responded with ${response.status}`);
@@ -446,14 +443,11 @@ export const journeysApi = {
     phaseId: string,
     data: ExpectationCreate
   ): Promise<ExpectationResponse> => {
-    const response = await fetch(
-      `${getPersonaBackendBase()}/journeys/${journeyId}/phases/${phaseId}/expectations`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      }
-    );
+    const response = await fetch(buildJourneysUrl(`/${journeyId}/phases/${phaseId}/expectations`), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
     if (!response.ok) {
       const error = await response.text().catch(() => "");
       throw new Error(error || `Backend responded with ${response.status}`);
@@ -462,9 +456,9 @@ export const journeysApi = {
   },
 
   listExpectations: async (journeyId: string, phaseId: string): Promise<ExpectationResponse[]> => {
-    const response = await fetch(
-      `${getPersonaBackendBase()}/journeys/${journeyId}/phases/${phaseId}/expectations`
-    );
+    const response = await fetch(buildJourneysUrl(`/${journeyId}/phases/${phaseId}/expectations`), {
+      cache: "no-store",
+    });
     if (!response.ok) {
       const error = await response.text().catch(() => "");
       throw new Error(error || `Backend responded with ${response.status}`);
@@ -474,7 +468,7 @@ export const journeysApi = {
 
   // Validation
   validateJourney: async (journeyId: string, request: ValidationRequest): Promise<JourneyValidationReport> => {
-    const response = await fetch(`${getPersonaBackendBase()}/journeys/${journeyId}/validate`, {
+    const response = await fetch(buildJourneysUrl(`/${journeyId}/validate`), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(request),
@@ -487,7 +481,7 @@ export const journeysApi = {
   },
 
   getValidationReport: async (journeyId: string): Promise<JourneyValidationReport> => {
-    const response = await fetch(`${getPersonaBackendBase()}/journeys/${journeyId}/validation-report`);
+    const response = await fetch(buildJourneysUrl(`/${journeyId}/validation-report`), { cache: "no-store" });
     if (!response.ok) {
       const error = await response.text().catch(() => "");
       throw new Error(error || `Backend responded with ${response.status}`);
@@ -497,7 +491,7 @@ export const journeysApi = {
 
   // Reality Tracking
   configureTracking: async (journeyId: string): Promise<void> => {
-    const response = await fetch(`${getPersonaBackendBase()}/journeys/${journeyId}/tracking/configure`, {
+    const response = await fetch(buildJourneysUrl(`/${journeyId}/tracking/configure`), {
       method: "POST",
     });
     if (!response.ok) {
@@ -507,7 +501,7 @@ export const journeysApi = {
   },
 
   syncMeasurements: async (journeyId: string): Promise<void> => {
-    const response = await fetch(`${getPersonaBackendBase()}/journeys/${journeyId}/tracking/sync`, {
+    const response = await fetch(buildJourneysUrl(`/${journeyId}/tracking/sync`), {
       method: "POST",
     });
     if (!response.ok) {
@@ -517,7 +511,7 @@ export const journeysApi = {
   },
 
   getMeasurements: async (journeyId: string): Promise<any[]> => {
-    const response = await fetch(`${getPersonaBackendBase()}/journeys/${journeyId}/measurements`);
+    const response = await fetch(buildJourneysUrl(`/${journeyId}/measurements`), { cache: "no-store" });
     if (!response.ok) {
       const error = await response.text().catch(() => "");
       throw new Error(error || `Backend responded with ${response.status}`);
@@ -527,7 +521,7 @@ export const journeysApi = {
 
   // Insights & Learning
   getInsights: async (journeyId: string): Promise<InsightResponse[]> => {
-    const response = await fetch(`${getPersonaBackendBase()}/journeys/${journeyId}/insights`);
+    const response = await fetch(buildJourneysUrl(`/${journeyId}/insights`), { cache: "no-store" });
     if (!response.ok) {
       const error = await response.text().catch(() => "");
       throw new Error(error || `Backend responded with ${response.status}`);
@@ -536,10 +530,9 @@ export const journeysApi = {
   },
 
   actionInsight: async (journeyId: string, insightId: string): Promise<void> => {
-    const response = await fetch(
-      `${getPersonaBackendBase()}/journeys/${journeyId}/insights/${insightId}/action`,
-      { method: "POST" }
-    );
+    const response = await fetch(buildJourneysUrl(`/${journeyId}/insights/${insightId}/action`), {
+      method: "POST",
+    });
     if (!response.ok) {
       const error = await response.text().catch(() => "");
       throw new Error(error || `Backend responded with ${response.status}`);
@@ -548,7 +541,7 @@ export const journeysApi = {
 
   // Change Tracking
   createChange: async (journeyId: string, data: Partial<ChangeResponse>): Promise<ChangeResponse> => {
-    const response = await fetch(`${getPersonaBackendBase()}/journeys/${journeyId}/changes`, {
+    const response = await fetch(buildJourneysUrl(`/${journeyId}/changes`), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -561,7 +554,7 @@ export const journeysApi = {
   },
 
   listChanges: async (journeyId: string): Promise<ChangeResponse[]> => {
-    const response = await fetch(`${getPersonaBackendBase()}/journeys/${journeyId}/changes`);
+    const response = await fetch(buildJourneysUrl(`/${journeyId}/changes`), { cache: "no-store" });
     if (!response.ok) {
       const error = await response.text().catch(() => "");
       throw new Error(error || `Backend responded with ${response.status}`);
@@ -569,4 +562,3 @@ export const journeysApi = {
     return response.json();
   },
 };
-

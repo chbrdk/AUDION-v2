@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { getPersonaBackendBase } from "../../../../_lib/backend";
+import { buildAuthHeaders, getAuthTokenFromRequest } from "../../../../_lib/auth";
 import { resolvePersonaParams } from "../../../../_lib/persona";
 
 type RouteParams = {
@@ -17,6 +18,7 @@ export async function POST(request: NextRequest, context: RouteParams) {
     const { targetGroupId } = await resolvePersonaParams(context);
     const baseUrl = getPersonaBackendBase({ preferPublic: false });
     const target = `${baseUrl}/target-groups/${targetGroupId}/personas/generate`;
+    const token = getAuthTokenFromRequest(request);
     
     // Read the request body as JSON
     const body = await request.json();
@@ -26,7 +28,7 @@ export async function POST(request: NextRequest, context: RouteParams) {
     const bodyText = JSON.stringify(body);
     const bodyBytes = new TextEncoder().encode(bodyText);
     
-    const headers = new Headers();
+    const headers = new Headers(buildAuthHeaders(token));
     headers.set("Content-Type", "application/json");
     headers.set("Content-Length", bodyBytes.length.toString());
     

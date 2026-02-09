@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 import json
 
 from ..db import get_session
-from ..models import Document, DocumentChunk, Persona, PersonaKnowledgeEntry, ProcessingJob
+from ..models import Document, DocumentChunk, Persona, PersonaKnowledgeEntry, ProcessingJob, TargetGroup, User
 from worker.ingest import enqueue_ingestion
 from ..schemas import (
     AiAssistRequest,
@@ -31,6 +31,8 @@ from ..schemas import (
     PersonaResponse,
 )
 from ..services.ai_assist import AiAssistService
+from ..services.auth import get_current_user
+from ..services.access_control import list_accessible_project_ids
 from ..services.persona_ai_context import (
     build_persona_ai_context as _build_persona_ai_context,
     build_persona_goals_ai_context as _build_persona_goals_ai_context,
@@ -49,18 +51,26 @@ storage = StorageService()
 target_group_service = TargetGroupService()
 
 
-def get_db():
+def get_db(current_user: User = Depends(get_current_user)):
     with get_session() as session:
+        session.info["current_user_id"] = current_user.id
+        session.info["allowed_project_ids"] = list_accessible_project_ids(session, current_user.id)
         yield session
 
 
-def _get_persona_or_404(session: Session, persona_id: str) -> Persona:
+def _get_persona_or_404(
+    session: Session,
+    persona_id: str,
+    allowed_project_ids: list[UUID] | None = None,
+) -> Persona:
     try:
         persona_uuid = UUID(persona_id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid persona id") from exc
     persona = session.get(Persona, persona_uuid)
-    if not persona:
+    if allowed_project_ids is None:
+        allowed_project_ids = session.info.get("allowed_project_ids") if session.info else None
+    if not persona or (allowed_project_ids is not None and persona.project_id not in allowed_project_ids):
         raise HTTPException(status_code=404, detail="Persona not found")
     return persona
 
@@ -99,8 +109,10 @@ def list_personas(
     session: Session = Depends(get_db),
 ) -> PersonaListResponse:
     try:
+        allowed_project_ids = session.info.get("allowed_project_ids") if session.info else None
         return persona_service.list_personas(
             session,
+            allowed_project_ids=allowed_project_ids,
             project_id=project_id,
             target_group_id=None,
             status=status,
@@ -109,6 +121,8 @@ def list_personas(
             page_size=page_size,
         )
     except ValueError as exc:
+        if str(exc) == "project_access_denied":
+            raise HTTPException(status_code=403, detail="Project access denied") from exc
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
@@ -392,6 +406,22 @@ async def generate_persona_goals(
 )
 def create_persona(payload: PersonaCreateRequest, session: Session = Depends(get_db)) -> PersonaResponse:
     try:
+        allowed_project_ids = session.info.get("allowed_project_ids") if session.info else None
+        if allowed_project_ids is not None:
+            try:
+                project_uuid = UUID(payload.project_id)
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail="Invalid project_id") from exc
+            if project_uuid not in allowed_project_ids:
+                raise HTTPException(status_code=403, detail="Project access denied")
+            if payload.target_group_id:
+                try:
+                    target_group_uuid = UUID(payload.target_group_id)
+                except ValueError as exc:
+                    raise HTTPException(status_code=400, detail="Invalid target_group_id") from exc
+                target_group = session.get(TargetGroup, target_group_uuid)
+                if not target_group or target_group.project_id != project_uuid:
+                    raise HTTPException(status_code=403, detail="Target group access denied")
         return persona_service.create_persona(session, payload)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -434,11 +464,22 @@ def create_persona(payload: PersonaCreateRequest, session: Session = Depends(get
 def generate_persona(payload: PersonaGenerateRequest, session: Session = Depends(get_db)) -> PersonaResponse:
     from uuid import uuid4
     
+    allowed_project_ids = session.info.get("allowed_project_ids") if session.info else None
+    if allowed_project_ids is not None:
+        try:
+            project_uuid = UUID(payload.project_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail="Invalid project_id") from exc
+        if project_uuid not in allowed_project_ids:
+            raise HTTPException(status_code=403, detail="Project access denied")
+
     # Determine target_group_id if persona_id is provided (persona might already have target_group)
     target_group_id = None
     if payload.persona_id:
         try:
             existing_persona = session.get(Persona, UUID(payload.persona_id))
+            if existing_persona and allowed_project_ids is not None and existing_persona.project_id not in allowed_project_ids:
+                raise HTTPException(status_code=403, detail="Persona access denied")
             if existing_persona and existing_persona.target_group_id:
                 target_group_id = existing_persona.target_group_id
         except ValueError:
@@ -501,6 +542,7 @@ def generate_persona(payload: PersonaGenerateRequest, session: Session = Depends
 )
 def get_persona(persona_id: str, session: Session = Depends(get_db)) -> PersonaResponse:
     try:
+        _get_persona_or_404(session, persona_id)
         return persona_service.get_persona(session, persona_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail="Persona not found") from exc
@@ -1210,4 +1252,3 @@ def get_persona_avatar(persona_id: str, session: Session = Depends(get_db)):
     except Exception as exc:  # pragma: no cover - external dependency
         raise HTTPException(status_code=404, detail="Avatar not found") from exc
     return StreamingResponse(body, media_type=content_type)
-

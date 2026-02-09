@@ -18,6 +18,7 @@ import { MsqdxGlassJourneyPhaseCard } from "../../../../components/journeys/msqd
 import { BRAND_COLOR } from "../../../../lib/branding";
 import { Box } from "@mui/material";
 import { MsqdxGlassAiButton } from "../../../../components/ai/msqdx-glass-ai-button";
+import { buildApiUrl } from "../../../api/_lib/backend";
 import { useAiAssist } from "../../../../hooks/use-ai-assist";
 
 const ELEMENT_TYPE_OPTIONS = [
@@ -287,7 +288,7 @@ export default function JourneyEditorPage() {
               personasResponse.items.slice(0, 3).map(async (persona) => {
                 try {
                   // Fetch full persona details
-                  const response = await fetch(`/api/persona-admin/${persona.id}`, { cache: "no-store" });
+                  const response = await fetch(buildApiUrl(`/api/persona-admin/${persona.id}`), { cache: "no-store" });
                   if (!response.ok) {
                     throw new Error(`HTTP ${response.status}`);
                   }

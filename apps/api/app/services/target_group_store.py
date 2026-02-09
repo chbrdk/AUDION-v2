@@ -35,16 +35,24 @@ class TargetGroupService:
     def list_target_groups(
         self,
         session: Session,
+        allowed_project_ids: list[UUID] | None = None,
         project_id: str | None = None,
         page: int = 1,
         page_size: int = 20,
     ) -> TargetGroupListResponse:
         query = select(TargetGroup)
+        if allowed_project_ids is not None:
+            if not allowed_project_ids:
+                return TargetGroupListResponse(items=[], total=0, page=page, page_size=page_size)
+            query = query.where(TargetGroup.project_id.in_(allowed_project_ids))
         if project_id:
             try:
-                query = query.where(TargetGroup.project_id == UUID(project_id))
+                project_uuid = UUID(project_id)
             except ValueError:
                 raise ValueError("invalid_project_id")
+            if allowed_project_ids is not None and project_uuid not in allowed_project_ids:
+                raise ValueError("project_access_denied")
+            query = query.where(TargetGroup.project_id == project_uuid)
 
         total = session.scalar(select(func.count()).select_from(query.subquery()))
         items = session.scalars(
@@ -298,4 +306,3 @@ class TargetGroupService:
             ingestionStatus=ingestion_status,
             ingestionProgress=ingestion_progress,
         )
-

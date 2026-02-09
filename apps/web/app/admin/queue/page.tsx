@@ -3,19 +3,20 @@ export const dynamic = "force-dynamic";
 import type { QueueStatsResponse } from "@msqdx-glass/types";
 
 import { getPersonaBackendBase } from "../../api/_lib/backend";
+import { buildAuthHeaders, getServerAuthToken, getServerProjectId } from "../../api/_lib/auth";
 import { MsqdxGlassQueueDashboard } from "../../../components/msqdx-glass-queue-dashboard";
 
-async function fetchQueueStats(): Promise<QueueStatsResponse> {
-  const internalUrl = process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL?.trim();
-  const base = internalUrl || getPersonaBackendBase({ preferPublic: false });
+async function fetchQueueStats(projectId: string, headers: HeadersInit): Promise<QueueStatsResponse> {
+  const base = getPersonaBackendBase({ preferPublic: false });
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   try {
-    const response = await fetch(`${base}/queue/stats`, {
+    const response = await fetch(`${base}/queue/stats?project_id=${projectId}`, {
       cache: "no-store",
       signal: controller.signal,
+      headers,
     });
 
     clearTimeout(timeoutId);
@@ -41,9 +42,14 @@ async function fetchQueueStats(): Promise<QueueStatsResponse> {
 export default async function QueuePage() {
   let stats: QueueStatsResponse;
   let error: string | null = null;
+  const projectId = getServerProjectId();
+  const headers = buildAuthHeaders(getServerAuthToken());
 
   try {
-    stats = await fetchQueueStats();
+    if (!projectId) {
+      throw new Error("Select a project to load queue stats.");
+    }
+    stats = await fetchQueueStats(projectId, headers);
   } catch (err) {
     error = err instanceof Error ? err.message : "Unknown error";
     stats = {
@@ -76,5 +82,3 @@ export default async function QueuePage() {
     </>
   );
 }
-
-

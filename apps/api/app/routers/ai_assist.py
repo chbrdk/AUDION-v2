@@ -4,13 +4,15 @@ from typing import List
 from uuid import UUID
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from ..db import get_session
 from ..models import Persona
 from ..schemas import AiAssistRequest, AiAssistResponse, AiPromptTestRequest, AiTemplateSummary
 from ..services.ai_assist import AiAssistService, PromptTemplateRegistry
+from ..services.auth import get_current_user
+from ..services.access_control import list_accessible_project_ids
 
 logger = structlog.get_logger(__name__)
 
@@ -23,7 +25,11 @@ def get_db():
         yield session
 
 
-def _enrich_persona_context(session: Session, context: dict) -> dict:
+def _enrich_persona_context(
+    session: Session,
+    context: dict,
+    allowed_project_ids: list[UUID] | None = None,
+) -> dict:
     """Enrich context with persona data if persona_id is present."""
     persona_id = context.get("persona_id")
     if not persona_id:
@@ -35,6 +41,8 @@ def _enrich_persona_context(session: Session, context: dict) -> dict:
         if not persona:
             logger.warning("ai.assist.persona_not_found", persona_id=str(persona_id))
             return context
+        if allowed_project_ids is not None and persona.project_id not in allowed_project_ids:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Persona access denied")
         
         # Import helper functions from persona_ai_context service
         from ..services.persona_ai_context import (
@@ -71,13 +79,33 @@ def _enrich_persona_context(session: Session, context: dict) -> dict:
         return context
 
 
+def allowed_project_ids_dep(
+    current_user=Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> list[UUID]:
+    return list_accessible_project_ids(session, current_user.id)
+
+
 @router.get(
     "/templates",
     response_model=List[AiTemplateSummary],
     summary="List available AI prompt templates",
 )
-def list_templates() -> List[AiTemplateSummary]:
-    return registry.list_templates()
+def list_templates(
+    project_id: str | None = Query(None),
+    allowed_project_ids: list[UUID] = Depends(allowed_project_ids_dep),
+    session: Session = Depends(get_db),
+) -> List[AiTemplateSummary]:
+    if not project_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="project_id is required")
+    try:
+        project_uuid = UUID(project_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid project_id") from exc
+    if project_uuid not in allowed_project_ids:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Project access denied")
+    service = AiAssistService(registry=registry)
+    return service.list_templates_for_project(session=session, project_id=project_id)
 
 
 @router.post(
@@ -86,10 +114,26 @@ def list_templates() -> List[AiTemplateSummary]:
     status_code=status.HTTP_200_OK,
     summary="Execute an AI assist template",
 )
-async def execute_ai_assist(payload: AiAssistRequest, session: Session = Depends(get_db)) -> AiAssistResponse:
+async def execute_ai_assist(
+    payload: AiAssistRequest,
+    project_id: str | None = Query(None),
+    allowed_project_ids: list[UUID] = Depends(allowed_project_ids_dep),
+    session: Session = Depends(get_db),
+) -> AiAssistResponse:
     try:
+        if project_id:
+            try:
+                project_uuid = UUID(project_id)
+            except ValueError as exc:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid project_id") from exc
+            if project_uuid not in allowed_project_ids:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Project access denied")
         # Enrich context with persona data if persona_id is present
-        enriched_context = _enrich_persona_context(session, {**payload.context, "_template_id": payload.template_id})
+        enriched_context = _enrich_persona_context(
+            session,
+            {**payload.context, "_template_id": payload.template_id},
+            allowed_project_ids=allowed_project_ids,
+        )
         
         # Create new request with enriched context
         enriched_request = AiAssistRequest(
@@ -102,7 +146,7 @@ async def execute_ai_assist(payload: AiAssistRequest, session: Session = Depends
             metadata=payload.metadata,
         )
         
-        service = AiAssistService(registry=registry)
+        service = AiAssistService(registry=registry, project_id=project_id)
         service.session = session
         return await service.generate(enriched_request)
     except KeyError as exc:
@@ -122,7 +166,11 @@ async def execute_ai_assist(payload: AiAssistRequest, session: Session = Depends
     status_code=status.HTTP_200_OK,
     summary="Test a custom prompt directly without a template",
 )
-async def test_prompt(payload: AiPromptTestRequest, session: Session = Depends(get_db)) -> AiAssistResponse:
+async def test_prompt(
+    payload: AiPromptTestRequest,
+    _current_user=Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> AiAssistResponse:
     """Test a custom prompt directly without requiring a template."""
     try:
         service = AiAssistService(registry=registry)
@@ -141,5 +189,3 @@ async def test_prompt(payload: AiPromptTestRequest, session: Session = Depends(g
     except Exception as exc:  # pragma: no cover - defensive
         logger.error("ai.assist.test_failed", error=str(exc))
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Prompt test failed") from exc
-
-

@@ -7,6 +7,7 @@ import { useState, useEffect, useMemo } from "react";
 import { aiAssistApi, type AiTemplateSummary, type AiTemplateDefinition, type AiTemplateUpdateRequest } from "../../../api/_lib/ai-assist";
 import { MsqdxIcon } from "@msqdx/react";
 import nextDynamic from "next/dynamic";
+import { useProject } from "../../../../components/projects/project-provider";
 
 // Code Splitting: PromptBuilder ist eine große Komponente
 const PromptBuilder = nextDynamic(
@@ -19,6 +20,7 @@ const PromptBuilder = nextDynamic(
 import clsx from "clsx";
 
 export default function SettingsPromptsPage() {
+  const { activeProjectId } = useProject();
   const [templates, setTemplates] = useState<AiTemplateSummary[]>([]);
   const [personaPrompts, setPersonaPrompts] = useState<AiTemplateSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,19 +36,25 @@ export default function SettingsPromptsPage() {
 
   useEffect(() => {
     const loadAll = async () => {
+      if (!activeProjectId) {
+        setTemplates([]);
+        setPersonaPrompts([]);
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       try {
-        await Promise.all([loadTemplates(), loadPersonaPrompts()]);
+        await Promise.all([loadTemplates(activeProjectId), loadPersonaPrompts()]);
       } finally {
         setLoading(false);
       }
     };
     loadAll();
-  }, []);
+  }, [activeProjectId]);
 
-  const loadTemplates = async () => {
+  const loadTemplates = async (projectId: string) => {
     try {
-      const data = await aiAssistApi.listTemplates();
+      const data = await aiAssistApi.listTemplates(projectId);
       setTemplates(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load templates");
@@ -72,7 +80,7 @@ export default function SettingsPromptsPage() {
         const personaId = templateId.replace("persona-prompt-", "");
         full = await aiAssistApi.getPersonaPrompt(personaId);
       } else {
-        full = await aiAssistApi.getTemplate(templateId);
+        full = await aiAssistApi.getTemplate(templateId, activeProjectId ?? undefined);
       }
       
       setEditingTemplate(full);
@@ -121,8 +129,10 @@ export default function SettingsPromptsPage() {
         await aiAssistApi.updatePersonaPrompt(personaId, updates);
         await loadPersonaPrompts();
       } else {
-        await aiAssistApi.updateTemplate(editingId, updates);
-        await loadTemplates();
+        await aiAssistApi.updateTemplate(editingId, updates, activeProjectId ?? undefined);
+        if (activeProjectId) {
+          await loadTemplates(activeProjectId);
+        }
       }
       
       cancelEditing();
@@ -208,6 +218,19 @@ export default function SettingsPromptsPage() {
   };
 
   const hasActiveFilters = searchQuery.trim() || selectedCategory || selectedTags.size > 0;
+
+  if (!activeProjectId) {
+    return (
+      <div className="msqdx-glass-panel">
+        <div style={{ padding: "2rem" }}>
+          <h2>Prompt Templates</h2>
+          <p className="msqdx-glass-muted" style={{ marginTop: "0.5rem" }}>
+            Select a project to manage prompt templates.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

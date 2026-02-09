@@ -2,6 +2,11 @@ import Link from "next/link";
 
 const cards = [
   {
+    title: "Projects & Access",
+    description: "Create projects, switch ownership context, and manage shared access.",
+    href: "/admin/settings/projects",
+  },
+  {
     title: "Theme",
     description: "Customize sidebar colors and appearance preferences.",
     href: "/admin/settings/theme",
@@ -48,5 +53,4 @@ export default function SettingsLandingPage() {
     </div>
   );
 }
-
 

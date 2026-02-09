@@ -10,6 +10,7 @@ import { MsqdxIcon, MsqdxAdminNav, MsqdxAppLayout, MsqdxTypography } from "@msqd
 import type { AdminNavItem } from "@msqdx/react";
 import { useAdminHeader, useAdminPanel } from "./admin-layout-providers";
 import { BRAND_COLOR } from "../../lib/branding";
+import { AdminTopControls } from "./admin-top-controls";
 
 // Re-export for consumers that import from this file
 export { useAdminHeader, useAdminPanel } from "./admin-layout-providers";
@@ -180,6 +181,9 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
             </MsqdxTypography>
           ) : null}
         </Box>
+        <Box sx={{ display: { xs: "none", md: "flex" }, alignItems: "center", gap: 2 }}>
+          <AdminTopControls />
+        </Box>
         {/* Hamburger button - mobile only */}
         <Box
           sx={{
@@ -289,4 +293,3 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
     </MsqdxAppLayout>
   );
 };
-

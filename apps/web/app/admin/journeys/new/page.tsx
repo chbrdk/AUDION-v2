@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { journeysApi, type JourneyCreate, type JourneyGenerateRequest } from "../../../api/_lib/journeys";
 import { targetGroupsApi, type TargetGroupResponse } from "../../../api/_lib/target-groups";
 import { MsqdxIcon } from "@msqdx/react";
+import { useProject } from "../../../../components/projects/project-provider";
 
 function generateUUID(): string {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
@@ -19,6 +20,7 @@ function generateUUID(): string {
 
 export default function NewJourneyPage() {
   const router = useRouter();
+  const { activeProjectId } = useProject();
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,17 +33,20 @@ export default function NewJourneyPage() {
     creation_mode: "manual",
     organization_id: generateUUID(), // Auto-generate organization ID
     target_group_id: "",
-    project_id: "",
   });
 
   useEffect(() => {
     loadTargetGroups();
-  }, []);
+  }, [activeProjectId]);
 
   const loadTargetGroups = async () => {
     try {
       setLoadingTargetGroups(true);
-      const response = await targetGroupsApi.listTargetGroups({ page_size: 100 });
+      if (!activeProjectId) {
+        setTargetGroups([]);
+        return;
+      }
+      const response = await targetGroupsApi.listTargetGroups({ page_size: 100, project_id: activeProjectId });
       console.log("Loaded target groups:", response); // Debug log
       setTargetGroups(response.items || []);
     } catch (err) {
@@ -65,6 +70,9 @@ export default function NewJourneyPage() {
       if (!formData.organization_id || formData.organization_id.trim() === "") {
         throw new Error("Organization ID is required");
       }
+      if (!activeProjectId) {
+        throw new Error("Project is required");
+      }
       
       // Validate UUID format (basic check)
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -74,16 +82,12 @@ export default function NewJourneyPage() {
       if (formData.target_group_id && formData.target_group_id.trim() !== "" && !uuidRegex.test(formData.target_group_id.trim())) {
         throw new Error("Target Group ID must be a valid UUID format");
       }
-      if (formData.project_id && formData.project_id.trim() !== "" && !uuidRegex.test(formData.project_id.trim())) {
-        throw new Error("Project ID must be a valid UUID format");
-      }
-
       // Clean up empty strings to undefined
       const cleanedData: JourneyCreate = {
         ...formData,
         organization_id: formData.organization_id.trim(),
         target_group_id: formData.target_group_id?.trim() || undefined,
-        project_id: formData.project_id?.trim() || undefined,
+        project_id: activeProjectId,
         description: formData.description?.trim() || undefined,
       };
 
@@ -110,6 +114,9 @@ export default function NewJourneyPage() {
       if (!formData.journey_type) {
         throw new Error("Journey Type is required");
       }
+      if (!activeProjectId) {
+        throw new Error("Project is required");
+      }
 
       // Validate UUID format
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -119,15 +126,11 @@ export default function NewJourneyPage() {
       if (!uuidRegex.test(formData.target_group_id.trim())) {
         throw new Error("Target Group ID must be a valid UUID format");
       }
-      if (formData.project_id && formData.project_id.trim() !== "" && !uuidRegex.test(formData.project_id.trim())) {
-        throw new Error("Project ID must be a valid UUID format");
-      }
-
       const generateRequest: JourneyGenerateRequest = {
         target_group_id: formData.target_group_id.trim(),
         journey_type: formData.journey_type,
         organization_id: formData.organization_id.trim(),
-        project_id: formData.project_id?.trim() || undefined,
+        project_id: activeProjectId,
         created_by: undefined, // Could be set from user context
         use_async: false, // Use synchronous generation for now
       };
@@ -333,28 +336,6 @@ export default function NewJourneyPage() {
             )}
           </div>
 
-          <div>
-            <label htmlFor="project_id" style={{ display: "block", marginBottom: "0.5rem", fontWeight: "500" }}>
-              Project ID (optional)
-            </label>
-            <input
-              id="project_id"
-              type="text"
-              value={formData.project_id}
-              onChange={(e) => setFormData({ ...formData, project_id: e.target.value })}
-              disabled={loading}
-              placeholder="Enter project UUID"
-              style={{
-                width: "100%",
-                padding: "0.75rem",
-                borderRadius: "4px",
-                border: "1px solid var(--color-border)",
-                backgroundColor: "var(--color-surface)",
-                color: "var(--color-text-primary)",
-              }}
-            />
-          </div>
-
           <div style={{ display: "flex", gap: "1rem", justifyContent: "flex-end", marginTop: "1rem" }}>
             <button
               type="button"
@@ -369,7 +350,7 @@ export default function NewJourneyPage() {
                 type="button"
                 className="msqdx-glass-button"
                 onClick={handleGenerateWithAI}
-                disabled={loading || generating || loadingTargetGroups}
+                disabled={loading || generating || loadingTargetGroups || !activeProjectId}
                 style={{ backgroundColor: "var(--color-theme-accent)", color: "white" }}
               >
                 {generating ? (
@@ -386,7 +367,7 @@ export default function NewJourneyPage() {
             <button
               type="submit"
               className="msqdx-glass-button"
-              disabled={loading || generating}
+              disabled={loading || generating || !activeProjectId}
             >
               {loading ? (
                 <>
@@ -404,4 +385,3 @@ export default function NewJourneyPage() {
     </div>
   );
 }
-

@@ -7,6 +7,7 @@ import {
   type JourneyAiGenerationResponse,
   type JourneyAiSuggestion,
 } from "../app/api/_lib/journeys";
+import { useProject } from "../components/projects/project-provider";
 
 export interface UiAiAssistResult {
   templateId: string;
@@ -27,9 +28,11 @@ export interface AiAssistExecuteOptions {
   maxSuggestions?: number;
   provider?: AiAssistRequest["provider"];
   model?: string;
+  projectId?: string;
 }
 
 export const useAiAssist = () => {
+  const { activeProjectId } = useProject();
   const [result, setResult] = useState<UiAiAssistResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +43,7 @@ export const useAiAssist = () => {
       setError(null);
       try {
         let response: UiAiAssistResult;
+        const resolvedProjectId = options.projectId ?? activeProjectId ?? undefined;
         if (options.journeyId) {
           const payload: JourneyAiGenerateRequest = {
             template_id: options.templateId as any, // templateId can be any string for journey AI
@@ -66,7 +70,7 @@ export const useAiAssist = () => {
             prompt_variables: options.promptVariables,
             max_suggestions: options.maxSuggestions,
           };
-          const aiResponse: AiAssistResponse = await aiAssistApi.execute(request);
+          const aiResponse: AiAssistResponse = await aiAssistApi.execute(request, resolvedProjectId);
           response = {
             templateId: aiResponse.template_id,
             rawOutput: aiResponse.raw_output,
@@ -108,5 +112,4 @@ const mapJourneySuggestion = (suggestion: JourneyAiSuggestion): AiAssistSuggesti
   title: suggestion.title,
   type: suggestion.element_type,
 });
-
 

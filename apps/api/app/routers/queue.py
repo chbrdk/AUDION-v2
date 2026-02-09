@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from datetime import datetime
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from ..db import get_session
+from ..models import User
 from ..schemas import (
     CeleryTaskStatus,
     LogListResponse,
@@ -16,14 +18,18 @@ from ..schemas import (
 )
 from ..services.queue_store import QueueService
 from ..services.service_status import ServiceStatusService
+from ..services.auth import get_current_user
+from ..services.access_control import list_accessible_project_ids
 
 router = APIRouter(prefix="/queue", tags=["queue"])
 service = QueueService()
 service_status_service = ServiceStatusService()
 
 
-def get_db():
+def get_db(current_user: User = Depends(get_current_user)):
     with get_session() as session:
+        session.info["current_user_id"] = current_user.id
+        session.info["allowed_project_ids"] = list_accessible_project_ids(session, current_user.id)
         yield session
 
 
@@ -57,6 +63,7 @@ def get_db():
 def list_processing_jobs(
     status: str | None = Query(None, description="Filter by job status"),
     document_id: str | None = Query(None, description="Filter by document ID"),
+    project_id: str | None = Query(None, description="Filter by project ID"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     date_from: datetime | None = Query(None, description="Filter jobs created after this date"),
@@ -64,10 +71,21 @@ def list_processing_jobs(
     session: Session = Depends(get_db),
 ) -> ProcessingJobListResponse:
     try:
+        if not project_id:
+            raise HTTPException(status_code=400, detail="project_id is required")
+        allowed_project_ids = session.info.get("allowed_project_ids") if session.info else None
+        if allowed_project_ids is not None:
+            try:
+                project_uuid = UUID(project_id)
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail="Invalid project_id") from exc
+            if project_uuid not in allowed_project_ids:
+                raise HTTPException(status_code=403, detail="Project access denied")
         return service.list_processing_jobs(
             session,
             status=status,
             document_id=document_id,
+            project_id=project_id,
             page=page,
             page_size=page_size,
             date_from=date_from,
@@ -107,10 +125,21 @@ def list_processing_jobs(
 )
 def get_processing_job(
     job_id: str,
+    project_id: str | None = Query(None),
     session: Session = Depends(get_db),
 ) -> ProcessingJobDetailResponse:
     try:
-        return service.get_processing_job(session, job_id)
+        if not project_id:
+            raise HTTPException(status_code=400, detail="project_id is required")
+        allowed_project_ids = session.info.get("allowed_project_ids") if session.info else None
+        if allowed_project_ids is not None:
+            try:
+                project_uuid = UUID(project_id)
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail="Invalid project_id") from exc
+            if project_uuid not in allowed_project_ids:
+                raise HTTPException(status_code=403, detail="Project access denied")
+        return service.get_processing_job(session, job_id, project_id=project_id)
     except ValueError as exc:
         if "not found" in str(exc):
             raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -146,10 +175,21 @@ def get_processing_job(
 )
 def get_celery_task_status(
     job_id: str,
+    project_id: str | None = Query(None),
     session: Session = Depends(get_db),
 ) -> CeleryTaskStatus:
     try:
-        job = service.get_processing_job(session, job_id)
+        if not project_id:
+            raise HTTPException(status_code=400, detail="project_id is required")
+        allowed_project_ids = session.info.get("allowed_project_ids") if session.info else None
+        if allowed_project_ids is not None:
+            try:
+                project_uuid = UUID(project_id)
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail="Invalid project_id") from exc
+            if project_uuid not in allowed_project_ids:
+                raise HTTPException(status_code=403, detail="Project access denied")
+        job = service.get_processing_job(session, job_id, project_id=project_id)
         # Try to get celery task ID from job
         # For now, we don't store task_id in DB, so we return None if not available
         if not job.celery_task_id:
@@ -198,10 +238,21 @@ def get_celery_task_status(
     """
 )
 def get_queue_stats(
+    project_id: str | None = Query(None),
     session: Session = Depends(get_db),
 ) -> QueueStatsResponse:
     try:
-        return service.get_queue_stats(session)
+        if not project_id:
+            raise HTTPException(status_code=400, detail="project_id is required")
+        allowed_project_ids = session.info.get("allowed_project_ids") if session.info else None
+        if allowed_project_ids is not None:
+            try:
+                project_uuid = UUID(project_id)
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail="Invalid project_id") from exc
+            if project_uuid not in allowed_project_ids:
+                raise HTTPException(status_code=403, detail="Project access denied")
+        return service.get_queue_stats(session, project_id=project_id)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
@@ -231,10 +282,21 @@ def get_queue_stats(
 )
 def retry_failed_job(
     job_id: str,
+    project_id: str | None = Query(None),
     session: Session = Depends(get_db),
 ) -> ProcessingJobDetailResponse:
     try:
-        return service.retry_failed_job(session, job_id)
+        if not project_id:
+            raise HTTPException(status_code=400, detail="project_id is required")
+        allowed_project_ids = session.info.get("allowed_project_ids") if session.info else None
+        if allowed_project_ids is not None:
+            try:
+                project_uuid = UUID(project_id)
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail="Invalid project_id") from exc
+            if project_uuid not in allowed_project_ids:
+                raise HTTPException(status_code=403, detail="Project access denied")
+        return service.retry_failed_job(session, job_id, project_id=project_id)
     except ValueError as exc:
         if "not found" in str(exc) or "not_failed" in str(exc):
             raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -275,6 +337,7 @@ def get_recent_logs(
     level: str | None = Query(None, description="Filter by log level (DEBUG, INFO, WARNING, ERROR)"),
     job_id: str | None = Query(None, description="Filter by job ID"),
     document_id: str | None = Query(None, description="Filter by document ID"),
+    project_id: str | None = Query(None, description="Filter by project ID"),
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
     date_from: datetime | None = Query(None, description="Filter logs after this date"),
@@ -282,6 +345,16 @@ def get_recent_logs(
     session: Session = Depends(get_db),
 ) -> LogListResponse:
     try:
+        if not project_id:
+            raise HTTPException(status_code=400, detail="project_id is required")
+        allowed_project_ids = session.info.get("allowed_project_ids") if session.info else None
+        if allowed_project_ids is not None:
+            try:
+                project_uuid = UUID(project_id)
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail="Invalid project_id") from exc
+            if project_uuid not in allowed_project_ids:
+                raise HTTPException(status_code=403, detail="Project access denied")
         return service.get_recent_logs(
             session,
             level=level,
@@ -328,4 +401,3 @@ async def get_service_status() -> ServiceStatusResponse:
         return await service_status_service.get_service_status()
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-

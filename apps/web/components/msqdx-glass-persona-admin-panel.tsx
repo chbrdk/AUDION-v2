@@ -23,6 +23,7 @@ import { MsqdxGlassCollapsiblePanel } from "./admin/msqdx-glass-collapsible-pane
 import { Box } from "@mui/material";
 import { buildApiUrl } from "../app/api/_lib/backend";
 import { BRAND_COLOR } from "../lib/branding";
+import { useProject } from "./projects/project-provider";
 
 type MsqdxGlassPersonaAdminPanelProps = {
   initialList: PersonaListResponse;
@@ -38,7 +39,6 @@ type EditFormState = {
 };
 
 type CreateFormState = {
-  projectId: string;
   name: string;
   segment: string;
   headline: string;
@@ -64,7 +64,6 @@ const defaultEditFormState: EditFormState = {
 };
 
 const defaultCreateFormState: CreateFormState = {
-  projectId: "",
   name: "",
   segment: "",
   headline: "",
@@ -138,6 +137,7 @@ const notify = (message: string) => {
 };
 
 export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlassPersonaAdminPanelProps) => {
+  const { activeProjectId, activeProject } = useProject();
   const [list, setList] = useState<PersonaListResponse>(initialList);
   const [selectedId, setSelectedId] = useState<string | null>(initialList.items[0]?.id ?? null);
   const [detail, setDetail] = useState<PersonaResponse | null>(null);
@@ -186,7 +186,8 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
       setDetailError(null);
       setDetailLoading(true);
       try {
-        const response = await fetch(buildApiUrl(`/api/persona-admin/${personaId}`), { cache: "no-store" });
+        const query = activeProjectId ? `?project_id=${encodeURIComponent(activeProjectId)}` : "";
+        const response = await fetch(buildApiUrl(`/api/persona-admin/${personaId}${query}`), { cache: "no-store" });
         if (!response.ok) {
           const detailText = await response.text().catch(() => "");
           setDetail(null);
@@ -203,13 +204,22 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
         setDetailLoading(false);
       }
     },
-    []
+    [activeProjectId]
   );
 
   const refreshList = useCallback(async () => {
+    if (!activeProjectId) {
+      setList({ items: [], total: 0, page: 1, page_size: 50 });
+      setSelectedId(null);
+      setDetail(null);
+      return;
+    }
     setListRefreshing(true);
     try {
-      const response = await fetch(buildApiUrl("/api/persona-admin"), { cache: "no-store" });
+      const response = await fetch(
+        buildApiUrl(`/api/persona-admin?project_id=${encodeURIComponent(activeProjectId)}`),
+        { cache: "no-store" }
+      );
       if (!response.ok) {
         throw new Error(`Backend responded with ${response.status}`);
       }
@@ -225,7 +235,11 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
     } finally {
       setListRefreshing(false);
     }
-  }, [selectedId]);
+  }, [selectedId, activeProjectId]);
+
+  useEffect(() => {
+    void refreshList();
+  }, [refreshList, activeProjectId]);
 
   useEffect(() => {
     if (selectedId) {
@@ -1022,14 +1036,14 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
   };
 
   const handleCreate = async () => {
-    if (!createForm.projectId || !createForm.name) {
-      notify("Project ID and Name are required.");
+    if (!activeProjectId || !createForm.name) {
+      notify("Project and Name are required.");
       return;
     }
     setCreatePending(true);
     try {
       const payload = {
-        project_id: createForm.projectId,
+        project_id: activeProjectId,
         name: createForm.name,
         segment: createForm.segment || "unspecified",
         headline: createForm.headline || "New Persona",
@@ -1341,14 +1355,13 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
               New Persona
             </MsqdxTypography>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-              <MsqdxFormField
-                label="Project ID"
-                value={createForm.projectId}
-                onChange={(e) => setCreateForm((prev) => ({ ...prev, projectId: e.target.value }))}
-                placeholder="123e4567-e89b-12d3-a456-426614174000"
-                fullWidth
-                size="small"
-              />
+              <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+                {activeProject?.name
+                  ? `Project: ${activeProject.name}`
+                  : activeProjectId
+                  ? `Project: ${activeProjectId}`
+                  : "Select a project to create personas."}
+              </MsqdxTypography>
               <MsqdxFormField
                 label="Name"
                 value={createForm.name}
@@ -1378,7 +1391,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
                 brandColor="green"
                 size="small"
                 onClick={handleCreate}
-                disabled={createPending}
+                disabled={createPending || !activeProjectId}
                 startIcon={<MsqdxIcon name="add" customSize={16} />}
               >
                 Persona anlegen
@@ -1715,4 +1728,3 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
 };
 
 MsqdxGlassPersonaAdminPanel.displayName = "msqdx-glass-persona-admin-panel";
-

@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { MsqdxIcon } from "@msqdx/react";
 import { journeysApi, type JourneyResponse } from "../../app/api/_lib/journeys";
 import { targetGroupsApi, type TargetGroupResponse } from "../../app/api/_lib/target-groups";
+import { buildApiUrl } from "../../app/api/_lib/backend";
+import { useProject } from "../projects/project-provider";
 
 interface VariableContextPanelProps {
   context: Record<string, string>;
@@ -23,6 +25,7 @@ interface PhaseItem {
 }
 
 export function VariableContextPanel({ context, onChange, requiredVars = [] }: VariableContextPanelProps) {
+  const { activeProjectId } = useProject();
   const [personas, setPersonas] = useState<PersonaItem[]>([]);
   const [journeys, setJourneys] = useState<JourneyResponse[]>([]);
   const [targetGroups, setTargetGroups] = useState<TargetGroupResponse[]>([]);
@@ -39,7 +42,13 @@ export function VariableContextPanel({ context, onChange, requiredVars = [] }: V
     const loadPersonas = async () => {
       setLoading((prev) => ({ ...prev, personas: true }));
       try {
-        const response = await fetch("/api/persona-admin?page_size=100");
+        if (!activeProjectId) {
+          setPersonas([]);
+          return;
+        }
+        const response = await fetch(
+          buildApiUrl(`/api/persona-admin?page_size=100&project_id=${activeProjectId}`)
+        );
         if (response.ok) {
           const data = await response.json();
           const items = Array.isArray(data) ? data : data.items || [];
@@ -57,14 +66,18 @@ export function VariableContextPanel({ context, onChange, requiredVars = [] }: V
       }
     };
     loadPersonas();
-  }, []);
+  }, [activeProjectId]);
 
   // Load journeys
   useEffect(() => {
     const loadJourneys = async () => {
       setLoading((prev) => ({ ...prev, journeys: true }));
       try {
-        const data = await journeysApi.listJourneys({ page_size: 100 });
+        if (!activeProjectId) {
+          setJourneys([]);
+          return;
+        }
+        const data = await journeysApi.listJourneys({ page_size: 100, project_id: activeProjectId });
         setJourneys(data);
       } catch (err) {
         console.error("Failed to load journeys:", err);
@@ -73,14 +86,18 @@ export function VariableContextPanel({ context, onChange, requiredVars = [] }: V
       }
     };
     loadJourneys();
-  }, []);
+  }, [activeProjectId]);
 
   // Load target groups
   useEffect(() => {
     const loadTargetGroups = async () => {
       setLoading((prev) => ({ ...prev, targetGroups: true }));
       try {
-        const data = await targetGroupsApi.listTargetGroups({ page_size: 100 });
+        if (!activeProjectId) {
+          setTargetGroups([]);
+          return;
+        }
+        const data = await targetGroupsApi.listTargetGroups({ page_size: 100, project_id: activeProjectId });
         setTargetGroups(data.items || []);
       } catch (err) {
         console.error("Failed to load target groups:", err);
@@ -89,7 +106,7 @@ export function VariableContextPanel({ context, onChange, requiredVars = [] }: V
       }
     };
     loadTargetGroups();
-  }, []);
+  }, [activeProjectId]);
 
   // Load phases when journey_id changes
   useEffect(() => {
@@ -274,4 +291,3 @@ export function VariableContextPanel({ context, onChange, requiredVars = [] }: V
     </div>
   );
 }
-

@@ -67,46 +67,8 @@ const nextConfig = {
           ? `${process.env.NEXT_PUBLIC_VOICE_API_URL}/voice/:path*`
           : 'http://chat-api:8001/voice/:path*',
       },
-      {
-        source: '/api/personas/:path*',
-        destination: process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL || 'http://api:8000/:path*',
-      },
-      {
-        source: '/api/journeys/:path*',
-        destination: process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL
-          ? `${process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL}/journeys/:path*`
-          : 'http://api:8000/journeys/:path*',
-      },
-      {
-        source: '/api/settings/:path*',
-        destination: process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL
-          ? `${process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL}/settings/:path*`
-          : 'http://api:8000/settings/:path*',
-      },
-      {
-        source: '/api/ai-assist/:path*',
-        destination: process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL
-          ? `${process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL}/ai-assist/:path*`
-          : 'http://api:8000/ai-assist/:path*',
-      },
-      {
-        source: '/api/documents/:path*',
-        destination: process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL
-          ? `${process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL}/documents/:path*`
-          : 'http://api:8000/documents/:path*',
-      },
-      {
-        source: '/api/queue/:path*',
-        destination: process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL
-          ? `${process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL}/queue/:path*`
-          : 'http://api:8000/queue/:path*',
-      },
-      {
-        source: '/api/target-groups/:path*',
-        destination: process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL
-          ? `${process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL}/target-groups/:path*`
-          : 'http://api:8000/target-groups/:path*',
-      }
+      // NOTE: persona backend routes are handled by Next.js app/api proxies
+      // to inject auth headers and project scoping.
     ];
   },
 };

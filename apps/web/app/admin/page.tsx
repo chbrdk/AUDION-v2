@@ -2,11 +2,11 @@ export const dynamic = "force-dynamic";
 
 import type { QueueStatsResponse, PersonaListResponse, ServiceStatusResponse, TargetGroupListResponse } from "@msqdx-glass/types";
 import { MsqdxGlassAdminDashboard } from "../../components/admin/msqdx-glass-admin-dashboard";
+import { getPersonaBackendBase } from "../api/_lib/backend";
+import { buildAuthHeaders, getServerAuthToken, getServerProjectId } from "../api/_lib/auth";
 
-async function fetchPersonaList(): Promise<PersonaListResponse> {
-  // Use absolute URL for server-side fetch
-  const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
-  const apiUrl = `http://localhost:3005${basePath}/api/personas?page=1&page_size=1`;
+async function fetchPersonaList(projectId: string, headers: HeadersInit): Promise<PersonaListResponse> {
+  const apiUrl = `${getPersonaBackendBase({ preferPublic: false })}/personas?page=1&page_size=1&project_id=${projectId}`;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -15,6 +15,7 @@ async function fetchPersonaList(): Promise<PersonaListResponse> {
     const response = await fetch(apiUrl, {
       cache: "no-store",
       signal: controller.signal,
+      headers,
     });
 
     clearTimeout(timeoutId);
@@ -37,10 +38,8 @@ async function fetchPersonaList(): Promise<PersonaListResponse> {
   }
 }
 
-async function fetchTargetGroupList(): Promise<TargetGroupListResponse> {
-  // Use absolute URL for server-side fetch
-  const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
-  const apiUrl = `http://localhost:3005${basePath}/api/target-groups?page=1&page_size=1`;
+async function fetchTargetGroupList(projectId: string, headers: HeadersInit): Promise<TargetGroupListResponse> {
+  const apiUrl = `${getPersonaBackendBase({ preferPublic: false })}/target-groups?page=1&page_size=1&project_id=${projectId}`;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -49,6 +48,7 @@ async function fetchTargetGroupList(): Promise<TargetGroupListResponse> {
     const response = await fetch(apiUrl, {
       cache: "no-store",
       signal: controller.signal,
+      headers,
     });
 
     clearTimeout(timeoutId);
@@ -71,10 +71,8 @@ async function fetchTargetGroupList(): Promise<TargetGroupListResponse> {
   }
 }
 
-async function fetchQueueStats(): Promise<QueueStatsResponse> {
-  // Use absolute URL for server-side fetch
-  const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
-  const apiUrl = `http://localhost:3005${basePath}/api/queue/stats`;
+async function fetchQueueStats(projectId: string, headers: HeadersInit): Promise<QueueStatsResponse> {
+  const apiUrl = `${getPersonaBackendBase({ preferPublic: false })}/queue/stats?project_id=${projectId}`;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -83,6 +81,7 @@ async function fetchQueueStats(): Promise<QueueStatsResponse> {
     const response = await fetch(apiUrl, {
       cache: "no-store",
       signal: controller.signal,
+      headers,
     });
 
     clearTimeout(timeoutId);
@@ -146,35 +145,41 @@ export default async function AdminDashboardPage() {
   };
   let serviceStatus: ServiceStatusResponse | null = null;
   let error: string | null = null;
+  const projectId = getServerProjectId();
+  const headers = buildAuthHeaders(getServerAuthToken());
 
   try {
-    const [personaResponse, targetGroupResponse, queueResponse, serviceStatusResponse] = await Promise.allSettled([
-      fetchPersonaList(),
-      fetchTargetGroupList(),
-      fetchQueueStats(),
-      fetchServiceStatus(),
-    ]);
-
-    if (personaResponse.status === "fulfilled") {
-      personaStats = { total: personaResponse.value.total };
+    if (!projectId) {
+      error = "Select a project to load dashboard statistics.";
     } else {
-      console.error("Failed to fetch personas:", personaResponse.reason);
-    }
+      const [personaResponse, targetGroupResponse, queueResponse, serviceStatusResponse] = await Promise.allSettled([
+        fetchPersonaList(projectId, headers),
+        fetchTargetGroupList(projectId, headers),
+        fetchQueueStats(projectId, headers),
+        fetchServiceStatus(),
+      ]);
 
-    if (targetGroupResponse.status === "fulfilled") {
-      targetGroupStats = { total: targetGroupResponse.value.total };
-    } else {
-      console.error("Failed to fetch target groups:", targetGroupResponse.reason);
-    }
+      if (personaResponse.status === "fulfilled") {
+        personaStats = { total: personaResponse.value.total };
+      } else {
+        console.error("Failed to fetch personas:", personaResponse.reason);
+      }
 
-    if (queueResponse.status === "fulfilled") {
-      queueStats = queueResponse.value;
-    } else {
-      console.error("Failed to fetch queue stats:", queueResponse.reason);
-    }
+      if (targetGroupResponse.status === "fulfilled") {
+        targetGroupStats = { total: targetGroupResponse.value.total };
+      } else {
+        console.error("Failed to fetch target groups:", targetGroupResponse.reason);
+      }
 
-    if (serviceStatusResponse.status === "fulfilled" && serviceStatusResponse.value) {
-      serviceStatus = serviceStatusResponse.value;
+      if (queueResponse.status === "fulfilled") {
+        queueStats = queueResponse.value;
+      } else {
+        console.error("Failed to fetch queue stats:", queueResponse.reason);
+      }
+
+      if (serviceStatusResponse.status === "fulfilled" && serviceStatusResponse.value) {
+        serviceStatus = serviceStatusResponse.value;
+      }
     }
   } catch (err) {
     error = err instanceof Error ? err.message : "Unknown error";
@@ -205,5 +210,3 @@ export default async function AdminDashboardPage() {
     </>
   );
 }
-
-

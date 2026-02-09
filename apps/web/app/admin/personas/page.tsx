@@ -3,19 +3,20 @@ export const dynamic = "force-dynamic";
 import type { PersonaListResponse } from "@msqdx-glass/types";
 
 import { getPersonaBackendBase, getPersonaBackendDocsUrl } from "../../api/_lib/backend";
+import { buildAuthHeaders, getServerAuthToken, getServerProjectId } from "../../api/_lib/auth";
 import { MsqdxGlassPersonaAdminPanel } from "../../../components/msqdx-glass-persona-admin-panel";
 
-async function fetchPersonaList(): Promise<PersonaListResponse> {
-  const internalUrl = process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL?.trim();
-  const base = internalUrl || getPersonaBackendBase({ preferPublic: false });
+async function fetchPersonaList(projectId: string, headers: HeadersInit): Promise<PersonaListResponse> {
+  const base = getPersonaBackendBase({ preferPublic: false });
   
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
   
   try {
-    const response = await fetch(`${base}/personas?page=1&page_size=50`, {
+    const response = await fetch(`${base}/personas?page=1&page_size=50&project_id=${projectId}`, {
       cache: "no-store",
       signal: controller.signal,
+      headers,
     });
 
     clearTimeout(timeoutId);
@@ -41,9 +42,14 @@ async function fetchPersonaList(): Promise<PersonaListResponse> {
 export default async function PersonaAdminPage() {
   let list: PersonaListResponse;
   let error: string | null = null;
+  const projectId = getServerProjectId();
+  const headers = buildAuthHeaders(getServerAuthToken());
   
   try {
-    list = await fetchPersonaList();
+    if (!projectId) {
+      throw new Error("Select a project to load personas.");
+    }
+    list = await fetchPersonaList(projectId, headers);
   } catch (err) {
     error = err instanceof Error ? err.message : "Unknown error";
     list = { items: [], total: 0, page: 1, page_size: 50 };
@@ -62,5 +68,3 @@ export default async function PersonaAdminPage() {
     </>
   );
 }
-
-

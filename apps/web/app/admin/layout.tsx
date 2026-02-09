@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 import dynamic from "next/dynamic";
 import "../../styles/admin.css";
 import { AdminHeaderProvider, AdminPanelProvider } from "../../components/admin/admin-layout-providers";
+import { AuthProvider } from "../../components/auth/auth-provider";
+import { ProjectProvider } from "../../components/projects/project-provider";
 
 // Dynamic import to avoid "Cannot access 'i' before initialization" (TDZ/circular import)
 // when loading @msqdx/react in the same chunk as the layout. The layout client imports
@@ -34,14 +36,17 @@ const MsqdxGlassAdminLayoutClient = dynamic(
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
-    <AdminHeaderProvider>
-      <AdminPanelProvider>
-        <MsqdxGlassAdminLayoutClient>
-          {children}
-        </MsqdxGlassAdminLayoutClient>
-      </AdminPanelProvider>
-    </AdminHeaderProvider>
+    <AuthProvider>
+      <ProjectProvider>
+        <AdminHeaderProvider>
+          <AdminPanelProvider>
+            <MsqdxGlassAdminLayoutClient>
+              {children}
+            </MsqdxGlassAdminLayoutClient>
+          </AdminPanelProvider>
+        </AdminHeaderProvider>
+      </ProjectProvider>
+    </AuthProvider>
   );
 }
-
 

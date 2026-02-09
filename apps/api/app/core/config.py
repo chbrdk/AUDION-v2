@@ -50,6 +50,11 @@ class Settings(BaseSettings):
     ai_default_max_tokens: int = 4000
     ai_knowledge_templates_path: str | None = None
 
+    # Auth (JWT)
+    auth_jwt_secret: str
+    auth_jwt_algorithm: str = "HS256"
+    auth_access_token_minutes: int = 60 * 24 * 7  # 7 days
+
     # Observability
     otel_exporter_otlp_endpoint: str | None = None
     logfire_token: str | None = None
@@ -72,7 +77,6 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()  # type: ignore[call-arg]
-
 
 
 

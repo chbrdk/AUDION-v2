@@ -6,20 +6,27 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useState } from "react";
 import { journeysApi, type JourneyResponse } from "../../api/_lib/journeys";
 import { MsqdxIcon } from "@msqdx/react";
+import { useProject } from "../../../components/projects/project-provider";
 
 export default function JourneysListPage() {
+  const { activeProjectId } = useProject();
   const [journeys, setJourneys] = useState<JourneyResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadJourneys();
-  }, []);
+  }, [activeProjectId]);
 
   const loadJourneys = async () => {
     try {
       setLoading(true);
-      const data = await journeysApi.listJourneys();
+      if (!activeProjectId) {
+        setJourneys([]);
+        setError("Select a project to view journeys.");
+        return;
+      }
+      const data = await journeysApi.listJourneys({ project_id: activeProjectId });
       setJourneys(data);
       setError(null);
     } catch (err) {
@@ -103,6 +110,5 @@ export default function JourneysListPage() {
     </div>
   );
 }
-
 
 

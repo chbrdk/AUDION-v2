@@ -5,6 +5,7 @@ import { MsqdxIcon } from "@msqdx/react";
 import { generateMockContext, generateMockExtendedData, resolveExtendedVariable } from "./mockData";
 import { journeysApi, type JourneyResponse } from "../../app/api/_lib/journeys";
 import { targetGroupsApi, type TargetGroupResponse } from "../../app/api/_lib/target-groups";
+import { buildApiUrl } from "../../app/api/_lib/backend";
 
 interface LivePreviewPanelProps {
   prompt: string;
@@ -77,7 +78,13 @@ export function LivePreviewPanel({ prompt, context, useMockData = false, onTestP
               
               // Try to load personas from target group
               try {
-                const personasResponse = await fetch(`/api/target-groups/${journey.target_group_id}/personas?page_size=5`);
+                const personaParams = new URLSearchParams({ page_size: "5" });
+                if (journey.project_id) {
+                  personaParams.set("project_id", journey.project_id);
+                }
+                const personasResponse = await fetch(
+                  buildApiUrl(`/api/target-groups/${journey.target_group_id}/personas?${personaParams.toString()}`)
+                );
                 if (personasResponse.ok) {
                   const personasData = await personasResponse.json();
                   const personas = Array.isArray(personasData) ? personasData : personasData.items || [];
@@ -86,7 +93,7 @@ export function LivePreviewPanel({ prompt, context, useMockData = false, onTestP
                     const personaSummaries = await Promise.all(
                       personas.slice(0, 3).map(async (persona: any) => {
                         try {
-                          const response = await fetch(`/api/persona-admin/${persona.id}`, { cache: "no-store" });
+                          const response = await fetch(buildApiUrl(`/api/persona-admin/${persona.id}`), { cache: "no-store" });
                           if (!response.ok) {
                             throw new Error(`HTTP ${response.status}`);
                           }
@@ -141,7 +148,7 @@ export function LivePreviewPanel({ prompt, context, useMockData = false, onTestP
       // Load persona data if persona_id is present
       if (context.persona_id && !useMockData) {
         try {
-          const response = await fetch(`/api/persona-admin/${context.persona_id}`);
+          const response = await fetch(buildApiUrl(`/api/persona-admin/${context.persona_id}`));
           if (response.ok) {
             const persona = await response.json();
             enriched.persona_name = persona.name || "";
@@ -374,4 +381,3 @@ function renderPrompt(
 
   return { rendered, errors };
 }
-

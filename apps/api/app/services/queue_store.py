@@ -4,11 +4,11 @@ from datetime import datetime, timedelta
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from ..celery_app import celery_app
-from ..models import Document, ProcessingJob
+from ..models import Document, Persona, ProcessingJob, TargetGroup
 from ..schemas import (
     CeleryTaskStatus,
     LogEntry,
@@ -27,6 +27,7 @@ class QueueService:
         session: Session,
         status: str | None = None,
         document_id: str | None = None,
+        project_id: str | None = None,
         page: int = 1,
         page_size: int = 20,
         date_from: datetime | None = None,
@@ -42,6 +43,23 @@ class QueueService:
                 query = query.where(ProcessingJob.document_id == UUID(document_id))
             except ValueError:
                 raise ValueError("invalid_document_id")
+
+        if project_id:
+            try:
+                project_uuid = UUID(project_id)
+            except ValueError:
+                raise ValueError("invalid_project_id")
+            query = (
+                query.join(Document, ProcessingJob.document_id == Document.id)
+                .outerjoin(Persona, Document.persona_id == Persona.id)
+                .outerjoin(TargetGroup, Document.target_group_id == TargetGroup.id)
+                .where(
+                    or_(
+                        Persona.project_id == project_uuid,
+                        TargetGroup.project_id == project_uuid,
+                    )
+                )
+            )
 
         if date_from:
             query = query.where(ProcessingJob.created_at >= date_from)
@@ -76,7 +94,13 @@ class QueueService:
             page_size=page_size,
         )
 
-    def get_processing_job(self, session: Session, job_id: str) -> ProcessingJobDetailResponse:
+    def get_processing_job(
+        self,
+        session: Session,
+        job_id: str,
+        *,
+        project_id: str | None = None,
+    ) -> ProcessingJobDetailResponse:
         try:
             job_uuid = UUID(job_id)
         except ValueError:
@@ -87,6 +111,21 @@ class QueueService:
             raise ValueError("job_not_found")
 
         document = session.get(Document, job.document_id)
+        if project_id and document:
+            try:
+                project_uuid = UUID(project_id)
+            except ValueError:
+                raise ValueError("invalid_project_id")
+            persona_project_id = None
+            target_group_project_id = None
+            if document.persona_id:
+                persona = session.get(Persona, document.persona_id)
+                persona_project_id = persona.project_id if persona else None
+            if document.target_group_id:
+                target_group = session.get(TargetGroup, document.target_group_id)
+                target_group_project_id = target_group.project_id if target_group else None
+            if project_uuid not in {persona_project_id, target_group_project_id}:
+                raise ValueError("job_not_found")
         document_filename = document.filename if document else None
         document_size_bytes = document.size_bytes if document else None
 
@@ -146,32 +185,41 @@ class QueueService:
         except Exception:
             return None
 
-    def get_queue_stats(self, session: Session) -> QueueStatsResponse:
+    def get_queue_stats(self, session: Session, project_id: str | None = None) -> QueueStatsResponse:
         """Get queue statistics."""
-        pending_count = (
-            session.scalar(
-                select(func.count(ProcessingJob.id)).where(ProcessingJob.status == "pending")
-            )
-            or 0
-        )
-        processing_count = (
-            session.scalar(
-                select(func.count(ProcessingJob.id)).where(ProcessingJob.status == "processing")
-            )
-            or 0
-        )
-        completed_count = (
-            session.scalar(
-                select(func.count(ProcessingJob.id)).where(ProcessingJob.status == "completed")
-            )
-            or 0
-        )
-        failed_count = (
-            session.scalar(
-                select(func.count(ProcessingJob.id)).where(ProcessingJob.status == "failed")
-            )
-            or 0
-        )
+        pending_query = select(func.count(ProcessingJob.id)).where(ProcessingJob.status == "pending")
+        processing_query = select(func.count(ProcessingJob.id)).where(ProcessingJob.status == "processing")
+        completed_query = select(func.count(ProcessingJob.id)).where(ProcessingJob.status == "completed")
+        failed_query = select(func.count(ProcessingJob.id)).where(ProcessingJob.status == "failed")
+
+        if project_id:
+            try:
+                project_uuid = UUID(project_id)
+            except ValueError:
+                raise ValueError("invalid_project_id")
+            def apply_project_filter(query):
+                return (
+                    query.select_from(ProcessingJob)
+                    .join(Document, ProcessingJob.document_id == Document.id)
+                    .outerjoin(Persona, Document.persona_id == Persona.id)
+                    .outerjoin(TargetGroup, Document.target_group_id == TargetGroup.id)
+                    .where(
+                        or_(
+                            Persona.project_id == project_uuid,
+                            TargetGroup.project_id == project_uuid,
+                        )
+                    )
+                )
+
+            pending_query = apply_project_filter(pending_query)
+            processing_query = apply_project_filter(processing_query)
+            completed_query = apply_project_filter(completed_query)
+            failed_query = apply_project_filter(failed_query)
+
+        pending_count = session.scalar(pending_query) or 0
+        processing_count = session.scalar(processing_query) or 0
+        completed_count = session.scalar(completed_query) or 0
+        failed_count = session.scalar(failed_query) or 0
 
         worker_available = check_worker_available()
 
@@ -224,7 +272,13 @@ class QueueService:
             page_size=page_size,
         )
 
-    def retry_failed_job(self, session: Session, job_id: str) -> ProcessingJobDetailResponse:
+    def retry_failed_job(
+        self,
+        session: Session,
+        job_id: str,
+        *,
+        project_id: str | None = None,
+    ) -> ProcessingJobDetailResponse:
         """Retry a failed processing job."""
         try:
             job_uuid = UUID(job_id)
@@ -234,6 +288,9 @@ class QueueService:
         job = session.get(ProcessingJob, job_uuid)
         if not job:
             raise ValueError("job_not_found")
+        if project_id:
+            # Ensure access before mutating state
+            self.get_processing_job(session, job_id, project_id=project_id)
 
         if job.status != "failed":
             raise ValueError("job_not_failed")
@@ -265,5 +322,4 @@ class QueueService:
 
         enqueue_ingestion(str(job.document_id), str(file_path))
 
-        return self.get_processing_job(session, job_id)
-
+        return self.get_processing_job(session, job_id, project_id=project_id)

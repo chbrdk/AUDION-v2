@@ -48,6 +48,24 @@ from .ai import (
     AiTemplateUpdateRequest,
 )
 
+from .auth import (
+    AuthLoginRequest,
+    AuthMeResponse,
+    AuthRegisterRequest,
+    AuthTokenResponse,
+    UserResponse,
+)
+
+from .projects import (
+    ProjectCreateRequest,
+    ProjectDetailResponse,
+    ProjectListResponse,
+    ProjectMemberAddRequest,
+    ProjectMemberResponse,
+    ProjectResponse,
+    ProjectUpdateRequest,
+)
+
 
 class DocumentUploadResponse(BaseModel):
     job_id: str = Field(..., description="Identifier of the asynchronous ingestion job created for the uploaded document.")
@@ -669,4 +687,3 @@ __all__ = [
     "InsightResponse",
     "ChangeResponse",
 ]
-

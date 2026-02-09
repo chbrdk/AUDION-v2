@@ -5,7 +5,7 @@ from enum import Enum as PyEnum
 from typing import Optional
 from uuid import uuid4
 
-from sqlalchemy import Boolean, Column, DateTime, Enum, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Column, DateTime, Enum, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
 
@@ -99,6 +99,81 @@ class JourneyInsightStatus(PyEnum):
     acknowledged = "acknowledged"
     actioned = "actioned"
     dismissed = "dismissed"
+
+
+class ProjectRole(PyEnum):
+    owner = "owner"
+    admin = "admin"
+    member = "member"
+
+
+class ProjectMemberStatus(PyEnum):
+    active = "active"
+    invited = "invited"
+
+
+class User(Base):
+    __tablename__ = "users"
+    __table_args__ = {"schema": "audion"}
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    email = Column(String(256), nullable=False, unique=True)
+    password_hash = Column(String(256), nullable=False)
+    name = Column(String(128), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    last_login_at = Column(DateTime, nullable=True)
+
+    owned_projects = relationship("Project", back_populates="owner")
+    memberships = relationship("ProjectMember", back_populates="user", cascade="all, delete-orphan")
+
+
+class Project(Base):
+    __tablename__ = "projects"
+    __table_args__ = {"schema": "audion"}
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(128), nullable=False)
+    owner_user_id = Column(UUID(as_uuid=True), ForeignKey("audion.users.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    owner = relationship("User", back_populates="owned_projects")
+    members = relationship("ProjectMember", back_populates="project", cascade="all, delete-orphan")
+
+
+class ProjectMember(Base):
+    __tablename__ = "project_members"
+    __table_args__ = (
+        UniqueConstraint("project_id", "user_id", name="uq_project_member"),
+        {"schema": "audion"},
+    )
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("audion.projects.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("audion.users.id", ondelete="CASCADE"), nullable=False)
+    role = Column(Enum(ProjectRole, name="project_role"), nullable=False, default=ProjectRole.member)
+    status = Column(Enum(ProjectMemberStatus, name="project_member_status"), nullable=False, default=ProjectMemberStatus.active)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    project = relationship("Project", back_populates="members")
+    user = relationship("User", back_populates="memberships")
+
+
+class AiTemplateOverride(Base):
+    __tablename__ = "ai_template_overrides"
+    __table_args__ = (
+        UniqueConstraint("project_id", "template_id", name="uq_ai_template_override"),
+        {"schema": "audion"},
+    )
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("audion.projects.id", ondelete="CASCADE"), nullable=False)
+    template_id = Column(String(128), nullable=False)
+    payload = Column(JSONB, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_by = Column(String(128), nullable=True)
 
 
 class Document(Base):
@@ -220,6 +295,7 @@ class PersonaPrompt(Base):
     system_prompt = Column(Text, nullable=False)
     template_version = Column(String(32), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    template_metadata = Column(JSONB, nullable=True)
 
     persona = relationship("Persona", back_populates="prompt")
 
@@ -430,4 +506,3 @@ class JourneyInsight(Base):
     journey = relationship("Journey")
     phase = relationship("JourneyPhase")
     expectation = relationship("JourneyExpectation")
-

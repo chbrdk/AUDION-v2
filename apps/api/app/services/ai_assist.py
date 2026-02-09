@@ -4,19 +4,21 @@ import json
 import re
 import shutil
 import time
+from datetime import datetime
 from pathlib import Path
 from string import Template
 from typing import Any, Dict, Iterable, List
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import structlog
 import yaml
 from anthropic import Anthropic
 from openai import OpenAI
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..core.config import get_settings
-from ..models import Journey, JourneyPhase
+from ..models import AiTemplateOverride, Journey, JourneyPhase
 from ..schemas import (
     AiAssistRequest,
     AiAssistResponse,
@@ -163,6 +165,22 @@ class PromptTemplateRegistry:
         self._cache = templates
         self._last_loaded_mtime = mtime
         logger.info("ai.templates.loaded", count=len(self._cache), path=str(self.template_path))
+
+
+def _apply_template_override(template: AiTemplateDefinition, override: Dict[str, Any]) -> AiTemplateDefinition:
+    if not override:
+        return template
+    data = template.model_dump()
+    for key, value in override.items():
+        if value is None:
+            continue
+        if key == "output" and isinstance(value, dict):
+            current_output = data.get("output", {}) or {}
+            current_output.update(value)
+            data["output"] = current_output
+        else:
+            data[key] = value
+    return AiTemplateDefinition(**data)
 
 
 class _ExtendedVariableResolver:
@@ -545,15 +563,125 @@ class _ExtendedVariableResolver:
 class AiAssistService:
     """Central service that executes templates via Anthropic / OpenAI."""
 
-    def __init__(self, *, registry: PromptTemplateRegistry | None = None, session: Session | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        registry: PromptTemplateRegistry | None = None,
+        session: Session | None = None,
+        project_id: str | None = None,
+    ) -> None:
         self.settings = get_settings()
         self.registry = registry or PromptTemplateRegistry()
         self.session = session
+        self.project_id = project_id
         self._anthropic: Anthropic | None = None
         self._openai: OpenAI | None = None
 
+    def _load_override(self, *, session: Session, project_id: str, template_id: str) -> dict | None:
+        try:
+            project_uuid = UUID(project_id)
+        except ValueError:
+            raise ValueError("invalid_project_id")
+        override = session.scalar(
+            select(AiTemplateOverride).where(
+                AiTemplateOverride.project_id == project_uuid,
+                AiTemplateOverride.template_id == template_id,
+            )
+        )
+        return override.payload if override else None
+
+    def _load_overrides(self, *, session: Session, project_id: str) -> dict[str, dict]:
+        try:
+            project_uuid = UUID(project_id)
+        except ValueError:
+            raise ValueError("invalid_project_id")
+        rows = session.scalars(
+            select(AiTemplateOverride).where(AiTemplateOverride.project_id == project_uuid)
+        ).all()
+        return {row.template_id: row.payload for row in rows}
+
+    def list_templates_for_project(self, *, session: Session, project_id: str) -> List[AiTemplateSummary]:
+        base_templates = self.registry.list_templates()
+        overrides = self._load_overrides(session=session, project_id=project_id)
+
+        items: List[AiTemplateSummary] = []
+        for template in base_templates:
+            override = overrides.get(template.template_id)
+            if override:
+                # Apply overrides on summary-level fields
+                data = template.model_dump()
+                for key, value in override.items():
+                    if key in data and value is not None:
+                        data[key] = value
+                template = AiTemplateSummary(**data)
+            items.append(template)
+        return items
+
+    def get_template_for_project(
+        self, *, session: Session, project_id: str, template_id: str
+    ) -> AiTemplateDefinition:
+        base = self.registry.get_full_template(template_id)
+        override = self._load_override(session=session, project_id=project_id, template_id=template_id)
+        return _apply_template_override(base, override or {})
+
+    def update_template_override(
+        self,
+        *,
+        session: Session,
+        project_id: str,
+        template_id: str,
+        updates: Dict[str, Any],
+        updated_by: str | None = None,
+    ) -> AiTemplateDefinition:
+        try:
+            project_uuid = UUID(project_id)
+        except ValueError as exc:
+            raise ValueError("invalid_project_id") from exc
+
+        # Ensure template exists
+        _ = self.registry.get_full_template(template_id)
+
+        existing = session.scalar(
+            select(AiTemplateOverride).where(
+                AiTemplateOverride.project_id == project_uuid,
+                AiTemplateOverride.template_id == template_id,
+            )
+        )
+        if existing:
+            payload = dict(existing.payload or {})
+            payload.update(updates)
+            existing.payload = payload
+            existing.updated_at = datetime.utcnow()
+            existing.updated_by = updated_by
+            session.commit()
+            return self.get_template_for_project(
+                session=session, project_id=project_id, template_id=template_id
+            )
+
+        new_override = AiTemplateOverride(
+            id=uuid4(),
+            project_id=project_uuid,
+            template_id=template_id,
+            payload=updates,
+            updated_at=datetime.utcnow(),
+            updated_by=updated_by,
+        )
+        session.add(new_override)
+        session.commit()
+        return self.get_template_for_project(session=session, project_id=project_id, template_id=template_id)
+
     async def generate(self, request: AiAssistRequest) -> AiAssistResponse:
         template = self.registry.get(request.template_id)
+        if self.project_id and self.session:
+            try:
+                override = self._load_override(
+                    session=self.session, project_id=self.project_id, template_id=request.template_id
+                )
+                if override:
+                    template = _apply_template_override(template, override)
+            except ValueError:
+                # If project_id is invalid, ignore overrides and use base template
+                pass
         provider = request.provider or template.default_provider or AiProvider(self.settings.ai_default_provider)
         model = request.model or template.default_model or self._default_model(provider)
         temperature = template.temperature or self.settings.ai_default_temperature
@@ -868,4 +996,3 @@ class AiAssistService:
             raw_output=raw_output,
             usage=usage,
         )
-

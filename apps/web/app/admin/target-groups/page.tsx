@@ -2,13 +2,12 @@ export const dynamic = "force-dynamic";
 
 import type { TargetGroupListResponse } from "@msqdx-glass/types";
 
-import { getPersonaBackendDocsUrl } from "../../api/_lib/backend";
+import { getPersonaBackendBase, getPersonaBackendDocsUrl } from "../../api/_lib/backend";
+import { buildAuthHeaders, getServerAuthToken, getServerProjectId } from "../../api/_lib/auth";
 import { MsqdxGlassTargetGroupAdminPanel } from "../../../components/msqdx-glass-target-group-admin-panel";
 
-async function fetchTargetGroupList(): Promise<TargetGroupListResponse> {
-  // Use absolute URL for server-side fetch
-  const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
-  const apiUrl = `http://localhost:3005${basePath}/api/target-groups?page=1&page_size=50`;
+async function fetchTargetGroupList(projectId: string, headers: HeadersInit): Promise<TargetGroupListResponse> {
+  const apiUrl = `${getPersonaBackendBase({ preferPublic: false })}/target-groups?page=1&page_size=50&project_id=${projectId}`;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -17,6 +16,7 @@ async function fetchTargetGroupList(): Promise<TargetGroupListResponse> {
     const response = await fetch(apiUrl, {
       cache: "no-store",
       signal: controller.signal,
+      headers,
     });
 
     clearTimeout(timeoutId);
@@ -42,9 +42,14 @@ async function fetchTargetGroupList(): Promise<TargetGroupListResponse> {
 export default async function TargetGroupAdminPage() {
   let list: TargetGroupListResponse;
   let error: string | null = null;
+  const projectId = getServerProjectId();
+  const headers = buildAuthHeaders(getServerAuthToken());
 
   try {
-    list = await fetchTargetGroupList();
+    if (!projectId) {
+      throw new Error("Select a project to load target groups.");
+    }
+    list = await fetchTargetGroupList(projectId, headers);
   } catch (err) {
     error = err instanceof Error ? err.message : "Unknown error";
     list = { items: [], total: 0, page: 1, page_size: 50 };
@@ -63,5 +68,3 @@ export default async function TargetGroupAdminPage() {
     </>
   );
 }
-
-

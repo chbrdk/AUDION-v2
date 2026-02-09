@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_session
-from ..models import Document, Persona, ProcessingJob, TargetGroup, TargetGroupKnowledgeEntry
+from ..models import Document, Persona, ProcessingJob, TargetGroup, TargetGroupKnowledgeEntry, User
 from worker.ingest import enqueue_ingestion
 from ..schemas import (
     PersonaDocument,
@@ -33,6 +33,8 @@ from ..services.knowledge_ingestion import KnowledgeIngestionService
 from ..services.persona_store import PersonaService
 from ..services.storage import StorageService
 from ..services.target_group_store import TargetGroupService
+from ..services.auth import get_current_user
+from ..services.access_control import list_accessible_project_ids
 
 logger = structlog.get_logger(__name__)
 storage = StorageService()
@@ -47,18 +49,26 @@ PERSONA_SCHEMA_DOC = "`knowledge/persona_schema.yaml`"
 TARGET_GROUP_DOC_SECTION = "`knowledge/target_group_migration.md#schemas--verwendungen`"
 
 
-def get_db():
+def get_db(current_user: User = Depends(get_current_user)):
     with get_session() as session:
+        session.info["current_user_id"] = current_user.id
+        session.info["allowed_project_ids"] = list_accessible_project_ids(session, current_user.id)
         yield session
 
 
-def _get_target_group_or_404(session: Session, target_group_id: str) -> TargetGroup:
+def _get_target_group_or_404(
+    session: Session,
+    target_group_id: str,
+    allowed_project_ids: list[UUID] | None = None,
+) -> TargetGroup:
     try:
         tg_uuid = UUID(target_group_id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid target group id") from exc
     tg = session.get(TargetGroup, tg_uuid)
-    if not tg:
+    if allowed_project_ids is None:
+        allowed_project_ids = session.info.get("allowed_project_ids") if session.info else None
+    if not tg or (allowed_project_ids is not None and tg.project_id not in allowed_project_ids):
         raise HTTPException(status_code=404, detail="Target group not found")
     return tg
 
@@ -97,13 +107,17 @@ def list_target_groups(
     session: Session = Depends(get_db),
 ) -> TargetGroupListResponse:
     try:
+        allowed_project_ids = session.info.get("allowed_project_ids") if session.info else None
         return service.list_target_groups(
             session,
+            allowed_project_ids=allowed_project_ids,
             project_id=project_id,
             page=page,
             page_size=page_size,
         )
     except ValueError as exc:
+        if str(exc) == "project_access_denied":
+            raise HTTPException(status_code=403, detail="Project access denied") from exc
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
@@ -142,6 +156,14 @@ def create_target_group(
     session: Session = Depends(get_db),
 ) -> TargetGroupResponse:
     try:
+        allowed_project_ids = session.info.get("allowed_project_ids") if session.info else None
+        if allowed_project_ids is not None:
+            try:
+                project_uuid = UUID(payload.project_id)
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail="Invalid project_id") from exc
+            if project_uuid not in allowed_project_ids:
+                raise HTTPException(status_code=403, detail="Project access denied")
         return service.create_target_group(session, payload)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -181,6 +203,7 @@ def get_target_group(
     session: Session = Depends(get_db),
 ) -> TargetGroupResponse:
     try:
+        _get_target_group_or_404(session, target_group_id)
         return service.get_target_group(session, target_group_id)
     except ValueError as exc:
         if "not found" in str(exc):
@@ -1211,5 +1234,3 @@ def generate_target_group_persona(
     except Exception as exc:
         logger.error("persona.generate.unexpected_error", target_group_id=target_group_id, error=str(exc), exc_info=True)
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(exc)}") from exc
-
-

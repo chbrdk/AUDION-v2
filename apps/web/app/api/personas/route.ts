@@ -1,19 +1,24 @@
+import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getPersonaBackendBase } from "../_lib/backend";
+import { buildAuthHeaders, getAuthTokenFromRequest } from "../_lib/auth";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     // Use internal URL for server-side requests
     const personaBackendBase = getPersonaBackendBase({ preferPublic: false });
     console.log("[api/personas] Using persona backend base:", personaBackendBase);
     
-    const url = `${personaBackendBase}/personas`;
+    const params = request.nextUrl.searchParams.toString();
+    const url = `${personaBackendBase}/personas${params ? `?${params}` : ""}`;
     console.log("[api/personas] Fetching from:", url);
+    const token = getAuthTokenFromRequest(request);
     
     const response = await fetch(url, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
+        ...buildAuthHeaders(token),
       },
       cache: "no-store",
       // Add timeout to avoid hanging requests
