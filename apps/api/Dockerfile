@@ -15,6 +15,8 @@ COPY apps/api/app ./apps/api/app
 COPY apps/api/worker ./apps/api/worker
 RUN --mount=type=cache,target=/root/.cache/uv \
     cd apps/api && uv sync --no-dev
+RUN --mount=type=cache,target=/root/.cache/uv \
+    cd apps/api && uv pip install email-validator
 
 FROM deps AS proto
 COPY packages/proto ./packages/proto
@@ -38,4 +40,3 @@ COPY apps/api/start.sh /app/apps/api/start.sh
 RUN chmod +x /app/apps/api/start.sh
 ENV PATH="/app/apps/api/.venv/bin:$PATH"
 CMD ["/app/apps/api/start.sh"]
-
