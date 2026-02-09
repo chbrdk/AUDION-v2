@@ -10,7 +10,7 @@ from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
 from ..core.config import get_settings
-from ..db import get_session
+from ..db import get_db
 from ..models import User
 
 
@@ -40,7 +40,7 @@ def create_access_token(*, user: User) -> str:
 
 def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_db),
 ) -> User:
     if not credentials or not credentials.credentials:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")

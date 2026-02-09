@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ..db import get_session
+from ..db import get_db
 from ..models import Project, ProjectMember, ProjectMemberStatus, ProjectRole, User
 from ..schemas import AuthLoginRequest, AuthMeResponse, AuthRegisterRequest, AuthTokenResponse, UserResponse
 from ..services.auth import create_access_token, get_current_user, hash_password, verify_password
@@ -39,7 +39,7 @@ def _default_project_id(session: Session, user_id: UUID) -> str | None:
 
 
 @router.post("/register", response_model=AuthTokenResponse)
-def register(payload: AuthRegisterRequest, session: Session = Depends(get_session)) -> AuthTokenResponse:
+def register(payload: AuthRegisterRequest, session: Session = Depends(get_db)) -> AuthTokenResponse:
     email = _normalize_email(payload.email)
     existing = session.scalar(select(User).where(User.email == email))
     if existing:
@@ -88,7 +88,7 @@ def register(payload: AuthRegisterRequest, session: Session = Depends(get_sessio
 
 
 @router.post("/login", response_model=AuthTokenResponse)
-def login(payload: AuthLoginRequest, session: Session = Depends(get_session)) -> AuthTokenResponse:
+def login(payload: AuthLoginRequest, session: Session = Depends(get_db)) -> AuthTokenResponse:
     email = _normalize_email(payload.email)
     user = session.scalar(select(User).where(User.email == email))
     if not user or not verify_password(payload.password, user.password_hash):
@@ -107,7 +107,7 @@ def login(payload: AuthLoginRequest, session: Session = Depends(get_session)) ->
 
 
 @router.get("/me", response_model=AuthMeResponse)
-def me(current_user: User = Depends(get_current_user), session: Session = Depends(get_session)) -> AuthMeResponse:
+def me(current_user: User = Depends(get_current_user), session: Session = Depends(get_db)) -> AuthMeResponse:
     return AuthMeResponse(
         user=_user_response(current_user),
         default_project_id=_default_project_id(session, current_user.id),

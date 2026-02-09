@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ..db import get_session
+from ..db import get_db
 from ..models import Project, ProjectMember, ProjectMemberStatus, ProjectRole, User
 from ..schemas import (
     ProjectCreateRequest,
@@ -80,7 +80,7 @@ def _member_response(member: ProjectMember, user: User) -> ProjectMemberResponse
 @router.get("", response_model=ProjectListResponse)
 def list_projects(
     current_user: User = Depends(get_current_user),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_db),
 ) -> ProjectListResponse:
     projects = session.scalars(
         select(Project)
@@ -97,7 +97,7 @@ def list_projects(
 def create_project(
     payload: ProjectCreateRequest,
     current_user: User = Depends(get_current_user),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_db),
 ) -> ProjectResponse:
     project = Project(
         id=uuid4(),
@@ -128,7 +128,7 @@ def create_project(
 def get_project(
     project_id: str,
     current_user: User = Depends(get_current_user),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_db),
 ) -> ProjectDetailResponse:
     project = _get_project(session, project_id)
     _require_member(session, project_id=project.id, user_id=current_user.id)
@@ -156,7 +156,7 @@ def update_project(
     project_id: str,
     payload: ProjectUpdateRequest,
     current_user: User = Depends(get_current_user),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_db),
 ) -> ProjectResponse:
     project = _get_project(session, project_id)
     membership = _require_member(session, project_id=project.id, user_id=current_user.id)
@@ -175,7 +175,7 @@ def add_member(
     project_id: str,
     payload: ProjectMemberAddRequest,
     current_user: User = Depends(get_current_user),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_db),
 ) -> ProjectMemberResponse:
     project = _get_project(session, project_id)
     membership = _require_member(session, project_id=project.id, user_id=current_user.id)
@@ -223,7 +223,7 @@ def remove_member(
     project_id: str,
     member_id: str,
     current_user: User = Depends(get_current_user),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_db),
 ) -> None:
     project = _get_project(session, project_id)
     membership = _require_member(session, project_id=project.id, user_id=current_user.id)

@@ -12,7 +12,7 @@ from sqlalchemy.orm.attributes import flag_modified
 from uuid import UUID
 
 from ..core.config import get_settings
-from ..db import get_session
+from ..db import get_db
 from ..models import Persona, PersonaPrompt, User
 from ..schemas import AiTemplateDefinition, AiTemplateSummary, AiTemplateUpdateRequest
 from ..services.ai_assist import AiAssistService, PromptTemplateRegistry
@@ -49,7 +49,7 @@ def list_ai_providers(_current_user: User = Depends(get_current_user)) -> dict:
 
 def _allowed_project_ids(
     current_user: User = Depends(get_current_user),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_db),
 ) -> list[UUID]:
     return list_accessible_project_ids(session, current_user.id)
 
@@ -58,7 +58,7 @@ def _allowed_project_ids(
 def list_ai_templates(
     project_id: str | None = Query(None),
     allowed_project_ids: list[UUID] = Depends(_allowed_project_ids),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_db),
 ) -> list[AiTemplateSummary]:
     if not project_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="project_id is required")
@@ -77,7 +77,7 @@ def get_ai_template(
     template_id: str,
     project_id: str | None = Query(None),
     allowed_project_ids: list[UUID] = Depends(_allowed_project_ids),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_db),
 ) -> AiTemplateDefinition:
     """Get full template definition including prompt and output config."""
     if not project_id:
@@ -102,7 +102,7 @@ def update_ai_template(
     project_id: str | None = Query(None),
     allowed_project_ids: list[UUID] = Depends(_allowed_project_ids),
     current_user: User = Depends(get_current_user),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_db),
 ) -> AiTemplateDefinition:
     """Update a template's metadata, prompt, or configuration."""
     try:
