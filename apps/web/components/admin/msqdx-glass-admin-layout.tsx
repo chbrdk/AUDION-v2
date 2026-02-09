@@ -164,7 +164,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
             sx={{
               display: { xs: "none", md: "flex" },
               alignItems: "center",
-              marginLeft: { md: "360px" },
+              marginLeft: { md: "230px" },
             }}
           >
             <AdminTopControls />
