@@ -13,7 +13,7 @@ export const AdminTopControls = () => {
   const { user, logout } = useAuth();
   const { projects, activeProjectId, selectProject } = useProject();
 
-  const projectOptions = projects.map((project) => ({
+  const projectOptions = (Array.isArray(projects) ? projects : []).map((project) => ({
     value: project.id,
     label: project.name,
   }));

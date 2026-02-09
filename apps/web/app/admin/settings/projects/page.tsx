@@ -26,6 +26,8 @@ export default function SettingsProjectsPage() {
     refreshProjects,
   } = useProject();
 
+  const safeProjects = Array.isArray(projects) ? projects : [];
+
   const [projectName, setProjectName] = useState("");
   const [members, setMembers] = useState<ProjectMember[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
@@ -41,7 +43,7 @@ export default function SettingsProjectsPage() {
       setActionError(null);
       try {
         const detail = await getProjectDetail(projectId);
-        setMembers(detail.members);
+        setMembers(Array.isArray(detail.members) ? detail.members : []);
       } catch (err) {
         setActionError(err instanceof Error ? err.message : "Failed to load members");
       } finally {
@@ -58,9 +60,9 @@ export default function SettingsProjectsPage() {
 
   const projectDisplayName = useMemo(() => {
     if (activeProject?.name) return activeProject.name;
-    const fallback = projects.find((project) => project.id === activeProjectId);
+    const fallback = safeProjects.find((project) => project.id === activeProjectId);
     return fallback?.name ?? "No project selected";
-  }, [activeProject, activeProjectId, projects]);
+  }, [activeProject, activeProjectId, safeProjects]);
 
   const handleCreateProject = async () => {
     if (!projectName.trim()) {
@@ -168,12 +170,12 @@ export default function SettingsProjectsPage() {
             Your Projects
           </MsqdxTypography>
           <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 2 }}>
-            {projects.length === 0 && (
+            {safeProjects.length === 0 && (
               <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
                 No projects yet. Create one below.
               </MsqdxTypography>
             )}
-            {projects.map((project: ProjectSummary) => (
+            {safeProjects.map((project: ProjectSummary) => (
               <MsqdxCard
                 key={project.id}
                 variant="flat"
