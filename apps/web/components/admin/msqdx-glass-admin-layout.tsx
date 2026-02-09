@@ -152,13 +152,24 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
           zIndex: 1100,
           display: "flex",
           alignItems: "center",
-          justifyContent: "flex-end",
+          justifyContent: "space-between",
           padding: { xs: "0.75rem 1rem", md: "1rem 1.5rem" },
           minHeight: { xs: "56px", md: "64px" },
           backgroundColor: "transparent",
           overflow: "visible",
         }}
       >
+        <Box sx={{ flex: 1, display: "flex", alignItems: "center" }}>
+          <Box
+            sx={{
+              display: { xs: "none", md: "flex" },
+              alignItems: "center",
+              marginLeft: { md: "360px" },
+            }}
+          >
+            <AdminTopControls />
+          </Box>
+        </Box>
         {/* Page Title or Custom Header Content */}
         <Box sx={{ flex: 1, display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
           {headerContent ? (
@@ -180,9 +191,6 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
               {getPageTitle()}
             </MsqdxTypography>
           ) : null}
-        </Box>
-        <Box sx={{ display: { xs: "none", md: "flex" }, alignItems: "center", gap: 2 }}>
-          <AdminTopControls />
         </Box>
         {/* Hamburger button - mobile only */}
         <Box
