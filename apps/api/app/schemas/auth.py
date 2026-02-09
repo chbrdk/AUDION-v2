@@ -7,13 +7,18 @@ from pydantic import BaseModel, EmailStr, Field
 
 class AuthRegisterRequest(BaseModel):
     email: EmailStr = Field(..., description="User email address")
-    password: str = Field(..., min_length=6, description="Plaintext password")
+    password: str = Field(
+        ...,
+        min_length=6,
+        max_length=72,
+        description="Plaintext password",
+    )
     name: str | None = Field(default=None, description="Optional display name")
 
 
 class AuthLoginRequest(BaseModel):
     email: EmailStr = Field(..., description="User email address")
-    password: str = Field(..., description="Plaintext password")
+    password: str = Field(..., min_length=6, max_length=72, description="Plaintext password")
 
 
 class UserResponse(BaseModel):

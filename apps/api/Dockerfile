@@ -16,7 +16,7 @@ COPY apps/api/worker ./apps/api/worker
 RUN --mount=type=cache,target=/root/.cache/uv \
     cd apps/api && uv sync --no-dev
 RUN --mount=type=cache,target=/root/.cache/uv \
-    cd apps/api && uv pip install email-validator
+    cd apps/api && uv pip install email-validator "bcrypt==3.2.2"
 
 FROM deps AS proto
 COPY packages/proto ./packages/proto
