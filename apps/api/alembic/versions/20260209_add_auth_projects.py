@@ -22,10 +22,26 @@ def upgrade() -> None:
     bind = op.get_bind()
     inspector = sa.inspect(bind)
 
-    project_role_enum = sa.Enum("owner", "admin", "member", name="project_role")
-    project_member_status_enum = sa.Enum("active", "invited", name="project_member_status")
-    project_role_enum.create(bind, checkfirst=True)
-    project_member_status_enum.create(bind, checkfirst=True)
+    def _enum_exists(enum_name: str) -> bool:
+        return (
+            bind.execute(
+                sa.text("SELECT 1 FROM pg_type WHERE typname = :name"),
+                {"name": enum_name},
+            ).scalar()
+            is not None
+        )
+
+    def _ensure_enum(enum_name: str, values: list[str]) -> None:
+        if _enum_exists(enum_name):
+            return
+        values_sql = ", ".join(f"'{value}'" for value in values)
+        op.execute(sa.text(f"CREATE TYPE {enum_name} AS ENUM ({values_sql})"))
+
+    _ensure_enum("project_role", ["owner", "admin", "member"])
+    _ensure_enum("project_member_status", ["active", "invited"])
+
+    project_role_enum = sa.Enum("owner", "admin", "member", name="project_role", create_type=False)
+    project_member_status_enum = sa.Enum("active", "invited", name="project_member_status", create_type=False)
 
     if not inspector.has_table("users"):
         op.create_table(
