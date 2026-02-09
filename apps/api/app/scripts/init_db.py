@@ -131,6 +131,42 @@ def init_db():
                         conn.commit()
                         logger.info("Emergency fix applied: 'persona_prompts.template_metadata' added.")
 
+                # Check users profile columns (company/avatar_url/locale)
+                users_check = conn.execute(text(
+                    "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'audion' AND table_name = 'users')"
+                ))
+                if users_check.scalar():
+                    logger.info("Verifying schema integrity for 'users' profile fields...")
+                    u_company_check = conn.execute(text(
+                        "SELECT column_name FROM information_schema.columns "
+                        "WHERE table_schema = 'audion' AND table_name = 'users' AND column_name = 'company'"
+                    ))
+                    if not u_company_check.scalar():
+                        logger.warning("CRITICAL: 'company' missing in 'users'. Adding column...")
+                        conn.execute(text("ALTER TABLE audion.users ADD COLUMN IF NOT EXISTS company VARCHAR(256)"))
+                        conn.commit()
+                        logger.info("Emergency fix applied: 'users.company' added.")
+
+                    u_avatar_check = conn.execute(text(
+                        "SELECT column_name FROM information_schema.columns "
+                        "WHERE table_schema = 'audion' AND table_name = 'users' AND column_name = 'avatar_url'"
+                    ))
+                    if not u_avatar_check.scalar():
+                        logger.warning("CRITICAL: 'avatar_url' missing in 'users'. Adding column...")
+                        conn.execute(text("ALTER TABLE audion.users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(512)"))
+                        conn.commit()
+                        logger.info("Emergency fix applied: 'users.avatar_url' added.")
+
+                    u_locale_check = conn.execute(text(
+                        "SELECT column_name FROM information_schema.columns "
+                        "WHERE table_schema = 'audion' AND table_name = 'users' AND column_name = 'locale'"
+                    ))
+                    if not u_locale_check.scalar():
+                        logger.warning("CRITICAL: 'locale' missing in 'users'. Adding column...")
+                        conn.execute(text("ALTER TABLE audion.users ADD COLUMN IF NOT EXISTS locale VARCHAR(8)"))
+                        conn.commit()
+                        logger.info("Emergency fix applied: 'users.locale' added.")
+
                 # Check documents.object_key column (Fix for 500 error on upload)
                 docs_check = conn.execute(text(
                     "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'audion' AND table_name = 'documents')"
