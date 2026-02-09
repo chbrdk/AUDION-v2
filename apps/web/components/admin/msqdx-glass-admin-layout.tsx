@@ -17,6 +17,7 @@ export { useAdminHeader, useAdminPanel } from "./admin-layout-providers";
 
 const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { label: "Dashboard", path: "/admin", icon: "dashboard", exact: true },
+  { label: "Projects", path: "/admin/projects", icon: "folder" },
   { label: "Personas", path: "/admin/personas", icon: "person" },
   { label: "Target Groups", path: "/admin/target-groups", icon: "groups" },
   { label: "Journeys", path: "/admin/journeys", icon: "route" },
@@ -63,6 +64,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
     
     const pathMap: Record<string, string> = {
       "/admin": "Dashboard",
+      "/admin/projects": "Projects",
       "/admin/personas": "Personas",
       "/admin/target-groups": "Target Groups",
       "/admin/journeys": "Journeys",
@@ -92,6 +94,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
     
     const iconMap: Record<string, string> = {
       "/admin": "dashboard",
+      "/admin/projects": "folder",
       "/admin/personas": "person",
       "/admin/target-groups": "groups",
       "/admin/journeys": "route",
