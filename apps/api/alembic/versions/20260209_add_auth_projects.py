@@ -56,17 +56,19 @@ def upgrade() -> None:
     _ensure_enum("project_role", ["owner", "admin", "member"])
     _ensure_enum("project_member_status", ["active", "invited"])
 
-    project_role_enum = sa.Enum(
+    project_role_enum = postgresql.ENUM(
         "owner",
         "admin",
         "member",
         name="project_role",
+        schema="audion",
         create_type=False,
     )
-    project_member_status_enum = sa.Enum(
+    project_member_status_enum = postgresql.ENUM(
         "active",
         "invited",
         name="project_member_status",
+        schema="audion",
         create_type=False,
     )
 
