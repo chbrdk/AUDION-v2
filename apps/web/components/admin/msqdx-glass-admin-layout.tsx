@@ -16,13 +16,12 @@ export { useAdminHeader, useAdminPanel } from "./admin-layout-providers";
 
 const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { label: "Dashboard", path: "/admin", icon: "dashboard", exact: true },
+  { label: "Chat", path: "/admin/chat", icon: "forum" },
+  { label: "Chat History", path: "/admin/chat/history", icon: "history" },
   { label: "Projects", path: "/admin/projects", icon: "folder" },
   { label: "Personas", path: "/admin/personas", icon: "person" },
   { label: "Target Groups", path: "/admin/target-groups", icon: "groups" },
   { label: "Journeys", path: "/admin/journeys", icon: "route" },
-  { label: "Queue", path: "/admin/queue", icon: "view_list" },
-  { label: "Chat", path: "/admin/chat", icon: "forum" },
-  { label: "Chat History", path: "/admin/chat/history", icon: "history" },
 ];
 
 const ADMIN_NAV_EXTERNAL_ITEMS: AdminNavItem[] = [
@@ -63,12 +62,12 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
     
     const pathMap: Record<string, string> = {
       "/admin": "Dashboard",
+      "/admin/chat": "Chat",
+      "/admin/chat/history": "Chat History",
       "/admin/projects": "Projects",
       "/admin/personas": "Personas",
       "/admin/target-groups": "Target Groups",
       "/admin/journeys": "Journeys",
-      "/admin/queue": "Queue",
-      "/admin/chat": "Chat",
       "/admin/profile": "Profile",
       "/admin/settings": "Settings",
     };
@@ -94,13 +93,12 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
     
     const iconMap: Record<string, string> = {
       "/admin": "dashboard",
+      "/admin/chat": "forum",
+      "/admin/chat/history": "history",
       "/admin/projects": "folder",
       "/admin/personas": "person",
       "/admin/target-groups": "groups",
       "/admin/journeys": "route",
-      "/admin/queue": "view_list",
-      "/admin/chat": "forum",
-      "/admin/chat/history": "history",
       "/admin/profile": "account_circle",
       "/admin/settings": "settings",
     };
