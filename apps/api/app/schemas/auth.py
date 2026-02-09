@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field
+from typing import Literal
+
+from pydantic import BaseModel, EmailStr, Field, HttpUrl
 
 
 class AuthRegisterRequest(BaseModel):
@@ -21,10 +23,26 @@ class AuthLoginRequest(BaseModel):
     password: str = Field(..., min_length=6, max_length=72, description="Plaintext password")
 
 
+class AuthProfileUpdateRequest(BaseModel):
+    email: EmailStr | None = Field(default=None, description="Updated email address")
+    name: str | None = Field(default=None, max_length=128, description="Display name")
+    company: str | None = Field(default=None, max_length=256, description="Company name")
+    avatar_url: HttpUrl | None = Field(default=None, description="Avatar image URL")
+    locale: Literal["de", "en"] | None = Field(default=None, description="Preferred language")
+
+
+class AuthPasswordUpdateRequest(BaseModel):
+    current_password: str = Field(..., min_length=6, max_length=72)
+    new_password: str = Field(..., min_length=6, max_length=72)
+
+
 class UserResponse(BaseModel):
     id: str
     email: EmailStr
     name: str | None = None
+    company: str | None = None
+    avatar_url: HttpUrl | None = None
+    locale: str | None = None
     created_at: datetime
 
 

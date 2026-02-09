@@ -5,7 +5,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Box, IconButton, useTheme } from "@mui/material";
-import { useThemeMode } from "../theme-registry";
 import { MsqdxIcon, MsqdxAdminNav, MsqdxAppLayout, MsqdxTypography } from "@msqdx/react";
 import type { AdminNavItem } from "@msqdx/react";
 import { useAdminHeader, useAdminPanel } from "./admin-layout-providers";
@@ -27,6 +26,7 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
 ];
 
 const ADMIN_NAV_EXTERNAL_ITEMS: AdminNavItem[] = [
+  { label: "Profile", path: "/admin/profile", icon: "account_circle" },
   { label: "Settings", path: "/admin/settings", icon: "settings" },
 ];
 
@@ -40,7 +40,6 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
   const [drawerOpen, setDrawerOpen] = useState(false); // Default open on desktop
   const pathname = usePathname();
   const theme = useTheme();
-  const { themeMode, toggleTheme } = useThemeMode();
   // Get headerContent from context - safe for SSR with default value
   const { headerContent } = useAdminHeader();
   // Get panel state from context
@@ -70,6 +69,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
       "/admin/journeys": "Journeys",
       "/admin/queue": "Queue",
       "/admin/chat": "Chat",
+      "/admin/profile": "Profile",
       "/admin/settings": "Settings",
     };
 
@@ -101,6 +101,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
       "/admin/queue": "view_list",
       "/admin/chat": "forum",
       "/admin/chat/history": "history",
+      "/admin/profile": "account_circle",
       "/admin/settings": "settings",
     };
 
@@ -130,8 +131,6 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
           currentPath={pathname || ""}
           items={ADMIN_NAV_ITEMS}
           externalItems={ADMIN_NAV_EXTERNAL_ITEMS}
-          themeMode={themeMode}
-          onToggleTheme={toggleTheme}
           linkComponent={Link as any}
           brandColor={BRAND_COLOR}
         />

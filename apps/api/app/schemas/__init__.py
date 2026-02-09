@@ -51,6 +51,8 @@ from .ai import (
 from .auth import (
     AuthLoginRequest,
     AuthMeResponse,
+    AuthPasswordUpdateRequest,
+    AuthProfileUpdateRequest,
     AuthRegisterRequest,
     AuthTokenResponse,
     UserResponse,

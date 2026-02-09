@@ -9,7 +9,15 @@ from sqlalchemy.orm import Session
 
 from ..db import get_db
 from ..models import Project, ProjectMember, ProjectMemberStatus, ProjectRole, User
-from ..schemas import AuthLoginRequest, AuthMeResponse, AuthRegisterRequest, AuthTokenResponse, UserResponse
+from ..schemas import (
+    AuthLoginRequest,
+    AuthMeResponse,
+    AuthPasswordUpdateRequest,
+    AuthProfileUpdateRequest,
+    AuthRegisterRequest,
+    AuthTokenResponse,
+    UserResponse,
+)
 from ..services.auth import create_access_token, get_current_user, hash_password, verify_password
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -24,6 +32,9 @@ def _user_response(user: User) -> UserResponse:
         id=str(user.id),
         email=user.email,
         name=user.name,
+        company=user.company,
+        avatar_url=user.avatar_url,
+        locale=user.locale,
         created_at=user.created_at,
     )
 
@@ -112,3 +123,54 @@ def me(current_user: User = Depends(get_current_user), session: Session = Depend
         user=_user_response(current_user),
         default_project_id=_default_project_id(session, current_user.id),
     )
+
+
+@router.patch("/me", response_model=AuthMeResponse)
+def update_me(
+    payload: AuthProfileUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> AuthMeResponse:
+    if payload.email is not None:
+        email = _normalize_email(payload.email)
+        if email and email != current_user.email:
+            existing = session.scalar(select(User).where(User.email == email))
+            if existing:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
+            current_user.email = email
+
+    if payload.name is not None:
+        name = payload.name.strip()
+        current_user.name = name or None
+
+    if payload.company is not None:
+        company = payload.company.strip()
+        current_user.company = company or None
+
+    if payload.avatar_url is not None:
+        current_user.avatar_url = str(payload.avatar_url) if payload.avatar_url else None
+
+    if payload.locale is not None:
+        current_user.locale = payload.locale
+
+    current_user.updated_at = datetime.utcnow()
+    session.commit()
+
+    return AuthMeResponse(
+        user=_user_response(current_user),
+        default_project_id=_default_project_id(session, current_user.id),
+    )
+
+
+@router.post("/password", status_code=status.HTTP_204_NO_CONTENT)
+def update_password(
+    payload: AuthPasswordUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> None:
+    if not verify_password(payload.current_password, current_user.password_hash):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid current password")
+
+    current_user.password_hash = hash_password(payload.new_password)
+    current_user.updated_at = datetime.utcnow()
+    session.commit()

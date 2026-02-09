@@ -8,6 +8,9 @@ export type AuthUser = {
   id: string;
   email: string;
   name?: string | null;
+  company?: string | null;
+  avatar_url?: string | null;
+  locale?: string | null;
   created_at?: string;
 };
 
@@ -19,6 +22,14 @@ type AuthContextValue = {
   refresh: () => Promise<void>;
   login: (payload: { email: string; password: string }) => Promise<void>;
   register: (payload: { email: string; password: string; name?: string }) => Promise<void>;
+  updateProfile: (payload: {
+    email?: string;
+    name?: string;
+    company?: string;
+    avatar_url?: string | null;
+    locale?: string | null;
+  }) => Promise<void>;
+  changePassword: (payload: { current_password: string; new_password: string }) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -102,6 +113,49 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
+  const updateProfile = useCallback(async (payload: {
+    email?: string;
+    name?: string;
+    company?: string;
+    avatar_url?: string | null;
+    locale?: string | null;
+  }) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(buildApiUrl("/api/auth/me"), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        throw new Error(await parseError(response));
+      }
+      const data = await response.json();
+      setUser(data.user);
+      setDefaultProjectId(data.default_project_id ?? null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const changePassword = useCallback(async (payload: { current_password: string; new_password: string }) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(buildApiUrl("/api/auth/password"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        throw new Error(await parseError(response));
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const logout = useCallback(async () => {
     await fetch(buildApiUrl("/api/auth/logout"), { method: "POST" });
     setUser(null);
@@ -121,9 +175,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       refresh,
       login,
       register,
+      updateProfile,
+      changePassword,
       logout,
     }),
-    [user, defaultProjectId, loading, error, refresh, login, register, logout]
+    [user, defaultProjectId, loading, error, refresh, login, register, updateProfile, changePassword, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
