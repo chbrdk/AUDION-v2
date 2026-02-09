@@ -52,12 +52,12 @@ export const forwardPersonaBackend = async (path: string, options?: PersonaForwa
     ...requestInit,
     headers,
   });
-  const headers = new Headers(upstream.headers);
-  if (!headers.has("content-type")) {
-    headers.set("content-type", "application/json");
+  const responseHeaders = new Headers(upstream.headers);
+  if (!responseHeaders.has("content-type")) {
+    responseHeaders.set("content-type", "application/json");
   }
   return new NextResponse(upstream.body, {
     status: upstream.status,
-    headers,
+    headers: responseHeaders,
   });
 };
