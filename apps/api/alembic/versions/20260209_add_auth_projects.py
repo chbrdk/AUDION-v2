@@ -22,26 +22,53 @@ def upgrade() -> None:
     bind = op.get_bind()
     inspector = sa.inspect(bind)
 
-    def _enum_exists(enum_name: str) -> bool:
+    def _enum_exists(enum_name: str, schema: str = "audion") -> bool:
         return (
             bind.execute(
-                sa.text("SELECT 1 FROM pg_type WHERE typname = :name"),
-                {"name": enum_name},
+                sa.text(
+                    "SELECT 1 FROM pg_type t "
+                    "JOIN pg_namespace n ON n.oid = t.typnamespace "
+                    "WHERE t.typname = :name AND n.nspname = :schema"
+                ),
+                {"name": enum_name, "schema": schema},
             ).scalar()
             is not None
         )
 
-    def _ensure_enum(enum_name: str, values: list[str]) -> None:
-        if _enum_exists(enum_name):
+    def _ensure_enum(enum_name: str, values: list[str], schema: str = "audion") -> None:
+        if _enum_exists(enum_name, schema):
             return
         values_sql = ", ".join(f"'{value}'" for value in values)
-        op.execute(sa.text(f"CREATE TYPE {enum_name} AS ENUM ({values_sql})"))
+        # Use a DO block to avoid duplicate_object errors under concurrent deploys.
+        op.execute(
+            sa.text(
+                f"""
+                DO $$
+                BEGIN
+                    CREATE TYPE {schema}.{enum_name} AS ENUM ({values_sql});
+                EXCEPTION
+                    WHEN duplicate_object THEN NULL;
+                END$$;
+                """
+            )
+        )
 
     _ensure_enum("project_role", ["owner", "admin", "member"])
     _ensure_enum("project_member_status", ["active", "invited"])
 
-    project_role_enum = sa.Enum("owner", "admin", "member", name="project_role", create_type=False)
-    project_member_status_enum = sa.Enum("active", "invited", name="project_member_status", create_type=False)
+    project_role_enum = sa.Enum(
+        "owner",
+        "admin",
+        "member",
+        name="project_role",
+        create_type=False,
+    )
+    project_member_status_enum = sa.Enum(
+        "active",
+        "invited",
+        name="project_member_status",
+        create_type=False,
+    )
 
     if not inspector.has_table("users"):
         op.create_table(
