@@ -7,13 +7,14 @@ import { Box, Stack } from "@mui/material";
 import { MsqdxButton, MsqdxCard, MsqdxFormField, MsqdxSelect, MsqdxTypography } from "@msqdx/react";
 
 import { useProject, type ProjectMember, type ProjectSummary } from "../../../../components/projects/project-provider";
-
-const roleOptions = [
-  { value: "member", label: "Member" },
-  { value: "admin", label: "Admin" },
-];
+import { useI18n } from "../../../../components/i18n/i18n-provider";
 
 export default function SettingsProjectsPage() {
+  const { t } = useI18n();
+  const roleOptions = [
+    { value: "member", label: t("settingsProjects.roles.member") },
+    { value: "admin", label: t("settingsProjects.roles.admin") },
+  ];
   const {
     projects,
     activeProjectId,
@@ -45,7 +46,7 @@ export default function SettingsProjectsPage() {
         const detail = await getProjectDetail(projectId);
         setMembers(Array.isArray(detail.members) ? detail.members : []);
       } catch (err) {
-        setActionError(err instanceof Error ? err.message : "Failed to load members");
+        setActionError(err instanceof Error ? err.message : t("settingsProjects.errors.loadMembers"));
       } finally {
         setMembersLoading(false);
       }
@@ -61,12 +62,12 @@ export default function SettingsProjectsPage() {
   const projectDisplayName = useMemo(() => {
     if (activeProject?.name) return activeProject.name;
     const fallback = safeProjects.find((project) => project.id === activeProjectId);
-    return fallback?.name ?? "No project selected";
+    return fallback?.name ?? t("settingsProjects.noProjectSelected");
   }, [activeProject, activeProjectId, safeProjects]);
 
   const handleCreateProject = async () => {
     if (!projectName.trim()) {
-      setActionError("Project name is required.");
+      setActionError(t("settingsProjects.errors.projectNameRequired"));
       return;
     }
     setCreating(true);
@@ -77,7 +78,7 @@ export default function SettingsProjectsPage() {
       selectProject(created.id);
       setProjectName("");
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Failed to create project");
+      setActionError(err instanceof Error ? err.message : t("settingsProjects.errors.createProject"));
     } finally {
       setCreating(false);
     }
@@ -85,11 +86,11 @@ export default function SettingsProjectsPage() {
 
   const handleAddMember = async () => {
     if (!activeProjectId) {
-      setActionError("Select a project first.");
+      setActionError(t("settingsProjects.errors.selectProjectFirst"));
       return;
     }
     if (!memberEmail.trim()) {
-      setActionError("Email is required.");
+      setActionError(t("settingsProjects.errors.emailRequired"));
       return;
     }
     setUpdatingMembers(true);
@@ -110,7 +111,7 @@ export default function SettingsProjectsPage() {
       });
       setMemberEmail("");
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Failed to add member");
+      setActionError(err instanceof Error ? err.message : t("settingsProjects.errors.addMember"));
     } finally {
       setUpdatingMembers(false);
     }
@@ -118,7 +119,7 @@ export default function SettingsProjectsPage() {
 
   const handleRemoveMember = async (member: ProjectMember) => {
     if (!activeProjectId) return;
-    if (!confirm(`Remove ${member.email} from this project?`)) {
+    if (!confirm(t("settingsProjects.confirmRemove", { email: member.email }))) {
       return;
     }
     setUpdatingMembers(true);
@@ -127,7 +128,7 @@ export default function SettingsProjectsPage() {
       await removeMember(activeProjectId, member.id);
       setMembers((prev) => prev.filter((item) => item.id !== member.id));
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Failed to remove member");
+      setActionError(err instanceof Error ? err.message : t("settingsProjects.errors.removeMember"));
     } finally {
       setUpdatingMembers(false);
     }
@@ -137,11 +138,10 @@ export default function SettingsProjectsPage() {
     <div className="msqdx-glass-panel">
       <header className="msqdx-glass-detail__header">
         <div>
-          <p className="msqdx-glass-eyebrow">Workspace</p>
-          <h1 style={{ margin: 0 }}>Projects</h1>
+          <p className="msqdx-glass-eyebrow">{t("settingsProjects.eyebrow")}</p>
+          <h1 style={{ margin: 0 }}>{t("settingsProjects.title")}</h1>
           <p className="msqdx-glass-muted" style={{ maxWidth: "640px" }}>
-            Every persona, target group, journey, and prompt template is scoped to a project. Switch
-            between projects or invite teammates to collaborate.
+            {t("settingsProjects.subtitle")}
           </p>
         </div>
       </header>
@@ -155,24 +155,24 @@ export default function SettingsProjectsPage() {
       <Stack spacing={3}>
         <MsqdxCard variant="flat" borderRadius="button" sx={{ p: 2, border: "1px solid", borderColor: "divider" }}>
           <MsqdxTypography variant="h6" weight="semibold" sx={{ mb: 1.5 }}>
-            Active Project
+            {t("settingsProjects.activeProject.title")}
           </MsqdxTypography>
           <MsqdxTypography variant="body1" weight="semibold">
             {projectDisplayName}
           </MsqdxTypography>
           <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
-            {activeProjectId ? activeProjectId : "Pick a project to start working."}
+            {activeProjectId ? activeProjectId : t("settingsProjects.activeProject.empty")}
           </MsqdxTypography>
         </MsqdxCard>
 
         <MsqdxCard variant="flat" borderRadius="button" sx={{ p: 2, border: "1px solid", borderColor: "divider" }}>
           <MsqdxTypography variant="h6" weight="semibold" sx={{ mb: 1.5 }}>
-            Your Projects
+            {t("settingsProjects.yourProjects.title")}
           </MsqdxTypography>
           <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 2 }}>
             {safeProjects.length === 0 && (
               <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
-                No projects yet. Create one below.
+                {t("settingsProjects.yourProjects.empty")}
               </MsqdxTypography>
             )}
             {safeProjects.map((project: ProjectSummary) => (
@@ -198,7 +198,7 @@ export default function SettingsProjectsPage() {
                     size="small"
                     onClick={() => selectProject(project.id)}
                   >
-                    {project.id === activeProjectId ? "Selected" : "Select"}
+                    {project.id === activeProjectId ? t("settingsProjects.yourProjects.selected") : t("settingsProjects.yourProjects.select")}
                   </MsqdxButton>
                 </Box>
               </MsqdxCard>
@@ -208,61 +208,61 @@ export default function SettingsProjectsPage() {
 
         <MsqdxCard variant="flat" borderRadius="button" sx={{ p: 2, border: "1px solid", borderColor: "divider" }}>
           <MsqdxTypography variant="h6" weight="semibold" sx={{ mb: 1.5 }}>
-            Create Project
+            {t("settingsProjects.createProject.title")}
           </MsqdxTypography>
           <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems="flex-end">
             <MsqdxFormField
-              label="Project Name"
+              label={t("settingsProjects.createProject.name")}
               value={projectName}
               onChange={(e) => setProjectName(e.target.value)}
-              placeholder="e.g. Audion Q1 Research"
+              placeholder={t("settingsProjects.createProject.placeholder")}
               fullWidth
             />
             <MsqdxButton variant="contained" onClick={handleCreateProject} disabled={creating}>
-              {creating ? "Creating..." : "Create"}
+              {creating ? t("settingsProjects.createProject.creating") : t("settingsProjects.createProject.cta")}
             </MsqdxButton>
           </Stack>
         </MsqdxCard>
 
         <MsqdxCard variant="flat" borderRadius="button" sx={{ p: 2, border: "1px solid", borderColor: "divider" }}>
           <MsqdxTypography variant="h6" weight="semibold" sx={{ mb: 1.5 }}>
-            Members
+            {t("settingsProjects.members.title")}
           </MsqdxTypography>
           {!activeProjectId && (
             <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
-              Select a project to manage members.
+              {t("settingsProjects.members.empty")}
             </MsqdxTypography>
           )}
           {activeProjectId && (
             <>
               <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems="flex-end" sx={{ mb: 2 }}>
                 <MsqdxFormField
-                  label="User Email"
+                  label={t("settingsProjects.members.userEmail")}
                   value={memberEmail}
                   onChange={(e) => setMemberEmail(e.target.value)}
-                  placeholder="teammate@company.com"
+                  placeholder={t("settingsProjects.members.userEmailPlaceholder")}
                   fullWidth
                 />
                 <MsqdxSelect
-                  label="Role"
+                  label={t("settingsProjects.members.role")}
                   value={memberRole}
                   onChange={(event: any) => setMemberRole(event.target.value)}
                   options={roleOptions}
                   size="small"
                 />
                 <MsqdxButton variant="outlined" onClick={handleAddMember} disabled={updatingMembers}>
-                  Add Member
+                  {t("settingsProjects.members.addMember")}
                 </MsqdxButton>
               </Stack>
 
               {membersLoading && (
                 <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
-                  Loading members...
+                  {t("settingsProjects.members.loading")}
                 </MsqdxTypography>
               )}
               {!membersLoading && members.length === 0 && (
                 <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
-                  No additional members yet.
+                  {t("settingsProjects.members.none")}
                 </MsqdxTypography>
               )}
               {!membersLoading && members.length > 0 && (
@@ -290,7 +290,7 @@ export default function SettingsProjectsPage() {
                             onClick={() => handleRemoveMember(member)}
                             disabled={updatingMembers}
                           >
-                            Remove
+                            {t("settingsProjects.members.remove")}
                           </MsqdxButton>
                         )}
                       </Stack>

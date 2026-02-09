@@ -8,12 +8,18 @@ import { aiAssistApi, type AiTemplateSummary, type AiTemplateDefinition, type Ai
 import { MsqdxIcon } from "@msqdx/react";
 import nextDynamic from "next/dynamic";
 import { useProject } from "../../../../components/projects/project-provider";
+import { useI18n } from "../../../../components/i18n/i18n-provider";
 
 // Code Splitting: PromptBuilder ist eine große Komponente
+const PromptBuilderLoader = () => {
+  const { t } = useI18n();
+  return <div>{t("prompts.loadingBuilder")}</div>;
+};
+
 const PromptBuilder = nextDynamic(
   () => import("../../../../components/prompt-builder/PromptBuilder").then((mod) => ({ default: mod.PromptBuilder })),
   {
-    loading: () => <div>Loading prompt builder...</div>,
+    loading: () => <PromptBuilderLoader />,
     ssr: false, // PromptBuilder benötigt Client-Side Features
   }
 );
@@ -21,6 +27,7 @@ import clsx from "clsx";
 
 export default function SettingsPromptsPage() {
   const { activeProjectId } = useProject();
+  const { t } = useI18n();
   const [templates, setTemplates] = useState<AiTemplateSummary[]>([]);
   const [personaPrompts, setPersonaPrompts] = useState<AiTemplateSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,7 +64,7 @@ export default function SettingsPromptsPage() {
       const data = await aiAssistApi.listTemplates(projectId);
       setTemplates(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load templates");
+      setError(err instanceof Error ? err.message : t("prompts.errors.loadTemplates"));
     }
   };
 
@@ -93,7 +100,7 @@ export default function SettingsPromptsPage() {
         });
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load template");
+      setError(err instanceof Error ? err.message : t("prompts.errors.loadTemplate"));
     }
   };
 
@@ -137,7 +144,7 @@ export default function SettingsPromptsPage() {
       
       cancelEditing();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save template");
+      setError(err instanceof Error ? err.message : t("prompts.errors.saveTemplate"));
     } finally {
       setSaving(false);
     }
@@ -218,14 +225,22 @@ export default function SettingsPromptsPage() {
   };
 
   const hasActiveFilters = searchQuery.trim() || selectedCategory || selectedTags.size > 0;
+  const personaResults =
+    filteredPersonaPrompts.length === 1
+      ? t("prompts.results.personaOne")
+      : t("prompts.results.personaMany", { count: filteredPersonaPrompts.length });
+  const templateResults =
+    filteredTemplates.length === 1
+      ? t("prompts.results.templateOne")
+      : t("prompts.results.templateMany", { count: filteredTemplates.length });
 
   if (!activeProjectId) {
     return (
       <div className="msqdx-glass-panel">
         <div style={{ padding: "2rem" }}>
-          <h2>Prompt Templates</h2>
+          <h2>{t("prompts.title")}</h2>
           <p className="msqdx-glass-muted" style={{ marginTop: "0.5rem" }}>
-            Select a project to manage prompt templates.
+            {t("prompts.selectProject")}
           </p>
         </div>
       </div>
@@ -237,7 +252,7 @@ export default function SettingsPromptsPage() {
       <div className="msqdx-glass-panel">
         <div style={{ padding: "2rem", textAlign: "center" }}>
           <MsqdxIcon name="hourglass_empty" customSize={24} />
-          <p className="msqdx-glass-muted">Loading templates...</p>
+          <p className="msqdx-glass-muted">{t("prompts.loading")}</p>
         </div>
       </div>
     );
@@ -247,17 +262,17 @@ export default function SettingsPromptsPage() {
     <div className="msqdx-glass-panel">
       <header className="msqdx-glass-detail__header">
         <div>
-          <p className="msqdx-glass-eyebrow">AI Settings</p>
-          <h1 style={{ margin: 0 }}>Prompt Templates</h1>
+          <p className="msqdx-glass-eyebrow">{t("prompts.eyebrow")}</p>
+          <h1 style={{ margin: 0 }}>{t("prompts.title")}</h1>
           <p className="msqdx-glass-muted" style={{ maxWidth: "640px" }}>
-            Every AI assisted feature references a reviewed template stored in the backend catalog. Edit templates directly here to update prompts and configurations.
+            {t("prompts.subtitle")}
           </p>
         </div>
       </header>
 
       {error && (
         <div className="msqdx-glass-error" style={{ margin: "1rem 0", padding: "0.75rem", borderRadius: "8px" }}>
-          <strong>Error:</strong> {error}
+          <strong>{t("prompts.errorTitle")}</strong> {error}
         </div>
       )}
 
@@ -278,9 +293,9 @@ export default function SettingsPromptsPage() {
           }}
         >
           <div>
-            <h3 style={{ margin: 0, marginBottom: "0.25rem" }}>Prompt Variables Glossary</h3>
+            <h3 style={{ margin: 0, marginBottom: "0.25rem" }}>{t("prompts.glossary.title")}</h3>
             <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-text-secondary)" }}>
-              Available variables you can use in your prompts with ${`{variable_name}`} syntax
+              {t("prompts.glossary.subtitle", { variable: "${variable_name}" })}
             </p>
           </div>
           <MsqdxIcon name={showGlossary ? "expand_less" : "expand_more"} customSize={24} />
@@ -594,7 +609,7 @@ export default function SettingsPromptsPage() {
                   />
                   <input
                     type="text"
-                    placeholder="Search prompts by name, description, tags, or category..."
+                    placeholder={t("prompts.search.placeholder")}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     style={{
@@ -631,7 +646,7 @@ export default function SettingsPromptsPage() {
                         alignItems: "center",
                         color: "var(--color-text-secondary)",
                       }}
-                      title="Clear search"
+                      title={t("prompts.search.clear")}
                     >
                       <MsqdxIcon name="close" customSize={16} />
                     </button>
@@ -644,7 +659,7 @@ export default function SettingsPromptsPage() {
                   {allCategories.length > 0 && (
                     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                       <span style={{ fontSize: "0.8125rem", color: "var(--color-text-secondary)", fontWeight: 500 }}>
-                        Category:
+                        {t("prompts.filters.category")}
                       </span>
                       <select
                         value={selectedCategory || ""}
@@ -659,7 +674,7 @@ export default function SettingsPromptsPage() {
                           cursor: "pointer",
                         }}
                       >
-                        <option value="">All Categories</option>
+                        <option value="">{t("prompts.filters.allCategories")}</option>
                         {allCategories.map((category) => (
                           <option key={category} value={category}>
                             {category}
@@ -673,7 +688,7 @@ export default function SettingsPromptsPage() {
                   {allTags.length > 0 && (
                     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
                       <span style={{ fontSize: "0.8125rem", color: "var(--color-text-secondary)", fontWeight: 500 }}>
-                        Tags:
+                        {t("prompts.filters.tags")}
                       </span>
                       {allTags.map((tag) => (
                         <button
@@ -736,7 +751,7 @@ export default function SettingsPromptsPage() {
                       }}
                     >
                       <MsqdxIcon name="filter_alt_off" customSize={14} />
-                      Clear Filters
+                      {t("prompts.filters.clear")}
                     </button>
                   )}
                 </div>
@@ -744,10 +759,8 @@ export default function SettingsPromptsPage() {
                 {/* Results Count - Combined */}
                 {hasActiveFilters && (
                   <div style={{ fontSize: "0.8125rem", color: "var(--color-text-secondary)" }}>
-                    Showing {filteredPersonaPrompts.length} persona prompt{filteredPersonaPrompts.length !== 1 ? "s" : ""}
-                    {templates.length > 0 && (
-                      <> and {filteredTemplates.length} template{filteredTemplates.length !== 1 ? "s" : ""}</>
-                    )}
+                    {t("prompts.results.showing", { persona: personaResults })}
+                    {templates.length > 0 && <> {t("prompts.results.and", { template: templateResults })}</>}
                   </div>
                 )}
               </div>
@@ -759,9 +772,9 @@ export default function SettingsPromptsPage() {
         {personaPrompts.length > 0 && (
           <>
             <div style={{ gridColumn: "1 / -1", marginTop: "2rem", marginBottom: "1rem" }}>
-              <h2 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 600 }}>Persona Prompts</h2>
+              <h2 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 600 }}>{t("prompts.sections.personaPrompts.title")}</h2>
               <p className="msqdx-glass-muted" style={{ marginTop: "0.5rem" }}>
-                System prompts used for persona chat interactions. These are dynamically generated and can be customized.
+                {t("prompts.sections.personaPrompts.subtitle")}
               </p>
             </div>
 
@@ -775,11 +788,11 @@ export default function SettingsPromptsPage() {
                 }}
               >
                 <MsqdxIcon name="search_off" customSize={48} style={{ marginBottom: "1rem", opacity: 0.5 }} />
-                <p style={{ margin: 0, fontSize: "1rem", fontWeight: 500 }}>No persona prompts found</p>
+                <p style={{ margin: 0, fontSize: "1rem", fontWeight: 500 }}>{t("prompts.sections.personaPrompts.emptyTitle")}</p>
                 <p style={{ margin: "0.5rem 0 0", fontSize: "0.875rem" }}>
                   {hasActiveFilters
-                    ? "Try adjusting your filters or search query."
-                    : "No persona prompts are available yet."}
+                    ? t("prompts.sections.personaPrompts.emptyFilters")
+                    : t("prompts.sections.personaPrompts.emptyNone")}
                 </p>
               </div>
             ) : (
@@ -808,7 +821,7 @@ export default function SettingsPromptsPage() {
                         }}
                       >
                         <MsqdxIcon name="edit" customSize={16} style={{ marginRight: "0.25rem", verticalAlign: "middle" }} />
-                        Edit
+                        {t("prompts.tabs.edit")}
                       </button>
                       <button
                         type="button"
@@ -826,7 +839,7 @@ export default function SettingsPromptsPage() {
                         }}
                       >
                         <MsqdxIcon name="science" customSize={16} style={{ marginRight: "0.25rem", verticalAlign: "middle" }} />
-                        Test & Preview
+                        {t("prompts.tabs.test")}
                       </button>
                     </div>
 
@@ -863,7 +876,7 @@ export default function SettingsPromptsPage() {
                         className="msqdx-glass-button --ghost"
                         onClick={() => startEditing(template.template_id)}
                         style={{ padding: "0.25rem 0.5rem" }}
-                        title="Edit template"
+                        title={t("prompts.actions.editTemplate")}
                       >
                         <MsqdxIcon name="edit" customSize={16} />
                       </button>
@@ -897,9 +910,9 @@ export default function SettingsPromptsPage() {
           <>
             {personaPrompts.length > 0 && (
               <div style={{ gridColumn: "1 / -1", marginTop: "2rem", marginBottom: "1rem" }}>
-                <h2 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 600 }}>AI Templates</h2>
+                <h2 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 600 }}>{t("prompts.sections.aiTemplates.title")}</h2>
                 <p className="msqdx-glass-muted" style={{ marginTop: "0.5rem" }}>
-                  Standard templates for AI-assisted features like journey mapping and phase generation.
+                  {t("prompts.sections.aiTemplates.subtitle")}
                 </p>
               </div>
             )}
@@ -915,11 +928,11 @@ export default function SettingsPromptsPage() {
                 }}
               >
                 <MsqdxIcon name="search_off" customSize={48} style={{ marginBottom: "1rem", opacity: 0.5 }} />
-                <p style={{ margin: 0, fontSize: "1rem", fontWeight: 500 }}>No templates found</p>
+                <p style={{ margin: 0, fontSize: "1rem", fontWeight: 500 }}>{t("prompts.sections.aiTemplates.emptyTitle")}</p>
                 <p style={{ margin: "0.5rem 0 0", fontSize: "0.875rem" }}>
                   {hasActiveFilters
-                    ? "Try adjusting your filters or search query."
-                    : "No templates are available yet."}
+                    ? t("prompts.sections.aiTemplates.emptyFilters")
+                    : t("prompts.sections.aiTemplates.emptyNone")}
                 </p>
               </div>
             ) : (
@@ -948,7 +961,7 @@ export default function SettingsPromptsPage() {
                     }}
                   >
                     <MsqdxIcon name="edit" customSize={16} style={{ marginRight: "0.25rem", verticalAlign: "middle" }} />
-                    Edit
+                    {t("prompts.tabs.edit")}
                   </button>
                   <button
                     type="button"
@@ -966,7 +979,7 @@ export default function SettingsPromptsPage() {
                     }}
                   >
                     <MsqdxIcon name="science" customSize={16} style={{ marginRight: "0.25rem", verticalAlign: "middle" }} />
-                    Test & Preview
+                    {t("prompts.tabs.test")}
                   </button>
                 </div>
 
@@ -1003,7 +1016,7 @@ export default function SettingsPromptsPage() {
                     className="msqdx-glass-button --ghost"
                     onClick={() => startEditing(template.template_id)}
                     style={{ padding: "0.25rem 0.5rem" }}
-                    title="Edit template"
+                      title={t("prompts.actions.editTemplate")}
                   >
                     <MsqdxIcon name="edit" customSize={16} />
                   </button>
@@ -1049,6 +1062,7 @@ function TemplateEditForm({
   onCancel: () => void;
   saving: boolean;
 }) {
+  const { t } = useI18n();
   return (
     <form
       onSubmit={(e) => {
@@ -1059,7 +1073,7 @@ function TemplateEditForm({
     >
       <div>
         <label style={{ display: "block", marginBottom: "0.25rem", fontSize: "0.875rem", fontWeight: 500 }}>
-          Label
+          {t("prompts.fields.label")}
         </label>
         <input
           type="text"
@@ -1072,7 +1086,7 @@ function TemplateEditForm({
 
       <div>
         <label style={{ display: "block", marginBottom: "0.25rem", fontSize: "0.875rem", fontWeight: 500 }}>
-          Description
+          {t("prompts.fields.description")}
         </label>
         <textarea
           value={template.description}
@@ -1086,7 +1100,7 @@ function TemplateEditForm({
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
         <div>
           <label style={{ display: "block", marginBottom: "0.25rem", fontSize: "0.875rem", fontWeight: 500 }}>
-            Category
+            {t("prompts.fields.category")}
           </label>
           <input
             type="text"
@@ -1098,7 +1112,7 @@ function TemplateEditForm({
         </div>
         <div>
           <label style={{ display: "block", marginBottom: "0.25rem", fontSize: "0.875rem", fontWeight: 500 }}>
-            Provider
+            {t("prompts.fields.provider")}
           </label>
           <select
             value={template.default_provider}
@@ -1114,7 +1128,7 @@ function TemplateEditForm({
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
         <div>
           <label style={{ display: "block", marginBottom: "0.25rem", fontSize: "0.875rem", fontWeight: 500 }}>
-            Temperature
+            {t("prompts.fields.temperature")}
           </label>
           <input
             type="number"
@@ -1129,7 +1143,7 @@ function TemplateEditForm({
         </div>
         <div>
           <label style={{ display: "block", marginBottom: "0.25rem", fontSize: "0.875rem", fontWeight: 500 }}>
-            Max Tokens
+            {t("prompts.fields.maxTokens")}
           </label>
           <input
             type="number"
@@ -1142,13 +1156,13 @@ function TemplateEditForm({
         </div>
         <div>
           <label style={{ display: "block", marginBottom: "0.25rem", fontSize: "0.875rem", fontWeight: 500 }}>
-            Model
+            {t("prompts.fields.model")}
           </label>
           <input
             type="text"
             value={template.default_model || ""}
             onChange={(e) => onUpdate({ ...template, default_model: e.target.value || undefined })}
-            placeholder="claude-3-5-sonnet-20241022"
+            placeholder={t("prompts.fields.modelPlaceholder")}
             style={{ width: "100%", padding: "0.5rem", border: "1px solid var(--color-theme-accent)", borderRadius: "4px" }}
           />
         </div>
@@ -1156,20 +1170,23 @@ function TemplateEditForm({
 
       <div>
         <label style={{ display: "block", marginBottom: "0.25rem", fontSize: "0.875rem", fontWeight: 500 }}>
-          Tags (comma-separated)
+          {t("prompts.fields.tags")}
         </label>
         <input
           type="text"
           value={template.tags.join(", ")}
           onChange={(e) => onUpdate({ ...template, tags: e.target.value.split(",").map((t) => t.trim()).filter(Boolean) })}
-          placeholder="journey, phase, moments"
+          placeholder={t("prompts.fields.tagsPlaceholder")}
           style={{ width: "100%", padding: "0.5rem", border: "1px solid var(--color-theme-accent)", borderRadius: "4px" }}
         />
       </div>
 
       <div>
         <label style={{ display: "block", marginBottom: "0.25rem", fontSize: "0.875rem", fontWeight: 500 }}>
-          Prompt <span style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>(use ${`{variable}`} for interpolation)</span>
+          {t("prompts.fields.prompt")}{" "}
+          <span style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>
+            {t("prompts.fields.promptHint", { variable: "${variable}" })}
+          </span>
         </label>
         <textarea
           value={template.prompt}
@@ -1190,16 +1207,16 @@ function TemplateEditForm({
 
       <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", marginTop: "0.5rem" }}>
         <button type="button" className="msqdx-glass-button --ghost" onClick={onCancel} disabled={saving}>
-          Cancel
+          {t("prompts.actions.cancel")}
         </button>
         <button type="submit" className="msqdx-glass-button" disabled={saving}>
           {saving ? (
             <>
-              <MsqdxIcon name="hourglass_empty" customSize={14} /> Saving...
+              <MsqdxIcon name="hourglass_empty" customSize={14} /> {t("prompts.actions.saving")}
             </>
           ) : (
             <>
-              <MsqdxIcon name="save" customSize={14} /> Save
+              <MsqdxIcon name="save" customSize={14} /> {t("prompts.actions.save")}
             </>
           )}
         </button>
@@ -1209,6 +1226,7 @@ function TemplateEditForm({
 }
 
 function VariableItem({ name, description, example }: { name: string; description: string; example?: string }) {
+  const { t } = useI18n();
   return (
     <div style={{ padding: "0.75rem", background: "rgba(15, 23, 42, 0.03)", borderRadius: "8px", border: "1px solid rgba(148, 163, 184, 0.2)" }}>
       <div style={{ display: "flex", alignItems: "start", gap: "0.75rem" }}>
@@ -1230,7 +1248,7 @@ function VariableItem({ name, description, example }: { name: string; descriptio
           <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 500, color: "#0f172a" }}>{description}</p>
           {example && (
             <p style={{ margin: "0.25rem 0 0", fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>
-              Example: {example}
+              {t("prompts.example")}: {example}
             </p>
           )}
         </div>

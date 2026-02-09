@@ -18,6 +18,7 @@ import {
 import { MsqdxGlassUploadDropzone } from "../../components/msqdx-glass-upload-dropzone";
 import { MsqdxGlassProcessingTimeline } from "../../components/msqdx-glass-processing-timeline";
 import { pollUploadStatus, uploadResearch } from "../../lib/uploads";
+import { useI18n } from "../../components/i18n/i18n-provider";
 
 type UploadStatus =
   | { label: string; progress: number; variant: "idle" }
@@ -25,33 +26,33 @@ type UploadStatus =
   | { label: string; progress: number; variant: "success" }
   | { label: string; progress: number; variant: "error" };
 
-const INITIAL_STATUS: UploadStatus = {
-  label: "Idle",
-  progress: 0,
-  variant: "idle"
-};
-
 export default function UploadPage() {
   const theme = useTheme();
+  const { t } = useI18n();
+  const INITIAL_STATUS: UploadStatus = {
+    label: t("upload.status.idle"),
+    progress: 0,
+    variant: "idle"
+  };
   const [status, setStatus] = useState<UploadStatus>(INITIAL_STATUS);
   const [activeStage, setActiveStage] = useState<string | undefined>();
 
   const handleFileSelect = useCallback(
     async (file: File) => {
-      setStatus({ label: "Uploading…", progress: 15, variant: "processing" });
+      setStatus({ label: t("upload.status.uploading"), progress: 15, variant: "processing" });
       try {
         const response = await uploadResearch(file);
         const job_id = response.job_id;
 
         if (!job_id) {
-          throw new Error("No job ID received from server");
+          throw new Error(t("upload.errors.noJobId"));
         }
 
         const poll = async () => {
           const job = await pollUploadStatus(job_id);
           if (job.status === "processing") {
             setStatus({
-              label: `Processing… ${job.progress}%`,
+              label: t("upload.status.processing", { progress: job.progress }),
               progress: job.progress,
               variant: "processing"
             });
@@ -67,14 +68,14 @@ export default function UploadPage() {
             setTimeout(poll, 1500);
           } else if (job.status === "completed") {
             setStatus({
-              label: `Processing complete · ${job.document_id}`,
+              label: t("upload.status.completed", { id: job.document_id }),
               progress: 100,
               variant: "success"
             });
             setActiveStage(undefined);
           } else {
             setStatus({
-              label: job.reason ?? "Processing failed",
+              label: job.reason ?? t("upload.status.failed"),
               progress: 100,
               variant: "error"
             });
@@ -85,13 +86,13 @@ export default function UploadPage() {
         await poll();
       } catch (error) {
         setStatus({
-          label: (error as Error).message ?? "Upload failed",
+          label: (error as Error).message ?? t("upload.status.failed"),
           progress: 100,
           variant: "error"
         });
       }
     },
-    []
+    [t]
   );
 
   return (
@@ -107,17 +108,16 @@ export default function UploadPage() {
           <Stack spacing={4}>
             <Stack spacing={1}>
               <Typography variant="h4" fontWeight={600}>
-                Upload your research
+                {t("upload.title")}
               </Typography>
               <Typography variant="body1">
-                We orchestrate Unstructured, Whisper, spaCy, BGE-M3, and Qdrant in a single async
-                pipeline. Typical turnaround: 2–5 minutes.
+                {t("upload.subtitle")}
               </Typography>
             </Stack>
             <MsqdxGlassUploadDropzone onFileSelect={handleFileSelect} status={status} />
             <Divider />
             <Stack spacing={2}>
-              <Typography variant="subtitle1">Processing timeline</Typography>
+              <Typography variant="subtitle1">{t("upload.timeline")}</Typography>
               <MsqdxGlassProcessingTimeline activeStage={activeStage} />
             </Stack>
           </Stack>
@@ -126,4 +126,3 @@ export default function UploadPage() {
     </Box>
   );
 }
-

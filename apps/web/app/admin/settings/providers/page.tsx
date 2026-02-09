@@ -1,5 +1,6 @@
 import { getPersonaBackendBase } from "../../../api/_lib/backend";
 import { buildAuthHeaders, getServerAuthToken } from "../../../api/_lib/auth";
+import { getServerT } from "../../../../lib/i18n/server";
 
 type ProviderInfo = {
   id: string;
@@ -25,19 +26,20 @@ const fetchProviders = async (): Promise<ProvidersResponse> => {
   return response.json();
 };
 
-const statusLabel = (configured: boolean) => (configured ? "Connected" : "Missing key");
-
 export default async function SettingsProvidersPage() {
+  const t = getServerT();
   const data = await fetchProviders();
+  const statusLabel = (configured: boolean) =>
+    configured ? t("settingsProviders.status.connected") : t("settingsProviders.status.missing");
 
   return (
     <div className="msqdx-glass-panel">
       <header className="msqdx-glass-detail__header">
         <div>
-          <p className="msqdx-glass-eyebrow">AI Settings</p>
-          <h1 style={{ margin: 0 }}>Providers</h1>
+          <p className="msqdx-glass-eyebrow">{t("settingsProviders.eyebrow")}</p>
+          <h1 style={{ margin: 0 }}>{t("settingsProviders.title")}</h1>
           <p className="msqdx-glass-muted" style={{ maxWidth: "640px" }}>
-            Track which model backends are available to the workspace. Keys are never exposed, only their status.
+            {t("settingsProviders.subtitle")}
           </p>
         </div>
       </header>
@@ -49,7 +51,7 @@ export default async function SettingsProvidersPage() {
               <div>
                 <h3 style={{ marginBottom: "0.25rem" }}>{provider.label}</h3>
                 <p className="msqdx-glass-muted" style={{ margin: 0 }}>
-                  Default model: {provider.model || "—"}
+                  {t("settingsProviders.defaultModel", { model: provider.model || "—" })}
                 </p>
               </div>
               <span
@@ -60,7 +62,7 @@ export default async function SettingsProvidersPage() {
             </div>
             {data.default_provider === provider.id && (
               <p className="msqdx-glass-badge --outline" style={{ marginTop: "0.75rem", display: "inline-flex" }}>
-                Default
+                {t("settingsProviders.default")}
               </p>
             )}
           </div>

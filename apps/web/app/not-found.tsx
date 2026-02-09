@@ -6,8 +6,20 @@ export const dynamic = 'force-dynamic';
 // #endregion
 
 import Link from "next/link";
+import { createTranslator, normalizeLocale } from "../lib/i18n";
 
 export default function NotFound() {
+  const locale =
+    typeof document !== "undefined"
+      ? normalizeLocale(
+          document.cookie
+            .split("; ")
+            .find((cookie) => cookie.startsWith("audion_locale="))
+            ?.split("=")[1] || navigator.language
+        )
+      : "en";
+  const t = createTranslator(locale);
+
   return (
     <div
       style={{
@@ -20,9 +32,9 @@ export default function NotFound() {
         fontFamily: "system-ui, sans-serif",
       }}
     >
-      <h1 style={{ fontSize: "2rem", marginBottom: "1rem" }}>404</h1>
+      <h1 style={{ fontSize: "2rem", marginBottom: "1rem" }}>{t("notFound.title")}</h1>
       <p style={{ marginBottom: "2rem", color: "#666" }}>
-        This page could not be found.
+        {t("notFound.subtitle")}
       </p>
       <Link
         href="/"
@@ -35,11 +47,10 @@ export default function NotFound() {
           borderRadius: "4px",
         }}
       >
-        Go back home
+        {t("notFound.cta")}
       </Link>
     </div>
   );
 }
-
 
 

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Box, Button, Card, CardContent, Stack, TextField, Typography } from "@mui/material";
 
 import { ThemeRegistryNoSSR } from "../../components/theme-registry-no-ssr";
+import { useI18n } from "../../components/i18n/i18n-provider";
 import { buildApiUrl } from "../api/_lib/backend";
 
 export default function LoginPage() {
@@ -13,6 +14,7 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
   const redirectTo = searchParams.get("redirect") || "/admin";
+  const { t } = useI18n();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,14 +33,14 @@ export default function LoginPage() {
       });
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.detail || data.error || "Login failed");
+        throw new Error(data.detail || data.error || t("auth.login.error"));
       }
       const resolvedRedirect = redirectTo.startsWith("/")
         ? `${basePath}${redirectTo}`
         : `${basePath}/${redirectTo}`;
       router.replace(resolvedRedirect);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      setError(err instanceof Error ? err.message : t("auth.login.error"));
     } finally {
       setLoading(false);
     }
@@ -63,10 +65,10 @@ export default function LoginPage() {
             <Stack spacing={3}>
               <Box>
                 <Typography variant="h4" fontWeight={700}>
-                  Welcome back
+                  {t("auth.login.title")}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Sign in to manage your projects and personas.
+                  {t("auth.login.subtitle")}
                 </Typography>
               </Box>
               {error && (
@@ -79,7 +81,7 @@ export default function LoginPage() {
               <form onSubmit={handleSubmit}>
                 <Stack spacing={2}>
                   <TextField
-                    label="Email"
+                    label={t("auth.login.email")}
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -87,7 +89,7 @@ export default function LoginPage() {
                     fullWidth
                   />
                   <TextField
-                    label="Password"
+                    label={t("auth.login.password")}
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -95,14 +97,14 @@ export default function LoginPage() {
                     fullWidth
                   />
                   <Button type="submit" variant="contained" disabled={loading}>
-                    {loading ? "Signing in..." : "Sign in"}
+                    {loading ? t("auth.login.ctaLoading") : t("auth.login.cta")}
                   </Button>
                 </Stack>
               </form>
               <Typography variant="body2" color="text.secondary">
-                New here?{" "}
+                {t("auth.login.prompt")}{" "}
                 <Link href="/register" style={{ color: "inherit", fontWeight: 600 }}>
-                  Create an account
+                  {t("auth.login.link")}
                 </Link>
               </Typography>
             </Stack>

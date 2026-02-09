@@ -5,6 +5,8 @@
 export const dynamic = 'force-dynamic';
 // #endregion
 
+import { createTranslator, normalizeLocale } from "../lib/i18n";
+
 /**
  * Global error boundary for Next.js App Router
  * 
@@ -23,6 +25,22 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const locale =
+    typeof document !== "undefined"
+      ? (() => {
+          const cookieLocale = document.cookie
+            .split("; ")
+            .find((cookie) => cookie.startsWith("audion_locale="))
+            ?.split("=")[1];
+          if (cookieLocale) return cookieLocale;
+          if (typeof navigator !== "undefined") {
+            return navigator.language;
+          }
+          return "en";
+        })()
+      : "en";
+  const t = createTranslator(normalizeLocale(locale));
+
   // Use a simple function that doesn't require React context
   // This only executes in the browser, never during prerendering
   const handleReset = () => {
@@ -46,7 +64,7 @@ export default function GlobalError({
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Error - Audion</title>
+        <title>{`Audion · ${t("error.title")}`}</title>
       </head>
       <body style={{ margin: 0, padding: 0, fontFamily: 'system-ui, sans-serif' }}>
         <div style={{ 
@@ -56,14 +74,14 @@ export default function GlobalError({
           margin: '0 auto'
         }}>
           <h1 style={{ fontSize: '1.5rem', marginBottom: '1rem', marginTop: 0 }}>
-            Something went wrong!
+            {t("error.title")}
           </h1>
           <p style={{ marginBottom: '1rem', color: '#666' }}>
-            {error?.message || 'An unexpected error occurred'}
+            {error?.message || t("error.subtitle")}
           </p>
           {error?.digest && (
             <p style={{ fontSize: '0.875rem', color: '#999', marginBottom: '1rem' }}>
-              Error ID: {error.digest}
+              {t("error.id", { id: error.digest })}
             </p>
           )}
           <button
@@ -78,7 +96,7 @@ export default function GlobalError({
               fontSize: '0.875rem'
             }}
           >
-            Try again
+            {t("error.cta")}
           </button>
         </div>
       </body>

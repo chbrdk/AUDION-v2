@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect } from "react";
 import { MsqdxIcon } from "@msqdx/react";
 import { useThemeMode } from "../../../../components/theme-registry";
+import { useI18n } from "../../../../components/i18n/i18n-provider";
 
 // Helper function to determine if a color is light (needs dark text)
 const isLightColor = (hex: string): boolean => {
@@ -33,68 +34,67 @@ const COLOR_TINT_MAP: Record<string, string> = {
   "--audion-light-border-color": "--color-secondary-dx-purple-tint", // Fallback für default
 };
 
-// Alle verfügbaren DX-Farbvariablen für die Sidebar
-const SIDEBAR_COLOR_OPTIONS = [
-  { 
-    varName: "--color-secondary-dx-purple", 
-    label: "Purple", 
-    preview: "#b638ff",
-    description: "Vibrant purple accent",
-    textColor: "#ffffff"
-  },
-  { 
-    varName: "--color-secondary-dx-blue", 
-    label: "Blue", 
-    preview: "#3b82f6",
-    description: "Calm blue accent",
-    textColor: "#ffffff"
-  },
-  { 
-    varName: "--color-secondary-dx-pink", 
-    label: "Pink", 
-    preview: "#f256b6",
-    description: "Energetic pink accent",
-    textColor: "#ffffff"
-  },
-  { 
-    varName: "--color-secondary-dx-orange", 
-    label: "Orange", 
-    preview: "#ff6a3b",
-    description: "Warm orange accent",
-    textColor: "#ffffff"
-  },
-  { 
-    varName: "--color-secondary-dx-green", 
-    label: "Green", 
-    preview: "#00ca55",
-    description: "Fresh green accent",
-    textColor: "#000000"
-  },
-  { 
-    varName: "--color-secondary-dx-yellow", 
-    label: "Yellow", 
-    preview: "#fef14d",
-    description: "Bright yellow accent",
-    textColor: "#000000"
-  },
-  { 
-    varName: "--color-secondary-dx-grey-light", 
-    label: "Grey", 
-    preview: "#d4d2d2",
-    description: "Neutral grey",
-    textColor: "#000000"
-  },
-  { 
-    varName: "--audion-light-border-color", 
-    label: "Default (Dark)", 
-    preview: "#0f172a",
-    description: "Default dark background",
-    textColor: "#ffffff"
-  }
-];
-
 export default function ThemeSettingsPage() {
   const { themeMode } = useThemeMode();
+  const { t } = useI18n();
+  const SIDEBAR_COLOR_OPTIONS = [
+    { 
+      varName: "--color-secondary-dx-purple", 
+      label: t("settingsTheme.options.purple"), 
+      preview: "#b638ff",
+      description: t("settingsTheme.descriptions.purple"),
+      textColor: "#ffffff"
+    },
+    { 
+      varName: "--color-secondary-dx-blue", 
+      label: t("settingsTheme.options.blue"), 
+      preview: "#3b82f6",
+      description: t("settingsTheme.descriptions.blue"),
+      textColor: "#ffffff"
+    },
+    { 
+      varName: "--color-secondary-dx-pink", 
+      label: t("settingsTheme.options.pink"), 
+      preview: "#f256b6",
+      description: t("settingsTheme.descriptions.pink"),
+      textColor: "#ffffff"
+    },
+    { 
+      varName: "--color-secondary-dx-orange", 
+      label: t("settingsTheme.options.orange"), 
+      preview: "#ff6a3b",
+      description: t("settingsTheme.descriptions.orange"),
+      textColor: "#ffffff"
+    },
+    { 
+      varName: "--color-secondary-dx-green", 
+      label: t("settingsTheme.options.green"), 
+      preview: "#00ca55",
+      description: t("settingsTheme.descriptions.green"),
+      textColor: "#000000"
+    },
+    { 
+      varName: "--color-secondary-dx-yellow", 
+      label: t("settingsTheme.options.yellow"), 
+      preview: "#fef14d",
+      description: t("settingsTheme.descriptions.yellow"),
+      textColor: "#000000"
+    },
+    { 
+      varName: "--color-secondary-dx-grey-light", 
+      label: t("settingsTheme.options.grey"), 
+      preview: "#d4d2d2",
+      description: t("settingsTheme.descriptions.grey"),
+      textColor: "#000000"
+    },
+    { 
+      varName: "--audion-light-border-color", 
+      label: t("settingsTheme.options.default"), 
+      preview: "#0f172a",
+      description: t("settingsTheme.descriptions.default"),
+      textColor: "#ffffff"
+    }
+  ];
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [mounted, setMounted] = useState(false);
 
@@ -174,20 +174,20 @@ export default function ThemeSettingsPage() {
     <div className="msqdx-glass-panel">
       <header className="msqdx-glass-detail__header">
         <div>
-          <p className="msqdx-glass-eyebrow">Appearance</p>
-          <h1 style={{ margin: 0 }}>Theme Settings</h1>
+          <p className="msqdx-glass-eyebrow">{t("settingsTheme.eyebrow")}</p>
+          <h1 style={{ margin: 0 }}>{t("settingsTheme.title")}</h1>
           <p className="msqdx-glass-muted" style={{ maxWidth: "640px" }}>
-            Customize the sidebar background color to match your preference.
+            {t("settingsTheme.subtitle")}
           </p>
         </div>
       </header>
 
       <div style={{ marginTop: "2rem" }}>
         <h2 style={{ fontSize: "1.25rem", fontWeight: 600, marginBottom: "1rem" }}>
-          Sidebar Background Color
+          {t("settingsTheme.sidebarTitle")}
         </h2>
         <p className="msqdx-glass-muted" style={{ marginBottom: "1.5rem" }}>
-          Choose a color for the admin sidebar background. Changes apply immediately.
+          {t("settingsTheme.sidebarSubtitle")}
         </p>
 
         <div style={{ 
@@ -267,4 +267,3 @@ export default function ThemeSettingsPage() {
     </div>
   );
 }
-

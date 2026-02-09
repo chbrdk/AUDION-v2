@@ -1,0 +1,412 @@
+{
+  "common": {
+    "loading": "Loading…",
+    "save": "Save",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "update": "Update",
+    "updating": "Updating…",
+    "delete": "Delete",
+    "open": "Open",
+    "view": "View",
+    "close": "Close",
+    "search": "Search",
+    "continue": "Continue"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "chat": "Chat",
+    "chatHistory": "Chat History",
+    "projects": "Projects",
+    "personas": "Personas",
+    "targetGroups": "Target Groups",
+    "journeys": "Journeys",
+    "profile": "Profile",
+    "settings": "Settings"
+  },
+  "project": {
+    "label": "Project",
+    "select": "Select project",
+    "none": "No projects"
+  },
+  "auth": {
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Sign in to manage your projects and personas.",
+      "email": "Email",
+      "password": "Password",
+      "cta": "Sign in",
+      "ctaLoading": "Signing in…",
+      "error": "Login failed",
+      "prompt": "New here?",
+      "link": "Create an account"
+    },
+    "register": {
+      "title": "Create your account",
+      "subtitle": "Start organizing projects, personas, and journeys.",
+      "name": "Name",
+      "email": "Email",
+      "password": "Password",
+      "cta": "Create account",
+      "ctaLoading": "Creating…",
+      "error": "Registration failed",
+      "prompt": "Already have an account?",
+      "link": "Sign in"
+    }
+  },
+  "profile": {
+    "eyebrow": "Account",
+    "title": "Profile",
+    "subtitle": "Manage your identity, preferences, and security. Changes apply immediately to all projects.",
+    "identity": {
+      "title": "Identity",
+      "subtitle": "Update how your profile appears across Audion.",
+      "fullName": "Full Name",
+      "fullNamePlaceholder": "Your name",
+      "email": "Email",
+      "emailPlaceholder": "you@company.com",
+      "company": "Company",
+      "companyPlaceholder": "Company name",
+      "avatarUrl": "Avatar URL",
+      "avatarUrlPlaceholder": "https://...",
+      "language": "Language",
+      "save": "Save Profile",
+      "saving": "Saving…"
+    },
+    "security": {
+      "title": "Security",
+      "currentPassword": "Current Password",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm New Password",
+      "update": "Update Password",
+      "updating": "Updating…"
+    },
+    "session": {
+      "title": "Session",
+      "subtitle": "Log out from this device. You will need to sign in again to access your projects.",
+      "logout": "Log out"
+    },
+    "messages": {
+      "profileUpdated": "Profile updated.",
+      "profileUpdateFailed": "Failed to update profile",
+      "passwordMissing": "Please enter your current and new password.",
+      "passwordMismatch": "New password confirmation does not match.",
+      "passwordUpdated": "Password updated.",
+      "passwordUpdateFailed": "Failed to update password"
+    }
+  },
+  "landing": {
+    "headline": "Audion",
+    "subtitle": "Upload your raw research, let AI discover personas live, and jump into contextual conversations with their authentic voices.",
+    "upload": "Upload Research",
+    "peekChat": "Peek the Chat"
+  },
+  "backend": {
+    "errorTitle": "Backend unreachable:",
+    "errorBody": "Please wait until the service has fully started and reload the page.",
+    "selectProject": "Select a project to load data."
+  },
+  "notFound": {
+    "title": "404",
+    "subtitle": "This page could not be found.",
+    "cta": "Go back home"
+  },
+  "error": {
+    "title": "Something went wrong!",
+    "subtitle": "An unexpected error occurred",
+    "id": "Error ID: {id}",
+    "cta": "Try again"
+  },
+  "adminDashboard": {
+    "view": "View",
+    "personas": "Personas",
+    "targetGroups": "Target Groups",
+    "queueJobs": "Queue Jobs",
+    "services": "Services",
+    "servicesUp": "All services up",
+    "servicesDown": "{count} service(s) down",
+    "workersAvailable": "Workers available",
+    "workersUnavailable": "Workers not available",
+    "serviceDetails": "Service Status Details",
+    "quickActions": "Quick Actions",
+    "createPersona": "Create New Persona",
+    "createTargetGroup": "Create New Target Group",
+    "queueStatus": "Queue Status",
+    "pending": "Pending",
+    "processing": "Processing",
+    "failed": "Failed",
+    "completed": "Completed"
+  },
+  "settings": {
+    "eyebrow": "Control Center",
+    "title": "Settings",
+    "subtitle": "Centralize AI assistance configuration. Review provider health, prompt templates, and rollout status for new capabilities.",
+    "cards": {
+      "projects": {
+        "title": "Projects & Access",
+        "description": "Create projects, switch ownership context, and manage shared access."
+      },
+      "theme": {
+        "title": "Theme",
+        "description": "Customize sidebar colors and appearance preferences."
+      },
+      "providers": {
+        "title": "AI Providers",
+        "description": "Configure Anthropic and OpenAI defaults, verify keys, and review usage policies."
+      },
+      "prompts": {
+        "title": "Prompt Templates",
+        "description": "Review and manage the central prompt catalog used across journeys, personas, and target groups."
+      },
+      "apiDocs": {
+        "title": "API Documentation",
+        "description": "Interactive API reference for the Persona Backend. Explore endpoints, test requests, and view schemas."
+      }
+    }
+  },
+  "settingsProjects": {
+    "eyebrow": "Workspace",
+    "title": "Projects",
+    "subtitle": "Every persona, target group, journey, and prompt template is scoped to a project. Switch between projects or invite teammates to collaborate.",
+    "roles": {
+      "member": "Member",
+      "admin": "Admin"
+    },
+    "errors": {
+      "loadMembers": "Failed to load members",
+      "projectNameRequired": "Project name is required.",
+      "createProject": "Failed to create project",
+      "selectProjectFirst": "Select a project first.",
+      "emailRequired": "Email is required.",
+      "addMember": "Failed to add member",
+      "removeMember": "Failed to remove member"
+    },
+    "confirmRemove": "Remove {email} from this project?",
+    "noProjectSelected": "No project selected",
+    "activeProject": {
+      "title": "Active Project",
+      "empty": "Pick a project to start working."
+    },
+    "yourProjects": {
+      "title": "Your Projects",
+      "empty": "No projects yet. Create one below.",
+      "selected": "Selected",
+      "select": "Select"
+    },
+    "createProject": {
+      "title": "Create Project",
+      "name": "Project Name",
+      "placeholder": "e.g. Audion Q1 Research",
+      "creating": "Creating…",
+      "cta": "Create"
+    },
+    "members": {
+      "title": "Members",
+      "empty": "Select a project to manage members.",
+      "userEmail": "User Email",
+      "userEmailPlaceholder": "teammate@company.com",
+      "role": "Role",
+      "addMember": "Add Member",
+      "loading": "Loading members…",
+      "none": "No additional members yet.",
+      "remove": "Remove"
+    }
+  },
+  "settingsProviders": {
+    "eyebrow": "AI Settings",
+    "title": "Providers",
+    "subtitle": "Track which model backends are available to the workspace. Keys are never exposed, only their status.",
+    "status": {
+      "connected": "Connected",
+      "missing": "Missing key"
+    },
+    "defaultModel": "Default model: {model}",
+    "default": "Default"
+  },
+  "settingsTheme": {
+    "eyebrow": "Appearance",
+    "title": "Theme Settings",
+    "subtitle": "Customize the sidebar background color to match your preference.",
+    "sidebarTitle": "Sidebar Background Color",
+    "sidebarSubtitle": "Choose a color for the admin sidebar background. Changes apply immediately.",
+    "options": {
+      "purple": "Purple",
+      "blue": "Blue",
+      "pink": "Pink",
+      "orange": "Orange",
+      "green": "Green",
+      "yellow": "Yellow",
+      "grey": "Grey",
+      "default": "Default (Dark)"
+    },
+    "descriptions": {
+      "purple": "Vibrant purple accent",
+      "blue": "Calm blue accent",
+      "pink": "Energetic pink accent",
+      "orange": "Warm orange accent",
+      "green": "Fresh green accent",
+      "yellow": "Bright yellow accent",
+      "grey": "Neutral grey",
+      "default": "Default dark background"
+    }
+  },
+  "settingsApiDocs": {
+    "eyebrow": "API Reference",
+    "title": "API Documentation",
+    "subtitle": "Interactive API documentation for the Persona Backend. Explore endpoints, test requests, and view response schemas.",
+    "errorTitle": "Failed to load API documentation",
+    "errorBody": "The API documentation could not be loaded. Please check if the backend service is running.",
+    "retry": "Retry",
+    "openNew": "Open in new tab",
+    "iframeTitle": "API Documentation"
+  },
+  "prompts": {
+    "eyebrow": "AI Settings",
+    "title": "Prompt Templates",
+    "subtitle": "Every AI assisted feature references a reviewed template stored in the backend catalog. Edit templates directly here to update prompts and configurations.",
+    "selectProject": "Select a project to manage prompt templates.",
+    "loading": "Loading templates…",
+    "loadingBuilder": "Loading prompt builder…",
+    "errorTitle": "Error:",
+    "errors": {
+      "loadTemplates": "Failed to load templates",
+      "loadTemplate": "Failed to load template",
+      "saveTemplate": "Failed to save template"
+    },
+    "glossary": {
+      "title": "Prompt Variables Glossary",
+      "subtitle": "Available variables you can use in your prompts with {variable} syntax"
+    },
+    "search": {
+      "placeholder": "Search prompts by name, description, tags, or category...",
+      "clear": "Clear search"
+    },
+    "filters": {
+      "category": "Category:",
+      "allCategories": "All Categories",
+      "tags": "Tags:",
+      "clear": "Clear Filters"
+    },
+    "results": {
+      "personaOne": "1 persona prompt",
+      "personaMany": "{count} persona prompts",
+      "templateOne": "1 template",
+      "templateMany": "{count} templates",
+      "showing": "Showing {persona}",
+      "and": "and {template}"
+    },
+    "sections": {
+      "personaPrompts": {
+        "title": "Persona Prompts",
+        "subtitle": "System prompts used for persona chat interactions. These are dynamically generated and can be customized.",
+        "emptyTitle": "No persona prompts found",
+        "emptyFilters": "Try adjusting your filters or search query.",
+        "emptyNone": "No persona prompts are available yet."
+      },
+      "aiTemplates": {
+        "title": "AI Templates",
+        "subtitle": "Standard templates for AI-assisted features like journey mapping and phase generation.",
+        "emptyTitle": "No templates found",
+        "emptyFilters": "Try adjusting your filters or search query.",
+        "emptyNone": "No templates are available yet."
+      }
+    },
+    "tabs": {
+      "edit": "Edit",
+      "test": "Test & Preview"
+    },
+    "actions": {
+      "editTemplate": "Edit template",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving…"
+    },
+    "fields": {
+      "label": "Label",
+      "description": "Description",
+      "category": "Category",
+      "provider": "Provider",
+      "temperature": "Temperature",
+      "maxTokens": "Max Tokens",
+      "model": "Model",
+      "modelPlaceholder": "claude-3-5-sonnet-20241022",
+      "tags": "Tags (comma-separated)",
+      "tagsPlaceholder": "journey, phase, moments",
+      "prompt": "Prompt",
+      "promptHint": "(use {variable} for interpolation)"
+    },
+    "example": "Example"
+  },
+  "queue": {
+    "title": "Queue",
+    "selectProject": "Select a project to view queue activity.",
+    "statsTitle": "Queue Statistics",
+    "refresh": "Refresh",
+    "pending": "Pending",
+    "processing": "Processing",
+    "completed": "Completed",
+    "failed": "Failed",
+    "workers": "Workers",
+    "jobs": "Jobs",
+    "statusFilter": "Status Filter",
+    "all": "All",
+    "loadingJobs": "Loading jobs…",
+    "noJobs": "No jobs found.",
+    "job": "Job {id}",
+    "document": "Document: {id}",
+    "progress": "Progress: {progress}% · {date}",
+    "error": "Error: {message}",
+    "errorLabel": "Error",
+    "page": "Page {page} of {total}",
+    "selectJob": "Please select a job.",
+    "loadingJobDetails": "Loading job details…",
+    "details": "Details",
+    "status": "Status",
+    "progressLabel": "Progress",
+    "documentId": "Document ID",
+    "filename": "Filename",
+    "size": "Size",
+    "created": "Created",
+    "updated": "Updated",
+    "celeryTask": "Celery Task ID",
+    "retry": "Retry",
+    "retryConfirm": "Are you sure you want to retry this job?",
+    "retrySuccess": "Job retried",
+    "retryError": "Error retrying job",
+    "loadJobsError": "Error loading jobs",
+    "loadJobDetailError": "Error loading job details",
+    "selectProjectToRetry": "Select a project to retry jobs."
+  },
+  "queueBackend": {
+    "errorTitle": "Backend unreachable:",
+    "errorBody": "Please wait until the service has fully started and reload the page."
+  },
+  "upload": {
+    "title": "Upload your research",
+    "subtitle": "We orchestrate Unstructured, Whisper, spaCy, BGE-M3, and Qdrant in a single async pipeline. Typical turnaround: 2–5 minutes.",
+    "timeline": "Processing timeline",
+    "status": {
+      "idle": "Idle",
+      "uploading": "Uploading…",
+      "processing": "Processing… {progress}%",
+      "completed": "Processing complete · {id}",
+      "failed": "Processing failed"
+    },
+    "errors": {
+      "noJobId": "No job ID received from server"
+    }
+  },
+  "journeys": {
+    "title": "Journeys",
+    "create": "Create Journey",
+    "empty": "No journeys yet. Create your first journey to get started.",
+    "loading": "Loading journeys…",
+    "loadFailed": "Failed to load journeys",
+    "selectProject": "Select a project to view journeys.",
+    "errorTitle": "Error:",
+    "phases": "{count} phases",
+    "type": "{type}",
+    "validation": "Validation Score"
+  }
+}
+}

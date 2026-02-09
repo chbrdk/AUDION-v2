@@ -20,24 +20,18 @@ import {
 } from "../app/api/_lib/queue";
 import { MsqdxIcon } from "@msqdx/react";
 import { useProject } from "./projects/project-provider";
+import { useI18n } from "./i18n/i18n-provider";
 
 type MsqdxGlassQueueDashboardProps = {
   initialStats: QueueStatsResponse;
 };
 
-const statusChips: Record<string, { label: string; className: string }> = {
-  pending: { label: "Pending", className: "msqdx-glass-chip --pending" },
-  processing: { label: "Processing", className: "msqdx-glass-chip --processing" },
-  completed: { label: "Completed", className: "msqdx-glass-chip --success" },
-  failed: { label: "Failed", className: "msqdx-glass-chip --error" },
-};
-
-const formatDate = (value?: string | null) => {
+const formatDate = (value: string | null | undefined, locale: string) => {
   if (!value) {
     return "—";
   }
   try {
-    return new Intl.DateTimeFormat("en-US", {
+    return new Intl.DateTimeFormat(locale, {
       year: "numeric",
       month: "short",
       day: "2-digit",
@@ -94,6 +88,13 @@ const notify = (message: string) => {
 
 export const MsqdxGlassQueueDashboard = ({ initialStats }: MsqdxGlassQueueDashboardProps) => {
   const { activeProjectId } = useProject();
+  const { t, locale } = useI18n();
+  const statusChips: Record<string, { label: string; className: string }> = {
+    pending: { label: t("queue.pending"), className: "msqdx-glass-chip --pending" },
+    processing: { label: t("queue.processing"), className: "msqdx-glass-chip --processing" },
+    completed: { label: t("queue.completed"), className: "msqdx-glass-chip --success" },
+    failed: { label: t("queue.failed"), className: "msqdx-glass-chip --error" },
+  };
   const [stats, setStats] = useState<QueueStatsResponse>(initialStats);
   const [jobs, setJobs] = useState<ProcessingJobListResponse>({
     items: [],
@@ -147,7 +148,7 @@ export const MsqdxGlassQueueDashboard = ({ initialStats }: MsqdxGlassQueueDashbo
       setJobs(jobsData);
     } catch (error) {
       console.error("Failed to load jobs:", error);
-      notify("Error loading jobs");
+      notify(t("queue.loadJobsError"));
     } finally {
       setLoading(false);
     }
@@ -163,7 +164,7 @@ export const MsqdxGlassQueueDashboard = ({ initialStats }: MsqdxGlassQueueDashbo
       setSelectedJobDetail(detail);
     } catch (error) {
       console.error("Failed to load job detail:", error);
-      notify("Error loading job details");
+      notify(t("queue.loadJobDetailError"));
     }
   }, [activeProjectId]);
 
@@ -188,30 +189,30 @@ export const MsqdxGlassQueueDashboard = ({ initialStats }: MsqdxGlassQueueDashbo
   }, [selectedJobId, loadJobDetail]);
 
   const handleRetry = async (jobId: string) => {
-    if (!confirm("Are you sure you want to retry this job?")) {
+    if (!confirm(t("queue.retryConfirm"))) {
       return;
     }
     try {
       if (!activeProjectId) {
-        notify("Select a project to retry jobs.");
+        notify(t("queue.selectProjectToRetry"));
         return;
       }
       await retryJob(jobId, activeProjectId);
-      notify("Job retried");
+      notify(t("queue.retrySuccess"));
       await loadJobs();
       await loadStats();
     } catch (error) {
       console.error("Retry failed:", error);
-      notify("Error retrying job");
+      notify(t("queue.retryError"));
     }
   };
 
   if (!activeProjectId) {
     return (
       <div className="msqdx-glass-panel" style={{ padding: "1.5rem" }}>
-        <h3>Queue</h3>
+        <h3>{t("queue.title")}</h3>
         <p className="msqdx-glass-muted" style={{ marginTop: "0.5rem" }}>
-          Select a project to view queue activity.
+          {t("queue.selectProject")}
         </p>
       </div>
     );
@@ -222,31 +223,31 @@ export const MsqdxGlassQueueDashboard = ({ initialStats }: MsqdxGlassQueueDashbo
       <section className="msqdx-glass-panel">
         <header className="msqdx-glass-panel__header">
           <div>
-            <h2>Queue Statistics</h2>
+            <h2>{t("queue.statsTitle")}</h2>
           </div>
           <button className="msqdx-glass-button --ghost" onClick={loadStats}>
-            <MsqdxIcon name="refresh" customSize={18} /> Refresh
+            <MsqdxIcon name="refresh" customSize={18} /> {t("queue.refresh")}
           </button>
         </header>
         <div className="msqdx-glass-stats-grid">
           <div className="msqdx-glass-stat-card">
-            <div className="msqdx-glass-stat-card__label">Pending</div>
+            <div className="msqdx-glass-stat-card__label">{t("queue.pending")}</div>
             <div className="msqdx-glass-stat-card__value">{stats.pendingCount}</div>
           </div>
           <div className="msqdx-glass-stat-card">
-            <div className="msqdx-glass-stat-card__label">Processing</div>
+            <div className="msqdx-glass-stat-card__label">{t("queue.processing")}</div>
             <div className="msqdx-glass-stat-card__value">{stats.processingCount}</div>
           </div>
           <div className="msqdx-glass-stat-card">
-            <div className="msqdx-glass-stat-card__label">Completed</div>
+            <div className="msqdx-glass-stat-card__label">{t("queue.completed")}</div>
             <div className="msqdx-glass-stat-card__value">{stats.completedCount}</div>
           </div>
           <div className="msqdx-glass-stat-card">
-            <div className="msqdx-glass-stat-card__label">Failed</div>
+            <div className="msqdx-glass-stat-card__label">{t("queue.failed")}</div>
             <div className="msqdx-glass-stat-card__value">{stats.failedCount}</div>
           </div>
           <div className="msqdx-glass-stat-card">
-            <div className="msqdx-glass-stat-card__label">Workers</div>
+            <div className="msqdx-glass-stat-card__label">{t("queue.workers")}</div>
             <div className="msqdx-glass-stat-card__value">
               {stats.workerCount} {stats.workerAvailable ? "✓" : "✗"}
             </div>
@@ -254,9 +255,9 @@ export const MsqdxGlassQueueDashboard = ({ initialStats }: MsqdxGlassQueueDashbo
         </div>
 
         <div style={{ marginTop: "2rem" }}>
-          <h3>Jobs</h3>
+          <h3>{t("queue.jobs")}</h3>
           <div className="msqdx-glass-field" style={{ marginBottom: "1rem" }}>
-            <label>Status Filter</label>
+            <label>{t("queue.statusFilter")}</label>
             <select
               value={filterStatus || ""}
               onChange={(e) => {
@@ -264,17 +265,17 @@ export const MsqdxGlassQueueDashboard = ({ initialStats }: MsqdxGlassQueueDashbo
                 setPage(1);
               }}
             >
-              <option value="">All</option>
-              <option value="pending">Pending</option>
-              <option value="processing">Processing</option>
-              <option value="completed">Completed</option>
-              <option value="failed">Failed</option>
+              <option value="">{t("queue.all")}</option>
+              <option value="pending">{t("queue.pending")}</option>
+              <option value="processing">{t("queue.processing")}</option>
+              <option value="completed">{t("queue.completed")}</option>
+              <option value="failed">{t("queue.failed")}</option>
             </select>
           </div>
 
-          {loading && <p className="msqdx-glass-muted">Loading jobs...</p>}
+          {loading && <p className="msqdx-glass-muted">{t("queue.loadingJobs")}</p>}
           {!loading && jobs.items.length === 0 && (
-            <p className="msqdx-glass-empty">No jobs found.</p>
+            <p className="msqdx-glass-empty">{t("queue.noJobs")}</p>
           )}
           {!loading && jobs.items.length > 0 && (
             <div className="msqdx-glass-list">
@@ -290,18 +291,21 @@ export const MsqdxGlassQueueDashboard = ({ initialStats }: MsqdxGlassQueueDashbo
                     onClick={() => setSelectedJobId(job.id)}
                   >
                     <div className="msqdx-glass-list-item__row">
-                      <strong>Job {job.id.slice(0, 8)}</strong>
+                      <strong>{t("queue.job", { id: job.id.slice(0, 8) })}</strong>
                       <span className={chip.className}>{chip.label}</span>
                     </div>
                     <p className="msqdx-glass-list-item__meta">
-                      Document: {job.documentId.slice(0, 8)}...
+                      {t("queue.document", { id: `${job.documentId.slice(0, 8)}...` })}
                     </p>
                     <p className="msqdx-glass-list-item__meta">
-                      Progress: {job.progress.toFixed(0)}% · {formatDate(job.createdAt)}
+                      {t("queue.progress", {
+                        progress: job.progress.toFixed(0),
+                        date: formatDate(job.createdAt, locale),
+                      })}
                     </p>
                     {job.error && (
                       <p className="msqdx-glass-list-item__meta msqdx-glass-error">
-                        Error: {job.error}
+                        {t("queue.error", { message: job.error })}
                       </p>
                     )}
                   </button>
@@ -320,7 +324,7 @@ export const MsqdxGlassQueueDashboard = ({ initialStats }: MsqdxGlassQueueDashbo
                 <MsqdxIcon name="chevron_left" customSize={18} />
               </button>
               <span className="msqdx-glass-muted">
-                Page {page} of {Math.ceil(jobs.total / jobs.page_size)}
+                {t("queue.page", { page, total: Math.ceil(jobs.total / jobs.page_size) })}
               </span>
               <button
                 className="msqdx-glass-button --ghost"
@@ -335,21 +339,21 @@ export const MsqdxGlassQueueDashboard = ({ initialStats }: MsqdxGlassQueueDashbo
       </section>
 
       <section className="msqdx-glass-panel">
-        {!selectedJobId && <p className="msqdx-glass-empty">Please select a job.</p>}
+        {!selectedJobId && <p className="msqdx-glass-empty">{t("queue.selectJob")}</p>}
         {selectedJobId && !selectedJobDetail && (
-          <p className="msqdx-glass-muted">Loading job details...</p>
+          <p className="msqdx-glass-muted">{t("queue.loadingJobDetails")}</p>
         )}
         {selectedJobDetail && (
           <div className="msqdx-glass-detail">
             <header className="msqdx-glass-detail__header">
               <div className="msqdx-glass-detail__title">
-                <h2>Job {selectedJobDetail.id.slice(0, 8)}</h2>
+                <h2>{t("queue.job", { id: selectedJobDetail.id.slice(0, 8) })}</h2>
                 {selectedJobDetail.status === "failed" && (
                   <button
                     className="msqdx-glass-button"
                     onClick={() => handleRetry(selectedJobDetail.id)}
                   >
-                    <MsqdxIcon name="refresh" customSize={18} /> Retry
+                    <MsqdxIcon name="refresh" customSize={18} /> {t("queue.retry")}
                   </button>
                 )}
               </div>
@@ -357,10 +361,10 @@ export const MsqdxGlassQueueDashboard = ({ initialStats }: MsqdxGlassQueueDashbo
 
             <div className="msqdx-glass-detail__grid">
               <div>
-                <h3>Details</h3>
+                <h3>{t("queue.details")}</h3>
                 <dl className="msqdx-glass-meta-grid">
                   <div>
-                    <dt>Status</dt>
+                    <dt>{t("queue.status")}</dt>
                     <dd>
                       <span
                         className={
@@ -372,36 +376,36 @@ export const MsqdxGlassQueueDashboard = ({ initialStats }: MsqdxGlassQueueDashbo
                     </dd>
                   </div>
                   <div>
-                    <dt>Progress</dt>
+                    <dt>{t("queue.progressLabel")}</dt>
                     <dd>{selectedJobDetail.progress.toFixed(0)}%</dd>
                   </div>
                   <div>
-                    <dt>Document ID</dt>
+                    <dt>{t("queue.documentId")}</dt>
                     <dd>{selectedJobDetail.documentId}</dd>
                   </div>
                   {selectedJobDetail.documentFilename && (
                     <div>
-                      <dt>Filename</dt>
+                      <dt>{t("queue.filename")}</dt>
                       <dd>{selectedJobDetail.documentFilename}</dd>
                     </div>
                   )}
                   {selectedJobDetail.documentSizeBytes && (
                     <div>
-                      <dt>Size</dt>
+                      <dt>{t("queue.size")}</dt>
                       <dd>{(selectedJobDetail.documentSizeBytes / 1024).toFixed(1)} KB</dd>
                     </div>
                   )}
                   <div>
-                    <dt>Created</dt>
-                    <dd>{formatDate(selectedJobDetail.createdAt)}</dd>
+                    <dt>{t("queue.created")}</dt>
+                    <dd>{formatDate(selectedJobDetail.createdAt, locale)}</dd>
                   </div>
                   <div>
-                    <dt>Updated</dt>
-                    <dd>{formatDate(selectedJobDetail.updatedAt)}</dd>
+                    <dt>{t("queue.updated")}</dt>
+                    <dd>{formatDate(selectedJobDetail.updatedAt, locale)}</dd>
                   </div>
                   {selectedJobDetail.celeryTaskId && (
                     <div>
-                      <dt>Celery Task ID</dt>
+                      <dt>{t("queue.celeryTask")}</dt>
                       <dd>{selectedJobDetail.celeryTaskId}</dd>
                     </div>
                   )}
@@ -411,7 +415,7 @@ export const MsqdxGlassQueueDashboard = ({ initialStats }: MsqdxGlassQueueDashbo
 
             {selectedJobDetail.error && (
               <div className="msqdx-glass-detail__section">
-                <h3>Error</h3>
+                <h3>{t("queue.errorLabel")}</h3>
                 <pre
                   style={{
                     padding: "1rem",

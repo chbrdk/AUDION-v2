@@ -14,16 +14,18 @@ import {
 } from "@msqdx/react";
 
 import { useAuth } from "../../../components/auth/auth-provider";
+import { useI18n } from "../../../components/i18n/i18n-provider";
 import { BRAND_COLOR } from "../../../lib/branding";
-
-const languageOptions = [
-  { value: "de", label: "Deutsch" },
-  { value: "en", label: "English" },
-];
 
 export default function ProfilePage() {
   const router = useRouter();
   const { user, updateProfile, changePassword, logout } = useAuth();
+  const { t, setLocale: setUiLocale } = useI18n();
+
+  const languageOptions = [
+    { value: "de", label: "Deutsch" },
+    { value: "en", label: "English" },
+  ];
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -71,9 +73,10 @@ export default function ProfilePage() {
         avatar_url: avatarUrl.trim() || null,
         locale: locale || null,
       });
-      setSuccess("Profile updated.");
+      setSuccess(t("profile.messages.profileUpdated"));
+      setUiLocale(locale);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update profile");
+      setError(err instanceof Error ? err.message : t("profile.messages.profileUpdateFailed"));
     } finally {
       setSavingProfile(false);
     }
@@ -83,22 +86,22 @@ export default function ProfilePage() {
     setError(null);
     setSuccess(null);
     if (!currentPassword || !newPassword) {
-      setError("Please enter your current and new password.");
+      setError(t("profile.messages.passwordMissing"));
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError("New password confirmation does not match.");
+      setError(t("profile.messages.passwordMismatch"));
       return;
     }
     setSavingPassword(true);
     try {
       await changePassword({ current_password: currentPassword, new_password: newPassword });
-      setSuccess("Password updated.");
+      setSuccess(t("profile.messages.passwordUpdated"));
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update password");
+      setError(err instanceof Error ? err.message : t("profile.messages.passwordUpdateFailed"));
     } finally {
       setSavingPassword(false);
     }
@@ -114,10 +117,10 @@ export default function ProfilePage() {
     <div className="msqdx-glass-panel">
       <header className="msqdx-glass-detail__header">
         <div>
-          <p className="msqdx-glass-eyebrow">Account</p>
-          <h1 style={{ margin: 0 }}>Profile</h1>
+          <p className="msqdx-glass-eyebrow">{t("profile.eyebrow")}</p>
+          <h1 style={{ margin: 0 }}>{t("profile.title")}</h1>
           <p className="msqdx-glass-muted" style={{ maxWidth: "640px" }}>
-            Manage your identity, preferences, and security. Changes apply immediately to all projects.
+            {t("profile.subtitle")}
           </p>
         </div>
       </header>
@@ -139,10 +142,10 @@ export default function ProfilePage() {
             </Avatar>
             <Box sx={{ flex: 1 }}>
               <MsqdxTypography variant="h6" weight="semibold" sx={{ mb: 0.5 }}>
-                Identity
+                {t("profile.identity.title")}
               </MsqdxTypography>
               <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
-                Update how your profile appears across Audion.
+                {t("profile.identity.subtitle")}
               </MsqdxTypography>
             </Box>
           </Stack>
@@ -151,39 +154,39 @@ export default function ProfilePage() {
 
           <Stack spacing={2}>
             <MsqdxFormField
-              label="Full Name"
+              label={t("profile.identity.fullName")}
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Your name"
+              placeholder={t("profile.identity.fullNamePlaceholder")}
               fullWidth
               borderColor={BRAND_COLOR}
             />
             <MsqdxFormField
-              label="Email"
+              label={t("profile.identity.email")}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@company.com"
+              placeholder={t("profile.identity.emailPlaceholder")}
               fullWidth
               borderColor={BRAND_COLOR}
             />
             <MsqdxFormField
-              label="Company"
+              label={t("profile.identity.company")}
               value={company}
               onChange={(e) => setCompany(e.target.value)}
-              placeholder="Company name"
+              placeholder={t("profile.identity.companyPlaceholder")}
               fullWidth
               borderColor={BRAND_COLOR}
             />
             <MsqdxFormField
-              label="Avatar URL"
+              label={t("profile.identity.avatarUrl")}
               value={avatarUrl}
               onChange={(e) => setAvatarUrl(e.target.value)}
-              placeholder="https://..."
+              placeholder={t("profile.identity.avatarUrlPlaceholder")}
               fullWidth
               borderColor={BRAND_COLOR}
             />
             <MsqdxSelect
-              label="Language"
+              label={t("profile.identity.language")}
               value={locale}
               onChange={(event: any) => setLocale(event.target.value)}
               options={languageOptions}
@@ -196,18 +199,18 @@ export default function ProfilePage() {
               disabled={savingProfile}
               sx={{ alignSelf: "flex-start" }}
             >
-              {savingProfile ? "Saving..." : "Save Profile"}
+              {savingProfile ? t("profile.identity.saving") : t("profile.identity.save")}
             </MsqdxButton>
           </Stack>
         </MsqdxCard>
 
         <MsqdxCard variant="flat" borderRadius="button" sx={{ p: 2, border: "1px solid", borderColor: "divider" }}>
           <MsqdxTypography variant="h6" weight="semibold" sx={{ mb: 1.5 }}>
-            Security
+            {t("profile.security.title")}
           </MsqdxTypography>
           <Stack spacing={2}>
             <MsqdxFormField
-              label="Current Password"
+              label={t("profile.security.currentPassword")}
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               type="password"
@@ -215,7 +218,7 @@ export default function ProfilePage() {
               borderColor={BRAND_COLOR}
             />
             <MsqdxFormField
-              label="New Password"
+              label={t("profile.security.newPassword")}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               type="password"
@@ -223,7 +226,7 @@ export default function ProfilePage() {
               borderColor={BRAND_COLOR}
             />
             <MsqdxFormField
-              label="Confirm New Password"
+              label={t("profile.security.confirmPassword")}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               type="password"
@@ -236,20 +239,20 @@ export default function ProfilePage() {
               disabled={savingPassword}
               sx={{ alignSelf: "flex-start" }}
             >
-              {savingPassword ? "Updating..." : "Update Password"}
+              {savingPassword ? t("profile.security.updating") : t("profile.security.update")}
             </MsqdxButton>
           </Stack>
         </MsqdxCard>
 
         <MsqdxCard variant="flat" borderRadius="button" sx={{ p: 2, border: "1px solid", borderColor: "divider" }}>
           <MsqdxTypography variant="h6" weight="semibold" sx={{ mb: 1 }}>
-            Session
+            {t("profile.session.title")}
           </MsqdxTypography>
           <MsqdxTypography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
-            Log out from this device. You will need to sign in again to access your projects.
+            {t("profile.session.subtitle")}
           </MsqdxTypography>
           <MsqdxButton variant="text" onClick={handleLogout}>
-            Log out
+            {t("profile.session.logout")}
           </MsqdxButton>
         </MsqdxCard>
       </Stack>

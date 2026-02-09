@@ -6,11 +6,13 @@ import Link from "next/link";
 import { Box, Button, Card, CardContent, Stack, TextField, Typography } from "@mui/material";
 
 import { ThemeRegistryNoSSR } from "../../components/theme-registry-no-ssr";
+import { useI18n } from "../../components/i18n/i18n-provider";
 import { buildApiUrl } from "../api/_lib/backend";
 
 export default function RegisterPage() {
   const router = useRouter();
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+  const { t } = useI18n();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -30,11 +32,11 @@ export default function RegisterPage() {
       });
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.detail || data.error || "Registration failed");
+        throw new Error(data.detail || data.error || t("auth.register.error"));
       }
       router.replace(`${basePath}/admin`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Registration failed");
+      setError(err instanceof Error ? err.message : t("auth.register.error"));
     } finally {
       setLoading(false);
     }
@@ -59,10 +61,10 @@ export default function RegisterPage() {
             <Stack spacing={3}>
               <Box>
                 <Typography variant="h4" fontWeight={700}>
-                  Create your account
+                  {t("auth.register.title")}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Start organizing projects, personas, and journeys.
+                  {t("auth.register.subtitle")}
                 </Typography>
               </Box>
               {error && (
@@ -75,13 +77,13 @@ export default function RegisterPage() {
               <form onSubmit={handleSubmit}>
                 <Stack spacing={2}>
                   <TextField
-                    label="Name"
+                    label={t("auth.register.name")}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     fullWidth
                   />
                   <TextField
-                    label="Email"
+                    label={t("auth.register.email")}
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -89,7 +91,7 @@ export default function RegisterPage() {
                     fullWidth
                   />
                   <TextField
-                    label="Password"
+                    label={t("auth.register.password")}
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -97,14 +99,14 @@ export default function RegisterPage() {
                     fullWidth
                   />
                   <Button type="submit" variant="contained" disabled={loading}>
-                    {loading ? "Creating..." : "Create account"}
+                    {loading ? t("auth.register.ctaLoading") : t("auth.register.cta")}
                   </Button>
                 </Stack>
               </form>
               <Typography variant="body2" color="text.secondary">
-                Already have an account?{" "}
+                {t("auth.register.prompt")}{" "}
                 <Link href="/login" style={{ color: "inherit", fontWeight: 600 }}>
-                  Sign in
+                  {t("auth.register.link")}
                 </Link>
               </Typography>
             </Stack>

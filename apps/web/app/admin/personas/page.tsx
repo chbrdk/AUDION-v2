@@ -5,6 +5,7 @@ import type { PersonaListResponse } from "@msqdx-glass/types";
 import { getPersonaBackendBase, getPersonaBackendDocsUrl } from "../../api/_lib/backend";
 import { buildAuthHeaders, getServerAuthToken, getServerProjectId } from "../../api/_lib/auth";
 import { MsqdxGlassPersonaAdminPanel } from "../../../components/msqdx-glass-persona-admin-panel";
+import { getServerT } from "../../../lib/i18n/server";
 
 async function fetchPersonaList(projectId: string, headers: HeadersInit): Promise<PersonaListResponse> {
   const base = getPersonaBackendBase({ preferPublic: false });
@@ -40,14 +41,15 @@ async function fetchPersonaList(projectId: string, headers: HeadersInit): Promis
 }
 
 export default async function PersonaAdminPage() {
+  const t = getServerT();
   let list: PersonaListResponse;
   let error: string | null = null;
   const projectId = await getServerProjectId();
   const headers = buildAuthHeaders(await getServerAuthToken());
-  
+
   try {
     if (!projectId) {
-      throw new Error("Select a project to load personas.");
+      throw new Error(t("backend.selectProject"));
     }
     list = await fetchPersonaList(projectId, headers);
   } catch (err) {
@@ -61,7 +63,7 @@ export default async function PersonaAdminPage() {
     <>
       {error && (
         <div style={{ padding: "1rem", marginBottom: "1rem", backgroundColor: "var(--color-secondary-dx-pink-tint)", borderRadius: "8px", color: "var(--color-secondary-dx-pink-on-light)" }}>
-          <strong>Backend unreachable:</strong> {error}. Please wait until the service has fully started and reload the page.
+          <strong>{t("backend.errorTitle")}</strong> {error}. {t("backend.errorBody")}
         </div>
       )}
       <MsqdxGlassPersonaAdminPanel initialList={list} docsUrl={docsUrl} />

@@ -10,24 +10,25 @@ import type { AdminNavItem } from "@msqdx/react";
 import { useAdminHeader, useAdminPanel } from "./admin-layout-providers";
 import { BRAND_COLOR } from "../../lib/branding";
 import { AdminTopControls } from "./admin-top-controls";
+import { useI18n } from "../i18n/i18n-provider";
 
 // Re-export for consumers that import from this file
 export { useAdminHeader, useAdminPanel } from "./admin-layout-providers";
 
-const ADMIN_NAV_ITEMS: AdminNavItem[] = [
-  { label: "Dashboard", path: "/admin", icon: "dashboard", exact: true },
-  { label: "Chat", path: "/admin/chat", icon: "forum" },
-  { label: "Chat History", path: "/admin/chat/history", icon: "history" },
-  { label: "Projects", path: "/admin/projects", icon: "folder" },
-  { label: "Personas", path: "/admin/personas", icon: "person" },
-  { label: "Target Groups", path: "/admin/target-groups", icon: "groups" },
-  { label: "Journeys", path: "/admin/journeys", icon: "route" },
-];
+const ADMIN_NAV_ITEMS = [
+  { labelKey: "nav.dashboard", path: "/admin", icon: "dashboard", exact: true },
+  { labelKey: "nav.chat", path: "/admin/chat", icon: "forum" },
+  { labelKey: "nav.chatHistory", path: "/admin/chat/history", icon: "history" },
+  { labelKey: "nav.projects", path: "/admin/projects", icon: "folder" },
+  { labelKey: "nav.personas", path: "/admin/personas", icon: "person" },
+  { labelKey: "nav.targetGroups", path: "/admin/target-groups", icon: "groups" },
+  { labelKey: "nav.journeys", path: "/admin/journeys", icon: "route" },
+] as const;
 
-const ADMIN_NAV_EXTERNAL_ITEMS: AdminNavItem[] = [
-  { label: "Profile", path: "/admin/profile", icon: "account_circle" },
-  { label: "Settings", path: "/admin/settings", icon: "settings" },
-];
+const ADMIN_NAV_EXTERNAL_ITEMS = [
+  { labelKey: "nav.profile", path: "/admin/profile", icon: "account_circle" },
+  { labelKey: "nav.settings", path: "/admin/settings", icon: "settings" },
+] as const;
 
 export type MsqdxGlassAdminLayoutClientProps = {
   children: ReactNode;
@@ -39,6 +40,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
   const [drawerOpen, setDrawerOpen] = useState(false); // Default open on desktop
   const pathname = usePathname();
   const theme = useTheme();
+  const { t } = useI18n();
   // Get headerContent from context - safe for SSR with default value
   const { headerContent } = useAdminHeader();
   // Get panel state from context
@@ -56,20 +58,30 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
     setPanelOpen(false);
   };
 
+  const navItems = ADMIN_NAV_ITEMS.map((item) => ({
+    ...item,
+    label: t(item.labelKey),
+  })) as AdminNavItem[];
+
+  const navExternalItems = ADMIN_NAV_EXTERNAL_ITEMS.map((item) => ({
+    ...item,
+    label: t(item.labelKey),
+  })) as AdminNavItem[];
+
   // Get page title from pathname
   const getPageTitle = () => {
     if (!pathname) return "";
     
     const pathMap: Record<string, string> = {
-      "/admin": "Dashboard",
-      "/admin/chat": "Chat",
-      "/admin/chat/history": "Chat History",
-      "/admin/projects": "Projects",
-      "/admin/personas": "Personas",
-      "/admin/target-groups": "Target Groups",
-      "/admin/journeys": "Journeys",
-      "/admin/profile": "Profile",
-      "/admin/settings": "Settings",
+      "/admin": t("nav.dashboard"),
+      "/admin/chat": t("nav.chat"),
+      "/admin/chat/history": t("nav.chatHistory"),
+      "/admin/projects": t("nav.projects"),
+      "/admin/personas": t("nav.personas"),
+      "/admin/target-groups": t("nav.targetGroups"),
+      "/admin/journeys": t("nav.journeys"),
+      "/admin/profile": t("nav.profile"),
+      "/admin/settings": t("nav.settings"),
     };
 
     // Check exact match first
@@ -127,8 +139,8 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
           open={drawerOpen}
           onClose={handleDrawerClose}
           currentPath={pathname || ""}
-          items={ADMIN_NAV_ITEMS}
-          externalItems={ADMIN_NAV_EXTERNAL_ITEMS}
+          items={navItems}
+          externalItems={navExternalItems}
           linkComponent={Link as any}
           brandColor={BRAND_COLOR}
         />

@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { QueueStatsResponse, ServiceStatusResponse } from "@msqdx-glass/types";
 import { alpha, Box, Button, Collapse, Stack, Typography, useTheme } from "@mui/material";
 import { MsqdxIcon } from "@msqdx/react";
+import { useI18n } from "../i18n/i18n-provider";
 
 export type MsqdxGlassAdminDashboardProps = {
   personaStats: { total: number };
@@ -21,6 +22,7 @@ export const MsqdxGlassAdminDashboard = ({
 }: MsqdxGlassAdminDashboardProps) => {
   const theme = useTheme();
   const [showServices, setShowServices] = useState(false);
+  const { t } = useI18n();
   const totalQueueJobs = (queueStats.pendingCount ?? 0) + (queueStats.processingCount ?? 0) + 
                          (queueStats.completedCount ?? 0) + (queueStats.failedCount ?? 0);
   
@@ -76,7 +78,7 @@ export const MsqdxGlassAdminDashboard = ({
             <Box sx={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
               <MsqdxIcon name="person" customSize={24} style={{ color: "var(--color-theme-accent)" }} />
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Personas
+                {t("adminDashboard.personas")}
               </Typography>
             </Box>
             <Typography variant="h3" sx={{ fontSize: "2.5rem", fontWeight: 300 }}>
@@ -95,7 +97,7 @@ export const MsqdxGlassAdminDashboard = ({
                   }
                 }}
               >
-                Anzeigen
+                {t("adminDashboard.view")}
               </Button>
             </Link>
           </Stack>
@@ -117,7 +119,7 @@ export const MsqdxGlassAdminDashboard = ({
             <Box sx={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
               <MsqdxIcon name="groups" customSize={24} style={{ color: "var(--color-theme-accent)" }} />
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Target Groups
+                {t("adminDashboard.targetGroups")}
               </Typography>
             </Box>
             <Typography variant="h3" sx={{ fontSize: "2.5rem", fontWeight: 300 }}>
@@ -136,7 +138,7 @@ export const MsqdxGlassAdminDashboard = ({
                   }
                 }}
               >
-                Anzeigen
+                {t("adminDashboard.view")}
               </Button>
             </Link>
           </Stack>
@@ -158,7 +160,7 @@ export const MsqdxGlassAdminDashboard = ({
             <Box sx={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
               <MsqdxIcon name="view_list" customSize={24} style={{ color: "var(--color-theme-accent)" }} />
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Queue Jobs
+                {t("adminDashboard.queueJobs")}
               </Typography>
             </Box>
             <Typography variant="h3" sx={{ fontSize: "2.5rem", fontWeight: 300 }}>
@@ -177,7 +179,7 @@ export const MsqdxGlassAdminDashboard = ({
                   }
                 }}
               >
-                Anzeigen
+                {t("adminDashboard.view")}
               </Button>
             </Link>
           </Stack>
@@ -203,7 +205,7 @@ export const MsqdxGlassAdminDashboard = ({
                 style={{ color: "var(--color-theme-accent)" }}
               />
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Services
+                {t("adminDashboard.services")}
               </Typography>
             </Box>
             {serviceStatus && serviceStatus.services ? (
@@ -212,7 +214,11 @@ export const MsqdxGlassAdminDashboard = ({
                   {serviceStatus.services.filter(s => s.status === "up").length}/{serviceStatus.services.length}
                 </Typography>
                 <Typography variant="body2" sx={{ color: "var(--color-text-secondary)" }}>
-                  {serviceStatus.allServicesUp ? "All services up" : `${serviceStatus.services.filter(s => s.status === "down").length} service(s) down`}
+                  {serviceStatus.allServicesUp
+                    ? t("adminDashboard.servicesUp")
+                    : t("adminDashboard.servicesDown", {
+                        count: serviceStatus.services.filter((s) => s.status === "down").length
+                      })}
                 </Typography>
               </>
             ) : (
@@ -221,7 +227,7 @@ export const MsqdxGlassAdminDashboard = ({
                   {queueStats.workerCount ?? 0}
                 </Typography>
                 <Typography variant="body2" sx={{ color: "var(--color-text-secondary)" }}>
-                  {queueStats.workerAvailable ? "Workers available" : "Workers not available"}
+                  {queueStats.workerAvailable ? t("adminDashboard.workersAvailable") : t("adminDashboard.workersUnavailable")}
                 </Typography>
               </>
             )}
@@ -257,7 +263,7 @@ export const MsqdxGlassAdminDashboard = ({
             onClick={() => setShowServices(!showServices)}
           >
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              Service Status Details
+              {t("adminDashboard.serviceDetails")}
             </Typography>
             <MsqdxIcon
               name={showServices ? "expand_less" : "expand_more"}
@@ -341,7 +347,7 @@ export const MsqdxGlassAdminDashboard = ({
         }}
       >
         <Typography variant="h6" sx={{ fontWeight: 600, marginBottom: "1rem" }}>
-          Quick Actions
+          {t("adminDashboard.quickActions")}
         </Typography>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
           <Link href="/admin/personas" style={{ textDecoration: "none" }}>
@@ -357,7 +363,7 @@ export const MsqdxGlassAdminDashboard = ({
                 }
               }}
             >
-              Create New Persona
+              {t("adminDashboard.createPersona")}
             </Button>
           </Link>
           <Link href="/admin/target-groups" style={{ textDecoration: "none" }}>
@@ -373,7 +379,7 @@ export const MsqdxGlassAdminDashboard = ({
                 }
               }}
             >
-              Create New Target Group
+              {t("adminDashboard.createTargetGroup")}
             </Button>
           </Link>
         </Stack>
@@ -391,47 +397,47 @@ export const MsqdxGlassAdminDashboard = ({
             minWidth: 0,
             maxWidth: "100%",
             boxSizing: "border-box"
-          }}
-        >
-          <Typography variant="h6" sx={{ fontWeight: 600, marginBottom: "1rem" }}>
-            Queue Status
-          </Typography>
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-            {queueStats.pendingCount > 0 && (
-              <Box>
-                <Typography variant="body2" sx={{ color: "var(--color-text-secondary)" }}>
-                  Pending
-                </Typography>
+        }}
+      >
+        <Typography variant="h6" sx={{ fontWeight: 600, marginBottom: "1rem" }}>
+          {t("adminDashboard.queueStatus")}
+        </Typography>
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+          {queueStats.pendingCount > 0 && (
+            <Box>
+              <Typography variant="body2" sx={{ color: "var(--color-text-secondary)" }}>
+                  {t("adminDashboard.pending")}
+              </Typography>
                 <Typography variant="h5" sx={{ fontWeight: 600 }}>
                   {queueStats.pendingCount}
                 </Typography>
               </Box>
             )}
-            {queueStats.processingCount > 0 && (
-              <Box>
-                <Typography variant="body2" sx={{ color: "var(--color-text-secondary)" }}>
-                  Processing
-                </Typography>
+          {queueStats.processingCount > 0 && (
+            <Box>
+              <Typography variant="body2" sx={{ color: "var(--color-text-secondary)" }}>
+                  {t("adminDashboard.processing")}
+              </Typography>
                 <Typography variant="h5" sx={{ fontWeight: 600 }}>
                   {queueStats.processingCount}
                 </Typography>
               </Box>
             )}
-            {queueStats.failedCount > 0 && (
-              <Box>
-                <Typography variant="body2" sx={{ color: "var(--color-secondary-dx-pink)" }}>
-                  Failed
-                </Typography>
+          {queueStats.failedCount > 0 && (
+            <Box>
+              <Typography variant="body2" sx={{ color: "var(--color-secondary-dx-pink)" }}>
+                  {t("adminDashboard.failed")}
+              </Typography>
                 <Typography variant="h5" sx={{ fontWeight: 600, color: "var(--color-secondary-dx-pink)" }}>
                   {queueStats.failedCount}
                 </Typography>
               </Box>
             )}
-            {queueStats.completedCount > 0 && (
-              <Box>
-                <Typography variant="body2" sx={{ color: "var(--color-text-secondary)" }}>
-                  Completed
-                </Typography>
+          {queueStats.completedCount > 0 && (
+            <Box>
+              <Typography variant="body2" sx={{ color: "var(--color-text-secondary)" }}>
+                  {t("adminDashboard.completed")}
+              </Typography>
                 <Typography variant="h5" sx={{ fontWeight: 600 }}>
                   {queueStats.completedCount}
                 </Typography>
@@ -443,5 +449,4 @@ export const MsqdxGlassAdminDashboard = ({
     </Box>
   );
 };
-
 

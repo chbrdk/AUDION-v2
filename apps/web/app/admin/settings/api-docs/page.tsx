@@ -7,19 +7,21 @@ import { useState } from "react";
 import { Box, Alert, Typography, Button } from "@mui/material";
 import { MsqdxIcon } from "@msqdx/react";
 import { getPersonaBackendBase } from "../../../api/_lib/backend";
+import { useI18n } from "../../../../components/i18n/i18n-provider";
 
 export default function SettingsApiDocsPage() {
   const [iframeError, setIframeError] = useState(false);
   const docsUrl = getPersonaBackendBase({ preferPublic: true }) + "/docs";
+  const { t } = useI18n();
 
   return (
     <div className="msqdx-glass-panel">
       <header className="msqdx-glass-detail__header">
         <div>
-          <p className="msqdx-glass-eyebrow">API Reference</p>
-          <h1 style={{ margin: 0 }}>API Documentation</h1>
+          <p className="msqdx-glass-eyebrow">{t("settingsApiDocs.eyebrow")}</p>
+          <h1 style={{ margin: 0 }}>{t("settingsApiDocs.title")}</h1>
           <p className="msqdx-glass-muted" style={{ maxWidth: "640px" }}>
-            Interactive API documentation for the Persona Backend. Explore endpoints, test requests, and view response schemas.
+            {t("settingsApiDocs.subtitle")}
           </p>
         </div>
       </header>
@@ -52,10 +54,10 @@ export default function SettingsApiDocsPage() {
             <MsqdxIcon name="error" customSize={48} style={{ color: "var(--color-error)" }} />
             <Alert severity="error" sx={{ width: "100%", maxWidth: "600px" }}>
               <Typography variant="h6" gutterBottom>
-                Failed to load API documentation
+                {t("settingsApiDocs.errorTitle")}
               </Typography>
               <Typography variant="body2" gutterBottom>
-                The API documentation could not be loaded. Please check if the backend service is running.
+                {t("settingsApiDocs.errorBody")}
               </Typography>
               <Box sx={{ display: "flex", gap: 1, mt: 2, flexWrap: "wrap" }}>
                 <Button
@@ -67,7 +69,7 @@ export default function SettingsApiDocsPage() {
                   }}
                   startIcon={<MsqdxIcon name="refresh" customSize={16} />}
                 >
-                  Retry
+                  {t("settingsApiDocs.retry")}
                 </Button>
                 <Button
                   component="a"
@@ -77,7 +79,7 @@ export default function SettingsApiDocsPage() {
                   variant="text"
                   startIcon={<MsqdxIcon name="open_in_new" customSize={16} />}
                 >
-                  Open in new tab
+                  {t("settingsApiDocs.openNew")}
                 </Button>
               </Box>
             </Alert>
@@ -85,7 +87,7 @@ export default function SettingsApiDocsPage() {
         ) : (
           <iframe
             src={docsUrl}
-            title="API Documentation"
+            title={t("settingsApiDocs.iframeTitle")}
             style={{
               width: "100%",
               height: "100%",
@@ -113,4 +115,3 @@ export default function SettingsApiDocsPage() {
     </div>
   );
 }
-

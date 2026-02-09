@@ -1,0 +1,412 @@
+{
+  "common": {
+    "loading": "Laden…",
+    "save": "Speichern",
+    "saving": "Speichern…",
+    "cancel": "Abbrechen",
+    "update": "Aktualisieren",
+    "updating": "Aktualisieren…",
+    "delete": "Löschen",
+    "open": "Öffnen",
+    "view": "Anzeigen",
+    "close": "Schließen",
+    "search": "Suchen",
+    "continue": "Weiter"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "chat": "Chat",
+    "chatHistory": "Chatverlauf",
+    "projects": "Projekte",
+    "personas": "Personas",
+    "targetGroups": "Zielgruppen",
+    "journeys": "Journeys",
+    "profile": "Profil",
+    "settings": "Einstellungen"
+  },
+  "project": {
+    "label": "Projekt",
+    "select": "Projekt auswählen",
+    "none": "Keine Projekte"
+  },
+  "auth": {
+    "login": {
+      "title": "Willkommen zurück",
+      "subtitle": "Melde dich an, um Projekte und Personas zu verwalten.",
+      "email": "E-Mail",
+      "password": "Passwort",
+      "cta": "Anmelden",
+      "ctaLoading": "Anmeldung…",
+      "error": "Anmeldung fehlgeschlagen",
+      "prompt": "Neu hier?",
+      "link": "Konto erstellen"
+    },
+    "register": {
+      "title": "Konto erstellen",
+      "subtitle": "Organisiere Projekte, Personas und Journeys.",
+      "name": "Name",
+      "email": "E-Mail",
+      "password": "Passwort",
+      "cta": "Konto erstellen",
+      "ctaLoading": "Erstellen…",
+      "error": "Registrierung fehlgeschlagen",
+      "prompt": "Schon ein Konto?",
+      "link": "Anmelden"
+    }
+  },
+  "profile": {
+    "eyebrow": "Konto",
+    "title": "Profil",
+    "subtitle": "Verwalte Identität, Präferenzen und Sicherheit. Änderungen gelten sofort für alle Projekte.",
+    "identity": {
+      "title": "Identität",
+      "subtitle": "Passe an, wie dein Profil in Audion angezeigt wird.",
+      "fullName": "Vollständiger Name",
+      "fullNamePlaceholder": "Dein Name",
+      "email": "E-Mail",
+      "emailPlaceholder": "du@unternehmen.com",
+      "company": "Unternehmen",
+      "companyPlaceholder": "Firmenname",
+      "avatarUrl": "Avatar-URL",
+      "avatarUrlPlaceholder": "https://...",
+      "language": "Sprache",
+      "save": "Profil speichern",
+      "saving": "Speichern…"
+    },
+    "security": {
+      "title": "Sicherheit",
+      "currentPassword": "Aktuelles Passwort",
+      "newPassword": "Neues Passwort",
+      "confirmPassword": "Neues Passwort bestätigen",
+      "update": "Passwort aktualisieren",
+      "updating": "Aktualisieren…"
+    },
+    "session": {
+      "title": "Sitzung",
+      "subtitle": "Auf diesem Gerät abmelden. Du musst dich danach erneut anmelden.",
+      "logout": "Abmelden"
+    },
+    "messages": {
+      "profileUpdated": "Profil aktualisiert.",
+      "profileUpdateFailed": "Profil konnte nicht aktualisiert werden",
+      "passwordMissing": "Bitte aktuelles und neues Passwort eingeben.",
+      "passwordMismatch": "Die Passwortbestätigung stimmt nicht überein.",
+      "passwordUpdated": "Passwort aktualisiert.",
+      "passwordUpdateFailed": "Passwort konnte nicht aktualisiert werden"
+    }
+  },
+  "landing": {
+    "headline": "Audion",
+    "subtitle": "Lade deine Research-Rohdaten hoch, lass KI Personas live entdecken und starte kontextuelle Gespräche mit authentischen Stimmen.",
+    "upload": "Research hochladen",
+    "peekChat": "Chat ansehen"
+  },
+  "backend": {
+    "errorTitle": "Backend nicht erreichbar:",
+    "errorBody": "Bitte warte, bis der Service vollständig gestartet ist, und lade die Seite neu.",
+    "selectProject": "Wähle ein Projekt, um Daten zu laden."
+  },
+  "notFound": {
+    "title": "404",
+    "subtitle": "Diese Seite wurde nicht gefunden.",
+    "cta": "Zur Startseite"
+  },
+  "error": {
+    "title": "Etwas ist schiefgelaufen!",
+    "subtitle": "Ein unerwarteter Fehler ist aufgetreten",
+    "id": "Fehler-ID: {id}",
+    "cta": "Erneut versuchen"
+  },
+  "adminDashboard": {
+    "view": "Anzeigen",
+    "personas": "Personas",
+    "targetGroups": "Zielgruppen",
+    "queueJobs": "Queue-Jobs",
+    "services": "Services",
+    "servicesUp": "Alle Services erreichbar",
+    "servicesDown": "{count} Service(s) ausgefallen",
+    "workersAvailable": "Worker verfügbar",
+    "workersUnavailable": "Worker nicht verfügbar",
+    "serviceDetails": "Service-Status-Details",
+    "quickActions": "Schnellaktionen",
+    "createPersona": "Neue Persona erstellen",
+    "createTargetGroup": "Neue Zielgruppe erstellen",
+    "queueStatus": "Queue-Status",
+    "pending": "Ausstehend",
+    "processing": "In Bearbeitung",
+    "failed": "Fehlgeschlagen",
+    "completed": "Abgeschlossen"
+  },
+  "settings": {
+    "eyebrow": "Kontrollzentrum",
+    "title": "Einstellungen",
+    "subtitle": "Zentralisiere die KI‑Konfiguration. Prüfe Provider‑Status, Prompt‑Templates und Rollout‑Status neuer Funktionen.",
+    "cards": {
+      "projects": {
+        "title": "Projekte & Zugriff",
+        "description": "Projekte anlegen, Ownership wechseln und Zugriffe verwalten."
+      },
+      "theme": {
+        "title": "Theme",
+        "description": "Sidebar‑Farben und Anzeige‑Präferenzen anpassen."
+      },
+      "providers": {
+        "title": "KI‑Provider",
+        "description": "Anthropic/OpenAI konfigurieren, Keys prüfen und Policies prüfen."
+      },
+      "prompts": {
+        "title": "Prompt‑Templates",
+        "description": "Zentralen Prompt‑Katalog für Journeys, Personas und Zielgruppen verwalten."
+      },
+      "apiDocs": {
+        "title": "API‑Dokumentation",
+        "description": "Interaktive API‑Referenz für das Persona‑Backend. Endpoints testen und Schemas ansehen."
+      }
+    }
+  },
+  "settingsProjects": {
+    "eyebrow": "Workspace",
+    "title": "Projekte",
+    "subtitle": "Personas, Zielgruppen, Journeys und Prompt‑Templates sind projektbasiert. Wechsel Projekte oder lade Teammitglieder ein.",
+    "roles": {
+      "member": "Mitglied",
+      "admin": "Admin"
+    },
+    "errors": {
+      "loadMembers": "Mitglieder konnten nicht geladen werden",
+      "projectNameRequired": "Projektname ist erforderlich.",
+      "createProject": "Projekt konnte nicht erstellt werden",
+      "selectProjectFirst": "Bitte zuerst ein Projekt auswählen.",
+      "emailRequired": "E‑Mail ist erforderlich.",
+      "addMember": "Mitglied konnte nicht hinzugefügt werden",
+      "removeMember": "Mitglied konnte nicht entfernt werden"
+    },
+    "confirmRemove": "{email} aus diesem Projekt entfernen?",
+    "noProjectSelected": "Kein Projekt ausgewählt",
+    "activeProject": {
+      "title": "Aktives Projekt",
+      "empty": "Wähle ein Projekt, um loszulegen."
+    },
+    "yourProjects": {
+      "title": "Deine Projekte",
+      "empty": "Noch keine Projekte. Erstelle unten eines.",
+      "selected": "Ausgewählt",
+      "select": "Auswählen"
+    },
+    "createProject": {
+      "title": "Projekt erstellen",
+      "name": "Projektname",
+      "placeholder": "z.B. Audion Q1 Research",
+      "creating": "Erstellen…",
+      "cta": "Erstellen"
+    },
+    "members": {
+      "title": "Mitglieder",
+      "empty": "Wähle ein Projekt, um Mitglieder zu verwalten.",
+      "userEmail": "E‑Mail",
+      "userEmailPlaceholder": "teammate@company.com",
+      "role": "Rolle",
+      "addMember": "Mitglied hinzufügen",
+      "loading": "Mitglieder laden…",
+      "none": "Noch keine weiteren Mitglieder.",
+      "remove": "Entfernen"
+    }
+  },
+  "settingsProviders": {
+    "eyebrow": "KI‑Einstellungen",
+    "title": "Provider",
+    "subtitle": "Sieh, welche Modell‑Backends verfügbar sind. Keys bleiben verborgen, nur der Status wird angezeigt.",
+    "status": {
+      "connected": "Verbunden",
+      "missing": "Key fehlt"
+    },
+    "defaultModel": "Standard‑Modell: {model}",
+    "default": "Standard"
+  },
+  "settingsTheme": {
+    "eyebrow": "Darstellung",
+    "title": "Theme‑Einstellungen",
+    "subtitle": "Passe die Sidebar‑Hintergrundfarbe an.",
+    "sidebarTitle": "Sidebar‑Hintergrundfarbe",
+    "sidebarSubtitle": "Wähle eine Farbe für die Admin‑Sidebar. Änderungen wirken sofort.",
+    "options": {
+      "purple": "Lila",
+      "blue": "Blau",
+      "pink": "Pink",
+      "orange": "Orange",
+      "green": "Grün",
+      "yellow": "Gelb",
+      "grey": "Grau",
+      "default": "Standard (Dunkel)"
+    },
+    "descriptions": {
+      "purple": "Kräftiger Lila‑Akzent",
+      "blue": "Ruhiger Blau‑Akzent",
+      "pink": "Energiegeladener Pink‑Akzent",
+      "orange": "Warmer Orange‑Akzent",
+      "green": "Frischer Grün‑Akzent",
+      "yellow": "Heller Gelb‑Akzent",
+      "grey": "Neutrales Grau",
+      "default": "Standard‑Dunkel"
+    }
+  },
+  "settingsApiDocs": {
+    "eyebrow": "API‑Referenz",
+    "title": "API‑Dokumentation",
+    "subtitle": "Interaktive API‑Doku für das Persona‑Backend. Endpoints testen und Schemas ansehen.",
+    "errorTitle": "API‑Dokumentation konnte nicht geladen werden",
+    "errorBody": "Die API‑Dokumentation konnte nicht geladen werden. Bitte prüfe, ob der Backend‑Service läuft.",
+    "retry": "Erneut versuchen",
+    "openNew": "In neuem Tab öffnen",
+    "iframeTitle": "API‑Dokumentation"
+  },
+  "prompts": {
+    "eyebrow": "KI‑Einstellungen",
+    "title": "Prompt‑Templates",
+    "subtitle": "Jede KI‑Funktion nutzt geprüfte Templates aus dem Backend‑Katalog. Bearbeite Templates hier, um Prompts und Konfigurationen zu aktualisieren.",
+    "selectProject": "Wähle ein Projekt, um Prompt‑Templates zu verwalten.",
+    "loading": "Templates laden…",
+    "loadingBuilder": "Prompt‑Builder laden…",
+    "errorTitle": "Fehler:",
+    "errors": {
+      "loadTemplates": "Templates konnten nicht geladen werden",
+      "loadTemplate": "Template konnte nicht geladen werden",
+      "saveTemplate": "Template konnte nicht gespeichert werden"
+    },
+    "glossary": {
+      "title": "Glossar für Prompt‑Variablen",
+      "subtitle": "Verfügbare Variablen, die du mit der Syntax {variable} nutzen kannst"
+    },
+    "search": {
+      "placeholder": "Prompts nach Name, Beschreibung, Tags oder Kategorie suchen…",
+      "clear": "Suche löschen"
+    },
+    "filters": {
+      "category": "Kategorie:",
+      "allCategories": "Alle Kategorien",
+      "tags": "Tags:",
+      "clear": "Filter löschen"
+    },
+    "results": {
+      "personaOne": "1 Persona‑Prompt",
+      "personaMany": "{count} Persona‑Prompts",
+      "templateOne": "1 Template",
+      "templateMany": "{count} Templates",
+      "showing": "Zeige {persona}",
+      "and": "und {template}"
+    },
+    "sections": {
+      "personaPrompts": {
+        "title": "Persona‑Prompts",
+        "subtitle": "System‑Prompts für Persona‑Chats. Diese werden dynamisch generiert und können angepasst werden.",
+        "emptyTitle": "Keine Persona‑Prompts gefunden",
+        "emptyFilters": "Passe Filter oder Suchbegriff an.",
+        "emptyNone": "Noch keine Persona‑Prompts verfügbar."
+      },
+      "aiTemplates": {
+        "title": "KI‑Templates",
+        "subtitle": "Standard‑Templates für KI‑gestützte Funktionen wie Journey‑Mapping und Phasen‑Generierung.",
+        "emptyTitle": "Keine Templates gefunden",
+        "emptyFilters": "Passe Filter oder Suchbegriff an.",
+        "emptyNone": "Noch keine Templates verfügbar."
+      }
+    },
+    "tabs": {
+      "edit": "Bearbeiten",
+      "test": "Test & Vorschau"
+    },
+    "actions": {
+      "editTemplate": "Template bearbeiten",
+      "cancel": "Abbrechen",
+      "save": "Speichern",
+      "saving": "Speichern…"
+    },
+    "fields": {
+      "label": "Label",
+      "description": "Beschreibung",
+      "category": "Kategorie",
+      "provider": "Provider",
+      "temperature": "Temperatur",
+      "maxTokens": "Max Tokens",
+      "model": "Modell",
+      "modelPlaceholder": "claude-3-5-sonnet-20241022",
+      "tags": "Tags (kommagetrennt)",
+      "tagsPlaceholder": "journey, phase, moments",
+      "prompt": "Prompt",
+      "promptHint": "(verwende {variable} zur Interpolation)"
+    },
+    "example": "Beispiel"
+  },
+  "queue": {
+    "title": "Queue",
+    "selectProject": "Wähle ein Projekt, um die Queue‑Aktivität zu sehen.",
+    "statsTitle": "Queue‑Statistiken",
+    "refresh": "Aktualisieren",
+    "pending": "Ausstehend",
+    "processing": "In Bearbeitung",
+    "completed": "Abgeschlossen",
+    "failed": "Fehlgeschlagen",
+    "workers": "Worker",
+    "jobs": "Jobs",
+    "statusFilter": "Status‑Filter",
+    "all": "Alle",
+    "loadingJobs": "Jobs laden…",
+    "noJobs": "Keine Jobs gefunden.",
+    "job": "Job {id}",
+    "document": "Dokument: {id}",
+    "progress": "Fortschritt: {progress}% · {date}",
+    "error": "Fehler: {message}",
+    "errorLabel": "Fehler",
+    "page": "Seite {page} von {total}",
+    "selectJob": "Bitte einen Job auswählen.",
+    "loadingJobDetails": "Job‑Details laden…",
+    "details": "Details",
+    "status": "Status",
+    "progressLabel": "Fortschritt",
+    "documentId": "Dokument‑ID",
+    "filename": "Dateiname",
+    "size": "Größe",
+    "created": "Erstellt",
+    "updated": "Aktualisiert",
+    "celeryTask": "Celery‑Task‑ID",
+    "retry": "Erneut versuchen",
+    "retryConfirm": "Diesen Job wirklich erneut ausführen?",
+    "retrySuccess": "Job erneut gestartet",
+    "retryError": "Fehler beim erneuten Start",
+    "loadJobsError": "Fehler beim Laden der Jobs",
+    "loadJobDetailError": "Fehler beim Laden der Job‑Details",
+    "selectProjectToRetry": "Wähle ein Projekt, um Jobs erneut zu starten."
+  },
+  "queueBackend": {
+    "errorTitle": "Backend nicht erreichbar:",
+    "errorBody": "Bitte warte, bis der Service vollständig gestartet ist, und lade die Seite neu."
+  },
+  "upload": {
+    "title": "Research hochladen",
+    "subtitle": "Wir orchestrieren Unstructured, Whisper, spaCy, BGE-M3 und Qdrant in einer einzigen asynchronen Pipeline. Übliche Dauer: 2–5 Minuten.",
+    "timeline": "Verarbeitungs‑Timeline",
+    "status": {
+      "idle": "Bereit",
+      "uploading": "Hochladen…",
+      "processing": "Verarbeitung… {progress}%",
+      "completed": "Verarbeitung abgeschlossen · {id}",
+      "failed": "Verarbeitung fehlgeschlagen"
+    },
+    "errors": {
+      "noJobId": "Keine Job‑ID vom Server erhalten"
+    }
+  },
+  "journeys": {
+    "title": "Journeys",
+    "create": "Journey erstellen",
+    "empty": "Noch keine Journeys. Erstelle deine erste Journey, um zu starten.",
+    "loading": "Journeys laden…",
+    "loadFailed": "Journeys konnten nicht geladen werden",
+    "selectProject": "Wähle ein Projekt, um Journeys anzuzeigen.",
+    "errorTitle": "Fehler:",
+    "phases": "{count} Phasen",
+    "type": "{type}",
+    "validation": "Validierungs‑Score"
+  }
+}
+}

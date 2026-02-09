@@ -5,6 +5,7 @@ import type { QueueStatsResponse } from "@msqdx-glass/types";
 import { getPersonaBackendBase } from "../../api/_lib/backend";
 import { buildAuthHeaders, getServerAuthToken, getServerProjectId } from "../../api/_lib/auth";
 import { MsqdxGlassQueueDashboard } from "../../../components/msqdx-glass-queue-dashboard";
+import { getServerT } from "../../../lib/i18n/server";
 
 async function fetchQueueStats(projectId: string, headers: HeadersInit): Promise<QueueStatsResponse> {
   const base = getPersonaBackendBase({ preferPublic: false });
@@ -40,6 +41,7 @@ async function fetchQueueStats(projectId: string, headers: HeadersInit): Promise
 }
 
 export default async function QueuePage() {
+  const t = getServerT();
   let stats: QueueStatsResponse;
   let error: string | null = null;
   const projectId = await getServerProjectId();
@@ -47,7 +49,7 @@ export default async function QueuePage() {
 
   try {
     if (!projectId) {
-      throw new Error("Select a project to load queue stats.");
+      throw new Error(t("queue.selectProject"));
     }
     stats = await fetchQueueStats(projectId, headers);
   } catch (err) {
@@ -74,8 +76,7 @@ export default async function QueuePage() {
             color: "var(--color-secondary-dx-pink-on-light)",
           }}
         >
-          <strong>Backend unreachable:</strong> {error}. Please wait until the service
-          has fully started and reload the page.
+          <strong>{t("queueBackend.errorTitle")}</strong> {error}. {t("queueBackend.errorBody")}
         </div>
       )}
       <MsqdxGlassQueueDashboard initialStats={stats} />

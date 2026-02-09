@@ -7,16 +7,17 @@ import Link from "next/link";
 import { ThemeRegistryNoSSR } from "../components/theme-registry-no-ssr";
 import { Box, Button, Stack, Typography } from "@mui/material";
 import { MsqdxIcon } from "@msqdx/react";
+import { useI18n } from "../components/i18n/i18n-provider";
 
 const MsqdxGlassLandingHero = () => {
+  const { t } = useI18n();
   return (
     <Stack spacing={4} alignItems="center" textAlign="center" sx={{ py: 12 }}>
       <Typography variant="h2" fontWeight={600}>
-        Audion
+        {t("landing.headline")}
       </Typography>
       <Typography variant="h6" maxWidth={640}>
-        Upload your raw research, let AI discover personas live, and jump into contextual
-        conversations with their authentic voices.
+        {t("landing.subtitle")}
       </Typography>
       <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
         <Button
@@ -26,7 +27,7 @@ const MsqdxGlassLandingHero = () => {
           startIcon={<MsqdxIcon name="upload_file" customSize={20} />}
           sx={{ borderRadius: 999 }}
         >
-          Upload Research
+          {t("landing.upload")}
         </Button>
         <Button
           component={Link}
@@ -35,7 +36,7 @@ const MsqdxGlassLandingHero = () => {
           startIcon={<MsqdxIcon name="chat_bubble" customSize={20} />}
           sx={{ borderRadius: 999 }}
         >
-          Peek the Chat
+          {t("landing.peekChat")}
         </Button>
       </Stack>
     </Stack>
@@ -60,4 +61,3 @@ export default function Home() {
     </ThemeRegistryNoSSR>
   );
 }
-

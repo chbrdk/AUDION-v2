@@ -4,8 +4,11 @@ export const dynamic = 'force-dynamic';
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { Noto_Sans_JP } from "next/font/google";
+import { cookies, headers } from "next/headers";
 import "../styles/globals.css";
 import "../styles/dashboard-cards.css";
+import { I18nProvider } from "../components/i18n/i18n-provider";
+import { resolveLocale } from "../lib/i18n";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
 
@@ -25,8 +28,9 @@ const notoSansJp = Noto_Sans_JP({
 });
 
 export default function RootLayout({ children }: { children: ReactNode }) {
+  const locale = resolveLocale(cookies().get("audion_locale")?.value, headers().get("accept-language"));
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <link
           rel="stylesheet"
@@ -38,9 +42,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         ></script>
       </head>
       <body className={`${notoSansJp.variable} ${notoSansJp.className}`}>
-        {children}
+        <I18nProvider initialLocale={locale}>{children}</I18nProvider>
       </body>
     </html>
   );
 }
-

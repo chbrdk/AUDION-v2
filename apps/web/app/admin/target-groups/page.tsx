@@ -5,6 +5,7 @@ import type { TargetGroupListResponse } from "@msqdx-glass/types";
 import { getPersonaBackendBase, getPersonaBackendDocsUrl } from "../../api/_lib/backend";
 import { buildAuthHeaders, getServerAuthToken, getServerProjectId } from "../../api/_lib/auth";
 import { MsqdxGlassTargetGroupAdminPanel } from "../../../components/msqdx-glass-target-group-admin-panel";
+import { getServerT } from "../../../lib/i18n/server";
 
 async function fetchTargetGroupList(projectId: string, headers: HeadersInit): Promise<TargetGroupListResponse> {
   const apiUrl = `${getPersonaBackendBase({ preferPublic: false })}/target-groups?page=1&page_size=50&project_id=${projectId}`;
@@ -40,6 +41,7 @@ async function fetchTargetGroupList(projectId: string, headers: HeadersInit): Pr
 }
 
 export default async function TargetGroupAdminPage() {
+  const t = getServerT();
   let list: TargetGroupListResponse;
   let error: string | null = null;
   const projectId = await getServerProjectId();
@@ -47,7 +49,7 @@ export default async function TargetGroupAdminPage() {
 
   try {
     if (!projectId) {
-      throw new Error("Select a project to load target groups.");
+      throw new Error(t("backend.selectProject"));
     }
     list = await fetchTargetGroupList(projectId, headers);
   } catch (err) {
@@ -61,7 +63,7 @@ export default async function TargetGroupAdminPage() {
     <>
       {error && (
         <div style={{ padding: "1rem", marginBottom: "1rem", backgroundColor: "var(--color-secondary-dx-pink-tint)", borderRadius: "8px", color: "var(--color-secondary-dx-pink-on-light)" }}>
-          <strong>Backend unreachable:</strong> {error}. Please wait until the service has fully started and reload the page.
+          <strong>{t("backend.errorTitle")}</strong> {error}. {t("backend.errorBody")}
         </div>
       )}
       <MsqdxGlassTargetGroupAdminPanel initialList={list} docsUrl={docsUrl} />

@@ -1,42 +1,44 @@
 import Link from "next/link";
-
-const cards = [
-  {
-    title: "Projects & Access",
-    description: "Create projects, switch ownership context, and manage shared access.",
-    href: "/admin/settings/projects",
-  },
-  {
-    title: "Theme",
-    description: "Customize sidebar colors and appearance preferences.",
-    href: "/admin/settings/theme",
-  },
-  {
-    title: "AI Providers",
-    description: "Configure Anthropic and OpenAI defaults, verify keys, and review usage policies.",
-    href: "/admin/settings/providers",
-  },
-  {
-    title: "Prompt Templates",
-    description: "Review and manage the central prompt catalog used across journeys, personas, and target groups.",
-    href: "/admin/settings/prompts",
-  },
-  {
-    title: "API Documentation",
-    description: "Interactive API reference for the Persona Backend. Explore endpoints, test requests, and view schemas.",
-    href: "/admin/settings/api-docs",
-  },
-];
+import { getServerT } from "../../../lib/i18n/server";
 
 export default function SettingsLandingPage() {
+  const t = getServerT();
+  const cards = [
+    {
+      title: t("settings.cards.projects.title"),
+      description: t("settings.cards.projects.description"),
+      href: "/admin/settings/projects",
+    },
+    {
+      title: t("settings.cards.theme.title"),
+      description: t("settings.cards.theme.description"),
+      href: "/admin/settings/theme",
+    },
+    {
+      title: t("settings.cards.providers.title"),
+      description: t("settings.cards.providers.description"),
+      href: "/admin/settings/providers",
+    },
+    {
+      title: t("settings.cards.prompts.title"),
+      description: t("settings.cards.prompts.description"),
+      href: "/admin/settings/prompts",
+    },
+    {
+      title: t("settings.cards.apiDocs.title"),
+      description: t("settings.cards.apiDocs.description"),
+      href: "/admin/settings/api-docs",
+    },
+  ];
+
   return (
     <div className="msqdx-glass-panel">
       <header className="msqdx-glass-detail__header">
         <div>
-          <p className="msqdx-glass-eyebrow">Control Center</p>
-          <h1 style={{ margin: 0 }}>Settings</h1>
+          <p className="msqdx-glass-eyebrow">{t("settings.eyebrow")}</p>
+          <h1 style={{ margin: 0 }}>{t("settings.title")}</h1>
           <p className="msqdx-glass-muted" style={{ maxWidth: "640px" }}>
-            Centralize AI assistance configuration. Review provider health, prompt templates, and rollout status for new capabilities.
+            {t("settings.subtitle")}
           </p>
         </div>
       </header>
@@ -46,11 +48,10 @@ export default function SettingsLandingPage() {
           <Link key={card.href} href={card.href} className="msqdx-glass-settings-card">
             <h3>{card.title}</h3>
             <p>{card.description}</p>
-            <span className="msqdx-glass-settings-card__cta">Open</span>
+            <span className="msqdx-glass-settings-card__cta">{t("common.open")}</span>
           </Link>
         ))}
       </div>
     </div>
   );
 }
-
