@@ -145,8 +145,8 @@ export default async function AdminDashboardPage() {
   };
   let serviceStatus: ServiceStatusResponse | null = null;
   let error: string | null = null;
-  const projectId = getServerProjectId();
-  const headers = buildAuthHeaders(getServerAuthToken());
+  const projectId = await getServerProjectId();
+  const headers = buildAuthHeaders(await getServerAuthToken());
 
   try {
     if (!projectId) {

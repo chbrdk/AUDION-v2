@@ -42,7 +42,7 @@ export const forwardPersonaBackend = async (path: string, options?: PersonaForwa
   const target = buildPersonaBackendUrl(path, { preferPublic });
   const headers = new Headers(requestInit.headers);
   if (!headers.has("Authorization")) {
-    const token = getServerAuthToken();
+    const token = await getServerAuthToken();
     if (token) {
       headers.set("Authorization", `Bearer ${token}`);
     }

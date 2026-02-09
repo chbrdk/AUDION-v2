@@ -14,7 +14,7 @@ type ProvidersResponse = {
 };
 
 const fetchProviders = async (): Promise<ProvidersResponse> => {
-  const headers = buildAuthHeaders(getServerAuthToken());
+  const headers = buildAuthHeaders(await getServerAuthToken());
   const response = await fetch(`${getPersonaBackendBase({ preferPublic: false })}/settings/ai/providers`, {
     cache: "no-store",
     headers,

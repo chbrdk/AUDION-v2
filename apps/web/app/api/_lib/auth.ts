@@ -31,17 +31,19 @@ export const getProjectIdFromRequest = (request?: NextRequest): string | null =>
   return parseCookieValue(request?.headers?.get("cookie") ?? null, PROJECT_COOKIE_NAME);
 };
 
-export const getServerAuthToken = (): string | null => {
+export const getServerAuthToken = async (): Promise<string | null> => {
   try {
-    return cookies().get(AUTH_COOKIE_NAME)?.value ?? null;
+    const cookieStore = await cookies();
+    return cookieStore.get(AUTH_COOKIE_NAME)?.value ?? null;
   } catch {
     return null;
   }
 };
 
-export const getServerProjectId = (): string | null => {
+export const getServerProjectId = async (): Promise<string | null> => {
   try {
-    return cookies().get(PROJECT_COOKIE_NAME)?.value ?? null;
+    const cookieStore = await cookies();
+    return cookieStore.get(PROJECT_COOKIE_NAME)?.value ?? null;
   } catch {
     return null;
   }
