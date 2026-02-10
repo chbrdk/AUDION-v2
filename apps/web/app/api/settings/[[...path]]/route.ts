@@ -35,27 +35,47 @@ const forward = async (request: NextRequest, target: string) => {
 
 const resolvePath = (params: { path?: string[] }) => params.path?.join("/") ?? "";
 
-export async function GET(request: NextRequest, { params }: { params: { path?: string[] } }) {
-  const target = buildTargetUrl(request, resolvePath(params));
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ path?: string[] }> }
+) {
+  const resolved = await params;
+  const target = buildTargetUrl(request, resolvePath(resolved));
   return forward(request, target);
 }
 
-export async function POST(request: NextRequest, { params }: { params: { path?: string[] } }) {
-  const target = buildTargetUrl(request, resolvePath(params));
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ path?: string[] }> }
+) {
+  const resolved = await params;
+  const target = buildTargetUrl(request, resolvePath(resolved));
   return forward(request, target);
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { path?: string[] } }) {
-  const target = buildTargetUrl(request, resolvePath(params));
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ path?: string[] }> }
+) {
+  const resolved = await params;
+  const target = buildTargetUrl(request, resolvePath(resolved));
   return forward(request, target);
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { path?: string[] } }) {
-  const target = buildTargetUrl(request, resolvePath(params));
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ path?: string[] }> }
+) {
+  const resolved = await params;
+  const target = buildTargetUrl(request, resolvePath(resolved));
   return forward(request, target);
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { path?: string[] } }) {
-  const target = buildTargetUrl(request, resolvePath(params));
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ path?: string[] }> }
+) {
+  const resolved = await params;
+  const target = buildTargetUrl(request, resolvePath(resolved));
   return forward(request, target);
 }

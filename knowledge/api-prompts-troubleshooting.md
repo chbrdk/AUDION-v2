@@ -28,6 +28,10 @@ Damit sind Templates-Liste, -Laden und -Speichern über dieselbe Proxy-Route (`/
 
 `listTemplates` und `listPersonaPrompts` geben bei `404` nun ein leeres Array `[]` zurück statt einen Fehler zu werfen. Die UI funktioniert auch, wenn die Route temporär nicht erreichbar ist.
 
+### Next.js 15+ params als Promise (2025-02)
+
+In Next.js 15+ sind `params` in Route Handlern eine Promise. Wenn sie ohne `await` verwendet werden, ist `params.path` undefined → der Proxy baut falsche URLs (z.B. `/settings` statt `/settings/ai/templates`) → API 404. **Fix:** `const resolved = await params` vor der Nutzung. Betroffen: `api/settings`, `api/ai-assist`, `api/journeys`, `api/projects`.
+
 ### Default Templates bei Projekt-Erstellung (2025-02)
 
 Beim Erstellen eines neuen Projekts (`POST /projects`) werden automatisch alle Default-Templates aus `templates.yaml` als Projekt-Overrides angelegt (`ai_template_overrides`). Jedes neue Projekt hat damit sofort alle Prompt-Templates verfügbar. Implementierung: `seed_default_templates_for_project()` in `apps/api/app/services/ai_assist.py`, aufgerufen aus `create_project` in `apps/api/app/routers/projects.py`.
