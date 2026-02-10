@@ -60,23 +60,46 @@ export default function LoginPage() {
         sx={{
           minHeight: "100vh",
           display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          px: 3,
-          py: 4,
-          background:
-            "radial-gradient(circle at 20% 20%, rgba(90,232,255,0.15), transparent 40%), radial-gradient(circle at 80% 0%, rgba(254,122,255,0.12), transparent 35%)",
+          flexDirection: "row",
+          bgcolor: "var(--color-secondary-dx-green)",
         }}
       >
-        <Stack spacing={3} alignItems="center" sx={{ width: "100%", maxWidth: 420 }}>
-          <MsqdxLogo size="large" color="black" sx={{ mb: 1 }} />
+        {/* Left 70%: Logo + AUDION headline */}
+        <Box
+          sx={{
+            flex: "0 0 70%",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            px: 4,
+          }}
+        >
+          <Stack spacing={2} alignItems="center">
+            <MsqdxLogo size="xlarge" color="white" />
+            <MsqdxTypography variant="h2" weight="bold" sx={{ color: "white" }}>
+              AUDION
+            </MsqdxTypography>
+          </Stack>
+        </Box>
 
+        {/* Right 30%: Login card */}
+        <Box
+          sx={{
+            flex: "0 0 30%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            px: 3,
+            py: 4,
+          }}
+        >
           <MsqdxMoleculeCard
             variant="flat"
             borderRadius="button"
             sx={{
               width: "100%",
+              maxWidth: 360,
               p: 3,
               border: "1px solid",
               borderColor: "divider",
@@ -138,7 +161,7 @@ export default function LoginPage() {
               </MsqdxTypography>
             </Stack>
           </MsqdxMoleculeCard>
-        </Stack>
+        </Box>
       </Box>
     </ThemeRegistryNoSSR>
   );
