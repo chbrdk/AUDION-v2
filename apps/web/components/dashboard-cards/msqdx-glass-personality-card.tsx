@@ -3,7 +3,7 @@
 import type { PersonaProfile } from "@msqdx-glass/types";
 import { MsqdxDashboardCard } from "@msqdx/react";
 import { MsqdxGlassChipEditor } from "../generic/msqdx-glass-chip-editor";
-import { BRAND_COLOR } from "../../lib/branding";
+import { THEME_ACCENT } from "../../lib/theme-accent";
 
 export type MsqdxGlassPersonalityCardProps = {
   profile: PersonaProfile;
@@ -48,8 +48,7 @@ export const MsqdxGlassPersonalityCard = ({
       id="personality-values"
       title="Personality & Values"
       icon="psychology"
-      brandColor={BRAND_COLOR}
-      iconColor={{ color: "var(--color-theme-accent)" }}
+      iconColor={{ color: THEME_ACCENT.color }}
       expanded={expanded}
       onToggle={onToggle}
     >

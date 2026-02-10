@@ -21,7 +21,7 @@ import { MsqdxGlassAiButton } from "../ai/msqdx-glass-ai-button";
 import { MsqdxGlassEditButton } from "../generic/msqdx-glass-edit-button";
 import { useAiAssist, type UiAiAssistResult, type AiAssistExecuteOptions } from "../../hooks/use-ai-assist";
 import { useI18n } from "../i18n/i18n-provider";
-import { BRAND_COLOR } from "../../lib/branding";
+import { FORM_FIELD_ACCENT_SX, DIVIDER_ACCENT_SX, THEME_ACCENT } from "../../lib/theme-accent";
 import { MSQDX_SPACING, MSQDX_EFFECTS } from "@msqdx/tokens";
 
 type JourneyPhase = JourneyResponse["phases"][number];
@@ -358,7 +358,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
         aria-label={`Phase ${index + 1}: ${formData.name}`}
         sx={{ minWidth: 380 }}
       >
-        <MsqdxCard variant="flat" brandColor={BRAND_COLOR} borderRadius="button">
+        <MsqdxCard variant="flat" borderRadius="button" sx={{ borderColor: THEME_ACCENT.borderColor }}>
           <Box sx={{ display: "flex", flexDirection: "column", gap: "8px", alignItems: "stretch" }}>
             <Box sx={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
               <Box
@@ -390,8 +390,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
                   disabled={saving}
                   fullWidth
                   size="small"
-                  borderColor={BRAND_COLOR}
-                  sx={{ "& .MuiInputBase-root": { pr: 5 } }}
+                  sx={{ ...FORM_FIELD_ACCENT_SX, "& .MuiInputBase-root": { pr: 5 } }}
                 />
                 <Box sx={{ position: "absolute", top: 28, right: 8 }}>
                   <MsqdxGlassAiFieldButton onClick={handleAiNameSuggestion} loading={aiAssistLoading} disabled={saving} />
@@ -404,7 +403,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
                 <MsqdxButton
                   variant="contained"
                   size="small"
-                  brandColor="green"
+                  sx={{ backgroundColor: THEME_ACCENT.backgroundColor, "&:hover": { backgroundColor: THEME_ACCENT.backgroundColor, filter: "brightness(1.1)" } }}
                   onClick={handleSave}
                   disabled={saving || !formData.name.trim()}
                   aria-label={t("common.save")}
@@ -414,7 +413,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
               </Box>
             </Box>
 
-            <MsqdxDivider color={BRAND_COLOR as "purple" | "yellow" | "pink" | "orange" | "green" | "black"} orientation="horizontal" spacing="xs" />
+            <MsqdxDivider orientation="horizontal" spacing="xs" sx={DIVIDER_ACCENT_SX} />
 
             <Box sx={{ position: "relative" }}>
               <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
@@ -428,8 +427,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
                 minRows={3}
                 disabled={saving}
                 fullWidth
-                borderColor={BRAND_COLOR}
-                sx={{ "& .MuiInputBase-root": { pr: 5, pb: 3 } }}
+                sx={{ ...FORM_FIELD_ACCENT_SX, "& .MuiInputBase-root": { pr: 5, pb: 3 } }}
               />
               <Box sx={{ position: "absolute", bottom: 12, right: 8 }}>
                 <MsqdxGlassAiFieldButton
@@ -440,7 +438,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
               </Box>
             </Box>
 
-            <MsqdxDivider color={BRAND_COLOR as "purple" | "yellow" | "pink" | "orange" | "green" | "black"} orientation="horizontal" spacing="xs" />
+            <MsqdxDivider orientation="horizontal" spacing="xs" sx={DIVIDER_ACCENT_SX} />
 
             <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
               <MsqdxFormField
@@ -456,7 +454,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
                 type="number"
                 disabled={saving}
                 size="small"
-                borderColor={BRAND_COLOR}
+                sx={FORM_FIELD_ACCENT_SX}
               />
               <MsqdxFormField
                 label="Duration Max"
@@ -471,7 +469,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
                 type="number"
                 disabled={saving}
                 size="small"
-                borderColor={BRAND_COLOR}
+                sx={FORM_FIELD_ACCENT_SX}
               />
               <MsqdxSelect
                 label="Unit"
@@ -484,11 +482,11 @@ export const MsqdxGlassJourneyPhaseCard = ({
                 ]}
                 disabled={saving}
                 size="small"
-                borderColor={BRAND_COLOR}
+                sx={FORM_FIELD_ACCENT_SX}
               />
             </Box>
 
-            <MsqdxDivider color={BRAND_COLOR as "purple" | "yellow" | "pink" | "orange" | "green" | "black"} orientation="horizontal" spacing="xs" />
+            <MsqdxDivider orientation="horizontal" spacing="xs" sx={DIVIDER_ACCENT_SX} />
 
             <Box sx={{ position: "relative" }}>
               <MsqdxFormField
@@ -499,8 +497,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
                 disabled={saving}
                 size="small"
                 fullWidth
-                borderColor={BRAND_COLOR}
-                sx={{ "& .MuiInputBase-root": { pr: 5 } }}
+                sx={{ ...FORM_FIELD_ACCENT_SX, "& .MuiInputBase-root": { pr: 5 } }}
               />
               <Box sx={{ position: "absolute", top: 28, right: 8 }}>
                 <MsqdxGlassAiFieldButton
@@ -511,7 +508,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
               </Box>
             </Box>
 
-            <MsqdxDivider color={BRAND_COLOR as "purple" | "yellow" | "pink" | "orange" | "green" | "black"} orientation="horizontal" spacing="xs" />
+            <MsqdxDivider orientation="horizontal" spacing="xs" sx={DIVIDER_ACCENT_SX} />
 
             <Box sx={{ display: "flex", flexDirection: "column", gap: `${MSQDX_SPACING.gap.xs}px` }}>
               <Box
@@ -582,7 +579,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
                           }))}
                           disabled={saving}
                           size="small"
-                          borderColor={BRAND_COLOR}
+                          sx={FORM_FIELD_ACCENT_SX}
                         />
                       </Box>
                       <Box sx={{ flex: 1, minWidth: 120 }}>
@@ -594,7 +591,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
                           minRows={2}
                           disabled={saving}
                           fullWidth
-                          borderColor={BRAND_COLOR}
+                          sx={FORM_FIELD_ACCENT_SX}
                         />
                       </Box>
                       <MsqdxButton
@@ -622,7 +619,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
         message={aiSnackbar.message}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         autoHideDuration={aiSnackbar.autoHide}
-        brandColor={BRAND_COLOR as "purple" | "yellow" | "pink" | "orange" | "green" | "black"}
+        sx={{ borderColor: THEME_ACCENT.borderColor }}
         variant="outlined"
       />
       </>
@@ -638,10 +635,10 @@ export const MsqdxGlassJourneyPhaseCard = ({
     >
       <MsqdxCard
         variant="flat"
-        brandColor={BRAND_COLOR}
         borderRadius="button"
         sx={{
           height: "100%",
+          borderColor: THEME_ACCENT.borderColor,
           boxShadow: isActive ? MSQDX_EFFECTS.tripleBorder.focus : undefined,
         }}
       >
@@ -707,7 +704,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
             </Box>
           </Box>
 
-          <MsqdxDivider color={BRAND_COLOR as "purple" | "yellow" | "pink" | "orange" | "green" | "black"} spacing="xs" />
+          <MsqdxDivider spacing="xs" sx={DIVIDER_ACCENT_SX} />
 
           {chips.length > 0 && (
             <>
@@ -722,7 +719,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
                 />
               ))}
             </Box>
-            <MsqdxDivider color={BRAND_COLOR as "purple" | "yellow" | "pink" | "orange" | "green" | "black"} spacing="xs" />
+            <MsqdxDivider spacing="xs" sx={DIVIDER_ACCENT_SX} />
             </>
           )}
 
@@ -735,7 +732,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
             </MsqdxTypography>
           </Box>
 
-          <MsqdxDivider color={BRAND_COLOR as "purple" | "yellow" | "pink" | "orange" | "green" | "black"} spacing="xs" />
+          <MsqdxDivider spacing="xs" sx={DIVIDER_ACCENT_SX} />
 
           <Box>
             <MsqdxTypography variant="caption" weight="semibold" sx={{ display: "block", mb: 0.5 }}>

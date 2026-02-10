@@ -7,7 +7,7 @@ import { MsqdxIcon, MsqdxSelect, MsqdxFormField, MsqdxTextareaField, MsqdxSlider
 import { MsqdxGlassEditButton } from "./msqdx-glass-edit-button";
 import { useInlineEdit } from "../hooks/use-inline-edit";
 import { MsqdxGlassInlineEditControls } from "../msqdx-glass-inline-edit-controls";
-import { BRAND_COLOR } from "../../lib/branding";
+import { FORM_FIELD_ACCENT_SX, THEME_ACCENT } from "../../lib/theme-accent";
 
 export type MsqdxGlassFieldEditorProps = {
   field: FieldDefinition;
@@ -103,7 +103,7 @@ export const MsqdxGlassFieldEditor = ({
             required={field.config?.required}
             autoFocus
             fullWidth
-            borderColor={BRAND_COLOR}
+            sx={FORM_FIELD_ACCENT_SX}
           />
         );
 
@@ -121,7 +121,7 @@ export const MsqdxGlassFieldEditor = ({
             fullWidth
             minRows={3}
             size="small"
-            borderColor={BRAND_COLOR}
+            sx={FORM_FIELD_ACCENT_SX}
           />
         );
 
@@ -141,7 +141,7 @@ export const MsqdxGlassFieldEditor = ({
             required={field.config?.required}
             autoFocus
             fullWidth
-            borderColor={BRAND_COLOR}
+            sx={FORM_FIELD_ACCENT_SX}
           />
         );
 
@@ -158,7 +158,7 @@ export const MsqdxGlassFieldEditor = ({
               step={field.config?.step ?? 1}
               disabled={disabled}
               size="small"
-              brandColor={BRAND_COLOR}
+              sx={{ color: THEME_ACCENT.color }}
               valueLabelDisplay="on"
             />
           </Box>
@@ -214,7 +214,7 @@ export const MsqdxGlassFieldEditor = ({
             required={field.config?.required}
             autoFocus
             fullWidth
-            borderColor={BRAND_COLOR}
+            sx={FORM_FIELD_ACCENT_SX}
             InputLabelProps={{ shrink: true }}
           />
         );

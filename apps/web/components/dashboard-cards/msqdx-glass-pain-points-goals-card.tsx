@@ -5,7 +5,7 @@ import { Box } from "@mui/material";
 import type { PersonaProfile } from "@msqdx-glass/types";
 import { MsqdxDashboardCard } from "@msqdx/react";
 import { MsqdxGlassChipEditor } from "../generic/msqdx-glass-chip-editor";
-import { BRAND_COLOR } from "../../lib/branding";
+import { THEME_ACCENT } from "../../lib/theme-accent";
 
 export type MsqdxGlassPainPointsGoalsCardProps = {
   profile: PersonaProfile;
@@ -44,8 +44,7 @@ export const MsqdxGlassPainPointsGoalsCard = ({
       id="pain-points-goals"
       title="Pain Points & Goals"
       icon="target"
-      brandColor={BRAND_COLOR}
-      iconColor={{ color: "var(--color-theme-accent)" }}
+      iconColor={{ color: THEME_ACCENT.color }}
       expanded={expanded}
       onToggle={onToggle}
     >

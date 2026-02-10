@@ -17,7 +17,7 @@ import {
 } from "@mui/material";
 import { MsqdxIcon, MsqdxInput } from "@msqdx/react";
 import type { ConversationSummary } from "../../lib/chat-history";
-import { BRAND_COLOR } from "../../lib/branding";
+import { FORM_FIELD_ACCENT_SX } from "../../lib/theme-accent";
 
 type ChatItemProps = {
   conversation: ConversationSummary;
@@ -148,7 +148,7 @@ export function MsqdxGlassChatItem({
                     autoFocus
                     size="small"
                     fullWidth
-                    borderColor={BRAND_COLOR}
+                    sx={FORM_FIELD_ACCENT_SX}
                   />
                 </Box>
               ) : (

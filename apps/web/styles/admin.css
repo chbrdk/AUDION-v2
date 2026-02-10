@@ -152,4 +152,41 @@
   padding: 0.5rem 1rem !important;
 }
 
+/* Theme Accent – User-wählbare Brand-Farbe: Form-Inputs im Admin */
+.msqdx-glass-admin-content .MuiOutlinedInput-root,
+.msqdx-glass-admin-content .MuiOutlinedInput-root:hover,
+.msqdx-glass-admin-content .MuiOutlinedInput-root.Mui-focused {
+  border-color: var(--color-theme-accent) !important;
+}
+
+.msqdx-glass-admin-content .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline {
+  border-color: var(--color-theme-accent) !important;
+}
+
+.msqdx-glass-admin-content .MuiInputLabel-root.Mui-focused {
+  color: var(--color-theme-accent) !important;
+}
+
+/* Select/Dropdown border */
+.msqdx-glass-admin-content .MuiSelect-outlined,
+.msqdx-glass-admin-content .MuiSelect-outlined:hover,
+.msqdx-glass-admin-content .MuiSelect-outlined.Mui-focused {
+  border-color: var(--color-theme-accent) !important;
+}
+
+/* Dashboard cards, Accordions – Theme-Akzent für Borders */
+.msqdx-glass-admin-content .msqdx-dashboard-card,
+.msqdx-glass-admin-content .msqdx-accordion,
+.msqdx-glass-admin-content [class*="MuiAccordion-root"] {
+  border-color: var(--color-theme-accent) !important;
+}
+
+/* MsqdxCard, MsqdxDivider – Theme-Akzent */
+.msqdx-glass-admin-content .msqdx-card,
+.msqdx-glass-admin-content [class*="MuiPaper-root"],
+.msqdx-glass-admin-content .MuiDivider-root,
+.msqdx-glass-admin-content hr {
+  border-color: var(--color-theme-accent) !important;
+}
+
 

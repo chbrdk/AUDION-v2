@@ -16,7 +16,7 @@ import {
 import { useAuth } from "../../../components/auth/auth-provider";
 import { useI18n } from "../../../components/i18n/i18n-provider";
 import { BrandColorSelector } from "../../../components/settings/brand-color-selector";
-import { BRAND_COLOR } from "../../../lib/branding";
+import { FORM_FIELD_ACCENT_SX } from "../../../lib/theme-accent";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -160,7 +160,7 @@ export default function ProfilePage() {
               onChange={(e) => setName(e.target.value)}
               placeholder={t("profile.identity.fullNamePlaceholder")}
               fullWidth
-              borderColor={BRAND_COLOR}
+              sx={FORM_FIELD_ACCENT_SX}
             />
             <MsqdxFormField
               label={t("profile.identity.email")}
@@ -168,7 +168,7 @@ export default function ProfilePage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder={t("profile.identity.emailPlaceholder")}
               fullWidth
-              borderColor={BRAND_COLOR}
+              sx={FORM_FIELD_ACCENT_SX}
             />
             <MsqdxFormField
               label={t("profile.identity.company")}
@@ -176,7 +176,7 @@ export default function ProfilePage() {
               onChange={(e) => setCompany(e.target.value)}
               placeholder={t("profile.identity.companyPlaceholder")}
               fullWidth
-              borderColor={BRAND_COLOR}
+              sx={FORM_FIELD_ACCENT_SX}
             />
             <MsqdxFormField
               label={t("profile.identity.avatarUrl")}
@@ -184,7 +184,7 @@ export default function ProfilePage() {
               onChange={(e) => setAvatarUrl(e.target.value)}
               placeholder={t("profile.identity.avatarUrlPlaceholder")}
               fullWidth
-              borderColor={BRAND_COLOR}
+              sx={FORM_FIELD_ACCENT_SX}
             />
             <MsqdxSelect
               label={t("profile.identity.language")}
@@ -192,7 +192,7 @@ export default function ProfilePage() {
               onChange={(event: any) => setLocale(event.target.value)}
               options={languageOptions}
               size="small"
-              borderColor={BRAND_COLOR}
+              sx={FORM_FIELD_ACCENT_SX}
             />
             <MsqdxButton
               variant="contained"
@@ -226,7 +226,7 @@ export default function ProfilePage() {
               onChange={(e) => setCurrentPassword(e.target.value)}
               type="password"
               fullWidth
-              borderColor={BRAND_COLOR}
+              sx={FORM_FIELD_ACCENT_SX}
             />
             <MsqdxFormField
               label={t("profile.security.newPassword")}
@@ -234,7 +234,7 @@ export default function ProfilePage() {
               onChange={(e) => setNewPassword(e.target.value)}
               type="password"
               fullWidth
-              borderColor={BRAND_COLOR}
+              sx={FORM_FIELD_ACCENT_SX}
             />
             <MsqdxFormField
               label={t("profile.security.confirmPassword")}
@@ -242,7 +242,7 @@ export default function ProfilePage() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               type="password"
               fullWidth
-              borderColor={BRAND_COLOR}
+              sx={FORM_FIELD_ACCENT_SX}
             />
             <MsqdxButton
               variant="outlined"

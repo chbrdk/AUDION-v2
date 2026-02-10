@@ -4,7 +4,7 @@ import { Box } from "@mui/material";
 import { MsqdxSelect } from "@msqdx/react";
 
 import { useProject } from "../projects/project-provider";
-import { BRAND_COLOR } from "../../lib/branding";
+import { FORM_FIELD_ACCENT_SX } from "../../lib/theme-accent";
 import { useI18n } from "../i18n/i18n-provider";
 
 export const AdminTopControls = () => {
@@ -27,7 +27,7 @@ export const AdminTopControls = () => {
           ...projectOptions,
         ]}
         size="small"
-        borderColor={BRAND_COLOR}
+        sx={FORM_FIELD_ACCENT_SX}
       />
     </Box>
   );

@@ -7,7 +7,7 @@ import { MsqdxGlassDashboardCardSection } from "./msqdx-glass-dashboard-card-sec
 import { MsqdxGlassInlineEditControls } from "../msqdx-glass-inline-edit-controls";
 import { useInlineEdit } from "../hooks/use-inline-edit";
 import { Box } from "@mui/material";
-import { BRAND_COLOR } from "../../lib/branding";
+import { FORM_FIELD_ACCENT_SX, THEME_ACCENT } from "../../lib/theme-accent";
 
 export type EditFormState = {
   name: string;
@@ -126,8 +126,7 @@ export const MsqdxGlassPersonaBasicsCard = ({
       id="persona-basics"
       title="Persona Basics"
       icon="info"
-      brandColor={BRAND_COLOR}
-      iconColor={{ color: "var(--color-theme-accent)" }}
+      iconColor={{ color: THEME_ACCENT.color }}
       expanded={expanded}
       onToggle={onToggle}
     >
@@ -192,7 +191,7 @@ export const MsqdxGlassPersonaBasicsCard = ({
               value={nameEdit.value ?? ""}
               onChange={(e) => nameEdit.setValue(e.target.value)}
               fullWidth
-              borderColor={BRAND_COLOR}
+              sx={FORM_FIELD_ACCENT_SX}
             />
             <MsqdxGlassInlineEditControls
               hasChanges={nameEdit.hasChanges}
@@ -210,7 +209,7 @@ export const MsqdxGlassPersonaBasicsCard = ({
               value={segmentEdit.value ?? ""}
               onChange={(e) => segmentEdit.setValue(e.target.value)}
               fullWidth
-              borderColor={BRAND_COLOR}
+              sx={FORM_FIELD_ACCENT_SX}
             />
             <MsqdxGlassInlineEditControls
               hasChanges={segmentEdit.hasChanges}
@@ -228,7 +227,7 @@ export const MsqdxGlassPersonaBasicsCard = ({
               value={headlineEdit.value ?? ""}
               onChange={(e) => headlineEdit.setValue(e.target.value)}
               fullWidth
-              borderColor={BRAND_COLOR}
+              sx={FORM_FIELD_ACCENT_SX}
             />
             <MsqdxGlassInlineEditControls
               hasChanges={headlineEdit.hasChanges}
@@ -252,7 +251,7 @@ export const MsqdxGlassPersonaBasicsCard = ({
               ]}
               fullWidth
               size="small"
-              borderColor={BRAND_COLOR}
+              sx={FORM_FIELD_ACCENT_SX}
             />
             <MsqdxGlassInlineEditControls
               hasChanges={statusEdit.hasChanges}
@@ -270,7 +269,7 @@ export const MsqdxGlassPersonaBasicsCard = ({
               value={updatedByEdit.value ?? ""}
               onChange={(e) => updatedByEdit.setValue(e.target.value)}
               fullWidth
-              borderColor={BRAND_COLOR}
+              sx={FORM_FIELD_ACCENT_SX}
             />
             <MsqdxGlassInlineEditControls
               hasChanges={updatedByEdit.hasChanges}

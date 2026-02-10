@@ -31,7 +31,7 @@ import { MsqdxGlassKnowledgeExplorer } from "./msqdx-glass-knowledge-explorer";
 import { MsqdxGlassDashboardCardSection } from "./dashboard-cards/msqdx-glass-dashboard-card-section";
 import { MsqdxGlassPersonaList } from "./msqdx-glass-persona-list";
 import { MsqdxGlassEntityEditor } from "./generic";
-import { BRAND_COLOR } from "../lib/branding";
+import { FORM_FIELD_ACCENT_SX, THEME_ACCENT } from "../lib/theme-accent";
 import { MsqdxGlassCollapsiblePanel } from "./admin/msqdx-glass-collapsible-panel";
 import { Box } from "@mui/material";
 import { useProject } from "./projects/project-provider";
@@ -558,7 +558,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                 placeholder={t("targetGroupsAdmin.namePlaceholder")}
                 fullWidth
                 size="small"
-                borderColor={BRAND_COLOR}
+                sx={FORM_FIELD_ACCENT_SX}
               />
               <MsqdxFormField
                 label={t("targetGroupsAdmin.segment")}
@@ -569,7 +569,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                 placeholder={t("targetGroupsAdmin.segmentPlaceholder")}
                 fullWidth
                 size="small"
-                borderColor={BRAND_COLOR}
+                sx={FORM_FIELD_ACCENT_SX}
               />
               <MsqdxTextareaField
                 label={t("targetGroupsAdmin.description")}
@@ -580,7 +580,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                 placeholder={t("targetGroupsAdmin.descriptionPlaceholder")}
                 minRows={3}
                 fullWidth
-                borderColor={BRAND_COLOR}
+                sx={FORM_FIELD_ACCENT_SX}
               />
               <MsqdxButton
                 variant="contained"
@@ -609,8 +609,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                   id="basic"
                   title={t("targetGroupsAdmin.basic")}
                   icon="groups"
-                  brandColor={BRAND_COLOR}
-                  iconColor={{ color: "var(--color-theme-accent)" }}
+                  iconColor={{ color: THEME_ACCENT.color }}
                   expanded={isAccordionExpanded("basic")}
                   onToggle={toggleAccordion}
                 >
@@ -629,8 +628,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                   id="metadata"
                   title={t("targetGroupsAdmin.metadata")}
                   icon="info"
-                  brandColor={BRAND_COLOR}
-                  iconColor={{ color: "var(--color-theme-accent)" }}
+                  iconColor={{ color: THEME_ACCENT.color }}
                   expanded={isAccordionExpanded("metadata")}
                   onToggle={toggleAccordion}
                 >
@@ -656,8 +654,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                   id="personas"
                   title={t("targetGroupsAdmin.personas", { count: personas.length })}
                   icon="person"
-                  brandColor={BRAND_COLOR}
-                  iconColor={{ color: "var(--color-theme-accent)" }}
+                  iconColor={{ color: THEME_ACCENT.color }}
                   expanded={isAccordionExpanded("personas")}
                   onToggle={toggleAccordion}
                 >
@@ -709,7 +706,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                     disabled={createPersonaPending}
                     fullWidth
                     size="small"
-                    borderColor={BRAND_COLOR}
+                    sx={FORM_FIELD_ACCENT_SX}
                   />
                   <MsqdxTextareaField
                     label={t("targetGroupsAdmin.descriptionOptional")}
@@ -719,7 +716,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                     minRows={3}
                     disabled={createPersonaPending}
                     fullWidth
-                    borderColor={BRAND_COLOR}
+                    sx={FORM_FIELD_ACCENT_SX}
                   />
                   <MsqdxButton
                     variant="outlined"
@@ -740,8 +737,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                   id="knowledge"
                   title={t("targetGroupsAdmin.knowledge", { count: knowledgeEntries.length })}
                   icon="menu_book"
-                  brandColor={BRAND_COLOR}
-                  iconColor={{ color: "var(--color-theme-accent)" }}
+                  iconColor={{ color: THEME_ACCENT.color }}
                   expanded={isAccordionExpanded("knowledge")}
                   onToggle={toggleAccordion}
                 >
@@ -790,7 +786,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                     placeholder={t("targetGroupsAdmin.titlePlaceholder")}
                     fullWidth
                     size="small"
-                    borderColor={BRAND_COLOR}
+                    sx={FORM_FIELD_ACCENT_SX}
                   />
                   <MsqdxTextareaField
                     label={t("targetGroupsAdmin.content")}
@@ -799,7 +795,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                     placeholder={t("targetGroupsAdmin.contentPlaceholder")}
                     minRows={3}
                     fullWidth
-                    borderColor={BRAND_COLOR}
+                    sx={FORM_FIELD_ACCENT_SX}
                   />
                   <MsqdxButton
                     variant="outlined"
@@ -820,8 +816,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                   id="documents"
                   title={t("targetGroupsAdmin.documents", { count: documents.length }) + (documents.some((d) => d.ingestionStatus === "pending" || d.ingestionStatus === "processing") ? t("targetGroupsAdmin.documentsUpdating") : "")}
                   icon="description"
-                  brandColor={BRAND_COLOR}
-                  iconColor={{ color: "var(--color-theme-accent)" }}
+                  iconColor={{ color: THEME_ACCENT.color }}
                   expanded={isAccordionExpanded("documents")}
                   onToggle={toggleAccordion}
                 >
@@ -872,7 +867,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
               )}
 
               <Box sx={{ mt: 2, p: 2, border: "1px dashed", borderColor: "divider", borderRadius: 2, textAlign: "center" }}>
-                <MsqdxIcon name="upload_file" customSize={32} style={{ color: "var(--color-theme-accent)", marginBottom: "0.5rem", display: "block" }} />
+                <MsqdxIcon name="upload_file" customSize={32} style={{ color: THEME_ACCENT.color, marginBottom: "0.5rem", display: "block" }} />
                 <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 1 }}>
                   {t("targetGroupsAdmin.uploadHint")}
                 </MsqdxTypography>
@@ -894,8 +889,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                   id="knowledge-explorer"
                   title={t("targetGroupsAdmin.knowledgeExplorer")}
                   icon="search"
-                  brandColor={BRAND_COLOR}
-                  iconColor={{ color: "var(--color-theme-accent)" }}
+                  iconColor={{ color: THEME_ACCENT.color }}
                   expanded={isAccordionExpanded("knowledge-explorer")}
                   onToggle={toggleAccordion}
                 >

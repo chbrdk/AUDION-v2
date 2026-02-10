@@ -3,7 +3,7 @@
 import type { PersonaProfile } from "@msqdx-glass/types";
 import { MsqdxDashboardCard } from "@msqdx/react";
 import { MsqdxGlassDashboardCardSection } from "./msqdx-glass-dashboard-card-section";
-import { BRAND_COLOR } from "../../lib/branding";
+import { THEME_ACCENT } from "../../lib/theme-accent";
 
 export type MsqdxGlassAdvancedCardProps = {
   profile: PersonaProfile;
@@ -26,8 +26,7 @@ export const MsqdxGlassAdvancedCard = ({
       id="advanced"
       title="Erweitert"
       icon="tune"
-      brandColor={BRAND_COLOR}
-      iconColor={{ color: "var(--color-theme-accent)" }}
+      iconColor={{ color: THEME_ACCENT.color }}
       expanded={expanded}
       onToggle={onToggle}
     >

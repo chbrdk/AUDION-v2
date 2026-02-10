@@ -8,7 +8,7 @@ import { Box, IconButton, useTheme } from "@mui/material";
 import { MsqdxIcon, MsqdxAdminNav, MsqdxAppLayout, MsqdxTypography } from "@msqdx/react";
 import type { AdminNavItem } from "@msqdx/react";
 import { useAdminHeader, useAdminPanel } from "./admin-layout-providers";
-import { BRAND_COLOR } from "../../lib/branding";
+import { THEME_ACCENT_WITH_FALLBACK } from "../../lib/theme-accent";
 import { AdminTopControls } from "./admin-top-controls";
 import { BrandColorInitializer } from "../settings/brand-color-initializer";
 import { useI18n } from "../i18n/i18n-provider";
@@ -145,25 +145,22 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
             items={navItems}
             externalItems={navExternalItems}
             linkComponent={Link as any}
-            brandColor={BRAND_COLOR}
             sx={{
-              backgroundColor: "var(--audion-light-html-background-color, var(--color-secondary-dx-green))",
+              backgroundColor: THEME_ACCENT_WITH_FALLBACK.backgroundColor,
+              borderRightColor: THEME_ACCENT_WITH_FALLBACK.borderColor,
             }}
           />
         }
         logo
         appName="Audion"
-        brandColor={BRAND_COLOR}
         innerBackground="grid"
         borderWidth="thick"
         sx={{
           "& > div:last-of-type": {
-            backgroundColor:
-              "var(--audion-light-html-background-color, var(--color-secondary-dx-green)) !important",
+            backgroundColor: `${THEME_ACCENT_WITH_FALLBACK.backgroundColor} !important`,
           },
           "& > div:last-of-type > div": {
-            borderColor:
-              "var(--audion-light-html-background-color, var(--color-secondary-dx-green)) !important",
+            borderColor: `${THEME_ACCENT_WITH_FALLBACK.borderColor} !important`,
           },
         }}
       >

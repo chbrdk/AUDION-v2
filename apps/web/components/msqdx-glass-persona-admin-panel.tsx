@@ -22,7 +22,7 @@ import { useAiAssist } from "../hooks/use-ai-assist";
 import { MsqdxGlassCollapsiblePanel } from "./admin/msqdx-glass-collapsible-panel";
 import { Box } from "@mui/material";
 import { buildApiUrl } from "../app/api/_lib/backend";
-import { BRAND_COLOR } from "../lib/branding";
+import { THEME_ACCENT } from "../lib/theme-accent";
 import { useProject } from "./projects/project-provider";
 import { useI18n } from "./i18n/i18n-provider";
 
@@ -1427,8 +1427,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
                   id="bio-demographics"
                   title={t("personaAdmin.bioDemographics")}
                   icon="person"
-                  brandColor={BRAND_COLOR}
-                  iconColor={{ color: "var(--color-theme-accent)" }}
+                  iconColor={{ color: THEME_ACCENT.color }}
                   expanded={isAccordionExpanded("bio-demographics")}
                   onToggle={toggleAccordion}
                 >
@@ -1571,8 +1570,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
                 id="metadata"
                 title={t("personaAdmin.metadata")}
                 icon="info"
-                brandColor={BRAND_COLOR}
-                iconColor={{ color: "var(--color-theme-accent)" }}
+                iconColor={{ color: THEME_ACCENT.color }}
                 expanded={isAccordionExpanded("metadata")}
                 onToggle={toggleAccordion}
               >
