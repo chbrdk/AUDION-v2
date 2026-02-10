@@ -154,9 +154,18 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
         logo
         appName="Audion"
         brandColor={BRAND_COLOR}
-        brandBackgroundColor="var(--audion-light-html-background-color, var(--color-secondary-dx-green))"
         innerBackground="grid"
         borderWidth="thick"
+        sx={{
+          "& > div:last-of-type": {
+            backgroundColor:
+              "var(--audion-light-html-background-color, var(--color-secondary-dx-green)) !important",
+          },
+          "& > div:last-of-type > div": {
+            borderColor:
+              "var(--audion-light-html-background-color, var(--color-secondary-dx-green)) !important",
+          },
+        }}
       >
       {/* Header Bar – Page Title, Hamburger, Panel Toggle (Logo/Corner via MsqdxAppLayout) */}
       <Box
