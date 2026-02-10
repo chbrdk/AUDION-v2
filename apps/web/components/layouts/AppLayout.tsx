@@ -32,6 +32,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <MsqdxAppLayout
+      brandBackgroundColor={THEME_ACCENT_WITH_FALLBACK.backgroundColor}
       sidebar={
         <MsqdxAdminNav
           open={drawerOpen}

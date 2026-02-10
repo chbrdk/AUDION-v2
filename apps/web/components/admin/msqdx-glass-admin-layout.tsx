@@ -137,6 +137,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
     <>
       <BrandColorInitializer />
       <MsqdxAppLayout
+        brandBackgroundColor="var(--color-theme-accent, var(--color-secondary-dx-green))"
         sidebar={
           <MsqdxAdminNav
             open={drawerOpen}

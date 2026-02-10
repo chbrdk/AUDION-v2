@@ -27,6 +27,9 @@ export const INPUT_ACCENT_SX = {
     "&:hover": { borderColor: "var(--color-theme-accent) !important" },
     "&.focused": { borderColor: "var(--color-theme-accent) !important" },
   },
+  "& .msqdx-input-label": {
+    color: "var(--color-theme-accent) !important",
+  },
 } as const;
 
 /** sx für FormField/Input-Borders mit Theme-Akzent */
@@ -38,5 +41,11 @@ export const FORM_FIELD_ACCENT_SX = {
     "& .MuiOutlinedInput-notchedOutline": {
       borderColor: "var(--color-theme-accent) !important",
     },
+  },
+  "& .MuiInputLabel-root": {
+    color: "var(--color-theme-accent) !important",
+  },
+  "& .MuiInputLabel-root.Mui-focused": {
+    color: "var(--color-theme-accent) !important",
   },
 } as const;

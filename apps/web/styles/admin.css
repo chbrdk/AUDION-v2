@@ -163,7 +163,10 @@
   border-color: var(--color-theme-accent) !important;
 }
 
-.msqdx-glass-admin-content .MuiInputLabel-root.Mui-focused {
+/* Input Labels – Theme-Akzent */
+.msqdx-glass-admin-content .MuiInputLabel-root,
+.msqdx-glass-admin-content .MuiInputLabel-root.Mui-focused,
+.msqdx-glass-admin-content .msqdx-input-label {
   color: var(--color-theme-accent) !important;
 }
 
@@ -187,6 +190,24 @@
 .msqdx-glass-admin-content .MuiDivider-root,
 .msqdx-glass-admin-content hr {
   border-color: var(--color-theme-accent) !important;
+}
+
+/* Buttons – Theme-Akzent (outlined + contained, ohne error/success) */
+.msqdx-glass-admin-content .MuiButton-root.MuiButton-outlined:not(.MuiButton-colorError):not(.MuiButton-colorSuccess) {
+  border-color: var(--color-theme-accent) !important;
+  color: var(--color-theme-accent) !important;
+}
+.msqdx-glass-admin-content .MuiButton-root.MuiButton-outlined:not(.MuiButton-colorError):not(.MuiButton-colorSuccess):hover {
+  border-color: var(--color-theme-accent) !important;
+  background-color: color-mix(in srgb, var(--color-theme-accent) 12%, transparent) !important;
+}
+.msqdx-glass-admin-content .MuiButton-root.MuiButton-contained:not(.MuiButton-colorError):not(.MuiButton-colorSuccess) {
+  background-color: var(--color-theme-accent) !important;
+  color: #fff !important;
+}
+.msqdx-glass-admin-content .MuiButton-root.MuiButton-contained:not(.MuiButton-colorError):not(.MuiButton-colorSuccess):hover {
+  background-color: var(--color-theme-accent) !important;
+  filter: brightness(1.08);
 }
 
 
