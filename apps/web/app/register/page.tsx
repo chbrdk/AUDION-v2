@@ -73,13 +73,15 @@ export default function RegisterPage() {
             px: 4,
           }}
         >
-          <Stack direction="row" alignItems="center">
-            <MsqdxLogo width={220} height={53} color="white" />
-            <MsqdxTypography variant="h4" weight="light" sx={{ color: "white", fontSize: "2.25rem", ml: "36px" }}>
-              AUDION
-            </MsqdxTypography>
+          <Stack alignItems="flex-start" spacing={0}>
+            <Stack direction="row" alignItems="center">
+              <MsqdxLogo width={220} height={53} color="white" />
+              <MsqdxTypography variant="h4" weight="light" sx={{ color: "white", fontSize: "2.25rem", ml: "36px" }}>
+                AUDION
+              </MsqdxTypography>
+            </Stack>
+            <AuthBrandColorSelector />
           </Stack>
-          <AuthBrandColorSelector />
         </Box>
 
         {/* Right 30%: Register card */}
@@ -122,7 +124,7 @@ export default function RegisterPage() {
                 </Box>
               )}
 
-              <Box component="form" onSubmit={handleSubmit}>
+              <Box component="form" onSubmit={handleSubmit} sx={{ "& .MuiInputLabel-root": { color: "var(--color-theme-accent)" } }}>
                 <Stack spacing={2}>
                   <MsqdxFormField
                     label={t("auth.register.name")}

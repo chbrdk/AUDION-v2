@@ -75,8 +75,8 @@ export function AuthBrandColorSelector() {
       direction="row"
       spacing={1.5}
       alignItems="center"
-      justifyContent="center"
-      sx={{ mt: 3 }}
+      justifyContent="flex-start"
+      sx={{ mt: 3, alignSelf: "flex-start" }}
     >
       {BRAND_COLORS.map(({ id, varName, hex }) => {
         const isSelected = selected === varName;
@@ -89,8 +89,8 @@ export function AuthBrandColorSelector() {
             aria-label={`Farbe ${id} wählen`}
             aria-pressed={isSelected}
             sx={{
-              width: 28,
-              height: 28,
+              width: 20,
+              height: 40,
               borderRadius: "50%",
               border: `2px solid ${isSelected ? "#fff" : "rgba(255,255,255,0.5)"}`,
               backgroundColor: hex,
