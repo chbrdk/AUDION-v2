@@ -62,6 +62,7 @@ import {
 } from "../../../lib/chat-history";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useProject } from "../../../components/projects/project-provider";
+import { buildShareChatUrl } from "../../../lib/share-chat";
 
 type PersonaProfileCard = {
   display_name?: string | null;
@@ -310,6 +311,8 @@ function AdminChatPageContent() {
   const [personaMenuAnchor, setPersonaMenuAnchor] = useState<null | HTMLElement>(null);
   const [personaDrawerOpen, setPersonaDrawerOpen] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareLinkCopied, setShareLinkCopied] = useState(false);
   const typingBuffersRef = useRef<Record<string, string>>({});
   const typingTimersRef = useRef<Record<string, ReturnType<typeof setTimeout> | null>>({});
   const personaMenuOpen = Boolean(personaMenuAnchor);
@@ -1658,6 +1661,18 @@ function AdminChatPageContent() {
                     </IconButton>
                   </Badge>
                 </Tooltip>
+                <Tooltip title="Share chat link">
+                  <IconButton
+                    onClick={() => setShareDialogOpen(true)}
+                    disabled={!activePersonaId || !activeProjectId}
+                    sx={{
+                      backgroundColor: alpha(theme.palette.text.primary, 0.08),
+                      borderRadius: 999
+                    }}
+                  >
+                    <MsqdxIcon name="share" customSize={22} />
+                  </IconButton>
+                </Tooltip>
                 <Tooltip title={whisperRecording ? "Stop recording" : "Start voice input"}>
                   <IconButton
                     onClick={handleMicToggle}
@@ -2212,6 +2227,82 @@ function AdminChatPageContent() {
                 Add {attachedImages.length} image{attachedImages.length !== 1 ? "s" : ""}
               </button>
             )}
+          </DialogActions>
+        </Dialog>
+
+        {/* Share Chat Dialog */}
+        <Dialog
+          open={shareDialogOpen}
+          onClose={() => {
+            setShareDialogOpen(false);
+            setShareLinkCopied(false);
+          }}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: "24px",
+              backgroundColor: "var(--color-neutral)",
+              border: "3px solid var(--audion-light-border-color, #0f172a)",
+            },
+          }}
+        >
+          <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 0.75, pb: 1, pt: 2.5, px: 3 }}>
+            <MsqdxIcon name="share" customSize={20} />
+            <Typography variant="subtitle1" component="span" sx={{ fontWeight: 600 }}>
+              Share Chat
+            </Typography>
+          </DialogTitle>
+          <DialogContent sx={{ px: 3, py: 2 }}>
+            <Typography variant="body2" sx={{ mb: 2, color: alpha(theme.palette.text.primary, 0.8) }}>
+              Share this link to let others open a chat with <strong>{personaDisplayName}</strong>. Recipients need to be logged in and have access to this project.
+            </Typography>
+            <TextField
+              fullWidth
+              size="small"
+              value={
+                activePersonaId && activeProjectId
+                  ? buildShareChatUrl({ personaId: activePersonaId, projectId: activeProjectId })
+                  : ""
+              }
+              InputProps={{
+                readOnly: true,
+                sx: { fontSize: "0.8125rem" },
+              }}
+            />
+          </DialogContent>
+          <DialogActions sx={{ px: 3, py: 2, gap: 0.75 }}>
+            <button
+              type="button"
+              className="msqdx-glass-button --ghost"
+              onClick={() => {
+                setShareDialogOpen(false);
+                setShareLinkCopied(false);
+              }}
+            >
+              Close
+            </button>
+            <button
+              type="button"
+              className="msqdx-glass-button"
+              onClick={async () => {
+                if (activePersonaId && activeProjectId) {
+                  const url = buildShareChatUrl({ personaId: activePersonaId, projectId: activeProjectId });
+                  try {
+                    await navigator.clipboard.writeText(url);
+                    setShareLinkCopied(true);
+                    notify("Link copied to clipboard");
+                    setTimeout(() => setShareLinkCopied(false), 2000);
+                  } catch {
+                    notify("Could not copy to clipboard");
+                  }
+                }
+              }}
+              disabled={!activePersonaId || !activeProjectId}
+            >
+              <MsqdxIcon name="content_copy" customSize={16} />
+              {shareLinkCopied ? "Copied!" : "Copy link"}
+            </button>
           </DialogActions>
         </Dialog>
 
