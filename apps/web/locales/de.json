@@ -81,6 +81,10 @@
       "update": "Passwort aktualisieren",
       "updating": "Aktualisieren…"
     },
+    "appearance": {
+      "title": "Darstellung",
+      "subtitle": "Wähle eine Farbe für Sidebar und Akzente. Änderungen wirken sofort im gesamten Dashboard."
+    },
     "session": {
       "title": "Sitzung",
       "subtitle": "Auf diesem Gerät abmelden. Du musst dich danach erneut anmelden.",

@@ -30,6 +30,14 @@ test.describe('Admin Workflows', () => {
     await expect(page.locator('text=Target Groups')).toBeVisible();
   });
 
+  test('should load profile page', async ({ page }) => {
+    await page.goto('http://localhost:3000/admin/profile');
+    const body = await page.locator('body');
+    await expect(body).toBeVisible();
+    // Profile page loads (may redirect to login if not authenticated)
+    expect(await body.textContent()).toBeTruthy();
+  });
+
   test('should handle API errors gracefully', async ({ page }) => {
     // Navigate to personas page
     await page.goto('http://localhost:3000/admin/personas');

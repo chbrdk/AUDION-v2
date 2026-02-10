@@ -81,6 +81,10 @@
       "update": "Update Password",
       "updating": "Updating…"
     },
+    "appearance": {
+      "title": "Appearance",
+      "subtitle": "Choose a color for the sidebar and accents. Changes apply immediately across the dashboard."
+    },
     "session": {
       "title": "Session",
       "subtitle": "Log out from this device. You will need to sign in again to access your projects.",

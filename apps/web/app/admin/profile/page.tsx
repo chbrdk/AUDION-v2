@@ -15,6 +15,7 @@ import {
 
 import { useAuth } from "../../../components/auth/auth-provider";
 import { useI18n } from "../../../components/i18n/i18n-provider";
+import { BrandColorSelector } from "../../../components/settings/brand-color-selector";
 import { BRAND_COLOR } from "../../../lib/branding";
 
 export default function ProfilePage() {
@@ -202,6 +203,16 @@ export default function ProfilePage() {
               {savingProfile ? t("profile.identity.saving") : t("profile.identity.save")}
             </MsqdxButton>
           </Stack>
+        </MsqdxCard>
+
+        <MsqdxCard variant="flat" borderRadius="button" sx={{ p: 2, border: "1px solid", borderColor: "divider" }}>
+          <MsqdxTypography variant="h6" weight="semibold" sx={{ mb: 1 }}>
+            {t("profile.appearance.title")}
+          </MsqdxTypography>
+          <MsqdxTypography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
+            {t("profile.appearance.subtitle")}
+          </MsqdxTypography>
+          <BrandColorSelector />
         </MsqdxCard>
 
         <MsqdxCard variant="flat" borderRadius="button" sx={{ p: 2, border: "1px solid", borderColor: "divider" }}>
