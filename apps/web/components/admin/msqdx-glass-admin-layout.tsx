@@ -10,6 +10,7 @@ import type { AdminNavItem } from "@msqdx/react";
 import { useAdminHeader, useAdminPanel } from "./admin-layout-providers";
 import { BRAND_COLOR } from "../../lib/branding";
 import { AdminTopControls } from "./admin-top-controls";
+import { BrandColorInitializer } from "../settings/brand-color-initializer";
 import { useI18n } from "../i18n/i18n-provider";
 
 // Re-export for consumers that import from this file
@@ -133,24 +134,30 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
   };
 
   return (
-    <MsqdxAppLayout
-      sidebar={
-        <MsqdxAdminNav
-          open={drawerOpen}
-          onClose={handleDrawerClose}
-          currentPath={pathname || ""}
-          items={navItems}
-          externalItems={navExternalItems}
-          linkComponent={Link as any}
-          brandColor={BRAND_COLOR}
-        />
-      }
-      logo
-      appName="Audion"
-      brandColor={BRAND_COLOR}
-      innerBackground="grid"
-      borderWidth="thick"
-    >
+    <>
+      <BrandColorInitializer />
+      <MsqdxAppLayout
+        sidebar={
+          <MsqdxAdminNav
+            open={drawerOpen}
+            onClose={handleDrawerClose}
+            currentPath={pathname || ""}
+            items={navItems}
+            externalItems={navExternalItems}
+            linkComponent={Link as any}
+            brandColor={BRAND_COLOR}
+            sx={{
+              backgroundColor: "var(--audion-light-html-background-color, var(--color-secondary-dx-green))",
+            }}
+          />
+        }
+        logo
+        appName="Audion"
+        brandColor={BRAND_COLOR}
+        brandBackgroundColor="var(--audion-light-html-background-color, var(--color-secondary-dx-green))"
+        innerBackground="grid"
+        borderWidth="thick"
+      >
       {/* Header Bar – Page Title, Hamburger, Panel Toggle (Logo/Corner via MsqdxAppLayout) */}
       <Box
         component="header"
@@ -311,5 +318,6 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
         />
       )}
     </MsqdxAppLayout>
+    </>
   );
 };

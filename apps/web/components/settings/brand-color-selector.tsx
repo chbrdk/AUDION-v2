@@ -4,9 +4,11 @@ import { useState, useEffect } from "react";
 import { MsqdxIcon } from "@msqdx/react";
 import { useThemeMode } from "../theme-registry";
 import { useI18n } from "../i18n/i18n-provider";
-
-const STORAGE_KEY = "audion-sidebar-color";
-const DEFAULT_COLOR = "--color-secondary-dx-purple";
+import {
+  BRAND_COLOR_STORAGE_KEY,
+  BRAND_COLOR_DEFAULT,
+  applyBrandColorVars,
+} from "../../lib/brand-color-utils";
 
 const OPTIONS_META: {
   varName: string;
@@ -24,71 +26,6 @@ const OPTIONS_META: {
   { varName: "--audion-light-border-color", preview: "#0f172a", textColor: "#ffffff", optionKey: "default" },
 ];
 
-const COLOR_TINT_MAP: Record<string, string> = {
-  "--color-secondary-dx-purple": "--color-secondary-dx-purple-tint",
-  "--color-secondary-dx-blue": "--color-secondary-dx-blue-tint",
-  "--color-secondary-dx-pink": "--color-secondary-dx-pink-tint",
-  "--color-secondary-dx-orange": "--color-secondary-dx-orange-tint",
-  "--color-secondary-dx-green": "--color-secondary-dx-green-tint",
-  "--color-secondary-dx-yellow": "--color-secondary-dx-yellow-tint",
-  "--color-secondary-dx-grey-light": "--color-secondary-dx-grey-light-tint",
-  "--audion-light-border-color": "--color-secondary-dx-purple-tint",
-};
-
-function applyColorVars(
-  varName: string,
-  themeMode: "light" | "dark"
-) {
-  const styles = getComputedStyle(document.documentElement);
-  const resolvedColor =
-    styles.getPropertyValue(varName).trim() ||
-    (varName === "--audion-light-border-color" ? "#0f172a" : "");
-
-  if (resolvedColor) {
-    document.documentElement.style.setProperty(
-      "--audion-light-border-color",
-      resolvedColor
-    );
-    document.documentElement.style.setProperty(
-      "--audion-light-html-background-color",
-      resolvedColor
-    );
-
-    const textColor =
-      themeMode === "light"
-        ? "#000000"
-        : OPTIONS_META.find((o) => o.varName === varName)?.textColor || "#ffffff";
-    document.documentElement.style.setProperty(
-      "--audion-sidebar-text-color",
-      textColor
-    );
-
-    document.documentElement.style.setProperty(
-      "--color-theme-accent",
-      `var(${varName})`
-    );
-
-    const tintVar =
-      COLOR_TINT_MAP[varName] || "--color-secondary-dx-purple-tint";
-    document.documentElement.style.setProperty(
-      "--color-theme-accent-tint",
-      `var(${tintVar})`
-    );
-
-    // Auth pages (login/register)
-    const textOnAccent =
-      varName === "--color-secondary-dx-yellow" ? "#000000" : "#ffffff";
-    document.documentElement.style.setProperty(
-      "--auth-logo-color",
-      textOnAccent
-    );
-    document.documentElement.style.setProperty(
-      "--auth-button-text-color",
-      textOnAccent
-    );
-  }
-}
-
 export function BrandColorSelector() {
   const { t } = useI18n();
   const { themeMode } = useThemeMode();
@@ -102,24 +39,24 @@ export function BrandColorSelector() {
   }));
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    const colorVar = saved || DEFAULT_COLOR;
+    const saved = localStorage.getItem(BRAND_COLOR_STORAGE_KEY);
+    const colorVar = saved || BRAND_COLOR_DEFAULT;
     setSelectedColor(colorVar);
-    applyColorVars(colorVar, themeMode);
+    applyBrandColorVars(colorVar, themeMode);
     setMounted(true);
   }, []);
 
   useEffect(() => {
     if (!mounted) return;
-    const saved = localStorage.getItem(STORAGE_KEY);
-    const colorVar = saved || DEFAULT_COLOR;
-    applyColorVars(colorVar, themeMode);
+    const saved = localStorage.getItem(BRAND_COLOR_STORAGE_KEY);
+    const colorVar = saved || BRAND_COLOR_DEFAULT;
+    applyBrandColorVars(colorVar, themeMode);
   }, [themeMode, mounted]);
 
   const handleColorSelect = (varName: string) => {
     setSelectedColor(varName);
-    localStorage.setItem(STORAGE_KEY, varName);
-    applyColorVars(varName, themeMode);
+    localStorage.setItem(BRAND_COLOR_STORAGE_KEY, varName);
+    applyBrandColorVars(varName, themeMode);
   };
 
   if (!mounted) return null;

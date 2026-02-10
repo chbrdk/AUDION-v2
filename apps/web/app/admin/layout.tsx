@@ -8,6 +8,7 @@ import { AuthProvider } from "../../components/auth/auth-provider";
 import { ProjectProvider } from "../../components/projects/project-provider";
 import { AuthLocaleSync } from "../../components/i18n/auth-locale-sync";
 import { useI18n } from "../../components/i18n/i18n-provider";
+import { ThemeRegistryNoSSR } from "../../components/theme-registry-no-ssr";
 
 const AdminLoadingFallback = () => {
   const { t } = useI18n();
@@ -43,17 +44,19 @@ const MsqdxGlassAdminLayoutClient = dynamic(
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
-    <AuthProvider>
-      <AuthLocaleSync />
-      <ProjectProvider>
-        <AdminHeaderProvider>
-          <AdminPanelProvider>
-            <MsqdxGlassAdminLayoutClient>
-              {children}
-            </MsqdxGlassAdminLayoutClient>
-          </AdminPanelProvider>
-        </AdminHeaderProvider>
-      </ProjectProvider>
-    </AuthProvider>
+    <ThemeRegistryNoSSR>
+      <AuthProvider>
+        <AuthLocaleSync />
+        <ProjectProvider>
+          <AdminHeaderProvider>
+            <AdminPanelProvider>
+              <MsqdxGlassAdminLayoutClient>
+                {children}
+              </MsqdxGlassAdminLayoutClient>
+            </AdminPanelProvider>
+          </AdminHeaderProvider>
+        </ProjectProvider>
+      </AuthProvider>
+    </ThemeRegistryNoSSR>
   );
 }
