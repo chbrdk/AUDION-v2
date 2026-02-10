@@ -11,6 +11,7 @@ import {
   MsqdxLogo,
   MsqdxTypography,
 } from "@msqdx/react";
+import { MSQDX_TYPOGRAPHY } from "@msqdx/tokens";
 
 import { ThemeRegistryNoSSR } from "../../components/theme-registry-no-ssr";
 import { useI18n } from "../../components/i18n/i18n-provider";
@@ -107,7 +108,7 @@ export default function LoginPage() {
           >
             <Stack spacing={3}>
               <Box>
-                <MsqdxTypography variant="h4" weight="bold">
+                <MsqdxTypography variant="h4" weight="bold" sx={{ fontFamily: MSQDX_TYPOGRAPHY.fontFamily.mono }}>
                   {t("auth.login.title")}
                 </MsqdxTypography>
                 <MsqdxTypography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
