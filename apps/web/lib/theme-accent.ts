@@ -28,7 +28,7 @@ export const INPUT_ACCENT_SX = {
     "&.focused": { borderColor: "var(--color-theme-accent) !important" },
   },
   "& .msqdx-input-label": {
-    color: "var(--color-theme-accent) !important",
+    color: "var(--color-input-label, var(--color-theme-accent)) !important",
   },
 } as const;
 
@@ -43,9 +43,9 @@ export const FORM_FIELD_ACCENT_SX = {
     },
   },
   "& .MuiInputLabel-root": {
-    color: "var(--color-theme-accent) !important",
+    color: "var(--color-input-label, var(--color-theme-accent)) !important",
   },
   "& .MuiInputLabel-root.Mui-focused": {
-    color: "var(--color-theme-accent) !important",
+    color: "var(--color-input-label, var(--color-theme-accent)) !important",
   },
 } as const;

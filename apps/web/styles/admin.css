@@ -175,11 +175,11 @@
   border-color: var(--color-theme-accent) !important;
 }
 
-/* Input Labels – Theme-Akzent */
+/* Input Labels – Theme-Akzent, bei gelb/hellgrau schwarz */
 .msqdx-glass-admin-content .MuiInputLabel-root,
 .msqdx-glass-admin-content .MuiInputLabel-root.Mui-focused,
 .msqdx-glass-admin-content .msqdx-input-label {
-  color: var(--color-theme-accent) !important;
+  color: var(--color-input-label, var(--color-theme-accent)) !important;
 }
 
 /* Select/Dropdown border */

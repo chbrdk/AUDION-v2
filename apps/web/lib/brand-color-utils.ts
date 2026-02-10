@@ -104,6 +104,15 @@ export function applyBrandColorVars(
       "--auth-button-text-color",
       textOnAccent
     );
+
+    /* Input Labels: schwarz bei gelb und hellgrau (bessere Lesbarkeit), sonst Theme-Akzent */
+    const labelShouldBeBlack =
+      varName === "--color-secondary-dx-yellow" ||
+      varName === "--color-secondary-dx-grey-light";
+    document.documentElement.style.setProperty(
+      "--color-input-label",
+      labelShouldBeBlack ? "#000000" : "var(--color-theme-accent)"
+    );
   }
 }
 
