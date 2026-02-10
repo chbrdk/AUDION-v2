@@ -26,6 +26,14 @@ import { buildShareChatUrl } from "@/lib/share-chat";
 const url = buildShareChatUrl({ personaId, projectId });
 ```
 
+## Ohne Login (Public Share)
+
+Share-Links funktionieren **ohne Login**:
+- `/chat` ist in `middleware.ts` als öffentlicher Pfad hinterlegt (`PUBLIC_PATHS`)
+- Persona-Daten kommen von `/api/share/persona/{personaId}?projectId=xxx` (proxied zu Backend `GET /personas/{id}/public`)
+- Chat-Nachrichten (message/stream) gehen direkt an die Chat-API, die keine Auth verlangt
+- "Back to Admin" zeigt bei nicht eingeloggten Nutzern "Sign in" mit Link zu `/login`
+
 ## Hinweis
 
 Aktuell teilt der Link nur die **Persona** – der Empfänger startet eine leere Konversation mit dieser Persona. Um den vollständigen Chat-Verlauf zu teilen, wäre ein Backend-API zum Speichern/Laden von geteilten Konversationen nötig.

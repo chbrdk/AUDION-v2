@@ -74,7 +74,11 @@ function ChatSharePageContent() {
       setLoadingPersona(true);
       setError(null);
       try {
-        const res = await fetch(buildApiUrl(`/api/persona-admin/${personaIdParam}`), { cache: "no-store" });
+        // Use public share endpoint - works without login when projectId matches
+        const shareUrl = projectIdParam
+          ? buildApiUrl(`/api/share/persona/${personaIdParam}?projectId=${encodeURIComponent(projectIdParam)}`)
+          : buildApiUrl(`/api/persona-admin/${personaIdParam}`);
+        const res = await fetch(shareUrl, { cache: "no-store" });
         if (cancelled) return;
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));

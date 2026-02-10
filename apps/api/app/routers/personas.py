@@ -548,6 +548,29 @@ def get_persona(persona_id: str, session: Session = Depends(get_db)) -> PersonaR
         raise HTTPException(status_code=404, detail="Persona not found") from exc
 
 
+@router.get(
+    "/{persona_id}/public",
+    response_model=PersonaResponse,
+    summary="Get persona by ID (public share link)",
+    description="Public endpoint for shared chat links. No auth required. Validates project_id as share token.",
+)
+def get_persona_public(
+    persona_id: str,
+    project_id: str = Query(..., description="Project ID - acts as share token"),
+) -> PersonaResponse:
+    """Allow unauthenticated access when project_id matches the persona's project."""
+    try:
+        persona_uuid = UUID(persona_id)
+        project_uuid = UUID(project_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid persona or project ID") from exc
+    with get_session() as session:
+        persona = session.get(Persona, persona_uuid)
+        if not persona or persona.project_id != project_uuid:
+            raise HTTPException(status_code=404, detail="Persona not found")
+        return persona_service.get_persona(session, persona_id)
+
+
 @router.patch(
     "/{persona_id}",
     response_model=PersonaResponse,

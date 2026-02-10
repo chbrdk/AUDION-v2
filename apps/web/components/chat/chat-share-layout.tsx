@@ -1,7 +1,6 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Box, Button, Typography } from "@mui/material";
 import { MsqdxIcon } from "@msqdx/react";
@@ -9,12 +8,7 @@ import { useAuth } from "../auth/auth-provider";
 
 export function ChatShareLayout({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
-  const search = searchParams.toString();
-  const redirectPath = `${basePath}${pathname || "/chat"}${search ? `?${search}` : ""}`;
 
   if (loading) {
     return (
@@ -30,11 +24,6 @@ export function ChatShareLayout({ children }: { children: ReactNode }) {
         <Typography color="text.secondary">Loading…</Typography>
       </Box>
     );
-  }
-
-  if (!user) {
-    router.replace(`${basePath}/login?redirect=${encodeURIComponent(redirectPath)}`);
-    return null;
   }
 
   return (
@@ -61,11 +50,11 @@ export function ChatShareLayout({ children }: { children: ReactNode }) {
       >
         <Button
           component={Link}
-          href={`${basePath}/admin`}
-          startIcon={<MsqdxIcon name="arrow_back" customSize={20} />}
+          href={user ? `${basePath}/admin` : `${basePath}/login`}
+          startIcon={<MsqdxIcon name={user ? "arrow_back" : "login"} customSize={20} />}
           sx={{ textTransform: "none", color: "inherit" }}
         >
-          Back to Admin
+          {user ? "Back to Admin" : "Sign in"}
         </Button>
         <Typography variant="body2" sx={{ opacity: 0.7 }}>
           Shared Chat

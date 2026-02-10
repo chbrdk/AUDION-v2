@@ -3,8 +3,8 @@ import { NextResponse } from "next/server";
 
 import { AUTH_COOKIE_NAME } from "./lib/auth-constants";
 
-const PUBLIC_PATHS = new Set(["/", "/login", "/register"]);
-const PROTECTED_PREFIXES = ["/admin", "/chat", "/upload", "/personas", "/target-groups", "/queue"];
+const PUBLIC_PATHS = new Set(["/", "/login", "/register", "/chat"]);
+const PROTECTED_PREFIXES = ["/admin", "/upload", "/personas", "/target-groups", "/queue"];
 
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
