@@ -5,8 +5,6 @@ import Link from "next/link";
 import { Box, Button, Typography, useTheme } from "@mui/material";
 import { MsqdxIcon, MsqdxAppLayout } from "@msqdx/react";
 import { useAuth } from "../auth/auth-provider";
-import { THEME_ACCENT_WITH_FALLBACK } from "../../lib/theme-accent";
-import { BrandColorInitializer } from "../settings/brand-color-initializer";
 
 export function ChatShareLayout({ children }: { children: ReactNode }) {
   const theme = useTheme();
@@ -30,36 +28,26 @@ export function ChatShareLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <>
-      <BrandColorInitializer />
-      <MsqdxAppLayout
-        logo
-        appName="Audion"
-        innerBackground="grid"
-        borderWidth="thick"
-        sidebar={null}
-        sx={{
-          "& > div:last-of-type": {
-            backgroundColor: `${THEME_ACCENT_WITH_FALLBACK.backgroundColor} !important`,
-          },
-          "& > div:last-of-type > div": {
-            borderColor: `${THEME_ACCENT_WITH_FALLBACK.borderColor} !important`,
-          },
-          "& > div:last-of-type > div > div:first-of-type": {
-            backgroundColor: "transparent !important",
-            color: "var(--color-theme-accent-contrast, #ffffff) !important",
-          },
-          "& > div:last-of-type > div > div:first-of-type *": {
-            color: "inherit !important",
-          },
-          "& > div:last-of-type > div > div:first-of-type svg": {
-            fill: "currentColor",
-          },
-          "& > div:last-of-type > div > div:first-of-type > div": {
-            backgroundColor: `${THEME_ACCENT_WITH_FALLBACK.backgroundColor} !important`,
-          },
-        }}
-      >
+    <MsqdxAppLayout
+      brandColor="green"
+      logo={{ color: "white" }}
+      appName="Audion"
+      innerBackground="grid"
+      borderWidth="thick"
+      sidebar={null}
+      sx={{
+        /* Corner: Logo + App-Name weiß auf Grün */
+        "& > div:last-of-type > div > div:first-of-type": {
+          color: "#fff !important",
+        },
+        "& > div:last-of-type > div > div:first-of-type *": {
+          color: "inherit !important",
+        },
+        "& > div:last-of-type > div > div:first-of-type svg": {
+          fill: "currentColor",
+        },
+      }}
+    >
         {/* Header Bar – nur „Back to Admin“ / „Sign in“, kein Hamburger, keine Nav */}
         <Box
           component="header"
@@ -110,6 +98,5 @@ export function ChatShareLayout({ children }: { children: ReactNode }) {
           {children}
         </Box>
       </MsqdxAppLayout>
-    </>
   );
 }
