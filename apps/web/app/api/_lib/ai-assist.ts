@@ -99,7 +99,8 @@ export const aiAssistApi = {
   listTemplates: async (projectId?: string): Promise<AiTemplateSummary[]> => {
     const params = new URLSearchParams();
     if (projectId) params.set("project_id", projectId);
-    const response = await fetch(buildAiAssistUrl("/templates", params), { cache: "no-store" });
+    // Use settings proxy (same as getTemplate/updateTemplate) for consistent routing
+    const response = await fetch(buildSettingsUrl("/ai/templates", params), { cache: "no-store" });
     if (!response.ok) {
       const error = await response.text().catch(() => "");
       throw new Error(error || `Backend responded with ${response.status}`);
