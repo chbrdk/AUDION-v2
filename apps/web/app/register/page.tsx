@@ -3,7 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Box, Button, Card, CardContent, Stack, TextField, Typography } from "@mui/material";
+import { Box, Stack } from "@mui/material";
+import {
+  MsqdxButton,
+  MsqdxFormField,
+  MsqdxMoleculeCard,
+  MsqdxLogo,
+  MsqdxTypography,
+} from "@msqdx/react";
 
 import { ThemeRegistryNoSSR } from "../../components/theme-registry-no-ssr";
 import { useI18n } from "../../components/i18n/i18n-provider";
@@ -49,40 +56,78 @@ export default function RegisterPage() {
         sx={{
           minHeight: "100vh",
           display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          px: 3,
-          background:
-            "radial-gradient(circle at 20% 20%, rgba(56,189,248,0.12), transparent 45%), radial-gradient(circle at 70% 0%, rgba(217,70,239,0.12), transparent 40%)",
+          flexDirection: "row",
+          bgcolor: "var(--color-secondary-dx-green)",
         }}
       >
-        <Card sx={{ maxWidth: 440, width: "100%", borderRadius: 4 }}>
-          <CardContent>
+        {/* Left 70%: Logo + AUDION headline */}
+        <Box
+          sx={{
+            flex: "0 0 70%",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            px: 4,
+          }}
+        >
+          <Stack direction="row" alignItems="center">
+            <MsqdxLogo width={220} height={53} color="white" />
+            <MsqdxTypography variant="h4" weight="light" sx={{ color: "white", fontSize: "2.25rem", ml: "36px" }}>
+              AUDION
+            </MsqdxTypography>
+          </Stack>
+        </Box>
+
+        {/* Right 30%: Register card */}
+        <Box
+          sx={{
+            flex: "0 0 30%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            px: 3,
+            py: 4,
+          }}
+        >
+          <MsqdxMoleculeCard
+            variant="flat"
+            borderRadius="button"
+            sx={{
+              width: "100%",
+              maxWidth: 360,
+              p: 3,
+              border: "1px solid",
+              borderColor: "divider",
+            }}
+          >
             <Stack spacing={3}>
               <Box>
-                <Typography variant="h4" fontWeight={700}>
+                <MsqdxTypography variant="h4" weight="bold">
                   {t("auth.register.title")}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
+                </MsqdxTypography>
+                <MsqdxTypography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                   {t("auth.register.subtitle")}
-                </Typography>
+                </MsqdxTypography>
               </Box>
+
               {error && (
-                <Box sx={{ p: 2, borderRadius: 2, bgcolor: "rgba(239, 68, 68, 0.12)" }}>
-                  <Typography variant="body2" color="error">
+                <Box sx={{ p: 2, borderRadius: 2, bgcolor: "error.light" }}>
+                  <MsqdxTypography variant="body2" sx={{ color: "error.contrastText" }}>
                     {error}
-                  </Typography>
+                  </MsqdxTypography>
                 </Box>
               )}
-              <form onSubmit={handleSubmit}>
+
+              <Box component="form" onSubmit={handleSubmit}>
                 <Stack spacing={2}>
-                  <TextField
+                  <MsqdxFormField
                     label={t("auth.register.name")}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     fullWidth
                   />
-                  <TextField
+                  <MsqdxFormField
                     label={t("auth.register.email")}
                     type="email"
                     value={email}
@@ -90,7 +135,7 @@ export default function RegisterPage() {
                     required
                     fullWidth
                   />
-                  <TextField
+                  <MsqdxFormField
                     label={t("auth.register.password")}
                     type="password"
                     value={password}
@@ -98,20 +143,27 @@ export default function RegisterPage() {
                     required
                     fullWidth
                   />
-                  <Button type="submit" variant="contained" disabled={loading}>
+                  <MsqdxButton
+                    type="submit"
+                    variant="contained"
+                    disabled={loading}
+                    fullWidth
+                    sx={{ mt: 0.5 }}
+                  >
                     {loading ? t("auth.register.ctaLoading") : t("auth.register.cta")}
-                  </Button>
+                  </MsqdxButton>
                 </Stack>
-              </form>
-              <Typography variant="body2" color="text.secondary">
+              </Box>
+
+              <MsqdxTypography variant="body2" color="text.secondary">
                 {t("auth.register.prompt")}{" "}
                 <Link href="/login" style={{ color: "inherit", fontWeight: 600 }}>
                   {t("auth.register.link")}
                 </Link>
-              </Typography>
+              </MsqdxTypography>
             </Stack>
-          </CardContent>
-        </Card>
+          </MsqdxMoleculeCard>
+        </Box>
       </Box>
     </ThemeRegistryNoSSR>
   );
