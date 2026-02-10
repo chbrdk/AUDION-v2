@@ -54,6 +54,8 @@ const nextConfig = {
 
   // Proxy API requests to backend services to avoid CORS and Mixed Content issues
   async rewrites() {
+    const personaBackend =
+      process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL?.trim() || 'http://api:8000';
     return [
       {
         source: '/api/chat/:path*',
@@ -66,6 +68,19 @@ const nextConfig = {
         destination: process.env.NEXT_PUBLIC_VOICE_API_URL
           ? `${process.env.NEXT_PUBLIC_VOICE_API_URL}/voice/:path*`
           : 'http://chat-api:8001/voice/:path*',
+      },
+      // Swagger UI (/api/docs) and OpenAPI spec - Swagger fetches /openapi.json from origin
+      {
+        source: '/api/docs',
+        destination: `${personaBackend}/docs`,
+      },
+      {
+        source: '/api/docs/:path*',
+        destination: `${personaBackend}/docs/:path*`,
+      },
+      {
+        source: '/openapi.json',
+        destination: `${personaBackend}/openapi.json`,
       },
       // NOTE: persona backend routes are handled by Next.js app/api proxies
       // to inject auth headers and project scoping.

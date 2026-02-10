@@ -6,12 +6,13 @@ export const dynamic = 'force-dynamic';
 import { useState } from "react";
 import { Box, Alert, Typography, Button } from "@mui/material";
 import { MsqdxIcon } from "@msqdx/react";
-import { getPersonaBackendBase } from "../../../api/_lib/backend";
+import { buildApiUrl } from "../../../api/_lib/backend";
 import { useI18n } from "../../../../components/i18n/i18n-provider";
 
 export default function SettingsApiDocsPage() {
   const [iframeError, setIframeError] = useState(false);
-  const docsUrl = getPersonaBackendBase({ preferPublic: true }) + "/docs";
+  // Use proxied /api/docs (same on server and client) to avoid hydration mismatch and 404
+  const docsUrl = buildApiUrl("/api/docs");
   const { t } = useI18n();
 
   return (
