@@ -125,7 +125,7 @@ export function MsqdxGlassChatItem({
               fontSize: "0.875rem",
             }}
           >
-            {conversation.personaName.charAt(0).toUpperCase()}
+            {(conversation.personaName ?? "").charAt(0).toUpperCase() || "?"}
           </Avatar>
 
           {/* Content */}

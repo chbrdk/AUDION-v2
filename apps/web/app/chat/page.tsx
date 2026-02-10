@@ -306,8 +306,8 @@ function ChatSharePageContent() {
           borderBottom: "1px solid rgba(255,255,255,0.08)",
         }}
       >
-        <Avatar src={persona.image_url ?? undefined} alt={persona.name} sx={{ width: 36, height: 36 }}>
-          {persona.name.charAt(0)}
+        <Avatar src={persona?.image_url ?? undefined} alt={persona?.name ?? ""} sx={{ width: 36, height: 36 }}>
+          {(persona?.name ?? "").charAt(0)}
         </Avatar>
         <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
           {personaDisplayName}

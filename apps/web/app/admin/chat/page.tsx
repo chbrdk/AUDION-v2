@@ -1435,7 +1435,7 @@ function AdminChatPageContent() {
             alt={activePersona.name}
             sx={{ width: 36, height: 36 }}
           >
-            {activePersona.name.charAt(0)}
+            {(activePersona?.name ?? "").charAt(0)}
           </Avatar>
           <Box textAlign="left">
             <Typography variant="body2" sx={{ fontWeight: 500, lineHeight: 1 }}>
@@ -2353,7 +2353,7 @@ function AdminChatPageContent() {
                 alt={personaDisplayName}
                 sx={{ width: 88, height: 88 }}
               >
-                {personaDisplayName.charAt(0)}
+                {(personaDisplayName ?? "").charAt(0)}
               </Avatar>
               <Box textAlign="center">
                 <Typography variant="h5" sx={{ fontWeight: 600 }}>

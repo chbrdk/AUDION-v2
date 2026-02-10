@@ -45,7 +45,7 @@ export function PersonaCard({
             src={persona.image_url ?? undefined}
             alt={persona.name}
             size="lg"
-            fallback={persona.name.charAt(0)}
+            fallback={(persona.name ?? "").charAt(0)}
             brandColor="green"
           />
           <Box flex={1}>
