@@ -261,7 +261,19 @@ function ChatSharePageContent() {
   if (loadingPersona) {
     return (
       <Box sx={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", p: 3 }}>
-        <Stack spacing={2} alignItems="center">
+        <Stack
+          spacing={2.5}
+          alignItems="center"
+          sx={{
+            background: alpha(theme.palette.background.paper, 0.92),
+            borderRadius: 4,
+            border: "1px solid var(--color-neutral)",
+            px: { xs: 3, md: 4 },
+            py: { xs: 4, md: 5 },
+            maxWidth: 480,
+            width: "min(90%, 480px)",
+          }}
+        >
           <CircularProgress size={32} />
           <Typography variant="body2" color="text.secondary">
             Loading persona…
@@ -274,7 +286,19 @@ function ChatSharePageContent() {
   if (error || !persona) {
     return (
       <Box sx={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", p: 3 }}>
-        <Stack spacing={2} alignItems="center" sx={{ maxWidth: 400, textAlign: "center" }}>
+        <Stack
+          spacing={2}
+          alignItems="center"
+          sx={{
+            maxWidth: 400,
+            textAlign: "center",
+            background: alpha(theme.palette.background.paper, 0.92),
+            borderRadius: 4,
+            border: "1px solid var(--color-neutral)",
+            px: 3,
+            py: 4,
+          }}
+        >
           <MsqdxIcon name="error" customSize={48} style={{ opacity: 0.5 }} />
           <Typography variant="body1">{error ?? "Persona not found"}</Typography>
           <Typography variant="body2" color="text.secondary">
@@ -285,16 +309,39 @@ function ChatSharePageContent() {
     );
   }
 
+  const sendDisabled = sending || !input.trim();
+
   return (
     <Box
       sx={{
         display: "flex",
         flexDirection: "column",
+        position: "relative",
         height: "100%",
         minHeight: 0,
       }}
     >
-      {/* Persona header */}
+      {/* Status bar (Sending…) – same as admin chat */}
+      {sending && (
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "flex-end",
+            padding: "0.5rem 1rem",
+            flexShrink: 0,
+          }}
+        >
+          <Stack direction="row" spacing={1} alignItems="center">
+            <CircularProgress size={16} />
+            <Typography variant="body2" sx={{ color: alpha(theme.palette.text.primary, 0.7) }}>
+              Sending…
+            </Typography>
+          </Stack>
+        </Box>
+      )}
+
+      {/* Persona header – MSQDX tokens */}
       <Box
         sx={{
           flexShrink: 0,
@@ -303,23 +350,33 @@ function ChatSharePageContent() {
           gap: 1.5,
           px: 2,
           py: 1.5,
-          borderBottom: "1px solid rgba(255,255,255,0.08)",
+          borderBottom: "1px solid var(--color-neutral)",
         }}
       >
         <Avatar src={persona?.image_url ?? undefined} alt={persona?.name ?? ""} sx={{ width: 36, height: 36 }}>
           {(persona?.name ?? "").charAt(0)}
         </Avatar>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-          {personaDisplayName}
-        </Typography>
+        <Box textAlign="left">
+          <Typography variant="body2" sx={{ fontWeight: 500, lineHeight: 1 }}>
+            {personaDisplayName}
+          </Typography>
+        </Box>
       </Box>
 
-      {/* Messages */}
-      <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", p: 2 }}>
+      {/* Messages – same padding/structure as admin chat */}
+      <Box
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: "auto",
+          padding: "1rem",
+          marginBottom: "1rem",
+        }}
+      >
         <MsqdxGlassChatPanel messages={messages} />
       </Box>
 
-      {/* Input */}
+      {/* Input area – same as admin chat (var(--color-neutral), rounded, maxWidth 720) */}
       <Box
         component="form"
         onSubmit={(e) => {
@@ -327,13 +384,25 @@ function ChatSharePageContent() {
           handleSend();
         }}
         sx={{
+          padding: "1rem",
+          borderTop: "1px solid var(--color-neutral)",
+          backgroundColor: "var(--color-neutral)",
+          borderRadius: "8px",
           flexShrink: 0,
-          p: 2,
-          borderTop: "1px solid rgba(255,255,255,0.08)",
-          backgroundColor: "rgba(0,0,0,0.2)",
+          position: "sticky",
+          bottom: 0,
+          zIndex: 10,
         }}
       >
-        <Box sx={{ display: "flex", gap: 1, alignItems: "center", maxWidth: 720, mx: "auto" }}>
+        <Box
+          sx={{
+            display: "flex",
+            gap: 1,
+            alignItems: "center",
+            maxWidth: "720px",
+            mx: "auto",
+          }}
+        >
           <TextField
             fullWidth
             variant="outlined"
@@ -343,17 +412,20 @@ function ChatSharePageContent() {
             onChange={(e) => setInput(e.target.value)}
             size="small"
             sx={{
-              "& .MuiOutlinedInput-root": { borderRadius: 999, backgroundColor: "var(--color-neutral)" },
+              "& .MuiOutlinedInput-root": {
+                borderRadius: 999,
+                backgroundColor: alpha(theme.palette.text.primary, 0.08),
+              },
             }}
           />
           <IconButton
             onClick={() => void handleSend()}
-            disabled={sending || !input.trim()}
+            disabled={sendDisabled}
             sx={{
-              backgroundColor: sending || !input.trim()
+              backgroundColor: sendDisabled
                 ? alpha(theme.palette.text.primary, 0.2)
                 : "var(--color-secondary-dx-green)",
-              color: "#fff",
+              color: "#ffffff",
               borderRadius: 999,
             }}
           >
