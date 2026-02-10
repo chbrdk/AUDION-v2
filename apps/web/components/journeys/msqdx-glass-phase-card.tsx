@@ -20,6 +20,7 @@ import { MsqdxGlassAiFieldButton } from "../ai/msqdx-glass-ai-field-button";
 import { MsqdxGlassAiButton } from "../ai/msqdx-glass-ai-button";
 import { MsqdxGlassEditButton } from "../generic/msqdx-glass-edit-button";
 import { useAiAssist, type UiAiAssistResult, type AiAssistExecuteOptions } from "../../hooks/use-ai-assist";
+import { useI18n } from "../i18n/i18n-provider";
 import { BRAND_COLOR } from "../../lib/branding";
 import { MSQDX_SPACING, MSQDX_EFFECTS } from "@msqdx/tokens";
 
@@ -95,12 +96,13 @@ export const MsqdxGlassJourneyPhaseCard = ({
     key: number;
   }>({ open: false, message: "", autoHide: null, key: 0 });
   const { execute: runAiAssist, loading: aiAssistLoading } = useAiAssist();
+  const { t } = useI18n();
 
   const runAiWithSnackbar = async <T = UiAiAssistResult>(
     options: AiAssistExecuteOptions,
     successMessage: string
   ): Promise<T> => {
-    setAiSnackbar({ open: true, message: "Generating suggestion...", autoHide: null, key: 0 });
+    setAiSnackbar({ open: true, message: t("journeys.ai.generating"), autoHide: null, key: 0 });
     try {
       const result = (await runAiAssist(options)) as T;
       setAiSnackbar((prev) => ({
@@ -111,7 +113,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
       }));
       return result;
     } catch (err) {
-      const errMsg = err instanceof Error ? err.message : "AI request failed";
+      const errMsg = err instanceof Error ? err.message : t("journeys.ai.requestFailed");
       setAiSnackbar((prev) => ({
         open: true,
         message: errMsg,
@@ -152,7 +154,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
     durationLabel ? { icon: "schedule" as const, label: durationLabel } : null,
     emotionLabel ? { icon: "mood" as const, label: emotionLabel } : null,
     validationLabel ? { icon: "verified" as const, label: validationLabel } : null,
-    phase.generated_by_ai ? { icon: "auto_awesome" as const, label: "AI generated" } : null,
+    phase.generated_by_ai ? { icon: "auto_awesome" as const, label: t("journeys.editor.aiGenerated") } : null,
   ].filter(Boolean) as { icon: string; label: string }[];
 
   const sortedElements = [...(phase.elements ?? [])].sort((a, b) => a.element_order - b.element_order);
@@ -256,7 +258,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
           },
           maxSuggestions: 4,
         },
-        "Journey moments suggestion generated"
+        t("journeys.ai.momentsGenerated")
       );
       if (result.suggestions?.length) {
         const newMoments: MomentDraft[] = result.suggestions.map((s) => ({
@@ -285,7 +287,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
             target_group_summary: getTargetGroupSummary(),
           },
         },
-        "Phase name suggestion generated"
+        t("journeys.ai.nameGenerated")
       );
       if (result.rawOutput) setFormData({ ...formData, name: result.rawOutput.trim() });
     } catch (err) {
@@ -308,7 +310,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
             target_group_summary: getTargetGroupSummary(),
           },
         },
-        "Phase description suggestion generated"
+        t("journeys.ai.descriptionGenerated")
       );
       if (result.rawOutput) setFormData({ ...formData, description: result.rawOutput.trim() });
     } catch (err) {
@@ -329,7 +331,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
             target_group_summary: getTargetGroupSummary(),
           },
         },
-        "Emotion suggestion generated"
+        t("journeys.ai.emotionGenerated")
       );
       if (result.rawOutput) {
         const validEmotions = ["frustrated", "anxious", "neutral", "hopeful", "satisfied", "delighted"];
@@ -378,13 +380,13 @@ export const MsqdxGlassJourneyPhaseCard = ({
               </Box>
               <Box sx={{ flex: 1, position: "relative" }}>
                 <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
-                  Phase
+                  {t("journeys.editor.phase")}
                 </MsqdxTypography>
                 <MsqdxFormField
                   label=""
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Phase name"
+                  placeholder={t("journeys.editor.placeholderPhaseName")}
                   disabled={saving}
                   fullWidth
                   size="small"
@@ -396,7 +398,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
                 </Box>
               </Box>
               <Box sx={{ display: "flex", gap: "8px" }}>
-                <MsqdxButton variant="text" size="small" onClick={handleCancel} disabled={saving} aria-label="Cancel">
+                <MsqdxButton variant="text" size="small" onClick={handleCancel} disabled={saving} aria-label={t("journeys.editor.cancel")}>
                   <MsqdxIcon name="close" customSize={16} />
                 </MsqdxButton>
                 <MsqdxButton
@@ -405,7 +407,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
                   brandColor="green"
                   onClick={handleSave}
                   disabled={saving || !formData.name.trim()}
-                  aria-label="Save"
+                  aria-label={t("common.save")}
                 >
                   <MsqdxIcon name={saving ? "hourglass_empty" : "check"} customSize={16} />
                 </MsqdxButton>
@@ -416,13 +418,13 @@ export const MsqdxGlassJourneyPhaseCard = ({
 
             <Box sx={{ position: "relative" }}>
               <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
-                Focus
+                {t("journeys.editor.focus")}
               </MsqdxTypography>
               <MsqdxTextareaField
                 label=""
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Describe the goal, mindset or tasks in this phase."
+                placeholder={t("journeys.editor.placeholderDescription")}
                 minRows={3}
                 disabled={saving}
                 fullWidth
@@ -493,7 +495,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
                 label="Expected Emotion"
                 value={formData.expected_emotion ?? ""}
                 onChange={(e) => setFormData({ ...formData, expected_emotion: e.target.value || undefined })}
-                placeholder="e.g., excited, anxious"
+                placeholder={t("journeys.editor.placeholderEmotion")}
                 disabled={saving}
                 size="small"
                 fullWidth
@@ -524,20 +526,20 @@ export const MsqdxGlassJourneyPhaseCard = ({
               >
                 <Box sx={{ display: "flex", flexDirection: "column", gap: "2px" }}>
                   <MsqdxTypography variant="caption" weight="semibold" sx={{ display: "block" }}>
-                    Journey Moments
+                    {t("journeys.editor.journeyMoments")}
                   </MsqdxTypography>
                   <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
-                    Capture key actions, thoughts or touchpoints of this phase.
+                    {t("journeys.editor.journeyMomentsHint")}
                   </MsqdxTypography>
                 </Box>
                 <Box sx={{ display: "flex", flexDirection: "row", flexWrap: "wrap", gap: `${MSQDX_SPACING.gap.xs}px` }}>
                   <MsqdxGlassAiButton
-                    templates={[{ id: "journey.moments", label: "AI suggestion", maxSuggestions: 4 }]}
+                    templates={[{ id: "journey.moments", label: t("journeys.editor.aiSuggestion"), maxSuggestions: 4 }]}
                     onClick={handleAiMomentsSuggestion}
                     disabled={!journey || saving || aiAssistLoading}
                     loading={aiAssistLoading}
                     size="small"
-                    title="AI suggestion"
+                    title={t("journeys.editor.aiSuggestion")}
                   />
                   <MsqdxButton
                     variant="outlined"
@@ -546,13 +548,13 @@ export const MsqdxGlassJourneyPhaseCard = ({
                     disabled={saving}
                     startIcon={<MsqdxIcon name="add_circle" customSize={14} />}
                   >
-                    Add moment
+                    {t("journeys.editor.addMoment")}
                   </MsqdxButton>
                 </Box>
               </Box>
               {momentDrafts.length === 0 ? (
                 <MsqdxTypography variant="body2" sx={{ color: "text.secondary", py: 2 }}>
-                  No journey moments added yet.
+                  {t("journeys.editor.noMoments")}
                 </MsqdxTypography>
               ) : (
                 <Box sx={{ display: "flex", flexDirection: "column", gap: `${MSQDX_SPACING.gap.xs}px` }}>
@@ -571,7 +573,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
                     >
                       <Box sx={{ width: 140, flexShrink: 0 }}>
                         <MsqdxSelect
-                          label="Type"
+                          label={t("journeys.editor.momentType")}
                           value={moment.element_type}
                           onChange={(e: any) => updateMomentDraft(moment.id, { element_type: e.target.value })}
                           options={ELEMENT_TYPE_OPTIONS.map((opt) => ({
@@ -585,10 +587,10 @@ export const MsqdxGlassJourneyPhaseCard = ({
                       </Box>
                       <Box sx={{ flex: 1, minWidth: 120 }}>
                         <MsqdxTextareaField
-                          label="Description"
+                          label={t("journeys.editor.momentDescription")}
                           value={moment.content}
                           onChange={(e) => updateMomentDraft(moment.id, { content: e.target.value })}
-                          placeholder="Describe the touchpoint or thought..."
+                          placeholder={t("journeys.editor.momentDescriptionPlaceholder")}
                           minRows={2}
                           disabled={saving}
                           fullWidth
@@ -600,7 +602,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
                         size="small"
                         onClick={() => removeMomentDraft(moment.id)}
                         disabled={saving}
-                        aria-label="Remove moment"
+                        aria-label={t("journeys.editor.removeMoment")}
                         sx={{ alignSelf: "flex-start", mt: 2 }}
                       >
                         <MsqdxIcon name="close" customSize={14} />
@@ -665,7 +667,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
               </Box>
               <Box sx={{ minWidth: 0 }}>
                 <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                  Phase
+                  {t("journeys.editor.phase")}
                 </MsqdxTypography>
                 <MsqdxTypography variant="h6" weight="semibold">
                   {phase.name}
@@ -681,7 +683,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
                   size="small"
                   onClick={async (e) => {
                     e.stopPropagation();
-                    if (confirm(`Do you really want to delete the phase "${phase.name}"?`)) {
+                    if (confirm(t("journeys.editor.deleteConfirm", { name: phase.name }))) {
                       try {
                         await onDelete(phase.id);
                       } catch (err) {
@@ -689,7 +691,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
                       }
                     }
                   }}
-                  aria-label="Delete phase"
+                  aria-label={t("common.delete")}
                   sx={{
                     minWidth: 28,
                     minHeight: 28,
@@ -729,7 +731,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
               Focus
             </MsqdxTypography>
             <MsqdxTypography variant="body2" sx={{ color: "text.primary" }}>
-              {phase.description || "No description yet. Capture the goal and emotional state of this phase."}
+              {phase.description || t("journeys.editor.noDescriptionYet")}
             </MsqdxTypography>
           </Box>
 
@@ -741,7 +743,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
             </MsqdxTypography>
             {highlightedElements.length === 0 ? (
               <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
-                No elements yet. Map touchpoints, thoughts or feelings.
+                {t("journeys.editor.noElementsYet")}
               </MsqdxTypography>
             ) : (
               <Box component="ul" sx={{ listStyle: "none", p: 0, m: 0, display: "flex", flexDirection: "column", gap: 1 }}>

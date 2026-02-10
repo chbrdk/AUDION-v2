@@ -1,8 +1,7 @@
 "use client";
 
-import type { ChangeEvent, FormEvent } from "react";
+import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 
 import type {
   PersonaDocument,
@@ -37,6 +36,7 @@ import { MsqdxGlassCollapsiblePanel } from "./admin/msqdx-glass-collapsible-pane
 import { Box } from "@mui/material";
 import { useProject } from "./projects/project-provider";
 import { buildApiUrl } from "../app/api/_lib/backend";
+import { useI18n } from "./i18n/i18n-provider";
 
 type MsqdxGlassTargetGroupAdminPanelProps = {
   initialList: TargetGroupListResponse;
@@ -154,6 +154,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
   docsUrl,
 }: MsqdxGlassTargetGroupAdminPanelProps) => {
   const { activeProjectId, activeProject } = useProject();
+  const { t } = useI18n();
   const [list, setList] = useState<TargetGroupListResponse>(initialList);
   const [selectedId, setSelectedId] = useState<string | null>(initialList.items[0]?.id ?? null);
   const [detail, setDetail] = useState<TargetGroupResponse | null>(null);
@@ -238,7 +239,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
         }
       } catch (error) {
         console.error("Failed to load target group:", error);
-        setDetailError(error instanceof Error ? error.message : "Failed to load target group");
+        setDetailError(error instanceof Error ? error.message : t("targetGroupsAdmin.loadFailed"));
       } finally {
         setDetailLoading(false);
       }
@@ -267,10 +268,10 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
         setSelectedId(null);
         setDetail(null);
       }
-      notify("List updated");
+      notify(t("targetGroupsAdmin.toasts.listUpdated"));
     } catch (error) {
       console.error("Failed to refresh list:", error);
-      notify("Error updating list");
+      notify(t("targetGroupsAdmin.toasts.listUpdateError"));
     } finally {
       setListRefreshing(false);
     }
@@ -298,10 +299,10 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
       await updateTargetGroup(selectedId, payload);
       await loadDetail(selectedId);
       await refreshList();
-      notify("Target Group updated");
+      notify(t("targetGroupsAdmin.toasts.targetGroupUpdated"));
     } catch (error) {
       console.error("Save failed:", error);
-      notify("Error saving");
+      notify(t("targetGroupsAdmin.toasts.saveError"));
       throw error;
     } finally {
       setSavePending(false);
@@ -310,7 +311,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
 
   const handleCreate = async () => {
     if (!activeProjectId || !createForm.name || !createForm.segment) {
-      notify("Project, Name and Segment are required.");
+      notify(t("targetGroupsAdmin.toasts.projectNameSegmentRequired"));
       return;
     }
     setCreatePending(true);
@@ -325,10 +326,10 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
       setCreateForm(defaultCreateFormState);
       await refreshList();
       setSelectedId(created.id);
-      notify("Target Group created");
+      notify(t("targetGroupsAdmin.toasts.targetGroupCreated"));
     } catch (error) {
       console.error("Create failed:", error);
-      notify("Error creating");
+      notify(t("targetGroupsAdmin.toasts.createError"));
     } finally {
       setCreatePending(false);
     }
@@ -341,7 +342,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
   const handleKnowledgeSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!selectedId || !knowledgeForm.title || !knowledgeForm.content) {
-      notify("Title and content are required.");
+      notify(t("targetGroupsAdmin.toasts.titleContentRequired"));
       return;
     }
     setKnowledgePending(true);
@@ -356,10 +357,10 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
       setKnowledgeEntries(knowledge);
       setKnowledgeForm(defaultKnowledgeForm);
       setKnowledgeFormExpanded(false);
-      notify("Knowledge entry added");
+      notify(t("targetGroupsAdmin.toasts.knowledgeAdded"));
     } catch (error) {
       console.error("Knowledge add failed:", error);
-      notify("Failed to save knowledge entry");
+      notify(t("targetGroupsAdmin.toasts.knowledgeSaveFailed"));
     } finally {
       setKnowledgePending(false);
     }
@@ -382,17 +383,17 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
 
   const handleDocumentUpload = async (file: File) => {
     if (!selectedId) {
-      notify("Please select a Target Group");
+      notify(t("targetGroupsAdmin.toasts.selectTargetGroup"));
       return;
     }
     setDocumentUploadPending(true);
     try {
       await uploadTargetGroupDocument(selectedId, file, "target-group-admin-ui");
       await loadDetail(selectedId);
-      notify("Document uploaded");
+      notify(t("targetGroupsAdmin.toasts.documentUploaded"));
     } catch (error) {
       console.error("Document upload failed", error);
-      notify("Failed to upload document");
+      notify(t("targetGroupsAdmin.toasts.documentUploadFailed"));
     } finally {
       setDocumentUploadPending(false);
     }
@@ -406,35 +407,35 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
     if (!selectedId) {
       return;
     }
-    if (!confirm("Are you sure you want to delete this knowledge entry?")) {
+    if (!confirm(t("targetGroupsAdmin.toasts.deleteKnowledgeConfirm"))) {
       return;
     }
     try {
       await deleteTargetGroupKnowledge(selectedId, knowledgeId);
       const knowledge = await fetchTargetGroupKnowledge(selectedId);
       setKnowledgeEntries(knowledge);
-      notify("Knowledge entry deleted");
+      notify(t("targetGroupsAdmin.toasts.knowledgeDeleted"));
     } catch (error) {
       console.error("Knowledge delete failed:", error);
-      notify("Error deleting");
+      notify(t("targetGroupsAdmin.toasts.deleteError"));
     }
   };
 
   const handleCreatePersona = async (request: TargetGroupPersonaGenerateRequest) => {
     if (!selectedId) {
-      notify("Please select a Target Group");
+      notify(t("targetGroupsAdmin.toasts.selectTargetGroup"));
       return;
     }
     setCreatePersonaPending(true);
     try {
       await generateTargetGroupPersona(selectedId, request);
       await loadDetail(selectedId); // Reload to update persona list
-      notify("Persona created");
+      notify(t("targetGroupsAdmin.toasts.personaCreated"));
       setPersonaFormExpanded(false);
       setPersonaForm(defaultPersonaForm);
     } catch (error) {
       console.error("Persona creation failed:", error);
-      notify("Error creating persona");
+      notify(t("targetGroupsAdmin.toasts.personaCreateError"));
       throw error;
     } finally {
       setCreatePersonaPending(false);
@@ -448,7 +449,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
   const handlePersonaSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!selectedId || !personaForm.segment.trim()) {
-      notify("Segment ist Pflicht.");
+      notify(t("targetGroupsAdmin.toasts.segmentRequired"));
       return;
     }
     const request: TargetGroupPersonaGenerateRequest = {
@@ -468,15 +469,15 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
 
   return (
     <div className="msqdx-glass-admin-grid">
-      <MsqdxGlassCollapsiblePanel title="Target Groups" defaultExpanded={true}>
+      <MsqdxGlassCollapsiblePanel title={t("targetGroupsAdmin.title")} defaultExpanded={true}>
         <section className="msqdx-glass-panel">
           <header className="msqdx-glass-panel__header">
             <div>
-              <MsqdxTypography variant="h5" weight="semibold">Target Groups</MsqdxTypography>
-              <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>{list.total} Einträge</MsqdxTypography>
+              <MsqdxTypography variant="h5" weight="semibold">{t("targetGroupsAdmin.title")}</MsqdxTypography>
+              <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>{t("targetGroupsAdmin.entries", { count: list.total })}</MsqdxTypography>
             </div>
             <MsqdxButton variant="text" size="small" onClick={refreshList} disabled={listRefreshing} startIcon={<MsqdxIcon name="refresh" customSize={16} />}>
-              Refresh
+              {t("targetGroupsAdmin.refresh")}
             </MsqdxButton>
           </header>
           <Box
@@ -500,7 +501,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
           >
             {list.items.length === 0 && (
               <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
-                No target groups available yet.
+                {t("targetGroupsAdmin.empty")}
               </MsqdxTypography>
             )}
             {list.items.map((item) => (
@@ -540,43 +541,43 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
           </Box>
           <MsqdxCard variant="flat" borderRadius="button" sx={{ mt: 2, p: 2, border: "1px solid", borderColor: "divider" }}>
             <MsqdxTypography variant="h6" weight="semibold" sx={{ mb: 1.5 }}>
-              New Target Group
+              {t("targetGroupsAdmin.newTargetGroup")}
             </MsqdxTypography>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
               <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
                 {activeProject?.name
-                  ? `Project: ${activeProject.name}`
+                  ? t("targetGroupsAdmin.projectLabel", { name: activeProject.name })
                   : activeProjectId
-                  ? `Project: ${activeProjectId}`
-                  : "Select a project to create target groups."}
+                  ? t("targetGroupsAdmin.projectIdLabel", { id: activeProjectId })
+                  : t("targetGroupsAdmin.selectProject")}
               </MsqdxTypography>
               <MsqdxFormField
-                label="Name"
+                label={t("targetGroupsAdmin.name")}
                 value={createForm.name}
                 onChange={(e) => setCreateForm((prev) => ({ ...prev, name: e.target.value }))}
-                placeholder="Target Group Name"
+                placeholder={t("targetGroupsAdmin.namePlaceholder")}
                 fullWidth
                 size="small"
                 borderColor={BRAND_COLOR}
               />
               <MsqdxFormField
-                label="Segment"
+                label={t("targetGroupsAdmin.segment")}
                 value={createForm.segment}
                 onChange={(e) =>
                   setCreateForm((prev) => ({ ...prev, segment: e.target.value }))
                 }
-                placeholder="B2B / Enterprise / etc."
+                placeholder={t("targetGroupsAdmin.segmentPlaceholder")}
                 fullWidth
                 size="small"
                 borderColor={BRAND_COLOR}
               />
               <MsqdxTextareaField
-                label="Description"
+                label={t("targetGroupsAdmin.description")}
                 value={createForm.description}
                 onChange={(e) =>
                   setCreateForm((prev) => ({ ...prev, description: e.target.value }))
                 }
-                placeholder="Beschreibung"
+                placeholder={t("targetGroupsAdmin.descriptionPlaceholder")}
                 minRows={3}
                 fullWidth
                 borderColor={BRAND_COLOR}
@@ -589,7 +590,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                 disabled={createPending || !activeProjectId}
                 startIcon={<MsqdxIcon name="add" customSize={16} />}
               >
-                Target Group anlegen
+                {t("targetGroupsAdmin.create")}
               </MsqdxButton>
             </Box>
           </MsqdxCard>
@@ -597,8 +598,8 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
       </MsqdxGlassCollapsiblePanel>
 
       <section className="msqdx-glass-panel">
-        {!selectedId && <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>Please select a Target Group.</MsqdxTypography>}
-        {selectedId && detailLoading && <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>Loading Target Group...</MsqdxTypography>}
+        {!selectedId && <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>{t("targetGroupsAdmin.selectTargetGroup")}</MsqdxTypography>}
+        {selectedId && detailLoading && <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>{t("targetGroupsAdmin.loading")}</MsqdxTypography>}
         {detailError && <MsqdxTypography variant="body2" color="error">{detailError}</MsqdxTypography>}
         {detail && (
           <div className="msqdx-glass-detail">
@@ -606,7 +607,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
               <Box sx={{ gridColumn: "1 / -1" }}>
                 <MsqdxDashboardCard
                   id="basic"
-                  title="Basic"
+                  title={t("targetGroupsAdmin.basic")}
                   icon="groups"
                   brandColor={BRAND_COLOR}
                   iconColor={{ color: "var(--color-theme-accent)" }}
@@ -626,7 +627,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
               <Box sx={{ gridColumn: "1 / -1" }}>
                 <MsqdxDashboardCard
                   id="metadata"
-                  title="Metadaten"
+                  title={t("targetGroupsAdmin.metadata")}
                   icon="info"
                   brandColor={BRAND_COLOR}
                   iconColor={{ color: "var(--color-theme-accent)" }}
@@ -635,15 +636,15 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                 >
                   <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" }, gap: 2, borderLeft: "1px solid", borderColor: "divider", pl: 2 }}>
                     <Box>
-                      <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>Project ID</MsqdxTypography>
+                      <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>{t("targetGroupsAdmin.projectId")}</MsqdxTypography>
                       <MsqdxTypography variant="body2">{detail.projectId ?? (detail as any).project_id ?? "—"}</MsqdxTypography>
                     </Box>
                     <Box>
-                      <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>Created</MsqdxTypography>
+                      <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>{t("targetGroupsAdmin.created")}</MsqdxTypography>
                       <MsqdxTypography variant="body2">{formatDate(detail.createdAt ?? (detail as any).created_at ?? "")}</MsqdxTypography>
                     </Box>
                     <Box>
-                      <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>Updated</MsqdxTypography>
+                      <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>{t("targetGroupsAdmin.updated")}</MsqdxTypography>
                       <MsqdxTypography variant="body2">{formatDate(detail.updatedAt ?? (detail as any).updated_at ?? "")}</MsqdxTypography>
                     </Box>
                   </Box>
@@ -653,7 +654,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
             <Box sx={{ gridColumn: "1 / -1" }}>
                 <MsqdxDashboardCard
                   id="personas"
-                  title={`Personas (${personas.length})`}
+                  title={t("targetGroupsAdmin.personas", { count: personas.length })}
                   icon="person"
                   brandColor={BRAND_COLOR}
                   iconColor={{ color: "var(--color-theme-accent)" }}
@@ -664,9 +665,9 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                 personas={personas} 
                 onDelete={async (personaId: string) => {
                   const persona = personas.find(p => p.id === personaId);
-                  const personaName = persona?.name || "this persona";
+                  const personaName = persona?.name || t("targetGroupsAdmin.thisPersona");
                   const confirmed = window.confirm(
-                    `Are you sure you want to delete "${personaName}"?\n\nThis action cannot be undone. The persona will be permanently removed.`
+                    t("targetGroupsAdmin.deletePersonaConfirm", { name: personaName })
                   );
                   
                   if (!confirmed) {
@@ -685,25 +686,25 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                       const personasData = await fetchTargetGroupPersonas(selectedId);
                       setPersonas(personasData.items);
                     }
-                    notify("Persona deleted");
+                    notify(t("targetGroupsAdmin.toasts.personaDeleted"));
                   } catch (error) {
                     console.error("Persona delete failed", error);
-                    notify("Delete failed");
+                    notify(t("targetGroupsAdmin.toasts.deleteFailed"));
                   }
                 }}
               />
               <Box sx={{ mt: 2, p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
-                <MsqdxTypography variant="subtitle2" weight="semibold" sx={{ mb: 1.5 }}>Neue Persona erstellen</MsqdxTypography>
+                <MsqdxTypography variant="subtitle2" weight="semibold" sx={{ mb: 1.5 }}>{t("targetGroupsAdmin.createPersona")}</MsqdxTypography>
                 <Box
                   component="form"
                   onSubmit={handlePersonaSubmit}
                   sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}
                 >
                   <MsqdxFormField
-                    label="Segment Name"
+                    label={t("targetGroupsAdmin.segmentName")}
                     value={personaForm.segment}
                     onChange={(e) => handlePersonaField("segment", e.target.value)}
-                    placeholder="z.B. Skeptischer CFO, Technikaffiner CTO"
+                    placeholder={t("targetGroupsAdmin.segmentPlaceholderPersona")}
                     required
                     disabled={createPersonaPending}
                     fullWidth
@@ -711,10 +712,10 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                     borderColor={BRAND_COLOR}
                   />
                   <MsqdxTextareaField
-                    label="Beschreibung (optional)"
+                    label={t("targetGroupsAdmin.descriptionOptional")}
                     value={personaForm.description}
                     onChange={(e) => handlePersonaField("description", e.target.value)}
-                    placeholder="Optionale Beschreibung was diese Persona repräsentiert"
+                    placeholder={t("targetGroupsAdmin.descriptionOptionalPlaceholder")}
                     minRows={3}
                     disabled={createPersonaPending}
                     fullWidth
@@ -727,7 +728,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                     disabled={createPersonaPending || !personaForm.segment.trim()}
                     startIcon={<MsqdxIcon name={createPersonaPending ? "hourglass_empty" : "add"} customSize={14} />}
                   >
-                    {createPersonaPending ? "Erstelle..." : "Erstellen"}
+                    {createPersonaPending ? t("targetGroupsAdmin.creating") : t("targetGroupsAdmin.createButton")}
                   </MsqdxButton>
                 </Box>
               </Box>
@@ -737,7 +738,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
             <Box sx={{ gridColumn: "1 / -1" }}>
                 <MsqdxDashboardCard
                   id="knowledge"
-                  title={`Knowledge (${knowledgeEntries.length})`}
+                  title={t("targetGroupsAdmin.knowledge", { count: knowledgeEntries.length })}
                   icon="menu_book"
                   brandColor={BRAND_COLOR}
                   iconColor={{ color: "var(--color-theme-accent)" }}
@@ -745,7 +746,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                   onToggle={toggleAccordion}
                 >
               {knowledgeEntries.length === 0 ? (
-                <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>No knowledge entries yet.</MsqdxTypography>
+                <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>{t("targetGroupsAdmin.knowledgeEmpty")}</MsqdxTypography>
               ) : (
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
                   {knowledgeEntries.map((entry) => (
@@ -768,7 +769,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                         brandColor="pink"
                         onClick={() => handleDeleteKnowledge(entry.id)}
                         startIcon={<MsqdxIcon name="delete" customSize={18} />}
-                        aria-label="Knowledge Eintrag löschen"
+                        aria-label={t("targetGroupsAdmin.deleteKnowledge")}
                       />
                     </Box>
                   ))}
@@ -776,26 +777,26 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
               )}
 
               <Box sx={{ mt: 2, p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
-                <MsqdxTypography variant="subtitle2" weight="semibold" sx={{ mb: 1.5 }}>Neuer Knowledge Eintrag</MsqdxTypography>
+                <MsqdxTypography variant="subtitle2" weight="semibold" sx={{ mb: 1.5 }}>{t("targetGroupsAdmin.newKnowledgeEntry")}</MsqdxTypography>
                 <Box
                   component="form"
                   onSubmit={handleKnowledgeSubmit}
                   sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}
                 >
                   <MsqdxFormField
-                    label="Titel"
+                    label={t("targetGroupsAdmin.titleLabel")}
                     value={knowledgeForm.title}
                     onChange={(e) => handleKnowledgeField("title", e.target.value)}
-                    placeholder="Titel"
+                    placeholder={t("targetGroupsAdmin.titlePlaceholder")}
                     fullWidth
                     size="small"
                     borderColor={BRAND_COLOR}
                   />
                   <MsqdxTextareaField
-                    label="Inhalt"
+                    label={t("targetGroupsAdmin.content")}
                     value={knowledgeForm.content}
                     onChange={(e) => handleKnowledgeField("content", e.target.value)}
-                    placeholder="Inhalt"
+                    placeholder={t("targetGroupsAdmin.contentPlaceholder")}
                     minRows={3}
                     fullWidth
                     borderColor={BRAND_COLOR}
@@ -807,7 +808,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                     disabled={knowledgePending}
                     startIcon={<MsqdxIcon name="add" customSize={14} />}
                   >
-                    {knowledgePending ? "Adding..." : "Add"}
+                    {knowledgePending ? t("targetGroupsAdmin.adding") : t("targetGroupsAdmin.add")}
                   </MsqdxButton>
                 </Box>
               </Box>
@@ -817,7 +818,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
             <Box sx={{ gridColumn: "1 / -1" }}>
                 <MsqdxDashboardCard
                   id="documents"
-                  title={`Dokumente (${documents.length})${documents.some((d) => d.ingestionStatus === "pending" || d.ingestionStatus === "processing") ? " · Updating…" : ""}`}
+                  title={t("targetGroupsAdmin.documents", { count: documents.length }) + (documents.some((d) => d.ingestionStatus === "pending" || d.ingestionStatus === "processing") ? t("targetGroupsAdmin.documentsUpdating") : "")}
                   icon="description"
                   brandColor={BRAND_COLOR}
                   iconColor={{ color: "var(--color-theme-accent)" }}
@@ -825,19 +826,19 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                   onToggle={toggleAccordion}
                 >
               {documents.length === 0 && (
-                <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>No documents uploaded.</MsqdxTypography>
+                <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>{t("targetGroupsAdmin.documentsEmpty")}</MsqdxTypography>
               )}
               {documents.length > 0 && (
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
                   {documents.map((doc) => {
                     const chipConfig =
                       doc.ingestionStatus === "completed"
-                        ? { label: "INDEXED", brandColor: "green" as const }
+                        ? { label: t("targetGroupsAdmin.indexed"), brandColor: "green" as const }
                         : doc.ingestionStatus === "processing"
-                          ? { label: `PROCESSING ${doc.ingestionProgress ? Math.round(doc.ingestionProgress) : 0}%`, brandColor: "orange" as const }
+                          ? { label: t("targetGroupsAdmin.processing", { progress: doc.ingestionProgress ? Math.round(doc.ingestionProgress) : 0 }), brandColor: "orange" as const }
                           : doc.ingestionStatus === "failed"
-                            ? { label: "ERROR", brandColor: "pink" as const }
-                            : { label: "PENDING", brandColor: "orange" as const };
+                            ? { label: t("targetGroupsAdmin.error"), brandColor: "pink" as const }
+                            : { label: t("targetGroupsAdmin.pending"), brandColor: "orange" as const };
                     return (
                       <Box
                         key={doc.id}
@@ -873,7 +874,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
               <Box sx={{ mt: 2, p: 2, border: "1px dashed", borderColor: "divider", borderRadius: 2, textAlign: "center" }}>
                 <MsqdxIcon name="upload_file" customSize={32} style={{ color: "var(--color-theme-accent)", marginBottom: "0.5rem", display: "block" }} />
                 <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 1 }}>
-                  PDF, DOCX, PPTX, MP3 — Drag file here or click to select
+                  {t("targetGroupsAdmin.uploadHint")}
                 </MsqdxTypography>
                 <MsqdxButton
                   variant="outlined"
@@ -882,7 +883,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                   disabled={documentUploadPending}
                   startIcon={<MsqdxIcon name="upload" customSize={14} />}
                 >
-                  {documentUploadPending ? "Uploading..." : "Select File"}
+                  {documentUploadPending ? t("targetGroupsAdmin.uploading") : t("targetGroupsAdmin.selectFile")}
                 </MsqdxButton>
               </Box>
                 </MsqdxDashboardCard>
@@ -891,7 +892,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
             <Box sx={{ gridColumn: "1 / -1" }}>
                 <MsqdxDashboardCard
                   id="knowledge-explorer"
-                  title="Knowledge Explorer"
+                  title={t("targetGroupsAdmin.knowledgeExplorer")}
                   icon="search"
                   brandColor={BRAND_COLOR}
                   iconColor={{ color: "var(--color-theme-accent)" }}

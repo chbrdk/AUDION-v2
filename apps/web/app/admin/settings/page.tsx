@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { getServerT } from "../../../lib/i18n/server";
 
-export default function SettingsLandingPage() {
-  const t = getServerT();
+export default async function SettingsLandingPage() {
+  const t = await getServerT();
   const cards = [
     {
       title: t("settings.cards.projects.title"),

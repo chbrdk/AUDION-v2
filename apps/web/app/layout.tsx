@@ -27,8 +27,10 @@ const notoSansJp = Noto_Sans_JP({
   display: "swap"
 });
 
-export default function RootLayout({ children }: { children: ReactNode }) {
-  const locale = resolveLocale(cookies().get("audion_locale")?.value, headers().get("accept-language"));
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const cookieStore = await cookies();
+  const headersList = await headers();
+  const locale = resolveLocale(cookieStore.get("audion_locale")?.value, headersList.get("accept-language"));
   return (
     <html lang={locale} suppressHydrationWarning>
       <head>

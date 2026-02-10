@@ -41,7 +41,7 @@ async function fetchPersonaList(projectId: string, headers: HeadersInit): Promis
 }
 
 export default async function PersonaAdminPage() {
-  const t = getServerT();
+  const t = await getServerT();
   let list: PersonaListResponse;
   let error: string | null = null;
   const projectId = await getServerProjectId();

@@ -24,6 +24,7 @@ import { Box } from "@mui/material";
 import { buildApiUrl } from "../app/api/_lib/backend";
 import { BRAND_COLOR } from "../lib/branding";
 import { useProject } from "./projects/project-provider";
+import { useI18n } from "./i18n/i18n-provider";
 
 type MsqdxGlassPersonaAdminPanelProps = {
   initialList: PersonaListResponse;
@@ -49,11 +50,6 @@ type KnowledgeFormState = {
   content: string;
 };
 
-const statusChipConfig: Record<string, { label: string; brandColor: "orange" | "green" | "purple" }> = {
-  draft: { label: "Draft", brandColor: "orange" },
-  published: { label: "Published", brandColor: "green" },
-  archived: { label: "Archived", brandColor: "purple" },
-};
 
 const defaultEditFormState: EditFormState = {
   name: "",
@@ -136,8 +132,20 @@ const notify = (message: string) => {
   }, 5000);
 };
 
+const statusChipConfig: Record<string, { brandColor: "orange" | "green" | "purple" }> = {
+  draft: { brandColor: "orange" },
+  published: { brandColor: "green" },
+  archived: { brandColor: "purple" },
+};
+
 export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlassPersonaAdminPanelProps) => {
   const { activeProjectId, activeProject } = useProject();
+  const { t } = useI18n();
+
+  const getStatusLabel = (status: string) => {
+    const key = status === "draft" ? "personaAdmin.statuses.draft" : status === "published" ? "personaAdmin.statuses.published" : "personaAdmin.statuses.archived";
+    return t(key);
+  };
   const [list, setList] = useState<PersonaListResponse>(initialList);
   const [selectedId, setSelectedId] = useState<string | null>(initialList.items[0]?.id ?? null);
   const [detail, setDetail] = useState<PersonaResponse | null>(null);
@@ -180,7 +188,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
     async (personaId: string) => {
       if (!personaId || personaId === "undefined") {
         setDetail(null);
-        setDetailError("No valid persona selected.");
+        setDetailError(t("personaAdmin.noValidPersona"));
         return;
       }
       setDetailError(null);
@@ -199,12 +207,12 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
       } catch (error) {
         console.error("Persona detail load failed", error);
         setDetail(null);
-        setDetailError("Could not load persona.");
+        setDetailError(t("personaAdmin.loadFailed"));
       } finally {
         setDetailLoading(false);
       }
     },
-    [activeProjectId]
+    [activeProjectId, t]
   );
 
   const refreshList = useCallback(async () => {
@@ -228,10 +236,10 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
       if (!payload.items.find((item) => item.id === selectedId)) {
         setSelectedId(payload.items[0]?.id ?? null);
       }
-      notify("Persona list updated");
+      notify(t("personaAdmin.toasts.listUpdated"));
     } catch (error) {
       console.error("Persona list refresh failed", error);
-      notify("Update failed");
+      notify(t("personaAdmin.toasts.updateFailed"));
     } finally {
       setListRefreshing(false);
     }
@@ -563,10 +571,10 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
         }));
       }
 
-      notify("Persona saved");
+      notify(t("personaAdmin.toasts.personaSaved"));
     } catch (error) {
       console.error("Persona save failed", error);
-      notify("Save failed");
+      notify(t("personaAdmin.toasts.saveFailed"));
     } finally {
       setSavePending(false);
     }
@@ -592,10 +600,10 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
       const existingInterests = detail.profile.interests || [];
       const existingInterestsSummary = existingInterests.length > 0
         ? existingInterests.join(", ")
-        : "Keine Interests definiert";
+        : t("personaAdmin.aiContext.noInterests");
 
       // Build target group summary
-      const targetGroupSummary = detail.profile.segment || "Keine Target Group definiert";
+      const targetGroupSummary = detail.profile.segment || t("personaAdmin.aiContext.noTargetGroup");
 
       // Build persona profile JSON
       const personaProfile = JSON.stringify(detail.profile, null, 2);
@@ -613,7 +621,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
         maxSuggestions: 4,
       });
       if (!result.suggestions.length) {
-        setPersonaAiError("Keine AI Vorschläge erhalten.");
+        setPersonaAiError(t("personaAdmin.toasts.noAiSuggestions"));
         return;
       }
       const current = detail.profile.interests || [];
@@ -624,13 +632,13 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
         ])
       ).filter(Boolean) as string[];
       if (!merged.length) {
-        setPersonaAiError("Keine gültigen Interests generiert.");
+        setPersonaAiError(t("personaAdmin.toasts.noValidGenerated"));
         return;
       }
       await handleSaveInterests(merged);
-      notify("AI Interests hinzugefügt");
+      notify(t("personaAdmin.toasts.aiInterestsAdded"));
     } catch (error) {
-      setPersonaAiError(error instanceof Error ? error.message : "AI Anfrage fehlgeschlagen");
+      setPersonaAiError(error instanceof Error ? error.message : t("personaAdmin.toasts.aiRequestFailed"));
     }
   };
 
@@ -646,10 +654,10 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
       const existingValues = detail.profile.values || [];
       const existingValuesSummary = existingValues.length > 0
         ? existingValues.join(", ")
-        : "Keine Values definiert";
+        : t("personaAdmin.aiContext.noValues");
 
       // Build target group summary
-      const targetGroupSummary = detail.profile.segment || "Keine Target Group definiert";
+      const targetGroupSummary = detail.profile.segment || t("personaAdmin.aiContext.noTargetGroup");
 
       // Build persona profile JSON
       const personaProfile = JSON.stringify(detail.profile, null, 2);
@@ -667,7 +675,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
         maxSuggestions: 4,
       });
       if (!result.suggestions.length) {
-        setPersonaAiError("Keine AI Vorschläge erhalten.");
+        setPersonaAiError(t("personaAdmin.toasts.noAiSuggestions"));
         return;
       }
       const current = detail.profile.values || [];
@@ -678,13 +686,13 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
         ])
       ).filter(Boolean) as string[];
       if (!merged.length) {
-        setPersonaAiError("Keine gültigen Values generiert.");
+        setPersonaAiError(t("personaAdmin.toasts.noValidGenerated"));
         return;
       }
       await handleSaveValues(merged);
-      notify("AI Values hinzugefügt");
+      notify(t("personaAdmin.toasts.aiValuesAdded"));
     } catch (error) {
-      setPersonaAiError(error instanceof Error ? error.message : "AI Anfrage fehlgeschlagen");
+      setPersonaAiError(error instanceof Error ? error.message : t("personaAdmin.toasts.aiRequestFailed"));
     }
   };
 
@@ -757,7 +765,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
 
   const handleAiSuggestTraits = async () => {
     if (!detail) {
-      notify("No persona selected");
+      notify(t("personaAdmin.toasts.noPersonaSelected"));
       return;
     }
 
@@ -770,22 +778,22 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
       );
       const existingTraitsSummary = existingTraits.length > 0
         ? existingTraits.join(", ")
-        : "Keine Traits definiert";
+        : t("personaAdmin.aiContext.noTraits");
 
       // Build graph relationships summary
       const graphRelationshipsSummary = detail.insights && detail.insights.graphRelationships && detail.insights.graphRelationships.length > 0
         ? detail.insights.graphRelationships
           .map(rel => `${rel.relationship}: [${rel.nodes.join(", ")}]`)
           .join("\n")
-        : "Keine Graph-Relationen verfügbar";
+        : t("personaAdmin.aiContext.noGraphRelationships");
 
       // Build knowledge context summary (using chunk IDs for now)
       const knowledgeContext = detail.insights && detail.insights.relatedChunkIds && detail.insights.relatedChunkIds.length > 0
-        ? `Verfügbar: ${detail.insights.relatedChunkIds.length} Research-Chunks verknüpft mit dieser Persona.`
-        : "Keine Research-Chunks verfügbar";
+        ? t("personaAdmin.aiContext.researchChunksAvailable", { count: detail.insights.relatedChunkIds.length })
+        : t("personaAdmin.aiContext.noResearchChunks");
 
       // Build target group summary (placeholder - would need to fetch target group)
-      const targetGroupSummary = detail.profile.segment || "Keine Target Group definiert";
+      const targetGroupSummary = detail.profile.segment || t("personaAdmin.aiContext.noTargetGroup");
 
       const result = await runPersonaAiAssist({
         templateId: "persona.traits",
@@ -818,15 +826,15 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
           const allTraits = [...currentTraits, ...newTraits];
           setRecentTraitHighlights(newTraits);
           await handleSaveTraits(allTraits);
-          notify(`Added ${newTraits.length} new trait(s) via AI`);
+          notify(t("personaAdmin.toasts.aiTraitsAdded", { count: newTraits.length }));
         } else {
-          notify("No new traits generated");
+          notify(t("personaAdmin.toasts.noNewTraits"));
         }
       } else {
-        notify("AI konnte keine Traits generieren");
+        notify(t("personaAdmin.toasts.aiNoTraits"));
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to generate traits with AI";
+      const errorMessage = err instanceof Error ? err.message : t("personaAdmin.toasts.aiRequestFailed");
       setPersonaAiError(errorMessage);
       notify(errorMessage);
     }
@@ -834,7 +842,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
 
   const handleAiSuggestVocabulary = async () => {
     if (!detail) {
-      notify("No persona selected");
+      notify(t("personaAdmin.toasts.noPersonaSelected"));
       return;
     }
 
@@ -845,22 +853,22 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
       const existingVocabulary = detail.profile.communication_style?.vocabulary || [];
       const existingVocabularySummary = existingVocabulary.length > 0
         ? existingVocabulary.join(", ")
-        : "Kein Vokabular definiert";
+        : t("personaAdmin.aiContext.noVocabulary");
 
       // Build graph relationships summary
       const graphRelationshipsSummary = detail.insights && detail.insights.graphRelationships && detail.insights.graphRelationships.length > 0
         ? detail.insights.graphRelationships
           .map(rel => `${rel.relationship}: [${rel.nodes.join(", ")}]`)
           .join("\n")
-        : "Keine Graph-Relationen verfügbar";
+        : t("personaAdmin.aiContext.noGraphRelationships");
 
       // Build knowledge context summary (using chunk IDs for now)
       const knowledgeContext = detail.insights && detail.insights.relatedChunkIds && detail.insights.relatedChunkIds.length > 0
-        ? `Verfügbar: ${detail.insights.relatedChunkIds.length} Research-Chunks verknüpft mit dieser Persona.`
-        : "Keine Research-Chunks verfügbar";
+        ? t("personaAdmin.aiContext.researchChunksAvailable", { count: detail.insights.relatedChunkIds.length })
+        : t("personaAdmin.aiContext.noResearchChunks");
 
       // Build target group summary (placeholder - would need to fetch target group)
-      const targetGroupSummary = detail.profile.segment || "Keine Target Group definiert";
+      const targetGroupSummary = detail.profile.segment || t("personaAdmin.aiContext.noTargetGroup");
 
       const result = await runPersonaAiAssist({
         templateId: "persona.vocabulary",
@@ -891,15 +899,15 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
           const allVocabulary = [...currentVocabulary, ...newVocabulary];
           setRecentVocabularyHighlights(newVocabulary);
           await handleSaveVocabulary(allVocabulary);
-          notify(`Added ${newVocabulary.length} new vocabulary word(s) via AI`);
+          notify(t("personaAdmin.toasts.aiVocabularyAdded", { count: newVocabulary.length }));
         } else {
-          notify("No new vocabulary generated");
+          notify(t("personaAdmin.toasts.noNewVocabulary"));
         }
       } else {
-        notify("AI konnte kein Vokabular generieren");
+        notify(t("personaAdmin.toasts.aiNoVocabulary"));
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to generate vocabulary with AI";
+      const errorMessage = err instanceof Error ? err.message : t("personaAdmin.toasts.aiRequestFailed");
       setPersonaAiError(errorMessage);
       notify(errorMessage);
     }
@@ -954,7 +962,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
         maxSuggestions: 4,
       });
       if (!result.suggestions.length) {
-        setPersonaAiError("Keine AI Vorschläge erhalten.");
+        setPersonaAiError(t("personaAdmin.toasts.noAiSuggestions"));
         return;
       }
       const current = detail.profile.pain_points?.map((pp) => pp.label) ?? [];
@@ -965,13 +973,13 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
         ])
       ).filter(Boolean) as string[];
       if (!merged.length) {
-        setPersonaAiError("Keine gültigen Pain Points generiert.");
+        setPersonaAiError(t("personaAdmin.toasts.noValidGenerated"));
         return;
       }
       await handleSavePainPoints(merged);
-      notify("AI Pain Points hinzugefügt");
+      notify(t("personaAdmin.toasts.aiPainPointsAdded"));
     } catch (error) {
-      setPersonaAiError(error instanceof Error ? error.message : "AI Anfrage fehlgeschlagen");
+      setPersonaAiError(error instanceof Error ? error.message : t("personaAdmin.toasts.aiRequestFailed"));
     }
   };
 
@@ -993,10 +1001,10 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
       const existingGoals = detail.profile.goals?.map((goal) => goal.label) ?? [];
       const existingGoalsSummary = existingGoals.length > 0
         ? existingGoals.join(", ")
-        : "Keine Goals definiert";
+        : t("personaAdmin.aiContext.noGoals");
 
       // Build target group summary
-      const targetGroupSummary = detail.profile.segment || "Keine Target Group definiert";
+      const targetGroupSummary = detail.profile.segment || t("personaAdmin.aiContext.noTargetGroup");
 
       // Build persona profile JSON
       const personaProfile = JSON.stringify(detail.profile, null, 2);
@@ -1014,7 +1022,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
         maxSuggestions: 4,
       });
       if (!result.suggestions.length) {
-        setPersonaAiError("Keine AI Vorschläge erhalten.");
+        setPersonaAiError(t("personaAdmin.toasts.noAiSuggestions"));
         return;
       }
       const current = detail.profile.goals?.map((goal) => goal.label) ?? [];
@@ -1025,19 +1033,19 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
         ])
       ).filter(Boolean) as string[];
       if (!merged.length) {
-        setPersonaAiError("Keine gültigen Goals generiert.");
+        setPersonaAiError(t("personaAdmin.toasts.noValidGenerated"));
         return;
       }
       await handleSaveGoals(merged);
-      notify("AI Goals hinzugefügt");
+      notify(t("personaAdmin.toasts.aiGoalsAdded"));
     } catch (error) {
-      setPersonaAiError(error instanceof Error ? error.message : "AI Anfrage fehlgeschlagen");
+      setPersonaAiError(error instanceof Error ? error.message : t("personaAdmin.toasts.aiRequestFailed"));
     }
   };
 
   const handleCreate = async () => {
     if (!activeProjectId || !createForm.name) {
-      notify("Project and Name are required.");
+      notify(t("personaAdmin.toasts.projectNameRequired"));
       return;
     }
     setCreatePending(true);
@@ -1081,10 +1089,10 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
       }
       await refreshList();
       setCreateForm(defaultCreateFormState);
-      notify("Persona created");
+      notify(t("personaAdmin.toasts.personaCreated"));
     } catch (error) {
       console.error("Persona creation failed", error);
-      notify("Creation failed");
+      notify(t("personaAdmin.toasts.creationFailed"));
     } finally {
       setCreatePending(false);
     }
@@ -1103,10 +1111,10 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
         throw new Error(`Backend responded with ${response.status}`);
       }
       await refreshList();
-      notify("Persona archived");
+      notify(t("personaAdmin.toasts.personaArchived"));
     } catch (error) {
       console.error("Persona archive failed", error);
-      notify("Archiving failed");
+      notify(t("personaAdmin.toasts.archivingFailed"));
     } finally {
       setSavePending(false);
     }
@@ -1117,9 +1125,9 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
       return;
     }
 
-    const personaName = detail.profile.name || "this persona";
+    const personaName = detail.profile.name || t("personaAdmin.thisPersona");
     const confirmed = window.confirm(
-      `Are you sure you want to delete "${personaName}"?\n\nThis action cannot be undone. The persona will be permanently removed.`
+      t("personaAdmin.deleteConfirm", { name: personaName })
     );
 
     if (!confirmed) {
@@ -1137,10 +1145,10 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
       await refreshList();
       setSelectedId(null);
       setDetail(null);
-      notify("Persona deleted");
+      notify(t("personaAdmin.toasts.personaDeleted"));
     } catch (error) {
       console.error("Persona delete failed", error);
-      notify("Delete failed");
+      notify(t("personaAdmin.toasts.deleteFailed"));
     } finally {
       setSavePending(false);
     }
@@ -1166,10 +1174,10 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
         throw new Error(`Backend responded with ${response.status}`);
       }
       await loadDetail(selectedId);
-      notify("Document uploaded");
+      notify(t("personaAdmin.toasts.documentUploaded"));
     } catch (error) {
       console.error("Document upload failed", error);
-      notify("Failed to upload document");
+      notify(t("personaAdmin.toasts.documentUploadFailed"));
     } finally {
       setDocumentUploadPending(false);
     }
@@ -1203,14 +1211,14 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
         throw new Error(errorMessage);
       }
       if (payload?.status !== "success") {
-        notify("Avatar generation failed. Please check the image service configuration.");
+        notify(t("personaAdmin.toasts.avatarFailed"));
         return;
       }
       await loadDetail(selectedId);
-      notify("Avatar generated");
+      notify(t("personaAdmin.toasts.avatarGenerated"));
     } catch (error) {
       console.error("Avatar generation failed", error);
-      notify((error as Error)?.message || "Failed to generate avatar");
+      notify((error as Error)?.message || t("personaAdmin.toasts.avatarGenerateFailed"));
     } finally {
       setAvatarGeneratePending(false);
     }
@@ -1237,7 +1245,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
   const handleKnowledgeSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!selectedId || !knowledgeForm.title || !knowledgeForm.content) {
-      notify("Titel und Inhalt sind Pflicht.");
+      notify(t("personaAdmin.toasts.titleContentRequired"));
       return;
     }
     setKnowledgePending(true);
@@ -1260,10 +1268,10 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
       }
       await loadDetail(selectedId);
       setKnowledgeForm(defaultKnowledgeForm);
-      notify("Wissenseintrag hinzugefügt");
+      notify(t("personaAdmin.toasts.knowledgeAdded"));
     } catch (error) {
       console.error("Knowledge add failed", error);
-      notify("Failed to save knowledge");
+      notify(t("personaAdmin.toasts.knowledgeSaveFailed"));
     } finally {
       setKnowledgePending(false);
     }
@@ -1271,15 +1279,15 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
 
   return (
     <div className="msqdx-glass-admin-grid">
-      <MsqdxGlassCollapsiblePanel title="Personas" defaultExpanded={true}>
+      <MsqdxGlassCollapsiblePanel title={t("personaAdmin.title")} defaultExpanded={true}>
         <section className="msqdx-glass-panel">
           <header className="msqdx-glass-panel__header">
             <div>
-              <MsqdxTypography variant="h5" weight="semibold">Personas</MsqdxTypography>
-              <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>{list.total} entries</MsqdxTypography>
+              <MsqdxTypography variant="h5" weight="semibold">{t("personaAdmin.title")}</MsqdxTypography>
+              <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>{t("personaAdmin.entries", { count: list.total })}</MsqdxTypography>
             </div>
             <MsqdxButton variant="text" size="small" onClick={refreshList} disabled={listRefreshing} startIcon={<MsqdxIcon name="refresh" customSize={16} />}>
-              Refresh
+              {t("personaAdmin.refresh")}
             </MsqdxButton>
           </header>
           <Box
@@ -1303,11 +1311,12 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
           >
             {list.items.length === 0 && (
               <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
-                No personas available yet.
+                {t("personaAdmin.empty")}
               </MsqdxTypography>
             )}
             {list.items.map((item) => {
               const config = statusChipConfig[item.status] ?? statusChipConfig.draft;
+              const statusLabel = getStatusLabel(item.status);
               return (
                 <MsqdxCard
                   key={item.id}
@@ -1337,13 +1346,13 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
                       <MsqdxTypography variant="subtitle1" weight="semibold">
                         {item.name}
                       </MsqdxTypography>
-                      <MsqdxChip variant="filled" brandColor={config.brandColor} label={config.label} size="small" />
+                      <MsqdxChip variant="filled" brandColor={config.brandColor} label={statusLabel} size="small" />
                     </Box>
                     <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
-                      {item.segment} · Version {item.version}
+                      {item.segment} · {t("personaAdmin.versionLabel", { version: item.version })}
                     </MsqdxTypography>
                     <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
-                      Last updated {formatDate(item.updatedAt)}
+                      {t("personaAdmin.lastUpdated")} {formatDate(item.updatedAt)}
                     </MsqdxTypography>
                   </Box>
                 </MsqdxCard>
@@ -1352,37 +1361,37 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
           </Box>
           <MsqdxCard variant="flat" borderRadius="button" sx={{ mt: 2, p: 2, border: "1px solid", borderColor: "divider" }}>
             <MsqdxTypography variant="h6" weight="semibold" sx={{ mb: 1.5 }}>
-              New Persona
+              {t("personaAdmin.newPersona")}
             </MsqdxTypography>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
               <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
                 {activeProject?.name
-                  ? `Project: ${activeProject.name}`
+                  ? t("personaAdmin.projectLabel", { name: activeProject.name })
                   : activeProjectId
-                  ? `Project: ${activeProjectId}`
-                  : "Select a project to create personas."}
+                  ? t("personaAdmin.projectIdLabel", { id: activeProjectId })
+                  : t("personaAdmin.selectProject")}
               </MsqdxTypography>
               <MsqdxFormField
-                label="Name"
+                label={t("personaAdmin.name")}
                 value={createForm.name}
                 onChange={(e) => setCreateForm((prev) => ({ ...prev, name: e.target.value }))}
-                placeholder="Persona Name"
+                placeholder={t("personaAdmin.namePlaceholder")}
                 fullWidth
                 size="small"
               />
               <MsqdxFormField
-                label="Segment"
+                label={t("personaAdmin.segment")}
                 value={createForm.segment}
                 onChange={(e) => setCreateForm((prev) => ({ ...prev, segment: e.target.value }))}
-                placeholder="B2B / Enterprise / etc."
+                placeholder={t("personaAdmin.segmentPlaceholder")}
                 fullWidth
                 size="small"
               />
               <MsqdxFormField
-                label="Headline"
+                label={t("personaAdmin.headline")}
                 value={createForm.headline}
                 onChange={(e) => setCreateForm((prev) => ({ ...prev, headline: e.target.value }))}
-                placeholder="Kurzbeschreibung"
+                placeholder={t("personaAdmin.headlinePlaceholder")}
                 fullWidth
                 size="small"
               />
@@ -1394,7 +1403,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
                 disabled={createPending || !activeProjectId}
                 startIcon={<MsqdxIcon name="add" customSize={16} />}
               >
-                Persona anlegen
+                {t("personaAdmin.create")}
               </MsqdxButton>
             </Box>
           </MsqdxCard>
@@ -1402,8 +1411,8 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
       </MsqdxGlassCollapsiblePanel>
 
       <section className="msqdx-glass-panel">
-        {!selectedId && <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>Please select a persona.</MsqdxTypography>}
-        {selectedId && detailLoading && <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>Lade Persona...</MsqdxTypography>}
+        {!selectedId && <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>{t("personaAdmin.selectPersona")}</MsqdxTypography>}
+        {selectedId && detailLoading && <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>{t("personaAdmin.loading")}</MsqdxTypography>}
         {detailError && <MsqdxTypography variant="body2" sx={{ color: "error.main" }}>{detailError}</MsqdxTypography>}
         {detail && (
           <div className="msqdx-glass-detail">
@@ -1416,7 +1425,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
               <Box sx={{ gridColumn: "1 / -1" }}>
                 <MsqdxDashboardCard
                   id="bio-demographics"
-                  title="Biography & Demographics"
+                  title={t("personaAdmin.bioDemographics")}
                   icon="person"
                   brandColor={BRAND_COLOR}
                   iconColor={{ color: "var(--color-theme-accent)" }}
@@ -1519,13 +1528,13 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
                             </div>
                             <Box sx={{ display: "flex", gap: 0.5, alignItems: "center", mt: 1, flexWrap: "wrap" }}>
                               <MsqdxButton variant="text" size="small" onClick={handleGenerateAvatar} disabled={avatarGeneratePending} startIcon={<MsqdxIcon name="photo_camera" customSize={16} />}>
-                                {avatarGeneratePending ? "Generating..." : "Generate avatar"}
+                                {avatarGeneratePending ? t("personaAdmin.generatingAvatar") : t("personaAdmin.generateAvatar")}
                               </MsqdxButton>
                               <MsqdxButton variant="text" size="small" onClick={handleArchive} disabled={savePending} startIcon={<MsqdxIcon name="archive" customSize={16} />}>
-                                Archive
+                                {t("personaAdmin.archive")}
                               </MsqdxButton>
                               <MsqdxButton variant="text" size="small" onClick={handleDelete} disabled={savePending} brandColor="pink" startIcon={<MsqdxIcon name="delete" customSize={16} />}>
-                                Delete
+                                {t("personaAdmin.delete")}
                               </MsqdxButton>
                             </Box>
                           </div>
@@ -1534,14 +1543,14 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
                     </Box>
                   </Box>
                   {detail.profile.bio && (
-                    <MsqdxGlassDashboardCardSection title="Biography">
+                    <MsqdxGlassDashboardCardSection title={t("personaAdmin.biography")}>
                       <p style={{ lineHeight: "1.6", whiteSpace: "pre-wrap", margin: 0 }}>
                         {detail.profile.bio}
                       </p>
                     </MsqdxGlassDashboardCardSection>
                   )}
                   {(detail.profile.full_name || detail.profile.age || detail.profile.location || detail.profile.gender || (detail.profile.media_affinity !== null && detail.profile.media_affinity !== undefined)) && (
-                    <MsqdxGlassDashboardCardSection title="Demographics">
+                    <MsqdxGlassDashboardCardSection title={t("personaAdmin.demographics")}>
                       <MsqdxGlassEntityEditor
                         entityType="persona"
                         entity={detail.profile}
@@ -1560,7 +1569,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
               <Box sx={{ gridColumn: "1 / -1" }}>
               <MsqdxDashboardCard
                 id="metadata"
-                title="Metadata"
+                title={t("personaAdmin.metadata")}
                 icon="info"
                 brandColor={BRAND_COLOR}
                 iconColor={{ color: "var(--color-theme-accent)" }}
@@ -1577,44 +1586,44 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
                 >
                   <Box>
                     <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
-                      Status
+                      {t("personaAdmin.status")}
                     </MsqdxTypography>
                     <MsqdxTypography variant="body2" weight="medium">{detail.metadata.status}</MsqdxTypography>
                   </Box>
                   <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
                     <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
-                      Confidence
+                      {t("personaAdmin.confidence")}
                     </MsqdxTypography>
                     <MsqdxTypography variant="body2" weight="medium">{detail.metadata.confidence.toFixed(2)}</MsqdxTypography>
                   </Box>
                   <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
                     <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
-                      Version
+                      {t("personaAdmin.version")}
                     </MsqdxTypography>
                     <MsqdxTypography variant="body2" weight="medium">{detail.metadata.version}</MsqdxTypography>
                   </Box>
                   <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
                     <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
-                      Updated
+                      {t("personaAdmin.updated")}
                     </MsqdxTypography>
                     <MsqdxTypography variant="body2" weight="medium">{formatDate(detail.metadata.updatedAt)}</MsqdxTypography>
                   </Box>
                   <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
                     <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
-                      Updated by
+                      {t("personaAdmin.updatedBy")}
                     </MsqdxTypography>
                     <MsqdxTypography variant="body2" weight="medium">{detail.metadata.updatedBy ?? "—"}</MsqdxTypography>
                   </Box>
                   <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
                     <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
-                      Last review
+                      {t("personaAdmin.lastReview")}
                     </MsqdxTypography>
                     <MsqdxTypography variant="body2" weight="medium">{formatDate(detail.metadata.lastReviewedAt)}</MsqdxTypography>
                   </Box>
                   {detail.profile.created_at && (
                     <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
                       <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
-                        Created at
+                        {t("personaAdmin.createdAt")}
                       </MsqdxTypography>
                       <MsqdxTypography variant="body2" weight="medium">{formatDate(detail.profile.created_at)}</MsqdxTypography>
                     </Box>
@@ -1622,7 +1631,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
                   {detail.profile.targetGroupId && (
                     <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
                       <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
-                        Target Group
+                        {t("personaAdmin.targetGroup")}
                       </MsqdxTypography>
                       <MsqdxButton
                         variant="text"
@@ -1632,7 +1641,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
                         sx={{ fontSize: "0.875rem", p: "4px 8px" }}
                         startIcon={<MsqdxIcon name="groups" customSize={14} />}
                       >
-                        To Target Group
+                        {t("personaAdmin.toTargetGroup")}
                       </MsqdxButton>
                     </Box>
                   )}

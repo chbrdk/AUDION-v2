@@ -20,6 +20,7 @@ import { Box } from "@mui/material";
 import { MsqdxGlassAiButton } from "../../../../components/ai/msqdx-glass-ai-button";
 import { buildApiUrl } from "../../../api/_lib/backend";
 import { useAiAssist } from "../../../../hooks/use-ai-assist";
+import { useI18n } from "../../../../components/i18n/i18n-provider";
 
 const ELEMENT_TYPE_OPTIONS = [
   "action",
@@ -130,6 +131,7 @@ export default function JourneyEditorPage() {
   const [editingPhaseId, setEditingPhaseId] = useState<string | null>(null);
   const [expandedAccordions, setExpandedAccordions] = useState<Set<string>>(() => new Set());
   const { execute: runAiAssist, loading: aiAssistLoading } = useAiAssist();
+  const { t } = useI18n();
 
   const isAccordionExpanded = (id: string) => expandedAccordions.has(id);
   const toggleAccordion = (id: string) =>
@@ -153,7 +155,7 @@ export default function JourneyEditorPage() {
       setJourney(data);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load journey");
+      setError(err instanceof Error ? err.message : t("journeys.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -167,12 +169,12 @@ export default function JourneyEditorPage() {
     try {
       await journeysApi.updateJourney(journeyId, updates);
       await loadJourney();
-      notify("Journey updated");
+      notify(t("journeys.editor.journeyUpdated"));
       setEditingName(false);
       setEditingDescription(false);
     } catch (error) {
       console.error("Save failed:", error);
-      notify("Error saving");
+      notify(t("journeys.editor.errorSaving"));
       throw error;
     } finally {
       setSavePending(false);
@@ -209,7 +211,7 @@ export default function JourneyEditorPage() {
     console.log("handleAddPhase called", { journey: !!journey, journeyId, phasesCount: journey?.phases?.length });
     if (!journey) {
       console.error("Cannot add phase: journey is not loaded");
-      notify("Please wait for journey to load");
+      notify(t("journeys.editor.waitForLoad"));
       return;
     }
     const nextOrder = journey.phases.length + 1;
@@ -397,7 +399,7 @@ export default function JourneyEditorPage() {
         });
         setMomentDrafts([]);
         setPhaseFormExpanded(true);
-        notify("Phase generated with AI");
+        notify(t("journeys.editor.phaseGenerated"));
         
         window.requestAnimationFrame(() => {
           const container = timelineRef.current;
@@ -424,10 +426,10 @@ export default function JourneyEditorPage() {
         });
         setMomentDrafts([]);
         setPhaseFormExpanded(true);
-        notify("Phase generated with AI");
+        notify(t("journeys.editor.phaseGenerated"));
       } else {
-        setError("AI konnte keine Phase generieren. Bitte versuche es erneut.");
-        notify("AI generation failed");
+        setError(t("journeys.editor.aiGenerationFailed"));
+        notify(t("journeys.editor.aiGenerationFailed"));
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to generate phase with AI";
@@ -445,7 +447,7 @@ export default function JourneyEditorPage() {
     try {
       await journeysApi.deletePhase(journeyId, phaseId);
       await loadJourney();
-      notify("Phase deleted");
+      notify(t("journeys.editor.deleted"));
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to delete phase";
       notify(errorMessage);
@@ -511,7 +513,7 @@ export default function JourneyEditorPage() {
       }
 
       await loadJourney();
-      notify("Phase updated");
+      notify(t("journeys.editor.phaseUpdated"));
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to update phase";
       notify(errorMessage);
@@ -543,11 +545,11 @@ export default function JourneyEditorPage() {
 
   const triggerMomentGeneration = async () => {
     if (!journey) {
-      setMomentsError("Journey data is not loaded yet.");
+      setMomentsError(t("journeys.editor.momentsJourneyNotLoaded"));
       return;
     }
     if (!phaseFormData.name.trim() && !phaseFormData.description?.trim()) {
-      setMomentsError("Bitte gib mindestens einen Namen oder eine Beschreibung für die Phase ein.");
+      setMomentsError(t("journeys.editor.momentsPhaseRequired"));
       return;
     }
     setMomentsError(null);
@@ -563,7 +565,7 @@ export default function JourneyEditorPage() {
         maxSuggestions: 4,
       });
       if (!result.suggestions.length) {
-        setMomentsError("Keine Journey Moments generiert. Bitte beschreibe die Phase detaillierter und versuche es erneut.");
+        setMomentsError(t("journeys.editor.momentsNoneGenerated"));
         return;
       }
       const normalized = result.suggestions.map((suggestion) => ({
@@ -691,7 +693,7 @@ export default function JourneyEditorPage() {
           }
         }
         
-        notify("Phase updated");
+        notify(t("journeys.editor.phaseUpdated"));
       } else {
         // Create new phase
         const createdPhase = await journeysApi.createPhase(journeyId, phaseFormData);
@@ -705,7 +707,7 @@ export default function JourneyEditorPage() {
             });
           }
         }
-        notify("Phase added");
+        notify(t("journeys.editor.phaseAdded"));
       }
       
       setPhaseFormExpanded(false);
@@ -736,7 +738,7 @@ export default function JourneyEditorPage() {
     return (
       <div style={{ padding: "2rem", textAlign: "center" }}>
         <MsqdxIcon name="hourglass_empty" customSize={24} />
-        <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>Loading journey...</MsqdxTypography>
+        <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>{t("journeys.editor.loading")}</MsqdxTypography>
       </div>
     );
   }
@@ -744,7 +746,7 @@ export default function JourneyEditorPage() {
   if (error || !journey) {
     return (
       <div style={{ padding: "2rem" }}>
-        <MsqdxTypography variant="body2" sx={{ color: "error.main" }}>{error || "Journey not found"}</MsqdxTypography>
+        <MsqdxTypography variant="body2" sx={{ color: "error.main" }}>{error || t("journeys.editor.notFound")}</MsqdxTypography>
       </div>
     );
   }
@@ -848,10 +850,10 @@ export default function JourneyEditorPage() {
           </Box>
           <Box sx={{ display: "flex", gap: "8px", flexShrink: 0 }}>
             <MsqdxButton variant="outlined" size="small" onClick={() => router.push(`/admin/journeys/${journeyId}/dashboard`)} startIcon={<MsqdxIcon name="dashboard" customSize={14} />}>
-              Dashboard
+              {t("journeys.editor.dashboard")}
             </MsqdxButton>
             <MsqdxButton variant="outlined" size="small" onClick={() => router.push("/admin/journeys")} startIcon={<MsqdxIcon name="arrow_back" customSize={14} />}>
-              Back
+              {t("journeys.editor.back")}
             </MsqdxButton>
           </Box>
         </MsqdxCard>
@@ -860,7 +862,7 @@ export default function JourneyEditorPage() {
           <Box sx={{ gridColumn: "1 / -1" }}>
             <MsqdxDashboardCard
               id="metadata"
-              title="Metadata"
+              title={t("journeys.editor.metadata")}
               icon="info"
               size="small"
               brandColor={BRAND_COLOR}
@@ -880,45 +882,45 @@ export default function JourneyEditorPage() {
               >
                 <Box>
                   <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
-                    Type
+                    {t("journeys.editor.metadataType")}
                   </MsqdxTypography>
                   <MsqdxTypography variant="body2" weight="medium">{journey.journey_type}</MsqdxTypography>
                 </Box>
                 <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1 }}>
                   <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
-                    Creation Mode
+                    {t("journeys.editor.creationMode")}
                   </MsqdxTypography>
                   <MsqdxTypography variant="body2" weight="medium">{journey.creation_mode}</MsqdxTypography>
                 </Box>
                 <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1 }}>
                   <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
-                    Status
+                    {t("journeys.editor.status")}
                   </MsqdxTypography>
                   <MsqdxTypography variant="body2" weight="medium">{journey.status}</MsqdxTypography>
                 </Box>
                 {typeof journey.validation_score === "number" && (
                   <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1 }}>
                     <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
-                      Validation Score
+                      {t("journeys.editor.validationScore")}
                     </MsqdxTypography>
                     <MsqdxTypography variant="body2" weight="medium">{journey.validation_score.toFixed(1)}%</MsqdxTypography>
                   </Box>
                 )}
                 <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1 }}>
                   <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
-                    Tracking
+                    {t("journeys.editor.tracking")}
                   </MsqdxTypography>
-                  <MsqdxTypography variant="body2" weight="medium">{journey.tracking_enabled ? "Enabled" : "Disabled"}</MsqdxTypography>
+                  <MsqdxTypography variant="body2" weight="medium">{journey.tracking_enabled ? t("journeys.editor.enabled") : t("journeys.editor.disabled")}</MsqdxTypography>
                 </Box>
                 <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1 }}>
                   <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
-                    Created
+                    {t("journeys.editor.created")}
                   </MsqdxTypography>
                   <MsqdxTypography variant="body2" weight="medium">{formatDate(journey.created_at)}</MsqdxTypography>
                 </Box>
                 <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1 }}>
                   <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
-                    Updated
+                    {t("journeys.editor.updated")}
                   </MsqdxTypography>
                   <MsqdxTypography variant="body2" weight="medium">{formatDate(journey.updated_at)}</MsqdxTypography>
                 </Box>
@@ -930,7 +932,7 @@ export default function JourneyEditorPage() {
         <div className="msqdx-glass-detail__section">
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, mb: 2 }}>
             <MsqdxTypography variant="h5" weight="semibold">
-              Phases <Box component="span" sx={{ color: "text.secondary", fontWeight: 400 }}>({journey.phases.length})</Box>
+              {t("journeys.editor.phasesCount", { count: journey.phases.length })}
             </MsqdxTypography>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               {journey.phases.length > 0 && (
@@ -962,7 +964,7 @@ export default function JourneyEditorPage() {
                 disabled={addingPhase}
                 startIcon={<MsqdxIcon name="add" customSize={16} />}
               >
-                New Phase
+                {t("journeys.editor.newPhase")}
               </MsqdxButton>
             </Box>
           </Box>
@@ -1016,7 +1018,7 @@ export default function JourneyEditorPage() {
                   startIcon={<MsqdxIcon name="add" customSize={16} />}
                   sx={{ flexShrink: 0 }}
                 >
-                  Phase hinzufügen
+                  {t("journeys.editor.addPhase")}
                 </MsqdxButton>
               </Box>
               <Box
@@ -1067,55 +1069,55 @@ export default function JourneyEditorPage() {
                           {editingPhaseId ? journey.phases.findIndex((p) => p.id === editingPhaseId) + 1 : journey.phases.length + 1}
                         </Box>
                         <Box sx={{ flex: 1 }}>
-                          <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>{editingPhaseId ? "Edit Phase" : "New Phase"}</MsqdxTypography>
-                          <MsqdxTypography variant="h6" weight="semibold">{editingPhaseId ? "Update phase details" : "Define the next step"}</MsqdxTypography>
+                          <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>{editingPhaseId ? t("journeys.editor.editPhase") : t("journeys.editor.newPhase")}</MsqdxTypography>
+                          <MsqdxTypography variant="h6" weight="semibold">{editingPhaseId ? t("journeys.editor.updateDetails") : t("journeys.editor.defineNext")}</MsqdxTypography>
                         </Box>
                         {editingPhaseId && (
                           <MsqdxButton variant="text" size="small" onClick={() => { setPhaseFormExpanded(false); setEditingPhaseId(null); setPhaseFormData({ name: "", description: "", phase_order: journey.phases.length + 1, expected_duration_min: undefined, expected_duration_max: undefined, duration_unit: "minutes", expected_emotion: undefined, emotion_intensity: undefined }); setMomentDrafts([]); setMomentsError(null); setError(null); }} disabled={addingPhase} aria-label="Cancel editing"><MsqdxIcon name="close" customSize={18} /></MsqdxButton>
                         )}
                       </Box>
                       {error && <MsqdxTypography variant="body2" color="error">Error: {error}</MsqdxTypography>}
-                      <MsqdxFormField label="Name *" value={phaseFormData.name} onChange={(e) => setPhaseFormData({ ...phaseFormData, name: e.target.value })} placeholder="e.g., Awareness, Consideration" required disabled={addingPhase} fullWidth size="small" borderColor={BRAND_COLOR} />
-                      <MsqdxTextareaField label="Description" value={phaseFormData.description} onChange={(e) => setPhaseFormData({ ...phaseFormData, description: e.target.value })} placeholder="Describe the goal, mindset or tasks in this phase." minRows={3} disabled={addingPhase} fullWidth borderColor={BRAND_COLOR} />
+                      <MsqdxFormField label="Name *" value={phaseFormData.name} onChange={(e) => setPhaseFormData({ ...phaseFormData, name: e.target.value })} placeholder={t("journeys.editor.placeholderPhaseName")} required disabled={addingPhase} fullWidth size="small" borderColor={BRAND_COLOR} />
+                      <MsqdxTextareaField label={t("journeys.editor.phaseDescriptionLabel")} value={phaseFormData.description} onChange={(e) => setPhaseFormData({ ...phaseFormData, description: e.target.value })} placeholder={t("journeys.editor.placeholderDescription")} minRows={3} disabled={addingPhase} fullWidth borderColor={BRAND_COLOR} />
                       <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 1.5 }}>
-                        <MsqdxFormField label="Duration Min" value={String(phaseFormData.expected_duration_min ?? "")} onChange={(e) => setPhaseFormData({ ...phaseFormData, expected_duration_min: e.target.value ? parseInt(e.target.value) : undefined })} type="number" disabled={addingPhase} size="small" borderColor={BRAND_COLOR} />
-                        <MsqdxFormField label="Duration Max" value={String(phaseFormData.expected_duration_max ?? "")} onChange={(e) => setPhaseFormData({ ...phaseFormData, expected_duration_max: e.target.value ? parseInt(e.target.value) : undefined })} type="number" disabled={addingPhase} size="small" borderColor={BRAND_COLOR} />
-                        <MsqdxSelect label="Unit" value={phaseFormData.duration_unit} onChange={(e: any) => setPhaseFormData({ ...phaseFormData, duration_unit: e.target.value })} options={[{ value: "minutes", label: "Minutes" }, { value: "hours", label: "Hours" }, { value: "days", label: "Days" }]} disabled={addingPhase} size="small" borderColor={BRAND_COLOR} />
+                        <MsqdxFormField label={t("journeys.editor.durationMin")} value={String(phaseFormData.expected_duration_min ?? "")} onChange={(e) => setPhaseFormData({ ...phaseFormData, expected_duration_min: e.target.value ? parseInt(e.target.value) : undefined })} type="number" disabled={addingPhase} size="small" borderColor={BRAND_COLOR} />
+                        <MsqdxFormField label={t("journeys.editor.durationMax")} value={String(phaseFormData.expected_duration_max ?? "")} onChange={(e) => setPhaseFormData({ ...phaseFormData, expected_duration_max: e.target.value ? parseInt(e.target.value) : undefined })} type="number" disabled={addingPhase} size="small" borderColor={BRAND_COLOR} />
+                        <MsqdxSelect label={t("journeys.editor.unit")} value={phaseFormData.duration_unit} onChange={(e: any) => setPhaseFormData({ ...phaseFormData, duration_unit: e.target.value })} options={[{ value: "minutes", label: t("journeys.editor.minutes") }, { value: "hours", label: t("journeys.editor.hours") }, { value: "days", label: t("journeys.editor.days") }]} disabled={addingPhase} size="small" borderColor={BRAND_COLOR} />
                       </Box>
-                      <MsqdxFormField label="Expected Emotion" value={phaseFormData.expected_emotion ?? ""} onChange={(e) => setPhaseFormData({ ...phaseFormData, expected_emotion: e.target.value || undefined })} placeholder="e.g., excited, anxious" disabled={addingPhase} size="small" fullWidth borderColor={BRAND_COLOR} />
+                      <MsqdxFormField label={t("journeys.editor.expectedEmotion")} value={phaseFormData.expected_emotion ?? ""} onChange={(e) => setPhaseFormData({ ...phaseFormData, expected_emotion: e.target.value || undefined })} placeholder={t("journeys.editor.placeholderEmotion")} disabled={addingPhase} size="small" fullWidth borderColor={BRAND_COLOR} />
                       <Box>
                         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
                           <Box>
-                            <MsqdxTypography variant="caption" weight="semibold">Journey Moments</MsqdxTypography>
-                            <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Erfasse zentrale Aktionen, Gedanken oder Touchpoints dieser Phase.</MsqdxTypography>
+                            <MsqdxTypography variant="caption" weight="semibold">{t("journeys.editor.journeyMoments")}</MsqdxTypography>
+                            <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("journeys.editor.journeyMomentsHint")}</MsqdxTypography>
                           </Box>
                           <Box sx={{ display: "flex", gap: 0.5 }}>
-                            <MsqdxGlassAiButton templates={[{ id: "journey.moments", label: "AI Vorschlag", maxSuggestions: 4 }]} onClick={triggerMomentGeneration} disabled={!journey || addingPhase || aiAssistLoading} loading={aiAssistLoading} size="small" title="AI Vorschlag" />
-                            <MsqdxButton variant="outlined" size="small" onClick={addMomentDraft} disabled={addingPhase} startIcon={<MsqdxIcon name="add_circle" customSize={14} />}>Moment hinzufügen</MsqdxButton>
+                            <MsqdxGlassAiButton templates={[{ id: "journey.moments", label: t("journeys.editor.aiSuggestion"), maxSuggestions: 4 }]} onClick={triggerMomentGeneration} disabled={!journey || addingPhase || aiAssistLoading} loading={aiAssistLoading} size="small" title={t("journeys.editor.aiSuggestion")} />
+                            <MsqdxButton variant="outlined" size="small" onClick={addMomentDraft} disabled={addingPhase} startIcon={<MsqdxIcon name="add_circle" customSize={14} />}>{t("journeys.editor.addMoment")}</MsqdxButton>
                           </Box>
                         </Box>
-                        {momentsError && <MsqdxTypography variant="caption" color="error" sx={{ display: "block", mb: 1 }}>Hinweis: {momentsError}</MsqdxTypography>}
+                        {momentsError && <MsqdxTypography variant="caption" color="error" sx={{ display: "block", mb: 1 }}>{momentsError}</MsqdxTypography>}
                         {momentDrafts.length === 0 ? (
-                          <MsqdxTypography variant="body2" sx={{ color: "text.secondary", py: 2 }}>Keine Journey Moments hinzugefügt.</MsqdxTypography>
+                          <MsqdxTypography variant="body2" sx={{ color: "text.secondary", py: 2 }}>{t("journeys.editor.noMoments")}</MsqdxTypography>
                         ) : (
                           <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
                             {momentDrafts.map((moment) => (
                               <Box key={moment.id} sx={{ display: "flex", gap: 1.5, alignItems: "flex-start", p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
                                 <Box sx={{ width: 140, flexShrink: 0 }}>
-                                  <MsqdxSelect label="Type" value={moment.element_type} onChange={(e: any) => updateMomentDraft(moment.id, { element_type: e.target.value })} options={ELEMENT_TYPE_OPTIONS.map((opt) => ({ value: opt, label: opt.replace("_", " ") }))} disabled={addingPhase} size="small" borderColor={BRAND_COLOR} />
+                                  <MsqdxSelect label={t("journeys.editor.momentType")} value={moment.element_type} onChange={(e: any) => updateMomentDraft(moment.id, { element_type: e.target.value })} options={ELEMENT_TYPE_OPTIONS.map((opt) => ({ value: opt, label: opt.replace("_", " ") }))} disabled={addingPhase} size="small" borderColor={BRAND_COLOR} />
                                 </Box>
                                 <Box sx={{ flex: 1 }}>
-                                  <MsqdxTextareaField label="Beschreibung" value={moment.content} onChange={(e) => updateMomentDraft(moment.id, { content: e.target.value })} placeholder="Beschreibe den Touchpoint oder Gedanken..." minRows={2} disabled={addingPhase} fullWidth borderColor={BRAND_COLOR} />
+                                  <MsqdxTextareaField label={t("journeys.editor.momentDescription")} value={moment.content} onChange={(e) => updateMomentDraft(moment.id, { content: e.target.value })} placeholder={t("journeys.editor.momentDescriptionPlaceholder")} minRows={2} disabled={addingPhase} fullWidth borderColor={BRAND_COLOR} />
                                 </Box>
-                                <MsqdxButton variant="text" size="small" onClick={() => removeMomentDraft(moment.id)} disabled={addingPhase} aria-label="Moment entfernen" sx={{ alignSelf: "flex-start", mt: 2 }}><MsqdxIcon name="close" customSize={14} /></MsqdxButton>
+                                <MsqdxButton variant="text" size="small" onClick={() => removeMomentDraft(moment.id)} disabled={addingPhase} aria-label={t("journeys.editor.removeMoment")} sx={{ alignSelf: "flex-start", mt: 2 }}><MsqdxIcon name="close" customSize={14} /></MsqdxButton>
                               </Box>
                             ))}
                           </Box>
                         )}
                       </Box>
                       <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end", pt: 1 }}>
-                        <MsqdxButton variant="text" size="small" onClick={() => { setPhaseFormExpanded(false); setEditingPhaseId(null); setMomentDrafts([]); setMomentsError(null); setError(null); setPhaseFormData({ name: "", description: "", phase_order: journey.phases.length + 1, expected_duration_min: undefined, expected_duration_max: undefined, duration_unit: "minutes", expected_emotion: undefined, emotion_intensity: undefined }); }} disabled={addingPhase}>Cancel</MsqdxButton>
-                        <MsqdxButton type="submit" variant="contained" size="small" brandColor="green" disabled={addingPhase || !phaseFormData.name.trim()} startIcon={<MsqdxIcon name={addingPhase ? "hourglass_empty" : editingPhaseId ? "save" : "add"} customSize={14} />}>{addingPhase ? (editingPhaseId ? "Updating..." : "Adding...") : (editingPhaseId ? "Update Phase" : "Add Phase")}</MsqdxButton>
+                        <MsqdxButton variant="text" size="small" onClick={() => { setPhaseFormExpanded(false); setEditingPhaseId(null); setMomentDrafts([]); setMomentsError(null); setError(null); setPhaseFormData({ name: "", description: "", phase_order: journey.phases.length + 1, expected_duration_min: undefined, expected_duration_max: undefined, duration_unit: "minutes", expected_emotion: undefined, emotion_intensity: undefined }); }} disabled={addingPhase}>{t("journeys.editor.cancel")}</MsqdxButton>
+                        <MsqdxButton type="submit" variant="contained" size="small" brandColor="green" disabled={addingPhase || !phaseFormData.name.trim()} startIcon={<MsqdxIcon name={addingPhase ? "hourglass_empty" : editingPhaseId ? "save" : "add"} customSize={14} />}>{addingPhase ? (editingPhaseId ? t("journeys.editor.updating") : t("journeys.editor.adding")) : (editingPhaseId ? t("journeys.editor.phaseUpdated") : t("journeys.editor.addPhase"))}</MsqdxButton>
                       </Box>
                     </Box>
                   </MsqdxCard>
@@ -1149,9 +1151,9 @@ export default function JourneyEditorPage() {
                       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", width: 56, height: 56, borderRadius: "full", bgcolor: "action.hover", mb: 1.5 }}>
                         <MsqdxIcon name="add" customSize={28} />
                       </Box>
-                      <MsqdxTypography variant="h6" weight="semibold" sx={{ mb: 0.5 }}>Add phase</MsqdxTypography>
+                      <MsqdxTypography variant="h6" weight="semibold" sx={{ mb: 0.5 }}>{t("journeys.editor.addPhase")}</MsqdxTypography>
                       <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
-                        Extend the journey with another touchpoint, task or feeling.
+                        {t("journeys.editor.addPhaseCardHint")}
                       </MsqdxTypography>
                     </Box>
                     <Box sx={{ position: "absolute", bottom: 16, right: 16 }} onClick={(e) => e.stopPropagation()}>
@@ -1168,7 +1170,7 @@ export default function JourneyEditorPage() {
                 )}
               </Box>
               <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 1 }} component="div" aria-live="polite">
-                Phase {activePhaseIndex + 1} of {journey.phases.length}
+                {t("journeys.editor.phaseOf", { current: activePhaseIndex + 1, total: journey.phases.length })}
               </MsqdxTypography>
             </Box>
           )}

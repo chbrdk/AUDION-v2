@@ -41,7 +41,7 @@ async function fetchTargetGroupList(projectId: string, headers: HeadersInit): Pr
 }
 
 export default async function TargetGroupAdminPage() {
-  const t = getServerT();
+  const t = await getServerT();
   let list: TargetGroupListResponse;
   let error: string | null = null;
   const projectId = await getServerProjectId();

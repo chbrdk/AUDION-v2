@@ -27,7 +27,7 @@ const fetchProviders = async (): Promise<ProvidersResponse> => {
 };
 
 export default async function SettingsProvidersPage() {
-  const t = getServerT();
+  const t = await getServerT();
   const data = await fetchProviders();
   const statusLabel = (configured: boolean) =>
     configured ? t("settingsProviders.status.connected") : t("settingsProviders.status.missing");

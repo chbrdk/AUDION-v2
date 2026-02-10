@@ -41,7 +41,7 @@ async function fetchQueueStats(projectId: string, headers: HeadersInit): Promise
 }
 
 export default async function QueuePage() {
-  const t = getServerT();
+  const t = await getServerT();
   let stats: QueueStatsResponse;
   let error: string | null = null;
   const projectId = await getServerProjectId();

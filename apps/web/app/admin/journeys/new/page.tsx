@@ -9,6 +9,7 @@ import { journeysApi, type JourneyCreate, type JourneyGenerateRequest } from "..
 import { targetGroupsApi, type TargetGroupResponse } from "../../../api/_lib/target-groups";
 import { MsqdxIcon } from "@msqdx/react";
 import { useProject } from "../../../../components/projects/project-provider";
+import { useI18n } from "../../../../components/i18n/i18n-provider";
 
 function generateUUID(): string {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
@@ -21,6 +22,7 @@ function generateUUID(): string {
 export default function NewJourneyPage() {
   const router = useRouter();
   const { activeProjectId } = useProject();
+  const { t } = useI18n();
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +53,7 @@ export default function NewJourneyPage() {
       setTargetGroups(response.items || []);
     } catch (err) {
       console.error("Failed to load target groups:", err);
-      setError(`Failed to load target groups: ${err instanceof Error ? err.message : String(err)}`);
+      setError(`${t("journeys.new.errors.loadTargetGroupsFailed")}: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setLoadingTargetGroups(false);
     }
@@ -65,22 +67,22 @@ export default function NewJourneyPage() {
     try {
       // Validate required fields
       if (!formData.name) {
-        throw new Error("Journey name is required");
+        throw new Error(t("journeys.new.errors.journeyNameRequired"));
       }
       if (!formData.organization_id || formData.organization_id.trim() === "") {
-        throw new Error("Organization ID is required");
+        throw new Error(t("journeys.new.errors.orgIdRequired"));
       }
       if (!activeProjectId) {
-        throw new Error("Project is required");
+        throw new Error(t("journeys.new.errors.projectRequired"));
       }
       
       // Validate UUID format (basic check)
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(formData.organization_id.trim())) {
-        throw new Error("Organization ID must be a valid UUID format");
+        throw new Error(t("journeys.new.errors.orgIdInvalidUuid"));
       }
       if (formData.target_group_id && formData.target_group_id.trim() !== "" && !uuidRegex.test(formData.target_group_id.trim())) {
-        throw new Error("Target Group ID must be a valid UUID format");
+        throw new Error(t("journeys.new.errors.targetGroupInvalidUuid"));
       }
       // Clean up empty strings to undefined
       const cleanedData: JourneyCreate = {
@@ -94,7 +96,7 @@ export default function NewJourneyPage() {
       const journey = await journeysApi.createJourney(cleanedData);
       router.push(`/admin/journeys/${journey.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create journey");
+      setError(err instanceof Error ? err.message : t("journeys.new.errors.createFailed"));
       setLoading(false);
     }
   };
@@ -106,25 +108,25 @@ export default function NewJourneyPage() {
     try {
       // Validate required fields for AI generation
       if (!formData.target_group_id || formData.target_group_id.trim() === "") {
-        throw new Error("Target Group is required for AI generation");
+        throw new Error(t("journeys.new.errors.targetGroupRequired"));
       }
       if (!formData.organization_id || formData.organization_id.trim() === "") {
-        throw new Error("Organization ID is required");
+        throw new Error(t("journeys.new.errors.orgIdRequired"));
       }
       if (!formData.journey_type) {
-        throw new Error("Journey Type is required");
+        throw new Error(t("journeys.new.errors.journeyTypeRequired"));
       }
       if (!activeProjectId) {
-        throw new Error("Project is required");
+        throw new Error(t("journeys.new.errors.projectRequired"));
       }
 
       // Validate UUID format
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(formData.organization_id.trim())) {
-        throw new Error("Organization ID must be a valid UUID format");
+        throw new Error(t("journeys.new.errors.orgIdInvalidUuid"));
       }
       if (!uuidRegex.test(formData.target_group_id.trim())) {
-        throw new Error("Target Group ID must be a valid UUID format");
+        throw new Error(t("journeys.new.errors.targetGroupInvalidUuid"));
       }
       const generateRequest: JourneyGenerateRequest = {
         target_group_id: formData.target_group_id.trim(),
@@ -138,7 +140,7 @@ export default function NewJourneyPage() {
       const journey = await journeysApi.generateJourney(generateRequest);
       router.push(`/admin/journeys/${journey.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to generate journey with AI");
+      setError(err instanceof Error ? err.message : t("journeys.new.errors.generateFailed"));
       setGenerating(false);
     }
   };
@@ -146,19 +148,19 @@ export default function NewJourneyPage() {
   return (
     <div style={{ padding: "2rem", maxWidth: "800px", margin: "0 auto" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
-        <h1>Create New Journey</h1>
+        <h1>{t("journeys.new.title")}</h1>
         <button
           className="msqdx-glass-button --ghost"
           onClick={() => router.push("/admin/journeys")}
           disabled={loading}
         >
-          <MsqdxIcon name="arrow_back" customSize={16} /> Cancel
+          <MsqdxIcon name="arrow_back" customSize={16} /> {t("journeys.new.cancel")}
         </button>
       </div>
 
       {error && (
         <div style={{ padding: "1rem", backgroundColor: "var(--color-secondary-dx-pink-tint)", borderRadius: "8px", color: "var(--color-secondary-dx-pink-on-light)", marginBottom: "2rem" }}>
-          <strong>Error:</strong> {error}
+          <strong>{t("journeys.new.errorTitle")}</strong> {error}
         </div>
       )}
 
@@ -166,7 +168,7 @@ export default function NewJourneyPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
           <div>
             <label htmlFor="name" style={{ display: "block", marginBottom: "0.5rem", fontWeight: "500" }}>
-              Journey Name *
+              {t("journeys.new.journeyName")}
             </label>
             <input
               id="name"
@@ -188,7 +190,7 @@ export default function NewJourneyPage() {
 
           <div>
             <label htmlFor="description" style={{ display: "block", marginBottom: "0.5rem", fontWeight: "500" }}>
-              Description
+              {t("journeys.new.description")}
             </label>
             <textarea
               id="description"
@@ -210,7 +212,7 @@ export default function NewJourneyPage() {
 
           <div>
             <label htmlFor="journey_type" style={{ display: "block", marginBottom: "0.5rem", fontWeight: "500" }}>
-              Journey Type *
+              {t("journeys.new.journeyType")}
             </label>
             <select
               id="journey_type"
@@ -227,18 +229,18 @@ export default function NewJourneyPage() {
                 color: "var(--color-text-primary)",
               }}
             >
-              <option value="customer_acquisition">Customer Acquisition</option>
-              <option value="customer_onboarding">Customer Onboarding</option>
-              <option value="customer_retention">Customer Retention</option>
-              <option value="customer_support">Customer Support</option>
-              <option value="product_usage">Product Usage</option>
-              <option value="purchase_decision">Purchase Decision</option>
+              <option value="customer_acquisition">{t("journeys.new.journeyTypes.customer_acquisition")}</option>
+              <option value="customer_onboarding">{t("journeys.new.journeyTypes.customer_onboarding")}</option>
+              <option value="customer_retention">{t("journeys.new.journeyTypes.customer_retention")}</option>
+              <option value="customer_support">{t("journeys.new.journeyTypes.customer_support")}</option>
+              <option value="product_usage">{t("journeys.new.journeyTypes.product_usage")}</option>
+              <option value="purchase_decision">{t("journeys.new.journeyTypes.purchase_decision")}</option>
             </select>
           </div>
 
           <div>
             <label htmlFor="creation_mode" style={{ display: "block", marginBottom: "0.5rem", fontWeight: "500" }}>
-              Creation Mode *
+              {t("journeys.new.creationMode")}
             </label>
             <select
               id="creation_mode"
@@ -255,15 +257,15 @@ export default function NewJourneyPage() {
                 color: "var(--color-text-primary)",
               }}
             >
-              <option value="manual">Manual</option>
-              <option value="ai_generated">AI Generated</option>
-              <option value="hybrid">Hybrid</option>
+              <option value="manual">{t("journeys.new.creationModes.manual")}</option>
+              <option value="ai_generated">{t("journeys.new.creationModes.ai_generated")}</option>
+              <option value="hybrid">{t("journeys.new.creationModes.hybrid")}</option>
             </select>
           </div>
 
           <div>
             <label htmlFor="organization_id" style={{ display: "block", marginBottom: "0.5rem", fontWeight: "500" }}>
-              Organization ID *
+              {t("journeys.new.organizationId")}
             </label>
             <div style={{ display: "flex", gap: "0.5rem" }}>
               <input
@@ -273,7 +275,7 @@ export default function NewJourneyPage() {
                 onChange={(e) => setFormData({ ...formData, organization_id: e.target.value })}
                 required
                 disabled={loading}
-                placeholder="Organization UUID"
+                placeholder={t("journeys.new.organizationPlaceholder")}
                 style={{
                   flex: 1,
                   padding: "0.75rem",
@@ -288,20 +290,20 @@ export default function NewJourneyPage() {
                 className="msqdx-glass-button --ghost"
                 onClick={() => setFormData({ ...formData, organization_id: generateUUID() })}
                 disabled={loading}
-                title="Generate new Organization ID"
+                title={t("journeys.new.generateOrgIdTitle")}
                 style={{ whiteSpace: "nowrap" }}
               >
-                <MsqdxIcon name="refresh" customSize={16} /> Generate
+                <MsqdxIcon name="refresh" customSize={16} /> {t("journeys.new.generateOrgId")}
               </button>
             </div>
             <p style={{ fontSize: "0.875rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>
-              A new Organization ID has been auto-generated. Click "Generate" to create a new one.
+              {t("journeys.new.orgIdHint")}
             </p>
           </div>
 
           <div>
             <label htmlFor="target_group_id" style={{ display: "block", marginBottom: "0.5rem", fontWeight: "500" }}>
-              Target Group (optional)
+              {t("journeys.new.targetGroup")}
             </label>
             <select
               id="target_group_id"
@@ -317,7 +319,7 @@ export default function NewJourneyPage() {
                 color: "var(--color-text-primary)",
               }}
             >
-              <option value="">-- Select Target Group --</option>
+              <option value="">{t("journeys.new.selectTargetGroup")}</option>
               {targetGroups.map((tg) => (
                 <option key={tg.id} value={tg.id}>
                   {tg.name} {tg.description ? `- ${tg.description}` : ""}
@@ -326,12 +328,12 @@ export default function NewJourneyPage() {
             </select>
             {loadingTargetGroups && (
               <p style={{ fontSize: "0.875rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>
-                Loading target groups...
+                {t("journeys.new.loadingTargetGroups")}
               </p>
             )}
             {!loadingTargetGroups && targetGroups.length === 0 && (
               <p style={{ fontSize: "0.875rem", color: "var(--color-text-secondary)", marginTop: "0.25rem" }}>
-                No target groups available. You can create a journey without a target group.
+                {t("journeys.new.noTargetGroups")}
               </p>
             )}
           </div>
@@ -343,7 +345,7 @@ export default function NewJourneyPage() {
               onClick={() => router.push("/admin/journeys")}
               disabled={loading || generating}
             >
-              Cancel
+              {t("journeys.new.cancel")}
             </button>
             {formData.target_group_id && formData.target_group_id.trim() !== "" && (
               <button
@@ -355,11 +357,11 @@ export default function NewJourneyPage() {
               >
                 {generating ? (
                   <>
-                    <MsqdxIcon name="hourglass_empty" customSize={16} /> Generating...
+                    <MsqdxIcon name="hourglass_empty" customSize={16} /> {t("journeys.new.generating")}
                   </>
                 ) : (
                   <>
-                    <MsqdxIcon name="auto_awesome" customSize={16} /> Generate with AI
+                    <MsqdxIcon name="auto_awesome" customSize={16} /> {t("journeys.new.generateWithAi")}
                   </>
                 )}
               </button>
@@ -371,11 +373,11 @@ export default function NewJourneyPage() {
             >
               {loading ? (
                 <>
-                  <MsqdxIcon name="hourglass_empty" customSize={16} /> Creating...
+                  <MsqdxIcon name="hourglass_empty" customSize={16} /> {t("journeys.new.creating")}
                 </>
               ) : (
                 <>
-                  <MsqdxIcon name="add" customSize={16} /> Create Journey
+                  <MsqdxIcon name="add" customSize={16} /> {t("journeys.new.createJourney")}
                 </>
               )}
             </button>
