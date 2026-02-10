@@ -167,6 +167,61 @@ class PromptTemplateRegistry:
         logger.info("ai.templates.loaded", count=len(self._cache), path=str(self.template_path))
 
 
+def seed_default_templates_for_project(session: Session, project_id: str) -> int:
+    """
+    Create AiTemplateOverride rows for all base templates when a new project is created.
+    Each project gets its own copy of the default templates so they are immediately available.
+    Returns the number of templates seeded.
+    """
+    try:
+        project_uuid = UUID(project_id)
+    except ValueError:
+        logger.warning("ai.templates.seed.invalid_project_id", project_id=project_id)
+        return 0
+
+    registry = PromptTemplateRegistry()
+    base_templates = registry.list_templates()
+    if not base_templates:
+        logger.info("ai.templates.seed.no_templates", project_id=project_id)
+        return 0
+
+    count = 0
+    for summary in base_templates:
+        try:
+            full = registry.get_full_template(summary.template_id)
+            payload = full.model_dump(mode="json")
+            # payload contains all override-able fields
+            existing = session.scalar(
+                select(AiTemplateOverride).where(
+                    AiTemplateOverride.project_id == project_uuid,
+                    AiTemplateOverride.template_id == summary.template_id,
+                )
+            )
+            if existing:
+                continue
+            override = AiTemplateOverride(
+                id=uuid4(),
+                project_id=project_uuid,
+                template_id=summary.template_id,
+                payload=payload,
+                updated_at=datetime.utcnow(),
+                updated_by=None,
+            )
+            session.add(override)
+            count += 1
+        except Exception as exc:
+            logger.warning(
+                "ai.templates.seed.skip",
+                template_id=summary.template_id,
+                project_id=project_id,
+                error=str(exc),
+            )
+    if count > 0:
+        session.flush()
+        logger.info("ai.templates.seeded", project_id=project_id, count=count)
+    return count
+
+
 def _apply_template_override(template: AiTemplateDefinition, override: Dict[str, Any]) -> AiTemplateDefinition:
     if not override:
         return template

@@ -18,6 +18,7 @@ from ..schemas import (
     ProjectResponse,
     ProjectUpdateRequest,
 )
+from ..services.ai_assist import seed_default_templates_for_project
 from ..services.auth import get_current_user
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -119,6 +120,9 @@ def create_project(
         updated_at=datetime.utcnow(),
     )
     session.add(membership)
+    session.flush()
+
+    seed_default_templates_for_project(session, str(project.id))
     session.commit()
 
     return _project_response(project)
