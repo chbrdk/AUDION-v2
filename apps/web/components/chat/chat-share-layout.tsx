@@ -2,11 +2,14 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { Box, Button, Typography } from "@mui/material";
-import { MsqdxIcon } from "@msqdx/react";
+import { Box, Button, Typography, useTheme } from "@mui/material";
+import { MsqdxIcon, MsqdxAppLayout } from "@msqdx/react";
 import { useAuth } from "../auth/auth-provider";
+import { THEME_ACCENT_WITH_FALLBACK } from "../../lib/theme-accent";
+import { BrandColorInitializer } from "../settings/brand-color-initializer";
 
 export function ChatShareLayout({ children }: { children: ReactNode }) {
+  const theme = useTheme();
   const { user, loading } = useAuth();
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
@@ -18,7 +21,7 @@ export function ChatShareLayout({ children }: { children: ReactNode }) {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: "var(--color-neutral, #0f172a)",
+          backgroundColor: "var(--color-neutral)",
         }}
       >
         <Typography color="text.secondary">Loading…</Typography>
@@ -27,45 +30,86 @@ export function ChatShareLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        backgroundColor: "var(--color-neutral)",
-        color: "var(--color-text-primary)",
-      }}
-    >
-      <Box
-        component="header"
+    <>
+      <BrandColorInitializer />
+      <MsqdxAppLayout
+        logo
+        appName="Audion"
+        innerBackground="grid"
+        borderWidth="thick"
+        sidebar={null}
         sx={{
-          flexShrink: 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          px: 2,
-          py: 1.5,
-          borderBottom: "1px solid var(--color-neutral)",
-          backgroundColor: "var(--color-neutral)",
+          "& > div:last-of-type": {
+            backgroundColor: `${THEME_ACCENT_WITH_FALLBACK.backgroundColor} !important`,
+          },
+          "& > div:last-of-type > div": {
+            borderColor: `${THEME_ACCENT_WITH_FALLBACK.borderColor} !important`,
+          },
+          "& > div:last-of-type > div > div:first-of-type": {
+            backgroundColor: "transparent !important",
+            color: "var(--color-theme-accent-contrast, #ffffff) !important",
+          },
+          "& > div:last-of-type > div > div:first-of-type *": {
+            color: "inherit !important",
+          },
+          "& > div:last-of-type > div > div:first-of-type svg": {
+            fill: "currentColor",
+          },
+          "& > div:last-of-type > div > div:first-of-type > div": {
+            backgroundColor: `${THEME_ACCENT_WITH_FALLBACK.backgroundColor} !important`,
+          },
         }}
       >
-        <Button
-          component={Link}
-          href={user ? `${basePath}/admin` : `${basePath}/login`}
-          startIcon={<MsqdxIcon name={user ? "arrow_back" : "login"} customSize={20} />}
+        {/* Header Bar – nur „Back to Admin“ / „Sign in“, kein Hamburger, keine Nav */}
+        <Box
+          component="header"
+          className="msqdx-glass-admin-header-bar"
           sx={{
-            textTransform: "none",
-            color: "var(--color-text-primary)",
-            "&:hover": { backgroundColor: "rgba(255,255,255,0.08)" },
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 1100,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "flex-end",
+            padding: { xs: "0.75rem 1rem", md: "1rem 1.5rem" },
+            minHeight: { xs: "56px", md: "64px" },
+            backgroundColor: "transparent",
+            overflow: "visible",
           }}
         >
-          {user ? "Back to Admin" : "Sign in"}
-        </Button>
-        <Typography variant="body2" sx={{ color: "var(--color-text-secondary)", fontWeight: 500 }}>
-          Chat
-        </Typography>
-      </Box>
-      <Box sx={{ flex: 1, minHeight: 0 }}>{children}</Box>
-    </Box>
+          <Button
+            component={Link}
+            href={user ? `${basePath}/admin` : `${basePath}/login`}
+            startIcon={<MsqdxIcon name={user ? "arrow_back" : "login"} customSize={20} />}
+            sx={{
+              textTransform: "none",
+              color: theme.palette.text.primary,
+              "&:hover": { backgroundColor: theme.palette.action.hover },
+            }}
+          >
+            {user ? "Back to Admin" : "Sign in"}
+          </Button>
+        </Box>
+
+        {/* Content Area – gleiche Klasse wie Admin für einheitliches Styling */}
+        <Box
+          component="main"
+          className="msqdx-glass-admin-content"
+          sx={{
+            flex: 1,
+            overflowX: "hidden",
+            overflowY: "auto",
+            padding: { xs: "1rem", md: "1.5rem" },
+            minWidth: 0,
+            maxWidth: "100%",
+            width: "100%",
+          }}
+        >
+          {children}
+        </Box>
+      </MsqdxAppLayout>
+    </>
   );
 }

@@ -42,9 +42,10 @@ Aktuell teilt der Link nur die **Persona** – der Empfänger startet eine leere
 
 Die Share-Chat-Seite (`/chat`) ist optisch an die Dashboard-Chat-Seite (`/admin/chat`) angeglichen:
 
-- **Design-Tokens:** `var(--color-neutral)`, `var(--color-secondary-dx-green)`, `var(--color-text-primary)` etc.
-- **Layout:** Gleicher Aufbau: Statuszeile (Sending…), Persona-Header, Nachrichtenbereich (1rem Padding), Input-Leiste (sticky, 720px max, runde Inputs, grüner Send-Button).
-- **Dateien:** `apps/web/app/chat/page.tsx`, `apps/web/components/chat/chat-share-layout.tsx` (Header: „Chat“, Back to Admin / Sign in).
+- **App-Layout:** Gleiches **MsqdxAppLayout** wie im Admin (Logo + „Audion“ in der Ecke, Grid-Hintergrund, dicker Rahmen, Theme-Akzent), aber **ohne Navigation/Sidebar**. Nur Header-Leiste mit „Back to Admin“ / „Sign in“ rechts.
+- **Design-Tokens:** `var(--color-neutral)`, `var(--color-secondary-dx-green)`, Theme-Akzent etc.
+- **Chat-Inhalt:** Statuszeile (Sending…), Persona-Header, Nachrichtenbereich (1rem Padding), Input-Leiste (sticky, 720px max, runde Inputs, grüner Send-Button).
+- **Dateien:** `apps/web/app/chat/page.tsx`, `apps/web/components/chat/chat-share-layout.tsx` (MsqdxAppLayout, BrandColorInitializer, keine Sidebar).
 
 ## Testing
 
