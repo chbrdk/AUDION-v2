@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Box, Stack } from "@mui/material";
+import { applyBrandColorVars } from "../../lib/brand-color-utils";
 
 const BRAND_COLORS = [
   { id: "purple", varName: "--color-secondary-dx-purple", hex: "#b638ff" },
@@ -11,56 +12,8 @@ const BRAND_COLORS = [
   { id: "green", varName: "--color-secondary-dx-green", hex: "#00ca55" },
 ] as const;
 
-const COLOR_TINT_MAP: Record<string, string> = {
-  "--color-secondary-dx-purple": "--color-secondary-dx-purple-tint",
-  "--color-secondary-dx-pink": "--color-secondary-dx-pink-tint",
-  "--color-secondary-dx-orange": "--color-secondary-dx-orange-tint",
-  "--color-secondary-dx-green": "--color-secondary-dx-green-tint",
-  "--color-secondary-dx-yellow": "--color-secondary-dx-yellow-tint",
-};
-
 const STORAGE_KEY = "audion-sidebar-color";
 const DEFAULT_COLOR = "--color-secondary-dx-green";
-
-function applyColorVars(colorVar: string) {
-  const styles = getComputedStyle(document.documentElement);
-  const resolvedColor =
-    styles.getPropertyValue(colorVar).trim() ||
-    BRAND_COLORS.find((c) => c.varName === colorVar)?.hex ||
-    "";
-
-  if (resolvedColor) {
-    document.documentElement.style.setProperty(
-      "--audion-light-border-color",
-      resolvedColor
-    );
-    document.documentElement.style.setProperty(
-      "--audion-light-html-background-color",
-      resolvedColor
-    );
-    document.documentElement.style.setProperty(
-      "--color-theme-accent",
-      `var(${colorVar})`
-    );
-    const tintVar =
-      COLOR_TINT_MAP[colorVar] || "--color-secondary-dx-purple-tint";
-    document.documentElement.style.setProperty(
-      "--color-theme-accent-tint",
-      `var(${tintVar})`
-    );
-    // Logo, AUDION und Button-Text: bei gelb schwarz, sonst weiß
-    const textOnAccent =
-      colorVar === "--color-secondary-dx-yellow" ? "#000000" : "#ffffff";
-    document.documentElement.style.setProperty(
-      "--auth-logo-color",
-      textOnAccent
-    );
-    document.documentElement.style.setProperty(
-      "--auth-button-text-color",
-      textOnAccent
-    );
-  }
-}
 
 export function AuthBrandColorSelector() {
   const [selected, setSelected] = useState<string>(DEFAULT_COLOR);
@@ -69,14 +22,14 @@ export function AuthBrandColorSelector() {
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY) || DEFAULT_COLOR;
     setSelected(saved);
-    applyColorVars(saved);
+    applyBrandColorVars(saved, "light");
     setMounted(true);
   }, []);
 
   const handleSelect = (varName: string) => {
     setSelected(varName);
     localStorage.setItem(STORAGE_KEY, varName);
-    applyColorVars(varName);
+    applyBrandColorVars(varName, "light");
   };
 
   if (!mounted) return null;

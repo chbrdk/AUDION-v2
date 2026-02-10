@@ -162,9 +162,16 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
           "& > div:last-of-type > div": {
             borderColor: `${THEME_ACCENT_WITH_FALLBACK.borderColor} !important`,
           },
-          /* Corner/Logo – Theme-Akzent (brandBackgroundColor nicht in veröffentlichter DS-Version) */
+          /* Corner/Logo – Kontrast-Text bei hellen Farben (gelb, grau, grün). Wrapper transparent. */
           "& > div:last-of-type > div > div:first-of-type": {
-            backgroundColor: `${THEME_ACCENT_WITH_FALLBACK.backgroundColor} !important`,
+            backgroundColor: "transparent !important",
+            color: "var(--color-theme-accent-contrast, #ffffff) !important",
+          },
+          "& > div:last-of-type > div > div:first-of-type *": {
+            color: "inherit !important",
+          },
+          "& > div:last-of-type > div > div:first-of-type svg": {
+            fill: "currentColor",
           },
           "& > div:last-of-type > div > div:first-of-type > div": {
             backgroundColor: `${THEME_ACCENT_WITH_FALLBACK.backgroundColor} !important`,

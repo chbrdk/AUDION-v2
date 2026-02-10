@@ -6,6 +6,17 @@
 export const BRAND_COLOR_STORAGE_KEY = "audion-sidebar-color";
 export const BRAND_COLOR_DEFAULT = "--color-secondary-dx-green";
 
+/** Farben, auf denen Text/Icons schwarz statt weiß sein müssen (helle Hintergründe) */
+export const LIGHT_ACCENT_COLORS = [
+  "--color-secondary-dx-yellow",
+  "--color-secondary-dx-grey-light",
+  "--color-secondary-dx-green",
+] as const;
+
+export function isLightAccentColor(varName: string): boolean {
+  return (LIGHT_ACCENT_COLORS as readonly string[]).includes(varName);
+}
+
 const OPTIONS_META: {
   varName: string;
   preview: string;
@@ -53,13 +64,25 @@ export function applyBrandColorVars(
       resolvedColor
     );
 
-    const textColor =
-      themeMode === "light"
-        ? "#000000"
-        : OPTIONS_META.find((o) => o.varName === varName)?.textColor || "#ffffff";
+    /* Text auf Sidebar/Accent: schwarz bei gelb, grau, grün; weiß bei dunklen Farben */
+    const textOnAccentColor = OPTIONS_META.find((o) => o.varName === varName)?.textColor || "#ffffff";
+    const isLight = textOnAccentColor === "#000000";
     document.documentElement.style.setProperty(
       "--audion-sidebar-text-color",
-      textColor
+      textOnAccentColor
+    );
+    document.documentElement.style.setProperty(
+      "--color-theme-accent-contrast",
+      textOnAccentColor
+    );
+    /* Hover/Active auf Sidebar: dunkler Overlay bei hellem Hintergrund, heller bei dunklem */
+    document.documentElement.style.setProperty(
+      "--audion-sidebar-hover-bg",
+      isLight ? "rgba(0, 0, 0, 0.08)" : "rgba(255, 255, 255, 0.1)"
+    );
+    document.documentElement.style.setProperty(
+      "--audion-sidebar-active-bg",
+      isLight ? "rgba(0, 0, 0, 0.15)" : "rgba(255, 255, 255, 0.15)"
     );
 
     document.documentElement.style.setProperty(
@@ -74,8 +97,8 @@ export function applyBrandColorVars(
       `var(${tintVar})`
     );
 
-    const textOnAccent =
-      varName === "--color-secondary-dx-yellow" ? "#000000" : "#ffffff";
+    /* Auth (Login/Register): Logo und Button-Text auf Accent-Hintergrund */
+    const textOnAccent = textOnAccentColor;
     document.documentElement.style.setProperty("--auth-logo-color", textOnAccent);
     document.documentElement.style.setProperty(
       "--auth-button-text-color",

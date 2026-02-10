@@ -37,9 +37,25 @@
   /* No background-color in dark theme */
 }
 
-.msqdx-glass-admin-nav {
+.msqdx-glass-admin-nav,
+.msqdx-admin-nav {
   background: var(--audion-light-border-color, #0f172a);
   border-right: 1px solid var(--audion-light-border-color, #0f172a);
+  color: var(--audion-sidebar-text-color, #ffffff) !important;
+}
+.msqdx-glass-admin-nav *:not(button):not(a),
+.msqdx-admin-nav *:not(button):not(a) {
+  color: inherit !important;
+}
+.msqdx-glass-admin-nav button,
+.msqdx-glass-admin-nav a,
+.msqdx-admin-nav button,
+.msqdx-admin-nav a {
+  color: var(--audion-sidebar-text-color, #ffffff) !important;
+}
+.msqdx-glass-admin-nav svg,
+.msqdx-admin-nav svg {
+  fill: currentColor;
 }
 
 [data-theme="dark"] .msqdx-glass-admin-nav {
@@ -51,23 +67,19 @@
   transition: all 0.2s ease;
 }
 
-.msqdx-glass-admin-nav-item.--active {
-  background-color: rgba(255, 255, 255, 0.15) !important;
+.msqdx-glass-admin-nav-item.--active,
+.msqdx-admin-nav [role="button"]:active,
+.msqdx-admin-nav a[aria-current="page"] {
+  background-color: var(--audion-sidebar-active-bg, rgba(255, 255, 255, 0.15)) !important;
   color: var(--audion-sidebar-text-color, #ffffff) !important;
   border: none !important;
 }
 
-[data-theme="dark"] .msqdx-glass-admin-nav-item.--active {
-  background-color: rgba(255, 255, 255, 0.15);
-}
-
-.msqdx-glass-admin-nav-item:hover {
-  background-color: rgba(255, 255, 255, 0.1) !important;
+.msqdx-glass-admin-nav-item:hover,
+.msqdx-admin-nav [role="button"]:hover,
+.msqdx-admin-nav a:hover {
+  background-color: var(--audion-sidebar-hover-bg, rgba(255, 255, 255, 0.1)) !important;
   color: var(--audion-sidebar-text-color, #ffffff) !important;
-}
-
-[data-theme="dark"] .msqdx-glass-admin-nav-item:hover {
-  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .msqdx-glass-admin-content {
@@ -203,7 +215,7 @@
 }
 .msqdx-glass-admin-content .MuiButton-root.MuiButton-contained:not(.MuiButton-colorError):not(.MuiButton-colorSuccess) {
   background-color: var(--color-theme-accent) !important;
-  color: #fff !important;
+  color: var(--color-theme-accent-contrast, #ffffff) !important;
 }
 .msqdx-glass-admin-content .MuiButton-root.MuiButton-contained:not(.MuiButton-colorError):not(.MuiButton-colorSuccess):hover {
   background-color: var(--color-theme-accent) !important;
