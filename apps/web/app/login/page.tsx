@@ -75,9 +75,9 @@ export default function LoginPage() {
             px: 4,
           }}
         >
-          <Stack spacing={2} alignItems="center">
+          <Stack direction="row" spacing={2} alignItems="center">
             <MsqdxLogo size="xlarge" color="white" />
-            <MsqdxTypography variant="h2" weight="bold" sx={{ color: "white" }}>
+            <MsqdxTypography variant="h4" weight="light" sx={{ color: "white", fontSize: "1.25rem" }}>
               AUDION
             </MsqdxTypography>
           </Stack>
