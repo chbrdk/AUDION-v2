@@ -156,6 +156,7 @@ export default function RegisterPage() {
                     sx={{
                       mt: 0.5,
                       backgroundColor: "var(--color-theme-accent) !important",
+                      color: "var(--auth-button-text-color, #ffffff) !important",
                       "&:hover": { backgroundColor: "var(--color-theme-accent) !important", filter: "brightness(1.08)" },
                     }}
                   >

@@ -48,12 +48,16 @@ function applyColorVars(colorVar: string) {
       "--color-theme-accent-tint",
       `var(${tintVar})`
     );
-    // Logo und AUDION-Text: bei gelb schwarz, sonst weiß
-    const logoColor =
+    // Logo, AUDION und Button-Text: bei gelb schwarz, sonst weiß
+    const textOnAccent =
       colorVar === "--color-secondary-dx-yellow" ? "#000000" : "#ffffff";
     document.documentElement.style.setProperty(
       "--auth-logo-color",
-      logoColor
+      textOnAccent
+    );
+    document.documentElement.style.setProperty(
+      "--auth-button-text-color",
+      textOnAccent
     );
   }
 }
