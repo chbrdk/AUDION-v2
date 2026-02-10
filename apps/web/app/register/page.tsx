@@ -14,6 +14,7 @@ import {
 import { MSQDX_TYPOGRAPHY } from "@msqdx/tokens";
 
 import { ThemeRegistryNoSSR } from "../../components/theme-registry-no-ssr";
+import { AuthBrandColorSelector } from "../../components/auth/auth-brand-color-selector";
 import { useI18n } from "../../components/i18n/i18n-provider";
 import { buildApiUrl } from "../api/_lib/backend";
 
@@ -58,7 +59,7 @@ export default function RegisterPage() {
           minHeight: "100vh",
           display: "flex",
           flexDirection: "row",
-          bgcolor: "var(--color-secondary-dx-green)",
+          bgcolor: "var(--audion-light-html-background-color, var(--color-secondary-dx-green))",
         }}
       >
         {/* Left 70%: Logo + AUDION headline */}
@@ -78,6 +79,7 @@ export default function RegisterPage() {
               AUDION
             </MsqdxTypography>
           </Stack>
+          <AuthBrandColorSelector />
         </Box>
 
         {/* Right 30%: Register card */}
@@ -149,7 +151,11 @@ export default function RegisterPage() {
                     variant="contained"
                     disabled={loading}
                     fullWidth
-                    sx={{ mt: 0.5 }}
+                    sx={{
+                      mt: 0.5,
+                      backgroundColor: "var(--color-theme-accent) !important",
+                      "&:hover": { backgroundColor: "var(--color-theme-accent) !important", filter: "brightness(1.08)" },
+                    }}
                   >
                     {loading ? t("auth.register.ctaLoading") : t("auth.register.cta")}
                   </MsqdxButton>
