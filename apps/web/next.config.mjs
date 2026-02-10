@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 // Base path für Audion - ermöglicht parallelen Betrieb mit anderen Services
-// Wird über Umgebungsvariable konfiguriert, Standard: leer (für Coolify)
-const basePath = '';
+// Wird über Umgebungsvariable konfiguriert, Standard: leer (für Coolify/lokal)
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
 
 const nextConfig = {
   reactStrictMode: true,

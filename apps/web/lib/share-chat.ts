@@ -13,12 +13,30 @@ export type ShareChatParams = {
 };
 
 /**
+ * Resolves the effective base path from the current URL.
+ * Ensures share links work regardless of deployment (/, /audion, etc.).
+ */
+function getEffectiveBasePath(): string {
+  if (typeof window === "undefined") {
+    return getApiBasePath();
+  }
+  const pathname = window.location.pathname;
+  // Derive base from current path: /admin/... → "", /audion/admin/... → /audion
+  const adminMatch = pathname.match(/^(.*?)\/admin/);
+  if (adminMatch) {
+    const prefix = adminMatch[1];
+    return prefix || "";
+  }
+  return getApiBasePath();
+}
+
+/**
  * Builds the full shareable URL for a chat with the given persona.
- * Uses origin + basePath for correct deployment (e.g. /audion).
+ * Uses the effective base path from the current page for correct deployment.
  */
 export function buildShareChatUrl(params: ShareChatParams): string {
-  const basePath = getApiBasePath();
-  const path = `${basePath}/chat`;
+  const basePath = getEffectiveBasePath();
+  const path = basePath ? `${basePath}/chat` : "/chat";
   const search = new URLSearchParams({
     personaId: params.personaId,
     projectId: params.projectId,
