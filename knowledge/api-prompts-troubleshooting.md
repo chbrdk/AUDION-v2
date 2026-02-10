@@ -5,11 +5,15 @@
 ### Symptome
 
 - `GET /api/ai-assist/templates` → **405 Method Not Allowed**
+- `GET /api/settings/ai/templates?project_id=...` → **404 Not Found**
 - `GET /api/settings/ai/persona-prompts` → **404 Not Found**
+- Fehlermeldung: `Failed to load persona prompts: Error: {"detail":"Not Found"}`
 
 ### Ursache
 
 Die Requests werden vom Next.js-Server an das Persona-Backend (Python FastAPI) weitergeleitet. Die Fehler stammen in der Regel vom Backend oder von der Routing-Konfiguration.
+
+**Hinweis:** Fehlende Templates/Persona-Prompts sind *nicht* die Ursache. Die API gibt bei leeren Listen `200` + `[]` zurück, nie `404`.
 
 ### Änderung am Code (2025-02)
 
@@ -20,16 +24,25 @@ Die Requests werden vom Next.js-Server an das Persona-Backend (Python FastAPI) w
 
 Damit sind Templates-Liste, -Laden und -Speichern über dieselbe Proxy-Route (`/api/settings/*`) erreichbar.
 
+### Resilience (2025-02)
+
+`listTemplates` und `listPersonaPrompts` geben bei `404` nun ein leeres Array `[]` zurück statt einen Fehler zu werfen. Die UI funktioniert auch, wenn die Route temporär nicht erreichbar ist.
+
 ### Checkliste für Deployment (405/404)
 
 1. **Persona-Backend-Version prüfen**
-   - Die Routen `/ai-assist/templates`, `/settings/ai/templates` und `/settings/ai/persona-prompts` müssen im Python-Backend existieren (`apps/api/app/routers/ai_assist.py`, `settings.py`).
+   - Die Routen `/settings/ai/templates` und `/settings/ai/persona-prompts` müssen im Python-Backend existieren (`apps/api/app/routers/settings.py`).
 
-2. **Umgebungsvariablen**
+2. **Coolify/Traefik Routing**
+   - **Wichtig:** `/api/*` muss an die **Next.js-App (audion-web)** gehen, *nicht* direkt an die API.
+   - Next.js leitet intern an `api:8000/settings/ai/...` weiter (ohne `/api`-Prefix).
+   - Wenn `/api/*` direkt an die FastAPI geht, erhält diese `/api/settings/ai/templates`, die Route existiert aber unter `/settings/ai/templates` → **404**.
+
+3. **Umgebungsvariablen**
    - `NEXT_PERSONA_BACKEND_INTERNAL_URL` (Server) bzw. `NEXT_PUBLIC_PERSONA_BACKEND_URL` müssen auf die korrekte Persona-Backend-URL zeigen (z.B. `http://api:8000`).
 
-3. **Proxy/Gateway**
-   - Falls ein Reverse-Proxy oder API-Gateway vor dem Backend steht: sicherstellen, dass `GET` für `/ai-assist/*` und `/settings/*` zugelassen ist.
+4. **Proxy/Gateway**
+   - Falls ein Reverse-Proxy oder API-Gateway vor dem Backend steht: sicherstellen, dass `GET` für `/settings/*` zugelassen ist.
 
-4. **Authentifizierung**
-   - Beide Endpoints benötigen einen gültigen Auth-Header. Fehlende oder ungültige Auth kann je nach Setup zu 401/403 oder 404 führen.
+5. **Authentifizierung**
+   - Beide Endpoints benötigen einen gültigen Auth-Header. Fehlende oder ungültige Auth kann zu 401/403 führen.

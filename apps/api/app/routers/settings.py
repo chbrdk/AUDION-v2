@@ -12,7 +12,7 @@ from sqlalchemy.orm.attributes import flag_modified
 from uuid import UUID
 
 from ..core.config import get_settings
-from ..db import get_db
+from ..db import get_db, get_session
 from ..models import Persona, PersonaPrompt, User
 from ..schemas import AiTemplateDefinition, AiTemplateSummary, AiTemplateUpdateRequest
 from ..services.ai_assist import AiAssistService, PromptTemplateRegistry

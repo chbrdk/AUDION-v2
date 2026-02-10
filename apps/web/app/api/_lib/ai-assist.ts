@@ -101,6 +101,10 @@ export const aiAssistApi = {
     if (projectId) params.set("project_id", projectId);
     // Use settings proxy (same as getTemplate/updateTemplate) for consistent routing
     const response = await fetch(buildSettingsUrl("/ai/templates", params), { cache: "no-store" });
+    if (response.status === 404) {
+      // Endpoint not found or no route – return empty list so UI doesn't break
+      return [];
+    }
     if (!response.ok) {
       const error = await response.text().catch(() => "");
       throw new Error(error || `Backend responded with ${response.status}`);
@@ -169,6 +173,10 @@ export const aiAssistApi = {
   // Persona Prompts
   listPersonaPrompts: async (): Promise<AiTemplateSummary[]> => {
     const response = await fetch(buildSettingsUrl("/ai/persona-prompts"), { cache: "no-store" });
+    if (response.status === 404) {
+      // Endpoint not found or no route – return empty list so UI doesn't break
+      return [];
+    }
     if (!response.ok) {
       const error = await response.text().catch(() => "");
       throw new Error(error || `Backend responded with ${response.status}`);
