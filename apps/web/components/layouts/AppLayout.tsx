@@ -32,7 +32,6 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <MsqdxAppLayout
-      brandBackgroundColor={THEME_ACCENT_WITH_FALLBACK.backgroundColor}
       sidebar={
         <MsqdxAdminNav
           open={drawerOpen}
@@ -53,6 +52,12 @@ export function AppLayout({ children }: AppLayoutProps) {
         "& .msqdx-app-layout__sidebar": {
           backgroundColor: THEME_ACCENT_WITH_FALLBACK.backgroundColor,
           borderRightColor: THEME_ACCENT_WITH_FALLBACK.borderColor,
+        },
+        "& > div:last-of-type": {
+          backgroundColor: `${THEME_ACCENT_WITH_FALLBACK.backgroundColor} !important`,
+        },
+        "& > div:last-of-type > div": {
+          borderColor: `${THEME_ACCENT_WITH_FALLBACK.borderColor} !important`,
         },
       }}
       innerBackground="grid"

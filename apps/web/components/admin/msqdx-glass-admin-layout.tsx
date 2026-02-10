@@ -137,7 +137,6 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
     <>
       <BrandColorInitializer />
       <MsqdxAppLayout
-        brandBackgroundColor="var(--color-theme-accent, var(--color-secondary-dx-green))"
         sidebar={
           <MsqdxAdminNav
             open={drawerOpen}
@@ -162,6 +161,13 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
           },
           "& > div:last-of-type > div": {
             borderColor: `${THEME_ACCENT_WITH_FALLBACK.borderColor} !important`,
+          },
+          /* Corner/Logo – Theme-Akzent (brandBackgroundColor nicht in veröffentlichter DS-Version) */
+          "& > div:last-of-type > div > div:first-of-type": {
+            backgroundColor: `${THEME_ACCENT_WITH_FALLBACK.backgroundColor} !important`,
+          },
+          "& > div:last-of-type > div > div:first-of-type > div": {
+            backgroundColor: `${THEME_ACCENT_WITH_FALLBACK.backgroundColor} !important`,
           },
         }}
       >
