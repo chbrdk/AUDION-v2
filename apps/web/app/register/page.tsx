@@ -75,10 +75,10 @@ export default function RegisterPage() {
         >
           <Stack alignItems="flex-start" spacing={0}>
             <Stack direction="row" alignItems="center">
-              <MsqdxLogo width={220} height={53} color="white" />
-              <MsqdxTypography variant="h4" weight="light" sx={{ color: "white", fontSize: "2.25rem", ml: "36px" }}>
-                AUDION
-              </MsqdxTypography>
+<MsqdxLogo width={220} height={53} color="var(--auth-logo-color, #ffffff)" />
+            <MsqdxTypography variant="h4" weight="light" sx={{ color: "var(--auth-logo-color, #ffffff)", fontSize: "2.25rem", ml: "36px" }}>
+              AUDION
+            </MsqdxTypography>
             </Stack>
             <AuthBrandColorSelector />
           </Stack>

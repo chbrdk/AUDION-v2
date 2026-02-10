@@ -48,6 +48,13 @@ function applyColorVars(colorVar: string) {
       "--color-theme-accent-tint",
       `var(${tintVar})`
     );
+    // Logo und AUDION-Text: bei gelb schwarz, sonst weiß
+    const logoColor =
+      colorVar === "--color-secondary-dx-yellow" ? "#000000" : "#ffffff";
+    document.documentElement.style.setProperty(
+      "--auth-logo-color",
+      logoColor
+    );
   }
 }
 
@@ -91,7 +98,7 @@ export function AuthBrandColorSelector() {
             sx={{
               width: 20,
               height: 40,
-              borderRadius: "50%",
+              borderRadius: "20px",
               border: `2px solid ${isSelected ? "#fff" : "rgba(255,255,255,0.5)"}`,
               backgroundColor: hex,
               cursor: "pointer",
