@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useMemo, useState, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { keyframes } from "@emotion/react";
 import {
   alpha,
   Avatar,
@@ -74,6 +75,57 @@ type Message = {
   content: string;
   personaName?: string;
 };
+
+const welcomeFadeIn = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+`;
+
+const welcomePulse = keyframes`
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+`;
+
+function ShareChatWelcomeMessage({ personaDisplayName }: { personaDisplayName: string }) {
+  const theme = useTheme();
+  return (
+    <Box
+      sx={{
+        maxWidth: 420,
+        width: "100%",
+        textAlign: "center",
+        px: 2,
+        animation: `${welcomeFadeIn} 0.5s ease-out forwards`,
+      }}
+    >
+      <Box
+        sx={{
+          p: 3,
+          borderRadius: 4,
+          border: "1px solid var(--color-secondary-dx-green)",
+          backgroundColor: alpha(theme.palette.background.paper, 0.8),
+          animation: `${welcomePulse} 2.5s ease-in-out 0.6s infinite`,
+        }}
+      >
+        <Box sx={{ color: "var(--color-secondary-dx-green)", mb: 1.5, display: "flex", justifyContent: "center" }}>
+          <MsqdxIcon name="forum" customSize={48} />
+        </Box>
+        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+          Chat with {personaDisplayName}
+        </Typography>
+        <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+          Ask anything you’d like to know — type your message below and hit send to start the conversation.
+        </Typography>
+      </Box>
+    </Box>
+  );
+}
 
 function ChatSharePageContent() {
   const theme = useTheme();
@@ -473,9 +525,19 @@ function ChatSharePageContent() {
           overflowY: "auto",
           padding: "1rem",
           marginBottom: "1rem",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: messages.length === 0 ? "center" : "flex-start",
         }}
       >
-        <MsqdxGlassChatPanel messages={messages} />
+        {messages.length === 0 ? (
+          <ShareChatWelcomeMessage personaDisplayName={personaDisplayName} />
+        ) : (
+          <Box sx={{ width: "100%", minHeight: 0, flex: 1 }}>
+            <MsqdxGlassChatPanel messages={messages} />
+          </Box>
+        )}
       </Box>
 
       {/* Input area – same as admin chat (var(--color-neutral), rounded, maxWidth 720) */}
