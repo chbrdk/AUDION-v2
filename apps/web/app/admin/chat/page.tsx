@@ -490,14 +490,15 @@ function AdminChatPageContent() {
             personas.map((p: any) => {
               // Pydantic serializes PersonaPrompt with systemPrompt (camelCase) in JSON
               const systemPrompt = p.prompt?.systemPrompt ?? p.prompt?.system_prompt ?? null;
-              // Load prompt if available
+              // API list returns avatar in avatarUrl (camelCase), not image_url
+              const imageUrl = p.avatarUrl ?? p.imageUrl ?? p.image_url;
               return {
                 id: p.id,
                 name: p.name,
                 segment: p.segment,
                 headline: p.headline,
                 confidence: p.confidence ?? 1.0,
-                image_url: p.image_url,
+                image_url: imageUrl,
                 profileCard: p.profile_card ?? null,
                 profile: normalizePersonaProfile(p.profile),
                 systemPrompt: systemPrompt,

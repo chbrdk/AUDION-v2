@@ -298,12 +298,14 @@ function ChatSharePageContent() {
         }
         const data = await res.json();
         const systemPrompt = data.prompt?.systemPrompt ?? data.prompt?.system_prompt ?? null;
+        // API returns avatar in metadata.avatarUrl (detail), not top-level image_url
+        const avatarUrl = data.metadata?.avatarUrl ?? data.image_url;
         setPersona({
           id: data.id,
           name: data.name,
           segment: data.segment,
           headline: data.headline,
-          image_url: data.image_url,
+          image_url: avatarUrl,
           profile: data.profile,
           profileCard: data.profile_card,
           systemPrompt,
