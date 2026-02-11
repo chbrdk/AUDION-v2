@@ -122,24 +122,21 @@
     "cta": "Try again"
   },
   "adminDashboard": {
+    "greetingMorning": "Good morning",
+    "greetingAfternoon": "Good afternoon",
+    "greetingEvening": "Good evening",
     "view": "View",
+    "viewAll": "View all",
     "personas": "Personas",
     "targetGroups": "Target Groups",
-    "queueJobs": "Queue Jobs",
-    "services": "Services",
-    "servicesUp": "All services up",
-    "servicesDown": "{count} service(s) down",
-    "workersAvailable": "Workers available",
-    "workersUnavailable": "Workers not available",
-    "serviceDetails": "Service Status Details",
+    "noPersonas": "No personas yet. Create your first one to get started.",
+    "noTargetGroups": "No target groups yet. Create one to organize your personas.",
     "quickActions": "Quick Actions",
     "createPersona": "Create New Persona",
     "createTargetGroup": "Create New Target Group",
-    "queueStatus": "Queue Status",
-    "pending": "Pending",
-    "processing": "Processing",
-    "failed": "Failed",
-    "completed": "Completed"
+    "personasCount": "{count} personas",
+    "targetGroupsCount": "{count} target groups",
+    "greetingSubtitle": "Here’s an overview of your project."
   },
   "targetGroupsAdmin": {
     "title": "Target Groups",

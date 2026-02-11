@@ -122,24 +122,21 @@
     "cta": "Erneut versuchen"
   },
   "adminDashboard": {
+    "greetingMorning": "Guten Morgen",
+    "greetingAfternoon": "Guten Tag",
+    "greetingEvening": "Guten Abend",
     "view": "Anzeigen",
+    "viewAll": "Alle anzeigen",
     "personas": "Personas",
     "targetGroups": "Zielgruppen",
-    "queueJobs": "Queue-Jobs",
-    "services": "Services",
-    "servicesUp": "Alle Services erreichbar",
-    "servicesDown": "{count} Service(s) ausgefallen",
-    "workersAvailable": "Worker verfügbar",
-    "workersUnavailable": "Worker nicht verfügbar",
-    "serviceDetails": "Service-Status-Details",
+    "noPersonas": "Noch keine Personas. Erstelle deine erste, um loszulegen.",
+    "noTargetGroups": "Noch keine Zielgruppen. Erstelle eine, um deine Personas zu ordnen.",
     "quickActions": "Schnellaktionen",
     "createPersona": "Neue Persona erstellen",
     "createTargetGroup": "Neue Zielgruppe erstellen",
-    "queueStatus": "Queue-Status",
-    "pending": "Ausstehend",
-    "processing": "In Bearbeitung",
-    "failed": "Fehlgeschlagen",
-    "completed": "Abgeschlossen"
+    "personasCount": "{count} Personas",
+    "targetGroupsCount": "{count} Zielgruppen",
+    "greetingSubtitle": "Hier ist die Übersicht deines Projekts."
   },
   "targetGroupsAdmin": {
     "title": "Zielgruppen",
