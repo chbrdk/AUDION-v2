@@ -3,7 +3,7 @@
 // Disable static generation to prevent prerendering issues with useState/useContext
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Box, Stack } from "@mui/material";
 import {
   MsqdxIcon,
@@ -70,18 +70,18 @@ export default function SettingsPromptsPage() {
       }
     };
     loadAll();
-  }, [activeProjectId]);
+  }, [activeProjectId, loadTemplates, loadPersonaPrompts]);
 
-  const loadTemplates = async (projectId: string) => {
+  const loadTemplates = useCallback(async (projectId: string) => {
     try {
       const data = await aiAssistApi.listTemplates(projectId);
       setTemplates(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("prompts.errors.loadTemplates"));
     }
-  };
+  }, [t]);
 
-  const loadPersonaPrompts = async () => {
+  const loadPersonaPrompts = useCallback(async () => {
     try {
       const data = await aiAssistApi.listPersonaPrompts();
       setPersonaPrompts(data);
@@ -89,12 +89,12 @@ export default function SettingsPromptsPage() {
       console.error("Failed to load persona prompts:", err);
       // Don't set error for persona prompts, just log it
     }
-  };
+  }, []);
 
   const startEditing = async (templateId: string) => {
     try {
       let full: AiTemplateDefinition;
-      
+
       // Check if it's a persona prompt
       if (templateId.startsWith("persona-prompt-")) {
         const personaId = templateId.replace("persona-prompt-", "");
@@ -102,7 +102,7 @@ export default function SettingsPromptsPage() {
       } else {
         full = await aiAssistApi.getTemplate(templateId, activeProjectId ?? undefined);
       }
-      
+
       setEditingTemplate(full);
       setError(null);
       setActiveTab("edit"); // Reset to edit tab when opening a new template
@@ -142,7 +142,7 @@ export default function SettingsPromptsPage() {
         output: editingTemplate.output,
         metadata: editingTemplate.metadata,
       };
-      
+
       // Check if it's a persona prompt
       if (editingId.startsWith("persona-prompt-")) {
         const personaId = editingId.replace("persona-prompt-", "");
@@ -154,7 +154,7 @@ export default function SettingsPromptsPage() {
           await loadTemplates(activeProjectId);
         }
       }
-      
+
       cancelEditing();
     } catch (err) {
       setError(err instanceof Error ? err.message : t("prompts.errors.saveTemplate"));
@@ -311,13 +311,13 @@ export default function SettingsPromptsPage() {
                 <p style={{ margin: "0 0 1rem", fontSize: "0.875rem", color: "var(--color-text-secondary)", lineHeight: "1.6" }}>
                   Access database entities directly using extended variable syntax. This allows you to reference specific personas, journeys, target groups, or phases without pre-loading all data into context.
                 </p>
-                
+
                 <div style={{ marginBottom: "1.25rem", padding: "0.75rem", background: "rgba(15, 23, 42, 0.05)", borderRadius: "8px", border: "1px solid rgba(148, 163, 184, 0.2)" }}>
                   <p style={{ margin: "0 0 0.5rem", fontSize: "0.8125rem", fontWeight: 600, color: "var(--color-text-primary)" }}>Syntax Pattern:</p>
-                  <code style={{ 
-                    background: "rgba(15, 23, 42, 0.1)", 
-                    padding: "0.5rem 0.75rem", 
-                    borderRadius: "6px", 
+                  <code style={{
+                    background: "rgba(15, 23, 42, 0.1)",
+                    padding: "0.5rem 0.75rem",
+                    borderRadius: "6px",
                     fontSize: "0.875rem",
                     fontFamily: "monospace",
                     display: "block",
@@ -380,10 +380,10 @@ export default function SettingsPromptsPage() {
                     <div style={{ display: "grid", gap: "0.75rem" }}>
                       <div style={{ padding: "0.875rem", background: "rgba(15, 23, 42, 0.05)", borderRadius: "8px", border: "1px solid rgba(148, 163, 184, 0.2)" }}>
                         <p style={{ margin: "0 0 0.5rem", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-text-secondary)" }}>Basic Persona Access</p>
-                        <code style={{ 
-                          background: "rgba(182, 56, 255, 0.15)", 
-                          padding: "0.375rem 0.625rem", 
-                          borderRadius: "6px", 
+                        <code style={{
+                          background: "rgba(182, 56, 255, 0.15)",
+                          padding: "0.375rem 0.625rem",
+                          borderRadius: "6px",
                           fontSize: "0.8125rem",
                           fontFamily: "monospace",
                           display: "block",
@@ -400,10 +400,10 @@ export default function SettingsPromptsPage() {
 
                       <div style={{ padding: "0.875rem", background: "rgba(15, 23, 42, 0.05)", borderRadius: "8px", border: "1px solid rgba(148, 163, 184, 0.2)" }}>
                         <p style={{ margin: "0 0 0.5rem", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-text-secondary)" }}>Nested Property</p>
-                        <code style={{ 
-                          background: "rgba(182, 56, 255, 0.15)", 
-                          padding: "0.375rem 0.625rem", 
-                          borderRadius: "6px", 
+                        <code style={{
+                          background: "rgba(182, 56, 255, 0.15)",
+                          padding: "0.375rem 0.625rem",
+                          borderRadius: "6px",
                           fontSize: "0.8125rem",
                           fontFamily: "monospace",
                           display: "block",
@@ -420,10 +420,10 @@ export default function SettingsPromptsPage() {
 
                       <div style={{ padding: "0.875rem", background: "rgba(15, 23, 42, 0.05)", borderRadius: "8px", border: "1px solid rgba(148, 163, 184, 0.2)" }}>
                         <p style={{ margin: "0 0 0.5rem", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-text-secondary)" }}>Array Index Access</p>
-                        <code style={{ 
-                          background: "rgba(182, 56, 255, 0.15)", 
-                          padding: "0.375rem 0.625rem", 
-                          borderRadius: "6px", 
+                        <code style={{
+                          background: "rgba(182, 56, 255, 0.15)",
+                          padding: "0.375rem 0.625rem",
+                          borderRadius: "6px",
                           fontSize: "0.8125rem",
                           fontFamily: "monospace",
                           display: "block",
@@ -440,10 +440,10 @@ export default function SettingsPromptsPage() {
 
                       <div style={{ padding: "0.875rem", background: "rgba(15, 23, 42, 0.05)", borderRadius: "8px", border: "1px solid rgba(148, 163, 184, 0.2)" }}>
                         <p style={{ margin: "0 0 0.5rem", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-text-secondary)" }}>Array Wildcard</p>
-                        <code style={{ 
-                          background: "rgba(182, 56, 255, 0.15)", 
-                          padding: "0.375rem 0.625rem", 
-                          borderRadius: "6px", 
+                        <code style={{
+                          background: "rgba(182, 56, 255, 0.15)",
+                          padding: "0.375rem 0.625rem",
+                          borderRadius: "6px",
                           fontSize: "0.8125rem",
                           fontFamily: "monospace",
                           display: "block",
@@ -460,10 +460,10 @@ export default function SettingsPromptsPage() {
 
                       <div style={{ padding: "0.875rem", background: "rgba(15, 23, 42, 0.05)", borderRadius: "8px", border: "1px solid rgba(148, 163, 184, 0.2)" }}>
                         <p style={{ margin: "0 0 0.5rem", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-text-secondary)" }}>Complex Nested Access</p>
-                        <code style={{ 
-                          background: "rgba(182, 56, 255, 0.15)", 
-                          padding: "0.375rem 0.625rem", 
-                          borderRadius: "6px", 
+                        <code style={{
+                          background: "rgba(182, 56, 255, 0.15)",
+                          padding: "0.375rem 0.625rem",
+                          borderRadius: "6px",
                           fontSize: "0.8125rem",
                           fontFamily: "monospace",
                           display: "block",
@@ -593,13 +593,13 @@ export default function SettingsPromptsPage() {
                 <MsqdxSelect
                   label={t("prompts.filters.category")}
                   value={selectedCategory || ""}
-                    onChange={(e) => setSelectedCategory((e.target.value as string) || null)}
-                    options={[
-                      { value: "", label: t("prompts.filters.allCategories") },
-                      ...allCategories.map((category) => ({ value: category, label: category })),
-                    ]}
-                    size="small"
-                  />
+                  onChange={(e) => setSelectedCategory((e.target.value as string) || null)}
+                  options={[
+                    { value: "", label: t("prompts.filters.allCategories") },
+                    ...allCategories.map((category) => ({ value: category, label: category })),
+                  ]}
+                  size="small"
+                />
               )}
 
               {allTags.length > 0 && (
@@ -672,59 +672,59 @@ export default function SettingsPromptsPage() {
               </div>
             ) : (
               filteredPersonaPrompts.map((template) => (
-              <MsqdxMoleculeCard
-                key={template.template_id}
-                variant="flat"
-                borderRadius="button"
-                sx={{ p: 2, border: "1px solid", borderColor: editingId === template.template_id ? "primary.main" : "divider" }}
-                eyebrow={!editingId || editingId !== template.template_id ? template.category : undefined}
-                title={template.label}
-                subtitle={!editingId || editingId !== template.template_id ? template.description : undefined}
-                chips={!editingId || editingId !== template.template_id ? (
-                  <Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ mt: 0.5 }}>
-                    <MsqdxChip label={template.default_provider} size="xs" variant="outlined" />
-                    {template.default_model && <MsqdxChip label={template.default_model} size="xs" variant="outlined" />}
-                    {template.tags.map((tag) => <MsqdxChip key={tag} label={tag} size="xs" variant="glass" />)}
-                  </Stack>
-                ) : undefined}
-                headerActions={!editingId || editingId !== template.template_id ? (
-                  <MsqdxButton variant="text" size="small" onClick={() => startEditing(template.template_id)} startIcon={<MsqdxIcon name="edit" customSize={16} />}>
-                    {t("prompts.actions.editTemplate")}
-                  </MsqdxButton>
-                ) : undefined}
-              >
-                {editingId === template.template_id && editingTemplate ? (
-                  <>
-                    <MsqdxTabs
-                      value={activeTab}
-                      onChange={(v) => setActiveTab(v as "edit" | "test")}
-                      tabs={[
-                        { value: "edit", label: t("prompts.tabs.edit"), icon: <MsqdxIcon name="edit" customSize={16} /> },
-                        { value: "test", label: t("prompts.tabs.test"), icon: <MsqdxIcon name="science" customSize={16} /> },
-                      ]}
-                    />
-
-                    {activeTab === "edit" ? (
-                      <TemplateEditForm
-                        template={editingTemplate}
-                        onUpdate={setEditingTemplate}
-                        onSave={saveTemplate}
-                        onCancel={cancelEditing}
-                        saving={saving}
+                <MsqdxMoleculeCard
+                  key={template.template_id}
+                  variant="flat"
+                  borderRadius="button"
+                  sx={{ p: 2, border: "1px solid", borderColor: editingId === template.template_id ? "primary.main" : "divider" }}
+                  eyebrow={!editingId || editingId !== template.template_id ? template.category : undefined}
+                  title={template.label}
+                  subtitle={!editingId || editingId !== template.template_id ? template.description : undefined}
+                  chips={!editingId || editingId !== template.template_id ? (
+                    <Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ mt: 0.5 }}>
+                      <MsqdxChip label={template.default_provider} size="xs" variant="outlined" />
+                      {template.default_model && <MsqdxChip label={template.default_model} size="xs" variant="outlined" />}
+                      {template.tags.map((tag) => <MsqdxChip key={tag} label={tag} size="xs" variant="glass" />)}
+                    </Stack>
+                  ) : undefined}
+                  headerActions={!editingId || editingId !== template.template_id ? (
+                    <MsqdxButton variant="text" size="small" onClick={() => startEditing(template.template_id)} startIcon={<MsqdxIcon name="edit" customSize={16} />}>
+                      {t("prompts.actions.editTemplate")}
+                    </MsqdxButton>
+                  ) : undefined}
+                >
+                  {editingId === template.template_id && editingTemplate ? (
+                    <>
+                      <MsqdxTabs
+                        value={activeTab}
+                        onChange={(v) => setActiveTab(v as "edit" | "test")}
+                        tabs={[
+                          { value: "edit", label: t("prompts.tabs.edit"), icon: <MsqdxIcon name="edit" customSize={16} /> },
+                          { value: "test", label: t("prompts.tabs.test"), icon: <MsqdxIcon name="science" customSize={16} /> },
+                        ]}
                       />
-                    ) : (
-                      <div style={{ minHeight: "600px" }}>
-                        <PromptBuilder
-                          initialPrompt={editingTemplate.prompt}
-                          onPromptChange={(newPrompt) => {
-                            setEditingTemplate({ ...editingTemplate, prompt: newPrompt });
-                          }}
+
+                      {activeTab === "edit" ? (
+                        <TemplateEditForm
+                          template={editingTemplate}
+                          onUpdate={setEditingTemplate}
+                          onSave={saveTemplate}
+                          onCancel={cancelEditing}
+                          saving={saving}
                         />
-                      </div>
-                    )}
-                  </>
-                ) : null}
-              </MsqdxMoleculeCard>
+                      ) : (
+                        <div style={{ minHeight: "600px" }}>
+                          <PromptBuilder
+                            initialPrompt={editingTemplate.prompt}
+                            onPromptChange={(newPrompt) => {
+                              setEditingTemplate({ ...editingTemplate, prompt: newPrompt });
+                            }}
+                          />
+                        </div>
+                      )}
+                    </>
+                  ) : null}
+                </MsqdxMoleculeCard>
               ))
             )}
           </>
@@ -762,58 +762,58 @@ export default function SettingsPromptsPage() {
               </div>
             ) : (
               filteredTemplates.map((template) => (
-              <MsqdxMoleculeCard
-                key={template.template_id}
-                variant="flat"
-                borderRadius="button"
-                sx={{ p: 2, border: "1px solid", borderColor: editingId === template.template_id ? "primary.main" : "divider" }}
-                eyebrow={!editingId || editingId !== template.template_id ? template.category : undefined}
-                title={template.label}
-                subtitle={!editingId || editingId !== template.template_id ? template.description : undefined}
-                chips={!editingId || editingId !== template.template_id ? (
-                  <Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ mt: 0.5 }}>
-                    <MsqdxChip label={template.default_provider} size="xs" variant="outlined" />
-                    {template.default_model && <MsqdxChip label={template.default_model} size="xs" variant="outlined" />}
-                    {template.tags.map((tag) => <MsqdxChip key={tag} label={tag} size="xs" variant="glass" />)}
-                  </Stack>
-                ) : undefined}
-                headerActions={!editingId || editingId !== template.template_id ? (
-                  <MsqdxButton variant="text" size="small" onClick={() => startEditing(template.template_id)} startIcon={<MsqdxIcon name="edit" customSize={16} />}>
-                    {t("prompts.actions.editTemplate")}
-                  </MsqdxButton>
-                ) : undefined}
-              >
-            {editingId === template.template_id && editingTemplate ? (
-              <>
-                <MsqdxTabs
-                  value={activeTab}
-                  onChange={(v) => setActiveTab(v as "edit" | "test")}
-                  tabs={[
-                    { value: "edit", label: t("prompts.tabs.edit"), icon: <MsqdxIcon name="edit" customSize={16} /> },
-                    { value: "test", label: t("prompts.tabs.test"), icon: <MsqdxIcon name="science" customSize={16} /> },
-                  ]}
-                />
-                {activeTab === "edit" ? (
-                  <TemplateEditForm
-                    template={editingTemplate}
-                    onUpdate={setEditingTemplate}
-                    onSave={saveTemplate}
-                    onCancel={cancelEditing}
-                    saving={saving}
-                  />
-                ) : (
-                  <div style={{ minHeight: "600px" }}>
-                    <PromptBuilder
-                      initialPrompt={editingTemplate.prompt}
-                      onPromptChange={(newPrompt) => {
-                        setEditingTemplate({ ...editingTemplate, prompt: newPrompt });
-                      }}
-                    />
-                  </div>
-                )}
-              </>
-            ) : null}
-          </MsqdxMoleculeCard>
+                <MsqdxMoleculeCard
+                  key={template.template_id}
+                  variant="flat"
+                  borderRadius="button"
+                  sx={{ p: 2, border: "1px solid", borderColor: editingId === template.template_id ? "primary.main" : "divider" }}
+                  eyebrow={!editingId || editingId !== template.template_id ? template.category : undefined}
+                  title={template.label}
+                  subtitle={!editingId || editingId !== template.template_id ? template.description : undefined}
+                  chips={!editingId || editingId !== template.template_id ? (
+                    <Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ mt: 0.5 }}>
+                      <MsqdxChip label={template.default_provider} size="xs" variant="outlined" />
+                      {template.default_model && <MsqdxChip label={template.default_model} size="xs" variant="outlined" />}
+                      {template.tags.map((tag) => <MsqdxChip key={tag} label={tag} size="xs" variant="glass" />)}
+                    </Stack>
+                  ) : undefined}
+                  headerActions={!editingId || editingId !== template.template_id ? (
+                    <MsqdxButton variant="text" size="small" onClick={() => startEditing(template.template_id)} startIcon={<MsqdxIcon name="edit" customSize={16} />}>
+                      {t("prompts.actions.editTemplate")}
+                    </MsqdxButton>
+                  ) : undefined}
+                >
+                  {editingId === template.template_id && editingTemplate ? (
+                    <>
+                      <MsqdxTabs
+                        value={activeTab}
+                        onChange={(v) => setActiveTab(v as "edit" | "test")}
+                        tabs={[
+                          { value: "edit", label: t("prompts.tabs.edit"), icon: <MsqdxIcon name="edit" customSize={16} /> },
+                          { value: "test", label: t("prompts.tabs.test"), icon: <MsqdxIcon name="science" customSize={16} /> },
+                        ]}
+                      />
+                      {activeTab === "edit" ? (
+                        <TemplateEditForm
+                          template={editingTemplate}
+                          onUpdate={setEditingTemplate}
+                          onSave={saveTemplate}
+                          onCancel={cancelEditing}
+                          saving={saving}
+                        />
+                      ) : (
+                        <div style={{ minHeight: "600px" }}>
+                          <PromptBuilder
+                            initialPrompt={editingTemplate.prompt}
+                            onPromptChange={(newPrompt) => {
+                              setEditingTemplate({ ...editingTemplate, prompt: newPrompt });
+                            }}
+                          />
+                        </div>
+                      )}
+                    </>
+                  ) : null}
+                </MsqdxMoleculeCard>
               ))
             )}
           </>

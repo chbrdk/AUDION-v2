@@ -27,11 +27,63 @@ export const useWhisperTranscription = (options?: UseWhisperTranscriptionOptions
   const vadIntervalRef = useRef<number | null>(null);
   const silenceStartRef = useRef<number | null>(null);
   const maxRecordingTimeRef = useRef<number | null>(null);
-  
+
   // Update callback ref when options change
   useEffect(() => {
     onTranscriptionCompleteRef.current = options?.onTranscriptionComplete;
   }, [options?.onTranscriptionComplete]);
+
+  const transcribeAudio = useCallback(async () => {
+    if (audioChunksRef.current.length === 0) {
+      setError("No audio recorded");
+      return;
+    }
+
+    try {
+      setTranscribing(true);
+      setError(null);
+
+      // Combine audio chunks into a single blob
+      const audioBlob = new Blob(audioChunksRef.current, {
+        type: mediaRecorderRef.current?.mimeType || "audio/webm"
+      });
+
+      // Create FormData
+      const formData = new FormData();
+      formData.append("audio", audioBlob, "recording.webm");
+
+      // Get API base URL - use relative path for nginx routing
+      // nginx routes /api/voice to chat-api service
+      const apiUrl = "/api/voice/transcribe";
+
+      // Send to server
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "Unknown error");
+        throw new Error(`Transcription failed: ${errorText}`);
+      }
+
+      const result: TranscriptionResult = await response.json();
+      const transcribedText = result.text || "";
+      setTranscript(transcribedText);
+
+      // Call callback if provided
+      if (onTranscriptionCompleteRef.current && transcribedText.trim()) {
+        onTranscriptionCompleteRef.current(transcribedText);
+      }
+    } catch (err) {
+      const error = err as Error;
+      setError(`Transcription failed: ${error.message}`);
+      setTranscript("");
+    } finally {
+      setTranscribing(false);
+      audioChunksRef.current = [];
+    }
+  }, []);
 
   const startRecording = useCallback(async (): Promise<boolean> => {
     try {
@@ -45,7 +97,7 @@ export const useWhisperTranscription = (options?: UseWhisperTranscriptionOptions
       // Create AudioContext for VAD
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       audioContextRef.current = audioContext;
-      
+
       const source = audioContext.createMediaStreamSource(stream);
       const analyser = audioContext.createAnalyser();
       analyser.fftSize = 2048;
@@ -55,11 +107,11 @@ export const useWhisperTranscription = (options?: UseWhisperTranscriptionOptions
 
       // Create MediaRecorder
       const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: MediaRecorder.isTypeSupported("audio/webm") 
-          ? "audio/webm" 
+        mimeType: MediaRecorder.isTypeSupported("audio/webm")
+          ? "audio/webm"
           : MediaRecorder.isTypeSupported("audio/mp4")
-          ? "audio/mp4"
-          : "audio/wav"
+            ? "audio/mp4"
+            : "audio/wav"
       });
 
       mediaRecorderRef.current = mediaRecorder;
@@ -118,12 +170,12 @@ export const useWhisperTranscription = (options?: UseWhisperTranscriptionOptions
           if (!analyserRef.current || !mediaRecorderRef.current) {
             return;
           }
-          
+
           analyser.getByteFrequencyData(dataArray);
-          
+
           // Calculate average volume
           const average = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length;
-          
+
           if (average > SILENCE_THRESHOLD) {
             // Voice detected, reset silence timer
             silenceStartRef.current = null;
@@ -145,10 +197,10 @@ export const useWhisperTranscription = (options?: UseWhisperTranscriptionOptions
 
       mediaRecorder.start();
       setRecording(true);
-      
+
       // Start VAD after a short delay to avoid false positives
       setTimeout(startVAD, 500);
-      
+
       return true;
     } catch (err) {
       const error = err as Error;
@@ -162,7 +214,7 @@ export const useWhisperTranscription = (options?: UseWhisperTranscriptionOptions
       setRecording(false);
       return false;
     }
-  }, []);
+  }, [transcribeAudio]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
@@ -175,63 +227,13 @@ export const useWhisperTranscription = (options?: UseWhisperTranscriptionOptions
         clearTimeout(maxRecordingTimeRef.current);
         maxRecordingTimeRef.current = null;
       }
-      
+
       mediaRecorderRef.current.stop();
       setRecording(false);
     }
   }, []);
 
-  const transcribeAudio = useCallback(async () => {
-    if (audioChunksRef.current.length === 0) {
-      setError("No audio recorded");
-      return;
-    }
 
-    try {
-      setTranscribing(true);
-      setError(null);
-
-      // Combine audio chunks into a single blob
-      const audioBlob = new Blob(audioChunksRef.current, {
-        type: mediaRecorderRef.current?.mimeType || "audio/webm"
-      });
-
-      // Create FormData
-      const formData = new FormData();
-      formData.append("audio", audioBlob, "recording.webm");
-
-      // Get API base URL - use relative path for nginx routing
-      // nginx routes /api/voice to chat-api service
-      const apiUrl = "/api/voice/transcribe";
-
-      // Send to server
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => "Unknown error");
-        throw new Error(`Transcription failed: ${errorText}`);
-      }
-
-      const result: TranscriptionResult = await response.json();
-      const transcribedText = result.text || "";
-      setTranscript(transcribedText);
-      
-      // Call callback if provided
-      if (onTranscriptionCompleteRef.current && transcribedText.trim()) {
-        onTranscriptionCompleteRef.current(transcribedText);
-      }
-    } catch (err) {
-      const error = err as Error;
-      setError(`Transcription failed: ${error.message}`);
-      setTranscript("");
-    } finally {
-      setTranscribing(false);
-      audioChunksRef.current = [];
-    }
-  }, []);
 
   const resetTranscript = useCallback(() => {
     setTranscript("");

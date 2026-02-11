@@ -146,9 +146,9 @@ export default function JourneyEditorPage() {
     if (journeyId) {
       loadJourney();
     }
-  }, [journeyId]);
+  }, [journeyId, loadJourney]);
 
-  const loadJourney = async () => {
+  const loadJourney = useCallback(async () => {
     try {
       setLoading(true);
       const data = await journeysApi.getJourney(journeyId);
@@ -159,7 +159,7 @@ export default function JourneyEditorPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [journeyId, t]);
 
   const handleFieldSave = async (updates: Partial<JourneyResponse>) => {
     if (!journeyId || !journey) {
@@ -254,19 +254,19 @@ export default function JourneyEditorPage() {
       const sortedPhases = [...journey.phases].sort((a, b) => (a.phase_order || 0) - (b.phase_order || 0));
       const existingPhasesSummary = sortedPhases.length > 0
         ? sortedPhases
-            .map((p) => {
-              const emotionInfo = p.expected_emotion
-                ? ` (Emotion: ${p.expected_emotion}${p.emotion_intensity ? `, Intensity: ${Math.round(p.emotion_intensity * 100)}%` : ""})`
+          .map((p) => {
+            const emotionInfo = p.expected_emotion
+              ? ` (Emotion: ${p.expected_emotion}${p.emotion_intensity ? `, Intensity: ${Math.round(p.emotion_intensity * 100)}%` : ""})`
+              : "";
+            const durationInfo =
+              p.expected_duration_min && p.expected_duration_max
+                ? ` [Duration: ${p.expected_duration_min}-${p.expected_duration_max} ${p.duration_unit || "minutes"}]`
                 : "";
-              const durationInfo =
-                p.expected_duration_min && p.expected_duration_max
-                  ? ` [Duration: ${p.expected_duration_min}-${p.expected_duration_max} ${p.duration_unit || "minutes"}]`
-                  : "";
-              // Include FULL description, not truncated
-              const fullDescription = p.description || "No description";
-              return `Phase ${p.phase_order || 0}: ${p.name}${emotionInfo}${durationInfo}\n   ${fullDescription}`;
-            })
-            .join("\n\n")
+            // Include FULL description, not truncated
+            const fullDescription = p.description || "No description";
+            return `Phase ${p.phase_order || 0}: ${p.name}${emotionInfo}${durationInfo}\n   ${fullDescription}`;
+          })
+          .join("\n\n")
         : "No existing phases. This is the first phase of the journey.";
 
       // Get the last phase for explicit reference with FULL details
@@ -300,7 +300,7 @@ export default function JourneyEditorPage() {
                   const traits = profile?.traits ? Object.entries(profile.traits).map(([k, v]) => `${k}: ${v}`).slice(0, 5) : [];
                   const goals = profile?.goals ? profile.goals.map((g: any) => g.label || String(g)).slice(0, 3) : [];
                   const pains = profile?.pain_points ? profile.pain_points.map((p: any) => p.label || String(p)).slice(0, 3) : [];
-                  
+
                   let summary = `- ${personaName}:`;
                   if (traits.length > 0) {
                     summary += ` Traits: ${traits.join(", ")}.`;
@@ -347,7 +347,7 @@ export default function JourneyEditorPage() {
       // Parse the generated phase data
       // Try to extract JSON from the response (might be wrapped in markdown or text)
       let parsed: any = null;
-      
+
       if (result.rawOutput) {
         try {
           // First, try to parse directly
@@ -400,7 +400,7 @@ export default function JourneyEditorPage() {
         setMomentDrafts([]);
         setPhaseFormExpanded(true);
         notify(t("journeys.editor.phaseGenerated"));
-        
+
         window.requestAnimationFrame(() => {
           const container = timelineRef.current;
           if (container) {
@@ -651,7 +651,7 @@ export default function JourneyEditorPage() {
     try {
       setAddingPhase(true);
       setError(null);
-      
+
       if (!phaseFormData.name.trim()) {
         throw new Error("Phase name is required");
       }
@@ -659,19 +659,19 @@ export default function JourneyEditorPage() {
       if (editingPhaseId) {
         // Update existing phase
         await journeysApi.updatePhase(journeyId, editingPhaseId, phaseFormData);
-        
+
         // Get current phase elements to compare
         const currentPhase = journey.phases.find((p) => p.id === editingPhaseId);
         const existingElementIds = new Set((currentPhase?.elements || []).map((e) => e.id));
         const draftIds = new Set(momentDrafts.filter((m) => m.id && m.id.startsWith("element-")).map((m) => m.id.replace("element-", "")));
-        
+
         // Delete elements that are no longer in drafts
         for (const element of currentPhase?.elements || []) {
           if (!draftIds.has(element.id)) {
             await journeysApi.deleteElement(journeyId, editingPhaseId, element.id);
           }
         }
-        
+
         // Update or create elements
         const validMoments = momentDrafts.filter((moment) => moment.content.trim());
         for (const [index, moment] of validMoments.entries()) {
@@ -692,7 +692,7 @@ export default function JourneyEditorPage() {
             });
           }
         }
-        
+
         notify(t("journeys.editor.phaseUpdated"));
       } else {
         // Create new phase
@@ -709,7 +709,7 @@ export default function JourneyEditorPage() {
         }
         notify(t("journeys.editor.phaseAdded"));
       }
-      
+
       setPhaseFormExpanded(false);
       setEditingPhaseId(null);
       setPhaseFormData({
@@ -966,7 +966,7 @@ export default function JourneyEditorPage() {
               </MsqdxButton>
             </Box>
           </Box>
-          
+
           {journey.phases.length === 0 && !phaseFormExpanded ? (
             <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
               No phases yet. Add your first phase to get started.

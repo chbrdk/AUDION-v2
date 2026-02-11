@@ -3,7 +3,7 @@
 // Disable static generation to prevent prerendering issues with useState/useContext
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { journeysApi, type JourneyCreate, type JourneyGenerateRequest } from "../../../api/_lib/journeys";
 import { targetGroupsApi, type TargetGroupResponse } from "../../../api/_lib/target-groups";
@@ -39,9 +39,9 @@ export default function NewJourneyPage() {
 
   useEffect(() => {
     loadTargetGroups();
-  }, [activeProjectId]);
+  }, [activeProjectId, loadTargetGroups]);
 
-  const loadTargetGroups = async () => {
+  const loadTargetGroups = useCallback(async () => {
     try {
       setLoadingTargetGroups(true);
       if (!activeProjectId) {
@@ -57,7 +57,7 @@ export default function NewJourneyPage() {
     } finally {
       setLoadingTargetGroups(false);
     }
-  };
+  }, [activeProjectId, t]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,7 +75,7 @@ export default function NewJourneyPage() {
       if (!activeProjectId) {
         throw new Error(t("journeys.new.errors.projectRequired"));
       }
-      
+
       // Validate UUID format (basic check)
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(formData.organization_id.trim())) {

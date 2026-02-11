@@ -263,7 +263,7 @@ function ChatSharePageContent() {
       </Button>
     );
     return () => setHeaderContent(null);
-  }, [persona, personaDisplayName, setHeaderContent, theme.palette.text.primary]);
+  }, [persona, personaDisplayName, setHeaderContent, theme.palette.text.primary, personaIdParam]);
 
   // Set project from URL
   useEffect(() => {
@@ -323,7 +323,7 @@ function ChatSharePageContent() {
     return () => {
       cancelled = true;
     };
-  }, [personaIdParam]);
+  }, [personaIdParam, projectIdParam]);
 
   const clearTypingState = (id: string) => {
     if (typingTimersRef.current[id]) {

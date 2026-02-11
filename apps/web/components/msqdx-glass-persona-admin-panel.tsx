@@ -251,7 +251,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
     } finally {
       setListRefreshing(false);
     }
-  }, [selectedId, activeProjectId]);
+  }, [selectedId, activeProjectId, t]);
 
   useEffect(() => {
     void refreshList();

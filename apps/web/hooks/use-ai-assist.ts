@@ -90,7 +90,7 @@ export const useAiAssist = () => {
         setLoading(false);
       }
     },
-    []
+    [activeProjectId]
   );
 
   const reset = useCallback(() => {

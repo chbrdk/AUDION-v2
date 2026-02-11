@@ -152,7 +152,7 @@ export const MsqdxGlassQueueDashboard = ({ initialStats }: MsqdxGlassQueueDashbo
     } finally {
       setLoading(false);
     }
-  }, [filterStatus, page, activeProjectId]);
+  }, [filterStatus, page, activeProjectId, t]);
 
   const loadJobDetail = useCallback(async (jobId: string) => {
     try {
@@ -166,7 +166,7 @@ export const MsqdxGlassQueueDashboard = ({ initialStats }: MsqdxGlassQueueDashbo
       console.error("Failed to load job detail:", error);
       notify(t("queue.loadJobDetailError"));
     }
-  }, [activeProjectId]);
+  }, [activeProjectId, t]);
 
   useEffect(() => {
     void loadJobs();

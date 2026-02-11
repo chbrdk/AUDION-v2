@@ -16,15 +16,15 @@ const OPTIONS_META: {
   textColor: string;
   optionKey: "purple" | "blue" | "pink" | "orange" | "green" | "yellow" | "grey" | "default";
 }[] = [
-  { varName: "--color-secondary-dx-purple", preview: "#b638ff", textColor: "#ffffff", optionKey: "purple" },
-  { varName: "--color-secondary-dx-blue", preview: "#3b82f6", textColor: "#ffffff", optionKey: "blue" },
-  { varName: "--color-secondary-dx-pink", preview: "#f256b6", textColor: "#ffffff", optionKey: "pink" },
-  { varName: "--color-secondary-dx-orange", preview: "#ff6a3b", textColor: "#ffffff", optionKey: "orange" },
-  { varName: "--color-secondary-dx-green", preview: "#00ca55", textColor: "#000000", optionKey: "green" },
-  { varName: "--color-secondary-dx-yellow", preview: "#fef14d", textColor: "#000000", optionKey: "yellow" },
-  { varName: "--color-secondary-dx-grey-light", preview: "#d4d2d2", textColor: "#000000", optionKey: "grey" },
-  { varName: "--audion-light-border-color", preview: "#0f172a", textColor: "#ffffff", optionKey: "default" },
-];
+    { varName: "--color-secondary-dx-purple", preview: "#b638ff", textColor: "#ffffff", optionKey: "purple" },
+    { varName: "--color-secondary-dx-blue", preview: "#3b82f6", textColor: "#ffffff", optionKey: "blue" },
+    { varName: "--color-secondary-dx-pink", preview: "#f256b6", textColor: "#ffffff", optionKey: "pink" },
+    { varName: "--color-secondary-dx-orange", preview: "#ff6a3b", textColor: "#ffffff", optionKey: "orange" },
+    { varName: "--color-secondary-dx-green", preview: "#00ca55", textColor: "#000000", optionKey: "green" },
+    { varName: "--color-secondary-dx-yellow", preview: "#fef14d", textColor: "#000000", optionKey: "yellow" },
+    { varName: "--color-secondary-dx-grey-light", preview: "#d4d2d2", textColor: "#000000", optionKey: "grey" },
+    { varName: "--audion-light-border-color", preview: "#0f172a", textColor: "#ffffff", optionKey: "default" },
+  ];
 
 export function BrandColorSelector() {
   const { t } = useI18n();
@@ -44,14 +44,7 @@ export function BrandColorSelector() {
     setSelectedColor(colorVar);
     applyBrandColorVars(colorVar, themeMode);
     setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!mounted) return;
-    const saved = localStorage.getItem(BRAND_COLOR_STORAGE_KEY);
-    const colorVar = saved || BRAND_COLOR_DEFAULT;
-    applyBrandColorVars(colorVar, themeMode);
-  }, [themeMode, mounted]);
+  }, [themeMode]);
 
   const handleColorSelect = (varName: string) => {
     setSelectedColor(varName);
@@ -80,11 +73,10 @@ export function BrandColorSelector() {
             style={{
               padding: "1.5rem",
               borderRadius: "12px",
-              border: `2px solid ${
-                isSelected
+              border: `2px solid ${isSelected
                   ? "var(--color-theme-accent, var(--color-secondary-dx-purple))"
                   : "var(--color-secondary-dx-grey-light-tint)"
-              }`,
+                }`,
               backgroundColor: option.preview,
               color: textColor,
               cursor: "pointer",

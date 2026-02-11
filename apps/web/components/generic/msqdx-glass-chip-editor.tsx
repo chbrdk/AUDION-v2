@@ -113,13 +113,13 @@ export const MsqdxGlassChipEditor = ({
     chipEdit.sync(); // Ensure we start with current values
   };
 
-  const handleCancelEdit = () => {
+  const handleCancelEdit = useCallback(() => {
     setIsEditing(false);
     setEditingIndex(null);
     setEditingValue("");
     setNewChipValue("");
     chipEdit.reset();
-  };
+  }, [chipEdit]);
 
   const handleSave = async () => {
     setSavePending(true);
@@ -140,12 +140,12 @@ export const MsqdxGlassChipEditor = ({
   const handleAddChip = useCallback((value: string) => {
     const trimmed = value.trim();
     if (!trimmed) return;
-    
+
     // Check for duplicates (case-insensitive)
     const normalized = trimmed.toLowerCase();
     const exists = chipEdit.value.some(chip => chip.trim().toLowerCase() === normalized);
     if (exists) return;
-    
+
     chipEdit.setValue([...chipEdit.value, trimmed]);
     setNewChipValue("");
   }, [chipEdit]);
@@ -165,27 +165,27 @@ export const MsqdxGlassChipEditor = ({
 
   const handleSaveEditChip = useCallback(() => {
     if (editingIndex === null) return;
-    
+
     const trimmed = editingValue.trim();
     if (!trimmed) {
       // Empty value = remove chip
       handleRemoveChip(editingIndex);
       return;
     }
-    
+
     // Check for duplicates (case-insensitive), but allow if editing same chip
     const normalized = trimmed.toLowerCase();
-    const exists = chipEdit.value.some((chip, i) => 
+    const exists = chipEdit.value.some((chip, i) =>
       i !== editingIndex && chip.trim().toLowerCase() === normalized
     );
-    
+
     if (exists) {
       // Duplicate found, cancel edit
       setEditingIndex(null);
       setEditingValue("");
       return;
     }
-    
+
     const updated = [...chipEdit.value];
     updated[editingIndex] = trimmed;
     chipEdit.setValue(updated);
@@ -303,13 +303,13 @@ export const MsqdxGlassChipEditor = ({
                   </Box>
                 ) : (
                   <MsqdxGlassChip
-                    variant={chipClassName.includes("--trait") ? "trait" : 
-                            chipClassName.includes("--vocab") ? "vocab" :
-                            chipClassName.includes("--pain") ? "pain" :
-                            chipClassName.includes("--goal") ? "goal" :
+                    variant={chipClassName.includes("--trait") ? "trait" :
+                      chipClassName.includes("--vocab") ? "vocab" :
+                        chipClassName.includes("--pain") ? "pain" :
+                          chipClassName.includes("--goal") ? "goal" :
                             chipClassName.includes("--value") ? "value" :
-                            chipClassName.includes("--interest") ? "interest" :
-                            chipClassName.includes("--social") ? "social" : "trait"}
+                              chipClassName.includes("--interest") ? "interest" :
+                                chipClassName.includes("--social") ? "social" : "trait"}
                     dashboard={true}
                     highlighted={highlightedChips.some((highlight) => highlight.trim().toLowerCase() === chip.trim().toLowerCase())}
                     onClick={isEditing ? () => handleStartEditChip(idx, chip) : undefined}
@@ -369,12 +369,12 @@ export const MsqdxGlassChipEditor = ({
           {onAiSuggest && (
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
               <MsqdxGlassAiButtonIcon
-              onClick={onAiSuggest}
-              disabled={aiLoading}
+                onClick={onAiSuggest}
+                disabled={aiLoading}
                 loading={aiLoading}
                 size="small"
                 fontSize={18}
-              title="AI Vorschlag"
+                title="AI Vorschlag"
                 aria-label="AI Vorschlag"
               />
               <Box component="span" sx={{ fontSize: "0.875rem" }}>

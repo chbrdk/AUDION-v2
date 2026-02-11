@@ -244,7 +244,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
         setDetailLoading(false);
       }
     },
-    []
+    [t]
   );
 
   useEffect(() => {
@@ -275,7 +275,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
     } finally {
       setListRefreshing(false);
     }
-  }, [selectedId, activeProjectId]);
+  }, [selectedId, activeProjectId, t]);
 
   useEffect(() => {
     void refreshList();
@@ -295,7 +295,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
         updated_by: editForm.updatedBy,
         ...updates,
       };
-      
+
       await updateTargetGroup(selectedId, payload);
       await loadDetail(selectedId);
       await refreshList();
@@ -548,8 +548,8 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                 {activeProject?.name
                   ? t("targetGroupsAdmin.projectLabel", { name: activeProject.name })
                   : activeProjectId
-                  ? t("targetGroupsAdmin.projectIdLabel", { id: activeProjectId })
-                  : t("targetGroupsAdmin.selectProject")}
+                    ? t("targetGroupsAdmin.projectIdLabel", { id: activeProjectId })
+                    : t("targetGroupsAdmin.selectProject")}
               </MsqdxTypography>
               <MsqdxFormField
                 label={t("targetGroupsAdmin.name")}
@@ -649,7 +649,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                 </MsqdxDashboardCard>
               </Box>
 
-            <Box sx={{ gridColumn: "1 / -1" }}>
+              <Box sx={{ gridColumn: "1 / -1" }}>
                 <MsqdxDashboardCard
                   id="personas"
                   title={t("targetGroupsAdmin.personas", { count: personas.length })}
@@ -658,81 +658,81 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                   expanded={isAccordionExpanded("personas")}
                   onToggle={toggleAccordion}
                 >
-              <MsqdxGlassPersonaList 
-                personas={personas} 
-                onDelete={async (personaId: string) => {
-                  const persona = personas.find(p => p.id === personaId);
-                  const personaName = persona?.name || t("targetGroupsAdmin.thisPersona");
-                  const confirmed = window.confirm(
-                    t("targetGroupsAdmin.deletePersonaConfirm", { name: personaName })
-                  );
-                  
-                  if (!confirmed) {
-                    return;
-                  }
-                  
-                  try {
-                    const response = await fetch(buildApiUrl(`/api/persona-admin/${personaId}?actor=persona-admin-ui`), {
-                      method: "DELETE",
-                    });
-                    if (!response.ok) {
-                      throw new Error(`Backend responded with ${response.status}`);
-                    }
-                    // Refresh personas list
-                    if (selectedId) {
-                      const personasData = await fetchTargetGroupPersonas(selectedId);
-                      setPersonas(personasData.items);
-                    }
-                    notify(t("targetGroupsAdmin.toasts.personaDeleted"));
-                  } catch (error) {
-                    console.error("Persona delete failed", error);
-                    notify(t("targetGroupsAdmin.toasts.deleteFailed"));
-                  }
-                }}
-              />
-              <Box sx={{ mt: 2, p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
-                <MsqdxTypography variant="subtitle2" weight="semibold" sx={{ mb: 1.5 }}>{t("targetGroupsAdmin.createPersona")}</MsqdxTypography>
-                <Box
-                  component="form"
-                  onSubmit={handlePersonaSubmit}
-                  sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}
-                >
-                  <MsqdxFormField
-                    label={t("targetGroupsAdmin.segmentName")}
-                    value={personaForm.segment}
-                    onChange={(e) => handlePersonaField("segment", e.target.value)}
-                    placeholder={t("targetGroupsAdmin.segmentPlaceholderPersona")}
-                    required
-                    disabled={createPersonaPending}
-                    fullWidth
-                    size="small"
-                    sx={FORM_FIELD_ACCENT_SX}
+                  <MsqdxGlassPersonaList
+                    personas={personas}
+                    onDelete={async (personaId: string) => {
+                      const persona = personas.find(p => p.id === personaId);
+                      const personaName = persona?.name || t("targetGroupsAdmin.thisPersona");
+                      const confirmed = window.confirm(
+                        t("targetGroupsAdmin.deletePersonaConfirm", { name: personaName })
+                      );
+
+                      if (!confirmed) {
+                        return;
+                      }
+
+                      try {
+                        const response = await fetch(buildApiUrl(`/api/persona-admin/${personaId}?actor=persona-admin-ui`), {
+                          method: "DELETE",
+                        });
+                        if (!response.ok) {
+                          throw new Error(`Backend responded with ${response.status}`);
+                        }
+                        // Refresh personas list
+                        if (selectedId) {
+                          const personasData = await fetchTargetGroupPersonas(selectedId);
+                          setPersonas(personasData.items);
+                        }
+                        notify(t("targetGroupsAdmin.toasts.personaDeleted"));
+                      } catch (error) {
+                        console.error("Persona delete failed", error);
+                        notify(t("targetGroupsAdmin.toasts.deleteFailed"));
+                      }
+                    }}
                   />
-                  <MsqdxTextareaField
-                    label={t("targetGroupsAdmin.descriptionOptional")}
-                    value={personaForm.description}
-                    onChange={(e) => handlePersonaField("description", e.target.value)}
-                    placeholder={t("targetGroupsAdmin.descriptionOptionalPlaceholder")}
-                    minRows={3}
-                    disabled={createPersonaPending}
-                    fullWidth
-                    sx={FORM_FIELD_ACCENT_SX}
-                  />
-                  <MsqdxButton
-                    variant="outlined"
-                    size="small"
-                    type="submit"
-                    disabled={createPersonaPending || !personaForm.segment.trim()}
-                    startIcon={<MsqdxIcon name={createPersonaPending ? "hourglass_empty" : "add"} customSize={14} />}
-                  >
-                    {createPersonaPending ? t("targetGroupsAdmin.creating") : t("targetGroupsAdmin.createButton")}
-                  </MsqdxButton>
-                </Box>
-              </Box>
+                  <Box sx={{ mt: 2, p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
+                    <MsqdxTypography variant="subtitle2" weight="semibold" sx={{ mb: 1.5 }}>{t("targetGroupsAdmin.createPersona")}</MsqdxTypography>
+                    <Box
+                      component="form"
+                      onSubmit={handlePersonaSubmit}
+                      sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}
+                    >
+                      <MsqdxFormField
+                        label={t("targetGroupsAdmin.segmentName")}
+                        value={personaForm.segment}
+                        onChange={(e) => handlePersonaField("segment", e.target.value)}
+                        placeholder={t("targetGroupsAdmin.segmentPlaceholderPersona")}
+                        required
+                        disabled={createPersonaPending}
+                        fullWidth
+                        size="small"
+                        sx={FORM_FIELD_ACCENT_SX}
+                      />
+                      <MsqdxTextareaField
+                        label={t("targetGroupsAdmin.descriptionOptional")}
+                        value={personaForm.description}
+                        onChange={(e) => handlePersonaField("description", e.target.value)}
+                        placeholder={t("targetGroupsAdmin.descriptionOptionalPlaceholder")}
+                        minRows={3}
+                        disabled={createPersonaPending}
+                        fullWidth
+                        sx={FORM_FIELD_ACCENT_SX}
+                      />
+                      <MsqdxButton
+                        variant="outlined"
+                        size="small"
+                        type="submit"
+                        disabled={createPersonaPending || !personaForm.segment.trim()}
+                        startIcon={<MsqdxIcon name={createPersonaPending ? "hourglass_empty" : "add"} customSize={14} />}
+                      >
+                        {createPersonaPending ? t("targetGroupsAdmin.creating") : t("targetGroupsAdmin.createButton")}
+                      </MsqdxButton>
+                    </Box>
+                  </Box>
                 </MsqdxDashboardCard>
               </Box>
 
-            <Box sx={{ gridColumn: "1 / -1" }}>
+              <Box sx={{ gridColumn: "1 / -1" }}>
                 <MsqdxDashboardCard
                   id="knowledge"
                   title={t("targetGroupsAdmin.knowledge", { count: knowledgeEntries.length })}
@@ -741,77 +741,77 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                   expanded={isAccordionExpanded("knowledge")}
                   onToggle={toggleAccordion}
                 >
-              {knowledgeEntries.length === 0 ? (
-                <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>{t("targetGroupsAdmin.knowledgeEmpty")}</MsqdxTypography>
-              ) : (
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-                  {knowledgeEntries.map((entry) => (
-                    <Box
-                      key={entry.id}
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        p: 1,
-                        border: "1px solid",
-                        borderColor: "divider",
-                        borderRadius: 1,
-                      }}
-                    >
-                      <MsqdxTypography variant="body2" weight="semibold">{entry.title}</MsqdxTypography>
-                      <MsqdxButton
-                        variant="text"
-                        size="small"
-                        brandColor="pink"
-                        onClick={() => handleDeleteKnowledge(entry.id)}
-                        startIcon={<MsqdxIcon name="delete" customSize={18} />}
-                        aria-label={t("targetGroupsAdmin.deleteKnowledge")}
-                      />
+                  {knowledgeEntries.length === 0 ? (
+                    <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>{t("targetGroupsAdmin.knowledgeEmpty")}</MsqdxTypography>
+                  ) : (
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+                      {knowledgeEntries.map((entry) => (
+                        <Box
+                          key={entry.id}
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            p: 1,
+                            border: "1px solid",
+                            borderColor: "divider",
+                            borderRadius: 1,
+                          }}
+                        >
+                          <MsqdxTypography variant="body2" weight="semibold">{entry.title}</MsqdxTypography>
+                          <MsqdxButton
+                            variant="text"
+                            size="small"
+                            brandColor="pink"
+                            onClick={() => handleDeleteKnowledge(entry.id)}
+                            startIcon={<MsqdxIcon name="delete" customSize={18} />}
+                            aria-label={t("targetGroupsAdmin.deleteKnowledge")}
+                          />
+                        </Box>
+                      ))}
                     </Box>
-                  ))}
-                </Box>
-              )}
+                  )}
 
-              <Box sx={{ mt: 2, p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
-                <MsqdxTypography variant="subtitle2" weight="semibold" sx={{ mb: 1.5 }}>{t("targetGroupsAdmin.newKnowledgeEntry")}</MsqdxTypography>
-                <Box
-                  component="form"
-                  onSubmit={handleKnowledgeSubmit}
-                  sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}
-                >
-                  <MsqdxFormField
-                    label={t("targetGroupsAdmin.titleLabel")}
-                    value={knowledgeForm.title}
-                    onChange={(e) => handleKnowledgeField("title", e.target.value)}
-                    placeholder={t("targetGroupsAdmin.titlePlaceholder")}
-                    fullWidth
-                    size="small"
-                    sx={FORM_FIELD_ACCENT_SX}
-                  />
-                  <MsqdxTextareaField
-                    label={t("targetGroupsAdmin.content")}
-                    value={knowledgeForm.content}
-                    onChange={(e) => handleKnowledgeField("content", e.target.value)}
-                    placeholder={t("targetGroupsAdmin.contentPlaceholder")}
-                    minRows={3}
-                    fullWidth
-                    sx={FORM_FIELD_ACCENT_SX}
-                  />
-                  <MsqdxButton
-                    variant="outlined"
-                    size="small"
-                    type="submit"
-                    disabled={knowledgePending}
-                    startIcon={<MsqdxIcon name="add" customSize={14} />}
-                  >
-                    {knowledgePending ? t("targetGroupsAdmin.adding") : t("targetGroupsAdmin.add")}
-                  </MsqdxButton>
-                </Box>
-              </Box>
+                  <Box sx={{ mt: 2, p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
+                    <MsqdxTypography variant="subtitle2" weight="semibold" sx={{ mb: 1.5 }}>{t("targetGroupsAdmin.newKnowledgeEntry")}</MsqdxTypography>
+                    <Box
+                      component="form"
+                      onSubmit={handleKnowledgeSubmit}
+                      sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}
+                    >
+                      <MsqdxFormField
+                        label={t("targetGroupsAdmin.titleLabel")}
+                        value={knowledgeForm.title}
+                        onChange={(e) => handleKnowledgeField("title", e.target.value)}
+                        placeholder={t("targetGroupsAdmin.titlePlaceholder")}
+                        fullWidth
+                        size="small"
+                        sx={FORM_FIELD_ACCENT_SX}
+                      />
+                      <MsqdxTextareaField
+                        label={t("targetGroupsAdmin.content")}
+                        value={knowledgeForm.content}
+                        onChange={(e) => handleKnowledgeField("content", e.target.value)}
+                        placeholder={t("targetGroupsAdmin.contentPlaceholder")}
+                        minRows={3}
+                        fullWidth
+                        sx={FORM_FIELD_ACCENT_SX}
+                      />
+                      <MsqdxButton
+                        variant="outlined"
+                        size="small"
+                        type="submit"
+                        disabled={knowledgePending}
+                        startIcon={<MsqdxIcon name="add" customSize={14} />}
+                      >
+                        {knowledgePending ? t("targetGroupsAdmin.adding") : t("targetGroupsAdmin.add")}
+                      </MsqdxButton>
+                    </Box>
+                  </Box>
                 </MsqdxDashboardCard>
               </Box>
 
-            <Box sx={{ gridColumn: "1 / -1" }}>
+              <Box sx={{ gridColumn: "1 / -1" }}>
                 <MsqdxDashboardCard
                   id="documents"
                   title={t("targetGroupsAdmin.documents", { count: documents.length }) + (documents.some((d) => d.ingestionStatus === "pending" || d.ingestionStatus === "processing") ? t("targetGroupsAdmin.documentsUpdating") : "")}
@@ -820,71 +820,71 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                   expanded={isAccordionExpanded("documents")}
                   onToggle={toggleAccordion}
                 >
-              {documents.length === 0 && (
-                <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>{t("targetGroupsAdmin.documentsEmpty")}</MsqdxTypography>
-              )}
-              {documents.length > 0 && (
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                  {documents.map((doc) => {
-                    const chipConfig =
-                      doc.ingestionStatus === "completed"
-                        ? { label: t("targetGroupsAdmin.indexed"), brandColor: "green" as const }
-                        : doc.ingestionStatus === "processing"
-                          ? { label: t("targetGroupsAdmin.processing", { progress: doc.ingestionProgress ? Math.round(doc.ingestionProgress) : 0 }), brandColor: "orange" as const }
-                          : doc.ingestionStatus === "failed"
-                            ? { label: t("targetGroupsAdmin.error"), brandColor: "pink" as const }
-                            : { label: t("targetGroupsAdmin.pending"), brandColor: "orange" as const };
-                    return (
-                      <Box
-                        key={doc.id}
-                        sx={{
-                          p: 1.5,
-                          border: "1px solid",
-                          borderColor: "divider",
-                          borderRadius: 1,
-                        }}
-                      >
-                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
-                          <MsqdxTypography variant="body2" weight="semibold">{doc.filename}</MsqdxTypography>
-                          <MsqdxChip variant="filled" brandColor={chipConfig.brandColor} label={chipConfig.label} size="small" />
-                        </Box>
-                        {doc.ingestionStatus === "processing" && doc.ingestionProgress != null && (
-                          <Box sx={{ mt: 1, height: 4, bgcolor: "action.hover", borderRadius: 1, overflow: "hidden" }}>
-                            <Box
-                              sx={{
-                                width: `${doc.ingestionProgress}%`,
-                                height: "100%",
-                                bgcolor: "primary.main",
-                                transition: "width 0.3s ease",
-                              }}
-                            />
+                  {documents.length === 0 && (
+                    <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>{t("targetGroupsAdmin.documentsEmpty")}</MsqdxTypography>
+                  )}
+                  {documents.length > 0 && (
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                      {documents.map((doc) => {
+                        const chipConfig =
+                          doc.ingestionStatus === "completed"
+                            ? { label: t("targetGroupsAdmin.indexed"), brandColor: "green" as const }
+                            : doc.ingestionStatus === "processing"
+                              ? { label: t("targetGroupsAdmin.processing", { progress: doc.ingestionProgress ? Math.round(doc.ingestionProgress) : 0 }), brandColor: "orange" as const }
+                              : doc.ingestionStatus === "failed"
+                                ? { label: t("targetGroupsAdmin.error"), brandColor: "pink" as const }
+                                : { label: t("targetGroupsAdmin.pending"), brandColor: "orange" as const };
+                        return (
+                          <Box
+                            key={doc.id}
+                            sx={{
+                              p: 1.5,
+                              border: "1px solid",
+                              borderColor: "divider",
+                              borderRadius: 1,
+                            }}
+                          >
+                            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
+                              <MsqdxTypography variant="body2" weight="semibold">{doc.filename}</MsqdxTypography>
+                              <MsqdxChip variant="filled" brandColor={chipConfig.brandColor} label={chipConfig.label} size="small" />
+                            </Box>
+                            {doc.ingestionStatus === "processing" && doc.ingestionProgress != null && (
+                              <Box sx={{ mt: 1, height: 4, bgcolor: "action.hover", borderRadius: 1, overflow: "hidden" }}>
+                                <Box
+                                  sx={{
+                                    width: `${doc.ingestionProgress}%`,
+                                    height: "100%",
+                                    bgcolor: "primary.main",
+                                    transition: "width 0.3s ease",
+                                  }}
+                                />
+                              </Box>
+                            )}
                           </Box>
-                        )}
-                      </Box>
-                    );
-                  })}
-                </Box>
-              )}
+                        );
+                      })}
+                    </Box>
+                  )}
 
-              <Box sx={{ mt: 2, p: 2, border: "1px dashed", borderColor: "divider", borderRadius: 2, textAlign: "center" }}>
-                <MsqdxIcon name="upload_file" customSize={32} style={{ color: THEME_ACCENT.color, marginBottom: "0.5rem", display: "block" }} />
-                <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 1 }}>
-                  {t("targetGroupsAdmin.uploadHint")}
-                </MsqdxTypography>
-                <MsqdxButton
-                  variant="outlined"
-                  size="small"
-                  onClick={triggerDocumentUpload}
-                  disabled={documentUploadPending}
-                  startIcon={<MsqdxIcon name="upload" customSize={14} />}
-                >
-                  {documentUploadPending ? t("targetGroupsAdmin.uploading") : t("targetGroupsAdmin.selectFile")}
-                </MsqdxButton>
-              </Box>
+                  <Box sx={{ mt: 2, p: 2, border: "1px dashed", borderColor: "divider", borderRadius: 2, textAlign: "center" }}>
+                    <MsqdxIcon name="upload_file" customSize={32} style={{ color: THEME_ACCENT.color, marginBottom: "0.5rem", display: "block" }} />
+                    <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 1 }}>
+                      {t("targetGroupsAdmin.uploadHint")}
+                    </MsqdxTypography>
+                    <MsqdxButton
+                      variant="outlined"
+                      size="small"
+                      onClick={triggerDocumentUpload}
+                      disabled={documentUploadPending}
+                      startIcon={<MsqdxIcon name="upload" customSize={14} />}
+                    >
+                      {documentUploadPending ? t("targetGroupsAdmin.uploading") : t("targetGroupsAdmin.selectFile")}
+                    </MsqdxButton>
+                  </Box>
                 </MsqdxDashboardCard>
               </Box>
 
-            <Box sx={{ gridColumn: "1 / -1" }}>
+              <Box sx={{ gridColumn: "1 / -1" }}>
                 <MsqdxDashboardCard
                   id="knowledge-explorer"
                   title={t("targetGroupsAdmin.knowledgeExplorer")}

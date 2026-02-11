@@ -57,13 +57,13 @@ export default function SettingsProjectsPage() {
     } else {
       setMembers([]);
     }
-  }, [activeProjectId, getProjectDetail]);
+  }, [activeProjectId, getProjectDetail, t]);
 
   const projectDisplayName = useMemo(() => {
     if (activeProject?.name) return activeProject.name;
     const fallback = safeProjects.find((project) => project.id === activeProjectId);
     return fallback?.name ?? t("settingsProjects.noProjectSelected");
-  }, [activeProject, activeProjectId, safeProjects]);
+  }, [activeProject, activeProjectId, safeProjects, t]);
 
   const handleCreateProject = async () => {
     if (!projectName.trim()) {

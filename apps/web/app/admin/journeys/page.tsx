@@ -3,7 +3,7 @@
 // Disable static generation to prevent prerendering issues with useState/useContext
 export const dynamic = 'force-dynamic';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { journeysApi, type JourneyResponse } from "../../api/_lib/journeys";
 import { MsqdxIcon } from "@msqdx/react";
 import { useProject } from "../../../components/projects/project-provider";
@@ -18,9 +18,9 @@ export default function JourneysListPage() {
 
   useEffect(() => {
     loadJourneys();
-  }, [activeProjectId]);
+  }, [activeProjectId, loadJourneys]);
 
-  const loadJourneys = async () => {
+  const loadJourneys = useCallback(async () => {
     try {
       setLoading(true);
       if (!activeProjectId) {
@@ -36,7 +36,7 @@ export default function JourneysListPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeProjectId, t]);
 
   if (loading) {
     return (

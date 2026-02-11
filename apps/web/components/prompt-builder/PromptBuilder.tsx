@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { VariablePalette } from "./VariablePalette";
 import { PromptEditor } from "./PromptEditor";
 import { LivePreviewPanel } from "./LivePreviewPanel";
@@ -65,13 +65,13 @@ export function PromptBuilder({ initialPrompt, onPromptChange }: PromptBuilderPr
   useEffect(() => {
     // This will be handled by LivePreviewPanel, but we need it here too for testing
     const mockContext = generateMockContext();
-    const effectiveContext = useMockData || Object.keys(context).length === 0 
-      ? { ...mockContext, ...context } 
+    const effectiveContext = useMockData || Object.keys(context).length === 0
+      ? { ...mockContext, ...context }
       : context;
     setEnrichedContext(effectiveContext);
   }, [context, useMockData]);
 
-  const handleTestPrompt = async () => {
+  const handleTestPrompt = useCallback(async () => {
     if (!prompt.trim()) {
       return;
     }
@@ -82,8 +82,8 @@ export function PromptBuilder({ initialPrompt, onPromptChange }: PromptBuilderPr
 
     try {
       const mockContext = generateMockContext();
-      const effectiveContext = useMockData || Object.keys(enrichedContext).length === 0 
-        ? { ...mockContext, ...enrichedContext } 
+      const effectiveContext = useMockData || Object.keys(enrichedContext).length === 0
+        ? { ...mockContext, ...enrichedContext }
         : enrichedContext;
 
       const response = await aiAssistApi.testPrompt({
@@ -100,7 +100,7 @@ export function PromptBuilder({ initialPrompt, onPromptChange }: PromptBuilderPr
     } finally {
       setTesting(false);
     }
-  };
+  }, [prompt, enrichedContext, useMockData]);
 
   const canTest = !testing && prompt.trim().length > 0;
 
