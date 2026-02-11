@@ -42,8 +42,11 @@ In `apps/chat-api/app/routers/personas.py`:
 
 Die Tabelle `audion.personas` hat die Spalte `image_url`. Wenn die Chat-API keinen externen Storage (S3 o. Ä.) nutzt, speichert sie einen **Data-URL** (base64), der sehr lang ist (>512 Zeichen). Die Spalte war ursprünglich `VARCHAR(512)` → **StringDataRightTruncation**.
 
-- **Migration:** `apps/api/alembic/versions/20260211_personas_image_url_text.py` – ändert `image_url` auf `TEXT`. Nach dem Ausführen der Migration (z. B. `alembic upgrade head` im API-Projekt) funktioniert das Speichern der generierten Avatare.
+- **Migration:** `apps/api/alembic/versions/20260211_personas_image_url_text.py` – ändert `image_url` auf `TEXT`. Nach dem Ausführen der Migration funktioniert das Speichern der generierten Avatare.
+  - **Lokal/Docker:** `docker-compose exec api alembic upgrade head`
+  - **Coolify:** Application → Services → **api** → Terminal → `alembic upgrade head`
 - **API-Model:** `apps/api/app/models/__init__.py` – `Persona.image_url` ist auf `Text` umgestellt (entspricht der Migration).
+- **Fallback:** Wenn die Migration noch nicht gelaufen ist, fängt die Chat-API den Truncation-Fehler ab, antwortet trotzdem mit 200 und `image_url` + `persist_warning`. Die UI zeigt den Avatar einmal und die Warnung (Migration ausführen).
 
 ## Relevante Dateien
 

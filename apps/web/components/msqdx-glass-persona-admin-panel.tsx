@@ -1197,7 +1197,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
         method: "POST",
       });
       const contentType = response.headers.get("content-type") || "";
-      let payload: { status?: string; detail?: string; message?: string } | null = null;
+      let payload: { status?: string; detail?: string; message?: string; persist_warning?: string } | null = null;
       if (contentType.includes("application/json")) {
         payload = await response.json().catch(() => null);
       } else {
@@ -1216,6 +1216,9 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
       }
       await loadDetail(selectedId);
       notify(t("personaAdmin.toasts.avatarGenerated"));
+      if (payload?.persist_warning) {
+        notify(payload.persist_warning);
+      }
     } catch (error) {
       console.error("Avatar generation failed", error);
       notify((error as Error)?.message || t("personaAdmin.toasts.avatarGenerateFailed"));

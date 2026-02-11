@@ -5,6 +5,7 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select
+from sqlalchemy.exc import DataError
 
 from ..db import get_session
 from ..models import DocumentChunk, Persona, PersonaPrompt, PersonaSource
@@ -173,6 +174,7 @@ def get_persona(persona_id: str) -> PersonaResponse:
 class GenerateImageResponse(BaseModel):
     image_url: str | None
     status: str
+    persist_warning: str | None = None
 
 
 class ProfileCardRegenerateResponse(BaseModel):
@@ -279,18 +281,31 @@ def generate_persona_image(persona_id: str) -> GenerateImageResponse:
     image_service = PersonaImageService()
     image_url = image_service.generate_portrait(profile, save_to_storage=True)
 
+    persist_warning: str | None = None
     if image_url:
         from datetime import datetime
-        with get_session() as session:
-            persona = session.get(Persona, persona_uuid)
-            if persona:
-                persona.image_url = image_url
-                persona.image_generated_at = datetime.utcnow()
-                session.commit()
+        try:
+            with get_session() as session:
+                persona = session.get(Persona, persona_uuid)
+                if persona:
+                    persona.image_url = image_url
+                    persona.image_generated_at = datetime.utcnow()
+                    session.commit()
+        except DataError as e:
+            orig = getattr(e, "orig", e)
+            msg = str(orig).lower()
+            if "stringdatarighttruncation" in msg or "character varying" in msg or "value too long" in msg:
+                persist_warning = (
+                    "Avatar generated but not saved: image_url column is too small. "
+                    "Run migration 20260211_personas_image_url_text (alembic upgrade head in api service)."
+                )
+            else:
+                raise
 
     return GenerateImageResponse(
         image_url=image_url,
         status="success" if image_url else "failed",
+        persist_warning=persist_warning,
     )
 
 
