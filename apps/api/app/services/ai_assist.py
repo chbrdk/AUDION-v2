@@ -689,11 +689,10 @@ class AiAssistService:
             items.append(template)
         return items
 
-    def get_template_for_project(
-        self, *, session: Session, project_id: str, template_id: str
-    ) -> AiTemplateDefinition:
+    def _get_base_template(self, template_id: str, session: Session) -> AiTemplateDefinition:
+        """Helper to get base template from registry or DB."""
         try:
-            base = self.registry.get_full_template(template_id)
+            return self.registry.get_full_template(template_id)
         except KeyError:
             # Try fetching from DB if not in YAML registry
             tpl = session.scalar(select(PromptTemplate).where(PromptTemplate.name == template_id))
@@ -701,7 +700,7 @@ class AiAssistService:
                 raise KeyError(f"Template '{template_id}' not found in registry or database")
             
             # Map PromptTemplate to AiTemplateDefinition
-            base = AiTemplateDefinition(
+            return AiTemplateDefinition(
                 template_id=tpl.name,
                 label=tpl.name.replace("_", " ").title(),
                 description=tpl.description or "Database prompt template",
@@ -709,13 +708,17 @@ class AiAssistService:
                 tags=["db", "custom"],
                 default_provider=AiProvider.OPENAI,
                 default_model="dall-e-3" if "image" in tpl.name or "avatar" in tpl.name else "gpt-4-turbo",
-                temperature=0.7,
-                max_tokens=1024,
+                temperature=tpl.input_variables.get("temperature", 0.7) if tpl.input_variables else 0.7,
+                max_tokens=tpl.input_variables.get("max_tokens", 1024) if tpl.input_variables else 1024,
                 prompt=tpl.template,
                 output={"mode": "text"},
                 metadata={"version": tpl.version}
             )
 
+    def get_template_for_project(
+        self, *, session: Session, project_id: str, template_id: str
+    ) -> AiTemplateDefinition:
+        base = self._get_base_template(template_id, session)
         override = self._load_override(session=session, project_id=project_id, template_id=template_id)
         return _apply_template_override(base, override or {})
 
@@ -733,8 +736,8 @@ class AiAssistService:
         except ValueError as exc:
             raise ValueError("invalid_project_id") from exc
 
-        # Ensure template exists
-        _ = self.registry.get_full_template(template_id)
+        # Ensure template exists (in registry or DB)
+        _ = self._get_base_template(template_id, session)
 
         existing = session.scalar(
             select(AiTemplateOverride).where(

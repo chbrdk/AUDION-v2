@@ -173,11 +173,22 @@ async def test_prompt(
 ) -> AiAssistResponse:
     """Test a custom prompt directly without requiring a template."""
     try:
+        # Enrich context with persona data if persona_id is present
+        # We don't check project_id param here as it's a raw test, but we pass allowed_project_ids
+        # to ensure the user can only access personas they are allowed to see.
+        allowed_project_ids = list_accessible_project_ids(session, _current_user.id)
+        
+        enriched_context = _enrich_persona_context(
+            session,
+            payload.context,
+            allowed_project_ids=allowed_project_ids,
+        )
+
         service = AiAssistService(registry=registry)
         service.session = session
         return await service.test_prompt(
             prompt=payload.prompt,
-            context=payload.context,
+            context=enriched_context,
             provider=payload.provider,
             model=payload.model,
             temperature=payload.temperature,
