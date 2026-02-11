@@ -911,13 +911,23 @@ class AiAssistService:
             messages=[{"role": "user", "content": prompt}],
         )
         
-        # Extract response content
+        # Extract response content (content can be str or list of content parts)
         raw_text = ""
         finish_reason = None
         if response.choices:
             choice = response.choices[0]
             finish_reason = getattr(choice, "finish_reason", None)
-            raw_text = choice.message.content if choice.message.content else ""
+            content = getattr(choice.message, "content", None)
+            if isinstance(content, str):
+                raw_text = content
+            elif isinstance(content, list):
+                parts = []
+                for part in content:
+                    if hasattr(part, "text") and part.text:
+                        parts.append(part.text)
+                    elif isinstance(part, dict) and part.get("type") == "text":
+                        parts.append(part.get("text", "") or "")
+                raw_text = "\n".join(parts) if parts else ""
         
         # Debug logging
         logger.info(

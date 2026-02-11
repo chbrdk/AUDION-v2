@@ -72,7 +72,8 @@ REDIS_URL=redis://audion-redis:6379/0
 # Qdrant (internal service)
 QDRANT_URL=http://qdrant:6333
 
-# Neo4j
+# Neo4j – Hostname must match your Neo4j resource/service name in Coolify
+# If you see "Failed to DNS resolve address audion-neo4j", set NEO4J_URI to your actual Neo4j host (e.g. neo4j if the service is named neo4j)
 NEO4J_URI=bolt://neo4j:7687
 NEO4J_USER=neo4j
 NEO4J_PASSWORD=YOUR_NEO4J_PASSWORD

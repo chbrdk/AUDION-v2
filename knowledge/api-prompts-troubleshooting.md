@@ -54,3 +54,22 @@ Beim Erstellen eines neuen Projekts (`POST /projects`) werden automatisch alle D
 
 5. **Authentifizierung**
    - Beide Endpoints benötigen einen gültigen Auth-Header. Fehlende oder ungültige Auth kann zu 401/403 führen.
+
+## AI Assist: Persona Traits liefert leere Vorschläge (200 OK, 0 Suggestions)
+
+### Symptome
+
+- `POST /ai-assist?project_id=...` mit Template `persona.traits` → **200 OK**
+- Logs: `has_content: false`, `content_length: 0`, `finish_reason: "length"`, `usage_output_tokens: 600`
+- Frontend erhält `suggestions: []`
+
+### Ursachen
+
+1. **Content-Format:** Manche Modelle/APIs liefern `message.content` als Liste von Content-Parts (z. B. bei Reasoning/Thinking). Der Code las nur `choice.message.content` als String → bei Liste war das Ergebnis leer.
+2. **Token-Limit:** Mit `max_tokens: 600` und `finish_reason: "length"` kann die Antwort abgeschnitten sein (z. B. nur Präambel, kein JSON).
+
+### Änderungen (2026-02)
+
+- **`apps/api/app/services/ai_assist.py`:** Content-Extraktion unterstützt jetzt sowohl `str` als auch `list` von Content-Parts (z. B. `part.text` oder `part["text"]`).
+- **`apps/api/app/prompts/templates.yaml`:** Template `persona.traits` hat `max_tokens` von 600 auf **1024** erhöht, damit das JSON sicher ins Limit passt.
+- Optional: In den Projekt-Settings (AI/Templates) für `persona.traits` `max_tokens` weiter erhöhen, falls nötig.
