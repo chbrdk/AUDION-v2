@@ -45,9 +45,9 @@ def check_knowledge_entry(entry_id: str) -> None:
             if source:
                 print(f"✅ TargetGroupSource gefunden: relevance_score={source.relevance_score}")
             else:
-                print(f"❌ TargetGroupSource fehlt!")
+                print("❌ TargetGroupSource fehlt!")
         else:
-            print(f"❌ DocumentChunk fehlt - Ingestion wurde nicht ausgeführt!")
+            print("❌ DocumentChunk fehlt - Ingestion wurde nicht ausgeführt!")
             
         # Check Qdrant (via retrieve)
         from qdrant_client import QdrantClient
@@ -65,10 +65,10 @@ def check_knowledge_entry(entry_id: str) -> None:
                 )
                 if points and len(points) > 0:
                     payload = points[0].payload or {}
-                    print(f"✅ Qdrant Vector gefunden")
+                    print("✅ Qdrant Vector gefunden")
                     print(f"   Payload: source={payload.get('source')}, knowledge_entry_id={payload.get('knowledge_entry_id')}")
                 else:
-                    print(f"❌ Qdrant Vector fehlt!")
+                    print("❌ Qdrant Vector fehlt!")
             except Exception as e:
                 print(f"❌ Fehler beim Abrufen aus Qdrant: {e}")
 
@@ -81,7 +81,7 @@ if __name__ == "__main__":
                 (TargetGroupKnowledgeEntry.content.ilike('%käse%'))
             ).all()
             if entries:
-                print(f"Gefundene Knowledge-Einträge mit 'käse':")
+                print("Gefundene Knowledge-Einträge mit 'käse':")
                 for entry in entries:
                     print(f"  - {entry.id}: {entry.title}")
                     check_knowledge_entry(str(entry.id))

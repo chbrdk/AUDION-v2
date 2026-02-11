@@ -28,7 +28,6 @@ async def test_journey_generation_service_initialization():
 def test_save_journey_draft():
     """Test saving a journey draft to database."""
     from app.db import get_session
-    from app.models import Journey
     
     service = JourneyGenerationService()
     

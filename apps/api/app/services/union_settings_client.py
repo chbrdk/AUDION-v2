@@ -4,7 +4,6 @@ import httpx
 import structlog
 import os
 import redis
-from functools import lru_cache
 
 from ..core.config import get_settings
 
@@ -24,7 +23,6 @@ class UnionSettingsClient:
             cache_ttl: Cache TTL in seconds (default: 900 = 15 minutes)
         """
         # Check environment variable first, then settings, then default
-        import os
         env_union_url = os.getenv("UNION_BASE_URL")
         if base_url:
             self.base_url = base_url.rstrip("/")

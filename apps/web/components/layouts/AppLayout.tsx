@@ -62,7 +62,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       }}
       innerBackground="grid"
     >
-      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+      { }
       {children as any}
     </MsqdxAppLayout>
   );

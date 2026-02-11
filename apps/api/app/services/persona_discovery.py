@@ -6,7 +6,6 @@ from typing import List
 import structlog
 from anthropic import Anthropic
 from qdrant_client import QdrantClient
-from qdrant_client.http import models as qmodels
 
 from ..core.config import get_settings
 

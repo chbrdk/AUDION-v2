@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import List, Tuple
-from uuid import UUID
 
 from FlagEmbedding import BGEM3FlagModel
 from qdrant_client import QdrantClient

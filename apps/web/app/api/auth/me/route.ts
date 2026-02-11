@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest} from "next/server";
+import { NextResponse } from "next/server";
 
 import { getPersonaBackendBase } from "../../_lib/backend";
 import { buildAuthHeaders, getAuthTokenFromRequest } from "../../_lib/auth";

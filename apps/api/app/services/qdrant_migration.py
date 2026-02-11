@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import structlog
 from qdrant_client import QdrantClient
-from qdrant_client.http import models as qmodels
 from sqlalchemy import select
-from sqlalchemy.orm import Session
 
 from ..core.config import get_settings
 from ..db import get_session

@@ -37,7 +37,7 @@ def check_knowledge_entry(entry_id: str) -> None:
             print(f"❌ Knowledge-Eintrag {entry_id} nicht gefunden!")
             return
         
-        print(f"✅ Knowledge-Eintrag gefunden:")
+        print("✅ Knowledge-Eintrag gefunden:")
         print(f"   ID: {entry.id}")
         print(f"   Titel: {entry.title}")
         print(f"   Target Group ID: {entry.target_group_id}")
@@ -50,7 +50,7 @@ def check_knowledge_entry(entry_id: str) -> None:
         ).first()
         
         if chunk:
-            print(f"✅ DocumentChunk gefunden:")
+            print("✅ DocumentChunk gefunden:")
             print(f"   Chunk ID: {chunk.id}")
             print(f"   Document ID: {chunk.document_id}")
             print(f"   Content Preview: {chunk.content[:100]}...")
@@ -63,13 +63,13 @@ def check_knowledge_entry(entry_id: str) -> None:
             ).first()
             
             if source:
-                print(f"✅ TargetGroupSource gefunden:")
+                print("✅ TargetGroupSource gefunden:")
                 print(f"   Source ID: {source.id}")
                 print(f"   Relevance Score: {source.relevance_score}")
                 print(f"   Rationale: {source.rationale}")
                 print()
             else:
-                print(f"❌ TargetGroupSource fehlt!")
+                print("❌ TargetGroupSource fehlt!")
                 print()
             
             # Check Qdrant
@@ -82,7 +82,7 @@ def check_knowledge_entry(entry_id: str) -> None:
                 )
                 if points and len(points) > 0:
                     payload = points[0].payload or {}
-                    print(f"✅ Qdrant Vector gefunden:")
+                    print("✅ Qdrant Vector gefunden:")
                     print(f"   Point ID: {points[0].id}")
                     print(f"   Source: {payload.get('source')}")
                     print(f"   Knowledge Entry ID: {payload.get('knowledge_entry_id')}")
@@ -91,12 +91,12 @@ def check_knowledge_entry(entry_id: str) -> None:
                     print()
                     print("🎉 Alle Checks erfolgreich - Knowledge-Eintrag wurde korrekt ingested!")
                 else:
-                    print(f"❌ Qdrant Vector fehlt!")
+                    print("❌ Qdrant Vector fehlt!")
             except Exception as e:
                 print(f"❌ Fehler beim Abrufen aus Qdrant: {e}")
                 print()
         else:
-            print(f"❌ DocumentChunk fehlt - Ingestion wurde nicht ausgeführt!")
+            print("❌ DocumentChunk fehlt - Ingestion wurde nicht ausgeführt!")
             print(f"   💡 Tipp: Versuche manuell: KnowledgeIngestionService().ingest_knowledge_entry({entry.id})")
 
 if __name__ == "__main__":
@@ -107,7 +107,7 @@ if __name__ == "__main__":
                 TargetGroupKnowledgeEntry.created_at.desc()
             ).limit(5).all()
             if entries:
-                print(f"Letzte 5 Knowledge-Einträge:")
+                print("Letzte 5 Knowledge-Einträge:")
                 for entry in entries:
                     print(f"\n{'='*60}")
                     check_knowledge_entry(str(entry.id))

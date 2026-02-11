@@ -58,7 +58,7 @@ export function FieldEditor({
       <MsqdxCheckboxField
         label={field.label}
         options={[{ value: 'on', label: 'Yes' }]}
-        value={Boolean(value) ? ['on'] : []}
+        value={value ? ['on'] : []}
         onChange={(v) => onChange(field.key, v.includes('on'))}
       />
     );

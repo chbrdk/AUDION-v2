@@ -23,7 +23,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.models import Base, TargetGroup, TargetGroupKnowledgeEntry
-from app.schemas import TargetGroupCreateRequest, TargetGroupKnowledgeUpsertRequest
+from app.schemas import TargetGroupCreateRequest
 from app.services.target_group_store import TargetGroupService
 
 

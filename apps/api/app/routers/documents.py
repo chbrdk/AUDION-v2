@@ -4,7 +4,6 @@ from pathlib import Path
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, File, Query, UploadFile
-from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from msqdx_glass_proto import UploadJobStatus
 

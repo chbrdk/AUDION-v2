@@ -1,19 +1,15 @@
 from __future__ import annotations
 
-import tempfile
 from base64 import b64decode
 from datetime import datetime
-from io import BytesIO
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Dict, List
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
-from fastapi import Request
+from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import RedirectResponse, Response, StreamingResponse
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
-import json
 
 from ..db import get_session
 from ..models import Document, DocumentChunk, Persona, PersonaKnowledgeEntry, ProcessingJob, TargetGroup, User
@@ -465,7 +461,6 @@ def create_persona(payload: PersonaCreateRequest, session: Session = Depends(get
     """
 )
 def generate_persona(payload: PersonaGenerateRequest, session: Session = Depends(get_db)) -> PersonaResponse:
-    from uuid import uuid4
     
     allowed_project_ids = session.info.get("allowed_project_ids") if session.info else None
     if allowed_project_ids is not None:
@@ -611,7 +606,6 @@ async def update_persona(
     """
     Update persona with direct JSON access to avoid Pydantic None filtering issues.
     """
-    import sys
     import structlog
     from msqdx_glass_proto.personas import PersonaPrompt
     logger = structlog.get_logger(__name__)

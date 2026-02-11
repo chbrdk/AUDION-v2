@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
 from typing import List
 from uuid import UUID, uuid4
 
@@ -24,7 +23,6 @@ from ..schemas import (
     TargetGroupResponse,
     TargetGroupUpdateRequest,
     KnowledgeChunk,
-    KnowledgeCluster,
     ClusterResult,
     SimilarChunk,
 )
@@ -858,9 +856,7 @@ async def upload_target_group_document(
     from ..core.config import get_settings
     from ..services.storion_client import storion_client
     from ..services.storion_sync import storion_sync_service
-    from ..db import get_session
     import structlog
-    import asyncio
     
     logger = structlog.get_logger(__name__)
     settings = get_settings()

@@ -25,7 +25,6 @@ from ..models import (
     PersonaPrompt as PersonaPromptModel,
     PersonaSource,
     PersonaStatus,
-    TargetGroupKnowledgeEntry,
 )
 from ..schemas import (
     PersonaCreateRequest,
@@ -287,6 +286,7 @@ class PersonaService:
         return response
 
     def update_persona(self, session: Session, persona_id: str, payload: PersonaPatchRequest, profile_json: dict | None = None) -> PersonaResponse:
+        from typing import Any, Dict, List
         from .generic_field_handler import GenericFieldHandler
         from .field_config import get_preserved_fields
         
@@ -307,7 +307,6 @@ class PersonaService:
         # Handle profile update - use raw JSON if available, otherwise Pydantic model
         if profile_json is not None:
             # DIRECT JSON APPROACH: Use raw JSON dict directly - no Pydantic filtering!
-            import sys
             from copy import deepcopy
             from sqlalchemy.orm.attributes import flag_modified
             

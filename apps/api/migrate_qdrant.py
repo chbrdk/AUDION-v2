@@ -21,7 +21,7 @@ if __name__ == "__main__":
     
     try:
         result = service.migrate_existing_points()
-        print(f"\n✅ Migration completed!")
+        print("\n✅ Migration completed!")
         print(f"   Total points: {result['total_points']}")
         print(f"   Updated: {result['updated']}")
         print(f"   Skipped: {result['skipped']}")

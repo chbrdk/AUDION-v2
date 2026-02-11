@@ -12,7 +12,6 @@ from ..core.config import get_settings
 from ..db import get_session
 from ..models import Journey, JourneyPhase, JourneyPhaseElement
 from ..schemas import AiAssistRequest
-from ..schemas.journey import JourneyResponse, PhaseResponse
 from ..services.ai_assist import AiAssistService, PromptTemplateRegistry
 from ..services.persona_store import PersonaService
 from ..services.target_group_store import TargetGroupService

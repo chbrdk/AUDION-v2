@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import List, Dict, Any
+from typing import Dict, Any
 from uuid import UUID
 from datetime import datetime
 

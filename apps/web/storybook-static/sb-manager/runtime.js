@@ -3687,7 +3687,7 @@ var $a86207c5d7f7e1fb$var$LandmarkManager = class {
     let start = 0, end = this.landmarks.length - 1;
     for (; start <= end; ) {
       let mid = Math.floor((start + end) / 2), comparedPosition = newLandmark.ref.current.compareDocumentPosition(this.landmarks[mid].ref.current);
-      !!(comparedPosition & Node.DOCUMENT_POSITION_PRECEDING || comparedPosition & Node.DOCUMENT_POSITION_CONTAINS) ? start = mid + 1 : end = mid - 1;
+      comparedPosition & Node.DOCUMENT_POSITION_PRECEDING || comparedPosition & Node.DOCUMENT_POSITION_CONTAINS ? start = mid + 1 : end = mid - 1;
     }
     this.landmarks.splice(start, 0, newLandmark), this.checkLabels(newLandmark.role);
   }

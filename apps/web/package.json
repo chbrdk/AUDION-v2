@@ -13,27 +13,31 @@
   "dependencies": {
     "@emotion/react": "11.14.0",
     "@emotion/styled": "11.14.1",
-    "@mui/material": "7.3.5",
-    "@mui/material-nextjs": "7.3.5",
     "@msqdx-glass/types": "file:../../packages/types",
     "@msqdx/react": "file:../../../msqdx-design-system/packages/react",
     "@msqdx/tokens": "file:../../../msqdx-design-system/packages/tokens",
+    "@mui/material": "7.3.5",
+    "@mui/material-nextjs": "7.3.5",
     "@tanstack/react-query": "5.90.10",
     "ai": "5.0.93",
     "clsx": "2.1.1",
     "d3": "^7.8.5",
-    "next": "^16.0.7",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "zod": "4.1.12"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.3",
+    "@eslint/js": "^9.39.1",
     "@next/bundle-analyzer": "^16.0.7",
     "@types/d3": "^7.4.3",
     "@types/node": "22.10.2",
     "@types/react": "19.0.7",
     "@types/react-dom": "19.0.2",
+    "eslint": "^9.39.1",
     "eslint-config-next": "15.1.6",
+    "globals": "^16.5.0",
+    "next": "^16.1.6",
     "typescript": "5.9.3"
   }
 }

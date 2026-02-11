@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 import { ThemeRegistrySSRSafe } from "./theme-registry-ssr-safe";
 
 export function ThemeRegistryNoSSR({ children }: { children: ReactNode }) {

@@ -231,7 +231,7 @@ def analyze_insights_task(
 @celery_app.task(name="journey.sync_all_active")
 def sync_all_active_journeys() -> dict:
     """Sync measurements for all active journeys."""
-    from datetime import date, datetime, timedelta
+    from datetime import datetime, timedelta
     
     from ..db import get_session
     from ..models import Journey, JourneyStatus
@@ -242,7 +242,7 @@ def sync_all_active_journeys() -> dict:
             active_journeys = (
                 session.query(Journey)
                 .filter(Journey.status == JourneyStatus.active)
-                .filter(Journey.tracking_enabled == True)
+                .filter(Journey.tracking_enabled)
                 .all()
             )
             
@@ -289,7 +289,7 @@ def analyze_all_insights() -> dict:
             active_journeys = session.scalars(
                 select(Journey)
                 .where(Journey.status == JourneyStatus.active)
-                .where(Journey.tracking_enabled == True)
+                .where(Journey.tracking_enabled)
             ).all()
             
             results = []

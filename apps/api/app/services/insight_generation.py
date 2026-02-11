@@ -11,7 +11,6 @@ from sqlalchemy import select
 from ..core.config import get_settings
 from ..db import get_session
 from ..models import Journey, JourneyInsight, JourneyMeasurement
-from ..schemas.journey import InsightResponse
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()

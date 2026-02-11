@@ -9,8 +9,6 @@ from contextlib import contextmanager
 from sqlalchemy import create_engine as sqlalchemy_create_engine, event
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 import logging
-import os
-import re
 
 from .core.config import get_settings
 
@@ -43,7 +41,7 @@ def create_engine(url, *args, **kwargs):
         url = url.replace("postgres://", "postgresql+psycopg://", 1)
         logger.critical(f"create_engine wrapper: Converted to: {url.split('@')[0] if '@' in url else url[:50]}@***")
     elif url.startswith("postgresql://") and "+psycopg" not in url:
-        logger.info(f"create_engine wrapper: Converting postgresql:// to postgresql+psycopg://")
+        logger.info("create_engine wrapper: Converting postgresql:// to postgresql+psycopg://")
         url = url.replace("postgresql://", "postgresql+psycopg://", 1)
     
     # Final safety check - this should NEVER happen after conversion
@@ -131,7 +129,7 @@ if database_url.startswith("postgres://"):
 # Use connect_args to set search_path at connection time (for psycopg)
 # CRITICAL: Final check before create_engine - if URL still starts with postgres://, something is very wrong
 if database_url.startswith("postgres://"):
-    logger.critical(f"FATAL ERROR: Database URL still starts with 'postgres://' right before create_engine!")
+    logger.critical("FATAL ERROR: Database URL still starts with 'postgres://' right before create_engine!")
     logger.critical(f"URL value: {database_url.split('@')[0] if '@' in database_url else database_url[:100]}@***")
     logger.critical("This should NEVER happen if normalization worked correctly!")
     # Force one more normalization attempt

@@ -1,7 +1,6 @@
 """UNION Request Logging Middleware for AUDION"""
 import time
 import logging
-import asyncio
 from typing import Callable
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware

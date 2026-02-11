@@ -6,7 +6,6 @@ from __future__ import annotations
 
 from typing import Optional
 
-import pytest
 from pydantic import BaseModel
 
 from app.services.field_config import get_preserved_fields

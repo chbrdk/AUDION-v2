@@ -15,7 +15,7 @@ os.environ.setdefault("NEO4J_PASSWORD", "test")
 os.environ.setdefault("CLAUDE_API_KEY", "test-key")
 
 from app.main import app
-from app.models import Base, Journey, JourneyPhase, TargetGroup
+from app.models import Base
 from app.db import engine
 
 # Create test database

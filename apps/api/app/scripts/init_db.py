@@ -7,9 +7,8 @@ import sys
 from sqlalchemy import text
 from alembic.config import Config
 from alembic import command
-from app.db import engine, Base, SessionLocal
+from app.db import engine, Base
 # CRITICAL: Must import models for Base.metadata.create_all to work!
-from app import models 
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

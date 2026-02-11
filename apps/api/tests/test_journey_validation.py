@@ -14,8 +14,7 @@ os.environ.setdefault("NEO4J_PASSWORD", "test")
 os.environ.setdefault("CLAUDE_API_KEY", "test-key")
 
 from app.services.journey_validation import JourneyValidationService
-from app.models import Journey, JourneyPhase, JourneyPhaseElement, Persona
-from app.db import get_session
+from app.models import JourneyPhase
 from msqdx_glass_proto import PersonaProfile
 
 
@@ -29,7 +28,6 @@ async def test_validation_service_initialization():
 
 def test_calculate_fit_score():
     """Test fit score calculation."""
-    from app.models import JourneyPhase
     
     service = JourneyValidationService()
     
@@ -61,7 +59,6 @@ def test_calculate_fit_score():
 
 def test_identify_friction_points():
     """Test friction point identification."""
-    from app.models import JourneyPhase
     
     service = JourneyValidationService()
     
@@ -93,7 +90,6 @@ def test_identify_friction_points():
 
 def test_generate_recommendations():
     """Test recommendation generation."""
-    from app.models import JourneyPhase
     
     service = JourneyValidationService()
     

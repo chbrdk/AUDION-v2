@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
-from typing import Any
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import func, or_, select
@@ -11,7 +10,6 @@ from ..celery_app import celery_app
 from ..models import Document, Persona, ProcessingJob, TargetGroup
 from ..schemas import (
     CeleryTaskStatus,
-    LogEntry,
     LogListResponse,
     ProcessingJobDetailResponse,
     ProcessingJobListItem,

@@ -4,13 +4,12 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from uuid import UUID
 
 import structlog
 
 from sqlalchemy import select, text
 
-from app.db import get_session, engine
+from app.db import get_session
 from app.models import ProcessingJob, Document
 from app.services.ingestion import IngestionService
 from app.services.celery_health import check_worker_available
