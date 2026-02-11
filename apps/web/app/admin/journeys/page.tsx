@@ -16,10 +16,6 @@ export default function JourneysListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadJourneys();
-  }, [activeProjectId, loadJourneys]);
-
   const loadJourneys = useCallback(async () => {
     try {
       setLoading(true);
@@ -37,6 +33,12 @@ export default function JourneysListPage() {
       setLoading(false);
     }
   }, [activeProjectId, t]);
+
+  useEffect(() => {
+    loadJourneys();
+  }, [activeProjectId, loadJourneys]);
+
+
 
   if (loading) {
     return (

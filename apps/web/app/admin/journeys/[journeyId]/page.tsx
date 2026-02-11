@@ -142,12 +142,6 @@ export default function JourneyEditorPage() {
       return next;
     });
 
-  useEffect(() => {
-    if (journeyId) {
-      loadJourney();
-    }
-  }, [journeyId, loadJourney]);
-
   const loadJourney = useCallback(async () => {
     try {
       setLoading(true);
@@ -160,6 +154,14 @@ export default function JourneyEditorPage() {
       setLoading(false);
     }
   }, [journeyId, t]);
+
+  useEffect(() => {
+    if (journeyId) {
+      loadJourney();
+    }
+  }, [journeyId, loadJourney]);
+
+
 
   const handleFieldSave = async (updates: Partial<JourneyResponse>) => {
     if (!journeyId || !journey) {

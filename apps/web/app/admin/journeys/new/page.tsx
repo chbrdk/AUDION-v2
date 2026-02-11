@@ -37,10 +37,6 @@ export default function NewJourneyPage() {
     target_group_id: "",
   });
 
-  useEffect(() => {
-    loadTargetGroups();
-  }, [activeProjectId, loadTargetGroups]);
-
   const loadTargetGroups = useCallback(async () => {
     try {
       setLoadingTargetGroups(true);
@@ -58,6 +54,12 @@ export default function NewJourneyPage() {
       setLoadingTargetGroups(false);
     }
   }, [activeProjectId, t]);
+
+  useEffect(() => {
+    loadTargetGroups();
+  }, [activeProjectId, loadTargetGroups]);
+
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

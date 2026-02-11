@@ -54,24 +54,6 @@ export default function SettingsPromptsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    const loadAll = async () => {
-      if (!activeProjectId) {
-        setTemplates([]);
-        setPersonaPrompts([]);
-        setLoading(false);
-        return;
-      }
-      setLoading(true);
-      try {
-        await Promise.all([loadTemplates(activeProjectId), loadPersonaPrompts()]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadAll();
-  }, [activeProjectId, loadTemplates, loadPersonaPrompts]);
-
   const loadTemplates = useCallback(async (projectId: string) => {
     try {
       const data = await aiAssistApi.listTemplates(projectId);
@@ -90,6 +72,28 @@ export default function SettingsPromptsPage() {
       // Don't set error for persona prompts, just log it
     }
   }, []);
+
+  useEffect(() => {
+    const loadAll = async () => {
+      if (!activeProjectId) {
+        setTemplates([]);
+        setPersonaPrompts([]);
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      try {
+        await Promise.all([loadTemplates(activeProjectId), loadPersonaPrompts()]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadAll();
+  }, [activeProjectId, loadTemplates, loadPersonaPrompts]);
+
+
+
+
 
   const startEditing = async (templateId: string) => {
     try {
