@@ -4,13 +4,57 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useMemo, useState, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { alpha, Avatar, Box, Button, CircularProgress, IconButton, Stack, TextField, Typography, useTheme } from "@mui/material";
+import {
+  alpha,
+  Avatar,
+  Box,
+  Button,
+  Chip,
+  CircularProgress,
+  Divider,
+  Drawer,
+  IconButton,
+  Stack,
+  Typography,
+  useTheme,
+} from "@mui/material";
 import { MsqdxGlassChatPanel } from "../../components/msqdx-glass-chat-panel";
-import { MsqdxIcon } from "@msqdx/react";
+import { MsqdxIcon, MsqdxInput } from "@msqdx/react";
+import { INPUT_ACCENT_SX_WITH_FALLBACK } from "../../lib/theme-accent";
 import { getChatApiBase, buildApiUrl } from "../../app/api/_lib/backend";
 import { useProject } from "../../components/projects/project-provider";
 import { buildAdaptiveSystemPrompt } from "../../lib/adaptive-prompt";
 import { loadLearningsFromLocalStorage } from "../../lib/conversation-learnings";
+
+/** Compatible with admin chat persona profile card (drawer details). */
+type PersonaProfileCard = {
+  display_name?: string | null;
+  headline?: string | null;
+  archetype?: string | null;
+  tone?: string | null;
+  age_range?: string | null;
+  location?: string | null;
+  tagline?: string | null;
+  key_facts?: string[] | null;
+  goals?: string[] | null;
+  frustrations?: string[] | null;
+  preferred_channels?: string[] | null;
+  call_to_action?: string | null;
+};
+
+/** Compatible with admin chat persona profile (drawer details). */
+type PersonaProfile = {
+  name?: string | null;
+  fullName?: string | null;
+  headline?: string | null;
+  bio?: string | null;
+  age?: number | null;
+  location?: string | null;
+  interests?: string[];
+  values?: string[];
+  goals?: Array<{ label?: string; priority?: number }>;
+  painPoints?: Array<{ label?: string }>;
+};
 
 type PersonaSummary = {
   id: string;
@@ -18,8 +62,8 @@ type PersonaSummary = {
   segment?: string;
   headline?: string;
   image_url?: string | null;
-  profile?: { fullName?: string; headline?: string; name?: string } | null;
-  profileCard?: { display_name?: string } | null;
+  profile?: PersonaProfile | Record<string, unknown> | null;
+  profileCard?: PersonaProfileCard | { display_name?: string } | null;
   systemPrompt?: string | null;
 };
 
@@ -43,6 +87,7 @@ function ChatSharePageContent() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [personaDrawerOpen, setPersonaDrawerOpen] = useState(false);
   const typingBuffersRef = useRef<Record<string, string>>({});
   const typingTimersRef = useRef<Record<string, ReturnType<typeof setTimeout> | null>>({});
 
@@ -54,6 +99,46 @@ function ChatSharePageContent() {
     profile?.name ??
     persona?.name;
   const personaDisplayName = typeof rawDisplayName === "string" ? rawDisplayName : "Persona";
+
+  const personaProfileCard = persona?.profileCard as PersonaProfileCard | undefined;
+  const personaProfile = persona?.profile as PersonaProfile | undefined;
+  const personaChipData = useMemo(
+    () =>
+      [
+        { icon: "category", label: personaProfileCard?.archetype ?? persona?.segment },
+        { icon: "graphic_eq", label: personaProfileCard?.tone },
+        { icon: "schedule", label: personaProfileCard?.age_range },
+        { icon: "location_on", label: personaProfileCard?.location },
+      ].filter((chip) => chip.label),
+    [personaProfileCard, persona]
+  );
+  const personaKeyFacts = useMemo(() => {
+    const facts = personaProfileCard?.key_facts?.filter(Boolean) ?? [];
+    if (!facts.length && persona) {
+      if (persona.segment) facts.push(`Represents ${persona.segment}`);
+      if (persona.headline) facts.push(persona.headline);
+    }
+    return facts;
+  }, [personaProfileCard, persona]);
+  const personaGoals = useMemo(() => {
+    const cardGoals = personaProfileCard?.goals?.filter(Boolean) ?? [];
+    if (cardGoals.length > 0) return cardGoals;
+    const profileGoals =
+      personaProfile?.goals?.map((g) => (typeof g === "string" ? g : g?.label ?? "")).filter(Boolean) ?? [];
+    return profileGoals;
+  }, [personaProfileCard, personaProfile]);
+  const personaFrustrations = useMemo(() => {
+    const cardFrustrations = personaProfileCard?.frustrations?.filter(Boolean) ?? [];
+    if (cardFrustrations.length > 0) return cardFrustrations;
+    const profilePainPoints =
+      personaProfile?.painPoints?.map((pp) => (typeof pp === "string" ? pp : pp?.label ?? "")).filter(Boolean) ?? [];
+    return profilePainPoints;
+  }, [personaProfileCard, personaProfile]);
+  const personaPrimaryTagline = personaProfileCard?.tagline ?? persona?.headline ?? "";
+  const personaAge = personaProfile?.age;
+  const personaLocation = personaProfile?.location;
+  const personaInterests = personaProfile?.interests ?? [];
+  const personaValues = personaProfile?.values ?? [];
 
   // Set project from URL
   useEffect(() => {
@@ -341,7 +426,7 @@ function ChatSharePageContent() {
         </Box>
       )}
 
-      {/* Persona header – MSQDX tokens */}
+      {/* Persona header – same as admin chat: button opens drawer with details */}
       <Box
         sx={{
           flexShrink: 0,
@@ -353,14 +438,32 @@ function ChatSharePageContent() {
           borderBottom: "1px solid var(--color-neutral)",
         }}
       >
-        <Avatar src={persona?.image_url ?? undefined} alt={persona?.name ?? ""} sx={{ width: 36, height: 36 }}>
-          {(persona?.name ?? "").charAt(0)}
-        </Avatar>
-        <Box textAlign="left">
-          <Typography variant="body2" sx={{ fontWeight: 500, lineHeight: 1 }}>
-            {personaDisplayName}
-          </Typography>
-        </Box>
+        <Button
+          variant="text"
+          onClick={() => setPersonaDrawerOpen(true)}
+          sx={{
+            textTransform: "none",
+            display: "flex",
+            alignItems: "center",
+            gap: 1.5,
+            padding: "0.5rem 1rem",
+            borderRadius: "8px",
+            "&:hover": { backgroundColor: alpha(theme.palette.text.primary, 0.08) },
+          }}
+        >
+          <Avatar src={persona?.image_url ?? undefined} alt={persona?.name ?? ""} sx={{ width: 36, height: 36 }}>
+            {(persona?.name ?? "").charAt(0)}
+          </Avatar>
+          <Box textAlign="left">
+            <Typography variant="body2" sx={{ fontWeight: 500, lineHeight: 1 }}>
+              {personaDisplayName}
+            </Typography>
+            <Typography variant="caption" sx={{ color: alpha(theme.palette.text.primary, 0.7) }}>
+              View persona profile
+            </Typography>
+          </Box>
+          <MsqdxIcon name="chevron_right" customSize={20} />
+        </Button>
       </Box>
 
       {/* Messages – same padding/structure as admin chat */}
@@ -403,16 +506,17 @@ function ChatSharePageContent() {
             mx: "auto",
           }}
         >
-          <TextField
+          <MsqdxInput
             fullWidth
-            variant="outlined"
             placeholder="Ask the persona anything…"
             value={input}
             disabled={sending}
             onChange={(e) => setInput(e.target.value)}
             size="small"
             sx={{
-              "& .MuiOutlinedInput-root": {
+              ...INPUT_ACCENT_SX_WITH_FALLBACK,
+              "& .msqdx-input-wrapper": {
+                ...INPUT_ACCENT_SX_WITH_FALLBACK["& .msqdx-input-wrapper"],
                 borderRadius: 999,
                 backgroundColor: alpha(theme.palette.text.primary, 0.08),
               },
@@ -433,6 +537,193 @@ function ChatSharePageContent() {
           </IconButton>
         </Box>
       </Box>
+
+      {/* Persona Drawer – same as admin chat (no "Change persona" on share) */}
+      <Drawer
+        anchor="right"
+        open={personaDrawerOpen}
+        onClose={() => {
+          const activeElement = document.activeElement as HTMLElement;
+          if (activeElement?.closest('[role="presentation"]')) activeElement.blur();
+          setPersonaDrawerOpen(false);
+        }}
+        PaperProps={{
+          sx: {
+            width: { xs: "100%", sm: 640 },
+            backgroundColor: alpha(theme.palette.background.paper, theme.palette.mode === "dark" ? 0.98 : 1),
+            borderLeft: "1px solid var(--color-neutral)",
+            borderTopLeftRadius: 32,
+            borderBottomLeftRadius: 32,
+          },
+        }}
+      >
+        <Box
+          sx={{
+            p: 3,
+            height: "100%",
+            display: "flex",
+            flexDirection: "column",
+            gap: 3,
+            backgroundColor: "var(--color-neutral)",
+            color: theme.palette.text.primary,
+          }}
+        >
+          <Stack direction="row" alignItems="center" justifyContent="space-between">
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              Persona overview
+            </Typography>
+            <IconButton size="small" onClick={() => setPersonaDrawerOpen(false)}>
+              <MsqdxIcon name="close" customSize={20} />
+            </IconButton>
+          </Stack>
+          <Stack spacing={1.5} alignItems="center">
+            <Avatar
+              src={persona?.image_url ?? undefined}
+              alt={personaDisplayName}
+              sx={{ width: 88, height: 88 }}
+            >
+              {(personaDisplayName ?? "").charAt(0)}
+            </Avatar>
+            <Box textAlign="center">
+              <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                {personaDisplayName}
+              </Typography>
+              <Typography variant="body2" sx={{ color: alpha(theme.palette.text.primary, 0.7) }}>
+                {personaPrimaryTagline}
+              </Typography>
+            </Box>
+            <Stack direction="row" spacing={1} flexWrap="wrap" justifyContent="center">
+              {personaChipData.map((chip) => (
+                <Chip
+                  key={`${chip.icon}-${chip.label}`}
+                  icon={<MsqdxIcon name={chip.icon as any} customSize={16} />}
+                  label={chip.label}
+                  size="small"
+                  sx={{ borderRadius: 999 }}
+                />
+              ))}
+            </Stack>
+          </Stack>
+          <Divider />
+          <Stack spacing={2.5} sx={{ flex: 1, overflowY: "auto", pr: 0.5 }}>
+            <Stack spacing={1}>
+              <Typography variant="subtitle2" sx={{ textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: 1 }}>
+                Demographics
+              </Typography>
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: { xs: "repeat(auto-fit, minmax(140px, 1fr))", sm: "repeat(3, minmax(140px, 1fr))" },
+                  gap: 1.5,
+                }}
+              >
+                {[
+                  { label: "Full name", value: personaProfile?.fullName ?? personaDisplayName },
+                  { label: "Age", value: personaAge != null ? `${personaAge} Jahre` : undefined },
+                  { label: "Location", value: personaLocation },
+                ].map((item) => (
+                  <Box key={item.label}>
+                    <Typography variant="caption" sx={{ textTransform: "uppercase", letterSpacing: 1 }}>
+                      {item.label}
+                    </Typography>
+                    <Typography variant="body1">{item.value ?? "—"}</Typography>
+                  </Box>
+                ))}
+              </Box>
+            </Stack>
+            {personaKeyFacts.length > 0 && (
+              <Stack spacing={1}>
+                <Typography variant="subtitle2" sx={{ textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: 1 }}>
+                  Key facts
+                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  {personaKeyFacts.map((fact, index) => (
+                    <Chip
+                      key={`fact-${index}`}
+                      label={fact}
+                      size="small"
+                      icon={<MsqdxIcon name="star" customSize={14} />}
+                      sx={{ borderRadius: 999 }}
+                    />
+                  ))}
+                </Stack>
+              </Stack>
+            )}
+            {personaGoals.length > 0 && (
+              <Stack spacing={1}>
+                <Typography variant="subtitle2" sx={{ textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: 1 }}>
+                  Goals
+                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  {personaGoals.map((goal, index) => (
+                    <Chip
+                      key={`goal-${index}`}
+                      label={goal}
+                      size="small"
+                      icon={<MsqdxIcon name="check" customSize={14} />}
+                      sx={{ borderRadius: 999 }}
+                    />
+                  ))}
+                </Stack>
+              </Stack>
+            )}
+            {personaFrustrations.length > 0 && (
+              <Stack spacing={1}>
+                <Typography variant="subtitle2" sx={{ textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: 1 }}>
+                  Frustrations
+                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  {personaFrustrations.map((item, index) => (
+                    <Chip
+                      key={`frustration-${index}`}
+                      label={item}
+                      size="small"
+                      icon={<MsqdxIcon name="warning" customSize={14} />}
+                      sx={{ borderRadius: 999 }}
+                    />
+                  ))}
+                </Stack>
+              </Stack>
+            )}
+            {personaInterests.length > 0 && (
+              <Stack spacing={1}>
+                <Typography variant="subtitle2" sx={{ textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: 1 }}>
+                  Interests
+                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  {personaInterests.map((interest, index) => (
+                    <Chip
+                      key={`interest-${index}`}
+                      label={interest}
+                      size="small"
+                      icon={<MsqdxIcon name="favorite" customSize={14} />}
+                      sx={{ borderRadius: 999 }}
+                    />
+                  ))}
+                </Stack>
+              </Stack>
+            )}
+            {personaValues.length > 0 && (
+              <Stack spacing={1}>
+                <Typography variant="subtitle2" sx={{ textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: 1 }}>
+                  Values
+                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  {personaValues.map((value, index) => (
+                    <Chip
+                      key={`value-${index}`}
+                      label={value}
+                      size="small"
+                      icon={<MsqdxIcon name="psychology" customSize={14} />}
+                      sx={{ borderRadius: 999 }}
+                    />
+                  ))}
+                </Stack>
+              </Stack>
+            )}
+          </Stack>
+        </Box>
+      </Drawer>
     </Box>
   );
 }

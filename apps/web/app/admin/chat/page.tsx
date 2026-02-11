@@ -41,7 +41,8 @@ import {
   Badge
 } from "@mui/material";
 import { MsqdxGlassChatPanel } from "../../../components/msqdx-glass-chat-panel";
-import { MsqdxIcon } from "@msqdx/react";
+import { MsqdxIcon, MsqdxInput } from "@msqdx/react";
+import { INPUT_ACCENT_SX } from "../../../lib/theme-accent";
 import { VariablePalette } from "../../../components/prompt-builder/VariablePalette";
 import { type VariableDefinition } from "../../../components/prompt-builder/variableDefinitions";
 import { getChatApiBase, getVoiceApiBase, buildApiUrl } from "../../api/_lib/backend";
@@ -1687,17 +1688,19 @@ function AdminChatPageContent() {
                     <MsqdxIcon name="keyboard_voice" customSize={22} />
                   </IconButton>
                 </Tooltip>
-                <TextField
+                <MsqdxInput
                   fullWidth
-                  variant="outlined"
                   placeholder="Ask the persona anything…"
                   value={input}
                   disabled={!activePersonaId || sending}
                   onChange={(event) => setInput(event.target.value)}
+                  size="small"
                   sx={{
-                    "& .MuiOutlinedInput-root": {
-                      borderRadius: 999
-                    }
+                    ...INPUT_ACCENT_SX,
+                    "& .msqdx-input-wrapper": {
+                      ...INPUT_ACCENT_SX["& .msqdx-input-wrapper"],
+                      borderRadius: 999,
+                    },
                   }}
                 />
                 <Tooltip title="Toggle persona playback">
