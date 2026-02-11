@@ -95,32 +95,40 @@ class PersonaImageService:
                 return None
             
             image_data = response.data[0]
-            image_url = getattr(image_data, 'url', None) or getattr(image_data, 'b64_json', None)
-            
-            if not image_url:
+            image_url = getattr(image_data, "url", None)
+            b64_json = getattr(image_data, "b64_json", None)
+
+            if not image_url and not b64_json:
                 logger.error("persona_image.no_image_in_response", persona_id=profile.id, image_data_attrs=dir(image_data))
                 return None
 
-            # If save_to_storage is True, download and save the image
+            # Get image bytes: from URL (download) or from b64_json (decode)
+            if b64_json:
+                try:
+                    image_bytes = base64.b64decode(b64_json)
+                except Exception as e:
+                    logger.error("persona_image.b64_decode_failed", error=str(e), persona_id=profile.id)
+                    return None
+            else:
+                try:
+                    image_response = httpx.get(image_url, timeout=30.0)
+                    image_response.raise_for_status()
+                    image_bytes = image_response.content
+                except Exception as e:
+                    logger.error("persona_image.download_failed", error=str(e), persona_id=profile.id)
+                    return None
+
+            # If save_to_storage, build data URL (or future: upload to S3) and return it
             if save_to_storage:
                 try:
-                    # Download image from URL
-                    image_response = httpx.get(image_url, timeout=30.0)
-                    image_bytes = image_response.content
-                    
-                    # Save to local storage or cloud storage
-                    # For now, we'll return a data URL or save to a public directory
-                    # TODO: Implement proper storage (S3, local filesystem, etc.)
                     saved_url = self._save_image(profile.id, image_bytes)
-                    logger.info("persona_image.saved", persona_id=profile.id, url=image_url[:50])
+                    logger.info("persona_image.saved", persona_id=profile.id, url_preview=saved_url[:50] if saved_url else None)
                     return saved_url
                 except Exception as e:
                     logger.error("persona_image.save_failed", error=str(e), persona_id=profile.id)
-                    # Return original URL as fallback
-                    return image_url
+                    return f"data:image/png;base64,{base64.b64encode(image_bytes).decode('utf-8')}" if image_bytes else None
             else:
-                # Return URL directly
-                return image_url
+                return f"data:image/png;base64,{base64.b64encode(image_bytes).decode('utf-8')}" if image_bytes else None
 
         except Exception as e:
             logger.error("persona_image.generation_failed", error=str(e), persona_id=profile.id, exc_info=True)
