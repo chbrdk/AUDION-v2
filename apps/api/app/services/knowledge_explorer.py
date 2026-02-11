@@ -63,7 +63,7 @@ class KnowledgeExplorerService:
             List of chunk dictionaries with metadata and embeddings
         """
         try:
-            tg_uuid = UUID(target_group_id)
+            UUID(target_group_id)
         except ValueError as exc:
             logger.error("knowledge_explorer.invalid_target_group_id", target_group_id=target_group_id)
             raise ValueError("invalid_target_group_id") from exc
@@ -115,7 +115,7 @@ class KnowledgeExplorerService:
             )
 
             # Get document lookup for filenames (from local DB)
-            chunk_ids = [str(point.id) for point in points]
+            # chunk_ids = [str(point.id) for point in points]
             document_ids = set()
             for point in points:
                 payload = point.payload or {}
@@ -128,10 +128,11 @@ class KnowledgeExplorerService:
                     if doc:
                         document_ids.add(doc.id)
 
-            documents = session.scalars(
-                select(Document).where(Document.id.in_(document_ids))
-            ).all() if document_ids else []
-            document_map = {str(doc.id): doc for doc in documents}
+            if document_ids:
+                session.scalars(
+                    select(Document).where(Document.id.in_(document_ids))
+                ).all()
+            # document_map = {str(doc.id): doc for doc in documents}
 
             # Build result from Qdrant points
             result = []

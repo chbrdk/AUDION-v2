@@ -12,10 +12,10 @@ ROOT = Path(__file__).resolve().parents[3]
 if str(ROOT / "app") not in sys.path:
     sys.path.insert(0, str(ROOT / "app"))
 
-from app.db import get_session
-from app.models import DocumentChunk, TargetGroupKnowledgeEntry, TargetGroupSource
-from qdrant_client import QdrantClient
-from app.core.config import get_settings
+from app.db import get_session  # noqa: E402
+from app.models import DocumentChunk, TargetGroupKnowledgeEntry, TargetGroupSource  # noqa: E402
+from qdrant_client import QdrantClient  # noqa: E402
+from app.core.config import get_settings  # noqa: E402
 
 def check_knowledge_entry(entry_id: str) -> None:
     """Check if knowledge entry was ingested correctly."""

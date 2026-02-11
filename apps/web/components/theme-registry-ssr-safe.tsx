@@ -16,7 +16,7 @@ interface ThemeContextType {
 
 const defaultThemeContext: ThemeContextType = {
   themeMode: "light",
-  toggleTheme: () => {}
+  toggleTheme: () => { }
 };
 
 const ThemeContext = createContext<ThemeContextType>(defaultThemeContext);
@@ -80,22 +80,9 @@ const darkTheme = createTheme({
 export const ThemeRegistrySSRSafe = ({ children }: { children: ReactNode }) => {
   // #region agent log
   // Hooks must be called unconditionally (Rules of Hooks)
-  // But we check for browser context and return early to avoid useContext errors
   const [themeMode, setThemeMode] = useState<ThemeMode>("light");
   const [mounted, setMounted] = useState(false);
   const isBrowser = typeof window !== 'undefined';
-  
-  // During SSR/prerendering, we cannot use MUI ThemeProvider because it uses useContext
-  // MUI components require a ThemeContext from MUI ThemeProvider, not our custom one
-  // The solution is to provide MUI ThemeProvider but wrap it to handle SSR errors
-  // However, MUI ThemeProvider itself uses useContext, so we need to skip it during SSR
-  if (!isBrowser) {
-    // During SSR, skip MUI ThemeProvider entirely
-    // MUI components will fail, but that's expected during prerendering
-    // We return plain children to avoid any useContext errors
-    return <>{children}</>;
-  }
-  // #endregion
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("audion-theme-mode") as ThemeMode | null;
@@ -125,6 +112,11 @@ export const ThemeRegistrySSRSafe = ({ children }: { children: ReactNode }) => {
   // Provide MUI ThemeProvider only in browser
   // During SSR, we already returned early, so this code only runs in browser
   // AppRouterCacheProvider might use useContext, so we skip it during SSR
+
+  if (!mounted) {
+    return <>{children}</>;
+  }
+
   return (
     <ThemeContext.Provider value={{ themeMode, toggleTheme }}>
       {isBrowser ? (

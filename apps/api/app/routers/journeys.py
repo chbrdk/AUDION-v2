@@ -58,8 +58,8 @@ def _get_journey_or_404(
 ) -> Journey:
     try:
         journey_uuid = UUID(journey_id)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail="Invalid journey id") from exc
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid journey id")
     journey = session.get(Journey, journey_uuid)
     if allowed_project_ids is None:
         allowed_project_ids = session.info.get("allowed_project_ids") if session.info else None
@@ -79,11 +79,11 @@ def _get_journey_or_404(
 def _get_phase_or_404(session: Session, phase_id: str) -> JourneyPhase:
     try:
         phase_uuid = UUID(phase_id)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail="Invalid phase id") from exc
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid phase id")
     phase = session.get(JourneyPhase, phase_uuid)
     if not phase:
-        raise HTTPException(status_code=404, detail="Phase not found") from exc
+        raise HTTPException(status_code=404, detail="Phase not found")
     return phase
 
 
@@ -165,15 +165,15 @@ async def generate_journey(
         try:
             target_group_uuid = UUID(payload.target_group_id)
             organization_uuid = UUID(payload.organization_id)
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=f"Invalid UUID format: {exc}") from exc
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid UUID format")
         
         project_uuid = None
         if payload.project_id:
             try:
                 project_uuid = UUID(payload.project_id)
-            except ValueError as exc:
-                raise HTTPException(status_code=400, detail=f"Invalid project_id format: {payload.project_id}") from exc
+            except ValueError:
+                raise HTTPException(status_code=400, detail=f"Invalid project_id format: {payload.project_id}")
             if allowed_project_ids is not None and project_uuid not in allowed_project_ids:
                 raise HTTPException(status_code=403, detail="Project access denied")
 
@@ -234,7 +234,7 @@ async def generate_journey(
         raise
     except Exception as exc:
         logger.error("journey.generate.failed", error=str(exc), exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to generate journey: {str(exc)}") from exc
+        raise HTTPException(status_code=500, detail=f"Failed to generate journey: {str(exc)}")
 
 
 @router.post(
@@ -254,15 +254,15 @@ def create_journey(
             raise HTTPException(status_code=400, detail="organization_id is required")
         try:
             organization_uuid = UUID(payload.organization_id)
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=f"Invalid organization_id format: {payload.organization_id}") from exc
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid organization_id format: {payload.organization_id}")
         
         project_uuid = None
         if payload.project_id:
             try:
                 project_uuid = UUID(payload.project_id)
-            except ValueError as exc:
-                raise HTTPException(status_code=400, detail=f"Invalid project_id format: {payload.project_id}") from exc
+            except ValueError:
+                raise HTTPException(status_code=400, detail=f"Invalid project_id format: {payload.project_id}")
             if allowed_project_ids is not None and project_uuid not in allowed_project_ids:
                 raise HTTPException(status_code=403, detail="Project access denied")
         
@@ -270,8 +270,8 @@ def create_journey(
         if payload.target_group_id:
             try:
                 target_group_uuid = UUID(payload.target_group_id)
-            except ValueError as exc:
-                raise HTTPException(status_code=400, detail=f"Invalid target_group_id format: {payload.target_group_id}") from exc
+            except ValueError:
+                raise HTTPException(status_code=400, detail=f"Invalid target_group_id format: {payload.target_group_id}")
             target_group = session.get(TargetGroup, target_group_uuid)
             if not target_group:
                 raise HTTPException(status_code=404, detail="Target group not found")
@@ -304,7 +304,7 @@ def create_journey(
     except Exception as exc:
         session.rollback()
         logger.error("journey.create.failed", error=str(exc), exc_info=True)
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.get(
@@ -344,7 +344,7 @@ def update_journey(
     except Exception as exc:
         session.rollback()
         logger.error("journey.update.failed", error=str(exc), exc_info=True)
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.delete(
@@ -363,7 +363,7 @@ def delete_journey(
     except Exception as exc:
         session.rollback()
         logger.error("journey.delete.failed", error=str(exc), exc_info=True)
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.get(
@@ -383,8 +383,8 @@ def list_journeys(
     allowed_project_ids = session.info.get("allowed_project_ids") if session.info else None
     try:
         project_uuid = UUID(project_id)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail="Invalid project_id") from exc
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid project_id")
     if allowed_project_ids is not None and project_uuid not in allowed_project_ids:
         raise HTTPException(status_code=403, detail="Project access denied")
 
@@ -454,11 +454,11 @@ async def generate_journey_ai_content(
             suggestions=suggestions,
             raw_output=ai_response.raw_output,
         )
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid input parameter")
     except Exception as exc:  # pragma: no cover - defensive
         logger.error("journey.ai.generate.failed", error=str(exc), exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to generate AI suggestions") from exc
+        raise HTTPException(status_code=500, detail="Failed to generate AI suggestions")
 
 
 # Phase Operations
@@ -496,7 +496,7 @@ def create_phase(
     except Exception as exc:
         session.rollback()
         logger.error("phase.create.failed", error=str(exc), exc_info=True)
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.put(
@@ -530,7 +530,7 @@ def update_phase(
     except Exception as exc:
         session.rollback()
         logger.error("phase.update.failed", error=str(exc), exc_info=True)
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.delete(
@@ -551,7 +551,7 @@ def delete_phase(
     except Exception as exc:
         session.rollback()
         logger.error("phase.delete.failed", error=str(exc), exc_info=True)
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.post(
@@ -573,7 +573,7 @@ def reorder_phases(
     except Exception as exc:
         session.rollback()
         logger.error("phase.reorder.failed", error=str(exc), exc_info=True)
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 # Element Operations
@@ -609,7 +609,7 @@ def create_element(
     except Exception as exc:
         session.rollback()
         logger.error("element.create.failed", error=str(exc), exc_info=True)
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.put(
@@ -628,8 +628,8 @@ def update_element(
     _get_phase_or_404(session, phase_id)
     try:
         element_uuid = UUID(element_id)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail="Invalid element id") from exc
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid element id")
     element = session.get(JourneyPhaseElement, element_uuid)
     if not element:
         raise HTTPException(status_code=404, detail="Element not found")
@@ -647,7 +647,7 @@ def update_element(
     except Exception as exc:
         session.rollback()
         logger.error("element.update.failed", error=str(exc), exc_info=True)
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.delete(
@@ -665,8 +665,8 @@ def delete_element(
     _get_phase_or_404(session, phase_id)
     try:
         element_uuid = UUID(element_id)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail="Invalid element id") from exc
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid element id")
     element = session.get(JourneyPhaseElement, element_uuid)
     if not element:
         raise HTTPException(status_code=404, detail="Element not found")
@@ -676,7 +676,7 @@ def delete_element(
     except Exception as exc:
         session.rollback()
         logger.error("element.delete.failed", error=str(exc), exc_info=True)
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 # Expectation Operations
@@ -717,7 +717,7 @@ def create_expectation(
     except Exception as exc:
         session.rollback()
         logger.error("expectation.create.failed", error=str(exc), exc_info=True)
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.get(
@@ -767,11 +767,11 @@ async def validate_journey(
             mode=payload.mode,
         )
         return report
-    except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Resource not found")
     except Exception as exc:
         logger.error("journey.validate.failed", error=str(exc), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @router.get(
@@ -799,11 +799,11 @@ async def get_validation_report(
             persona_id=persona_uuid,
         )
         return report
-    except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Resource not found")
     except Exception as exc:
         logger.error("journey.validation_report.failed", error=str(exc), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 # Reality Tracking
@@ -823,7 +823,7 @@ def configure_tracking(
     except Exception as exc:
         session.rollback()
         logger.error("tracking.configure.failed", error=str(exc), exc_info=True)
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.post(
@@ -857,11 +857,11 @@ async def sync_measurements(
             period_end=period_end_date,
         )
         return {"status": "ok", "measurements_count": len(measurements)}
-    except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Resource not found")
     except Exception as exc:
         logger.error("journey.sync_measurements.failed", error=str(exc), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @router.get(
@@ -966,8 +966,8 @@ def action_insight(
     
     try:
         insight_uuid = UUID(insight_id)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail="Invalid insight id") from exc
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid insight id")
     
     insight = session.get(JourneyInsight, insight_uuid)
     if not insight:
@@ -977,12 +977,12 @@ def action_insight(
         insight.status = JourneyInsightStatus(status)
         session.commit()
         return {"status": "ok", "insight_id": insight_id, "new_status": status}
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=f"Invalid status: {status}") from exc
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid status: {status}")
     except Exception as exc:
         session.rollback()
         logger.error("insight.action.failed", error=str(exc), exc_info=True)
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 # Change Tracking

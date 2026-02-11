@@ -12,16 +12,26 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
+    {
+        ignores: ["storybook-static/", "node_modules/", ".next/", "out/", "build/"],
+    },
     ...compat.extends("next/core-web-vitals"),
     {
         languageOptions: {
             globals: {
                 ...globals.browser,
                 ...globals.node,
+                React: "readonly",
+                RequestInit: "readonly",
+                HeadersInit: "readonly",
             },
         },
         rules: {
-            "no-unused-vars": "warn",
+            "no-unused-vars": ["warn", {
+                "argsIgnorePattern": "^_",
+                "varsIgnorePattern": "^_",
+                "caughtErrorsIgnorePattern": "^_"
+            }],
             "no-undef": "error"
         }
     }

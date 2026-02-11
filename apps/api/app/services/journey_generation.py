@@ -68,7 +68,7 @@ class JourneyGenerationService:
             
             # 3. Use Retrieval Agent for relevant chunks
             # Get chunks from target group sources
-            chunk_ids = [source.get("chunk_id") for source in target_group_response.sources]
+            # chunk_ids = [source.get("chunk_id") for source in target_group_response.sources]
             
             # Search for journey-related content
             _, hits = self.retrieval_agent.run(

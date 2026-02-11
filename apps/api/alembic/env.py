@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT / "app") not in sys.path:
     sys.path.append(str(ROOT / "app"))
 
-from app.core.config import get_settings
+from app.core.config import get_settings  # noqa: E402
 from app.db import Base, normalize_database_url  # noqa: E402
 
 config = context.config

@@ -15,12 +15,12 @@ ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "app"))
 
 
-import structlog
-from sqlalchemy import select
+import structlog  # noqa: E402
+from sqlalchemy import select  # noqa: E402
 
-from app.db import get_session
-from app.models import DocumentChunk, TargetGroupKnowledgeEntry
-from app.services.knowledge_ingestion import KnowledgeIngestionService
+from app.db import get_session  # noqa: E402
+from app.models import DocumentChunk, TargetGroupKnowledgeEntry  # noqa: E402
+from app.services.knowledge_ingestion import KnowledgeIngestionService  # noqa: E402
 
 logger = structlog.get_logger(__name__)
 

@@ -1379,8 +1379,8 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
                 {activeProject?.name
                   ? t("personaAdmin.projectLabel", { name: activeProject.name })
                   : activeProjectId
-                  ? t("personaAdmin.projectIdLabel", { id: activeProjectId })
-                  : t("personaAdmin.selectProject")}
+                    ? t("personaAdmin.projectIdLabel", { id: activeProjectId })
+                    : t("personaAdmin.selectProject")}
               </MsqdxTypography>
               <MsqdxFormField
                 label={t("personaAdmin.name")}
@@ -1445,6 +1445,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
                   <Box sx={{ display: "flex", gap: 2, alignItems: "flex-start", mb: 2 }}>
                     <div className="msqdx-glass-avatar" style={{ flexShrink: 0 }}>
                       {detail.metadata.avatarUrl ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
                         <img src={safeAvatarSrc(detail.metadata.avatarUrl, detail.metadata.personaId) ?? detail.metadata.avatarUrl} alt={`${detail.profile.name} Avatar`} />
                       ) : (
                         <MsqdxIcon name="person" customSize={32} />
@@ -1460,7 +1461,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
                           await handleSave({ [key]: value } as Partial<EditFormState>);
                           setEditingField(null);
                         };
-                        const handleFieldChange = () => {};
+                        const handleFieldChange = () => { };
                         return (
                           <div>
                             {nameField && (
@@ -1577,85 +1578,85 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
 
               {/* Card: Metadata - full width */}
               <Box sx={{ gridColumn: "1 / -1" }}>
-              <MsqdxDashboardCard
-                id="metadata"
-                title={t("personaAdmin.metadata")}
-                icon="info"
-                iconColor={{ color: THEME_ACCENT.color }}
-                expanded={isAccordionExpanded("metadata")}
-                onToggle={toggleAccordion}
-              >
-                <Box
-                  sx={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
-                    gap: 1.5,
-                    pt: 1,
-                  }}
+                <MsqdxDashboardCard
+                  id="metadata"
+                  title={t("personaAdmin.metadata")}
+                  icon="info"
+                  iconColor={{ color: THEME_ACCENT.color }}
+                  expanded={isAccordionExpanded("metadata")}
+                  onToggle={toggleAccordion}
                 >
-                  <Box>
-                    <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
-                      {t("personaAdmin.status")}
-                    </MsqdxTypography>
-                    <MsqdxTypography variant="body2" weight="medium">{detail.metadata.status}</MsqdxTypography>
-                  </Box>
-                  <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
-                    <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
-                      {t("personaAdmin.confidence")}
-                    </MsqdxTypography>
-                    <MsqdxTypography variant="body2" weight="medium">{detail.metadata.confidence.toFixed(2)}</MsqdxTypography>
-                  </Box>
-                  <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
-                    <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
-                      {t("personaAdmin.version")}
-                    </MsqdxTypography>
-                    <MsqdxTypography variant="body2" weight="medium">{detail.metadata.version}</MsqdxTypography>
-                  </Box>
-                  <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
-                    <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
-                      {t("personaAdmin.updated")}
-                    </MsqdxTypography>
-                    <MsqdxTypography variant="body2" weight="medium">{formatDate(detail.metadata.updatedAt)}</MsqdxTypography>
-                  </Box>
-                  <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
-                    <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
-                      {t("personaAdmin.updatedBy")}
-                    </MsqdxTypography>
-                    <MsqdxTypography variant="body2" weight="medium">{detail.metadata.updatedBy ?? "—"}</MsqdxTypography>
-                  </Box>
-                  <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
-                    <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
-                      {t("personaAdmin.lastReview")}
-                    </MsqdxTypography>
-                    <MsqdxTypography variant="body2" weight="medium">{formatDate(detail.metadata.lastReviewedAt)}</MsqdxTypography>
-                  </Box>
-                  {detail.profile.created_at && (
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+                      gap: 1.5,
+                      pt: 1,
+                    }}
+                  >
+                    <Box>
+                      <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
+                        {t("personaAdmin.status")}
+                      </MsqdxTypography>
+                      <MsqdxTypography variant="body2" weight="medium">{detail.metadata.status}</MsqdxTypography>
+                    </Box>
                     <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
                       <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
-                        {t("personaAdmin.createdAt")}
+                        {t("personaAdmin.confidence")}
                       </MsqdxTypography>
-                      <MsqdxTypography variant="body2" weight="medium">{formatDate(detail.profile.created_at)}</MsqdxTypography>
+                      <MsqdxTypography variant="body2" weight="medium">{detail.metadata.confidence.toFixed(2)}</MsqdxTypography>
                     </Box>
-                  )}
-                  {detail.profile.targetGroupId && (
                     <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
                       <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
-                        {t("personaAdmin.targetGroup")}
+                        {t("personaAdmin.version")}
                       </MsqdxTypography>
-                      <MsqdxButton
-                        variant="text"
-                        size="small"
-                        component="a"
-                        href={`/target-groups/admin?selected=${detail.profile.targetGroupId}`}
-                        sx={{ fontSize: "0.875rem", p: "4px 8px" }}
-                        startIcon={<MsqdxIcon name="groups" customSize={14} />}
-                      >
-                        {t("personaAdmin.toTargetGroup")}
-                      </MsqdxButton>
+                      <MsqdxTypography variant="body2" weight="medium">{detail.metadata.version}</MsqdxTypography>
                     </Box>
-                  )}
-                </Box>
-              </MsqdxDashboardCard>
+                    <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
+                      <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
+                        {t("personaAdmin.updated")}
+                      </MsqdxTypography>
+                      <MsqdxTypography variant="body2" weight="medium">{formatDate(detail.metadata.updatedAt)}</MsqdxTypography>
+                    </Box>
+                    <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
+                      <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
+                        {t("personaAdmin.updatedBy")}
+                      </MsqdxTypography>
+                      <MsqdxTypography variant="body2" weight="medium">{detail.metadata.updatedBy ?? "—"}</MsqdxTypography>
+                    </Box>
+                    <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
+                      <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
+                        {t("personaAdmin.lastReview")}
+                      </MsqdxTypography>
+                      <MsqdxTypography variant="body2" weight="medium">{formatDate(detail.metadata.lastReviewedAt)}</MsqdxTypography>
+                    </Box>
+                    {detail.profile.created_at && (
+                      <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
+                        <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
+                          {t("personaAdmin.createdAt")}
+                        </MsqdxTypography>
+                        <MsqdxTypography variant="body2" weight="medium">{formatDate(detail.profile.created_at)}</MsqdxTypography>
+                      </Box>
+                    )}
+                    {detail.profile.targetGroupId && (
+                      <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
+                        <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
+                          {t("personaAdmin.targetGroup")}
+                        </MsqdxTypography>
+                        <MsqdxButton
+                          variant="text"
+                          size="small"
+                          component="a"
+                          href={`/target-groups/admin?selected=${detail.profile.targetGroupId}`}
+                          sx={{ fontSize: "0.875rem", p: "4px 8px" }}
+                          startIcon={<MsqdxIcon name="groups" customSize={14} />}
+                        >
+                          {t("personaAdmin.toTargetGroup")}
+                        </MsqdxButton>
+                      </Box>
+                    )}
+                  </Box>
+                </MsqdxDashboardCard>
               </Box>
 
               {/* Card: Persönlichkeit & Werte - 50% width */}

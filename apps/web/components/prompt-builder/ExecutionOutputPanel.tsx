@@ -86,7 +86,7 @@ export function ExecutionOutputPanel({ testResult, testError, testing, onClear }
             }}
           >
             <MsqdxIcon name="play_arrow" customSize={32} style={{ opacity: 0.3, marginBottom: "0.5rem" }} />
-            <p style={{ margin: 0, fontSize: "0.8125rem" }}>Click "Test Prompt with AI" to see results here</p>
+            <p style={{ margin: 0, fontSize: "0.8125rem" }}>Click &quot;Test Prompt with AI&quot; to see results here</p>
           </div>
         )}
 

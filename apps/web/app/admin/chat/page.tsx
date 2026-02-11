@@ -54,9 +54,9 @@ import { journeysApi, type JourneyResponse } from "../../api/_lib/journeys";
 import { buildAdaptiveSystemPrompt, type ConversationLearning } from "../../../lib/adaptive-prompt";
 import { extractLearnings, mergeLearnings, saveLearningsToLocalStorage, loadLearningsFromLocalStorage } from "../../../lib/conversation-learnings";
 import { getCurrentPhase } from "../../../lib/phase-detection";
-import { 
-  saveConversationToLocalStorage, 
-  loadConversationFromLocalStorage, 
+import {
+  saveConversationToLocalStorage,
+  loadConversationFromLocalStorage,
   generateConversationTitle,
   generateConversationId,
   type Conversation
@@ -154,33 +154,33 @@ const normalizePersonaProfile = (raw: any): PersonaProfile | null => {
   const explicitPainPoints =
     Array.isArray(raw.pain_points) && raw.pain_points.every((item: any) => typeof item === "object")
       ? raw.pain_points.map((pp: any) => ({
-          label: pp?.label ?? "",
-          evidenceCount: typeof pp?.evidence_count === "number" ? pp.evidence_count : undefined
-        }))
+        label: pp?.label ?? "",
+        evidenceCount: typeof pp?.evidence_count === "number" ? pp.evidence_count : undefined
+      }))
       : mapPainPoints;
 
   const mapGoals =
     Array.isArray(raw.goals) && raw.goals.every((item: any) => typeof item === "object")
       ? raw.goals.map((goal: any) => ({
-          label: goal?.label ?? "",
-          priority: typeof goal?.priority === "number" ? goal.priority : undefined
-        }))
+        label: goal?.label ?? "",
+        priority: typeof goal?.priority === "number" ? goal.priority : undefined
+      }))
       : toStringArray(raw.goals).map((label, index) => ({
-          label,
-          priority: index + 1
-        }));
+        label,
+        priority: index + 1
+      }));
 
   const communicationStyleRaw = raw.communication_style ?? {};
   const communicationStyle =
     typeof communicationStyleRaw === "object"
       ? {
-          vocabulary: toStringArray(communicationStyleRaw.vocabulary ?? []),
-          sentenceStructure: communicationStyleRaw.sentence_structure ?? "standard",
-          skepticismLevel:
-            typeof communicationStyleRaw.skepticism_level === "number"
-              ? communicationStyleRaw.skepticism_level
-              : 5
-        }
+        vocabulary: toStringArray(communicationStyleRaw.vocabulary ?? []),
+        sentenceStructure: communicationStyleRaw.sentence_structure ?? "standard",
+        skepticismLevel:
+          typeof communicationStyleRaw.skepticism_level === "number"
+            ? communicationStyleRaw.skepticism_level
+            : 5
+      }
       : undefined;
 
   return {
@@ -298,15 +298,15 @@ function AdminChatPageContent() {
     excerpt: string;
   }>>([]);
   const [showEvidence, setShowEvidence] = useState(false);
-  
+
   // Adaptive Prompt & Learnings State
   const [learnings, setLearnings] = useState<ConversationLearning[]>([]);
-  
+
   // Chat History State
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [conversationTitle, setConversationTitle] = useState<string>("");
   const [currentSystemPrompt, setCurrentSystemPrompt] = useState<string | undefined>(undefined);
-  
+
   // Journey-Phasen-Dialog State
   const [journeyDialogOpen, setJourneyDialogOpen] = useState(false);
   const [journeys, setJourneys] = useState<JourneyResponse[]>([]);
@@ -340,7 +340,7 @@ function AdminChatPageContent() {
     resetTranscript
   } = useSpeechToText();
   const handleTranscriptionCompleteRef = useRef<((text: string) => void) | null>(null);
-  
+
   const {
     recording: whisperRecording,
     transcribing: whisperTranscribing,
@@ -397,7 +397,7 @@ function AdminChatPageContent() {
       return cardGoals;
     }
     // Extract from profile if available
-    const profileGoals = personaProfile?.goals?.map((g) => 
+    const profileGoals = personaProfile?.goals?.map((g) =>
       typeof g === "string" ? g : g?.label || ""
     ).filter(Boolean) ?? [];
     return profileGoals;
@@ -455,9 +455,9 @@ function AdminChatPageContent() {
       prev.map((message) =>
         message.id === messageId
           ? {
-              ...message,
-              content: message.content + chunk
-            }
+            ...message,
+            content: message.content + chunk
+          }
           : message
       )
     );
@@ -574,7 +574,7 @@ function AdminChatPageContent() {
       stopWhisperRecording();
       return;
     }
-    
+
     previousInputRef.current = input;
     resetWhisperTranscript();
     const started = await startWhisperRecording();
@@ -595,28 +595,28 @@ function AdminChatPageContent() {
 
   const handleSend = async (messageText?: string) => {
     const rawContent = (messageText?.trim() || input.trim());
-    
+
     if (!activePersonaId || sending || !rawContent) {
       return;
     }
-    
+
     if (speechListening) {
       stopListening();
       speechSessionActiveRef.current = false;
     }
     stopAudioQueue();
-    
+
     // Ersetze Variablen in der User-Nachricht BEVOR sie gesendet wird
     const contentToSend = replaceMessageVariables(rawContent);
-    
+
     // Extract learnings from conversation history
     const newLearnings = extractLearnings(messages, activePersonaId);
     const updatedLearnings = mergeLearnings(learnings, newLearnings);
     setLearnings(updatedLearnings);
-    
+
     // Determine current phase
     const currentPhase = getCurrentPhase(messages, selectedJourney || undefined);
-    
+
     // Build adaptive system prompt
     const normalizedPersonaProfile = personaProfile ? {
       name: personaProfile.name,
@@ -655,7 +655,7 @@ function AdminChatPageContent() {
       goals: [],
       communicationStyle: undefined,
     };
-    
+
     // Debug: Log the base system prompt
     const basePrompt = activePersona?.systemPrompt ?? null;
     if (activePersona?.name?.toLowerCase().includes("clara")) {
@@ -666,7 +666,7 @@ function AdminChatPageContent() {
         hasLearnings: updatedLearnings.length > 0,
       });
     }
-    
+
     const systemPrompt = buildAdaptiveSystemPrompt({
       persona: normalizedPersonaProfile,
       journeyPhases: selectedJourney?.phases,
@@ -676,19 +676,19 @@ function AdminChatPageContent() {
       messageCount: messages.filter((m) => m.role === "user").length,
       baseSystemPrompt: basePrompt, // Use system prompt from database
     });
-    
+
     // Speichere den System-Prompt für die Historie
     setCurrentSystemPrompt(systemPrompt);
-    
+
     // Collect system messages (Journey context) to include in the request
     const journeySystemMessages = messages
       .filter((msg) => msg.role === "system")
       .map((msg) => msg.content);
-    
+
     // Build messages array for API
     // Type allows image_ids for user messages
     const apiMessages: Array<{ role: string; content: string; image_ids?: string[] }> = [];
-    
+
     // Add adaptive system prompt as first system message
     if (systemPrompt) {
       apiMessages.push({
@@ -696,7 +696,7 @@ function AdminChatPageContent() {
         content: systemPrompt,
       });
     }
-    
+
     // Add journey context as additional system messages
     journeySystemMessages.forEach((content) => {
       apiMessages.push({
@@ -704,7 +704,7 @@ function AdminChatPageContent() {
         content: content,
       });
     });
-    
+
     // Add conversation history (user and assistant messages)
     // Only include messages with non-empty content (exclude placeholder messages)
     messages
@@ -717,24 +717,24 @@ function AdminChatPageContent() {
           image_ids: msg.image_ids,
         });
       });
-    
+
     // Add current user message with image_ids if available
     const userMessage: { role: string; content: string; image_ids?: string[] } = {
       role: "user",
       content: contentToSend,
     };
-    
+
     // Füge Image-IDs hinzu, wenn vorhanden
     if (pendingImageIds.length > 0) {
       userMessage.image_ids = [...pendingImageIds];
     }
-    
+
     apiMessages.push(userMessage);
-    
+
     const messageId = `user-${Date.now()}`;
     const personaMessageId = `persona-${Date.now()}`;
     const voiceStreaming = voiceEnabled;
-    
+
     setMessages((prev) => [
       ...prev,
       {
@@ -750,7 +750,7 @@ function AdminChatPageContent() {
     setPendingImages([]); // Reset pending images after sending
     setSending(true);
     setThinkingLabel(voiceStreaming ? "Sending voice message..." : "Sending message...");
-    
+
     setMessages((prev) => [
       ...prev,
       {
@@ -761,7 +761,7 @@ function AdminChatPageContent() {
       }
     ]);
     clearTypingState(personaMessageId);
-    
+
     try {
       const apiBase = voiceStreaming ? getVoiceApiBase() : getChatApiBase();
       const endpointPath = voiceStreaming ? "/chat/stream" : "/message/stream";
@@ -769,7 +769,7 @@ function AdminChatPageContent() {
         persona_id: activePersonaId,
         messages: apiMessages,
       };
-      
+
       const response = await fetch(`${apiBase}${endpointPath}`, {
         method: "POST",
         headers: {
@@ -777,25 +777,25 @@ function AdminChatPageContent() {
         },
         body: JSON.stringify(requestBody),
       });
-      
+
       if (!response.ok) {
         const error = await response.text().catch(() => "Unknown error");
         throw new Error(`HTTP ${response.status}: ${error}`);
       }
-      
+
       if (!response.body) {
         throw new Error("No response body");
       }
-      
+
       setThinkingLabel(voiceStreaming ? "Receiving voice response..." : "Receiving response...");
-      
+
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
       let hasReceivedData = false;
       let streamStarted = false;
       let streamErr: string | null = null;
-      
+
       // Process stream inline - no external functions to avoid closure issues
       while (true) {
         const readResult = await reader.read();
@@ -870,7 +870,7 @@ function AdminChatPageContent() {
         if (errorMsg.toLowerCase().includes("overloaded")) {
           errorMsg = "The AI service is currently overloaded. Please try again in a few moments.";
         }
-        
+
         setMessages((prev) => {
           const updated = [...prev];
           const personaMsg = updated.find((m) => m.id === personaMessageId);
@@ -884,14 +884,14 @@ function AdminChatPageContent() {
         notify(errorMsg);
         return;
       }
-      
+
       setThinkingLabel(undefined);
-      
+
       // Save new learnings after successful response
       if (newLearnings.length > 0 && activePersonaId) {
         const personaLearnings = newLearnings.filter((l) => l.personaId === activePersonaId);
         const globalLearnings = newLearnings.filter((l) => !l.personaId);
-        
+
         if (personaLearnings.length > 0) {
           const existingPersonaLearnings = loadLearningsFromLocalStorage(activePersonaId);
           const mergedPersonaLearnings = mergeLearnings(existingPersonaLearnings, personaLearnings);
@@ -903,7 +903,7 @@ function AdminChatPageContent() {
           saveLearningsToLocalStorage("global", mergedGlobalLearnings);
         }
       }
-      
+
       // Update URL with conversationId if not already set
       if (currentConversationId && !searchParams.get("conversationId")) {
         router.replace(`/admin/chat?conversationId=${currentConversationId}`);
@@ -912,7 +912,7 @@ function AdminChatPageContent() {
       console.error("Failed to send message:", error);
       stopAudioQueue();
       clearTypingState(personaMessageId);
-      
+
       // Get user-friendly error message
       let errorMessage = "Failed to send message. Please try again.";
       if (error instanceof Error) {
@@ -922,7 +922,7 @@ function AdminChatPageContent() {
           errorMessage = "The AI service is currently overloaded. Please try again in a few moments.";
         }
       }
-      
+
       setMessages((prev) => {
         const updated = [...prev];
         const personaMsg = updated.find((m) => m.id === personaMessageId);
@@ -933,7 +933,7 @@ function AdminChatPageContent() {
         return updated;
       });
       setThinkingLabel(undefined);
-      
+
       // Show notification toast
       notify(errorMessage);
     } finally {
@@ -1125,7 +1125,7 @@ function AdminChatPageContent() {
       existing_traits: normalizedPersonaProfile.traits ? Object.entries(normalizedPersonaProfile.traits)
         .map(([key, value]) => `${key}: ${value}`)
         .join(", ") : "",
-      
+
       // Journey-Variablen
       journey_name: selectedJourney?.name || "",
       journey_type: selectedJourney?.journey_type || "",
@@ -1150,7 +1150,7 @@ function AdminChatPageContent() {
         .map((p, idx) => `Phase ${idx + 1}: ${p.name}`)
         .join(", ");
       variables.existing_phases_count = sortedPhases.length.toString();
-      
+
       const lastPhase = sortedPhases[sortedPhases.length - 1];
       if (lastPhase) {
         variables.last_phase_summary = `Phase ${sortedPhases.length}: ${lastPhase.name}${lastPhase.description ? ` - ${lastPhase.description}` : ""}`;
@@ -1201,7 +1201,7 @@ function AdminChatPageContent() {
           const canvas = document.createElement('canvas');
           let width = img.width;
           let height = img.height;
-          
+
           // Calculate new dimensions
           if (width > height) {
             if (width > maxWidth) {
@@ -1214,7 +1214,7 @@ function AdminChatPageContent() {
               height = maxHeight;
             }
           }
-          
+
           canvas.width = width;
           canvas.height = height;
           const ctx = canvas.getContext('2d');
@@ -1222,7 +1222,7 @@ function AdminChatPageContent() {
             reject(new Error('Failed to get canvas context'));
             return;
           }
-          
+
           ctx.drawImage(img, 0, 0, width, height);
           canvas.toBlob(
             (blob) => {
@@ -1257,10 +1257,10 @@ function AdminChatPageContent() {
     if (!files || files.length === 0) {
       return;
     }
-    
+
     // Filtere nur Bilder
     const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
-    
+
     // Komprimiere und konvertiere Bilder zu Base64 data URLs
     try {
       const base64Images = await Promise.all(
@@ -1283,10 +1283,10 @@ function AdminChatPageContent() {
       // Check if apiBase already contains /chat (might be configured that way)
       // The images router is registered with prefix /chat/images
       // If apiBase already ends with /chat, we use /images/upload, otherwise /chat/images/upload
-      const uploadUrl = apiBase.endsWith('/chat') 
+      const uploadUrl = apiBase.endsWith('/chat')
         ? `${apiBase}/images/upload`
         : `${apiBase}/chat/images/upload`;
-      
+
       const uploadPromises = attachedImages.map(async (imageDataUrl) => {
         const response = await fetch(uploadUrl, {
           method: "POST",
@@ -1295,27 +1295,27 @@ function AdminChatPageContent() {
           },
           body: JSON.stringify({ image: imageDataUrl }),
         });
-        
+
         if (!response.ok) {
           const errorText = await response.text().catch(() => response.statusText || "Unknown error");
           throw new Error(`Failed to upload image: ${response.status} ${errorText}`);
         }
-        
+
         const data = await response.json();
         return data.image_id;
       });
-      
+
       const imageIds = await Promise.all(uploadPromises);
-      
+
       // Speichere Image-IDs für Backend und Base64-Daten für Anzeige
       setPendingImageIds((prev) => [...prev, ...imageIds]);
       setPendingImages((prev) => [...prev, ...attachedImages]);
-      
+
       // Schließe Dialog und setze zurück
       setJourneyDialogOpen(false);
       setAttachedImages([]);
       setActiveDialogTab("phases");
-      
+
       // Optional: Fokussiere den Input, damit User direkt tippen kann
       setTimeout(() => {
         const inputElement = document.querySelector('input[placeholder*="Ask"], textarea[placeholder*="Ask"]') as HTMLInputElement | HTMLTextAreaElement;
@@ -1330,7 +1330,7 @@ function AdminChatPageContent() {
   // Load conversation from URL on mount
   useEffect(() => {
     if (typeof window === "undefined") return;
-    
+
     const conversationIdParam = searchParams.get("conversationId");
     if (conversationIdParam) {
       const conversation = loadConversationFromLocalStorage(conversationIdParam);
@@ -1370,7 +1370,7 @@ function AdminChatPageContent() {
   // Load learnings when persona changes
   useEffect(() => {
     if (typeof window === "undefined") return;
-    
+
     if (activePersonaId) {
       const personaLearnings = loadLearningsFromLocalStorage(activePersonaId);
       const globalLearnings = loadLearningsFromLocalStorage("global");
@@ -1424,7 +1424,7 @@ function AdminChatPageContent() {
   useEffect(() => {
     // Only run on client side
     if (typeof window === "undefined") return;
-    
+
     if (activePersonaId && activePersona) {
       setHeaderContent(
         <Button
@@ -1473,14 +1473,14 @@ function AdminChatPageContent() {
   // Auto-save conversation
   useEffect(() => {
     if (typeof window === "undefined") return;
-    
+
     if (messages.length > 0 && activePersonaId && currentConversationId && activePersona) {
       // Debounce: Speichere nur nach 2 Sekunden Inaktivität
       const timer = setTimeout(() => {
         // Prüfe ob Konversation bereits existiert, um createdAt zu erhalten
         const existing = loadConversationFromLocalStorage(currentConversationId);
         const createdAt = existing?.metadata.createdAt || new Date();
-        
+
         const conversation: Conversation = {
           metadata: {
             conversationId: currentConversationId,
@@ -1499,13 +1499,13 @@ function AdminChatPageContent() {
           learnings: learnings,
         };
         saveConversationToLocalStorage(conversation);
-        
+
         // Update conversationTitle if it was auto-generated
         if (!conversationTitle) {
           setConversationTitle(conversation.metadata.title);
         }
       }, 2000);
-      
+
       return () => clearTimeout(timer);
     }
   }, [messages, activePersonaId, currentConversationId, conversationTitle, selectedJourney, selectedPhases, learnings, activePersona]);
@@ -1520,1087 +1520,1087 @@ function AdminChatPageContent() {
         minHeight: 0
       }}
     >
-        {/* Persona Selection - wenn keine Persona ausgewählt */}
-        {!activePersonaId && (
-          <Box
+      {/* Persona Selection - wenn keine Persona ausgewählt */}
+      {!activePersonaId && (
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flex: 1,
+            minHeight: 0
+          }}
+        >
+          <Stack
+            spacing={2.5}
+            alignItems="center"
+            textAlign="center"
             sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flex: 1,
-              minHeight: 0
+              background: alpha(theme.palette.background.paper, 0.92),
+              borderRadius: 4,
+              border: "1px solid var(--color-neutral)",
+              px: { xs: 3, md: 4 },
+              py: { xs: 4, md: 5 },
+              maxWidth: 480,
+              width: "min(90%, 480px)"
             }}
           >
-            <Stack
-              spacing={2.5}
-              alignItems="center"
-              textAlign="center"
+            <Typography variant="h5" sx={{ fontWeight: 500 }}>
+              Choose a persona to start
+            </Typography>
+            <Typography variant="body2">
+              Pick the audience voice you&apos;d like to talk to.
+            </Typography>
+            <Button
+              variant="contained"
+              size="large"
+              startIcon={<MsqdxIcon name="person_add" customSize={22} />}
+              onClick={(event) => setPersonaMenuAnchor(event.currentTarget)}
+              disabled={loadingPersonas}
               sx={{
-                background: alpha(theme.palette.background.paper, 0.92),
-                borderRadius: 4,
-                border: "1px solid var(--color-neutral)",
-                px: { xs: 3, md: 4 },
-                py: { xs: 4, md: 5 },
-                maxWidth: 480,
-                width: "min(90%, 480px)"
+                borderRadius: 999,
+                px: 4
               }}
             >
-              <Typography variant="h5" sx={{ fontWeight: 500 }}>
-                Choose a persona to start
-              </Typography>
-              <Typography variant="body2">
-                Pick the audience voice you'd like to talk to.
-              </Typography>
-              <Button
-                variant="contained"
-                size="large"
-                startIcon={<MsqdxIcon name="person_add" customSize={22} />}
-                onClick={(event) => setPersonaMenuAnchor(event.currentTarget)}
-                disabled={loadingPersonas}
-                sx={{
-                  borderRadius: 999,
-                  px: 4
-                }}
-              >
-                {loadingPersonas ? "Loading personas…" : "Choose persona"}
-              </Button>
-              {loadingPersonas && <CircularProgress size={28} />}
-            </Stack>
-          </Box>
-        )}
+              {loadingPersonas ? "Loading personas…" : "Choose persona"}
+            </Button>
+            {loadingPersonas && <CircularProgress size={28} />}
+          </Stack>
+        </Box>
+      )}
 
-        {/* Chat Interface - wenn Persona ausgewählt */}
-        {activePersonaId && (
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              height: "100%",
-              minHeight: 0,
-              position: "relative"
-            }}
-          >
-            {/* Status Bar */}
-            {(thinkingLabel || sending) && (
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "flex-end",
-                  padding: "0.5rem 1rem",
-                  flexShrink: 0
-                }}
-              >
-                {thinkingLabel && (
-                  <Typography variant="body2" sx={{ color: alpha(theme.palette.text.primary, 0.7) }}>
-                    {thinkingLabel}
-                  </Typography>
-                )}
-                {sending && (
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <CircularProgress size={16} />
-                    <Typography variant="body2">Sending…</Typography>
-                  </Stack>
-                )}
-              </Box>
-            )}
-
-            {/* Chat Messages - Scrollable Area; when empty show welcome with large persona avatar */}
+      {/* Chat Interface - wenn Persona ausgewählt */}
+      {activePersonaId && (
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",
+            minHeight: 0,
+            position: "relative"
+          }}
+        >
+          {/* Status Bar */}
+          {(thinkingLabel || sending) && (
             <Box
               sx={{
-                flex: 1,
-                minHeight: 0,
-                overflowY: "auto",
-                padding: "1rem",
-                marginBottom: "1rem",
                 display: "flex",
-                flexDirection: "column",
                 alignItems: "center",
-                justifyContent: messages.length === 0 ? "center" : "flex-start"
+                justifyContent: "flex-end",
+                padding: "0.5rem 1rem",
+                flexShrink: 0
               }}
             >
-              {messages.length === 0 ? (
-                <Box
-                  sx={{
-                    maxWidth: 480,
-                    width: "100%",
-                    textAlign: "center",
-                    px: 2,
-                    py: 3,
-                    borderRadius: 4,
-                    border: "1px solid var(--color-neutral)",
-                    backgroundColor: alpha(theme.palette.background.paper, 0.8)
-                  }}
-                >
-                  <Box sx={{ display: "flex", justifyContent: "center", mb: 2 }}>
-                    <Avatar
-                      src={safeAvatarSrc(activePersona?.image_url ?? null, activePersonaId ?? undefined) ?? undefined}
-                      alt={personaDisplayName}
-                      sx={{
-                        width: 160,
-                        height: 160,
-                        border: "3px solid var(--color-secondary-dx-green)",
-                        boxShadow: 2
-                      }}
-                    >
-                      {(personaDisplayName ?? "").charAt(0) ? (personaDisplayName ?? "").charAt(0).toUpperCase() : <MsqdxIcon name="person" customSize={80} />}
-                    </Avatar>
-                  </Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-                    Chat with {personaDisplayName}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
-                    Start the conversation — type your message below and hit send.
-                  </Typography>
-                </Box>
-              ) : (
-                <Box sx={{ width: "100%", minHeight: 0, flex: 1 }}>
-                  <MsqdxGlassChatPanel messages={messages} systemPrompt={currentSystemPrompt} />
-                </Box>
+              {thinkingLabel && (
+                <Typography variant="body2" sx={{ color: alpha(theme.palette.text.primary, 0.7) }}>
+                  {thinkingLabel}
+                </Typography>
+              )}
+              {sending && (
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <CircularProgress size={16} />
+                  <Typography variant="body2">Sending…</Typography>
+                </Stack>
               )}
             </Box>
+          )}
 
-            {/* Input Area - Fixed at Bottom */}
-            <Box
-              component="form"
-              onSubmit={(event) => {
-                event.preventDefault();
-                handleSend();
-              }}
-              sx={{
-                padding: "1rem",
-                borderTop: "1px solid var(--color-neutral)",
-                backgroundColor: "var(--color-neutral)",
-                borderRadius: "8px",
-                flexShrink: 0,
-                position: "sticky",
-                bottom: 0,
-                zIndex: 10
-              }}
-            >
+          {/* Chat Messages - Scrollable Area; when empty show welcome with large persona avatar */}
+          <Box
+            sx={{
+              flex: 1,
+              minHeight: 0,
+              overflowY: "auto",
+              padding: "1rem",
+              marginBottom: "1rem",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: messages.length === 0 ? "center" : "flex-start"
+            }}
+          >
+            {messages.length === 0 ? (
               <Box
                 sx={{
-                  display: "flex",
-                  gap: 1,
-                  alignItems: "center",
-                  maxWidth: "720px",
-                  mx: "auto"
+                  maxWidth: 480,
+                  width: "100%",
+                  textAlign: "center",
+                  px: 2,
+                  py: 3,
+                  borderRadius: 4,
+                  border: "1px solid var(--color-neutral)",
+                  backgroundColor: alpha(theme.palette.background.paper, 0.8)
                 }}
               >
-                <Tooltip title="Journey-Phasen hinzufügen">
-                  <Badge
-                    badgeContent={pendingImages.length > 0 ? pendingImages.length : 0}
-                    color="primary"
-                    overlap="circular"
+                <Box sx={{ display: "flex", justifyContent: "center", mb: 2 }}>
+                  <Avatar
+                    src={safeAvatarSrc(activePersona?.image_url ?? null, activePersonaId ?? undefined) ?? undefined}
+                    alt={personaDisplayName}
                     sx={{
-                      "& .MuiBadge-badge": {
-                        right: 4,
-                        top: 4,
-                        minWidth: "18px",
-                        height: "18px",
-                        fontSize: "0.7rem",
-                        fontWeight: 600
-                      }
+                      width: 160,
+                      height: 160,
+                      border: "3px solid var(--color-secondary-dx-green)",
+                      boxShadow: 2
                     }}
                   >
-                    <IconButton
-                      onClick={() => setJourneyDialogOpen(true)}
-                      disabled={!activePersonaId || sending}
-                      sx={{
-                        backgroundColor: alpha(theme.palette.text.primary, 0.08),
-                        borderRadius: 999
-                      }}
-                    >
-                      <MsqdxIcon name="add" customSize={22} />
-                    </IconButton>
-                  </Badge>
-                </Tooltip>
-                <Tooltip title="Share chat link">
+                    {(personaDisplayName ?? "").charAt(0) ? (personaDisplayName ?? "").charAt(0).toUpperCase() : <MsqdxIcon name="person" customSize={80} />}
+                  </Avatar>
+                </Box>
+                <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                  Chat with {personaDisplayName}
+                </Typography>
+                <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+                  Start the conversation — type your message below and hit send.
+                </Typography>
+              </Box>
+            ) : (
+              <Box sx={{ width: "100%", minHeight: 0, flex: 1 }}>
+                <MsqdxGlassChatPanel messages={messages} systemPrompt={currentSystemPrompt} />
+              </Box>
+            )}
+          </Box>
+
+          {/* Input Area - Fixed at Bottom */}
+          <Box
+            component="form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              handleSend();
+            }}
+            sx={{
+              padding: "1rem",
+              borderTop: "1px solid var(--color-neutral)",
+              backgroundColor: "var(--color-neutral)",
+              borderRadius: "8px",
+              flexShrink: 0,
+              position: "sticky",
+              bottom: 0,
+              zIndex: 10
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                gap: 1,
+                alignItems: "center",
+                maxWidth: "720px",
+                mx: "auto"
+              }}
+            >
+              <Tooltip title="Journey-Phasen hinzufügen">
+                <Badge
+                  badgeContent={pendingImages.length > 0 ? pendingImages.length : 0}
+                  color="primary"
+                  overlap="circular"
+                  sx={{
+                    "& .MuiBadge-badge": {
+                      right: 4,
+                      top: 4,
+                      minWidth: "18px",
+                      height: "18px",
+                      fontSize: "0.7rem",
+                      fontWeight: 600
+                    }
+                  }}
+                >
                   <IconButton
-                    onClick={() => setShareDialogOpen(true)}
-                    disabled={!activePersonaId || !activeProjectId}
+                    onClick={() => setJourneyDialogOpen(true)}
+                    disabled={!activePersonaId || sending}
                     sx={{
                       backgroundColor: alpha(theme.palette.text.primary, 0.08),
                       borderRadius: 999
                     }}
                   >
-                    <MsqdxIcon name="share" customSize={22} />
+                    <MsqdxIcon name="add" customSize={22} />
                   </IconButton>
-                </Tooltip>
-                <Tooltip title={whisperRecording ? "Stop recording" : "Start voice input"}>
-                  <IconButton
-                    onClick={handleMicToggle}
-                    disabled={sending || whisperTranscribing}
-                    sx={{
-                      backgroundColor: (whisperRecording || whisperTranscribing) 
-                        ? "var(--color-secondary-dx-pink-tint)" 
-                        : alpha(theme.palette.text.primary, 0.08),
-                      borderRadius: 999
-                    }}
-                  >
-                    <MsqdxIcon name="keyboard_voice" customSize={22} />
-                  </IconButton>
-                </Tooltip>
-                <MsqdxInput
-                  fullWidth
-                  placeholder="Ask the persona anything…"
-                  value={input}
-                  disabled={!activePersonaId || sending}
-                  onChange={(event) => setInput(event.target.value)}
-                  size="large"
-                  sx={{
-                    ...INPUT_ACCENT_SX,
-                    "& .msqdx-input-wrapper": {
-                      ...INPUT_ACCENT_SX["& .msqdx-input-wrapper"],
-                      borderRadius: 999,
-                    },
-                  }}
-                />
-                <Tooltip title="Toggle persona playback">
-                  <IconButton
-                    onClick={handleVoiceToggle}
-                    sx={{
-                      backgroundColor: voiceEnabled ? "var(--color-secondary-dx-green)" : alpha(theme.palette.text.primary, 0.08),
-                      borderRadius: 999
-                    }}
-                  >
-                    <MsqdxIcon name="headphones" customSize={22} />
-                  </IconButton>
-                </Tooltip>
+                </Badge>
+              </Tooltip>
+              <Tooltip title="Share chat link">
                 <IconButton
-                  onClick={() => void handleSend()}
-                  disabled={sendDisabled}
+                  onClick={() => setShareDialogOpen(true)}
+                  disabled={!activePersonaId || !activeProjectId}
                   sx={{
-                    backgroundColor: sendDisabled
-                      ? alpha(theme.palette.text.primary, 0.2)
-                      : "var(--color-secondary-dx-green)",
-                    color: "#ffffff",
+                    backgroundColor: alpha(theme.palette.text.primary, 0.08),
                     borderRadius: 999
                   }}
                 >
-                  <MsqdxIcon name="send" customSize={22} />
+                  <MsqdxIcon name="share" customSize={22} />
                 </IconButton>
-              </Box>
-              {(whisperRecording || whisperTranscribing || whisperError || speechListening || speechError) && (
-                <Box sx={{ textAlign: "center", mt: 1 }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: (whisperError || speechError) 
-                        ? theme.palette.error.main 
-                        : alpha(theme.palette.text.primary, 0.6)
-                    }}
-                  >
-                    {whisperError 
-                      ? whisperError 
-                      : whisperTranscribing 
-                      ? "Transcribing audio…" 
-                      : whisperRecording 
-                      ? "Recording…" 
-                      : speechError 
-                      ? speechError 
-                      : speechListening 
-                      ? "Listening…" 
-                      : ""}
-                  </Typography>
-                </Box>
-              )}
+              </Tooltip>
+              <Tooltip title={whisperRecording ? "Stop recording" : "Start voice input"}>
+                <IconButton
+                  onClick={handleMicToggle}
+                  disabled={sending || whisperTranscribing}
+                  sx={{
+                    backgroundColor: (whisperRecording || whisperTranscribing)
+                      ? "var(--color-secondary-dx-pink-tint)"
+                      : alpha(theme.palette.text.primary, 0.08),
+                    borderRadius: 999
+                  }}
+                >
+                  <MsqdxIcon name="keyboard_voice" customSize={22} />
+                </IconButton>
+              </Tooltip>
+              <MsqdxInput
+                fullWidth
+                placeholder="Ask the persona anything…"
+                value={input}
+                disabled={!activePersonaId || sending}
+                onChange={(event) => setInput(event.target.value)}
+                size="large"
+                sx={{
+                  ...INPUT_ACCENT_SX,
+                  "& .msqdx-input-wrapper": {
+                    ...INPUT_ACCENT_SX["& .msqdx-input-wrapper"],
+                    borderRadius: 999,
+                  },
+                }}
+              />
+              <Tooltip title="Toggle persona playback">
+                <IconButton
+                  onClick={handleVoiceToggle}
+                  sx={{
+                    backgroundColor: voiceEnabled ? "var(--color-secondary-dx-green)" : alpha(theme.palette.text.primary, 0.08),
+                    borderRadius: 999
+                  }}
+                >
+                  <MsqdxIcon name="headphones" customSize={22} />
+                </IconButton>
+              </Tooltip>
+              <IconButton
+                onClick={() => void handleSend()}
+                disabled={sendDisabled}
+                sx={{
+                  backgroundColor: sendDisabled
+                    ? alpha(theme.palette.text.primary, 0.2)
+                    : "var(--color-secondary-dx-green)",
+                  color: "#ffffff",
+                  borderRadius: 999
+                }}
+              >
+                <MsqdxIcon name="send" customSize={22} />
+              </IconButton>
             </Box>
-          </Box>
-        )}
-
-        {/* Evidence Section - Outside of chat interface container */}
-        {activePersonaId && latestSources && latestSources.length > 0 && (
-          <Box sx={{ mt: 2, maxWidth: "720px", mx: "auto", width: "100%" }}>
-                <Button
-                  variant="text"
-                  color="primary"
-                  startIcon={<MsqdxIcon name="info" customSize={18} />}
-                  endIcon={
-                    <MsqdxIcon
-                      name="expand_more"
-                      customSize={20}
-                      style={{
-                        transform: showEvidence ? "rotate(180deg)" : "rotate(0deg)",
-                        transition: "transform 150ms ease"
-                      }}
-                    />
-                  }
-                  onClick={() => setShowEvidence((prev) => !prev)}
-                  sx={{ textTransform: "none", fontWeight: 600 }}
+            {(whisperRecording || whisperTranscribing || whisperError || speechListening || speechError) && (
+              <Box sx={{ textAlign: "center", mt: 1 }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: (whisperError || speechError)
+                      ? theme.palette.error.main
+                      : alpha(theme.palette.text.primary, 0.6)
+                  }}
                 >
-                  {showEvidence ? "Hide details" : "Show details"}
-                </Button>
-                <Collapse
-                  in={showEvidence}
-                  timeout="auto"
-                  unmountOnExit
-                >
-                  <Paper
-                    variant="outlined"
-                    sx={{
-                      borderRadius: 3,
-                      mt: 1,
-                      p: 2,
-                      maxHeight: 260,
-                      overflowY: "auto",
-                      backgroundColor: alpha(theme.palette.primary.main, 0.04),
-                      borderColor: "var(--color-neutral)"
-                    }}
-                  >
-                    <List disablePadding>
-                      {latestSources.map((source, index) => (
-                        <Box key={`${source.chunk_id}-${index}`}>
-                          <ListItem alignItems="flex-start" disableGutters>
-                            <ListItemAvatar>
-                              <MsqdxIcon
-                                name="description"
-                                customSize={22}
-                                style={{ color: theme.palette.primary.main }}
-                              />
-                            </ListItemAvatar>
-                            <ListItemText
-                              primary={
-                                <Typography variant="subtitle2" component="span">
-                                  {source.title} · {(source.confidence * 100).toFixed(0)}%
-                                </Typography>
-                              }
-                              secondary={
-                                <>
-                                  <Typography variant="body2" component="span" display="block">
-                                    {source.excerpt}
-                                  </Typography>
-                                  <Typography variant="caption" component="span" display="block">
-                                    Document {source.document_id}
-                                  </Typography>
-                                </>
-                              }
-                            />
-                          </ListItem>
-                          {index < latestSources.length - 1 && (
-                            <Divider variant="middle" sx={{ my: 1, borderColor: "var(--color-neutral)" }} />
-                          )}
-                        </Box>
-                      ))}
-                    </List>
-                  </Paper>
-                </Collapse>
+                  {whisperError
+                    ? whisperError
+                    : whisperTranscribing
+                      ? "Transcribing audio…"
+                      : whisperRecording
+                        ? "Recording…"
+                        : speechError
+                          ? speechError
+                          : speechListening
+                            ? "Listening…"
+                            : ""}
+                </Typography>
               </Box>
-        )}
+            )}
+          </Box>
+        </Box>
+      )}
 
-        {/* Context Dialog with Tabs */}
-        <Dialog
-          open={journeyDialogOpen}
-          onClose={() => {
-            // Remove focus from any button inside dialog before closing to prevent aria-hidden error
-            const activeElement = document.activeElement as HTMLElement;
-            if (activeElement && activeElement.closest('[role="dialog"]')) {
-              activeElement.blur();
+      {/* Evidence Section - Outside of chat interface container */}
+      {activePersonaId && latestSources && latestSources.length > 0 && (
+        <Box sx={{ mt: 2, maxWidth: "720px", mx: "auto", width: "100%" }}>
+          <Button
+            variant="text"
+            color="primary"
+            startIcon={<MsqdxIcon name="info" customSize={18} />}
+            endIcon={
+              <MsqdxIcon
+                name="expand_more"
+                customSize={20}
+                style={{
+                  transform: showEvidence ? "rotate(180deg)" : "rotate(0deg)",
+                  transition: "transform 150ms ease"
+                }}
+              />
             }
-            setJourneyDialogOpen(false);
-            setSelectedJourneyId(null);
-            setSelectedPhases([]);
-            setSelectedJourney(null);
-            setActiveDialogTab("phases");
-            setAttachedImages([]);
-          }}
-          maxWidth="sm"
-          fullWidth
-          PaperProps={{
-            sx: {
-              borderRadius: "40px",
-              backgroundColor: "var(--color-neutral)",
-              border: "5px solid var(--audion-light-border-color, #0f172a)",
-              maxHeight: "80vh"
-            }
-          }}
-        >
-          <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 0.75, pb: 1, pt: 2.5, px: 3 }}>
-            <MsqdxIcon name="add_circle" customSize={16} />
-            <Typography variant="body2" component="span" sx={{ fontSize: "0.8125rem", fontWeight: 600 }}>
-              Add Context
-            </Typography>
-          </DialogTitle>
-          
-          {/* Tabs */}
-          <Box sx={{ borderBottom: 1, borderColor: "divider", px: 3 }}>
-            <Tabs
-              value={activeDialogTab}
-              onChange={(_, newValue) => setActiveDialogTab(newValue)}
+            onClick={() => setShowEvidence((prev) => !prev)}
+            sx={{ textTransform: "none", fontWeight: 600 }}
+          >
+            {showEvidence ? "Hide details" : "Show details"}
+          </Button>
+          <Collapse
+            in={showEvidence}
+            timeout="auto"
+            unmountOnExit
+          >
+            <Paper
+              variant="outlined"
               sx={{
-                minHeight: "auto",
-                "& .MuiTab-root": {
-                  minHeight: "auto",
-                  padding: "0.5rem 1rem",
-                  fontSize: "0.75rem",
-                  textTransform: "none",
-                  fontWeight: 500
-                }
+                borderRadius: 3,
+                mt: 1,
+                p: 2,
+                maxHeight: 260,
+                overflowY: "auto",
+                backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                borderColor: "var(--color-neutral)"
               }}
             >
-              <Tab
-                value="phases"
-                label="Journey Phases"
-                icon={<MsqdxIcon name="route" customSize={14} />}
-                iconPosition="start"
-              />
-              <Tab
-                value="variables"
-                label="Variables"
-                icon={<MsqdxIcon name="code" customSize={14} />}
-                iconPosition="start"
-              />
-              <Tab
-                value="attachments"
-                label="Attachments"
-                icon={<MsqdxIcon name="image" customSize={14} />}
-                iconPosition="start"
-              />
-            </Tabs>
-          </Box>
-
-          <DialogContent sx={{ px: 3, py: 2, minHeight: "300px" }}>
-            {/* Tab: Journey Phases */}
-            {activeDialogTab === "phases" && (
-              <>
-                {loadingJourneys ? (
-                  <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
-                    <CircularProgress size={20} />
+              <List disablePadding>
+                {latestSources.map((source, index) => (
+                  <Box key={`${source.chunk_id}-${index}`}>
+                    <ListItem alignItems="flex-start" disableGutters>
+                      <ListItemAvatar>
+                        <MsqdxIcon
+                          name="description"
+                          customSize={22}
+                          style={{ color: theme.palette.primary.main }}
+                        />
+                      </ListItemAvatar>
+                      <ListItemText
+                        primary={
+                          <Typography variant="subtitle2" component="span">
+                            {source.title} · {(source.confidence * 100).toFixed(0)}%
+                          </Typography>
+                        }
+                        secondary={
+                          <>
+                            <Typography variant="body2" component="span" display="block">
+                              {source.excerpt}
+                            </Typography>
+                            <Typography variant="caption" component="span" display="block">
+                              Document {source.document_id}
+                            </Typography>
+                          </>
+                        }
+                      />
+                    </ListItem>
+                    {index < latestSources.length - 1 && (
+                      <Divider variant="middle" sx={{ my: 1, borderColor: "var(--color-neutral)" }} />
+                    )}
                   </Box>
-                ) : (
-                  <Stack spacing={1.5}>
-                    {/* Journey Selection */}
-                    <FormControl fullWidth size="small">
-                      <InputLabel sx={{ fontSize: "0.75rem" }}>Journey</InputLabel>
-                      <Select
-                        value={selectedJourneyId || ""}
-                        onChange={(e) => setSelectedJourneyId(e.target.value || null)}
-                        label="Journey"
-                        sx={{ fontSize: "0.8125rem", "& .MuiSelect-select": { py: 0.75 } }}
-                      >
-                        {journeys.length === 0 ? (
-                          <MenuItem disabled sx={{ fontSize: "0.75rem" }}>None available</MenuItem>
-                        ) : (
-                          journeys.map((journey) => (
-                            <MenuItem key={journey.id} value={journey.id} sx={{ fontSize: "0.8125rem", py: 0.5 }}>
-                              <Box>
-                                <Typography variant="caption" fontWeight={500} sx={{ fontSize: "0.8125rem", display: "block" }}>
-                                  {journey.name}
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.6875rem" }}>
-                                  {journey.phases.length} Phase{journey.phases.length !== 1 ? "s" : ""}
-                                </Typography>
-                              </Box>
-                            </MenuItem>
-                          ))
-                        )}
-                      </Select>
-                    </FormControl>
+                ))}
+              </List>
+            </Paper>
+          </Collapse>
+        </Box>
+      )}
 
-                    {/* Phases List */}
-                    {selectedJourney && selectedJourney.phases.length > 0 && (
-                      <Box sx={{ maxHeight: "240px", overflowY: "auto" }}>
-                        <Typography variant="caption" sx={{ mb: 0.75, fontWeight: 600, display: "block", fontSize: "0.6875rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
-                          Phases:
-                        </Typography>
-                        <Stack spacing={0.5}>
-                          {selectedJourney.phases
-                            .sort((a, b) => (a.phase_order || 0) - (b.phase_order || 0))
-                            .map((phase) => (
-                              <Paper
-                                key={phase.id}
-                                variant="outlined"
-                                sx={{
-                                  p: 0.75,
-                                  backgroundColor: selectedPhases.includes(phase.id)
-                                    ? alpha(theme.palette.primary.main, 0.08)
-                                    : "transparent",
-                                  borderColor: selectedPhases.includes(phase.id)
-                                    ? theme.palette.primary.main
-                                    : "var(--audion-light-border-color, #0f172a)",
-                                  transition: "all 0.2s ease",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 0.5
-                                }}
-                              >
-                                <FormControlLabel
-                                  control={
-                                    <Checkbox
-                                      size="small"
-                                      sx={{
-                                        py: 0.25,
-                                        padding: "4px",
-                                        "& .MuiSvgIcon-root": {
-                                          width: "18px",
-                                          height: "18px",
-                                          borderRadius: "50%",
-                                          border: "1.5px solid var(--audion-light-border-color, #0f172a)",
-                                          transition: "all 0.2s ease"
-                                        },
-                                        "&:not(.Mui-checked) .MuiSvgIcon-root": {
-                                          backgroundColor: "transparent",
-                                          "& path": {
-                                            display: "none"
-                                          }
-                                        },
-                                        "&.Mui-checked .MuiSvgIcon-root": {
-                                          borderColor: theme.palette.primary.main,
-                                          backgroundColor: theme.palette.primary.main,
-                                          "& path": {
-                                            display: "block",
-                                            fill: "#fff"
-                                          }
-                                        }
-                                      }}
-                                      checked={selectedPhases.includes(phase.id)}
-                                      onChange={(e) => {
-                                        if (e.target.checked) {
-                                          setSelectedPhases([...selectedPhases, phase.id]);
-                                        } else {
-                                          setSelectedPhases(selectedPhases.filter((id) => id !== phase.id));
-                                        }
-                                      }}
-                                    />
-                                  }
-                                  label={
-                                    <Box sx={{ flex: 1 }}>
-                                      <Typography variant="caption" fontWeight={500} sx={{ fontSize: "0.75rem", display: "block", lineHeight: 1.3 }}>
-                                        {phase.phase_order || 0}. {phase.name}
-                                      </Typography>
-                                      {phase.elements && phase.elements.length > 0 && (
-                                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.6875rem", lineHeight: 1.2 }}>
-                                          {phase.elements.length} Moment{phase.elements.length !== 1 ? "s" : ""}
-                                        </Typography>
-                                      )}
-                                    </Box>
-                                  }
-                                  sx={{ m: 0, flex: 1 }}
-                                />
-                                {phase.description && (
-                                  <Tooltip
-                                    title={
-                                      <Box>
-                                        <Typography variant="caption" sx={{ display: "block", fontWeight: 600, mb: 0.5 }}>
-                                          {phase.name}
-                                        </Typography>
-                                        <Typography variant="caption" sx={{ display: "block", fontSize: "0.75rem" }}>
-                                          {phase.description}
-                                        </Typography>
-                                      </Box>
-                                    }
-                                    arrow
-                                    placement="left"
-                                    componentsProps={{
-                                      tooltip: {
-                                        sx: {
-                                          backgroundColor: "var(--color-neutral)",
-                                          border: "1px solid var(--audion-light-border-color, #0f172a)",
-                                          color: "var(--color-text-primary)",
-                                          maxWidth: "300px"
+      {/* Context Dialog with Tabs */}
+      <Dialog
+        open={journeyDialogOpen}
+        onClose={() => {
+          // Remove focus from any button inside dialog before closing to prevent aria-hidden error
+          const activeElement = document.activeElement as HTMLElement;
+          if (activeElement && activeElement.closest('[role="dialog"]')) {
+            activeElement.blur();
+          }
+          setJourneyDialogOpen(false);
+          setSelectedJourneyId(null);
+          setSelectedPhases([]);
+          setSelectedJourney(null);
+          setActiveDialogTab("phases");
+          setAttachedImages([]);
+        }}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: "40px",
+            backgroundColor: "var(--color-neutral)",
+            border: "5px solid var(--audion-light-border-color, #0f172a)",
+            maxHeight: "80vh"
+          }
+        }}
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 0.75, pb: 1, pt: 2.5, px: 3 }}>
+          <MsqdxIcon name="add_circle" customSize={16} />
+          <Typography variant="body2" component="span" sx={{ fontSize: "0.8125rem", fontWeight: 600 }}>
+            Add Context
+          </Typography>
+        </DialogTitle>
+
+        {/* Tabs */}
+        <Box sx={{ borderBottom: 1, borderColor: "divider", px: 3 }}>
+          <Tabs
+            value={activeDialogTab}
+            onChange={(_, newValue) => setActiveDialogTab(newValue)}
+            sx={{
+              minHeight: "auto",
+              "& .MuiTab-root": {
+                minHeight: "auto",
+                padding: "0.5rem 1rem",
+                fontSize: "0.75rem",
+                textTransform: "none",
+                fontWeight: 500
+              }
+            }}
+          >
+            <Tab
+              value="phases"
+              label="Journey Phases"
+              icon={<MsqdxIcon name="route" customSize={14} />}
+              iconPosition="start"
+            />
+            <Tab
+              value="variables"
+              label="Variables"
+              icon={<MsqdxIcon name="code" customSize={14} />}
+              iconPosition="start"
+            />
+            <Tab
+              value="attachments"
+              label="Attachments"
+              icon={<MsqdxIcon name="image" customSize={14} />}
+              iconPosition="start"
+            />
+          </Tabs>
+        </Box>
+
+        <DialogContent sx={{ px: 3, py: 2, minHeight: "300px" }}>
+          {/* Tab: Journey Phases */}
+          {activeDialogTab === "phases" && (
+            <>
+              {loadingJourneys ? (
+                <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
+                  <CircularProgress size={20} />
+                </Box>
+              ) : (
+                <Stack spacing={1.5}>
+                  {/* Journey Selection */}
+                  <FormControl fullWidth size="small">
+                    <InputLabel sx={{ fontSize: "0.75rem" }}>Journey</InputLabel>
+                    <Select
+                      value={selectedJourneyId || ""}
+                      onChange={(e) => setSelectedJourneyId(e.target.value || null)}
+                      label="Journey"
+                      sx={{ fontSize: "0.8125rem", "& .MuiSelect-select": { py: 0.75 } }}
+                    >
+                      {journeys.length === 0 ? (
+                        <MenuItem disabled sx={{ fontSize: "0.75rem" }}>None available</MenuItem>
+                      ) : (
+                        journeys.map((journey) => (
+                          <MenuItem key={journey.id} value={journey.id} sx={{ fontSize: "0.8125rem", py: 0.5 }}>
+                            <Box>
+                              <Typography variant="caption" fontWeight={500} sx={{ fontSize: "0.8125rem", display: "block" }}>
+                                {journey.name}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.6875rem" }}>
+                                {journey.phases.length} Phase{journey.phases.length !== 1 ? "s" : ""}
+                              </Typography>
+                            </Box>
+                          </MenuItem>
+                        ))
+                      )}
+                    </Select>
+                  </FormControl>
+
+                  {/* Phases List */}
+                  {selectedJourney && selectedJourney.phases.length > 0 && (
+                    <Box sx={{ maxHeight: "240px", overflowY: "auto" }}>
+                      <Typography variant="caption" sx={{ mb: 0.75, fontWeight: 600, display: "block", fontSize: "0.6875rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        Phases:
+                      </Typography>
+                      <Stack spacing={0.5}>
+                        {selectedJourney.phases
+                          .sort((a, b) => (a.phase_order || 0) - (b.phase_order || 0))
+                          .map((phase) => (
+                            <Paper
+                              key={phase.id}
+                              variant="outlined"
+                              sx={{
+                                p: 0.75,
+                                backgroundColor: selectedPhases.includes(phase.id)
+                                  ? alpha(theme.palette.primary.main, 0.08)
+                                  : "transparent",
+                                borderColor: selectedPhases.includes(phase.id)
+                                  ? theme.palette.primary.main
+                                  : "var(--audion-light-border-color, #0f172a)",
+                                transition: "all 0.2s ease",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 0.5
+                              }}
+                            >
+                              <FormControlLabel
+                                control={
+                                  <Checkbox
+                                    size="small"
+                                    sx={{
+                                      py: 0.25,
+                                      padding: "4px",
+                                      "& .MuiSvgIcon-root": {
+                                        width: "18px",
+                                        height: "18px",
+                                        borderRadius: "50%",
+                                        border: "1.5px solid var(--audion-light-border-color, #0f172a)",
+                                        transition: "all 0.2s ease"
+                                      },
+                                      "&:not(.Mui-checked) .MuiSvgIcon-root": {
+                                        backgroundColor: "transparent",
+                                        "& path": {
+                                          display: "none"
                                         }
                                       },
-                                      arrow: {
-                                        sx: {
-                                          color: "var(--color-neutral)",
-                                          "&::before": {
-                                            border: "1px solid var(--audion-light-border-color, #0f172a)"
-                                          }
+                                      "&.Mui-checked .MuiSvgIcon-root": {
+                                        borderColor: theme.palette.primary.main,
+                                        backgroundColor: theme.palette.primary.main,
+                                        "& path": {
+                                          display: "block",
+                                          fill: "#fff"
                                         }
                                       }
                                     }}
-                                  >
-                                    <IconButton
-                                      size="small"
-                                      sx={{
-                                        p: 0.5,
-                                        minWidth: "auto",
-                                        width: "24px",
-                                        height: "24px",
-                                        color: "text.secondary",
-                                        "&:hover": {
-                                          color: "text.primary"
+                                    checked={selectedPhases.includes(phase.id)}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setSelectedPhases([...selectedPhases, phase.id]);
+                                      } else {
+                                        setSelectedPhases(selectedPhases.filter((id) => id !== phase.id));
+                                      }
+                                    }}
+                                  />
+                                }
+                                label={
+                                  <Box sx={{ flex: 1 }}>
+                                    <Typography variant="caption" fontWeight={500} sx={{ fontSize: "0.75rem", display: "block", lineHeight: 1.3 }}>
+                                      {phase.phase_order || 0}. {phase.name}
+                                    </Typography>
+                                    {phase.elements && phase.elements.length > 0 && (
+                                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.6875rem", lineHeight: 1.2 }}>
+                                        {phase.elements.length} Moment{phase.elements.length !== 1 ? "s" : ""}
+                                      </Typography>
+                                    )}
+                                  </Box>
+                                }
+                                sx={{ m: 0, flex: 1 }}
+                              />
+                              {phase.description && (
+                                <Tooltip
+                                  title={
+                                    <Box>
+                                      <Typography variant="caption" sx={{ display: "block", fontWeight: 600, mb: 0.5 }}>
+                                        {phase.name}
+                                      </Typography>
+                                      <Typography variant="caption" sx={{ display: "block", fontSize: "0.75rem" }}>
+                                        {phase.description}
+                                      </Typography>
+                                    </Box>
+                                  }
+                                  arrow
+                                  placement="left"
+                                  componentsProps={{
+                                    tooltip: {
+                                      sx: {
+                                        backgroundColor: "var(--color-neutral)",
+                                        border: "1px solid var(--audion-light-border-color, #0f172a)",
+                                        color: "var(--color-text-primary)",
+                                        maxWidth: "300px"
+                                      }
+                                    },
+                                    arrow: {
+                                      sx: {
+                                        color: "var(--color-neutral)",
+                                        "&::before": {
+                                          border: "1px solid var(--audion-light-border-color, #0f172a)"
                                         }
-                                      }}
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      <MsqdxIcon name="info" customSize={16} />
-                                    </IconButton>
-                                  </Tooltip>
-                                )}
-                              </Paper>
-                            ))}
-                        </Stack>
-                      </Box>
-                    )}
+                                      }
+                                    }
+                                  }}
+                                >
+                                  <IconButton
+                                    size="small"
+                                    sx={{
+                                      p: 0.5,
+                                      minWidth: "auto",
+                                      width: "24px",
+                                      height: "24px",
+                                      color: "text.secondary",
+                                      "&:hover": {
+                                        color: "text.primary"
+                                      }
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <MsqdxIcon name="info" customSize={16} />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
+                            </Paper>
+                          ))}
+                      </Stack>
+                    </Box>
+                  )}
 
-                    {selectedJourney && selectedJourney.phases.length === 0 && (
-                      <Box sx={{ textAlign: "center", py: 1.5 }}>
-                        <MsqdxIcon name="info" customSize={24} style={{ opacity: 0.5 }} />
-                        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5, fontSize: "0.6875rem" }}>
-                          No phases
-                        </Typography>
-                      </Box>
-                    )}
-                  </Stack>
-                )}
-              </>
-            )}
+                  {selectedJourney && selectedJourney.phases.length === 0 && (
+                    <Box sx={{ textAlign: "center", py: 1.5 }}>
+                      <MsqdxIcon name="info" customSize={24} style={{ opacity: 0.5 }} />
+                      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5, fontSize: "0.6875rem" }}>
+                        No phases
+                      </Typography>
+                    </Box>
+                  )}
+                </Stack>
+              )}
+            </>
+          )}
 
-            {/* Tab: Variables */}
-            {activeDialogTab === "variables" && (
-              <Box sx={{ maxHeight: "400px", overflowY: "auto" }}>
-                <VariablePalette
-                  onVariableClick={handleVariableClick}
-                />
+          {/* Tab: Variables */}
+          {activeDialogTab === "variables" && (
+            <Box sx={{ maxHeight: "400px", overflowY: "auto" }}>
+              <VariablePalette
+                onVariableClick={handleVariableClick}
+              />
+            </Box>
+          )}
+
+          {/* Tab: Attachments */}
+          {activeDialogTab === "attachments" && (
+            <Stack spacing={2}>
+              <Box
+                sx={{
+                  border: "2px dashed var(--audion-light-border-color, #0f172a)",
+                  borderRadius: "12px",
+                  p: 3,
+                  textAlign: "center",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                  "&:hover": {
+                    borderColor: theme.palette.primary.main,
+                    backgroundColor: alpha(theme.palette.primary.main, 0.05)
+                  }
+                }}
+                onClick={() => {
+                  const input = document.createElement("input");
+                  input.type = "file";
+                  input.accept = "image/*";
+                  input.multiple = true;
+                  input.onchange = (e) => {
+                    const target = e.target as HTMLInputElement;
+                    handleImageUpload(target.files);
+                  };
+                  input.click();
+                }}
+              >
+                <MsqdxIcon name="upload_file" customSize={32} style={{ opacity: 0.6, marginBottom: "0.5rem" }} />
+                <Typography variant="caption" sx={{ display: "block", fontSize: "0.75rem", fontWeight: 500 }}>
+                  Upload Images
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.6875rem" }}>
+                  Click to select or drag and drop
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.625rem", mt: 0.5, display: "block" }}>
+                  Figma links and URLs coming soon
+                </Typography>
               </Box>
-            )}
 
-            {/* Tab: Attachments */}
-            {activeDialogTab === "attachments" && (
-              <Stack spacing={2}>
-                <Box
-                  sx={{
-                    border: "2px dashed var(--audion-light-border-color, #0f172a)",
-                    borderRadius: "12px",
-                    p: 3,
-                    textAlign: "center",
-                    cursor: "pointer",
-                    transition: "all 0.2s ease",
-                    "&:hover": {
-                      borderColor: theme.palette.primary.main,
-                      backgroundColor: alpha(theme.palette.primary.main, 0.05)
-                    }
-                  }}
-                  onClick={() => {
-                    const input = document.createElement("input");
-                    input.type = "file";
-                    input.accept = "image/*";
-                    input.multiple = true;
-                    input.onchange = (e) => {
-                      const target = e.target as HTMLInputElement;
-                      handleImageUpload(target.files);
-                    };
-                    input.click();
-                  }}
-                >
-                  <MsqdxIcon name="upload_file" customSize={32} style={{ opacity: 0.6, marginBottom: "0.5rem" }} />
-                  <Typography variant="caption" sx={{ display: "block", fontSize: "0.75rem", fontWeight: 500 }}>
-                    Upload Images
+              {/* Uploaded Images Preview */}
+              {attachedImages.length > 0 && (
+                <Box>
+                  <Typography variant="caption" sx={{ mb: 1, fontWeight: 600, display: "block", fontSize: "0.6875rem" }}>
+                    Uploaded ({attachedImages.length}):
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.6875rem" }}>
-                    Click to select or drag and drop
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.625rem", mt: 0.5, display: "block" }}>
-                    Figma links and URLs coming soon
-                  </Typography>
-                </Box>
-
-                {/* Uploaded Images Preview */}
-                {attachedImages.length > 0 && (
-                  <Box>
-                    <Typography variant="caption" sx={{ mb: 1, fontWeight: 600, display: "block", fontSize: "0.6875rem" }}>
-                      Uploaded ({attachedImages.length}):
-                    </Typography>
-                    <Stack spacing={1}>
-                      {attachedImages.map((imageDataUrl, index) => (
-                        <Paper
-                          key={index}
-                          variant="outlined"
+                  <Stack spacing={1}>
+                    {attachedImages.map((imageDataUrl, index) => (
+                      <Paper
+                        key={index}
+                        variant="outlined"
+                        sx={{
+                          p: 1,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 1
+                        }}
+                      >
+                        <Box
+                          component="img"
+                          src={imageDataUrl}
+                          alt={`Preview ${index + 1}`}
                           sx={{
-                            p: 1,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 1
+                            width: 40,
+                            height: 40,
+                            objectFit: "cover",
+                            borderRadius: "4px"
                           }}
+                        />
+                        <Typography variant="caption" sx={{ flex: 1, fontSize: "0.75rem" }}>
+                          Image {index + 1}
+                        </Typography>
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            setAttachedImages((prev) => prev.filter((_, i) => i !== index));
+                          }}
+                          sx={{ p: 0.5 }}
                         >
-                          <Box
-                            component="img"
-                            src={imageDataUrl}
-                            alt={`Preview ${index + 1}`}
-                            sx={{
-                              width: 40,
-                              height: 40,
-                              objectFit: "cover",
-                              borderRadius: "4px"
-                            }}
-                          />
-                          <Typography variant="caption" sx={{ flex: 1, fontSize: "0.75rem" }}>
-                            Image {index + 1}
-                          </Typography>
-                          <IconButton
-                            size="small"
-                            onClick={() => {
-                              setAttachedImages((prev) => prev.filter((_, i) => i !== index));
-                            }}
-                            sx={{ p: 0.5 }}
-                          >
-                            <MsqdxIcon name="close" customSize={16} />
-                          </IconButton>
-                        </Paper>
-                      ))}
-                    </Stack>
-                  </Box>
-                )}
-              </Stack>
-            )}
-          </DialogContent>
+                          <MsqdxIcon name="close" customSize={16} />
+                        </IconButton>
+                      </Paper>
+                    ))}
+                  </Stack>
+                </Box>
+              )}
+            </Stack>
+          )}
+        </DialogContent>
 
-          <DialogActions sx={{ px: 3, py: 2, gap: 0.75 }}>
-            <button
-              type="button"
-              className="msqdx-glass-button --ghost"
-              onClick={() => {
-                setJourneyDialogOpen(false);
-                setSelectedJourneyId(null);
-                setSelectedPhases([]);
-                setSelectedJourney(null);
-                setActiveDialogTab("phases");
-                setAttachedImages([]);
-              }}
-            >
-              Cancel
-            </button>
-            {activeDialogTab === "phases" && (
-              <button
-                type="button"
-                className="msqdx-glass-button"
-                onClick={handleAddPhasesToChat}
-                disabled={selectedPhases.length === 0}
-              >
-                <MsqdxIcon name="add" customSize={14} />
-                Add {selectedPhases.length}
-              </button>
-            )}
-            {activeDialogTab === "attachments" && (
-              <button
-                type="button"
-                className="msqdx-glass-button"
-                onClick={handleAddAttachmentsToChat}
-                disabled={attachedImages.length === 0}
-              >
-                <MsqdxIcon name="add" customSize={14} />
-                Add {attachedImages.length} image{attachedImages.length !== 1 ? "s" : ""}
-              </button>
-            )}
-          </DialogActions>
-        </Dialog>
-
-        {/* Share Chat Dialog */}
-        <Dialog
-          open={shareDialogOpen}
-          onClose={() => {
-            setShareDialogOpen(false);
-            setShareLinkCopied(false);
-          }}
-          maxWidth="sm"
-          fullWidth
-          PaperProps={{
-            sx: {
-              borderRadius: "24px",
-              backgroundColor: "var(--color-neutral)",
-              border: "3px solid var(--audion-light-border-color, #0f172a)",
-            },
-          }}
-        >
-          <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 0.75, pb: 1, pt: 2.5, px: 3 }}>
-            <MsqdxIcon name="share" customSize={20} />
-            <Typography variant="subtitle1" component="span" sx={{ fontWeight: 600 }}>
-              Share Chat
-            </Typography>
-          </DialogTitle>
-          <DialogContent sx={{ px: 3, py: 2 }}>
-            <Typography variant="body2" sx={{ mb: 2, color: alpha(theme.palette.text.primary, 0.8) }}>
-              Share this link to let others open a chat with <strong>{personaDisplayName}</strong>. Recipients need to be logged in and have access to this project.
-            </Typography>
-            <TextField
-              fullWidth
-              size="small"
-              value={
-                activePersonaId && activeProjectId
-                  ? buildShareChatUrl({ personaId: activePersonaId, projectId: activeProjectId })
-                  : ""
-              }
-              InputProps={{
-                readOnly: true,
-                sx: { fontSize: "0.8125rem" },
-              }}
-            />
-          </DialogContent>
-          <DialogActions sx={{ px: 3, py: 2, gap: 0.75 }}>
-            <button
-              type="button"
-              className="msqdx-glass-button --ghost"
-              onClick={() => {
-                setShareDialogOpen(false);
-                setShareLinkCopied(false);
-              }}
-            >
-              Close
-            </button>
+        <DialogActions sx={{ px: 3, py: 2, gap: 0.75 }}>
+          <button
+            type="button"
+            className="msqdx-glass-button --ghost"
+            onClick={() => {
+              setJourneyDialogOpen(false);
+              setSelectedJourneyId(null);
+              setSelectedPhases([]);
+              setSelectedJourney(null);
+              setActiveDialogTab("phases");
+              setAttachedImages([]);
+            }}
+          >
+            Cancel
+          </button>
+          {activeDialogTab === "phases" && (
             <button
               type="button"
               className="msqdx-glass-button"
-              onClick={async () => {
-                if (activePersonaId && activeProjectId) {
-                  const url = buildShareChatUrl({ personaId: activePersonaId, projectId: activeProjectId });
-                  try {
-                    await navigator.clipboard.writeText(url);
-                    setShareLinkCopied(true);
-                    notify("Link copied to clipboard");
-                    setTimeout(() => setShareLinkCopied(false), 2000);
-                  } catch {
-                    notify("Could not copy to clipboard");
-                  }
-                }
-              }}
-              disabled={!activePersonaId || !activeProjectId}
+              onClick={handleAddPhasesToChat}
+              disabled={selectedPhases.length === 0}
             >
-              <MsqdxIcon name="content_copy" customSize={16} />
-              {shareLinkCopied ? "Copied!" : "Copy link"}
+              <MsqdxIcon name="add" customSize={14} />
+              Add {selectedPhases.length}
             </button>
-          </DialogActions>
-        </Dialog>
+          )}
+          {activeDialogTab === "attachments" && (
+            <button
+              type="button"
+              className="msqdx-glass-button"
+              onClick={handleAddAttachmentsToChat}
+              disabled={attachedImages.length === 0}
+            >
+              <MsqdxIcon name="add" customSize={14} />
+              Add {attachedImages.length} image{attachedImages.length !== 1 ? "s" : ""}
+            </button>
+          )}
+        </DialogActions>
+      </Dialog>
 
-        {/* Persona Drawer */}
-        <Drawer
-          anchor="right"
-          open={personaDrawerOpen}
-          onClose={() => {
-            // Remove focus from any button inside drawer before closing to prevent aria-hidden error
-            const activeElement = document.activeElement as HTMLElement;
-            if (activeElement && activeElement.closest('[role="presentation"]')) {
-              activeElement.blur();
+      {/* Share Chat Dialog */}
+      <Dialog
+        open={shareDialogOpen}
+        onClose={() => {
+          setShareDialogOpen(false);
+          setShareLinkCopied(false);
+        }}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: "24px",
+            backgroundColor: "var(--color-neutral)",
+            border: "3px solid var(--audion-light-border-color, #0f172a)",
+          },
+        }}
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 0.75, pb: 1, pt: 2.5, px: 3 }}>
+          <MsqdxIcon name="share" customSize={20} />
+          <Typography variant="subtitle1" component="span" sx={{ fontWeight: 600 }}>
+            Share Chat
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ px: 3, py: 2 }}>
+          <Typography variant="body2" sx={{ mb: 2, color: alpha(theme.palette.text.primary, 0.8) }}>
+            Share this link to let others open a chat with <strong>{personaDisplayName}</strong>. Recipients need to be logged in and have access to this project.
+          </Typography>
+          <TextField
+            fullWidth
+            size="small"
+            value={
+              activePersonaId && activeProjectId
+                ? buildShareChatUrl({ personaId: activePersonaId, projectId: activeProjectId })
+                : ""
             }
-            setPersonaDrawerOpen(false);
-          }}
-          PaperProps={{
-            sx: {
-              width: { xs: "100%", sm: 640 },
-              backgroundColor: alpha(theme.palette.background.paper, theme.palette.mode === "dark" ? 0.98 : 1),
-              borderLeft: "1px solid var(--color-neutral)",
-              borderTopLeftRadius: 32,
-              borderBottomLeftRadius: 32
-            }
-          }}
-        >
-          <Box
-            sx={{
-              p: 3,
-              height: "100%",
-              display: "flex",
-              flexDirection: "column",
-              gap: 3,
-              backgroundColor: "var(--color-neutral)",
-              color: theme.palette.text.primary
+            InputProps={{
+              readOnly: true,
+              sx: { fontSize: "0.8125rem" },
+            }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2, gap: 0.75 }}>
+          <button
+            type="button"
+            className="msqdx-glass-button --ghost"
+            onClick={() => {
+              setShareDialogOpen(false);
+              setShareLinkCopied(false);
             }}
           >
-            <Stack direction="row" alignItems="center" justifyContent="space-between">
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Persona overview
-              </Typography>
-              <IconButton size="small" onClick={() => setPersonaDrawerOpen(false)}>
-                <MsqdxIcon name="close" customSize={20} />
-              </IconButton>
-            </Stack>
-            <Stack spacing={1.5} alignItems="center">
-              <Avatar
-                src={safeAvatarSrc(activePersona?.image_url ?? null, activePersonaId ?? undefined) ?? undefined}
-                alt={personaDisplayName}
-                sx={{ width: 88, height: 88 }}
-              >
-                {(personaDisplayName ?? "").charAt(0)}
-              </Avatar>
-              <Box textAlign="center">
-                <Typography variant="h5" sx={{ fontWeight: 600 }}>
-                  {personaDisplayName}
-                </Typography>
-                <Typography variant="body2" sx={{ color: alpha(theme.palette.text.primary, 0.7) }}>
-                  {personaPrimaryTagline}
-                </Typography>
-              </Box>
-              <Stack direction="row" spacing={1} flexWrap="wrap" justifyContent="center">
-                {personaChipData.map((chip) => (
-                  <Chip
-                    key={`${chip.icon}-${chip.label}`}
-                    icon={<MsqdxIcon name={chip.icon} customSize={16} />}
-                    label={chip.label}
-                    size="small"
-                    sx={{ borderRadius: 999 }}
-                  />
-                ))}
-              </Stack>
-            </Stack>
-            <Divider />
-            <Stack spacing={2.5} sx={{ flex: 1, overflowY: "auto", pr: 0.5 }}>
-              <Stack spacing={1}>
-                <Typography variant="subtitle2" sx={{ textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: 1 }}>
-                  Demographics
-                </Typography>
-                <Box
-                  sx={{
-                    display: "grid",
-                    gridTemplateColumns: { xs: "repeat(auto-fit, minmax(140px, 1fr))", sm: "repeat(3, minmax(140px, 1fr))" },
-                    gap: 1.5
-                  }}
-                >
-                  {[
-                    { label: "Full name", value: personaProfile?.fullName ?? personaDisplayName },
-                    { label: "Age", value: personaAge ? `${personaAge} Jahre` : undefined },
-                    { label: "Location", value: personaLocation }
-                  ].map((item) => (
-                    <Box key={item.label}>
-                      <Typography variant="caption" sx={{ textTransform: "uppercase", letterSpacing: 1 }}>
-                        {item.label}
-                      </Typography>
-                      <Typography variant="body1">{item.value ?? "—"}</Typography>
-                    </Box>
-                  ))}
-                </Box>
-              </Stack>
-              {personaKeyFacts.length > 0 && (
-                <Stack spacing={1}>
-                  <Typography variant="subtitle2" sx={{ textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: 1 }}>
-                    Key facts
-                  </Typography>
-                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                    {personaKeyFacts.map((fact, index) => (
-                      <Chip
-                        key={`fact-${index}`}
-                        label={fact}
-                        size="small"
-                        icon={<MsqdxIcon name="star" customSize={14} />}
-                        sx={{ borderRadius: 999 }}
-                      />
-                    ))}
-                  </Stack>
-                </Stack>
-              )}
-              {personaGoals.length > 0 && (
-                <Stack spacing={1}>
-                  <Typography variant="subtitle2" sx={{ textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: 1 }}>
-                    Goals
-                  </Typography>
-                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                    {personaGoals.map((goal, index) => (
-                      <Chip
-                        key={`goal-${index}`}
-                        label={goal}
-                        size="small"
-                        icon={<MsqdxIcon name="check" customSize={14} />}
-                        sx={{ borderRadius: 999 }}
-                      />
-                    ))}
-                  </Stack>
-                </Stack>
-              )}
-              {personaFrustrations.length > 0 && (
-                <Stack spacing={1}>
-                  <Typography variant="subtitle2" sx={{ textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: 1 }}>
-                    Frustrations
-                  </Typography>
-                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                    {personaFrustrations.map((item, index) => (
-                      <Chip
-                        key={`frustration-${index}`}
-                        label={item}
-                        size="small"
-                        icon={<MsqdxIcon name="warning" customSize={14} />}
-                        sx={{ borderRadius: 999 }}
-                      />
-                    ))}
-                  </Stack>
-                </Stack>
-              )}
-              {personaInterests.length > 0 && (
-                <Stack spacing={1}>
-                  <Typography variant="subtitle2" sx={{ textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: 1 }}>
-                    Interests
-                  </Typography>
-                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                    {personaInterests.map((interest, index) => (
-                      <Chip
-                        key={`interest-${index}`}
-                        label={interest}
-                        size="small"
-                        icon={<MsqdxIcon name="favorite" customSize={14} />}
-                        sx={{ borderRadius: 999 }}
-                      />
-                    ))}
-                  </Stack>
-                </Stack>
-              )}
-              {personaValues.length > 0 && (
-                <Stack spacing={1}>
-                  <Typography variant="subtitle2" sx={{ textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: 1 }}>
-                    Values
-                  </Typography>
-                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                    {personaValues.map((value, index) => (
-                      <Chip
-                        key={`value-${index}`}
-                        label={value}
-                        size="small"
-                        icon={<MsqdxIcon name="psychology" customSize={14} />}
-                        sx={{ borderRadius: 999 }}
-                      />
-                    ))}
-                  </Stack>
-                </Stack>
-              )}
-            </Stack>
-            <Button
-              variant="outlined"
-              startIcon={<MsqdxIcon name="swap_horiz" customSize={16} />}
-              onClick={(event) => setPersonaMenuAnchor(event.currentTarget)}
-              sx={{
-                borderRadius: 999
-              }}
-            >
-              Change persona
-            </Button>
-          </Box>
-        </Drawer>
+            Close
+          </button>
+          <button
+            type="button"
+            className="msqdx-glass-button"
+            onClick={async () => {
+              if (activePersonaId && activeProjectId) {
+                const url = buildShareChatUrl({ personaId: activePersonaId, projectId: activeProjectId });
+                try {
+                  await navigator.clipboard.writeText(url);
+                  setShareLinkCopied(true);
+                  notify("Link copied to clipboard");
+                  setTimeout(() => setShareLinkCopied(false), 2000);
+                } catch {
+                  notify("Could not copy to clipboard");
+                }
+              }
+            }}
+            disabled={!activePersonaId || !activeProjectId}
+          >
+            <MsqdxIcon name="content_copy" customSize={16} />
+            {shareLinkCopied ? "Copied!" : "Copy link"}
+          </button>
+        </DialogActions>
+      </Dialog>
 
-        {/* Persona Menu */}
-        <Menu
-          anchorEl={personaMenuAnchor}
-          open={personaMenuOpen}
-          onClose={() => setPersonaMenuAnchor(null)}
-          PaperProps={{
-            sx: { minWidth: 260, p: 0.5 }
+      {/* Persona Drawer */}
+      <Drawer
+        anchor="right"
+        open={personaDrawerOpen}
+        onClose={() => {
+          // Remove focus from any button inside drawer before closing to prevent aria-hidden error
+          const activeElement = document.activeElement as HTMLElement;
+          if (activeElement && activeElement.closest('[role="presentation"]')) {
+            activeElement.blur();
+          }
+          setPersonaDrawerOpen(false);
+        }}
+        PaperProps={{
+          sx: {
+            width: { xs: "100%", sm: 640 },
+            backgroundColor: alpha(theme.palette.background.paper, theme.palette.mode === "dark" ? 0.98 : 1),
+            borderLeft: "1px solid var(--color-neutral)",
+            borderTopLeftRadius: 32,
+            borderBottomLeftRadius: 32
+          }
+        }}
+      >
+        <Box
+          sx={{
+            p: 3,
+            height: "100%",
+            display: "flex",
+            flexDirection: "column",
+            gap: 3,
+            backgroundColor: "var(--color-neutral)",
+            color: theme.palette.text.primary
           }}
         >
-          {loadingPersonas ? (
-            <MenuItem disabled>
-              <Stack direction="row" spacing={1} alignItems="center">
-                <CircularProgress size={16} />
-                <Typography variant="body2">Loading personas…</Typography>
+          <Stack direction="row" alignItems="center" justifyContent="space-between">
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              Persona overview
+            </Typography>
+            <IconButton size="small" onClick={() => setPersonaDrawerOpen(false)}>
+              <MsqdxIcon name="close" customSize={20} />
+            </IconButton>
+          </Stack>
+          <Stack spacing={1.5} alignItems="center">
+            <Avatar
+              src={safeAvatarSrc(activePersona?.image_url ?? null, activePersonaId ?? undefined) ?? undefined}
+              alt={personaDisplayName}
+              sx={{ width: 88, height: 88 }}
+            >
+              {(personaDisplayName ?? "").charAt(0)}
+            </Avatar>
+            <Box textAlign="center">
+              <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                {personaDisplayName}
+              </Typography>
+              <Typography variant="body2" sx={{ color: alpha(theme.palette.text.primary, 0.7) }}>
+                {personaPrimaryTagline}
+              </Typography>
+            </Box>
+            <Stack direction="row" spacing={1} flexWrap="wrap" justifyContent="center">
+              {personaChipData.map((chip) => (
+                <Chip
+                  key={`${chip.icon}-${chip.label}`}
+                  icon={<MsqdxIcon name={chip.icon} customSize={16} />}
+                  label={chip.label}
+                  size="small"
+                  sx={{ borderRadius: 999 }}
+                />
+              ))}
+            </Stack>
+          </Stack>
+          <Divider />
+          <Stack spacing={2.5} sx={{ flex: 1, overflowY: "auto", pr: 0.5 }}>
+            <Stack spacing={1}>
+              <Typography variant="subtitle2" sx={{ textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: 1 }}>
+                Demographics
+              </Typography>
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: { xs: "repeat(auto-fit, minmax(140px, 1fr))", sm: "repeat(3, minmax(140px, 1fr))" },
+                  gap: 1.5
+                }}
+              >
+                {[
+                  { label: "Full name", value: personaProfile?.fullName ?? personaDisplayName },
+                  { label: "Age", value: personaAge ? `${personaAge} Jahre` : undefined },
+                  { label: "Location", value: personaLocation }
+                ].map((item) => (
+                  <Box key={item.label}>
+                    <Typography variant="caption" sx={{ textTransform: "uppercase", letterSpacing: 1 }}>
+                      {item.label}
+                    </Typography>
+                    <Typography variant="body1">{item.value ?? "—"}</Typography>
+                  </Box>
+                ))}
+              </Box>
+            </Stack>
+            {personaKeyFacts.length > 0 && (
+              <Stack spacing={1}>
+                <Typography variant="subtitle2" sx={{ textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: 1 }}>
+                  Key facts
+                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  {personaKeyFacts.map((fact, index) => (
+                    <Chip
+                      key={`fact-${index}`}
+                      label={fact}
+                      size="small"
+                      icon={<MsqdxIcon name="star" customSize={14} />}
+                      sx={{ borderRadius: 999 }}
+                    />
+                  ))}
+                </Stack>
+              </Stack>
+            )}
+            {personaGoals.length > 0 && (
+              <Stack spacing={1}>
+                <Typography variant="subtitle2" sx={{ textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: 1 }}>
+                  Goals
+                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  {personaGoals.map((goal, index) => (
+                    <Chip
+                      key={`goal-${index}`}
+                      label={goal}
+                      size="small"
+                      icon={<MsqdxIcon name="check" customSize={14} />}
+                      sx={{ borderRadius: 999 }}
+                    />
+                  ))}
+                </Stack>
+              </Stack>
+            )}
+            {personaFrustrations.length > 0 && (
+              <Stack spacing={1}>
+                <Typography variant="subtitle2" sx={{ textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: 1 }}>
+                  Frustrations
+                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  {personaFrustrations.map((item, index) => (
+                    <Chip
+                      key={`frustration-${index}`}
+                      label={item}
+                      size="small"
+                      icon={<MsqdxIcon name="warning" customSize={14} />}
+                      sx={{ borderRadius: 999 }}
+                    />
+                  ))}
+                </Stack>
+              </Stack>
+            )}
+            {personaInterests.length > 0 && (
+              <Stack spacing={1}>
+                <Typography variant="subtitle2" sx={{ textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: 1 }}>
+                  Interests
+                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  {personaInterests.map((interest, index) => (
+                    <Chip
+                      key={`interest-${index}`}
+                      label={interest}
+                      size="small"
+                      icon={<MsqdxIcon name="favorite" customSize={14} />}
+                      sx={{ borderRadius: 999 }}
+                    />
+                  ))}
+                </Stack>
+              </Stack>
+            )}
+            {personaValues.length > 0 && (
+              <Stack spacing={1}>
+                <Typography variant="subtitle2" sx={{ textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: 1 }}>
+                  Values
+                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  {personaValues.map((value, index) => (
+                    <Chip
+                      key={`value-${index}`}
+                      label={value}
+                      size="small"
+                      icon={<MsqdxIcon name="psychology" customSize={14} />}
+                      sx={{ borderRadius: 999 }}
+                    />
+                  ))}
+                </Stack>
+              </Stack>
+            )}
+          </Stack>
+          <Button
+            variant="outlined"
+            startIcon={<MsqdxIcon name="swap_horiz" customSize={16} />}
+            onClick={(event) => setPersonaMenuAnchor(event.currentTarget)}
+            sx={{
+              borderRadius: 999
+            }}
+          >
+            Change persona
+          </Button>
+        </Box>
+      </Drawer>
+
+      {/* Persona Menu */}
+      <Menu
+        anchorEl={personaMenuAnchor}
+        open={personaMenuOpen}
+        onClose={() => setPersonaMenuAnchor(null)}
+        PaperProps={{
+          sx: { minWidth: 260, p: 0.5 }
+        }}
+      >
+        {loadingPersonas ? (
+          <MenuItem disabled>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <CircularProgress size={16} />
+              <Typography variant="body2">Loading personas…</Typography>
+            </Stack>
+          </MenuItem>
+        ) : availablePersonas.length === 0 ? (
+          <MenuItem disabled>No personas available</MenuItem>
+        ) : (
+          availablePersonas.map((persona) => (
+            <MenuItem
+              key={persona.id}
+              selected={persona.id === activePersonaId}
+              onClick={() => {
+                setActivePersonaId(persona.id);
+                setPersonaMenuAnchor(null);
+              }}
+              sx={{ alignItems: "flex-start" }}
+            >
+              <Stack spacing={0.5}>
+                <Typography variant="body1">{persona.name}</Typography>
+                <Typography variant="caption">
+                  {persona.segment} · {(persona.confidence * 100).toFixed(0)}% confidence
+                </Typography>
               </Stack>
             </MenuItem>
-          ) : availablePersonas.length === 0 ? (
-            <MenuItem disabled>No personas available</MenuItem>
-          ) : (
-            availablePersonas.map((persona) => (
-              <MenuItem
-                key={persona.id}
-                selected={persona.id === activePersonaId}
-                onClick={() => {
-                  setActivePersonaId(persona.id);
-                  setPersonaMenuAnchor(null);
-                }}
-                sx={{ alignItems: "flex-start" }}
-              >
-                <Stack spacing={0.5}>
-                  <Typography variant="body1">{persona.name}</Typography>
-                  <Typography variant="caption">
-                    {persona.segment} · {(persona.confidence * 100).toFixed(0)}% confidence
-                  </Typography>
-                </Stack>
-              </MenuItem>
-            ))
-          )}
-        </Menu>
+          ))
+        )}
+      </Menu>
     </Box>
   );
 }

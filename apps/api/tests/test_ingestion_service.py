@@ -65,7 +65,7 @@ class StubQdrant:
 def test_ingestion_creates_chunks_and_updates_status(tmp_path: Path, session: Session, monkeypatch: pytest.MonkeyPatch) -> None:
     os.environ["DATA_DIR"] = str(tmp_path)
     document_id = uuid4()
-    persona_id = uuid4()
+    # persona_id = uuid4()
 
     persona = Persona(
         project_id=uuid4(),

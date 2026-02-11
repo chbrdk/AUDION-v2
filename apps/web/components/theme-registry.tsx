@@ -16,7 +16,7 @@ interface ThemeContextType {
 
 const defaultThemeContext: ThemeContextType = {
   themeMode: "light",
-  toggleTheme: () => {}
+  toggleTheme: () => { }
 };
 
 const ThemeContext = createContext<ThemeContextType>(defaultThemeContext);
@@ -153,7 +153,7 @@ const lightTheme = createTheme({
         lineHeight: 1.4
       }
     },
-    body1: { 
+    body1: {
       fontSize: "1rem",
       lineHeight: 1.6,
       fontWeight: 400,
@@ -163,7 +163,7 @@ const lightTheme = createTheme({
         fontWeight: 400
       }
     },
-    body2: { 
+    body2: {
       fontSize: "0.875rem",
       lineHeight: 1.5,
       fontWeight: 400,
@@ -277,7 +277,7 @@ const darkTheme = createTheme({
         lineHeight: 1.4
       }
     },
-    body1: { 
+    body1: {
       fontSize: "1rem",
       lineHeight: 1.6,
       fontWeight: 400,
@@ -287,7 +287,7 @@ const darkTheme = createTheme({
         fontWeight: 400
       }
     },
-    body2: { 
+    body2: {
       fontSize: "0.875rem",
       lineHeight: 1.5,
       fontWeight: 400,
@@ -326,17 +326,9 @@ const darkTheme = createTheme({
 export const ThemeRegistry = ({ children }: { children: ReactNode }) => {
   // #region agent log
   // Hooks must be called unconditionally (Rules of Hooks)
-  // We'll check for browser context after hooks are called
   const [themeMode, setThemeMode] = useState<ThemeMode>("light");
   const [mounted, setMounted] = useState(false);
   const isBrowser = typeof window !== 'undefined';
-  
-  // During SSR/prerendering, return children without theme context
-  // This prevents useContext from being called during prerendering
-  if (!isBrowser) {
-    return <>{children}</>;
-  }
-  // #endregion
 
   useEffect(() => {
     // Load theme from localStorage on mount
@@ -367,20 +359,20 @@ export const ThemeRegistry = ({ children }: { children: ReactNode }) => {
       // Load saved preference or use default (no random to avoid hydration mismatch)
       const savedColorVar = localStorage.getItem("audion-sidebar-color");
       const selectedVar = savedColorVar || "--color-secondary-dx-purple";
-      
+
       const styles = getComputedStyle(document.documentElement);
       const resolvedColor =
         (selectedVar ? styles.getPropertyValue(selectedVar).trim() : "") || "#0f172a";
 
       document.documentElement.style.setProperty("--audion-light-border-color", resolvedColor);
       document.documentElement.style.setProperty("--audion-light-html-background-color", resolvedColor);
-      
+
       // In light theme, always use black text for sidebar
       document.documentElement.style.setProperty("--audion-sidebar-text-color", "#000000");
-      
+
       // Set theme accent color (used for borders, accents, etc.)
       document.documentElement.style.setProperty("--color-theme-accent", `var(${selectedVar})`);
-      
+
       // Set theme accent tint
       const tintVar = COLOR_TINT_MAP[selectedVar] || "--color-secondary-dx-purple-tint";
       document.documentElement.style.setProperty("--color-theme-accent-tint", `var(${tintVar})`);
@@ -402,7 +394,7 @@ export const ThemeRegistry = ({ children }: { children: ReactNode }) => {
 
   // #region agent log
   // During SSR/prerendering, return children without theme context to avoid useContext errors
-  if (!isBrowser) {
+  if (!mounted) {
     return <>{children}</>;
   }
   // #endregion

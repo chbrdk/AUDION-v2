@@ -296,56 +296,10 @@ async def generate_persona_values(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.post(
-    "/{persona_id}/ai/interests",
-    response_model=AiAssistResponse,
-    summary="Generate AI suggestions for persona interests",
-)
-async def generate_persona_interests(
-    persona_id: str,
-    payload: Dict[str, int] | None = Body(default=None),
-    session: Session = Depends(get_db),
-) -> AiAssistResponse:
-    persona = _get_persona_or_404(session, persona_id)
-    max_items = (payload or {}).get("max_items", 3)
-    max_items = max(1, min(max_items, 10))
-    context = _build_persona_interests_ai_context(session, persona, max_items)
-    ai_request = AiAssistRequest(
-        template_id="persona.interests",
-        context=context,
-        max_suggestions=max_items,
-    )
-    try:
-        ai_assist = AiAssistService(session=session)
-        return await ai_assist.generate(ai_request)
-    except KeyError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.post(
-    "/{persona_id}/ai/values",
-    response_model=AiAssistResponse,
-    summary="Generate AI suggestions for persona values",
-)
-async def generate_persona_values(
-    persona_id: str,
-    payload: Dict[str, int] | None = Body(default=None),
-    session: Session = Depends(get_db),
-) -> AiAssistResponse:
-    persona = _get_persona_or_404(session, persona_id)
-    max_items = (payload or {}).get("max_items", 3)
-    max_items = max(1, min(max_items, 10))
-    context = _build_persona_values_ai_context(session, persona, max_items)
-    ai_request = AiAssistRequest(
-        template_id="persona.values",
-        context=context,
-        max_suggestions=max_items,
-    )
-    try:
-        ai_assist = AiAssistService(session=session)
-        return await ai_assist.generate(ai_request)
-    except KeyError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 
 
 @router.post(
@@ -760,7 +714,7 @@ async def list_persona_documents(persona_id: str, session: Session = Depends(get
             # Fallback to local query
     
     # Local query (fallback or if proxy disabled)
-    persona = _get_persona_or_404(session, persona_id)
+    _get_persona_or_404(session, persona_id)
     try:
         return persona_service.list_documents(session, persona_id)
     except ValueError as exc:
@@ -925,7 +879,7 @@ async def upload_persona_document(
     """
 )
 def list_persona_knowledge(persona_id: str, session: Session = Depends(get_db)) -> List[PersonaKnowledgeEntrySchema]:
-    persona = _get_persona_or_404(session, persona_id)
+    _get_persona_or_404(session, persona_id)
     try:
         return persona_service.list_knowledge(session, persona_id)
     except ValueError as exc:

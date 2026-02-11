@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, List, Protocol
+from typing import Any, Dict, List, Protocol
 from uuid import UUID
 
 import orjson
@@ -286,7 +286,6 @@ class PersonaService:
         return response
 
     def update_persona(self, session: Session, persona_id: str, payload: PersonaPatchRequest, profile_json: dict | None = None) -> PersonaResponse:
-        from typing import Any, Dict, List
         from .generic_field_handler import GenericFieldHandler
         from .field_config import get_preserved_fields
         

@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { Noto_Sans_JP } from "next/font/google";
 import { cookies, headers } from "next/headers";
+import Script from "next/script";
 import "../styles/globals.css";
 import "../styles/dashboard-cards.css";
 import { I18nProvider } from "../components/i18n/i18n-provider";
@@ -34,14 +35,15 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html lang={locale} suppressHydrationWarning>
       <head>
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,200..700,0..1,-50..200"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,200..700,0..1,-50..200&display=optional"
         />
-        <script
+        <Script
           src={`${basePath}/suppress-extension-errors.js`}
-          suppressHydrationWarning
-        ></script>
+          strategy="beforeInteractive"
+        />
       </head>
       <body className={`${notoSansJp.variable} ${notoSansJp.className}`}>
         <I18nProvider initialLocale={locale}>{children}</I18nProvider>

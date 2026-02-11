@@ -9,10 +9,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "app"))
 
-from uuid import UUID
+from uuid import UUID  # noqa: E402
 
-from app.db import get_session
-from app.models import DocumentChunk, TargetGroupKnowledgeEntry, TargetGroupSource
+from app.db import get_session  # noqa: E402
+from app.models import DocumentChunk, TargetGroupKnowledgeEntry, TargetGroupSource  # noqa: E402
 
 def check_knowledge_entry(entry_id: str) -> None:
     with get_session() as session:

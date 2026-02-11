@@ -399,7 +399,7 @@ def get_target_group_clusters(
         cluster_labels = cluster_result["cluster_labels"]
 
         # Only chunks with embeddings have coordinates
-        chunks_with_embeddings = [c for c in chunks_data if c.get("embedding")]
+        # chunks_with_embeddings = [c for c in chunks_data if c.get("embedding")]
         coord_idx = 0
 
         for idx, chunk_data in enumerate(chunks_data):

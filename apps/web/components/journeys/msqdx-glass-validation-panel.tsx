@@ -162,7 +162,7 @@ export const MsqdxGlassValidationPanel = ({
                       </div>
                       {fp.persona_quote && (
                         <p style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)", fontStyle: "italic", marginTop: "0.5rem" }}>
-                          "{fp.persona_quote}"
+                          &quot;{fp.persona_quote}&quot;
                         </p>
                       )}
                     </div>
