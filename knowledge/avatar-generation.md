@@ -44,7 +44,16 @@ Die Tabelle `audion.personas` hat die Spalte `image_url`. Wenn die Chat-API kein
 
 - **Migration:** `apps/api/alembic/versions/20260211_personas_image_url_text.py` – ändert `image_url` auf `TEXT`. Nach dem Ausführen der Migration funktioniert das Speichern der generierten Avatare.
   - **Lokal/Docker:** `docker-compose exec api alembic upgrade head`
-  - **Coolify:** Application → Services → **api** → Terminal → `alembic upgrade head`
+  - **Coolify (api-Container):** Im Terminal **immer aus dem API-Verzeichnis** laufen lassen (sonst findet Alembic die Config/DB nicht, `alembic current` bleibt leer):
+    ```bash
+    cd /app/apps/api && alembic current
+    cd /app/apps/api && alembic upgrade head
+    ```
+  - **Wenn `alembic current` dauerhaft leer bleibt:** Versionstabelle in der **Postgres-DB** prüfen: `SELECT * FROM audion.alembic_version;` – wenn leer oder Tabelle fehlt, Umgebung im Container prüfen (DATABASE_URL) bzw. Migration manuell anwenden (siehe unten).
+  - **Sofort-Fix ohne Alembic (nur Spalte anpassen):** In der **PostgreSQL-DB** (Coolify: DB-Resource → Console/psql) einmal ausführen:
+    ```sql
+    ALTER TABLE audion.personas ALTER COLUMN image_url TYPE TEXT USING image_url::TEXT;
+    ```
 - **API-Model:** `apps/api/app/models/__init__.py` – `Persona.image_url` ist auf `Text` umgestellt (entspricht der Migration).
 - **Fallback:** Wenn die Migration noch nicht gelaufen ist, fängt die Chat-API den Truncation-Fehler ab, antwortet trotzdem mit 200 und `image_url` + `persist_warning`. Die UI zeigt den Avatar einmal und die Warnung (Migration ausführen).
 

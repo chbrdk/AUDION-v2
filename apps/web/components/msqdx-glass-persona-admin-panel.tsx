@@ -70,7 +70,15 @@ const defaultKnowledgeForm: KnowledgeFormState = {
   content: "",
 };
 
-// Removed unused personaBackendPublicBase constant to prevent Mixed Content errors
+/** Avoid Mixed Content: use same-origin proxy when API returns http/localhost and page is HTTPS. */
+function safeAvatarSrc(avatarUrl: string | null | undefined, personaId: string | undefined): string | undefined {
+  if (!avatarUrl || !personaId) return avatarUrl ?? undefined;
+  if (avatarUrl.startsWith("data:")) return avatarUrl;
+  if (typeof window !== "undefined" && window.location.protocol === "https:" && (avatarUrl.startsWith("http://") || avatarUrl.includes("localhost"))) {
+    return buildApiUrl(`/api/persona-admin/${personaId}/avatar`);
+  }
+  return avatarUrl;
+}
 
 const formatDate = (value?: string | null) => {
   if (!value) {
@@ -1437,7 +1445,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
                   <Box sx={{ display: "flex", gap: 2, alignItems: "flex-start", mb: 2 }}>
                     <div className="msqdx-glass-avatar" style={{ flexShrink: 0 }}>
                       {detail.metadata.avatarUrl ? (
-                        <img src={detail.metadata.avatarUrl} alt={`${detail.profile.name} Avatar`} />
+                        <img src={safeAvatarSrc(detail.metadata.avatarUrl, detail.id) ?? detail.metadata.avatarUrl} alt={`${detail.profile.name} Avatar`} />
                       ) : (
                         <MsqdxIcon name="person" customSize={32} />
                       )}

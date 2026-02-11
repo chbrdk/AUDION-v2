@@ -12,6 +12,15 @@ const resolvePersonaId = async (context: PersonaContext): Promise<string | undef
   return personaId;
 };
 
+/** GET: serve persona avatar (proxies to backend). Avoids Mixed Content when API returns http://localhost. */
+export async function GET(_request: NextRequest, context: PersonaContext) {
+  const personaId = await resolvePersonaId(context);
+  if (!personaId) {
+    return NextResponse.json({ error: "Persona ID missing" }, { status: 400 });
+  }
+  return forwardPersonaBackend(`/personas/${personaId}/avatar`, { method: "GET" });
+}
+
 export async function POST(request: NextRequest, context: PersonaContext) {
   const personaId = await resolvePersonaId(context);
   if (!personaId) {

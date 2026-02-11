@@ -103,6 +103,17 @@ NEXT_PUBLIC_CHAT_API_URL=http://chat-api:8001
 NEXT_PERSONA_BACKEND_INTERNAL_URL=http://api:8000
 ```
 
+### API service: public URL for avatars and downloads
+
+Set this **on the api service** (not the web service) so avatar and document URLs in API responses use HTTPS and your domain instead of `http://localhost:8000` (which causes Mixed Content on HTTPS pages):
+
+```bash
+# Example: app at https://audion.example.com, API proxied under /api
+PERSONA_BACKEND_PUBLIC_URL=https://audion.example.com/api
+```
+
+If you don’t set this, the frontend will still try to avoid Mixed Content by loading avatars via the same-origin proxy (`/api/persona-admin/:id/avatar`).
+
 ### Coolify-Specific Notes
 
 - **Database Resources**: When using Coolify Database Resources, the hostname is the resource name (e.g., `audion-postgres`, `audion-redis`)
