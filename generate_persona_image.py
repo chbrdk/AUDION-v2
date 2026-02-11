@@ -74,7 +74,7 @@ def generate_image_for_persona(persona: Persona):
             persona.image_url = image_url
             persona.image_generated_at = datetime.utcnow()
             session.commit()
-            print(f"Success! Image URL saved to persona.")
+            print("Success! Image URL saved to persona.")
             print(f"Image URL (first 100 chars): {image_url[:100]}...")
             return True
     

@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import DataError
 
 from ..db import get_session
-from ..models import DocumentChunk, Persona, PersonaPrompt, PersonaSource
+from ..models import DocumentChunk, Persona
 from ..services.persona_generation import PersonaGenerationService
 from ..services.persona_image import PersonaImageService
 from msqdx_glass_proto import PersonaProfile
@@ -100,7 +100,7 @@ def create_persona(request: CreatePersonaRequest) -> PersonaResponse:
     # Generate detailed persona profile
     try:
         generation_service = PersonaGenerationService()
-        result = generation_service.generate(persona=persona, chunk_ids=chunk_uuids)
+        generation_service.generate(persona=persona, chunk_ids=chunk_uuids)
     except Exception as e:
         # If generation fails, still return the basic persona
         import structlog

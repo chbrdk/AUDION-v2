@@ -243,7 +243,6 @@ class PersonaGenerationService:
             logger.warning("persona_image.generation_failed_graceful", error=str(e), persona_id=str(persona.id))
             # Continue without image - graceful degradation
 
-        from datetime import datetime
         
         with get_session() as session:
             persona_model = session.get(Persona, persona.id)

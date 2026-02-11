@@ -7,7 +7,6 @@ from openai import OpenAI
 from msqdx_glass_proto import CompleteEvent, ContentDeltaEvent, SourcesEvent, ThinkingEvent
 
 from ..core.config import get_settings
-from ..utils.text import clean_response_text
 
 settings = get_settings()
 
@@ -251,9 +250,7 @@ class PersonaAgent:
                     logger.error("persona.agent.openai_call_failed", error=str(e), error_type=type(e).__name__, exc_info=True)
                     raise
                 
-                current_tool_call_id = None
-                current_tool_name = None
-                current_tool_arguments = ""
+
                 
                 for chunk in stream:
                     if not chunk.choices or len(chunk.choices) == 0:
@@ -287,15 +284,15 @@ class PersonaAgent:
                                 
                                 if tool_call_delta.id:
                                     tool_call["id"] = tool_call_delta.id
-                                    current_tool_call_id = tool_call_delta.id
+                                    tool_call["id"] = tool_call_delta.id
                                 
                                 if tool_call_delta.function:
                                     if tool_call_delta.function.name:
                                         tool_call["name"] = tool_call_delta.function.name
-                                        current_tool_name = tool_call_delta.function.name
+                                        tool_call["name"] = tool_call_delta.function.name
                                     if tool_call_delta.function.arguments:
                                         tool_call["arguments"] += tool_call_delta.function.arguments
-                                        current_tool_arguments = tool_call["arguments"]
+                                        tool_call["arguments"] += tool_call_delta.function.arguments
                     
                     # Check finish_reason to see if stream is complete
                     if finish_reason:

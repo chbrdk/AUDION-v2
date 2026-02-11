@@ -27,11 +27,10 @@ class PersonaImageService:
         # Extract demographic information from bio and segment
         name = profile.name
         segment = profile.segment
-        bio = profile.bio or ""
+
         
         # Try to extract age and demographics from bio
-        age_hint = ""
-        demographics_hint = ""
+
         profession_hint = segment
         
         # Extract traits for personality description

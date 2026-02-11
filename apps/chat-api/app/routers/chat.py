@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-import base64
-from typing import AsyncIterator, List, Dict, Any, Any as AnyType
+from typing import AsyncIterator, List, Dict, Any
 from uuid import UUID
 
 import structlog
@@ -12,8 +11,6 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import select
 
-from ..agents.persona import PersonaAgent
-from ..agents.retrieval import RetrievalAgent
 from ..core.config import get_settings
 from ..db import get_session
 from ..models import Persona, PersonaPrompt

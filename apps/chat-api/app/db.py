@@ -9,7 +9,6 @@ from contextlib import contextmanager
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 import logging
-import re
 
 from .core.config import get_settings
 

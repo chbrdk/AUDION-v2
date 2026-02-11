@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 from typing import Dict
 from uuid import uuid4
 from datetime import datetime, timedelta

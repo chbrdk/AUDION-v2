@@ -5,7 +5,7 @@ Testet Pydantic Validation und Features
 """
 
 import pytest
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, ValidationError
 
 
 class TestPydanticModels:

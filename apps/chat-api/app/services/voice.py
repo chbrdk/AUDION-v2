@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from functools import lru_cache
 from typing import Optional
 

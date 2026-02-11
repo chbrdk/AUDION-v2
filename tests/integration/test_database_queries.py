@@ -7,10 +7,9 @@ Testet die SQLAlchemy 2.0 Migration und Query-Performance
 import pytest
 from uuid import uuid4
 from sqlalchemy import select
-from sqlalchemy.orm import Session
 
 from apps.api.app.db import get_session
-from apps.api.app.models import Persona, Document, ProcessingJob, TargetGroup
+from apps.api.app.models import Persona, Document, ProcessingJob
 
 
 @pytest.mark.integration

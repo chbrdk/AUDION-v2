@@ -6,8 +6,7 @@ Executes Anthropic tool calls and returns results in the expected format.
 
 from __future__ import annotations
 
-import json
-from typing import Dict, Any, List
+from typing import Dict, Any
 from uuid import UUID
 
 import structlog
@@ -147,7 +146,6 @@ class ToolExecutor:
         
         # Try to search with target_group_id filter via Qdrant
         try:
-            from qdrant_client.http import models as qmodels
             
             # Search for chunks with target_group_id in payload
             # This is a simplified approach - ideally we'd use KnowledgeExplorerService

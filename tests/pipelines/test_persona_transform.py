@@ -4,7 +4,7 @@ import pytest
 
 yaml = pytest.importorskip("yaml")  # noqa: F841
 
-from pipelines.persona_transform import PersonaTransformJob
+from pipelines.persona_transform import PersonaTransformJob  # noqa: E402
 
 
 def test_transform_job_maps_basic_fields():
