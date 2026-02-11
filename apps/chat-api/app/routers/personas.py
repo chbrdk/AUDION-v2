@@ -11,6 +11,11 @@ from ..models import DocumentChunk, Persona, PersonaPrompt, PersonaSource
 from ..services.persona_generation import PersonaGenerationService
 from ..services.persona_image import PersonaImageService
 from msqdx_glass_proto import PersonaProfile
+from msqdx_glass_proto.personas import (
+    PersonaCommunicationStyle,
+    PersonaGoal,
+    PersonaPainPoint,
+)
 
 router = APIRouter(prefix="/personas", tags=["personas"])
 
@@ -174,6 +179,59 @@ class ProfileCardRegenerateResponse(BaseModel):
     profile_card: PersonaProfileCard | None
 
 
+def _normalize_pain_points(raw: list | None) -> list[PersonaPainPoint]:
+    """Convert stored pain_points (dicts or strings) to PersonaPainPoint list."""
+    if not raw:
+        return []
+    out = []
+    for p in raw:
+        if isinstance(p, PersonaPainPoint):
+            out.append(p)
+        elif isinstance(p, dict):
+            label = p.get("label") or ""
+            ec = p.get("evidence_count", p.get("evidenceCount", 0))
+            if isinstance(ec, float):
+                ec = int(ec)
+            out.append(PersonaPainPoint(label=str(label), evidence_count=ec))
+        else:
+            out.append(PersonaPainPoint(label=str(p), evidence_count=0))
+    return out
+
+
+def _normalize_goals(raw: list | None) -> list[PersonaGoal]:
+    """Convert stored goals to PersonaGoal list."""
+    if not raw:
+        return []
+    out = []
+    for i, g in enumerate(raw):
+        if isinstance(g, PersonaGoal):
+            out.append(g)
+        elif isinstance(g, dict):
+            label = g.get("label") or ""
+            prio = g.get("priority", g.get("priority", i + 1))
+            if isinstance(prio, float):
+                prio = int(prio)
+            out.append(PersonaGoal(label=str(label), priority=prio))
+        else:
+            out.append(PersonaGoal(label=str(g), priority=i + 1))
+    return out
+
+
+def _normalize_communication_style(raw: dict | None) -> PersonaCommunicationStyle:
+    """Ensure communication_style has required fields."""
+    if not raw or not isinstance(raw, dict):
+        return PersonaCommunicationStyle(
+            vocabulary=[],
+            sentence_structure="standard",
+            skepticism_level=5,
+        )
+    return PersonaCommunicationStyle(
+        vocabulary=raw.get("vocabulary") or [],
+        sentence_structure=raw.get("sentence_structure") or raw.get("sentenceStructure") or "standard",
+        skepticism_level=int(raw.get("skepticism_level", raw.get("skepticismLevel", 5))),
+    )
+
+
 @router.post("/{persona_id}/generate-image", response_model=GenerateImageResponse)
 def generate_persona_image(persona_id: str) -> GenerateImageResponse:
     """Generate an image for an existing persona."""
@@ -182,33 +240,45 @@ def generate_persona_image(persona_id: str) -> GenerateImageResponse:
     except ValueError as e:
         raise HTTPException(status_code=400, detail=f"Invalid persona ID format: {e}") from e
 
-    with get_session() as session:
-        persona = session.get(Persona, persona_uuid)
-        if not persona:
-            raise HTTPException(status_code=404, detail="Persona not found")
-        
-        # Convert persona to PersonaProfile
-        profile_dict = persona.profile if isinstance(persona.profile, dict) else {}
-        profile = PersonaProfile(
-            id=str(persona.id),
-            name=persona.name,
-            segment=persona.segment,
-            headline=persona.headline,
-            bio=profile_dict.get("bio", ""),
-            traits=profile_dict.get("traits", {}),
-            pain_points=profile_dict.get("pain_points", []),
-            goals=profile_dict.get("goals", []),
-            communication_style=profile_dict.get("communication_style", {}),
-            confidence=persona.confidence,
-            version=persona.version,
-            created_at=persona.created_at.isoformat(),
-        )
-    
-    # Generate image
+    try:
+        with get_session() as session:
+            persona = session.get(Persona, persona_uuid)
+            if not persona:
+                raise HTTPException(status_code=404, detail="Persona not found")
+
+            profile_dict = persona.profile if isinstance(persona.profile, dict) else {}
+            traits = profile_dict.get("traits") or {}
+            if not isinstance(traits, dict):
+                traits = {}
+            traits = {str(k): float(v) for k, v in traits.items() if isinstance(v, (int, float))}
+
+            profile = PersonaProfile(
+                id=str(persona.id),
+                name=persona.name or "",
+                segment=persona.segment or "",
+                headline=persona.headline or "",
+                bio=profile_dict.get("bio") or "",
+                traits=traits,
+                pain_points=_normalize_pain_points(profile_dict.get("pain_points") or profile_dict.get("painPoints")),
+                goals=_normalize_goals(profile_dict.get("goals")),
+                communication_style=_normalize_communication_style(
+                    profile_dict.get("communication_style") or profile_dict.get("communicationStyle")
+                ),
+                confidence=float(persona.confidence) if persona.confidence is not None else 0.0,
+                version=str(persona.version) if persona.version is not None else "0",
+                created_at=persona.created_at.isoformat(),
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to build persona profile for image generation: {e}",
+        ) from e
+
     image_service = PersonaImageService()
     image_url = image_service.generate_portrait(profile, save_to_storage=True)
-    
-    # Update persona with image URL
+
     if image_url:
         from datetime import datetime
         with get_session() as session:
@@ -217,10 +287,10 @@ def generate_persona_image(persona_id: str) -> GenerateImageResponse:
                 persona.image_url = image_url
                 persona.image_generated_at = datetime.utcnow()
                 session.commit()
-    
+
     return GenerateImageResponse(
         image_url=image_url,
-        status="success" if image_url else "failed"
+        status="success" if image_url else "failed",
     )
 
 
