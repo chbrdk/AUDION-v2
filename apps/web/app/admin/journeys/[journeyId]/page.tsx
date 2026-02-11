@@ -210,14 +210,12 @@ export default function JourneyEditorPage() {
   };
 
   const handleAddPhase = () => {
-    console.log("handleAddPhase called", { journey: !!journey, journeyId, phasesCount: journey?.phases?.length });
     if (!journey) {
       console.error("Cannot add phase: journey is not loaded");
       notify(t("journeys.editor.waitForLoad"));
       return;
     }
     const nextOrder = journey.phases.length + 1;
-    console.log("Setting phase form expanded to true, nextOrder:", nextOrder);
     setEditingPhaseId(null);
     setPhaseFormData({
       name: "",

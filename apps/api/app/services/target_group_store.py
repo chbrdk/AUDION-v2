@@ -40,7 +40,23 @@ class TargetGroupService:
         page: int = 1,
         page_size: int = 20,
     ) -> TargetGroupListResponse:
-        query = select(TargetGroup)
+        # Subqueries for counts to avoid N+1
+        persona_count_subq = (
+            select(func.count(Persona.id))
+            .where(Persona.target_group_id == TargetGroup.id)
+            .correlate(TargetGroup)
+            .scalar_subquery()
+        )
+        
+        knowledge_count_subq = (
+            select(func.count(TargetGroupKnowledgeEntry.id))
+            .where(TargetGroupKnowledgeEntry.target_group_id == TargetGroup.id)
+            .correlate(TargetGroup)
+            .scalar_subquery()
+        )
+
+        query = select(TargetGroup, persona_count_subq, knowledge_count_subq)
+        
         if allowed_project_ids is not None:
             if not allowed_project_ids:
                 return TargetGroupListResponse(items=[], total=0, page=page, page_size=page_size)
@@ -54,30 +70,30 @@ class TargetGroupService:
                 raise ValueError("project_access_denied")
             query = query.where(TargetGroup.project_id == project_uuid)
 
-        total = session.scalar(select(func.count()).select_from(query.subquery()))
-        items = session.scalars(
+        # Get total count (need separate query for count)
+        count_query = select(func.count(TargetGroup.id))
+        if allowed_project_ids is not None:
+            count_query = count_query.where(TargetGroup.project_id.in_(allowed_project_ids))
+        if project_id:
+             count_query = count_query.where(TargetGroup.project_id == UUID(project_id))
+        
+        total = session.scalar(count_query)
+
+        # Execute main query
+        results = session.execute(
             query.order_by(TargetGroup.updated_at.desc()).offset((page - 1) * page_size).limit(page_size)
         ).all()
 
         list_items = []
-        for tg in items:
-            persona_count = session.scalar(
-                select(func.count(Persona.id)).where(Persona.target_group_id == tg.id)
-            ) or 0
-            knowledge_count = session.scalar(
-                select(func.count(TargetGroupKnowledgeEntry.id)).where(
-                    TargetGroupKnowledgeEntry.target_group_id == tg.id
-                )
-            ) or 0
-
+        for tg, p_count, k_count in results:
             list_items.append(
                 TargetGroupListItem(
                     id=str(tg.id),
                     name=tg.name,
                     segment=tg.segment,
                     description=tg.description,
-                    persona_count=persona_count,
-                    knowledge_entry_count=knowledge_count,
+                    persona_count=p_count or 0,
+                    knowledge_entry_count=k_count or 0,
                     created_at=tg.created_at,
                     updated_at=tg.updated_at,
                 )
