@@ -25,6 +25,7 @@ import { getChatApiBase, buildApiUrl } from "../../app/api/_lib/backend";
 import { useProject } from "../../components/projects/project-provider";
 import { buildAdaptiveSystemPrompt } from "../../lib/adaptive-prompt";
 import { loadLearningsFromLocalStorage } from "../../lib/conversation-learnings";
+import { useShareChatHeader } from "../../components/chat/share-chat-header-context";
 
 /** Compatible with admin chat persona profile card (drawer details). */
 type PersonaProfileCard = {
@@ -78,6 +79,7 @@ function ChatSharePageContent() {
   const theme = useTheme();
   const searchParams = useSearchParams();
   const { activeProjectId, selectProject } = useProject();
+  const { setHeaderContent } = useShareChatHeader();
   const personaIdParam = searchParams.get("personaId");
   const projectIdParam = searchParams.get("projectId");
 
@@ -139,6 +141,43 @@ function ChatSharePageContent() {
   const personaLocation = personaProfile?.location;
   const personaInterests = personaProfile?.interests ?? [];
   const personaValues = personaProfile?.values ?? [];
+
+  // Persona button rechts oben im Layout-Header (wie normaler Chat)
+  useEffect(() => {
+    if (!persona) {
+      setHeaderContent(null);
+      return;
+    }
+    setHeaderContent(
+      <Button
+        variant="text"
+        onClick={() => setPersonaDrawerOpen(true)}
+        sx={{
+          textTransform: "none",
+          display: "flex",
+          alignItems: "center",
+          gap: 1.5,
+          padding: "0.5rem 1rem",
+          borderRadius: "8px",
+          "&:hover": { backgroundColor: alpha(theme.palette.text.primary, 0.08) },
+        }}
+      >
+        <Avatar src={persona?.image_url ?? undefined} alt={persona?.name ?? ""} sx={{ width: 36, height: 36 }}>
+          {(persona?.name ?? "").charAt(0)}
+        </Avatar>
+        <Box textAlign="left">
+          <Typography variant="body2" sx={{ fontWeight: 500, lineHeight: 1 }}>
+            {personaDisplayName}
+          </Typography>
+          <Typography variant="caption" sx={{ color: alpha(theme.palette.text.primary, 0.7) }}>
+            View persona profile
+          </Typography>
+        </Box>
+        <MsqdxIcon name="chevron_right" customSize={20} />
+      </Button>
+    );
+    return () => setHeaderContent(null);
+  }, [persona, personaDisplayName, setHeaderContent, theme.palette.text.primary]);
 
   // Set project from URL
   useEffect(() => {
@@ -426,47 +465,7 @@ function ChatSharePageContent() {
         </Box>
       )}
 
-      {/* Persona header – same as admin chat: button opens drawer with details */}
-      <Box
-        sx={{
-          flexShrink: 0,
-          display: "flex",
-          alignItems: "center",
-          gap: 1.5,
-          px: 2,
-          py: 1.5,
-          borderBottom: "1px solid var(--color-neutral)",
-        }}
-      >
-        <Button
-          variant="text"
-          onClick={() => setPersonaDrawerOpen(true)}
-          sx={{
-            textTransform: "none",
-            display: "flex",
-            alignItems: "center",
-            gap: 1.5,
-            padding: "0.5rem 1rem",
-            borderRadius: "8px",
-            "&:hover": { backgroundColor: alpha(theme.palette.text.primary, 0.08) },
-          }}
-        >
-          <Avatar src={persona?.image_url ?? undefined} alt={persona?.name ?? ""} sx={{ width: 36, height: 36 }}>
-            {(persona?.name ?? "").charAt(0)}
-          </Avatar>
-          <Box textAlign="left">
-            <Typography variant="body2" sx={{ fontWeight: 500, lineHeight: 1 }}>
-              {personaDisplayName}
-            </Typography>
-            <Typography variant="caption" sx={{ color: alpha(theme.palette.text.primary, 0.7) }}>
-              View persona profile
-            </Typography>
-          </Box>
-          <MsqdxIcon name="chevron_right" customSize={20} />
-        </Button>
-      </Box>
-
-      {/* Messages – same padding/structure as admin chat */}
+      {/* Messages – same padding/structure as admin chat (Persona-Button ist im Layout-Header rechts oben) */}
       <Box
         sx={{
           flex: 1,
@@ -512,7 +511,7 @@ function ChatSharePageContent() {
             value={input}
             disabled={sending}
             onChange={(e) => setInput(e.target.value)}
-            size="small"
+            size="large"
             sx={{
               ...INPUT_ACCENT_SX_WITH_FALLBACK,
               "& .msqdx-input-wrapper": {

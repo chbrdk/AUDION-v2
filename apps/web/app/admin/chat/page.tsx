@@ -1694,7 +1694,7 @@ function AdminChatPageContent() {
                   value={input}
                   disabled={!activePersonaId || sending}
                   onChange={(event) => setInput(event.target.value)}
-                  size="small"
+                  size="large"
                   sx={{
                     ...INPUT_ACCENT_SX,
                     "& .msqdx-input-wrapper": {
