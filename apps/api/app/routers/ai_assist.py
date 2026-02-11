@@ -25,6 +25,13 @@ def get_db():
         yield session
 
 
+from ..services.persona_ai_context import (
+    build_persona_ai_context,
+    build_persona_goals_ai_context,
+    build_persona_interests_ai_context,
+    build_persona_values_ai_context,
+)
+
 def _enrich_persona_context(
     session: Session,
     context: dict,
@@ -35,48 +42,40 @@ def _enrich_persona_context(
     if not persona_id:
         return context
     
+    # Validate UUID format
     try:
         persona_uuid = UUID(str(persona_id))
-        persona = session.get(Persona, persona_uuid)
-        if not persona:
-            logger.warning("ai.assist.persona_not_found", persona_id=str(persona_id))
-            return context
-        if allowed_project_ids is not None and persona.project_id not in allowed_project_ids:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Persona access denied")
-        
-        # Import helper functions from persona_ai_context service
-        from ..services.persona_ai_context import (
-            build_persona_ai_context,
-            build_persona_goals_ai_context,
-            build_persona_interests_ai_context,
-            build_persona_values_ai_context,
-        )
-        
-        # Determine which context builder to use based on template_id
-        template_id = context.get("_template_id", "")
-        max_items = context.get("max_items") or context.get("max_suggestions") or 3
-        
-        if "pain_points" in template_id:
-            persona_context = build_persona_ai_context(session, persona, max_items)
-        elif "goals" in template_id:
-            persona_context = build_persona_goals_ai_context(session, persona, max_items)
-        elif "interests" in template_id:
-            persona_context = build_persona_interests_ai_context(session, persona, max_items)
-        elif "values" in template_id:
-            persona_context = build_persona_values_ai_context(session, persona, max_items)
-        else:
-            # Default: use pain_points context builder
-            persona_context = build_persona_ai_context(session, persona, max_items)
-        
-        # Merge persona context with existing context (persona context takes precedence)
-        enriched = {**context, **persona_context}
-        return enriched
-    except (ValueError, TypeError) as exc:
-        logger.warning("ai.assist.invalid_persona_id", persona_id=str(persona_id), error=str(exc))
+    except (ValueError, TypeError):
+        logger.warning("ai.assist.invalid_persona_id", persona_id=str(persona_id))
         return context
-    except Exception as exc:
-        logger.warning("ai.assist.persona_context_failed", persona_id=str(persona_id), error=str(exc))
+
+    persona = session.get(Persona, persona_uuid)
+    if not persona:
+        logger.warning("ai.assist.persona_not_found", persona_id=str(persona_id))
         return context
+        
+    if allowed_project_ids is not None and persona.project_id not in allowed_project_ids:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Persona access denied")
+    
+    # Determine which context builder to use based on template_id
+    template_id = context.get("_template_id", "")
+    max_items = context.get("max_items") or context.get("max_suggestions") or 3
+    
+    if "pain_points" in template_id:
+        persona_context = build_persona_ai_context(session, persona, max_items)
+    elif "goals" in template_id:
+        persona_context = build_persona_goals_ai_context(session, persona, max_items)
+    elif "interests" in template_id:
+        persona_context = build_persona_interests_ai_context(session, persona, max_items)
+    elif "values" in template_id:
+        persona_context = build_persona_values_ai_context(session, persona, max_items)
+    else:
+        # Default: use pain_points context builder
+        persona_context = build_persona_ai_context(session, persona, max_items)
+    
+    # Merge persona context with existing context (persona context takes precedence)
+    enriched = {**context, **persona_context}
+    return enriched
 
 
 def allowed_project_ids_dep(
