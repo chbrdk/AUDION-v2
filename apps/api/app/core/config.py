@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     claude_api_key: str | None = Field(default=None, validation_alias=AliasChoices("claude_api_key", "ANTHROPIC_API_KEY"))  # Optional, can use OpenAI instead
     openai_api_key: str | None = None
     ai_anthropic_model: str = "claude-3-5-sonnet-20241022"
-    ai_openai_model: str = "gpt-4o-mini"
+    ai_openai_model: str = "gpt-5-mini"
     ai_default_provider: str = "anthropic"
     ai_default_temperature: float = 0.7
     ai_default_max_tokens: int = 4000

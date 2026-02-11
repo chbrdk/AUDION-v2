@@ -314,7 +314,7 @@ class PersonaGenerationService:
                         {"role": "system", "content": "You are a helpful persona generation assistant. You always output valid JSON."},
                         {"role": "user", "content": identity_prompt}
                     ],
-                    model=settings.ai_openai_model or "gpt-4o-mini",
+                    model=settings.ai_openai_model or "gpt-5-mini",
                     temperature=temperature,
                     response_format={"type": "json_object"},
                     max_tokens=2000,
