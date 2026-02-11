@@ -1445,7 +1445,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
                   <Box sx={{ display: "flex", gap: 2, alignItems: "flex-start", mb: 2 }}>
                     <div className="msqdx-glass-avatar" style={{ flexShrink: 0 }}>
                       {detail.metadata.avatarUrl ? (
-                        <img src={safeAvatarSrc(detail.metadata.avatarUrl, detail.id) ?? detail.metadata.avatarUrl} alt={`${detail.profile.name} Avatar`} />
+                        <img src={safeAvatarSrc(detail.metadata.avatarUrl, detail.metadata.personaId) ?? detail.metadata.avatarUrl} alt={`${detail.profile.name} Avatar`} />
                       ) : (
                         <MsqdxIcon name="person" customSize={32} />
                       )}
