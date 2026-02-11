@@ -45,7 +45,6 @@ export default function NewJourneyPage() {
         return;
       }
       const response = await targetGroupsApi.listTargetGroups({ page_size: 100, project_id: activeProjectId });
-      const response = await targetGroupsApi.listTargetGroups({ page_size: 100, project_id: activeProjectId });
       setTargetGroups(response.items || []);
     } catch (err) {
       console.error("Failed to load target groups:", err);
