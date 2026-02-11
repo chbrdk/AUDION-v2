@@ -278,7 +278,7 @@ class Persona(Base):
     last_reviewed_at = Column(DateTime, nullable=True)
     locked_by = Column(String(128), nullable=True)
     locked_at = Column(DateTime, nullable=True)
-    image_url = Column(String(512), nullable=True)
+    image_url = Column(Text, nullable=True)  # TEXT to allow data URLs from avatar generation (chat-api)
     image_generated_at = Column(DateTime, nullable=True)
     profile_card = Column(JSONB, nullable=True)
 
