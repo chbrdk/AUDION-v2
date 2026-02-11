@@ -520,7 +520,7 @@ class PersonaGenerationService:
                     try:
                         return float(nums[0])
                     except Exception:
-                        pass
+                        logger.debug("persona.scoring.trait_parse_failed", value=v, error=str(e))
                 # Fallback qualitative defaults
                 if any(word in v for word in ["low", "minimal", "cautious"]):
                     return 0.3

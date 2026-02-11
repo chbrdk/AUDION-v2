@@ -6,7 +6,10 @@ from uuid import UUID
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
+import structlog
 from ..celery_app import celery_app
+
+logger = structlog.get_logger(__name__)
 from ..models import Document, Persona, ProcessingJob, TargetGroup
 from ..schemas import (
     CeleryTaskStatus,

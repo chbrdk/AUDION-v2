@@ -344,5 +344,5 @@ async def chat_ws(websocket: WebSocket, conversation_id: str) -> None:
         try:
             manager.disconnect(websocket)
         except Exception:
-            pass  # Ignore errors during cleanup
+            logger.warning("ws.cleanup.disconnect_failed", error=str(e))
 

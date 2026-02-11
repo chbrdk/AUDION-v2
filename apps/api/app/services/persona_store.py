@@ -546,7 +546,7 @@ class PersonaService:
                 try:
                     self._storage.delete(key=document.object_key)
                 except Exception:
-                    pass  # File might not exist, continue with cleanup
+                    logger.warning("persona.delete.storage_failed", key=document.object_key, error=str(e))
             
             # Delete chunks from Qdrant
             try:
@@ -566,7 +566,7 @@ class PersonaService:
                         ),
                     )
             except Exception:
-                pass  # Qdrant might not be available, continue with cleanup
+                logger.warning("persona.delete.qdrant_failed", document_id=str(document.id), error=str(e))
             
             # Delete chunks from database
             session.execute(delete(DocumentChunk).where(DocumentChunk.document_id == document.id))
@@ -603,7 +603,7 @@ class PersonaService:
             try:
                 self._storage.delete(key=persona.image_url)
             except Exception:
-                pass  # Avatar might not exist, continue with cleanup
+                logger.warning("persona.delete.avatar_failed", key=persona.image_url, error=str(e))
         
         # Finally, delete the persona itself
         session.delete(persona)
