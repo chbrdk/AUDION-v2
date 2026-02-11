@@ -15,7 +15,7 @@ from .routers.projects import router as projects_router
 from .routers.documents import router as documents_router
 from .routers.ai_assist import router as ai_router
 from .routers.settings import router as settings_router
-from .routers.personas import router as personas_router
+from .routers.personas import router as personas_router, persona_admin_router
 from .routers.target_groups import router as target_groups_router
 from .routers.journeys import router as journeys_router
 from .routers.queue import router as queue_router
@@ -70,6 +70,7 @@ def create_app() -> FastAPI:
     app.include_router(ai_router)
     app.include_router(settings_router)
     app.include_router(personas_router)
+    app.include_router(persona_admin_router)
     app.include_router(target_groups_router)
     app.include_router(journeys_router)
     app.include_router(queue_router)

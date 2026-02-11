@@ -45,6 +45,9 @@ from ..services.target_group_store import TargetGroupService
 from ..services.storage import StorageService
 
 router = APIRouter(prefix="/personas", tags=["personas"])
+# Same avatar under /api/persona-admin for reverse proxies that route /api/* to this service
+persona_admin_router = APIRouter(prefix="/api/persona-admin", tags=["personas"])
+
 generator = PersonaGenerationService()
 persona_service = PersonaService()
 storage = StorageService()
@@ -1231,6 +1234,28 @@ def delete_persona_document(
     persona_service.invalidate_cache(persona_id)
 
 
+def _serve_persona_avatar(persona_id: str, session: Session):
+    """Shared logic for GET avatar: resolve persona and return image response."""
+    persona = _get_persona_or_404(session, persona_id)
+    if not persona.image_url:
+        raise HTTPException(status_code=404, detail="Avatar not found")
+    if persona.image_url.startswith(("http://", "https://")):
+        return RedirectResponse(persona.image_url)
+    if persona.image_url.startswith("data:"):
+        try:
+            header, encoded = persona.image_url.split(",", 1)
+            media_type = header.split(";")[0].split(":", 1)[1] if ";" in header else "image/png"
+            data = b64decode(encoded)
+        except (ValueError, IndexError, TypeError) as exc:
+            raise HTTPException(status_code=400, detail="Invalid avatar data URI") from exc
+        return Response(content=data, media_type=media_type)
+    try:
+        body, content_type = storage.stream(key=persona.image_url)
+    except Exception as exc:  # pragma: no cover - external dependency
+        raise HTTPException(status_code=404, detail="Avatar not found") from exc
+    return StreamingResponse(body, media_type=content_type)
+
+
 @router.get(
     "/{persona_id}/avatar",
     summary="Get the avatar image for a persona",
@@ -1257,21 +1282,10 @@ def delete_persona_document(
     """
 )
 def get_persona_avatar(persona_id: str, session: Session = Depends(get_db)):
-    persona = _get_persona_or_404(session, persona_id)
-    if not persona.image_url:
-        raise HTTPException(status_code=404, detail="Avatar not found")
-    if persona.image_url.startswith(("http://", "https://")):
-        return RedirectResponse(persona.image_url)
-    if persona.image_url.startswith("data:"):
-        try:
-            header, encoded = persona.image_url.split(",", 1)
-            media_type = header.split(";")[0].split(":", 1)[1] if ";" in header else "image/png"
-            data = b64decode(encoded)
-        except (ValueError, IndexError, TypeError) as exc:
-            raise HTTPException(status_code=400, detail="Invalid avatar data URI") from exc
-        return Response(content=data, media_type=media_type)
-    try:
-        body, content_type = storage.stream(key=persona.image_url)
-    except Exception as exc:  # pragma: no cover - external dependency
-        raise HTTPException(status_code=404, detail="Avatar not found") from exc
-    return StreamingResponse(body, media_type=content_type)
+    return _serve_persona_avatar(persona_id, session)
+
+
+@persona_admin_router.get("/{persona_id}/avatar", include_in_schema=False)
+def get_persona_avatar_via_admin_path(persona_id: str, session: Session = Depends(get_db)):
+    """Serve avatar at /persona-admin/:id/avatar for proxies that route /api/persona-admin to this API."""
+    return _serve_persona_avatar(persona_id, session)

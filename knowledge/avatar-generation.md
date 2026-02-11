@@ -56,6 +56,7 @@ Die Tabelle `audion.personas` hat die Spalte `image_url`. Wenn die Chat-API kein
     ```
 - **API-Model:** `apps/api/app/models/__init__.py` – `Persona.image_url` ist auf `Text` umgestellt (entspricht der Migration).
 - **Fallback:** Wenn die Migration noch nicht gelaufen ist, fängt die Chat-API den Truncation-Fehler ab, antwortet trotzdem mit 200 und `image_url` + `persist_warning`. Die UI zeigt den Avatar einmal und die Warnung (Migration ausführen).
+- **Avatar-URL / 404:** Wenn der Reverse-Proxy (z. B. Coolify) `/api/*` an den **API-Container** schickt, muss die API den Pfad `/api/persona-admin/:id/avatar` kennen. Dafür gibt es im API-Router `persona_admin_router` (Prefix `/api/persona-admin`) die Route `GET /{persona_id}/avatar`; sie nutzt dieselbe Logik wie `GET /personas/:id/avatar`.
 
 ## Relevante Dateien
 
