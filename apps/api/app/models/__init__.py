@@ -509,3 +509,18 @@ class JourneyInsight(Base):
     journey = relationship("Journey")
     phase = relationship("JourneyPhase")
     expectation = relationship("JourneyExpectation")
+
+
+class PromptTemplate(Base):
+    __tablename__ = "prompt_templates"
+    __table_args__ = {"schema": "audion"}
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(128), unique=True, nullable=False)
+    template = Column(Text, nullable=False)
+    description = Column(Text, nullable=True)
+    input_variables = Column(JSONB, nullable=False, default=[])
+    version = Column(String(32), nullable=False, default="1.0")
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+

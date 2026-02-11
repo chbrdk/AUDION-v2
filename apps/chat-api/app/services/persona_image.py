@@ -27,11 +27,6 @@ class PersonaImageService:
         # Extract demographic information from bio and segment
         name = profile.name
         segment = profile.segment
-
-        
-        # Try to extract age and demographics from bio
-
-        profession_hint = segment
         
         # Extract traits for personality description
         traits_desc = ""
@@ -43,7 +38,33 @@ class PersonaImageService:
             if trait_list:
                 traits_desc = f" They appear {', '.join(trait_list[:3])}."
         
-        # Build comprehensive prompt
+        # Try to fetch global prompt template from DB
+        try:
+            from ..db import SessionLocal
+            from ..models import PromptTemplate
+            from sqlalchemy import select
+            
+            with SessionLocal() as session:
+                template_record = session.scalar(
+                    select(PromptTemplate).where(PromptTemplate.name == "persona_avatar")
+                )
+                
+                if template_record and template_record.template:
+                    logger.info("persona_image.using_db_template", template_version=template_record.version)
+                    # Simple string replacement for template rendering (avoiding jinja2 dependency)
+                    # The template expects {{ name }}, {{ profession }}, {{ traits_desc }}
+                    rendered = template_record.template
+                    rendered = rendered.replace("{{ name }}", name)
+                    rendered = rendered.replace("{{ profession }}", segment) # segment maps to profession hint
+                    rendered = rendered.replace("{{ traits_desc }}", traits_desc)
+                    # Handle any other variables if added in future by just leaving them or basic replace
+                    return rendered
+        except Exception as e:
+            logger.warning("persona_image.template_fetch_failed", error=str(e))
+            # Fallback to hardcoded default
+        
+        # Build comprehensive prompt (Default Fallback)
+        profession_hint = segment
         prompt = (
             f"A professional portrait photograph of {name}, "
             f"a {profession_hint}.{traits_desc} "
