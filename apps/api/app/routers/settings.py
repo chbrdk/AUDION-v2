@@ -240,7 +240,7 @@ def get_persona_prompt(
             default_provider=get_value("default_provider", "anthropic"),
             default_model=get_value("default_model", "claude-3-5-haiku-20241022"),
             temperature=get_value("temperature", 0.4),
-            max_tokens=get_value("max_tokens", 600),
+            max_tokens=get_value("max_tokens", 1024),
             prompt=prompt.system_prompt,
             output=get_value("output", {"mode": "text"}),
             metadata={
@@ -408,7 +408,7 @@ def update_persona_prompt(
             default_provider=get_value("default_provider", "anthropic"),
             default_model=get_value("default_model", "claude-3-5-haiku-20241022"),
             temperature=get_value("temperature", 0.4),
-            max_tokens=get_value("max_tokens", 600),
+            max_tokens=get_value("max_tokens", 1024),
             prompt=prompt.system_prompt,
             output=get_value("output", {"mode": "text"}),
             metadata={

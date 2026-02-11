@@ -26,7 +26,7 @@ class PersonaAgent:
         send_event(ThinkingEvent(status="Retrieving evidence…"))
         stream = self._anthropic.messages.stream(
             model="claude-haiku-4-5-20251001",
-            max_tokens=600,
+            max_tokens=1024,
             temperature=0.4,
             system=system_prompt,
             messages=[

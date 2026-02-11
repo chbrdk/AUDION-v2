@@ -7,7 +7,7 @@ templates:
     default_provider: openai
     default_model: gpt-5-mini
     temperature: 0.55
-    max_tokens: 900
+    max_tokens: 1024
     prompt: |
       You are a Senior Journey Strategist. You support a team in concretizing a journey phase.
 
@@ -64,7 +64,7 @@ templates:
     default_provider: openai
     default_model: gpt-5-mini
     temperature: 0.5
-    max_tokens: 600
+    max_tokens: 1024
     prompt: |
       Write a concise and inspiring description for a customer journey phase.
       Avoid marketing language; stay concrete and from the user's perspective.
@@ -88,7 +88,7 @@ templates:
     default_provider: openai
     default_model: gpt-5-mini
     temperature: 0.65
-    max_tokens: 800
+    max_tokens: 1024
     prompt: |
       Analyze the persona information and suggest additional pain points
       that the team has not yet documented. Focus on concrete situations
@@ -122,7 +122,7 @@ templates:
     default_provider: openai
     default_model: gpt-5-mini
     temperature: 0.65
-    max_tokens: 800
+    max_tokens: 1024
     prompt: |
       Analyze the persona information and suggest additional goals
       that the team has not yet documented. Focus on concrete aspirations,
@@ -156,7 +156,7 @@ templates:
     default_provider: openai
     default_model: gpt-5-mini
     temperature: 0.65
-    max_tokens: 800
+    max_tokens: 1024
     prompt: |
       Analyze the persona information and suggest additional interests
       that the team has not yet documented. Focus on hobbies, activities,
@@ -190,7 +190,7 @@ templates:
     default_provider: openai
     default_model: gpt-5-mini
     temperature: 0.65
-    max_tokens: 800
+    max_tokens: 1024
     prompt: |
       Analyze the persona information and suggest additional values
       that the team has not yet documented. Focus on principles, beliefs,
@@ -285,7 +285,7 @@ templates:
     default_provider: openai
     default_model: gpt-5-mini
     temperature: 0.6
-    max_tokens: 600
+    max_tokens: 1024
     prompt: |
       You are an experienced Communication Analyst. Create vocabulary words based on knowledge graph relationships and research context.
 
@@ -494,7 +494,7 @@ templates:
     default_provider: openai
     default_model: gpt-5-mini
     temperature: 0.6
-    max_tokens: 200
+    max_tokens: 1024
     prompt: |
       Create a concise phase name (max. 50 characters) for a customer journey phase.
       
@@ -518,7 +518,7 @@ templates:
     default_provider: openai
     default_model: gpt-5-mini
     temperature: 0.5
-    max_tokens: 64
+    max_tokens: 1024
     prompt: |
       Suggest an appropriate emotion for this journey phase.
       

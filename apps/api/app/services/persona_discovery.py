@@ -50,7 +50,7 @@ class PersonaDiscoveryService:
         logger.info("persona.discovery.prompt_tokens", length=len(prompt))
         response = self._anthropic.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=800,
+            max_tokens=1024,
             temperature=0.1,
             messages=[
                 {
