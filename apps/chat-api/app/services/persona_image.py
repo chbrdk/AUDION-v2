@@ -49,18 +49,38 @@ class PersonaImageService:
                     select(PromptTemplate).where(PromptTemplate.name == "persona_avatar")
                 )
                 
+                logger.info("persona_image.template_query_result", 
+                           found=template_record is not None,
+                           has_template=template_record.template if template_record else None)
+                
                 if template_record and template_record.template:
-                    logger.info("persona_image.using_db_template", template_version=template_record.version)
+                    logger.info("persona_image.using_db_template", 
+                               template_version=template_record.version,
+                               template_preview=template_record.template[:100])
+                    
+                    # Log variable values for debugging
+                    logger.info("persona_image.rendering_variables",
+                               name=name,
+                               segment=segment, 
+                               traits_desc=traits_desc)
+                    
                     # Simple string replacement for template rendering (avoiding jinja2 dependency)
                     # The template expects {{ name }}, {{ profession }}, {{ traits_desc }}
                     rendered = template_record.template
                     rendered = rendered.replace("{{ name }}", name)
                     rendered = rendered.replace("{{ profession }}", segment) # segment maps to profession hint
                     rendered = rendered.replace("{{ traits_desc }}", traits_desc)
+                    
+                    logger.info("persona_image.template_rendered", 
+                               rendered_preview=rendered[:200])
+                    
                     # Handle any other variables if added in future by just leaving them or basic replace
                     return rendered
+                else:
+                    logger.warning("persona_image.no_template_in_db", 
+                                  template_name="persona_avatar")
         except Exception as e:
-            logger.warning("persona_image.template_fetch_failed", error=str(e))
+            logger.warning("persona_image.template_fetch_failed", error=str(e), exc_info=True)
             # Fallback to hardcoded default
         
         # Build comprehensive prompt (Default Fallback)
