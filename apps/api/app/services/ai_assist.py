@@ -18,7 +18,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..core.config import get_settings
-from ..models import AiTemplateOverride, Journey, JourneyPhase
+from ..models import AiTemplateOverride, Journey, JourneyPhase, PromptTemplate
 from ..schemas import (
     AiAssistRequest,
     AiAssistResponse,
@@ -657,6 +657,23 @@ class AiAssistService:
 
     def list_templates_for_project(self, *, session: Session, project_id: str) -> List[AiTemplateSummary]:
         base_templates = self.registry.list_templates()
+        
+        # [NEW] Fetch DB-based templates (PromptTemplate)
+        db_templates = session.scalars(select(PromptTemplate)).all()
+        for tpl in db_templates:
+            # Map PromptTemplate to AiTemplateSummary
+            # We infer defaults since PromptTemplate schema is simpler
+            summary = AiTemplateSummary(
+                template_id=tpl.name,
+                label=tpl.name.replace("_", " ").title(),
+                description=tpl.description or "Database prompt template",
+                category="persona" if "persona" in tpl.name else "general",
+                tags=["db", "custom"],
+                default_provider=AiProvider.OPENAI, # Default assumption for now
+                default_model="dall-e-3" if "image" in tpl.name or "avatar" in tpl.name else "gpt-4-turbo",
+            )
+            base_templates.append(summary)
+
         overrides = self._load_overrides(session=session, project_id=project_id)
 
         items: List[AiTemplateSummary] = []
@@ -675,7 +692,30 @@ class AiAssistService:
     def get_template_for_project(
         self, *, session: Session, project_id: str, template_id: str
     ) -> AiTemplateDefinition:
-        base = self.registry.get_full_template(template_id)
+        try:
+            base = self.registry.get_full_template(template_id)
+        except KeyError:
+            # Try fetching from DB if not in YAML registry
+            tpl = session.scalar(select(PromptTemplate).where(PromptTemplate.name == template_id))
+            if not tpl:
+                raise KeyError(f"Template '{template_id}' not found in registry or database")
+            
+            # Map PromptTemplate to AiTemplateDefinition
+            base = AiTemplateDefinition(
+                template_id=tpl.name,
+                label=tpl.name.replace("_", " ").title(),
+                description=tpl.description or "Database prompt template",
+                category="persona" if "persona" in tpl.name else "general",
+                tags=["db", "custom"],
+                default_provider=AiProvider.OPENAI,
+                default_model="dall-e-3" if "image" in tpl.name or "avatar" in tpl.name else "gpt-4-turbo",
+                temperature=0.7,
+                max_tokens=1024,
+                prompt=tpl.template,
+                output={"mode": "text"},
+                metadata={"version": tpl.version}
+            )
+
         override = self._load_override(session=session, project_id=project_id, template_id=template_id)
         return _apply_template_override(base, override or {})
 
