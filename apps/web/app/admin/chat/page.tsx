@@ -225,6 +225,16 @@ type Message = {
   images?: string[]; // Base64 data URLs for display (thumbnails)
 };
 
+/** Avoid Mixed Content: use same-origin proxy when avatar URL is http/localhost on HTTPS. */
+function safeAvatarSrc(avatarUrl: string | null | undefined, personaId: string | undefined): string | undefined {
+  if (!avatarUrl || !personaId) return avatarUrl ?? undefined;
+  if (avatarUrl.startsWith("data:")) return avatarUrl;
+  if (typeof window !== "undefined" && window.location.protocol === "https:" && (avatarUrl.startsWith("http://") || avatarUrl.includes("localhost"))) {
+    return buildApiUrl(`/api/persona-admin/${personaId}/avatar`);
+  }
+  return avatarUrl;
+}
+
 const notify = (message: string) => {
   if (typeof window === "undefined") {
     return;
@@ -1432,7 +1442,7 @@ function AdminChatPageContent() {
           }}
         >
           <Avatar
-            src={activePersona.image_url ?? undefined}
+            src={safeAvatarSrc(activePersona.image_url ?? null, activePersonaId ?? undefined) ?? undefined}
             alt={activePersona.name}
             sx={{ width: 36, height: 36 }}
           >
@@ -1594,17 +1604,59 @@ function AdminChatPageContent() {
               </Box>
             )}
 
-            {/* Chat Messages - Scrollable Area */}
-            <Box 
-              sx={{ 
+            {/* Chat Messages - Scrollable Area; when empty show welcome with large persona avatar */}
+            <Box
+              sx={{
                 flex: 1,
                 minHeight: 0,
                 overflowY: "auto",
                 padding: "1rem",
-                marginBottom: "1rem"
+                marginBottom: "1rem",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: messages.length === 0 ? "center" : "flex-start"
               }}
             >
-              <MsqdxGlassChatPanel messages={messages} systemPrompt={currentSystemPrompt} />
+              {messages.length === 0 ? (
+                <Box
+                  sx={{
+                    maxWidth: 480,
+                    width: "100%",
+                    textAlign: "center",
+                    px: 2,
+                    py: 3,
+                    borderRadius: 4,
+                    border: "1px solid var(--color-neutral)",
+                    backgroundColor: alpha(theme.palette.background.paper, 0.8)
+                  }}
+                >
+                  <Box sx={{ display: "flex", justifyContent: "center", mb: 2 }}>
+                    <Avatar
+                      src={safeAvatarSrc(activePersona?.image_url ?? null, activePersonaId ?? undefined) ?? undefined}
+                      alt={personaDisplayName}
+                      sx={{
+                        width: 160,
+                        height: 160,
+                        border: "3px solid var(--color-secondary-dx-green)",
+                        boxShadow: 2
+                      }}
+                    >
+                      {(personaDisplayName ?? "").charAt(0) ? (personaDisplayName ?? "").charAt(0).toUpperCase() : <MsqdxIcon name="person" customSize={80} />}
+                    </Avatar>
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                    Chat with {personaDisplayName}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+                    Start the conversation — type your message below and hit send.
+                  </Typography>
+                </Box>
+              ) : (
+                <Box sx={{ width: "100%", minHeight: 0, flex: 1 }}>
+                  <MsqdxGlassChatPanel messages={messages} systemPrompt={currentSystemPrompt} />
+                </Box>
+              )}
             </Box>
 
             {/* Input Area - Fixed at Bottom */}
@@ -2352,7 +2404,7 @@ function AdminChatPageContent() {
             </Stack>
             <Stack spacing={1.5} alignItems="center">
               <Avatar
-                src={activePersona?.image_url ?? undefined}
+                src={safeAvatarSrc(activePersona?.image_url ?? null, activePersonaId ?? undefined) ?? undefined}
                 alt={personaDisplayName}
                 sx={{ width: 88, height: 88 }}
               >

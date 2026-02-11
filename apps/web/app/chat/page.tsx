@@ -92,12 +92,30 @@ const welcomePulse = keyframes`
   50% { opacity: 0.85; }
 `;
 
-function ShareChatWelcomeMessage({ personaDisplayName }: { personaDisplayName: string }) {
+/** Avoid Mixed Content: use same-origin proxy when avatar URL is http/localhost on HTTPS. */
+function safeAvatarSrc(avatarUrl: string | null | undefined, personaId: string | undefined): string | undefined {
+  if (!avatarUrl || !personaId) return avatarUrl ?? undefined;
+  if (avatarUrl.startsWith("data:")) return avatarUrl;
+  if (typeof window !== "undefined" && window.location.protocol === "https:" && (avatarUrl.startsWith("http://") || avatarUrl.includes("localhost"))) {
+    return buildApiUrl(`/api/persona-admin/${personaId}/avatar`);
+  }
+  return avatarUrl;
+}
+
+type ShareChatWelcomeMessageProps = {
+  personaDisplayName: string;
+  avatarUrl?: string | null;
+  personaId?: string;
+};
+
+function ShareChatWelcomeMessage({ personaDisplayName, avatarUrl, personaId }: ShareChatWelcomeMessageProps) {
   const theme = useTheme();
+  const safeUrl = safeAvatarSrc(avatarUrl ?? null, personaId);
+  const initial = (personaDisplayName ?? "").charAt(0);
   return (
     <Box
       sx={{
-        maxWidth: 420,
+        maxWidth: 480,
         width: "100%",
         textAlign: "center",
         px: 2,
@@ -113,8 +131,20 @@ function ShareChatWelcomeMessage({ personaDisplayName }: { personaDisplayName: s
           animation: `${welcomePulse} 2.5s ease-in-out 0.6s infinite`,
         }}
       >
-        <Box sx={{ color: "var(--color-secondary-dx-green)", mb: 1.5, display: "flex", justifyContent: "center" }}>
-          <MsqdxIcon name="forum" customSize={48} />
+        {/* Large persona avatar for connection – prominent in intro */}
+        <Box sx={{ display: "flex", justifyContent: "center", mb: 2 }}>
+          <Avatar
+            src={safeUrl ?? undefined}
+            alt={personaDisplayName}
+            sx={{
+              width: 160,
+              height: 160,
+              border: "3px solid var(--color-secondary-dx-green)",
+              boxShadow: 2,
+            }}
+          >
+            {initial ? initial.toUpperCase() : <MsqdxIcon name="person" customSize={80} />}
+          </Avatar>
         </Box>
         <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
           Chat with {personaDisplayName}
@@ -214,7 +244,11 @@ function ChatSharePageContent() {
           "&:hover": { backgroundColor: alpha(theme.palette.text.primary, 0.08) },
         }}
       >
-        <Avatar src={persona?.image_url ?? undefined} alt={persona?.name ?? ""} sx={{ width: 36, height: 36 }}>
+        <Avatar
+          src={safeAvatarSrc(persona?.image_url ?? null, personaIdParam ?? undefined) ?? undefined}
+          alt={persona?.name ?? ""}
+          sx={{ width: 36, height: 36 }}
+        >
           {(persona?.name ?? "").charAt(0)}
         </Avatar>
         <Box textAlign="left">
@@ -532,7 +566,11 @@ function ChatSharePageContent() {
         }}
       >
         {messages.length === 0 ? (
-          <ShareChatWelcomeMessage personaDisplayName={personaDisplayName} />
+          <ShareChatWelcomeMessage
+            personaDisplayName={personaDisplayName}
+            avatarUrl={persona?.image_url}
+            personaId={personaIdParam ?? undefined}
+          />
         ) : (
           <Box sx={{ width: "100%", minHeight: 0, flex: 1 }}>
             <MsqdxGlassChatPanel messages={messages} />
@@ -639,7 +677,7 @@ function ChatSharePageContent() {
           </Stack>
           <Stack spacing={1.5} alignItems="center">
             <Avatar
-              src={persona?.image_url ?? undefined}
+              src={safeAvatarSrc(persona?.image_url ?? null, personaIdParam ?? undefined) ?? undefined}
               alt={personaDisplayName}
               sx={{ width: 88, height: 88 }}
             >
