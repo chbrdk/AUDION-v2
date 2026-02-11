@@ -34,7 +34,7 @@ export function LivePreviewPanel({ prompt, context, useMockData = false, onTestP
           enriched.journey_name = journey.name;
           enriched.journey_type = journey.journey_type;
           enriched.journey_description = journey.description || "";
-          
+
           // Build existing phases summary
           if (journey.phases && journey.phases.length > 0) {
             const sortedPhases = [...journey.phases].sort((a, b) => (a.phase_order || 0) - (b.phase_order || 0));
@@ -52,14 +52,14 @@ export function LivePreviewPanel({ prompt, context, useMockData = false, onTestP
               })
               .join("\n\n");
             enriched.existing_phases_count = sortedPhases.length;
-            
+
             const lastPhase = sortedPhases[sortedPhases.length - 1];
             enriched.last_phase_summary = `LAST PHASE (Phase ${lastPhase.phase_order}):\nName: ${lastPhase.name}\nDescription: ${lastPhase.description || "No description provided."}\nEmotion: ${lastPhase.expected_emotion || "not defined"}${lastPhase.emotion_intensity ? ` (${Math.round(lastPhase.emotion_intensity * 100)}%)` : ""}\nDuration: ${lastPhase.expected_duration_min || "?"}-${lastPhase.expected_duration_max || "?"} ${lastPhase.duration_unit || "minutes"}`;
             enriched.last_phase_name = lastPhase.name;
             enriched.last_phase_emotion = lastPhase.expected_emotion || "";
             enriched.next_phase_number = sortedPhases.length + 1;
           }
-          
+
           // Load phase data if phase_id is present
           if (context.phase_id && journey.phases) {
             const phase = journey.phases.find((p) => p.id === context.phase_id);
@@ -69,13 +69,13 @@ export function LivePreviewPanel({ prompt, context, useMockData = false, onTestP
               enriched.phase_expected_emotion = phase.expected_emotion || "";
             }
           }
-          
+
           // Load target group and personas if target_group_id is present
           if (journey.target_group_id) {
             try {
               const tg = await targetGroupsApi.getTargetGroup(journey.target_group_id);
               enriched.target_group_summary = `${tg.name}${tg.description ? `: ${tg.description}` : ""}`;
-              
+
               // Try to load personas from target group
               try {
                 const personaParams = new URLSearchParams({ page_size: "5" });
@@ -88,7 +88,7 @@ export function LivePreviewPanel({ prompt, context, useMockData = false, onTestP
                 if (personasResponse.ok) {
                   const personasData = await personasResponse.json();
                   const personas = Array.isArray(personasData) ? personasData : personasData.items || [];
-                  
+
                   if (personas.length > 0) {
                     const personaSummaries = await Promise.all(
                       personas.slice(0, 3).map(async (persona: any) => {
@@ -102,7 +102,7 @@ export function LivePreviewPanel({ prompt, context, useMockData = false, onTestP
                           const traits = profile?.traits ? Object.entries(profile.traits).map(([k, v]) => `${k}: ${v}`).slice(0, 5) : [];
                           const goals = profile?.goals ? profile.goals.map((g: any) => g.label || String(g)).slice(0, 3) : [];
                           const pains = profile?.pain_points ? profile.pain_points.map((p: any) => p.label || String(p)).slice(0, 3) : [];
-                          
+
                           let summary = `- ${fullPersona.name || persona.name || "Unknown Persona"}:`;
                           if (traits.length > 0) {
                             summary += ` Traits: ${traits.join(", ")}.`;
@@ -154,7 +154,7 @@ export function LivePreviewPanel({ prompt, context, useMockData = false, onTestP
             enriched.persona_name = persona.name || "";
             enriched.persona_headline = persona.profile?.headline || "";
             enriched.persona_bio = persona.profile?.bio || "";
-            
+
             // Build summaries
             if (persona.profile?.traits) {
               const traits = Object.entries(persona.profile.traits)
@@ -163,7 +163,7 @@ export function LivePreviewPanel({ prompt, context, useMockData = false, onTestP
                 .join(", ");
               enriched.existing_traits = traits;
             }
-            
+
             if (persona.profile?.goals) {
               const goals = persona.profile.goals
                 .map((g: any) => g.label || String(g))
@@ -171,7 +171,7 @@ export function LivePreviewPanel({ prompt, context, useMockData = false, onTestP
                 .join(", ");
               enriched.persona_goals = goals;
             }
-            
+
             if (persona.profile?.pain_points) {
               const pains = persona.profile.pain_points
                 .map((p: any) => p.label || String(p))
@@ -179,6 +179,9 @@ export function LivePreviewPanel({ prompt, context, useMockData = false, onTestP
                 .join(", ");
               enriched.persona_pain_points = pains;
             }
+
+            // Full profile JSON for variables like ${persona_profile}
+            enriched.persona_profile = JSON.stringify(persona.profile || {}, null, 2);
           }
         } catch (err) {
           console.error("Failed to load persona:", err);

@@ -177,11 +177,25 @@ async def test_prompt(
         # to ensure the user can only access personas they are allowed to see.
         allowed_project_ids = list_accessible_project_ids(session, _current_user.id)
         
+        # Helper to serialize context for logging (handling non-serializable objects)
+        def log_context(ctx, name="context"):
+            debug_ctx = {}
+            for k, v in ctx.items():
+                if isinstance(v, (str, int, float, bool, type(None))):
+                    debug_ctx[k] = v
+                else:
+                    debug_ctx[k] = f"<{type(v).__name__}>"
+            logger.info(f"ai.assist.test_prompt.{name}", keys=list(ctx.keys()), sample=debug_ctx)
+
+        log_context(payload.context, "original_context")
+
         enriched_context = _enrich_persona_context(
             session,
             payload.context,
             allowed_project_ids=allowed_project_ids,
         )
+        
+        log_context(enriched_context, "enriched_context")
 
         service = AiAssistService(registry=registry)
         service.session = session
