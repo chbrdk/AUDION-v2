@@ -4,9 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Box, Stack } from "@mui/material";
 import type { PersonaListResponse, PersonaResponse } from "@msqdx-glass/types";
-import { MsqdxButton, MsqdxChip, MsqdxFormField, MsqdxIcon, MsqdxMoleculeCard, MsqdxTypography } from "@msqdx/react";
+import { MsqdxAvatar, MsqdxButton, MsqdxChip, MsqdxFormField, MsqdxIcon, MsqdxMoleculeCard, MsqdxTypography } from "@msqdx/react";
 import { buildApiUrl } from "../../app/api/_lib/backend";
 import { ADMIN_ROUTES } from "../../lib/routes";
+import { safePersonaAvatarSrc } from "../../lib/persona-avatar";
 import { useProject } from "../projects/project-provider";
 import { useI18n } from "../i18n/i18n-provider";
 
@@ -294,6 +295,7 @@ export function MsqdxGlassPersonasOverview({ initialList }: MsqdxGlassPersonasOv
         {/* Persona cards */}
         {items.map((persona) => {
           const personaProjectId = persona.projectId;
+          const avatarSrc = safePersonaAvatarSrc(persona.avatarUrl ?? persona.imageUrl, persona.id);
           return (
           <MsqdxMoleculeCard
             key={persona.id}
@@ -302,6 +304,30 @@ export function MsqdxGlassPersonasOverview({ initialList }: MsqdxGlassPersonasOv
             clickable
             hoverable
             onClick={() => router.push(ADMIN_ROUTES.personaDetail(persona.id))}
+            media={(
+              <Box
+                sx={{
+                  height: 92,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  bgcolor: "rgba(0, 0, 0, 0.03)",
+                }}
+              >
+                <MsqdxAvatar
+                  size="xl"
+                  src={avatarSrc}
+                  alt={persona.name}
+                  fallback={(persona.name ?? "").trim() || "?"}
+                  bordered
+                  sx={{
+                    borderColor: accent,
+                    backgroundColor: accent,
+                    color: "white",
+                  }}
+                />
+              </Box>
+            )}
             title={persona.name}
             titleVariant="h6"
             subtitle={`${persona.segment}${persona.status ? ` · ${persona.status}` : ""}`}

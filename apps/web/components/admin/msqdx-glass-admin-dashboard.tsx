@@ -4,10 +4,11 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import type { PersonaListItem, TargetGroupListItem } from "@msqdx-glass/types";
 import { Box, Stack } from "@mui/material";
-import { MsqdxMoleculeCard, MsqdxButton, MsqdxTypography, MsqdxIcon } from "@msqdx/react";
+import { MsqdxAvatar, MsqdxMoleculeCard, MsqdxButton, MsqdxTypography, MsqdxIcon } from "@msqdx/react";
 import { useAuth } from "../auth/auth-provider";
 import { useI18n } from "../i18n/i18n-provider";
 import { ADMIN_ROUTES } from "../../lib/routes";
+import { safePersonaAvatarSrc } from "../../lib/persona-avatar";
 
 export type MsqdxGlassAdminDashboardProps = {
   personaItems: PersonaListItem[];
@@ -127,23 +128,19 @@ export const MsqdxGlassAdminDashboard = ({
                       transition: "border-color 0.2s",
                     }}
                   >
-                    <Box
+                    <MsqdxAvatar
+                      size="md"
+                      src={safePersonaAvatarSrc(persona.avatarUrl ?? persona.imageUrl, persona.id)}
+                      alt={persona.name}
+                      fallback={(persona.name ?? "").trim() || "?"}
+                      bordered
                       sx={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: "50%",
-                        bgcolor: accent,
+                        borderColor: accent,
+                        backgroundColor: accent,
                         color: "white",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontWeight: 600,
-                        fontSize: "0.9rem",
                         flexShrink: 0,
                       }}
-                    >
-                      {(persona.name || "?").charAt(0).toUpperCase()}
-                    </Box>
+                    />
                     <Box sx={{ minWidth: 0, flex: 1 }}>
                       <MsqdxTypography variant="subtitle2" sx={{ fontWeight: 600 }} noWrap>
                         {persona.name || "—"}
