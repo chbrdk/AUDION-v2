@@ -13,12 +13,23 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  const response = await fetch(`${getPersonaBackendBase({ preferPublic: false })}/auth/me`, {
-    headers: {
-      ...buildAuthHeaders(token),
-    },
-    cache: "no-store",
-  });
+  const target = `${getPersonaBackendBase({ preferPublic: false })}/auth/me`;
+  let response: Response;
+  try {
+    response = await fetch(target, {
+      headers: {
+        ...buildAuthHeaders(token),
+      },
+      cache: "no-store",
+    });
+  } catch (error) {
+    // Avoid crashing next start with unhandled ECONNREFUSED etc.
+    const message = error instanceof Error ? error.message : "fetch failed";
+    return NextResponse.json(
+      { error: "Persona backend unreachable", detail: message, target },
+      { status: 503 }
+    );
+  }
 
   const dataText = await response.text();
   return new NextResponse(dataText, {
@@ -37,14 +48,24 @@ export async function PATCH(request: NextRequest) {
   }
 
   const payload = await request.text();
-  const response = await fetch(`${getPersonaBackendBase({ preferPublic: false })}/auth/me`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": request.headers.get("content-type") ?? "application/json",
-      ...buildAuthHeaders(token),
-    },
-    body: payload,
-  });
+  const target = `${getPersonaBackendBase({ preferPublic: false })}/auth/me`;
+  let response: Response;
+  try {
+    response = await fetch(target, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": request.headers.get("content-type") ?? "application/json",
+        ...buildAuthHeaders(token),
+      },
+      body: payload,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "fetch failed";
+    return NextResponse.json(
+      { error: "Persona backend unreachable", detail: message, target },
+      { status: 503 }
+    );
+  }
 
   const dataText = await response.text();
   return new NextResponse(dataText, {
