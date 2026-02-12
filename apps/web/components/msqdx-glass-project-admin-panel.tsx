@@ -59,6 +59,7 @@ export function MsqdxGlassProjectAdminPanel({
 }: MsqdxGlassProjectAdminPanelProps) {
     const { t } = useI18n();
     const {
+        projects: providerProjects,
         activeProject,
         selectProject,
         createProject: createProjectViaProvider,
@@ -303,10 +304,16 @@ export function MsqdxGlassProjectAdminPanel({
 
     // Update projects list from provider
     useEffect(() => {
+        // Prefer live projects from ProjectProvider (client fetch), fallback to initial SSR-props.
+        // This makes the page resilient if the server-side prefetch fails.
+        if (providerProjects.length > 0) {
+            setProjects(providerProjects);
+            return;
+        }
         if (initialProjects.length > 0) {
             setProjects(initialProjects);
         }
-    }, [initialProjects]);
+    }, [providerProjects, initialProjects]);
 
     const roleOptions = [
         { value: "member", label: t("settingsProjects.roles.member") },
