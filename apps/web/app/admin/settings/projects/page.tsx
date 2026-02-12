@@ -7,7 +7,7 @@ import type { ProjectSummary } from "../../../../components/projects/project-pro
 
 async function fetchProjectsList(headers: HeadersInit): Promise<ProjectSummary[]> {
   try {
-    const response = await fetch(buildApiUrl("/api/project/list"), {
+    const response = await fetch(buildApiUrl("/api/projects"), {
       cache: "no-store",
       headers,
     });
@@ -18,7 +18,7 @@ async function fetchProjectsList(headers: HeadersInit): Promise<ProjectSummary[]
     }
 
     const data = await response.json();
-    return data.projects || [];
+    return data.items || [];
   } catch (error) {
     console.error("Error fetching projects:", error);
     return [];

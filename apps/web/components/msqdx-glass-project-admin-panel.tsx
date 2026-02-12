@@ -196,10 +196,10 @@ export function MsqdxGlassProjectAdminPanel({
         setListRefreshing(true);
         try {
             await refreshProjects();
-            const response = await fetch(buildApiUrl(`/api/project/list`), { cache: "no-store" });
+            const response = await fetch(buildApiUrl(`/api/projects`), { cache: "no-store" });
             if (response.ok) {
                 const data = await response.json();
-                setProjects(data.projects || []);
+                setProjects(data.items || []);
                 notify(t("settingsProjects.messages.listRefreshed") || "Projects updated");
             }
         } catch (error) {
@@ -312,9 +312,6 @@ export function MsqdxGlassProjectAdminPanel({
                         <div>
                             <MsqdxTypography variant="h5" weight="semibold">
                                 {t("settingsProjects.title")}
-                            </MsqdxTypography>
-                            <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
-                                {t("settingsProjects.subtitle")}
                             </MsqdxTypography>
                         </div>
                         <MsqdxButton
