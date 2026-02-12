@@ -86,6 +86,7 @@ export type PersonaInsight = {
 
 export type PersonaListItem = {
   id: string;
+  projectId?: string;
   name: string;
   segment: string;
   headline: string;

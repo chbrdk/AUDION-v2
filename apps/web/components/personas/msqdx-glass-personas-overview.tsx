@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Box, Stack } from "@mui/material";
 import type { PersonaListResponse, PersonaResponse } from "@msqdx-glass/types";
-import { MsqdxButton, MsqdxFormField, MsqdxIcon, MsqdxMoleculeCard, MsqdxTypography } from "@msqdx/react";
+import { MsqdxButton, MsqdxChip, MsqdxFormField, MsqdxIcon, MsqdxMoleculeCard, MsqdxTypography } from "@msqdx/react";
 import { buildApiUrl } from "../../app/api/_lib/backend";
 import { ADMIN_ROUTES } from "../../lib/routes";
 import { useProject } from "../projects/project-provider";
@@ -40,7 +40,7 @@ function extractPersonaId(payload: unknown): string | null {
 export function MsqdxGlassPersonasOverview({ initialList }: MsqdxGlassPersonasOverviewProps) {
   const { t } = useI18n();
   const router = useRouter();
-  const { activeProjectId, activeProject } = useProject();
+  const { activeProjectId, activeProject, projects } = useProject();
   const accent = "var(--color-theme-accent)";
 
   const [list, setList] = useState<PersonaListResponse>(initialList);
@@ -54,12 +54,30 @@ export function MsqdxGlassPersonasOverview({ initialList }: MsqdxGlassPersonasOv
 
   const items = useMemo(() => list.items ?? [], [list.items]);
 
-  const refresh = async (projectId: string) => {
+  const projectNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const p of projects) {
+      map.set(p.id, p.name);
+    }
+    return map;
+  }, [projects]);
+
+  const formatProjectLabel = (projectId: string) => {
+    const name = projectNameById.get(projectId);
+    if (name) return name;
+    return projectId.length > 10 ? `${projectId.slice(0, 8)}…` : projectId;
+  };
+
+  const refresh = async (projectId: string | null) => {
     setLoading(true);
     setLoadError(null);
     try {
+      const params = new URLSearchParams({ page: "1", page_size: "50" });
+      if (projectId) {
+        params.set("project_id", projectId);
+      }
       const response = await fetch(
-        buildApiUrl(`/api/persona-admin?page=1&page_size=50&project_id=${encodeURIComponent(projectId)}`),
+        buildApiUrl(`/api/persona-admin?${params.toString()}`),
         { cache: "no-store" }
       );
       if (!response.ok) {
@@ -77,11 +95,7 @@ export function MsqdxGlassPersonasOverview({ initialList }: MsqdxGlassPersonasOv
   };
 
   useEffect(() => {
-    if (!activeProjectId) {
-      setList({ items: [], total: 0, page: 1, page_size: 50 });
-      return;
-    }
-    void refresh(activeProjectId);
+    void refresh(activeProjectId ?? null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeProjectId]);
 
@@ -278,7 +292,9 @@ export function MsqdxGlassPersonasOverview({ initialList }: MsqdxGlassPersonasOv
         )}
 
         {/* Persona cards */}
-        {items.map((persona) => (
+        {items.map((persona) => {
+          const personaProjectId = persona.projectId;
+          return (
           <MsqdxMoleculeCard
             key={persona.id}
             variant="flat"
@@ -289,7 +305,23 @@ export function MsqdxGlassPersonasOverview({ initialList }: MsqdxGlassPersonasOv
             title={persona.name}
             titleVariant="h6"
             subtitle={`${persona.segment}${persona.status ? ` · ${persona.status}` : ""}`}
-            headerActions={<MsqdxIcon name="chevron_right" customSize={20} style={{ color: accent }} />}
+            headerActions={(
+              <Stack direction="row" spacing={1} alignItems="center">
+                {personaProjectId && (
+                  <MsqdxChip
+                    variant="outlined"
+                    size="small"
+                    label={formatProjectLabel(personaProjectId)}
+                    sx={{
+                      borderColor: accent,
+                      color: accent,
+                      "& .MuiChip-label": { color: accent },
+                    }}
+                  />
+                )}
+                <MsqdxIcon name="chevron_right" customSize={20} style={{ color: accent }} />
+              </Stack>
+            )}
             actions={(
               <MsqdxButton
                 variant="outlined"
@@ -317,7 +349,7 @@ export function MsqdxGlassPersonasOverview({ initialList }: MsqdxGlassPersonasOv
               "& .MuiTypography-h6": { color: accent },
             }}
           />
-        ))}
+        );})}
       </Box>
 
       {(loading || loadError || (!activeProjectId && !items.length)) && (

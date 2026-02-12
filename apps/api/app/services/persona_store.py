@@ -1003,6 +1003,7 @@ class PersonaService:
         
         return PersonaListItem(
             id=str(persona.id),
+            projectId=str(persona.project_id),
             name=persona.name,
             segment=persona.segment,
             headline=persona.headline,

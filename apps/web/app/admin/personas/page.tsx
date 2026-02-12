@@ -7,14 +7,18 @@ import { buildAuthHeaders, getServerAuthToken, getServerProjectId } from "../../
 import { MsqdxGlassPersonasOverview } from "../../../components/personas/msqdx-glass-personas-overview";
 import { getServerT } from "../../../lib/i18n/server";
 
-async function fetchPersonaList(projectId: string, headers: HeadersInit): Promise<PersonaListResponse> {
+async function fetchPersonaList(projectId: string | null, headers: HeadersInit): Promise<PersonaListResponse> {
   const base = getPersonaBackendBase({ preferPublic: false });
+  const query = new URLSearchParams({ page: "1", page_size: "50" });
+  if (projectId) {
+    query.set("project_id", projectId);
+  }
   
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
   
   try {
-    const response = await fetch(`${base}/personas?page=1&page_size=50&project_id=${projectId}`, {
+    const response = await fetch(`${base}/personas?${query.toString()}`, {
       cache: "no-store",
       signal: controller.signal,
       headers,
@@ -48,9 +52,6 @@ export default async function PersonaAdminPage() {
   const headers = buildAuthHeaders(await getServerAuthToken());
 
   try {
-    if (!projectId) {
-      throw new Error(t("backend.selectProject"));
-    }
     list = await fetchPersonaList(projectId, headers);
   } catch (err) {
     error = err instanceof Error ? err.message : "Unknown error";
