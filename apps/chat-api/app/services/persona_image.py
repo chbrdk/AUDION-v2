@@ -42,6 +42,14 @@ class PersonaImageService:
         - headline: Persona headline
         """
         import json
+        
+        # Debug: Log what we received
+        logger.info("persona_image.render_template_debug",
+                   has_profile_dict=profile_dict is not None,
+                   profile_dict_keys=list(profile_dict.keys()) if profile_dict else None,
+                   interests=profile_dict.get("interests") if profile_dict else None,
+                   values=profile_dict.get("values") if profile_dict else None)
+        
         # Build persona_profile as readable text description (matching Prompt Builder format)
         # Use profile_dict if available for complete data, otherwise build from profile
         profile_lines = []
