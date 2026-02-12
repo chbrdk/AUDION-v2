@@ -46,7 +46,7 @@ COPY apps/web apps/web
 RUN npm run build --workspace packages/types
 RUN mkdir -p apps/web/.next
 RUN --mount=type=cache,target=/tmp/.next-cache \
-    sh -c 'if [ "${RUN_WEB_BUILD}" = "true" ]; then npm run build:web; else echo "Skipping Next.js build"; fi'
+    sh -c 'if [ "${RUN_WEB_BUILD}" = "true" ]; then CI=true FORCE_COLOR=0 npm run build:web; else echo "Skipping Next.js build"; fi'
 
 FROM base AS runner
 # Copy design system for runtime (if needed by Next.js)
