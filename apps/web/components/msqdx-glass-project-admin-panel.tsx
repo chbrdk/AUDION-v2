@@ -510,7 +510,7 @@ export function MsqdxGlassProjectAdminPanel({
                         <div className="msqdx-glass-dashboard-grid">
                             {/* Project Header Card */}
                             <Box sx={{ gridColumn: "1 / -1" }}>
-                                <MsqdxDashboardCard variant="flat">
+                                <MsqdxCard>
                                     <MsqdxTypography variant="h4" weight="semibold" sx={{ mb: 0.5 }}>
                                         {detail.name}
                                     </MsqdxTypography>
@@ -541,20 +541,17 @@ export function MsqdxGlassProjectAdminPanel({
                                             </MsqdxTypography>
                                         </Box>
                                     </Box>
-                                </MsqdxDashboardCard>
+                                </MsqdxCard>
                             </Box>
 
                             {/* Overview Stats Card */}
                             <Box sx={{ gridColumn: { xs: "1 / -1", md: "span 6" } }}>
                                 <MsqdxDashboardCard
-                                    variant="flat"
-                                    header={{
-                                        title: t("settingsProjects.overview.title") || "Overview",
-                                        icon: "dashboard",
-                                    }}
-                                    collapsible
-                                    collapsed={!expandedSections.has("overview")}
-                                    onToggleCollapse={() => toggleSection("overview")}
+                                    id="overview"
+                                    title={t("settingsProjects.overview.title") || "Overview"}
+                                    icon="dashboard"
+                                    expanded={expandedSections.has("overview")}
+                                    onToggle={toggleSection}
                                 >
                                     <Stack spacing={2}>
                                         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -596,14 +593,11 @@ export function MsqdxGlassProjectAdminPanel({
                             {/* Team Members Card */}
                             <Box sx={{ gridColumn: { xs: "1 / -1", md: "span 6" } }}>
                                 <MsqdxDashboardCard
-                                    variant="flat"
-                                    header={{
-                                        title: t("settingsProjects.members.title"),
-                                        icon: "group",
-                                    }}
-                                    collapsible
-                                    collapsed={!expandedSections.has("members")}
-                                    onToggleCollapse={() => toggleSection("members")}
+                                    id="members"
+                                    title={t("settingsProjects.members.title")}
+                                    icon="group"
+                                    expanded={expandedSections.has("members")}
+                                    onToggle={toggleSection}
                                 >
                                     <Stack spacing={2}>
                                         {/* Add Member Form */}
@@ -680,19 +674,11 @@ export function MsqdxGlassProjectAdminPanel({
                             {detail.stats.persona_count > 0 && (
                                 <Box sx={{ gridColumn: { xs: "1 / -1", md: "span 6" } }}>
                                     <MsqdxDashboardCard
-                                        variant="flat"
-                                        header={{
-                                            title: `${t("settingsProjects.personas.title") || "Personas"} (${detail.stats.persona_count})`,
-                                            icon: "person",
-                                            action: (
-                                                <MsqdxButton variant="text" size="small" component="a" href="/admin/personas">
-                                                    {t("common.view")} {t("adminDashboard.viewAll")}
-                                                </MsqdxButton>
-                                            ),
-                                        }}
-                                        collapsible
-                                        collapsed={!expandedSections.has("personas")}
-                                        onToggleCollapse={() => toggleSection("personas")}
+                                        id="personas"
+                                        title={`${t("settingsProjects.personas.title") || "Personas"} (${detail.stats.persona_count})`}
+                                        icon="person"
+                                        expanded={expandedSections.has("personas")}
+                                        onToggle={toggleSection}
                                     >
                                         <Stack spacing={1}>
                                             {detail.recent_personas?.map((persona) => (
@@ -724,19 +710,11 @@ export function MsqdxGlassProjectAdminPanel({
                             {detail.stats.target_group_count > 0 && (
                                 <Box sx={{ gridColumn: { xs: "1 / -1", md: "span 6" } }}>
                                     <MsqdxDashboardCard
-                                        variant="flat"
-                                        header={{
-                                            title: `${t("settingsProjects.targetGroups.title") || "Target Groups"} (${detail.stats.target_group_count})`,
-                                            icon: "groups",
-                                            action: (
-                                                <MsqdxButton variant="text" size="small" component="a" href="/admin/target-groups">
-                                                    {t("common.view")} {t("adminDashboard.viewAll")}
-                                                </MsqdxButton>
-                                            ),
-                                        }}
-                                        collapsible
-                                        collapsed={!expandedSections.has("target-groups")}
-                                        onToggleCollapse={() => toggleSection("target-groups")}
+                                        id="target-groups"
+                                        title={`${t("settingsProjects.targetGroups.title") || "Target Groups"} (${detail.stats.target_group_count})`}
+                                        icon="groups"
+                                        expanded={expandedSections.has("target-groups")}
+                                        onToggle={toggleSection}
                                     >
                                         <Stack spacing={1}>
                                             {detail.recent_target_groups?.map((group) => (
@@ -768,19 +746,11 @@ export function MsqdxGlassProjectAdminPanel({
                             {detail.stats.template_override_count > 0 && (
                                 <Box sx={{ gridColumn: { xs: "1 / -1", md: "span 6" } }}>
                                     <MsqdxDashboardCard
-                                        variant="flat"
-                                        header={{
-                                            title: `${t("settingsProjects.aiTemplates.title")} (${detail.stats.template_override_count})`,
-                                            icon: "psychology",
-                                            action: (
-                                                <MsqdxButton variant="text" size="small" component="a" href="/admin/settings/prompts">
-                                                    {t("settingsProjects.aiTemplates.manageTemplates")}
-                                                </MsqdxButton>
-                                            ),
-                                        }}
-                                        collapsible
-                                        collapsed={!expandedSections.has("templates")}
-                                        onToggleCollapse={() => toggleSection("templates")}
+                                        id="templates"
+                                        title={`${t("settingsProjects.aiTemplates.title")} (${detail.stats.template_override_count})`}
+                                        icon="psychology"
+                                        expanded={expandedSections.has("templates")}
+                                        onToggle={toggleSection}
                                     >
                                         <Stack spacing={1}>
                                             {detail.template_overrides?.map((template) => (
