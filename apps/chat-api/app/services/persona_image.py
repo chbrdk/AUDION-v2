@@ -27,7 +27,8 @@ class PersonaImageService:
         profile: PersonaProfile, 
         name: str, 
         segment: str, 
-        traits_desc: str
+        traits_desc: str,
+        profile_dict: dict | None = None
     ) -> str:
         """
         Render template by replacing variables in both {{ }} and ${} formats.
@@ -36,41 +37,83 @@ class PersonaImageService:
         - name: Persona name
         - profession: Persona segment/profession
         - traits_desc: Personality traits description
-        - persona_profile: Full profile as formatted text
+        - persona_profile: Full profile as JSON
         - bio: Persona biography
         - headline: Persona headline
         """
         import json
         
-        # Build comprehensive profile text
-        profile_parts = []
-        profile_parts.append(f"Name: {name}")
-        profile_parts.append(f"Profession: {segment}")
-        if profile.headline:
-            profile_parts.append(f"Headline: {profile.headline}")
-        if profile.bio:
-            profile_parts.append(f"Bio: {profile.bio}")
-        if traits_desc:
-            profile_parts.append(f"Traits: {traits_desc.strip()}")
+        # Build persona_profile as JSON (matching Prompt Builder format)
+        # Use profile_dict if available for complete data, otherwise build from profile
+        if profile_dict:
+            # Use the complete profile dict from database
+            persona_json_dict = {
+                "id": profile.id,
+                "name": profile.name,
+                "segment": profile.segment,
+                "headline": profile.headline,
+                "bio": profile.bio,
+                "full_name": profile_dict.get("full_name"),
+                "age": profile_dict.get("age"),
+                "location": profile_dict.get("location"),
+                "gender": profile_dict.get("gender"),
+                "media_affinity": profile_dict.get("media_affinity"),
+                "interests": profile_dict.get("interests", []),
+                "color_palette": profile_dict.get("color_palette", []),
+                "attention_span": profile_dict.get("attention_span"),
+                "social_media_usage": profile_dict.get("social_media_usage", []),
+                "values": profile_dict.get("values", []),
+                "traits": profile.traits if profile.traits else {},
+                "pain_points": [{"label": pp.label, "evidence_count": pp.evidence_count} for pp in profile.pain_points] if profile.pain_points else [],
+                "goals": [{"label": g.label, "priority": g.priority} for g in profile.goals] if profile.goals else [],
+                "communication_style": {
+                    "vocabulary": profile.communication_style.vocabulary if profile.communication_style else [],
+                    "sentence_structure": profile.communication_style.sentence_structure if profile.communication_style else "",
+                    "skepticism_level": profile.communication_style.skepticism_level if profile.communication_style else 5,
+                } if profile.communication_style else {},
+                "confidence": profile.confidence,
+                "version": profile.version,
+                "created_at": profile.created_at,
+            }
+        else:
+            # Fallback: build minimal JSON from PersonaProfile only
+            persona_json_dict = {
+                "id": profile.id,
+                "name": profile.name,
+                "segment": profile.segment,
+                "headline": profile.headline,
+                "bio": profile.bio,
+                "full_name": None,
+                "age": None,
+                "location": None,
+                "gender": None,
+                "media_affinity": None,
+                "interests": [],
+                "color_palette": [],
+                "attention_span": None,
+                "social_media_usage": [],
+                "values": [],
+                "traits": profile.traits if profile.traits else {},
+                "pain_points": [{"label": pp.label, "evidence_count": pp.evidence_count} for pp in profile.pain_points] if profile.pain_points else [],
+                "goals": [{"label": g.label, "priority": g.priority} for g in profile.goals] if profile.goals else [],
+                "communication_style": {
+                    "vocabulary": profile.communication_style.vocabulary if profile.communication_style else [],
+                    "sentence_structure": profile.communication_style.sentence_structure if profile.communication_style else "",
+                    "skepticism_level": profile.communication_style.skepticism_level if profile.communication_style else 5,
+                } if profile.communication_style else {},
+                "confidence": profile.confidence,
+                "version": profile.version,
+                "created_at": profile.created_at,
+            }
         
-        # Add goals if available
-        if profile.goals:
-            goals_text = ", ".join([g.label for g in profile.goals[:3]])
-            profile_parts.append(f"Goals: {goals_text}")
-        
-        # Add pain points if available
-        if profile.pain_points:
-            pain_points_text = ", ".join([pp.label for pp in profile.pain_points[:3]])
-            profile_parts.append(f"Pain Points: {pain_points_text}")
-        
-        persona_profile_text = "\\n".join(profile_parts)
+        persona_profile_json = json.dumps(persona_json_dict, indent=2, ensure_ascii=False)
         
         # Create variable mapping
         variables = {
             "name": name,
             "profession": segment,
             "traits_desc": traits_desc,
-            "persona_profile": persona_profile_text,
+            "persona_profile": persona_profile_json,
             "bio": profile.bio or "",
             "headline": profile.headline or "",
         }
@@ -86,7 +129,7 @@ class PersonaImageService:
         
         return rendered
 
-    def _build_portrait_prompt(self, profile: PersonaProfile, project_id: str | None = None) -> str:
+    def _build_portrait_prompt(self, profile: PersonaProfile, project_id: str | None = None, profile_dict: dict | None = None) -> str:
         """Build a detailed prompt for realistic portrait generation."""
         # Extract demographic information from bio and segment
         name = profile.name
@@ -200,13 +243,19 @@ class PersonaImageService:
         return prompt
 
     def generate_portrait(
-        self, profile: PersonaProfile, project_id: str | None = None, save_to_storage: bool = True
+        self, 
+        profile: PersonaProfile, 
+        project_id: str | None = None, 
+        profile_dict: dict | None = None,
+        save_to_storage: bool = True
     ) -> Optional[str]:
         """
         Generate a portrait image for a persona.
         
         Args:
             profile: The persona profile to generate an image for
+            project_id: Optional project ID for template overrides
+            profile_dict: Optional full profile dict with interests, values, etc.
             save_to_storage: Whether to download and save the image to storage
             
         Returns:
@@ -217,7 +266,7 @@ class PersonaImageService:
             return None
 
         try:
-            prompt = self._build_portrait_prompt(profile, project_id=project_id)
+            prompt = self._build_portrait_prompt(profile, project_id=project_id, profile_dict=profile_dict)
             logger.info("persona_image.generating", persona_id=profile.id, prompt_preview=prompt[:100])
 
             # Call OpenAI Image API (gpt-image-1-mini model)

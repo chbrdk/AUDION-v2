@@ -282,6 +282,7 @@ def generate_persona_image(persona_id: str) -> GenerateImageResponse:
     image_url = image_service.generate_portrait(
         profile, 
         project_id=str(persona.project_id),
+        profile_dict=profile_dict,
         save_to_storage=True
     )
 
