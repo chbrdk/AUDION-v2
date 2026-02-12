@@ -389,7 +389,29 @@
       "title": "AI Templates",
       "description": "Customize prompt templates for AI-assisted features. Changes are project-specific.",
       "manageTemplates": "Manage Templates"
-    }
+    },
+    "overview": {
+      "title": "Overview",
+      "personas": "Personas",
+      "targetGroups": "Target Groups",
+      "members": "Team Members",
+      "templates": "Template Overrides"
+    },
+    "personas": {
+      "title": "Personas"
+    },
+    "targetGroups": {
+      "title": "Target Groups"
+    },
+    "messages": {
+      "selectProject": "Select a project to view details",
+      "listRefreshed": "Project list refreshed",
+      "projectCreated": "Project created",
+      "memberAdded": "Member added",
+      "memberRemoved": "Member removed"
+    },
+    "created": "Created",
+    "updated": "Updated"
   },
   "settingsProviders": {
     "eyebrow": "AI Settings",

@@ -384,7 +384,34 @@
       "loading": "Mitglieder laden…",
       "none": "Noch keine weiteren Mitglieder.",
       "remove": "Entfernen"
-    }
+    },
+    "aiTemplates": {
+      "title": "KI‑Templates",
+      "description": "Passe Prompt‑Templates für KI‑gestützte Funktionen an. Änderungen sind projektspezifisch.",
+      "manageTemplates": "Templates verwalten"
+    },
+    "overview": {
+      "title": "Übersicht",
+      "personas": "Personas",
+      "targetGroups": "Zielgruppen",
+      "members": "Teammitglieder",
+      "templates": "Template‑Overrides"
+    },
+    "personas": {
+      "title": "Personas"
+    },
+    "targetGroups": {
+      "title": "Zielgruppen"
+    },
+    "messages": {
+      "selectProject": "Wähle ein Projekt, um Details anzuzeigen",
+      "listRefreshed": "Projektliste aktualisiert",
+      "projectCreated": "Projekt erstellt",
+      "memberAdded": "Mitglied hinzugefügt",
+      "memberRemoved": "Mitglied entfernt"
+    },
+    "created": "Erstellt",
+    "updated": "Aktualisiert"
   },
   "settingsProviders": {
     "eyebrow": "KI‑Einstellungen",
