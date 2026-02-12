@@ -37,83 +37,73 @@ class PersonaImageService:
         - name: Persona name
         - profession: Persona segment/profession
         - traits_desc: Personality traits description
-        - persona_profile: Full profile as JSON
+        - persona_profile: Full profile as readable text
         - bio: Persona biography
         - headline: Persona headline
         """
         import json
-        
-        # Build persona_profile as JSON (matching Prompt Builder format)
+        # Build persona_profile as readable text description (matching Prompt Builder format)
         # Use profile_dict if available for complete data, otherwise build from profile
-        if profile_dict:
-            # Use the complete profile dict from database
-            persona_json_dict = {
-                "id": profile.id,
-                "name": profile.name,
-                "segment": profile.segment,
-                "headline": profile.headline,
-                "bio": profile.bio,
-                "full_name": profile_dict.get("full_name"),
-                "age": profile_dict.get("age"),
-                "location": profile_dict.get("location"),
-                "gender": profile_dict.get("gender"),
-                "media_affinity": profile_dict.get("media_affinity"),
-                "interests": profile_dict.get("interests", []),
-                "color_palette": profile_dict.get("color_palette", []),
-                "attention_span": profile_dict.get("attention_span"),
-                "social_media_usage": profile_dict.get("social_media_usage", []),
-                "values": profile_dict.get("values", []),
-                "traits": profile.traits if profile.traits else {},
-                "pain_points": [{"label": pp.label, "evidence_count": pp.evidence_count} for pp in profile.pain_points] if profile.pain_points else [],
-                "goals": [{"label": g.label, "priority": g.priority} for g in profile.goals] if profile.goals else [],
-                "communication_style": {
-                    "vocabulary": profile.communication_style.vocabulary if profile.communication_style else [],
-                    "sentence_structure": profile.communication_style.sentence_structure if profile.communication_style else "",
-                    "skepticism_level": profile.communication_style.skepticism_level if profile.communication_style else 5,
-                } if profile.communication_style else {},
-                "confidence": profile.confidence,
-                "version": profile.version,
-                "created_at": profile.created_at,
-            }
-        else:
-            # Fallback: build minimal JSON from PersonaProfile only
-            persona_json_dict = {
-                "id": profile.id,
-                "name": profile.name,
-                "segment": profile.segment,
-                "headline": profile.headline,
-                "bio": profile.bio,
-                "full_name": None,
-                "age": None,
-                "location": None,
-                "gender": None,
-                "media_affinity": None,
-                "interests": [],
-                "color_palette": [],
-                "attention_span": None,
-                "social_media_usage": [],
-                "values": [],
-                "traits": profile.traits if profile.traits else {},
-                "pain_points": [{"label": pp.label, "evidence_count": pp.evidence_count} for pp in profile.pain_points] if profile.pain_points else [],
-                "goals": [{"label": g.label, "priority": g.priority} for g in profile.goals] if profile.goals else [],
-                "communication_style": {
-                    "vocabulary": profile.communication_style.vocabulary if profile.communication_style else [],
-                    "sentence_structure": profile.communication_style.sentence_structure if profile.communication_style else "",
-                    "skepticism_level": profile.communication_style.skepticism_level if profile.communication_style else 5,
-                } if profile.communication_style else {},
-                "confidence": profile.confidence,
-                "version": profile.version,
-                "created_at": profile.created_at,
-            }
+        profile_lines = []
         
-        persona_profile_json = json.dumps(persona_json_dict, indent=2, ensure_ascii=False)
+        # Basic info
+        profile_lines.append(f"Name: {profile.name}")
+        profile_lines.append(f"Profession: {profile.segment}")
+        if profile.headline:
+            profile_lines.append(f"Headline: {profile.headline}")
+        if profile.bio:
+            profile_lines.append(f"Bio: {profile.bio}")
+        
+        # Traits
+        if profile.traits:
+            trait_names = [k for k, v in profile.traits.items() if v > 0.6]
+            if trait_names:
+                profile_lines.append(f"Traits: {', '.join(trait_names)}")
+        
+        # Interests (from profile_dict)
+        if profile_dict and profile_dict.get("interests"):
+            interests = profile_dict.get("interests", [])
+            if interests:
+                profile_lines.append(f"Interests: {', '.join(interests[:5])}")
+        
+        # Values (from profile_dict)
+        if profile_dict and profile_dict.get("values"):
+            values = profile_dict.get("values", [])
+            if values:
+                profile_lines.append(f"Values: {', '.join(values[:5])}")
+        
+        # Goals
+        if profile.goals:
+            goals_text = ", ".join([g.label for g in profile.goals[:3]])
+            profile_lines.append(f"Goals: {goals_text}")
+        
+        # Pain points
+        if profile.pain_points:
+            pain_points_text = ", ".join([pp.label for pp in profile.pain_points[:3]])
+            profile_lines.append(f"Pain Points: {pain_points_text}")
+        
+        # Communication style
+        if profile.communication_style and profile.communication_style.vocabulary:
+            vocab = ", ".join(profile.communication_style.vocabulary[:5])
+            profile_lines.append(f"Communication Style: {vocab}")
+        
+        # Additional attributes from profile_dict
+        if profile_dict:
+            if profile_dict.get("age"):
+                profile_lines.append(f"Age: {profile_dict.get('age')}")
+            if profile_dict.get("location"):
+                profile_lines.append(f"Location: {profile_dict.get('location')}")
+            if profile_dict.get("gender"):
+                profile_lines.append(f"Gender: {profile_dict.get('gender')}")
+        
+        persona_profile_text = "\n".join(profile_lines)
         
         # Create variable mapping
         variables = {
             "name": name,
             "profession": segment,
             "traits_desc": traits_desc,
-            "persona_profile": persona_profile_json,
+            "persona_profile": persona_profile_text,
             "bio": profile.bio or "",
             "headline": profile.headline or "",
         }
