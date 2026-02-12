@@ -1560,19 +1560,17 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
                       </p>
                     </MsqdxGlassDashboardCardSection>
                   )}
-                  {(detail.profile.full_name || detail.profile.age || detail.profile.location || detail.profile.gender || (detail.profile.media_affinity !== null && detail.profile.media_affinity !== undefined)) && (
-                    <MsqdxGlassDashboardCardSection title={t("personaAdmin.demographics")}>
-                      <MsqdxGlassEntityEditor
-                        entityType="persona"
-                        entity={detail.profile}
-                        onSave={async (updates) => {
-                          await handleDemographicSave(updates as Partial<PersonaProfile>);
-                        }}
-                        inline={true}
-                        fieldOverrides={{ name: undefined, headline: undefined, segment: undefined }}
-                      />
-                    </MsqdxGlassDashboardCardSection>
-                  )}
+                  <MsqdxGlassDashboardCardSection title={t("personaAdmin.demographics")}>
+                    <MsqdxGlassEntityEditor
+                      entityType="persona"
+                      entity={detail.profile}
+                      onSave={async (updates) => {
+                        await handleDemographicSave(updates as Partial<PersonaProfile>);
+                      }}
+                      inline={true}
+                      fieldOverrides={{ name: undefined, headline: undefined, segment: undefined }}
+                    />
+                  </MsqdxGlassDashboardCardSection>
                 </MsqdxDashboardCard>
               </Box>
 
@@ -1693,27 +1691,24 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
               )}
 
               {/* Card: Pain Points & Goals - Full Width, zweispaltig */}
-              {((detail.profile.pain_points && detail.profile.pain_points.length > 0) ||
-                (detail.profile.goals && detail.profile.goals.length > 0)) && (
-                  <MsqdxGlassPainPointsGoalsCard
-                    profile={detail.profile}
-                    expanded={isAccordionExpanded("pain-points-goals")}
-                    onToggle={toggleAccordion}
-                    onSavePainPoints={handleSavePainPoints}
-                    onSaveGoals={handleSaveGoals}
-                    onAiSuggestGoals={handleGenerateGoalsIdeas}
-                    aiGoalsLoading={personaAiLoading}
-                    onAiSuggestPainPoints={handleGeneratePainPointIdeas}
-                    aiPainPointsLoading={personaAiLoading}
-                    painPointsToolbar={
-                      personaAiError ? (
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", width: "100%" }}>
-                          <span className="msqdx-glass-pain-toolbar__error">{personaAiError}</span>
-                        </div>
-                      ) : undefined
-                    }
-                  />
-                )}
+              <MsqdxGlassPainPointsGoalsCard
+                profile={detail.profile}
+                expanded={isAccordionExpanded("pain-points-goals")}
+                onToggle={toggleAccordion}
+                onSavePainPoints={handleSavePainPoints}
+                onSaveGoals={handleSaveGoals}
+                onAiSuggestGoals={handleGenerateGoalsIdeas}
+                aiGoalsLoading={personaAiLoading}
+                onAiSuggestPainPoints={handleGeneratePainPointIdeas}
+                aiPainPointsLoading={personaAiLoading}
+                painPointsToolbar={
+                  personaAiError ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", width: "100%" }}>
+                      <span className="msqdx-glass-pain-toolbar__error">{personaAiError}</span>
+                    </div>
+                  ) : undefined
+                }
+              />
 
               {/* Card: Knowledge & Sources - Full Width */}
               <MsqdxGlassKnowledgeSourcesCard
