@@ -1,9 +1,9 @@
 export const dynamic = "force-dynamic";
 
-import { getServerProjectId, getServerAuthToken } from "../../api/_lib/auth";
-import { MsqdxGlassProjectAdminPanel } from "../../../components/msqdx-glass-project-admin-panel";
-import { buildApiUrl } from "../../api/_lib/backend";
-import type { ProjectSummary } from "../../../components/projects/project-provider";
+import { getServerProjectId, getServerAuthToken } from "../../../api/_lib/auth";
+import { MsqdxGlassProjectAdminPanel } from "../../../../components/msqdx-glass-project-admin-panel";
+import { buildApiUrl } from "../../../api/_lib/backend";
+import type { ProjectSummary } from "../../../../components/projects/project-provider";
 
 async function fetchProjectsList(headers: HeadersInit): Promise<ProjectSummary[]> {
   try {
