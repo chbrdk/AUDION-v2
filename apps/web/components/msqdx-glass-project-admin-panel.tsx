@@ -27,6 +27,7 @@ type ProjectDetail = {
 type MsqdxGlassProjectAdminPanelProps = {
     initialProjects: ProjectSummary[];
     activeProjectId: string | null;
+    mode?: "full" | "detail";
 };
 
 const formatDate = (value?: string | null) => {
@@ -56,6 +57,7 @@ const notify = (message: string) => {
 export function MsqdxGlassProjectAdminPanel({
     initialProjects,
     activeProjectId,
+    mode = "full",
 }: MsqdxGlassProjectAdminPanelProps) {
     const { t } = useI18n();
     const {
@@ -302,6 +304,17 @@ export function MsqdxGlassProjectAdminPanel({
         }
     }, [selectedId, loadDetail]);
 
+    // In detail-mode, force-select the project from route to keep cookie/provider in sync.
+    useEffect(() => {
+        if (mode !== "detail") return;
+        if (!activeProjectId) return;
+        if (selectedId !== activeProjectId) {
+            setSelectedId(activeProjectId);
+        }
+        // Ensure global project selection (cookie) matches the route.
+        selectProject(activeProjectId);
+    }, [mode, activeProjectId, selectedId, selectProject]);
+
     // Update projects list from provider
     useEffect(() => {
         // Prefer live projects from ProjectProvider (client fetch), fallback to initial SSR-props.
@@ -322,8 +335,9 @@ export function MsqdxGlassProjectAdminPanel({
 
     return (
         <div className="msqdx-glass-admin-grid">
-            <MsqdxGlassCollapsiblePanel title={t("settingsProjects.title")} defaultExpanded={true}>
-                <section className="msqdx-glass-panel">
+            {mode === "full" && (
+                <MsqdxGlassCollapsiblePanel title={t("settingsProjects.title")} defaultExpanded={true}>
+                    <section className="msqdx-glass-panel">
                     {/* Header with Refresh Button */}
                     <header className="msqdx-glass-panel__header">
                         <div>
@@ -490,8 +504,9 @@ export function MsqdxGlassProjectAdminPanel({
                             </MsqdxCard>
                         ))}
                     </Box>
-                </section>
-            </MsqdxGlassCollapsiblePanel>
+                    </section>
+                </MsqdxGlassCollapsiblePanel>
+            )}
 
             {/* Detail Panel */}
             <section className="msqdx-glass-panel">

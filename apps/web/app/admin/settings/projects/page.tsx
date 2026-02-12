@@ -1,47 +1,7 @@
 export const dynamic = "force-dynamic";
 
-import { getServerProjectId, getServerAuthToken } from "../../../api/_lib/auth";
-import { MsqdxGlassProjectAdminPanel } from "../../../../components/msqdx-glass-project-admin-panel";
-import { getPersonaBackendBase } from "../../../api/_lib/backend";
-import type { ProjectSummary } from "../../../../components/projects/project-provider";
-
-async function fetchProjectsList(headers: HeadersInit): Promise<ProjectSummary[]> {
-  try {
-    const apiUrl = `${getPersonaBackendBase({ preferPublic: false })}/projects`;
-    const response = await fetch(apiUrl, {
-      cache: "no-store",
-      headers,
-    });
-
-    if (!response.ok) {
-      console.error("Failed to fetch projects list:", response.status);
-      return [];
-    }
-
-    const data = await response.json();
-    return data.items || [];
-  } catch (error) {
-    console.error("Error fetching projects:", error);
-    return [];
-  }
-}
+import { redirect } from "next/navigation";
 
 export default async function ProjectsPage() {
-  const activeProjectId = await getServerProjectId();
-  const authToken = await getServerAuthToken();
-
-  // Build headers with auth token
-  const headers: HeadersInit = {};
-  if (authToken) {
-    headers["Authorization"] = `Bearer ${authToken}`;
-  }
-
-  const projects = await fetchProjectsList(headers);
-
-  return (
-    <MsqdxGlassProjectAdminPanel
-      initialProjects={projects}
-      activeProjectId={activeProjectId}
-    />
-  );
+  redirect("/admin/projects");
 }

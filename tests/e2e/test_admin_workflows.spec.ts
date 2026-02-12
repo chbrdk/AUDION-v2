@@ -86,7 +86,11 @@ test.describe('Admin Workflows', () => {
     });
 
     await page.goto(`${BASE_URL}/admin/projects`);
-    await expect(page.getByRole('button', { name: /Demo Project/ }).first()).toBeVisible();
+    // Overview shows cards; click project card to open detail route
+    const projectCard = page.getByRole('button', { name: /Demo Project/ }).first();
+    await expect(projectCard).toBeVisible();
+    await projectCard.click();
+    await expect(page).toHaveURL(/\/admin\/projects\/11111111-1111-1111-1111-111111111111/);
   });
 
   test('should load profile page', async ({ page }) => {
