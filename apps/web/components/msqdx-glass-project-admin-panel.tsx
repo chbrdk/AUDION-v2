@@ -76,6 +76,16 @@ export function MsqdxGlassProjectAdminPanel({
     const [detailError, setDetailError] = useState<string | null>(null);
     const [listRefreshing, setListRefreshing] = useState(false);
 
+    // Debug logging
+    useEffect(() => {
+        console.log('[ProjectAdminPanel] Initial props:', {
+            initialProjects,
+            initialProjectsCount: initialProjects.length,
+            activeProjectId
+        });
+        console.log('[ProjectAdminPanel] Projects state:', projects, 'count:', projects.length);
+    }, [initialProjects, projects, activeProjectId]);
+
     // Create Project State
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [newProjectName, setNewProjectName] = useState("");
@@ -117,10 +127,10 @@ export function MsqdxGlassProjectAdminPanel({
 
                 // Fetch additional stats (personas, target groups, templates)
                 const [personasRes, targetGroupsRes, templatesRes] = await Promise.allSettled([
-                    fetch(buildApiUrl(`/api/persona-admin?project_id=${encodeURIComponent(projectId)}&page_size=5`), {
+                    fetch(buildApiUrl(`/api/personas?project_id=${encodeURIComponent(projectId)}&page_size=5`), {
                         cache: "no-store",
                     }),
-                    fetch(buildApiUrl(`/api/target-group-admin?project_id=${encodeURIComponent(projectId)}&page_size=5`), {
+                    fetch(buildApiUrl(`/api/target-groups?project_id=${encodeURIComponent(projectId)}&page_size=5`), {
                         cache: "no-store",
                     }),
                     fetch(buildApiUrl(`/api/ai-assist/templates?project_id=${encodeURIComponent(projectId)}`), {
