@@ -37,7 +37,7 @@ export const MsqdxGlassFieldEditor = ({
   forceEditMode = false,
 }: MsqdxGlassFieldEditorProps) => {
   const [editing, setEditing] = useState(forceEditMode);
-  
+
   // Update editing state when forceEditMode changes
   useEffect(() => {
     if (forceEditMode) {
@@ -239,21 +239,19 @@ export const MsqdxGlassFieldEditor = ({
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <Box sx={{ flex: 1 }}>{renderFieldInput()}</Box>
           </Box>
-          {inlineEdit.hasChanges && (
-            <MsqdxGlassInlineEditControls
-              hasChanges={inlineEdit.hasChanges}
-              onSave={handleSave}
-              onDiscard={handleCancel}
-              anchorElement={fieldRef.current}
-              position="bottom"
-            />
-          )}
+          <MsqdxGlassInlineEditControls
+            hasChanges={inlineEdit.hasChanges}
+            onSave={handleSave}
+            onDiscard={handleCancel}
+            anchorElement={fieldRef.current}
+            position="bottom"
+          />
         </Box>
       );
     } else {
       // Display mode
       let displayValue: React.ReactNode = value ?? null;
-      
+
       // Format display value based on type
       if (field.type === "select" && value) {
         const option = field.config?.options?.find(opt => opt.value === value);
