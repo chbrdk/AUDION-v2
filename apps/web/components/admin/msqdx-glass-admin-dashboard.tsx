@@ -29,6 +29,7 @@ export const MsqdxGlassAdminDashboard = ({
 }: MsqdxGlassAdminDashboardProps) => {
   const { t } = useI18n();
   const { user } = useAuth();
+  const accent = "var(--color-theme-accent)";
   const [hour, setHour] = useState(12);
   useEffect(() => {
     setHour(new Date().getHours());
@@ -42,8 +43,13 @@ export const MsqdxGlassAdminDashboard = ({
       <MsqdxCard
         variant="flat"
         borderRadius="button"
-        brandColor="purple"
-        sx={{ mb: 3, minWidth: 0, maxWidth: "100%" }}
+        sx={{
+          mb: 3,
+          minWidth: 0,
+          maxWidth: "100%",
+          borderColor: accent,
+          "&:hover": { borderColor: accent },
+        }}
       >
         <MsqdxTypography variant="h4" sx={{ fontWeight: 600, color: "var(--color-theme-accent)" }}>
           {t(`adminDashboard.${greetingKey}`)}
@@ -69,8 +75,15 @@ export const MsqdxGlassAdminDashboard = ({
         <MsqdxCard
           variant="flat"
           borderRadius="button"
-          brandColor="purple"
-          sx={{ minWidth: 0, maxWidth: "100%", display: "flex", flexDirection: "column", p: 0 }}
+          sx={{
+            minWidth: 0,
+            maxWidth: "100%",
+            display: "flex",
+            flexDirection: "column",
+            p: 0,
+            borderColor: accent,
+            "&:hover": { borderColor: accent },
+          }}
         >
           <Box sx={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
             <Box
@@ -160,9 +173,13 @@ export const MsqdxGlassAdminDashboard = ({
                 <MsqdxButton
                   variant="outlined"
                   size="small"
-                  brandColor="purple"
                   fullWidth
                   endIcon={<MsqdxIcon name="arrow_forward" customSize={16} />}
+                  sx={{
+                    borderColor: accent,
+                    color: accent,
+                    "&:hover": { borderColor: accent, backgroundColor: "transparent" },
+                  }}
                 >
                   {t("adminDashboard.viewAll")}
                 </MsqdxButton>
@@ -175,8 +192,15 @@ export const MsqdxGlassAdminDashboard = ({
         <MsqdxCard
           variant="flat"
           borderRadius="button"
-          brandColor="purple"
-          sx={{ minWidth: 0, maxWidth: "100%", display: "flex", flexDirection: "column", p: 0 }}
+          sx={{
+            minWidth: 0,
+            maxWidth: "100%",
+            display: "flex",
+            flexDirection: "column",
+            p: 0,
+            borderColor: accent,
+            "&:hover": { borderColor: accent },
+          }}
         >
           <Box sx={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
             <Box
@@ -264,9 +288,13 @@ export const MsqdxGlassAdminDashboard = ({
                 <MsqdxButton
                   variant="outlined"
                   size="small"
-                  brandColor="purple"
                   fullWidth
                   endIcon={<MsqdxIcon name="arrow_forward" customSize={16} />}
+                  sx={{
+                    borderColor: accent,
+                    color: accent,
+                    "&:hover": { borderColor: accent, backgroundColor: "transparent" },
+                  }}
                 >
                   {t("adminDashboard.viewAll")}
                 </MsqdxButton>
@@ -280,8 +308,7 @@ export const MsqdxGlassAdminDashboard = ({
       <MsqdxCard
         variant="flat"
         borderRadius="button"
-        brandColor="purple"
-        sx={{ mt: 3, minWidth: 0, maxWidth: "100%" }}
+        sx={{ mt: 3, minWidth: 0, maxWidth: "100%", borderColor: accent, "&:hover": { borderColor: accent } }}
       >
         <MsqdxTypography variant="subtitle1" sx={{ fontWeight: 600, mb: 1.5 }}>
           {t("adminDashboard.quickActions")}
@@ -291,8 +318,11 @@ export const MsqdxGlassAdminDashboard = ({
             <MsqdxButton
               variant="contained"
               size="medium"
-              brandColor="purple"
               startIcon={<MsqdxIcon name="person" customSize={18} />}
+              sx={{
+                backgroundColor: accent,
+                "&:hover": { backgroundColor: accent, filter: "brightness(1.05)" },
+              }}
             >
               {t("adminDashboard.createPersona")}
             </MsqdxButton>
@@ -301,8 +331,11 @@ export const MsqdxGlassAdminDashboard = ({
             <MsqdxButton
               variant="contained"
               size="medium"
-              brandColor="purple"
               startIcon={<MsqdxIcon name="groups" customSize={18} />}
+              sx={{
+                backgroundColor: accent,
+                "&:hover": { backgroundColor: accent, filter: "brightness(1.05)" },
+              }}
             >
               {t("adminDashboard.createTargetGroup")}
             </MsqdxButton>

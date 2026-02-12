@@ -60,6 +60,7 @@ export function MsqdxGlassProjectAdminPanel({
     mode = "full",
 }: MsqdxGlassProjectAdminPanelProps) {
     const { t } = useI18n();
+    const accent = "var(--color-theme-accent)";
     const {
         projects: providerProjects,
         activeProject,
@@ -334,7 +335,10 @@ export function MsqdxGlassProjectAdminPanel({
     ];
 
     return (
-        <div className="msqdx-glass-admin-grid">
+        <div
+            className="msqdx-glass-admin-grid"
+            style={mode === "detail" ? { gridTemplateColumns: "minmax(0, 1fr)" } : undefined}
+        >
             {mode === "full" && (
                 <MsqdxGlassCollapsiblePanel title={t("settingsProjects.title")} defaultExpanded={true}>
                     <section className="msqdx-glass-panel">
@@ -388,7 +392,7 @@ export function MsqdxGlassProjectAdminPanel({
                                     border: "2px dashed",
                                     borderColor: "divider",
                                     "&:hover": {
-                                        borderColor: "primary.main",
+                                        borderColor: accent,
                                         backgroundColor: "action.hover",
                                     },
                                 }}
@@ -408,7 +412,7 @@ export function MsqdxGlassProjectAdminPanel({
                                     p: 2,
                                     minWidth: { xs: undefined, md: 300 },
                                     border: "2px solid",
-                                    borderColor: "primary.main",
+                                    borderColor: accent,
                                 }}
                             >
                                 <Stack spacing={1.5}>
@@ -483,10 +487,10 @@ export function MsqdxGlassProjectAdminPanel({
                                     p: 1.5,
                                     minWidth: { xs: undefined, md: 220 },
                                     border: "1px solid",
-                                    borderColor: selectedId === project.id ? "primary.main" : "divider",
+                                    borderColor: selectedId === project.id ? accent : "divider",
                                     backgroundColor: selectedId === project.id ? "action.selected" : "background.paper",
                                     "&:hover": {
-                                        borderColor: "primary.main",
+                                        borderColor: accent,
                                     },
                                 }}
                             >
@@ -498,7 +502,7 @@ export function MsqdxGlassProjectAdminPanel({
                                 </MsqdxTypography>
                                 {selectedId === project.id && (
                                     <Box sx={{ mt: 0.5 }}>
-                                        <MsqdxIcon name="check_circle" customSize={16} sx={{ color: "primary.main" }} />
+                                        <MsqdxIcon name="check_circle" customSize={16} sx={{ color: accent }} />
                                     </Box>
                                 )}
                             </MsqdxCard>
@@ -509,7 +513,10 @@ export function MsqdxGlassProjectAdminPanel({
             )}
 
             {/* Detail Panel */}
-            <section className="msqdx-glass-panel">
+            <section
+                className="msqdx-glass-panel"
+                style={mode === "detail" ? { gridColumn: "1 / -1" } : undefined}
+            >
                 {!selectedId && (
                     <Box sx={{ p: 3 }}>
                         <MsqdxTypography variant="body1" sx={{ color: "text.secondary" }}>
