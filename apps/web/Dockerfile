@@ -9,28 +9,32 @@ ENV NEXT_TELEMETRY_DISABLED=1 \
 RUN corepack enable && npm config set fund false && npm config set audit false
 
 FROM base AS deps
-# Install git for cloning design system
+# Install git for cloning design system  
 RUN apk add --no-cache git
-# Clone and build msqdx-design-system (required by @msqdx/react, @msqdx/tokens file: deps)
-# Path file:../../../msqdx-design-system resolves from apps/web to /msqdx-design-system
+
+# Clone and build msqdx-design-system FIRST (before npm install)
+# Path file:../../../msqdx-design-system resolves from /app/apps/web to /msqdx-design-system
 RUN git clone --depth 1 https://github.com/chbrdk/msqdx-design-system.git /msqdx-design-system && \
     cd /msqdx-design-system && npm install && npm run build
-# Copy workspace configuration first
+
+# Copy workspace configuration
 COPY package.json package-lock.json ./
 COPY tsconfig.base.json ./
+
 # Copy complete workspace structure (needed for npm workspaces)
 COPY apps/web/package.json apps/web/
 COPY packages/types/package.json packages/types/
 COPY packages/types/src packages/types/src
 COPY packages/types/tsconfig.json packages/types/
-# Install dependencies - clear npm cache if integrity check fails
-# Fix for corrupted @types/d3-dsv package
+
+# Install dependencies - design system is now available at /msqdx-design-system
+# file:../../../msqdx-design-system from /app/apps/web resolves to /msqdx-design-system
 RUN --mount=type=cache,target=/root/.npm \
     npm cache clean --force || true && \
     (npm install --include-workspace-root --legacy-peer-deps --no-audit --no-fund || \
-     (npm cache clean --force && npm install --include-workspace-root --legacy-peer-deps --no-audit --no-fund) || \
-     (npm cache clean --force && npm install --legacy-peer-deps --no-audit --no-fund) || \
-     (echo "npm install failed completely" && exit 1)) && \
+    (npm cache clean --force && npm install --include-workspace-root --legacy-peer-deps --no-audit --no-fund) || \
+    (npm cache clean --force && npm install --legacy-peer-deps --no-audit --no-fund) || \
+    (echo "npm install failed completely" && exit 1)) && \
     ls -la node_modules || (echo "node_modules not created" && exit 1)
 
 FROM deps AS builder
@@ -45,6 +49,8 @@ RUN --mount=type=cache,target=/tmp/.next-cache \
     sh -c 'if [ "${RUN_WEB_BUILD}" = "true" ]; then npm run build:web; else echo "Skipping Next.js build"; fi'
 
 FROM base AS runner
+# Copy design system for runtime (if needed by Next.js)
+COPY --from=deps /msqdx-design-system /msqdx-design-system
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json package-lock.json ./
 COPY tsconfig.base.json ./
