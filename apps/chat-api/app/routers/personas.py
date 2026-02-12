@@ -279,7 +279,11 @@ def generate_persona_image(persona_id: str) -> GenerateImageResponse:
         ) from e
 
     image_service = PersonaImageService()
-    image_url = image_service.generate_portrait(profile, save_to_storage=True)
+    image_url = image_service.generate_portrait(
+        profile, 
+        project_id=str(persona.project_id),
+        save_to_storage=True
+    )
 
     persist_warning: str | None = None
     if image_url:

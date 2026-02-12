@@ -24,7 +24,7 @@ def seed_prompts():
                 "version": "1.0",
                 "description": "Prompt for generating realistic persona portraits using DALL-E",
                 "input_variables": ["name", "profession", "traits_desc"],
-                "template": """A professional portrait photograph of {{ name }}, a {{ profession }}.{{ traits_desc }} Professional business portrait, studio lighting, neutral gray background, high quality, realistic, head and shoulders, looking directly at camera, natural expression, professional business attire."""
+                "template": """Create a photorealistic professional headshot of {{ name }}, who works as {{ profession }}.{{ traits_desc }} The portrait should feature: warm and inviting lighting, subtle depth of field with a softly blurred background, contemporary professional attire, confident yet approachable expression, high-resolution detail, magazine-quality photography."""
             }
         ]
 

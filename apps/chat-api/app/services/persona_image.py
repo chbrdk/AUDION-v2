@@ -22,7 +22,7 @@ class PersonaImageService:
         if not self._client:
             logger.warning("persona_image.openai_api_key_not_set")
 
-    def _build_portrait_prompt(self, profile: PersonaProfile) -> str:
+    def _build_portrait_prompt(self, profile: PersonaProfile, project_id: str | None = None) -> str:
         """Build a detailed prompt for realistic portrait generation."""
         # Extract demographic information from bio and segment
         name = profile.name
@@ -38,13 +38,58 @@ class PersonaImageService:
             if trait_list:
                 traits_desc = f" They appear {', '.join(trait_list[:3])}."
         
-        # Try to fetch global prompt template from DB
+        # Try to fetch prompt template from DB
+        # Priority: 1. Project override, 2. Global template, 3. Hardcoded fallback
         try:
             from ..db import SessionLocal
             from ..models import PromptTemplate
             from sqlalchemy import select
             
             with SessionLocal() as session:
+                # First, check for project-specific override
+                template_record = None
+                if project_id:
+                    try:
+                        # Import AiTemplateOverride from api models
+                        # Note: chat-api shares the same database but may not have all models imported
+                        # We'll query it directly via SQL to avoid import issues
+                        from uuid import UUID
+                        from sqlalchemy import text
+                        
+                        project_uuid = UUID(project_id)
+                        result = session.execute(
+                            text("""
+                                SELECT payload->>'prompt' as template, payload->>'version' as version
+                                FROM audion.ai_template_overrides
+                                WHERE project_id = :project_id AND template_id = :template_id
+                                LIMIT 1
+                            """),
+                            {"project_id": str(project_uuid), "template_id": "persona_avatar"}
+                        ).first()
+                        
+                        if result and result.template:
+                            logger.info("persona_image.using_project_override", 
+                                       project_id=project_id,
+                                       template_version=result.version or "unknown",
+                                       template_preview=result.template[:100])
+                            
+                            # Render the override template
+                            rendered = result.template
+                            rendered = rendered.replace("{{ name }}", name)
+                            rendered = rendered.replace("{{ profession }}", segment)
+                            rendered = rendered.replace("{{ traits_desc }}", traits_desc)
+                            
+                            logger.info("persona_image.template_rendered", 
+                                       source="project_override",
+                                       rendered_preview=rendered[:200])
+                            return rendered
+                    except Exception as e:
+                        logger.warning("persona_image.override_fetch_failed", 
+                                      error=str(e), 
+                                      project_id=project_id,
+                                      exc_info=True)
+                
+                # Fallback to global template
                 template_record = session.scalar(
                     select(PromptTemplate).where(PromptTemplate.name == "persona_avatar")
                 )
@@ -72,6 +117,7 @@ class PersonaImageService:
                     rendered = rendered.replace("{{ traits_desc }}", traits_desc)
                     
                     logger.info("persona_image.template_rendered", 
+                               source="global_template",
                                rendered_preview=rendered[:200])
                     
                     # Handle any other variables if added in future by just leaving them or basic replace
@@ -84,6 +130,7 @@ class PersonaImageService:
             # Fallback to hardcoded default
         
         # Build comprehensive prompt (Default Fallback)
+        logger.info("persona_image.using_fallback_prompt")
         profession_hint = segment
         prompt = (
             f"A professional portrait photograph of {name}, "
@@ -97,7 +144,7 @@ class PersonaImageService:
         return prompt
 
     def generate_portrait(
-        self, profile: PersonaProfile, save_to_storage: bool = True
+        self, profile: PersonaProfile, project_id: str | None = None, save_to_storage: bool = True
     ) -> Optional[str]:
         """
         Generate a portrait image for a persona.
@@ -114,7 +161,7 @@ class PersonaImageService:
             return None
 
         try:
-            prompt = self._build_portrait_prompt(profile)
+            prompt = self._build_portrait_prompt(profile, project_id=project_id)
             logger.info("persona_image.generating", persona_id=profile.id, prompt_preview=prompt[:100])
 
             # Call OpenAI Image API (gpt-image-1-mini model)
