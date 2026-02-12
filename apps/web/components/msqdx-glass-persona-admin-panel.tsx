@@ -29,6 +29,8 @@ import { useI18n } from "./i18n/i18n-provider";
 type MsqdxGlassPersonaAdminPanelProps = {
   initialList: PersonaListResponse;
   docsUrl: string;
+  mode?: "full" | "detail";
+  activePersonaId?: string | null;
 };
 
 type EditFormState = {
@@ -146,16 +148,22 @@ const statusChipConfig: Record<string, { brandColor: "orange" | "green" | "purpl
   archived: { brandColor: "purple" },
 };
 
-export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlassPersonaAdminPanelProps) => {
+export const MsqdxGlassPersonaAdminPanel = ({
+  initialList,
+  docsUrl,
+  mode = "full",
+  activePersonaId = null,
+}: MsqdxGlassPersonaAdminPanelProps) => {
   const { activeProjectId, activeProject } = useProject();
   const { t } = useI18n();
+  const accent = "var(--color-theme-accent)";
 
   const getStatusLabel = (status: string) => {
     const key = status === "draft" ? "personaAdmin.statuses.draft" : status === "published" ? "personaAdmin.statuses.published" : "personaAdmin.statuses.archived";
     return t(key);
   };
   const [list, setList] = useState<PersonaListResponse>(initialList);
-  const [selectedId, setSelectedId] = useState<string | null>(initialList.items[0]?.id ?? null);
+  const [selectedId, setSelectedId] = useState<string | null>(activePersonaId ?? initialList.items[0]?.id ?? null);
   const [detail, setDetail] = useState<PersonaResponse | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [detailLoading, setDetailLoading] = useState<boolean>(false);
@@ -256,6 +264,15 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
   useEffect(() => {
     void refreshList();
   }, [refreshList, activeProjectId]);
+
+  // Detail page: keep selection in sync with the route.
+  useEffect(() => {
+    if (mode !== "detail") return;
+    if (!activePersonaId) return;
+    if (selectedId !== activePersonaId) {
+      setSelectedId(activePersonaId);
+    }
+  }, [mode, activePersonaId, selectedId]);
 
   useEffect(() => {
     if (selectedId) {
@@ -1289,9 +1306,13 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
   };
 
   return (
-    <div className="msqdx-glass-admin-grid">
-      <MsqdxGlassCollapsiblePanel title={t("personaAdmin.title")} defaultExpanded={true}>
-        <section className="msqdx-glass-panel">
+    <div
+      className="msqdx-glass-admin-grid"
+      style={mode === "detail" ? { gridTemplateColumns: "minmax(0, 1fr)" } : undefined}
+    >
+      {mode === "full" && (
+        <MsqdxGlassCollapsiblePanel title={t("personaAdmin.title")} defaultExpanded={true}>
+          <section className="msqdx-glass-panel">
           <header className="msqdx-glass-panel__header">
             <div>
               <MsqdxTypography variant="h5" weight="semibold">{t("personaAdmin.title")}</MsqdxTypography>
@@ -1348,7 +1369,7 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
                     width: { xs: "100%", md: "auto" },
                     minWidth: { xs: undefined, md: 220 },
                     flexShrink: { xs: 0, md: 0 },
-                    borderColor: selectedId === item.id ? "primary.main" : undefined,
+                    borderColor: selectedId === item.id ? accent : undefined,
                     borderWidth: selectedId === item.id ? 2 : undefined,
                   }}
                 >
@@ -1408,20 +1429,28 @@ export const MsqdxGlassPersonaAdminPanel = ({ initialList, docsUrl }: MsqdxGlass
               />
               <MsqdxButton
                 variant="contained"
-                brandColor="green"
                 size="small"
                 onClick={handleCreate}
                 disabled={createPending || !activeProjectId}
                 startIcon={<MsqdxIcon name="add" customSize={16} />}
+                sx={{
+                  backgroundColor: `${accent} !important`,
+                  color: "white !important",
+                  "&:hover": { backgroundColor: `${accent} !important`, filter: "brightness(1.05)" },
+                }}
               >
                 {t("personaAdmin.create")}
               </MsqdxButton>
             </Box>
           </MsqdxCard>
-        </section>
-      </MsqdxGlassCollapsiblePanel>
+          </section>
+        </MsqdxGlassCollapsiblePanel>
+      )}
 
-      <section className="msqdx-glass-panel">
+      <section
+        className="msqdx-glass-panel"
+        style={mode === "detail" ? { gridColumn: "1 / -1" } : undefined}
+      >
         {!selectedId && <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>{t("personaAdmin.selectPersona")}</MsqdxTypography>}
         {selectedId && detailLoading && <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>{t("personaAdmin.loading")}</MsqdxTypography>}
         {detailError && <MsqdxTypography variant="body2" sx={{ color: "error.main" }}>{detailError}</MsqdxTypography>}

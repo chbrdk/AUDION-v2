@@ -41,6 +41,8 @@ import { useI18n } from "./i18n/i18n-provider";
 type MsqdxGlassTargetGroupAdminPanelProps = {
   initialList: TargetGroupListResponse;
   docsUrl: string;
+  mode?: "full" | "detail";
+  activeTargetGroupId?: string | null;
 };
 
 type EditFormState = {
@@ -152,11 +154,14 @@ const notify = (message: string) => {
 export const MsqdxGlassTargetGroupAdminPanel = ({
   initialList,
   docsUrl,
+  mode = "full",
+  activeTargetGroupId = null,
 }: MsqdxGlassTargetGroupAdminPanelProps) => {
   const { activeProjectId, activeProject } = useProject();
   const { t } = useI18n();
+  const accent = "var(--color-theme-accent)";
   const [list, setList] = useState<TargetGroupListResponse>(initialList);
-  const [selectedId, setSelectedId] = useState<string | null>(initialList.items[0]?.id ?? null);
+  const [selectedId, setSelectedId] = useState<string | null>(activeTargetGroupId ?? initialList.items[0]?.id ?? null);
   const [detail, setDetail] = useState<TargetGroupResponse | null>(null);
   const [createFormExpanded, setCreateFormExpanded] = useState(false);
   const [knowledgeFormExpanded, setKnowledgeFormExpanded] = useState(false);
@@ -252,6 +257,15 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
       void loadDetail(selectedId);
     }
   }, [selectedId, loadDetail]);
+
+  // Detail page: keep selection in sync with the route.
+  useEffect(() => {
+    if (mode !== "detail") return;
+    if (!activeTargetGroupId) return;
+    if (selectedId !== activeTargetGroupId) {
+      setSelectedId(activeTargetGroupId);
+    }
+  }, [mode, activeTargetGroupId, selectedId]);
 
   const refreshList = useCallback(async () => {
     if (!activeProjectId) {
@@ -468,9 +482,13 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
   };
 
   return (
-    <div className="msqdx-glass-admin-grid">
-      <MsqdxGlassCollapsiblePanel title={t("targetGroupsAdmin.title")} defaultExpanded={true}>
-        <section className="msqdx-glass-panel">
+    <div
+      className="msqdx-glass-admin-grid"
+      style={mode === "detail" ? { gridTemplateColumns: "minmax(0, 1fr)" } : undefined}
+    >
+      {mode === "full" && (
+        <MsqdxGlassCollapsiblePanel title={t("targetGroupsAdmin.title")} defaultExpanded={true}>
+          <section className="msqdx-glass-panel">
           <header className="msqdx-glass-panel__header">
             <div>
               <MsqdxTypography variant="h5" weight="semibold">{t("targetGroupsAdmin.title")}</MsqdxTypography>
@@ -524,7 +542,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                   width: { xs: "100%", md: "auto" },
                   minWidth: { xs: undefined, md: 220 },
                   flexShrink: { xs: 0, md: 0 },
-                  borderColor: selectedId === item.id ? "primary.main" : undefined,
+                  borderColor: selectedId === item.id ? accent : undefined,
                   borderWidth: selectedId === item.id ? 2 : undefined,
                 }}
               >
@@ -584,20 +602,28 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
               />
               <MsqdxButton
                 variant="contained"
-                brandColor="green"
                 size="small"
                 onClick={handleCreate}
                 disabled={createPending || !activeProjectId}
                 startIcon={<MsqdxIcon name="add" customSize={16} />}
+                sx={{
+                  backgroundColor: `${accent} !important`,
+                  color: "white !important",
+                  "&:hover": { backgroundColor: `${accent} !important`, filter: "brightness(1.05)" },
+                }}
               >
                 {t("targetGroupsAdmin.create")}
               </MsqdxButton>
             </Box>
           </MsqdxCard>
-        </section>
-      </MsqdxGlassCollapsiblePanel>
+          </section>
+        </MsqdxGlassCollapsiblePanel>
+      )}
 
-      <section className="msqdx-glass-panel">
+      <section
+        className="msqdx-glass-panel"
+        style={mode === "detail" ? { gridColumn: "1 / -1" } : undefined}
+      >
         {!selectedId && <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>{t("targetGroupsAdmin.selectTargetGroup")}</MsqdxTypography>}
         {selectedId && detailLoading && <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>{t("targetGroupsAdmin.loading")}</MsqdxTypography>}
         {detailError && <MsqdxTypography variant="body2" color="error">{detailError}</MsqdxTypography>}

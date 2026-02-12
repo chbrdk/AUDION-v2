@@ -2,9 +2,9 @@ export const dynamic = "force-dynamic";
 
 import type { PersonaListResponse } from "@msqdx-glass/types";
 
-import { getPersonaBackendBase, getPersonaBackendDocsUrl } from "../../api/_lib/backend";
+import { getPersonaBackendBase } from "../../api/_lib/backend";
 import { buildAuthHeaders, getServerAuthToken, getServerProjectId } from "../../api/_lib/auth";
-import { MsqdxGlassPersonaAdminPanel } from "../../../components/msqdx-glass-persona-admin-panel";
+import { MsqdxGlassPersonasOverview } from "../../../components/personas/msqdx-glass-personas-overview";
 import { getServerT } from "../../../lib/i18n/server";
 
 async function fetchPersonaList(projectId: string, headers: HeadersInit): Promise<PersonaListResponse> {
@@ -57,8 +57,6 @@ export default async function PersonaAdminPage() {
     list = { items: [], total: 0, page: 1, page_size: 50 };
   }
 
-  const docsUrl = getPersonaBackendDocsUrl();
-
   return (
     <>
       {error && (
@@ -66,7 +64,7 @@ export default async function PersonaAdminPage() {
           <strong>{t("backend.errorTitle")}</strong> {error}. {t("backend.errorBody")}
         </div>
       )}
-      <MsqdxGlassPersonaAdminPanel initialList={list} docsUrl={docsUrl} />
+      <MsqdxGlassPersonasOverview initialList={list} />
     </>
   );
 }

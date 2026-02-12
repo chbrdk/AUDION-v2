@@ -7,6 +7,7 @@ import { MsqdxButton, MsqdxFormField, MsqdxIcon, MsqdxMoleculeCard, MsqdxTypogra
 import type { ProjectSummary } from "./project-provider";
 import { useProject } from "./project-provider";
 import { useI18n } from "../i18n/i18n-provider";
+import { ADMIN_ROUTES } from "../../lib/routes";
 
 export type MsqdxGlassProjectsOverviewProps = {
   initialProjects: ProjectSummary[];
@@ -145,7 +146,7 @@ export function MsqdxGlassProjectsOverview({ initialProjects }: MsqdxGlassProjec
 
         {/* Project cards */}
         {projects.map((project) => (
-          <Link key={project.id} href={`/admin/projects/${project.id}`} style={{ textDecoration: "none" }}>
+          <Link key={project.id} href={ADMIN_ROUTES.projectDetail(project.id)} style={{ textDecoration: "none" }}>
             <MsqdxMoleculeCard
               variant="flat"
               borderRadius="button"

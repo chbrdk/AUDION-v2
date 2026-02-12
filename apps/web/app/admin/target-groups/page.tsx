@@ -2,9 +2,9 @@ export const dynamic = "force-dynamic";
 
 import type { TargetGroupListResponse } from "@msqdx-glass/types";
 
-import { getPersonaBackendBase, getPersonaBackendDocsUrl } from "../../api/_lib/backend";
+import { getPersonaBackendBase } from "../../api/_lib/backend";
 import { buildAuthHeaders, getServerAuthToken, getServerProjectId } from "../../api/_lib/auth";
-import { MsqdxGlassTargetGroupAdminPanel } from "../../../components/msqdx-glass-target-group-admin-panel";
+import { MsqdxGlassTargetGroupsOverview } from "../../../components/target-groups/msqdx-glass-target-groups-overview";
 import { getServerT } from "../../../lib/i18n/server";
 
 async function fetchTargetGroupList(projectId: string, headers: HeadersInit): Promise<TargetGroupListResponse> {
@@ -57,8 +57,6 @@ export default async function TargetGroupAdminPage() {
     list = { items: [], total: 0, page: 1, page_size: 50 };
   }
 
-  const docsUrl = getPersonaBackendDocsUrl();
-
   return (
     <>
       {error && (
@@ -66,7 +64,7 @@ export default async function TargetGroupAdminPage() {
           <strong>{t("backend.errorTitle")}</strong> {error}. {t("backend.errorBody")}
         </div>
       )}
-      <MsqdxGlassTargetGroupAdminPanel initialList={list} docsUrl={docsUrl} />
+      <MsqdxGlassTargetGroupsOverview initialList={list} />
     </>
   );
 }

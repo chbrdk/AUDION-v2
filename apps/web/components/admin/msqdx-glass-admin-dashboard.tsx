@@ -7,6 +7,7 @@ import { Box, Stack } from "@mui/material";
 import { MsqdxMoleculeCard, MsqdxButton, MsqdxTypography, MsqdxIcon } from "@msqdx/react";
 import { useAuth } from "../auth/auth-provider";
 import { useI18n } from "../i18n/i18n-provider";
+import { ADMIN_ROUTES } from "../../lib/routes";
 
 export type MsqdxGlassAdminDashboardProps = {
   personaItems: PersonaListItem[];
@@ -77,7 +78,7 @@ export const MsqdxGlassAdminDashboard = ({
           subtitle={t("adminDashboard.personasCount", { count: personaTotal })}
           headerActions={<MsqdxIcon name="person" customSize={20} style={{ color: accent }} />}
           actions={(
-            <Link href="/admin/personas" style={{ textDecoration: "none" }}>
+            <Link href={ADMIN_ROUTES.personas} style={{ textDecoration: "none" }}>
               <MsqdxButton
                 variant="outlined"
                 size="small"
@@ -110,7 +111,7 @@ export const MsqdxGlassAdminDashboard = ({
               {personaItems.slice(0, 5).map((persona) => (
                 <Link
                   key={persona.id}
-                  href="/admin/personas"
+                  href={ADMIN_ROUTES.personas}
                   style={{ textDecoration: "none", color: "inherit" }}
                 >
                   <Box
@@ -167,7 +168,7 @@ export const MsqdxGlassAdminDashboard = ({
           subtitle={t("adminDashboard.targetGroupsCount", { count: targetGroupTotal })}
           headerActions={<MsqdxIcon name="groups" customSize={20} style={{ color: accent }} />}
           actions={(
-            <Link href="/admin/target-groups" style={{ textDecoration: "none" }}>
+            <Link href={ADMIN_ROUTES.targetGroups} style={{ textDecoration: "none" }}>
               <MsqdxButton
                 variant="outlined"
                 size="small"
@@ -200,7 +201,7 @@ export const MsqdxGlassAdminDashboard = ({
               {targetGroupItems.slice(0, 5).map((tg) => (
                 <Link
                   key={tg.id}
-                  href="/admin/target-groups"
+                  href={ADMIN_ROUTES.targetGroups}
                   style={{ textDecoration: "none", color: "inherit" }}
                 >
                   <Box
@@ -256,7 +257,7 @@ export const MsqdxGlassAdminDashboard = ({
         sx={{ mt: 3, minWidth: 0, maxWidth: "100%", borderColor: accent, "&:hover": { borderColor: accent } }}
       >
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-          <Link href="/admin/personas" style={{ textDecoration: "none" }}>
+          <Link href={ADMIN_ROUTES.personas} style={{ textDecoration: "none" }}>
             <MsqdxButton
               variant="contained"
               size="medium"
@@ -270,7 +271,7 @@ export const MsqdxGlassAdminDashboard = ({
               {t("adminDashboard.createPersona")}
             </MsqdxButton>
           </Link>
-          <Link href="/admin/target-groups" style={{ textDecoration: "none" }}>
+          <Link href={ADMIN_ROUTES.targetGroups} style={{ textDecoration: "none" }}>
             <MsqdxButton
               variant="contained"
               size="medium"
