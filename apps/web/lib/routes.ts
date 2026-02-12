@@ -4,6 +4,10 @@ export const ADMIN_ROUTES = {
   projects: "/admin/projects",
   projectDetail: (projectId: string) => `/admin/projects/${encodeURIComponent(projectId)}`,
 
+  journeys: "/admin/journeys",
+  journeyNew: "/admin/journeys/new",
+  journeyDetail: (journeyId: string) => `/admin/journeys/${encodeURIComponent(journeyId)}`,
+
   personas: "/admin/personas",
   personaDetail: (personaId: string) => `/admin/personas/${encodeURIComponent(personaId)}`,
 

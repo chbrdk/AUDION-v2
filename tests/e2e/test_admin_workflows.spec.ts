@@ -218,6 +218,72 @@ test.describe('Admin Workflows', () => {
     await expect(page).toHaveURL(/\/admin\/projects\/11111111-1111-1111-1111-111111111111/);
   });
 
+  test('should show journeys overview and navigate to journey detail', async ({ page }) => {
+    await page.route('**/api/journeys**', async (route) => {
+      const url = route.request().url();
+      if (route.request().method() !== 'GET') return route.fallback();
+
+      // detail: /api/journeys/<id>
+      if (url.includes('/api/journeys/j-111')) {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            id: 'j-111',
+            organization_id: 'org-1',
+            project_id: 'p1',
+            target_group_id: null,
+            name: 'Demo Journey',
+            description: 'Example journey',
+            journey_type: 'customer_acquisition',
+            creation_mode: 'manual',
+            status: 'draft',
+            validation_score: 82.5,
+            tracking_enabled: false,
+            created_at: '2026-02-12T00:00:00Z',
+            updated_at: '2026-02-12T00:00:00Z',
+            created_by: 'e2e',
+            phases: [],
+          }),
+        });
+      }
+
+      // list: /api/journeys?...project_id=...
+      if (url.includes('/api/journeys')) {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify([
+            {
+              id: 'j-111',
+              organization_id: 'org-1',
+              project_id: 'p1',
+              target_group_id: null,
+              name: 'Demo Journey',
+              description: 'Example journey',
+              journey_type: 'customer_acquisition',
+              creation_mode: 'manual',
+              status: 'draft',
+              validation_score: 82.5,
+              tracking_enabled: false,
+              created_at: '2026-02-12T00:00:00Z',
+              updated_at: '2026-02-12T00:00:00Z',
+              created_by: 'e2e',
+              phases: [],
+            },
+          ]),
+        });
+      }
+
+      return route.fallback();
+    });
+
+    await page.goto(`${BASE_URL}/admin/journeys`);
+    await expect(page.getByText('Demo Journey').first()).toBeVisible();
+    await page.getByRole('button', { name: 'View' }).first().click();
+    await expect(page).toHaveURL(/\/admin\/journeys\/j-111/);
+  });
+
   test('should load profile page', async ({ page }) => {
     await page.goto(`${BASE_URL}/admin/profile`);
     const body = await page.locator('body');
