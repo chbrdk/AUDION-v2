@@ -7,8 +7,10 @@ import { buildAuthHeaders, getServerAuthToken, getServerProjectId } from "../api
 
 const DASHBOARD_PAGE_SIZE = 6;
 
-async function fetchPersonaList(projectId: string, headers: HeadersInit): Promise<PersonaListResponse> {
-  const apiUrl = `${getPersonaBackendBase({ preferPublic: false })}/personas?page=1&page_size=${DASHBOARD_PAGE_SIZE}&project_id=${projectId}`;
+async function fetchPersonaList(projectId: string | null, headers: HeadersInit): Promise<PersonaListResponse> {
+  const params = new URLSearchParams({ page: "1", page_size: String(DASHBOARD_PAGE_SIZE) });
+  if (projectId) params.set("project_id", projectId);
+  const apiUrl = `${getPersonaBackendBase({ preferPublic: false })}/personas?${params.toString()}`;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -40,8 +42,10 @@ async function fetchPersonaList(projectId: string, headers: HeadersInit): Promis
   }
 }
 
-async function fetchTargetGroupList(projectId: string, headers: HeadersInit): Promise<TargetGroupListResponse> {
-  const apiUrl = `${getPersonaBackendBase({ preferPublic: false })}/target-groups?page=1&page_size=${DASHBOARD_PAGE_SIZE}&project_id=${projectId}`;
+async function fetchTargetGroupList(projectId: string | null, headers: HeadersInit): Promise<TargetGroupListResponse> {
+  const params = new URLSearchParams({ page: "1", page_size: String(DASHBOARD_PAGE_SIZE) });
+  if (projectId) params.set("project_id", projectId);
+  const apiUrl = `${getPersonaBackendBase({ preferPublic: false })}/target-groups?${params.toString()}`;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -81,25 +85,24 @@ export default async function AdminDashboardPage() {
   const headers = buildAuthHeaders(await getServerAuthToken());
 
   try {
-    if (!projectId) {
-      error = "Select a project to load dashboard statistics.";
+    // When no project is selected, we still show a global preview (unfiltered).
+    const [personaResponse, targetGroupResponse] = await Promise.allSettled([
+      fetchPersonaList(projectId, headers),
+      fetchTargetGroupList(projectId, headers),
+    ]);
+
+    if (personaResponse.status === "fulfilled") {
+      personaData = personaResponse.value;
     } else {
-      const [personaResponse, targetGroupResponse] = await Promise.allSettled([
-        fetchPersonaList(projectId, headers),
-        fetchTargetGroupList(projectId, headers),
-      ]);
+      console.error("Failed to fetch personas:", personaResponse.reason);
+      error = "Failed to load personas.";
+    }
 
-      if (personaResponse.status === "fulfilled") {
-        personaData = personaResponse.value;
-      } else {
-        console.error("Failed to fetch personas:", personaResponse.reason);
-      }
-
-      if (targetGroupResponse.status === "fulfilled") {
-        targetGroupData = targetGroupResponse.value;
-      } else {
-        console.error("Failed to fetch target groups:", targetGroupResponse.reason);
-      }
+    if (targetGroupResponse.status === "fulfilled") {
+      targetGroupData = targetGroupResponse.value;
+    } else {
+      console.error("Failed to fetch target groups:", targetGroupResponse.reason);
+      error = error ?? "Failed to load target groups.";
     }
   } catch (err) {
     error = err instanceof Error ? err.message : "Unknown error";
@@ -117,8 +120,7 @@ export default async function AdminDashboardPage() {
             color: "var(--color-secondary-dx-pink-on-light)",
           }}
         >
-          <strong>Backend unreachable:</strong> {error}. Please wait until the service
-          has fully started and reload the page.
+          <strong>Backend error:</strong> {error} Please reload the page.
         </div>
       )}
       <MsqdxGlassAdminDashboard
