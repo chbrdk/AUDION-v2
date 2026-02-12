@@ -21,6 +21,70 @@ class PersonaImageService:
         self._client = OpenAI(api_key=settings.openai_api_key) if settings.openai_api_key else None
         if not self._client:
             logger.warning("persona_image.openai_api_key_not_set")
+    def _render_template(
+        self, 
+        template: str, 
+        profile: PersonaProfile, 
+        name: str, 
+        segment: str, 
+        traits_desc: str
+    ) -> str:
+        """
+        Render template by replacing variables in both {{ }} and ${} formats.
+        
+        Supports variables:
+        - name: Persona name
+        - profession: Persona segment/profession
+        - traits_desc: Personality traits description
+        - persona_profile: Full profile as formatted text
+        - bio: Persona biography
+        - headline: Persona headline
+        """
+        import json
+        
+        # Build comprehensive profile text
+        profile_parts = []
+        profile_parts.append(f"Name: {name}")
+        profile_parts.append(f"Profession: {segment}")
+        if profile.headline:
+            profile_parts.append(f"Headline: {profile.headline}")
+        if profile.bio:
+            profile_parts.append(f"Bio: {profile.bio}")
+        if traits_desc:
+            profile_parts.append(f"Traits: {traits_desc.strip()}")
+        
+        # Add goals if available
+        if profile.goals:
+            goals_text = ", ".join([g.label for g in profile.goals[:3]])
+            profile_parts.append(f"Goals: {goals_text}")
+        
+        # Add pain points if available
+        if profile.pain_points:
+            pain_points_text = ", ".join([pp.label for pp in profile.pain_points[:3]])
+            profile_parts.append(f"Pain Points: {pain_points_text}")
+        
+        persona_profile_text = "\\n".join(profile_parts)
+        
+        # Create variable mapping
+        variables = {
+            "name": name,
+            "profession": segment,
+            "traits_desc": traits_desc,
+            "persona_profile": persona_profile_text,
+            "bio": profile.bio or "",
+            "headline": profile.headline or "",
+        }
+        
+        rendered = template
+        
+        # Replace both {{ variable }} and ${variable} formats
+        for var_name, var_value in variables.items():
+            # Replace {{ variable }} format (Jinja2-style)
+            rendered = rendered.replace(f"{{{{ {var_name} }}}}", var_value)
+            # Replace ${variable} format (shell-style)
+            rendered = rendered.replace(f"${{{var_name}}}", var_value)
+        
+        return rendered
 
     def _build_portrait_prompt(self, profile: PersonaProfile, project_id: str | None = None) -> str:
         """Build a detailed prompt for realistic portrait generation."""
@@ -73,11 +137,8 @@ class PersonaImageService:
                                        template_version=result.version or "unknown",
                                        template_preview=result.template[:100])
                             
-                            # Render the override template
-                            rendered = result.template
-                            rendered = rendered.replace("{{ name }}", name)
-                            rendered = rendered.replace("{{ profession }}", segment)
-                            rendered = rendered.replace("{{ traits_desc }}", traits_desc)
+                            # Render the override template with all available variables
+                            rendered = self._render_template(result.template, profile, name, segment, traits_desc)
                             
                             logger.info("persona_image.template_rendered", 
                                        source="project_override",
@@ -109,18 +170,13 @@ class PersonaImageService:
                                segment=segment, 
                                traits_desc=traits_desc)
                     
-                    # Simple string replacement for template rendering (avoiding jinja2 dependency)
-                    # The template expects {{ name }}, {{ profession }}, {{ traits_desc }}
-                    rendered = template_record.template
-                    rendered = rendered.replace("{{ name }}", name)
-                    rendered = rendered.replace("{{ profession }}", segment) # segment maps to profession hint
-                    rendered = rendered.replace("{{ traits_desc }}", traits_desc)
+                    # Render template with all available variables
+                    rendered = self._render_template(template_record.template, profile, name, segment, traits_desc)
                     
                     logger.info("persona_image.template_rendered", 
                                source="global_template",
                                rendered_preview=rendered[:200])
                     
-                    # Handle any other variables if added in future by just leaving them or basic replace
                     return rendered
                 else:
                     logger.warning("persona_image.no_template_in_db", 
