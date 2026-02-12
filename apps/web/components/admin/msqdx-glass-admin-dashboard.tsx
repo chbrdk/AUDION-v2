@@ -9,6 +9,7 @@ import { useAuth } from "../auth/auth-provider";
 import { useI18n } from "../i18n/i18n-provider";
 import { ADMIN_ROUTES } from "../../lib/routes";
 import { safePersonaAvatarSrc } from "../../lib/persona-avatar";
+import { useProject } from "../projects/project-provider";
 
 export type MsqdxGlassAdminDashboardProps = {
   personaItems: PersonaListItem[];
@@ -31,6 +32,7 @@ export const MsqdxGlassAdminDashboard = ({
 }: MsqdxGlassAdminDashboardProps) => {
   const { t } = useI18n();
   const { user } = useAuth();
+  const { projects } = useProject();
   const accent = "var(--color-theme-accent)";
   const [hour, setHour] = useState(12);
   useEffect(() => {
@@ -60,17 +62,104 @@ export const MsqdxGlassAdminDashboard = ({
         }}
       />
 
-      {/* Two main cards: Personas & Target Groups */}
+      {/* Three main cards: Projects, Personas & Target Groups */}
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+          gridTemplateColumns: { xs: "1fr", md: "1fr 1fr", lg: "1fr 1fr 1fr" },
           gap: 2,
           width: "100%",
           maxWidth: "100%",
           boxSizing: "border-box",
         }}
       >
+        <MsqdxMoleculeCard
+          variant="flat"
+          borderRadius="button"
+          title={t("adminDashboard.projects")}
+          titleVariant="h6"
+          subtitle={t("adminDashboard.projectsCount", { count: projects.length })}
+          headerActions={<MsqdxIcon name="folder" customSize={20} style={{ color: accent }} />}
+          actions={(
+            <Link href={ADMIN_ROUTES.projects} style={{ textDecoration: "none" }}>
+              <MsqdxButton
+                variant="outlined"
+                size="small"
+                endIcon={<MsqdxIcon name="arrow_forward" customSize={16} />}
+                sx={{
+                  borderColor: accent,
+                  color: accent,
+                  "&:hover": { borderColor: accent, backgroundColor: "transparent" },
+                }}
+              >
+                {t("adminDashboard.viewAll")}
+              </MsqdxButton>
+            </Link>
+          )}
+          sx={{
+            minWidth: 0,
+            maxWidth: "100%",
+            border: "1px solid",
+            borderColor: accent,
+            "&:hover": { borderColor: accent },
+            "& .MuiTypography-h6": { color: accent },
+          }}
+        >
+          {projects.length === 0 ? (
+            <MsqdxTypography variant="body2" color="text.secondary">
+              {t("adminDashboard.noProjects")}
+            </MsqdxTypography>
+          ) : (
+            <Stack spacing={1.25}>
+              {projects.slice(0, 5).map((project) => (
+                <Link
+                  key={project.id}
+                  href={ADMIN_ROUTES.projectDetail(project.id)}
+                  style={{ textDecoration: "none", color: "inherit" }}
+                >
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1.25,
+                      p: 1.25,
+                      borderRadius: 1,
+                      border: "1px solid",
+                      borderColor: "divider",
+                      "&:hover": { borderColor: accent },
+                      transition: "border-color 0.2s",
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 1,
+                        bgcolor: "rgba(0, 0, 0, 0.04)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <MsqdxIcon name="folder" customSize={20} style={{ color: accent }} />
+                    </Box>
+                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                      <MsqdxTypography variant="subtitle2" sx={{ fontWeight: 600 }} noWrap>
+                        {project.name || "—"}
+                      </MsqdxTypography>
+                      <MsqdxTypography variant="caption" color="text.secondary" noWrap sx={{ display: "block" }}>
+                        {project.id}
+                      </MsqdxTypography>
+                    </Box>
+                    <MsqdxIcon name="chevron_right" customSize={18} style={{ color: accent, flexShrink: 0 }} />
+                  </Box>
+                </Link>
+              ))}
+            </Stack>
+          )}
+        </MsqdxMoleculeCard>
+
         <MsqdxMoleculeCard
           variant="flat"
           borderRadius="button"
