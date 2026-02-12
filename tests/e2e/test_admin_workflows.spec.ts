@@ -16,7 +16,6 @@ test.describe('Admin Workflows', () => {
         name: 'audion_auth_token',
         value: 'e2e-test-token',
         url: BASE_URL,
-        path: '/',
       },
     ]);
 
@@ -53,7 +52,7 @@ test.describe('Admin Workflows', () => {
     await page.goto(`${BASE_URL}/admin/target-groups`);
     
     // Should show Target Groups header or empty state
-    await expect(page.locator('text=Target Groups')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Target Groups' }).first()).toBeVisible();
   });
 
   test('should show existing projects in projects page', async ({ page }) => {
@@ -87,7 +86,7 @@ test.describe('Admin Workflows', () => {
     });
 
     await page.goto(`${BASE_URL}/admin/projects`);
-    await expect(page.locator('text=Demo Project')).toBeVisible();
+    await expect(page.getByRole('button', { name: /Demo Project/ }).first()).toBeVisible();
   });
 
   test('should load profile page', async ({ page }) => {

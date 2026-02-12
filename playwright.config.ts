@@ -1,0 +1,22 @@
+import { defineConfig } from "@playwright/test";
+
+const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:3005";
+
+export default defineConfig({
+  testDir: "./tests/e2e",
+  timeout: 60_000,
+  expect: {
+    timeout: 10_000,
+  },
+  use: {
+    baseURL,
+    trace: "retain-on-failure",
+  },
+  webServer: {
+    command: "npm run dev:web",
+    url: baseURL,
+    reuseExistingServer: true,
+    timeout: 120_000,
+  },
+});
+
