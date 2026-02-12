@@ -37,6 +37,37 @@ test.describe('Admin Workflows', () => {
       });
     });
 
+    // Stub projects API so ProjectProvider can resolve activeProjectId (from cookie)
+    await page.route('**/api/projects', async (route) => {
+      const url = route.request().url();
+      if (route.request().method() !== 'GET') return route.fallback();
+      // If it's a sub-path like /api/projects/<id>, let it through
+      if (url.includes('/api/projects/')) return route.fallback();
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          items: [
+            {
+              id: 'p1',
+              name: 'E2E Project',
+              owner_user_id: 'u1',
+              created_at: '2026-02-12T00:00:00Z',
+              updated_at: '2026-02-12T00:00:00Z',
+            },
+            {
+              id: '11111111-1111-1111-1111-111111111111',
+              name: 'Demo Project',
+              owner_user_id: '22222222-2222-2222-2222-222222222222',
+              created_at: '2026-02-12T00:00:00Z',
+              updated_at: '2026-02-12T00:00:00Z',
+            },
+          ],
+          total: 2,
+        }),
+      });
+    });
+
     await page.goto(`${BASE_URL}/admin`);
   });
 
@@ -46,29 +77,6 @@ test.describe('Admin Workflows', () => {
   });
 
   test('should show personas overview and navigate to persona detail', async ({ page }) => {
-    // Stub projects so ProjectProvider can set activeProjectId
-    await page.route('**/api/projects', async (route) => {
-      const url = route.request().url();
-      if (route.request().method() !== 'GET') return route.fallback();
-      if (url.includes('/api/projects/')) return route.fallback();
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          items: [
-            {
-              id: 'p1',
-              name: 'Demo Project',
-              owner_user_id: 'u1',
-              created_at: '2026-02-12T00:00:00Z',
-              updated_at: '2026-02-12T00:00:00Z',
-            },
-          ],
-          total: 1,
-        }),
-      });
-    });
-
     // Stub personas list + detail for overview->detail navigation
     await page.route('**/api/persona-admin**', async (route) => {
       const url = route.request().url();
@@ -138,29 +146,6 @@ test.describe('Admin Workflows', () => {
   });
 
   test('should show target groups overview and navigate to target group detail', async ({ page }) => {
-    // Stub projects so ProjectProvider can set activeProjectId
-    await page.route('**/api/projects', async (route) => {
-      const url = route.request().url();
-      if (route.request().method() !== 'GET') return route.fallback();
-      if (url.includes('/api/projects/')) return route.fallback();
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          items: [
-            {
-              id: 'p1',
-              name: 'Demo Project',
-              owner_user_id: 'u1',
-              created_at: '2026-02-12T00:00:00Z',
-              updated_at: '2026-02-12T00:00:00Z',
-            },
-          ],
-          total: 1,
-        }),
-      });
-    });
-
     await page.route('**/api/target-groups**', async (route) => {
       const url = route.request().url();
       if (route.request().method() !== 'GET') return route.fallback();
@@ -225,35 +210,6 @@ test.describe('Admin Workflows', () => {
   });
 
   test('should show existing projects in projects page', async ({ page }) => {
-    // Stub projects API (client-side ProjectProvider fetch)
-    await page.route('**/api/projects', async (route) => {
-      const url = route.request().url();
-      // Only stub GET list endpoint
-      if (route.request().method() !== 'GET') {
-        return route.fallback();
-      }
-      // If it's a sub-path like /api/projects/<id>, let it through
-      if (url.includes('/api/projects/')) {
-        return route.fallback();
-      }
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          items: [
-            {
-              id: '11111111-1111-1111-1111-111111111111',
-              name: 'Demo Project',
-              owner_user_id: '22222222-2222-2222-2222-222222222222',
-              created_at: '2026-02-12T00:00:00Z',
-              updated_at: '2026-02-12T00:00:00Z',
-            },
-          ],
-          total: 1,
-        }),
-      });
-    });
-
     await page.goto(`${BASE_URL}/admin/projects`);
     // Overview shows cards; click project card to open detail route
     const projectCard = page.getByRole('button', { name: /Demo Project/ }).first();
