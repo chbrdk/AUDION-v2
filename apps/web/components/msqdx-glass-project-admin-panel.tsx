@@ -347,7 +347,6 @@ export function MsqdxGlassProjectAdminPanel({
                         {/* Create Project Card */}
                         {!showCreateForm && (
                             <MsqdxCard
-                                variant="outlined"
                                 clickable
                                 onClick={() => setShowCreateForm(true)}
                                 sx={{
