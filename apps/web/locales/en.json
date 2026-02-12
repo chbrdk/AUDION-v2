@@ -384,6 +384,11 @@
       "loading": "Loading members…",
       "none": "No additional members yet.",
       "remove": "Remove"
+    },
+    "aiTemplates": {
+      "title": "AI Templates",
+      "description": "Customize prompt templates for AI-assisted features. Changes are project-specific.",
+      "manageTemplates": "Manage Templates"
     }
   },
   "settingsProviders": {

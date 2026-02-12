@@ -166,6 +166,24 @@ export default function SettingsProjectsPage() {
         </MsqdxCard>
 
         <MsqdxCard variant="flat" borderRadius="button" sx={{ p: 2, border: "1px solid", borderColor: "divider" }}>
+          <MsqdxTypography variant="h6" weight="semibold" sx={{ mb: 0.5 }}>
+            {t("settingsProjects.aiTemplates.title")}
+          </MsqdxTypography>
+          <MsqdxTypography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
+            {t("settingsProjects.aiTemplates.description")}
+          </MsqdxTypography>
+          <Box>
+            <MsqdxButton
+              variant="outlined"
+              size="small"
+              onClick={() => window.location.href = "/admin/settings/prompts"}
+            >
+              {t("settingsProjects.aiTemplates.manageTemplates")}
+            </MsqdxButton>
+          </Box>
+        </MsqdxCard>
+
+        <MsqdxCard variant="flat" borderRadius="button" sx={{ p: 2, border: "1px solid", borderColor: "divider" }}>
           <MsqdxTypography variant="h6" weight="semibold" sx={{ mb: 1.5 }}>
             {t("settingsProjects.yourProjects.title")}
           </MsqdxTypography>
