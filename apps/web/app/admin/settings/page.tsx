@@ -22,7 +22,7 @@ export default async function SettingsLandingPage() {
     {
       title: t("settings.cards.prompts.title"),
       description: t("settings.cards.prompts.description"),
-      href: "/admin/settings/prompts",
+      href: "/admin/projects",
     },
     {
       title: t("settings.cards.apiDocs.title"),

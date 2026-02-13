@@ -507,6 +507,11 @@
       "description": "Passe Prompt‑Templates für KI‑gestützte Funktionen an. Änderungen sind projektspezifisch.",
       "manageTemplates": "Templates verwalten"
     },
+    "promptTemplates": {
+      "title": "Prompt-Templates",
+      "manage": "Prompt-Templates verwalten",
+      "empty": "Noch keine Prompt-Templates. Im Prompt-Editor anlegen und bearbeiten."
+    },
     "overview": {
       "title": "Übersicht",
       "personas": "Personas",
@@ -583,6 +588,8 @@
     "title": "Prompt‑Templates",
     "subtitle": "Jede KI‑Funktion nutzt geprüfte Templates aus dem Backend‑Katalog. Bearbeite Templates hier, um Prompts und Konfigurationen zu aktualisieren.",
     "selectProject": "Wähle ein Projekt, um Prompt‑Templates zu verwalten.",
+    "movedToProjects": "Prompt‑Templates werden pro Projekt verwaltet. Öffne ein Projekt und gehe zu Prompt‑Templates, um Templates anzuzeigen und zu bearbeiten.",
+    "openProjects": "Projekte öffnen",
     "loading": "Templates laden…",
     "loadingBuilder": "Prompt‑Builder laden…",
     "errorTitle": "Fehler:",

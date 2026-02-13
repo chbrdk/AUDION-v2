@@ -2,9 +2,11 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Box, Stack } from "@mui/material";
-import { MsqdxButton, MsqdxCard, MsqdxFormField, MsqdxTypography, MsqdxIcon, MsqdxDashboardCard } from "@msqdx/react";
+import Link from "next/link";
+import { MsqdxButton, MsqdxCard, MsqdxFormField, MsqdxTypography, MsqdxIcon, MsqdxDashboardCard, MsqdxChip } from "@msqdx/react";
 import { MsqdxGlassCollapsiblePanel } from "./admin/msqdx-glass-collapsible-panel";
 import { buildApiUrl } from "../app/api/_lib/backend";
+import { aiAssistApi, type AiTemplateSummary } from "../app/api/_lib/ai-assist";
 import { useProject, type ProjectSummary, type ProjectMember } from "./projects/project-provider";
 import { useI18n } from "./i18n/i18n-provider";
 
@@ -104,8 +106,12 @@ export function MsqdxGlassProjectAdminPanel({
 
     // Accordion state for collapsible sections
     const [expandedSections, setExpandedSections] = useState<Set<string>>(
-        new Set(["overview", "members"])
+        new Set(["overview", "members", "prompt-templates"])
     );
+
+    // Prompt templates for this project (full list for cards)
+    const [promptTemplates, setPromptTemplates] = useState<AiTemplateSummary[]>([]);
+    const [promptTemplatesLoading, setPromptTemplatesLoading] = useState(false);
 
     const toggleSection = useCallback((section: string) => {
         setExpandedSections((prev) => {
@@ -304,6 +310,30 @@ export function MsqdxGlassProjectAdminPanel({
             setDetail(null);
         }
     }, [selectedId, loadDetail]);
+
+    // Load prompt templates for selected project
+    useEffect(() => {
+        if (!selectedId) {
+            setPromptTemplates([]);
+            return;
+        }
+        let cancelled = false;
+        setPromptTemplatesLoading(true);
+        aiAssistApi
+            .listTemplates(selectedId)
+            .then((data) => {
+                if (!cancelled) setPromptTemplates(data);
+            })
+            .catch(() => {
+                if (!cancelled) setPromptTemplates([]);
+            })
+            .finally(() => {
+                if (!cancelled) setPromptTemplatesLoading(false);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [selectedId]);
 
     // In detail-mode, force-select the project from route to keep cookie/provider in sync.
     useEffect(() => {
@@ -778,13 +808,96 @@ export function MsqdxGlassProjectAdminPanel({
                                 </Box>
                             )}
 
-                            {/* AI Templates Card */}
+                            {/* Prompt Templates Card – always show when project is selected */}
+                            <Box sx={{ gridColumn: "1 / -1" }}>
+                                <MsqdxDashboardCard
+                                    id="prompt-templates"
+                                    title={t("settingsProjects.promptTemplates.title")}
+                                    icon="psychology"
+                                    expanded={expandedSections.has("prompt-templates")}
+                                    onToggle={toggleSection}
+                                >
+                                    <Stack spacing={2}>
+                                        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+                                            <Link href={selectedId ? `/admin/projects/${selectedId}/prompts` : "#"} passHref legacyBehavior>
+                                                <MsqdxButton
+                                                    component="a"
+                                                    variant="contained"
+                                                    size="small"
+                                                    startIcon={<MsqdxIcon name="edit" customSize={16} />}
+                                                >
+                                                    {t("settingsProjects.promptTemplates.manage")}
+                                                </MsqdxButton>
+                                            </Link>
+                                        </Box>
+                                        {promptTemplatesLoading && (
+                                            <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+                                                {t("common.loading")}
+                                            </MsqdxTypography>
+                                        )}
+                                        {!promptTemplatesLoading && promptTemplates.length === 0 && (
+                                            <MsqdxTypography variant="body2" sx={{ color: "text.secondary", textAlign: "center", py: 2 }}>
+                                                {t("settingsProjects.promptTemplates.empty")}
+                                            </MsqdxTypography>
+                                        )}
+                                        {!promptTemplatesLoading && promptTemplates.length > 0 && (
+                                            <Box
+                                                sx={{
+                                                    display: "grid",
+                                                    gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)" },
+                                                    gap: 1.5,
+                                                }}
+                                            >
+                                                {promptTemplates.map((template) => (
+                                                    <Link
+                                                        key={template.template_id}
+                                                        href={`/admin/projects/${selectedId}/prompts?edit=${encodeURIComponent(template.template_id)}`}
+                                                        passHref
+                                                        legacyBehavior
+                                                    >
+                                                        <MsqdxCard
+                                                            component="a"
+                                                            variant="flat"
+                                                            sx={{
+                                                                p: 1.5,
+                                                                border: "1px solid",
+                                                                borderColor: "divider",
+                                                                borderRadius: 1,
+                                                                textDecoration: "none",
+                                                                color: "inherit",
+                                                                "&:hover": { borderColor: accent, backgroundColor: "action.hover" },
+                                                            }}
+                                                        >
+                                                            <MsqdxTypography variant="subtitle2" weight="semibold">
+                                                                {template.label}
+                                                            </MsqdxTypography>
+                                                            {template.description && (
+                                                                <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.25 }}>
+                                                                    {template.description}
+                                                                </MsqdxTypography>
+                                                            )}
+                                                            <Stack direction="row" flexWrap="wrap" gap={0.5} sx={{ mt: 0.75 }}>
+                                                                <MsqdxChip label={template.category} size="xs" variant="outlined" />
+                                                                {template.default_model && (
+                                                                    <MsqdxChip label={template.default_model} size="xs" variant="outlined" />
+                                                                )}
+                                                            </Stack>
+                                                        </MsqdxCard>
+                                                    </Link>
+                                                ))}
+                                            </Box>
+                                        )}
+                                    </Stack>
+                                </MsqdxDashboardCard>
+                            </Box>
+
+                            {/* Legacy AI Templates (overrides) – optional summary when overrides exist */}
                             {detail.stats.template_override_count > 0 && (
                                 <Box sx={{ gridColumn: { xs: "1 / -1", md: "span 6" } }}>
                                     <MsqdxDashboardCard
                                         id="templates"
                                         title={`${t("settingsProjects.aiTemplates.title")} (${detail.stats.template_override_count})`}
-                                        icon="psychology"
+                                        icon="tune"
                                         expanded={expandedSections.has("templates")}
                                         onToggle={toggleSection}
                                     >

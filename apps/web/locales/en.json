@@ -507,6 +507,11 @@
       "description": "Customize prompt templates for AI-assisted features. Changes are project-specific.",
       "manageTemplates": "Manage Templates"
     },
+    "promptTemplates": {
+      "title": "Prompt Templates",
+      "manage": "Manage prompt templates",
+      "empty": "No prompt templates yet. Add and edit them in the prompt editor."
+    },
     "overview": {
       "title": "Overview",
       "personas": "Personas",
@@ -583,6 +588,8 @@
     "title": "Prompt Templates",
     "subtitle": "Every AI assisted feature references a reviewed template stored in the backend catalog. Edit templates directly here to update prompts and configurations.",
     "selectProject": "Select a project to manage prompt templates.",
+    "movedToProjects": "Prompt templates are managed per project. Open a project and go to Prompt Templates to view and edit templates.",
+    "openProjects": "Open Projects",
     "loading": "Loading templates…",
     "loadingBuilder": "Loading prompt builder…",
     "errorTitle": "Error:",

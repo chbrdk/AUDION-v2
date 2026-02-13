@@ -3,7 +3,8 @@
 // Disable static generation to prevent prerendering issues with useState/useContext
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import Link from "next/link";
 import { Box, Stack } from "@mui/material";
 import {
   MsqdxIcon,
@@ -21,7 +22,6 @@ import {
 } from "@msqdx/react";
 import nextDynamic from "next/dynamic";
 import { aiAssistApi, type AiTemplateSummary, type AiTemplateDefinition, type AiTemplateUpdateRequest } from "../../../api/_lib/ai-assist";
-import { useProject } from "../../../../components/projects/project-provider";
 import { useI18n } from "../../../../components/i18n/i18n-provider";
 
 // Code Splitting: PromptBuilder ist eine große Komponente
@@ -38,8 +38,12 @@ const PromptBuilder = nextDynamic(
   }
 );
 
-export default function SettingsPromptsPage() {
-  const { activeProjectId } = useProject();
+export type PromptsPageContentProps = {
+  projectId: string | null;
+  initialEditId?: string | null;
+};
+
+export function PromptsPageContent({ projectId, initialEditId }: PromptsPageContentProps) {
   const { t } = useI18n();
   const [templates, setTemplates] = useState<AiTemplateSummary[]>([]);
   const [personaPrompts, setPersonaPrompts] = useState<AiTemplateSummary[]>([]);
@@ -54,9 +58,9 @@ export default function SettingsPromptsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
 
-  const loadTemplates = useCallback(async (projectId: string) => {
+  const loadTemplates = useCallback(async (pid: string) => {
     try {
-      const data = await aiAssistApi.listTemplates(projectId);
+      const data = await aiAssistApi.listTemplates(pid);
       setTemplates(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("prompts.errors.loadTemplates"));
@@ -75,7 +79,7 @@ export default function SettingsPromptsPage() {
 
   useEffect(() => {
     const loadAll = async () => {
-      if (!activeProjectId) {
+      if (!projectId) {
         setTemplates([]);
         setPersonaPrompts([]);
         setLoading(false);
@@ -83,13 +87,13 @@ export default function SettingsPromptsPage() {
       }
       setLoading(true);
       try {
-        await Promise.all([loadTemplates(activeProjectId), loadPersonaPrompts()]);
+        await Promise.all([loadTemplates(projectId), loadPersonaPrompts()]);
       } finally {
         setLoading(false);
       }
     };
     loadAll();
-  }, [activeProjectId, loadTemplates, loadPersonaPrompts]);
+  }, [projectId, loadTemplates, loadPersonaPrompts]);
 
 
 
@@ -104,7 +108,7 @@ export default function SettingsPromptsPage() {
         const personaId = templateId.replace("persona-prompt-", "");
         full = await aiAssistApi.getPersonaPrompt(personaId);
       } else {
-        full = await aiAssistApi.getTemplate(templateId, activeProjectId ?? undefined);
+        full = await aiAssistApi.getTemplate(templateId, projectId ?? undefined);
       }
 
       setEditingTemplate(full);
@@ -153,9 +157,9 @@ export default function SettingsPromptsPage() {
         await aiAssistApi.updatePersonaPrompt(personaId, updates);
         await loadPersonaPrompts();
       } else {
-        await aiAssistApi.updateTemplate(editingId, updates, activeProjectId ?? undefined);
-        if (activeProjectId) {
-          await loadTemplates(activeProjectId);
+        await aiAssistApi.updateTemplate(editingId, updates, projectId ?? undefined);
+        if (projectId) {
+          await loadTemplates(projectId);
         }
       }
 
@@ -251,7 +255,18 @@ export default function SettingsPromptsPage() {
       ? t("prompts.results.templateOne")
       : t("prompts.results.templateMany", { count: filteredTemplates.length });
 
-  if (!activeProjectId) {
+  // Open initial edit from URL (e.g. ?edit=templateId) once templates are loaded
+  const initialEditDoneRef = useRef(false);
+  useEffect(() => {
+    if (!initialEditId || loading || initialEditDoneRef.current) return;
+    const exists = templates.some((t) => t.template_id === initialEditId) || personaPrompts.some((t) => t.template_id === initialEditId);
+    if (exists) {
+      initialEditDoneRef.current = true;
+      void startEditing(initialEditId);
+    }
+  }, [initialEditId, loading, templates, personaPrompts]);
+
+  if (!projectId) {
     return (
       <Box sx={{ p: 3 }}>
         <MsqdxTypography variant="h2" component="h2">{t("prompts.title")}</MsqdxTypography>
@@ -961,5 +976,29 @@ function VariableItem({ name, description, example }: { name: string; descriptio
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SettingsPromptsPage() {
+  return <SettingsPromptsRedirect />;
+}
+
+/** Shown when visiting /admin/settings/prompts: prompt templates are managed per project. */
+function SettingsPromptsRedirect() {
+  const { t } = useI18n();
+  return (
+    <Box sx={{ p: 3 }}>
+      <MsqdxTypography variant="h2" component="h2">
+        {t("prompts.title")}
+      </MsqdxTypography>
+      <MsqdxTypography variant="body2" color="text.secondary" sx={{ mt: 1, maxWidth: 480 }}>
+        {t("prompts.movedToProjects")}
+      </MsqdxTypography>
+      <Link href="/admin/projects" passHref legacyBehavior>
+        <MsqdxButton component="a" variant="contained" size="medium" startIcon={<MsqdxIcon name="folder" customSize={18} />} sx={{ mt: 2 }}>
+          {t("prompts.openProjects")}
+        </MsqdxButton>
+      </Link>
+    </Box>
   );
 }
