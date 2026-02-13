@@ -1,6 +1,7 @@
 "use client";
 
 import { MsqdxButton, MsqdxIcon } from "@msqdx/react";
+import { useI18n } from "../i18n/i18n-provider";
 
 export type MsqdxGlassEditButtonProps = {
   onClick?: () => void;
@@ -18,17 +19,19 @@ const sizeMap = { small: "small" as const, medium: "medium" as const, large: "la
 export const MsqdxGlassEditButton = ({
   onClick,
   disabled = false,
-  "aria-label": ariaLabel = "Edit",
+  "aria-label": ariaLabel,
   size = "medium",
   fontSize = 16,
-}: MsqdxGlassEditButtonProps) => (
+}: MsqdxGlassEditButtonProps) => {
+  const { t } = useI18n();
+  return (
   <MsqdxButton
     variant="outlined"
     size={sizeMap[size]}
     brandColor="purple"
     onClick={onClick}
     disabled={disabled}
-    aria-label={ariaLabel}
+    aria-label={ariaLabel ?? t("common.edit")}
     sx={{
       minWidth: 28,
       minHeight: 28,
@@ -40,5 +43,6 @@ export const MsqdxGlassEditButton = ({
   >
     <MsqdxIcon name="edit" customSize={fontSize} />
   </MsqdxButton>
-);
+  );
+};
 

@@ -24,6 +24,7 @@ import { MsqdxIcon, MsqdxInput } from "@msqdx/react";
 import { INPUT_ACCENT_SX_WITH_FALLBACK } from "../../lib/theme-accent";
 import { getChatApiBase, buildApiUrl } from "../../app/api/_lib/backend";
 import { useProject } from "../../components/projects/project-provider";
+import { useI18n } from "../../components/i18n/i18n-provider";
 import { buildAdaptiveSystemPrompt } from "../../lib/adaptive-prompt";
 import { loadLearningsFromLocalStorage } from "../../lib/conversation-learnings";
 import { useShareChatHeader } from "../../components/chat/share-chat-header-context";
@@ -91,6 +92,15 @@ const welcomePulse = keyframes`
   0%, 100% { opacity: 1; }
   50% { opacity: 0.85; }
 `;
+
+function ChatPageLoadingFallback() {
+  const { t } = useI18n();
+  return (
+    <Box sx={{ p: 3, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <Typography>{t("common.loading")}</Typography>
+    </Box>
+  );
+}
 
 /** Avoid Mixed Content: use same-origin proxy when avatar URL is http/localhost on HTTPS. */
 function safeAvatarSrc(avatarUrl: string | null | undefined, personaId: string | undefined): string | undefined {
@@ -160,6 +170,7 @@ function ShareChatWelcomeMessage({ personaDisplayName, avatarUrl, personaId }: S
 function ChatSharePageContent() {
   const theme = useTheme();
   const searchParams = useSearchParams();
+  const { t } = useI18n();
   const { activeProjectId, selectProject } = useProject();
   const { setHeaderContent } = useShareChatHeader();
   const personaIdParam = searchParams.get("personaId");
@@ -182,7 +193,7 @@ function ChatSharePageContent() {
     profile?.full_name ??
     profile?.name ??
     persona?.name;
-  const personaDisplayName = typeof rawDisplayName === "string" ? rawDisplayName : "Persona";
+  const personaDisplayName = typeof rawDisplayName === "string" ? rawDisplayName : t("chat.personaFallback");
 
   const personaProfileCard = persona?.profileCard as PersonaProfileCard | undefined;
   const personaProfile = persona?.profile as PersonaProfile | undefined;
@@ -276,7 +287,7 @@ function ChatSharePageContent() {
   useEffect(() => {
     if (!personaIdParam) {
       setLoadingPersona(false);
-      setError("No persona specified");
+      setError(t("chat.noPersonaSpecified"));
       return;
     }
     let cancelled = false;
@@ -292,7 +303,7 @@ function ChatSharePageContent() {
         if (cancelled) return;
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          setError(err.error || `Failed to load persona (${res.status})`);
+          setError(err.error || `${t("chat.loadPersonaFailed")} (${res.status})`);
           setPersona(null);
           return;
         }
@@ -312,7 +323,7 @@ function ChatSharePageContent() {
         });
       } catch (e) {
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : "Failed to load persona");
+          setError(e instanceof Error ? e.message : t("chat.loadPersonaFailed"));
           setPersona(null);
         }
       } finally {
@@ -442,7 +453,7 @@ function ChatSharePageContent() {
             if (parsed.type === "delta" && parsed.delta) {
               enqueueDelta(personaMsgId, parsed.delta);
             } else if (parsed.type === "error") {
-              streamErr = parsed.error ?? "Unknown error";
+              streamErr = parsed.error ?? t("chat.unknownError");
             }
           } catch {
             /* ignore */
@@ -459,7 +470,7 @@ function ChatSharePageContent() {
       }
     } catch (e) {
       clearTypingState(personaMsgId);
-      const errMsg = e instanceof Error ? e.message : "Failed to send";
+      const errMsg = e instanceof Error ? e.message : t("chat.sendFailed");
       setMessages((prev) =>
         prev.map((m) =>
           m.id === personaMsgId ? { ...m, content: errMsg, role: "system" as const } : m
@@ -512,9 +523,9 @@ function ChatSharePageContent() {
           }}
         >
           <MsqdxIcon name="error" customSize={48} style={{ opacity: 0.5 }} />
-          <Typography variant="body1">{error ?? "Persona not found"}</Typography>
+          <Typography variant="body1">{error ?? t("chat.personaNotFound")}</Typography>
           <Typography variant="body2" color="text.secondary">
-            Check that the share link is correct and you have access to this project.
+            {t("chat.shareLinkHint")}
           </Typography>
         </Stack>
       </Box>
@@ -547,7 +558,7 @@ function ChatSharePageContent() {
           <Stack direction="row" spacing={1} alignItems="center">
             <CircularProgress size={16} />
             <Typography variant="body2" sx={{ color: alpha(theme.palette.text.primary, 0.7) }}>
-              Sending…
+              {t("chat.sending")}
             </Typography>
           </Stack>
         </Box>
@@ -609,7 +620,7 @@ function ChatSharePageContent() {
         >
           <MsqdxInput
             fullWidth
-            placeholder="Ask the persona anything…"
+            placeholder={t("chat.placeholder")}
             value={input}
             disabled={sending}
             onChange={(e) => setInput(e.target.value)}
@@ -709,7 +720,7 @@ function ChatSharePageContent() {
           <Stack spacing={2.5} sx={{ flex: 1, overflowY: "auto", pr: 0.5 }}>
             <Stack spacing={1}>
               <Typography variant="subtitle2" sx={{ textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: 1 }}>
-                Demographics
+                {t("chat.demographics")}
               </Typography>
               <Box
                 sx={{
@@ -719,9 +730,9 @@ function ChatSharePageContent() {
                 }}
               >
                 {[
-                  { label: "Full name", value: personaProfile?.fullName ?? personaDisplayName },
-                  { label: "Age", value: personaAge != null ? `${personaAge} Jahre` : undefined },
-                  { label: "Location", value: personaLocation },
+                  { label: t("chat.fullName"), value: personaProfile?.fullName ?? personaDisplayName },
+                  { label: t("chat.age"), value: personaAge != null ? `${personaAge} ${t("chat.years")}` : undefined },
+                  { label: t("chat.location"), value: personaLocation },
                 ].map((item) => (
                   <Box key={item.label}>
                     <Typography variant="caption" sx={{ textTransform: "uppercase", letterSpacing: 1 }}>
@@ -735,7 +746,7 @@ function ChatSharePageContent() {
             {personaKeyFacts.length > 0 && (
               <Stack spacing={1}>
                 <Typography variant="subtitle2" sx={{ textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: 1 }}>
-                  Key facts
+                  {t("chat.keyFacts")}
                 </Typography>
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                   {personaKeyFacts.map((fact, index) => (
@@ -753,7 +764,7 @@ function ChatSharePageContent() {
             {personaGoals.length > 0 && (
               <Stack spacing={1}>
                 <Typography variant="subtitle2" sx={{ textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: 1 }}>
-                  Goals
+                  {t("chat.goals")}
                 </Typography>
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                   {personaGoals.map((goal, index) => (
@@ -771,7 +782,7 @@ function ChatSharePageContent() {
             {personaFrustrations.length > 0 && (
               <Stack spacing={1}>
                 <Typography variant="subtitle2" sx={{ textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: 1 }}>
-                  Frustrations
+                  {t("chat.frustrations")}
                 </Typography>
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                   {personaFrustrations.map((item, index) => (
@@ -789,7 +800,7 @@ function ChatSharePageContent() {
             {personaInterests.length > 0 && (
               <Stack spacing={1}>
                 <Typography variant="subtitle2" sx={{ textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: 1 }}>
-                  Interests
+                  {t("chat.interests")}
                 </Typography>
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                   {personaInterests.map((interest, index) => (
@@ -807,7 +818,7 @@ function ChatSharePageContent() {
             {personaValues.length > 0 && (
               <Stack spacing={1}>
                 <Typography variant="subtitle2" sx={{ textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: 1 }}>
-                  Values
+                  {t("chat.values")}
                 </Typography>
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                   {personaValues.map((value, index) => (
@@ -833,9 +844,7 @@ export default function ChatSharePage() {
   return (
     <Suspense
       fallback={
-        <Box sx={{ p: 3, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Typography>Loading…</Typography>
-        </Box>
+        <ChatPageLoadingFallback />
       }
     >
       <ChatSharePageContent />

@@ -7,6 +7,7 @@ import { MsqdxGlassEditButton, MsqdxGlassAiButtonIcon } from "./";
 import { useInlineEdit } from "../hooks/use-inline-edit";
 import { MsqdxGlassInlineEditControls } from "../msqdx-glass-inline-edit-controls";
 import { MsqdxGlassChip } from "./msqdx-glass-chip";
+import { useI18n } from "../i18n/i18n-provider";
 import { INPUT_ACCENT_SX } from "../../lib/theme-accent";
 
 export type MsqdxGlassChipEditorProps = {
@@ -54,12 +55,14 @@ export const MsqdxGlassChipEditor = ({
   chipClassName = "",
   onSave,
   editable = true,
-  emptyMessage = "Keine Einträge",
+  emptyMessage,
   onAiSuggest,
   aiLoading = false,
   highlightedChips = []
 }: MsqdxGlassChipEditorProps) => {
   const theme = useTheme();
+  const { t } = useI18n();
+  const displayEmptyMessage = emptyMessage ?? t("chipEditor.emptyEntries");
   const containerRef = useRef<HTMLDivElement>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -251,8 +254,8 @@ export const MsqdxGlassChipEditor = ({
                 loading={aiLoading}
                 size="small"
                 fontSize={18}
-                title="AI Vorschlag"
-                aria-label="AI Vorschlag"
+                title={t("chipEditor.aiSuggestion")}
+                aria-label={t("chipEditor.aiSuggestion")}
               />
             )}
             {hasChips && (
@@ -260,7 +263,7 @@ export const MsqdxGlassChipEditor = ({
                 onClick={handleStartEdit}
                 size="small"
                 fontSize={18}
-                aria-label="Edit chips"
+                aria-label={t("chipEditor.editChips")}
               />
             )}
           </Box>
@@ -269,7 +272,7 @@ export const MsqdxGlassChipEditor = ({
 
       {showEmptyState ? (
         <Box sx={{ color: "text.secondary", fontStyle: "italic", fontSize: "0.875rem" }}>
-          {emptyMessage}
+          {displayEmptyMessage}
         </Box>
       ) : (
         <>
@@ -322,7 +325,7 @@ export const MsqdxGlassChipEditor = ({
                     variant="text"
                     size="small"
                     onClick={() => handleRemoveChip(idx)}
-                    aria-label="Remove"
+                    aria-label={t("common.remove")}
                     sx={{
                       minWidth: 24,
                       minHeight: 24,
@@ -343,7 +346,7 @@ export const MsqdxGlassChipEditor = ({
                   value={newChipValue}
                   onChange={(e) => setNewChipValue(e.target.value)}
                   onKeyDown={(e) => handleKeyDown(e, false, null)}
-                  placeholder="Neuen Eintrag hinzufügen..."
+                  placeholder={t("chipEditor.addEntryPlaceholder")}
                   size="small"
                   sx={INPUT_ACCENT_SX}
                 />
@@ -374,11 +377,11 @@ export const MsqdxGlassChipEditor = ({
                 loading={aiLoading}
                 size="small"
                 fontSize={18}
-                title="AI Vorschlag"
-                aria-label="AI Vorschlag"
+                title={t("chipEditor.aiSuggestion")}
+                aria-label={t("chipEditor.aiSuggestion")}
               />
               <Box component="span" sx={{ fontSize: "0.875rem" }}>
-                AI Vorschlag
+                {t("chipEditor.aiSuggestion")}
               </Box>
             </Box>
           )}
@@ -387,9 +390,9 @@ export const MsqdxGlassChipEditor = ({
             size="small"
             onClick={handleStartEdit}
             startIcon={<MsqdxIcon name="add" customSize={18} />}
-            aria-label="Add"
+            aria-label={t("common.add")}
           >
-            Add
+            {t("common.add")}
           </MsqdxButton>
         </Box>
       )}

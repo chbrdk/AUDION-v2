@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { useState, useRef, useEffect } from "react";
 import { MsqdxIcon } from "@msqdx/react";
+import { useI18n } from "../i18n/i18n-provider";
 
 interface ResizablePanelProps {
   children: ReactNode;
@@ -15,6 +16,7 @@ interface ResizablePanelProps {
 }
 
 export function ResizablePanel({ children, initialWidth, minWidth = 200, maxWidth, onResize, side = "right", collapsedWidth = 40 }: ResizablePanelProps) {
+  const { t } = useI18n();
   const [width, setWidth] = useState(initialWidth || 280);
   const [isResizing, setIsResizing] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -156,7 +158,7 @@ export function ResizablePanel({ children, initialWidth, minWidth = 200, maxWidt
               e.currentTarget.style.background = "transparent";
               e.currentTarget.style.color = "var(--color-text-secondary)";
             }}
-            title={isCollapsed ? "Expand panel" : "Collapse panel"}
+            title={isCollapsed ? t("promptBuilder.expandPanel") : t("promptBuilder.collapsePanel")}
           >
             <MsqdxIcon name={collapseIcon} customSize={20} />
           </button>
@@ -192,7 +194,7 @@ export function ResizablePanel({ children, initialWidth, minWidth = 200, maxWidt
             e.currentTarget.style.color = "var(--color-text-secondary)";
             e.currentTarget.style.borderColor = "rgba(148, 163, 184, 0.2)";
           }}
-          title="Collapse panel"
+          title={t("promptBuilder.collapsePanel")}
         >
           <MsqdxIcon name={collapseIcon} customSize={18} />
         </button>

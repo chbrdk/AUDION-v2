@@ -1,6 +1,7 @@
 "use client";
 
 import { MsqdxButton, MsqdxIcon } from "@msqdx/react";
+import { useI18n } from "../i18n/i18n-provider";
 
 export type MsqdxGlassAiButtonIconProps = {
   onClick?: () => void;
@@ -21,11 +22,14 @@ export const MsqdxGlassAiButtonIcon = ({
   onClick,
   disabled = false,
   loading = false,
-  "aria-label": ariaLabel = "AI Vorschlag",
-  title = "AI Vorschlag",
+  "aria-label": ariaLabel,
+  title,
   size = "medium",
   fontSize = 16,
-}: MsqdxGlassAiButtonIconProps) => (
+}: MsqdxGlassAiButtonIconProps) => {
+  const { t } = useI18n();
+  const defaultLabel = t("chipEditor.aiSuggestion");
+  return (
   <MsqdxButton
     variant="outlined"
     size={sizeMap[size]}
@@ -33,8 +37,8 @@ export const MsqdxGlassAiButtonIcon = ({
     onClick={onClick}
     disabled={disabled || loading}
     loading={loading}
-    aria-label={ariaLabel}
-    title={title}
+    aria-label={ariaLabel ?? defaultLabel}
+    title={title ?? defaultLabel}
     sx={{
       minWidth: 28,
       minHeight: 28,
@@ -46,5 +50,6 @@ export const MsqdxGlassAiButtonIcon = ({
   >
     <MsqdxIcon name={loading ? "hourglass_empty" : "auto_awesome"} customSize={fontSize} />
   </MsqdxButton>
-);
+  );
+};
 

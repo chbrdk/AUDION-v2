@@ -5,6 +5,7 @@ import { Box } from "@mui/material";
 import type { PersonaProfile } from "@msqdx-glass/types";
 import { MsqdxDashboardCard } from "@msqdx/react";
 import { MsqdxGlassChipEditor } from "../generic/msqdx-glass-chip-editor";
+import { useI18n } from "../i18n/i18n-provider";
 import { THEME_ACCENT } from "../../lib/theme-accent";
 
 export type MsqdxGlassPainPointsGoalsCardProps = {
@@ -32,6 +33,7 @@ export const MsqdxGlassPainPointsGoalsCard = ({
   aiGoalsLoading = false,
   painPointsToolbar,
 }: MsqdxGlassPainPointsGoalsCardProps) => {
+  const { t } = useI18n();
   // Convert pain_points Array<{ label: string; evidence_count: number }> to string[] (only labels)
   const painPointsArray = (profile.pain_points || []).map(pp => pp.label);
   
@@ -42,7 +44,7 @@ export const MsqdxGlassPainPointsGoalsCard = ({
     <Box sx={{ gridColumn: "1 / -1" }}>
     <MsqdxDashboardCard
       id="pain-points-goals"
-      title="Pain Points & Goals"
+      title={t("personaAdmin.painPointsGoals")}
       icon="target"
       iconColor={{ color: THEME_ACCENT.color }}
       expanded={expanded}
@@ -52,24 +54,24 @@ export const MsqdxGlassPainPointsGoalsCard = ({
         <div>
           {painPointsToolbar && <div className="msqdx-glass-pain-toolbar">{painPointsToolbar}</div>}
           <MsqdxGlassChipEditor
-            label="Pain Points"
+            label={t("personaAdmin.painPoints")}
             chips={painPointsArray}
             chipClassName="--pain"
             onSave={onSavePainPoints || (async () => {})}
             editable={!!onSavePainPoints}
-            emptyMessage="No pain points identified"
+            emptyMessage={t("personaAdmin.noPainPoints")}
             onAiSuggest={onAiSuggestPainPoints}
             aiLoading={aiPainPointsLoading}
           />
         </div>
         <div>
           <MsqdxGlassChipEditor
-            label="Goals"
+            label={t("personaAdmin.goals")}
             chips={goalsArray}
             chipClassName="--goal"
             onSave={onSaveGoals || (async () => {})}
             editable={!!onSaveGoals}
-            emptyMessage="No goals defined"
+            emptyMessage={t("personaAdmin.noGoals")}
             onAiSuggest={onAiSuggestGoals}
             aiLoading={aiGoalsLoading}
           />

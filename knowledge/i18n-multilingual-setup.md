@@ -54,23 +54,47 @@ Sprache wird aus Cookie `audion_locale` oder `Accept-Language`-Header ermittelt.
 
 | Namespace | Inhalt |
 |-----------|--------|
-| `common` | loading, save, cancel, delete, close, … |
+| `common` | loading, save, cancel, delete, close, add, remove, edit, unknownError, toggleNavigation, togglePanel, … |
 | `nav` | Dashboard, Chat, Personas, Journeys, … |
 | `auth` | login, register |
-| `journeys` | Listen + `journeys.editor` (Editor) + `journeys.new` + `journeys.ai` (Snackbar) |
-| `targetGroupsAdmin` | Target Group Admin Panel |
-| `personaAdmin` | Persona Admin Panel |
+| `journeys` | Listen + `journeys.editor` (Editor, Phase Card, aria-labels, phaseNameLabel, cancelEditing, phaseCardAria) + `journeys.new` + `journeys.ai` (Snackbar) |
+| `targetGroupsAdmin` | Target Group Admin Panel, Persona Create Dialog (segmentHelperText, …) |
+| `personaAdmin` | Persona Admin Panel, Persona-Liste, Dashboard Cards (Basics, Bio, Communication, Advanced), Pain Points & Goals, Personality, Bio Card Edit (gender, demographics, …) |
 | `queue` | Queue-Dashboard |
 | `settings` | Settings, Projects, Providers, Theme, Prompts, API Docs |
 | `upload` | Upload-Seite |
+| `knowledgeSources` | Knowledge & Sources Card (Documents, Knowledge Base, Sources, Insights, Alerts) |
+| `backend` | Backend-Fehler (errorTitle, errorBody, selectProject) |
+| **`adminChat`** | Admin Chat Page: sending, placeholder, choosePersona, addJourneyPhases, shareChatLink, togglePlayback, journeyPhases, variables, attachments, loadingPersonas, noPersonasAvailable, linkCopied, copyFailed, journey, noneAvailable, loading, copyLink, copied, stopRecording, startVoiceInput |
+| **`chatHistory`** | Chat History Page: title, subtitle, searchPlaceholder, persona, allPersonas, showArchived, deleteConfirm |
+| **`chat`** | Chat-Seite (User): personaFallback, errors, placeholder, demographics, interests, values, loading, … |
+| **`promptBuilder`** | collapsePanel, expandPanel, closeResult, closeError, searchVariables |
+| **`chipEditor`** | aiSuggestion, editChips, addEntryPlaceholder, emptyEntries (common.add/remove) |
 
-## Nächste Schritte (offen)
+## Erledigte i18n-Bereiche
 
 - ~~**Journey New** (`/admin/journeys/new`)~~ – erledigt
 - ~~**Target Group Admin Panel**~~ – erledigt
 - ~~**Persona Admin Panel**~~ – erledigt
-- **Knowledge Sources Card:** `notify` prop
-- **Chat/Persona-Listen:** Prüfen und ggf. übersetzen
+- ~~**Knowledge Sources Card**~~ – erledigt (`knowledgeSources.*`)
+- ~~**Projects Overview**~~ – Fehlermeldung nutzt `settingsProjects.errors.createProject`
+- ~~**Persona Dashboard Cards**~~ – erledigt (`personaAdmin.*` für Basics, Bio, Communication, Advanced, Pain Points & Goals, Personality, Bio Card Edit)
+- ~~**Chat-Seite (User)**~~ – Namespace `chat.*`
+- ~~**Personas Overview**~~ – `personaAdmin.loadListFailed`, `personaAdmin.newPersona`, `common.unknownError`, `common.edit`
+- ~~**Admin Chat**~~ – erledigt (`adminChat.*`, inkl. Tooltips, notify, Suspense-Fallback)
+- ~~**Persona-Liste**~~ – erledigt (`personaAdmin.openPersona`, `personaAdmin.emptyInTargetGroup`, statuses, deleteConfirm, aria-labels)
+- ~~**Persona Create Dialog**~~ – erledigt (`targetGroupsAdmin.*`, `common.cancel`)
+- ~~**Pain Points & Goals / Personality / Bio Card Edit**~~ – erledigt (`personaAdmin.*`, `chat.interests`/`chat.values`)
+- ~~**Chip-Editor + AI-Button-Icon**~~ – erledigt (`chipEditor.*`, `common.add`/`common.remove`)
+- ~~**Journey-Editor + Phase Card**~~ – erledigt (aria-labels, phaseNameLabel, cancelEditing, phaseCardAria, durationMin/Max, expectedEmotion, editPhase)
+- ~~**Chat History**~~ – erledigt (`chatHistory.*`)
+- ~~**Admin Layout**~~ – erledigt (`common.toggleNavigation`, `common.togglePanel`)
+- ~~**Prompt-Builder**~~ – erledigt (`promptBuilder.*` in ResizablePanel, PreviewPanel, VariablePalette)
+- ~~**Chat Layout**~~ – erledigt (Suspense-Fallback `ChatLayoutLoadingFallback` mit `common.loading`)
+
+## Noch offen / optional
+
+- **Stories (Storybook)** – optional: `KnowledgeSourcesCard`, `TargetGroupAdminPanel`, `BioCardEdit`, `PersonaBasicsCard`, `ChipEditor`, `PersonaAdminPanel`, `UploadDropzone` etc. können bei Bedarf auf `t()` umgestellt werden.
 
 ## Zentraler Ort für Pfade
 

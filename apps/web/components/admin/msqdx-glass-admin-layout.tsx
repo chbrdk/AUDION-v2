@@ -249,7 +249,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
               width: { xs: 64, md: "auto" },
               height: { xs: 64, md: "auto" }
             }}
-            aria-label="Toggle navigation"
+            aria-label={t("common.toggleNavigation")}
           >
             <MsqdxIcon name="menu" customSize={32} />
           </IconButton>
@@ -272,7 +272,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
             zIndex: 1202,
             "&:hover": { opacity: 0.9 }
           }}
-          aria-label="Toggle panel"
+          aria-label={t("common.togglePanel")}
         >
           <Box sx={{ color: theme.palette.mode === "dark" ? "#fff" : "#000" }}>
             <MsqdxIcon name={getPageIcon()} customSize={32} />

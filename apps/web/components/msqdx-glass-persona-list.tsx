@@ -4,12 +4,7 @@ import Link from "next/link";
 import { Box } from "@mui/material";
 import { MsqdxTypography, MsqdxChip, MsqdxButton, MsqdxIcon, MsqdxCard } from "@msqdx/react";
 import type { PersonaListItem } from "@msqdx-glass/types";
-
-const statusChipConfig: Record<string, { label: string; brandColor: "orange" | "green" | "purple" }> = {
-  draft: { label: "Draft", brandColor: "orange" },
-  published: { label: "Published", brandColor: "green" },
-  archived: { label: "Archived", brandColor: "purple" },
-};
+import { useI18n } from "./i18n/i18n-provider";
 
 type MsqdxGlassPersonaListProps = {
   personas: PersonaListItem[];
@@ -24,15 +19,23 @@ export const MsqdxGlassPersonaList = ({
   onDelete,
   actionLabel = "Chat",
 }: MsqdxGlassPersonaListProps) => {
+  const { t } = useI18n();
+
   if (personas.length === 0) {
     return (
       <Box sx={{ py: 2 }}>
         <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
-          No personas in this Target Group.
+          {t("personaAdmin.emptyInTargetGroup")}
         </MsqdxTypography>
       </Box>
     );
   }
+
+  const statusChipConfig: Record<string, { label: string; brandColor: "orange" | "green" | "purple" }> = {
+    draft: { label: t("personaAdmin.statuses.draft"), brandColor: "orange" },
+    published: { label: t("personaAdmin.statuses.published"), brandColor: "green" },
+    archived: { label: t("personaAdmin.statuses.archived"), brandColor: "purple" },
+  };
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
@@ -63,7 +66,7 @@ export const MsqdxGlassPersonaList = ({
                     size="small"
                     component="span"
                     startIcon={<MsqdxIcon name="open_in_new" customSize={18} />}
-                    aria-label="Open persona"
+                    aria-label={t("personaAdmin.openPersona")}
                   />
                 </Link>
                 {onDelete && (
@@ -73,12 +76,12 @@ export const MsqdxGlassPersonaList = ({
                     brandColor="pink"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (confirm(`Are you sure you want to delete the persona "${persona.name}"?`)) {
+                      if (confirm(t("personaAdmin.deleteConfirm", { name: persona.name }))) {
                         onDelete(persona.id);
                       }
                     }}
                     startIcon={<MsqdxIcon name="delete" customSize={18} />}
-                    aria-label="Delete persona"
+                    aria-label={t("personaAdmin.deletePersona")}
                   />
                 )}
               </Box>

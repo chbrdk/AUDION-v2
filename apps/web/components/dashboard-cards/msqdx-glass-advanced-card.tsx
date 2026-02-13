@@ -3,6 +3,7 @@
 import type { PersonaProfile } from "@msqdx-glass/types";
 import { MsqdxDashboardCard } from "@msqdx/react";
 import { MsqdxGlassDashboardCardSection } from "./msqdx-glass-dashboard-card-section";
+import { useI18n } from "../i18n/i18n-provider";
 import { THEME_ACCENT } from "../../lib/theme-accent";
 
 export type MsqdxGlassAdvancedCardProps = {
@@ -16,6 +17,7 @@ export const MsqdxGlassAdvancedCard = ({
   expanded,
   onToggle
 }: MsqdxGlassAdvancedCardProps) => {
+  const { t } = useI18n();
   // Only render if color_palette or attention_span exists
   if (!profile.color_palette?.length && !profile.attention_span) {
     return null;
@@ -24,14 +26,14 @@ export const MsqdxGlassAdvancedCard = ({
   return (
     <MsqdxDashboardCard
       id="advanced"
-      title="Erweitert"
+      title={t("personaAdmin.advanced")}
       icon="tune"
       iconColor={{ color: THEME_ACCENT.color }}
       expanded={expanded}
       onToggle={onToggle}
     >
       {profile.color_palette && profile.color_palette.length > 0 && (
-        <MsqdxGlassDashboardCardSection title="Farbpalette">
+        <MsqdxGlassDashboardCardSection title={t("personaAdmin.colorPalette")}>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
             {profile.color_palette.map((color, idx) => (
               <div
@@ -55,7 +57,7 @@ export const MsqdxGlassAdvancedCard = ({
         </MsqdxGlassDashboardCardSection>
       )}
       {profile.attention_span && (
-        <MsqdxGlassDashboardCardSection title="Attention Span">
+        <MsqdxGlassDashboardCardSection title={t("personaAdmin.attentionSpan")}>
           <p style={{ margin: 0 }}>{profile.attention_span}</p>
         </MsqdxGlassDashboardCardSection>
       )}

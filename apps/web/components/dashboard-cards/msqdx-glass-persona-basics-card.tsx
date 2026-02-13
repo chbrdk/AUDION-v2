@@ -8,6 +8,7 @@ import { MsqdxGlassInlineEditControls } from "../msqdx-glass-inline-edit-control
 import { useInlineEdit } from "../hooks/use-inline-edit";
 import { Box } from "@mui/material";
 import { FORM_FIELD_ACCENT_SX, THEME_ACCENT } from "../../lib/theme-accent";
+import { useI18n } from "../i18n/i18n-provider";
 
 export type EditFormState = {
   name: string;
@@ -42,6 +43,7 @@ export const MsqdxGlassPersonaBasicsCard = ({
   savePending,
   formatDate
 }: MsqdxGlassPersonaBasicsCardProps) => {
+  const { t } = useI18n();
   // Individual inline edit hooks for each field
   const nameEdit = useInlineEdit({
     initialValue: detail.profile.name,
@@ -124,7 +126,7 @@ export const MsqdxGlassPersonaBasicsCard = ({
     <Box sx={{ gridColumn: "1 / -1" }}>
     <MsqdxDashboardCard
       id="persona-basics"
-      title="Persona Basics"
+      title={t("personaAdmin.personaBasics")}
       icon="info"
       iconColor={{ color: THEME_ACCENT.color }}
       expanded={expanded}
@@ -132,41 +134,41 @@ export const MsqdxGlassPersonaBasicsCard = ({
     >
       <div className="msqdx-glass-detail__grid">
         <div style={{ border: "1px solid var(--color-theme-accent)", borderRadius: "12px", padding: "0.75rem", marginTop: "1rem" }}>
-          <h3 style={{ fontSize: "1.5rem", fontWeight: 100, marginBottom: "2rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>METADATA</h3>
+          <h3 style={{ fontSize: "1.5rem", fontWeight: 100, marginBottom: "2rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>{t("personaAdmin.metadata").toUpperCase()}</h3>
           <dl className="msqdx-glass-meta-grid">
             <div>
-              <dt>Status</dt>
+              <dt>{t("personaAdmin.status")}</dt>
               <dd>{detail.metadata.status}</dd>
             </div>
             <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
-              <dt>Confidence</dt>
+              <dt>{t("personaAdmin.confidence")}</dt>
               <dd>{detail.metadata.confidence.toFixed(2)}</dd>
             </div>
             <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
-              <dt>Version</dt>
+              <dt>{t("personaAdmin.version")}</dt>
               <dd>{detail.metadata.version}</dd>
             </div>
             <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
-              <dt>Updated</dt>
+              <dt>{t("personaAdmin.updated")}</dt>
               <dd>{formatDate(detail.metadata.updatedAt)}</dd>
             </div>
             <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
-              <dt>Updated by</dt>
+              <dt>{t("personaAdmin.updatedBy")}</dt>
               <dd>{detail.metadata.updatedBy ?? "—"}</dd>
             </div>
             <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
-              <dt>Last review</dt>
+              <dt>{t("personaAdmin.lastReview")}</dt>
               <dd>{formatDate(detail.metadata.lastReviewedAt)}</dd>
             </div>
             {detail.profile.created_at && (
               <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
-                <dt>Created at</dt>
+                <dt>{t("personaAdmin.createdAt")}</dt>
                 <dd>{formatDate(detail.profile.created_at)}</dd>
               </div>
             )}
             {detail.profile.targetGroupId && (
               <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
-                <dt>Target Group</dt>
+                <dt>{t("personaAdmin.targetGroup")}</dt>
                 <dd>
                   <MsqdxButton
                     variant="text"
@@ -176,7 +178,7 @@ export const MsqdxGlassPersonaBasicsCard = ({
                     startIcon={<MsqdxIcon name="groups" customSize={14} />}
                     sx={{ fontSize: "0.875rem", p: "4px 8px" }}
                   >
-                    To Target Group
+                    {t("personaAdmin.toTargetGroup")}
                   </MsqdxButton>
                 </dd>
               </div>
@@ -184,10 +186,10 @@ export const MsqdxGlassPersonaBasicsCard = ({
           </dl>
         </div>
 
-        <MsqdxGlassDashboardCardSection title="Edit">
+        <MsqdxGlassDashboardCardSection title={t("personaAdmin.edit")}>
           <Box ref={nameRef} sx={{ position: "relative", marginTop: "0.5rem" }}>
             <MsqdxFormField
-              label="Name"
+              label={t("personaAdmin.name")}
               value={nameEdit.value ?? ""}
               onChange={(e) => nameEdit.setValue(e.target.value)}
               fullWidth
@@ -205,7 +207,7 @@ export const MsqdxGlassPersonaBasicsCard = ({
 
           <Box ref={segmentRef} sx={{ position: "relative" }}>
             <MsqdxFormField
-              label="Segment"
+              label={t("personaAdmin.segment")}
               value={segmentEdit.value ?? ""}
               onChange={(e) => segmentEdit.setValue(e.target.value)}
               fullWidth
@@ -223,7 +225,7 @@ export const MsqdxGlassPersonaBasicsCard = ({
 
           <Box ref={headlineRef} sx={{ position: "relative" }}>
             <MsqdxFormField
-              label="Headline"
+              label={t("personaAdmin.headline")}
               value={headlineEdit.value ?? ""}
               onChange={(e) => headlineEdit.setValue(e.target.value)}
               fullWidth
@@ -241,13 +243,13 @@ export const MsqdxGlassPersonaBasicsCard = ({
 
           <Box ref={statusRef} sx={{ position: "relative" }}>
             <MsqdxSelect
-              label="Status"
+              label={t("personaAdmin.status")}
               value={statusEdit.value}
               onChange={(e) => statusEdit.setValue(String(e.target.value ?? ""))}
               options={[
-                { value: "draft", label: "Draft" },
-                { value: "published", label: "Published" },
-                { value: "archived", label: "Archived" }
+                { value: "draft", label: t("personaAdmin.statuses.draft") },
+                { value: "published", label: t("personaAdmin.statuses.published") },
+                { value: "archived", label: t("personaAdmin.statuses.archived") }
               ]}
               fullWidth
               size="small"
@@ -265,7 +267,7 @@ export const MsqdxGlassPersonaBasicsCard = ({
 
           <Box ref={updatedByRef} sx={{ position: "relative" }}>
             <MsqdxFormField
-              label="Updated by"
+              label={t("personaAdmin.updatedBy")}
               value={updatedByEdit.value ?? ""}
               onChange={(e) => updatedByEdit.setValue(e.target.value)}
               fullWidth
@@ -290,7 +292,7 @@ export const MsqdxGlassPersonaBasicsCard = ({
                 disabled={savePending}
                 startIcon={<MsqdxIcon name="archive" customSize={18} />}
               >
-                Archive
+                {t("personaAdmin.archive")}
               </MsqdxButton>
             )}
             {onDelete && (
@@ -300,8 +302,8 @@ export const MsqdxGlassPersonaBasicsCard = ({
                 brandColor="pink"
                 onClick={onDelete}
                 disabled={savePending}
-                title="Delete persona"
-                aria-label="Delete persona"
+                title={t("personaAdmin.deletePersona")}
+                aria-label={t("personaAdmin.deletePersona")}
               >
                 <MsqdxIcon name="delete" customSize={16} />
               </MsqdxButton>

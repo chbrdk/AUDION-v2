@@ -10,6 +10,7 @@ type KnowledgeFormState = {
 };
 import { MsqdxIcon, MsqdxDashboardCard, MsqdxButton, MsqdxFormField, MsqdxTextareaField } from "@msqdx/react";
 import { MsqdxGlassDashboardCardSection } from "./msqdx-glass-dashboard-card-section";
+import { useI18n } from "../i18n/i18n-provider";
 import { THEME_ACCENT } from "../../lib/theme-accent";
 import { buildApiUrl } from "../../app/api/_lib/backend";
 
@@ -44,14 +45,16 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
   formatDate,
   notify
 }: MsqdxGlassKnowledgeSourcesCardProps) => {
+  const { t } = useI18n();
+
   const handleDocumentRetry = async (docId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (!selectedId) {
-      alert("No persona selected");
+      alert(t("knowledgeSources.noPersonaSelected"));
       return;
     }
-    alert("Restarting ingestion...");
+    alert(t("knowledgeSources.restartingIngestion"));
     try {
       const target = buildApiUrl(`/api/persona-admin/${selectedId}/documents/${docId}/retry`);
       const response = await fetch(target, { method: "POST" });
@@ -60,20 +63,20 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
         throw new Error(`Backend responded with ${response.status}${errorText ? `: ${errorText}` : ""}`);
       }
       await response.json();
-      alert("Ingestion restarted! Status will be updated...");
+      alert(t("knowledgeSources.ingestionRestarted"));
       await onLoadDetail(selectedId);
       setTimeout(() => {
         onLoadDetail(selectedId);
       }, 2000);
     } catch (error) {
       console.error("❌ Retry failed", error);
-      alert(`Error: ${error instanceof Error ? error.message : "Could not restart ingestion"}`);
+      alert(`${t("knowledgeSources.error")}: ${error instanceof Error ? error.message : t("knowledgeSources.ingestionError")}`);
     }
   };
 
   const handleDocumentDelete = async (docId: string, filename: string) => {
     if (!selectedId) return;
-    if (!confirm(`Are you sure you want to delete the document "${filename}"?`)) {
+    if (!confirm(t("knowledgeSources.deleteConfirm", { filename }))) {
       return;
     }
     try {
@@ -83,10 +86,10 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
         throw new Error(`Backend responded with ${response.status}`);
       }
       await onLoadDetail(selectedId);
-      notify("Document deleted");
+      notify(t("knowledgeSources.documentDeleted"));
     } catch (error) {
       console.error("Delete failed", error);
-      notify("Failed to delete document");
+      notify(t("knowledgeSources.documentDeleteFailed"));
     }
   };
 
@@ -94,7 +97,7 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
     <Box sx={{ gridColumn: "1 / -1" }}>
     <MsqdxDashboardCard
       id="knowledge-sources"
-      title="Knowledge & Sources"
+      title={t("knowledgeSources.title")}
       icon="lightbulb"
       iconColor={{ color: THEME_ACCENT.color }}
       expanded={expanded}
@@ -102,12 +105,12 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
     >
       <MsqdxGlassDashboardCardSection>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
-          <h4 style={{ margin: 0 }}>Documents</h4>
+          <h4 style={{ margin: 0 }}>{t("knowledgeSources.documents")}</h4>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             {detail.documents.some((doc) => doc.ingestionStatus === "pending" || doc.ingestionStatus === "processing") && (
               <span className="msqdx-glass-muted" style={{ fontSize: "0.75rem", display: "flex", alignItems: "center", gap: "4px" }}>
                 <MsqdxIcon name="sync" customSize={14} style={{ animation: "spin 2s linear infinite" }} />
-                Updating status...
+                {t("knowledgeSources.updatingStatus")}
               </span>
             )}
             <MsqdxButton
@@ -117,24 +120,25 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
               disabled={documentUploadPending}
               startIcon={<MsqdxIcon name="upload" customSize={16} />}
             >
-              {documentUploadPending ? "Uploading..." : "Upload"}
+              {documentUploadPending ? t("knowledgeSources.uploading") : t("knowledgeSources.upload")}
             </MsqdxButton>
           </div>
         </div>
         {detail.documents.length === 0 && (
-          <p className="msqdx-glass-muted" style={{ margin: 0 }}>No documents uploaded.</p>
+          <p className="msqdx-glass-muted" style={{ margin: 0 }}>{t("knowledgeSources.noDocuments")}</p>
         )}
         {detail.documents.length > 0 && (
           <ul className="msqdx-glass-card-list" style={{ marginTop: "0.5rem" }}>
             {detail.documents.map((doc) => {
+              const progress = doc.ingestionProgress != null ? Math.round(doc.ingestionProgress) : 0;
               const ingestionChip = doc.ingestionStatus
                 ? doc.ingestionStatus === "completed"
-                  ? { label: "Indexed", className: "msqdx-glass-chip --success" }
+                  ? { label: t("knowledgeSources.indexed"), className: "msqdx-glass-chip --success" }
                   : doc.ingestionStatus === "processing"
-                    ? { label: `Processing ${doc.ingestionProgress ? Math.round(doc.ingestionProgress) : 0}%`, className: "msqdx-glass-chip --processing" }
+                    ? { label: t("knowledgeSources.processing", { progress }), className: "msqdx-glass-chip --processing" }
                     : doc.ingestionStatus === "failed"
-                      ? { label: "Error", className: "msqdx-glass-chip --error" }
-                      : { label: "Pending", className: "msqdx-glass-chip --pending" }
+                      ? { label: t("knowledgeSources.error"), className: "msqdx-glass-chip --error" }
+                      : { label: t("knowledgeSources.pending"), className: "msqdx-glass-chip --pending" }
                 : null;
               return (
                 <li key={doc.id}>
@@ -155,7 +159,7 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
                           size="small"
                           startIcon={<MsqdxIcon name="download" customSize={16} />}
                         >
-                          Download
+                          {t("knowledgeSources.download")}
                         </MsqdxButton>
                       </Box>
                     )}
@@ -167,7 +171,7 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
                           onClick={(e) => handleDocumentRetry(doc.id, e)}
                           startIcon={<MsqdxIcon name="refresh" customSize={16} />}
                         >
-                          Retry
+                          {t("knowledgeSources.retry")}
                         </MsqdxButton>
                       )}
                     <MsqdxButton
@@ -177,7 +181,7 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
                       onClick={() => handleDocumentDelete(doc.id, doc.filename)}
                       startIcon={<MsqdxIcon name="delete" customSize={16} />}
                     >
-                      Delete
+                      {t("knowledgeSources.delete")}
                     </MsqdxButton>
                   </div>
                   {doc.ingestionStatus === "processing" && doc.ingestionProgress !== null && (
@@ -202,21 +206,21 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
         )}
       </MsqdxGlassDashboardCardSection>
 
-      <MsqdxGlassDashboardCardSection title="Knowledge Base">
+      <MsqdxGlassDashboardCardSection title={t("knowledgeSources.knowledgeBase")}>
         <form onSubmit={onKnowledgeSubmit}>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <MsqdxFormField
-              label="Title"
+              label={t("knowledgeSources.titleLabel")}
               value={knowledgeForm.title}
               onChange={(e) => onKnowledgeField("title", e.target.value)}
-              placeholder="e.g. Market Study 2025"
+              placeholder={t("knowledgeSources.titlePlaceholder")}
               fullWidth
             />
             <MsqdxTextareaField
-              label="Content"
+              label={t("knowledgeSources.content")}
               value={knowledgeForm.content}
               onChange={(e) => onKnowledgeField("content", e.target.value)}
-              placeholder="Short description or insights"
+              placeholder={t("knowledgeSources.contentPlaceholder")}
               minRows={3}
               fullWidth
             />
@@ -229,13 +233,13 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
               startIcon={<MsqdxIcon name="lightbulb" customSize={16} />}
               brandColor="purple"
             >
-              {knowledgePending ? "Saving..." : "Add knowledge"}
+              {knowledgePending ? t("knowledgeSources.saving") : t("knowledgeSources.addKnowledge")}
             </MsqdxButton>
           </Box>
         </form>
         {detail.knowledge.length === 0 && (
           <p className="msqdx-glass-muted" style={{ marginTop: "1rem", marginBottom: 0 }}>
-            No knowledge entries yet.
+            {t("knowledgeSources.noKnowledgeEntries")}
           </p>
         )}
         {detail.knowledge.length > 0 && (
@@ -255,16 +259,16 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
         )}
       </MsqdxGlassDashboardCardSection>
 
-      <MsqdxGlassDashboardCardSection title="Sources">
+      <MsqdxGlassDashboardCardSection title={t("knowledgeSources.sources")}>
         {detail.sources.length === 0 && (
-          <p className="msqdx-glass-muted" style={{ margin: 0 }}>No sources linked.</p>
+          <p className="msqdx-glass-muted" style={{ margin: 0 }}>{t("knowledgeSources.noSourcesLinked")}</p>
         )}
         {detail.sources.length > 0 && (
           <ul className="msqdx-glass-sources" style={{ marginTop: "0.5rem", marginBottom: 0 }}>
             {detail.sources.map((source) => (
               <li key={source.chunk_id}>
                 <span>{source.chunk_id}</span>
-                <small>confidence {source.confidence.toFixed(2)}</small>
+                <small>{t("knowledgeSources.confidence")} {source.confidence.toFixed(2)}</small>
               </li>
             ))}
           </ul>
@@ -272,14 +276,14 @@ export const MsqdxGlassKnowledgeSourcesCard = ({
       </MsqdxGlassDashboardCardSection>
 
       {detail.insights && (
-        <MsqdxGlassDashboardCardSection title="Insights">
+        <MsqdxGlassDashboardCardSection title={t("knowledgeSources.insights")}>
           <dl className="msqdx-glass-meta-grid" style={{ marginTop: "0.5rem", marginBottom: "0.5rem" }}>
             <div>
-              <dt>Chunks</dt>
+              <dt>{t("knowledgeSources.chunks")}</dt>
               <dd>{detail.insights.relatedChunkIds.length}</dd>
             </div>
             <div>
-              <dt>Graph relations</dt>
+              <dt>{t("knowledgeSources.graphRelations")}</dt>
               <dd>{detail.insights.graphRelationships.length}</dd>
             </div>
           </dl>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { MsqdxIcon } from "@msqdx/react";
+import { useI18n } from "../i18n/i18n-provider";
 import { generateMockContext, generateMockExtendedData, resolveExtendedVariable } from "./mockData";
 import { journeysApi, type JourneyResponse } from "../../app/api/_lib/journeys";
 import { targetGroupsApi, type TargetGroupResponse } from "../../app/api/_lib/target-groups";
@@ -15,6 +16,7 @@ interface PreviewPanelProps {
 }
 
 export function PreviewPanel({ prompt, context, useMockData = false }: PreviewPanelProps) {
+  const { t } = useI18n();
   const [rendered, setRendered] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
@@ -398,7 +400,7 @@ export function PreviewPanel({ prompt, context, useMockData = false }: PreviewPa
                     display: "flex",
                     alignItems: "center",
                   }}
-                  title="Close result"
+                  title={t("promptBuilder.closeResult")}
                 >
                   <MsqdxIcon name="close" customSize={18} />
                 </button>
@@ -508,7 +510,7 @@ export function PreviewPanel({ prompt, context, useMockData = false }: PreviewPa
                   display: "flex",
                   alignItems: "center",
                 }}
-                title="Close error"
+                title={t("promptBuilder.closeError")}
               >
                 <MsqdxIcon name="close" customSize={18} />
               </button>

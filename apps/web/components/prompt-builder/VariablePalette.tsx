@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { MsqdxIcon } from "@msqdx/react";
+import { useI18n } from "../i18n/i18n-provider";
 import { STANDARD_VARIABLES, EXTENDED_VARIABLES, type VariableDefinition, type VariableCategory } from "./variableDefinitions";
 
 interface VariablePaletteProps {
@@ -10,6 +11,7 @@ interface VariablePaletteProps {
 }
 
 export function VariablePalette({ onVariableDrag, onVariableClick }: VariablePaletteProps) {
+  const { t } = useI18n();
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedCategories, setExpandedCategories] = useState<Set<VariableCategory>>(
     new Set()
@@ -209,7 +211,7 @@ export function VariablePalette({ onVariableDrag, onVariableClick }: VariablePal
           />
           <input
             type="text"
-            placeholder="Search variables..."
+            placeholder={t("promptBuilder.searchVariables")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{

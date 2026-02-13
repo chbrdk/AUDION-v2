@@ -613,6 +613,40 @@ main {
   flex-wrap: wrap;
 }
 
+/* Queue Dashboard: stats grid and stat cards (align with design rules) */
+.msqdx-glass-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--msqdx-spacing-md);
+}
+
+.msqdx-glass-stat-card {
+  border: 1px solid var(--color-secondary-dx-grey-light-tint);
+  border-radius: var(--msqdx-radius-sm);
+  padding: var(--msqdx-spacing-md) var(--msqdx-spacing-lg);
+  background: var(--color-primary-white);
+  transition: border-color var(--msqdx-transition-fast);
+}
+
+[data-theme="dark"] .msqdx-glass-stat-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.msqdx-glass-stat-card__label {
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.msqdx-glass-stat-card__value {
+  font-size: var(--msqdx-font-size-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
 .msqdx-glass-journey-timeline__header {
   display: flex;
   justify-content: space-between;

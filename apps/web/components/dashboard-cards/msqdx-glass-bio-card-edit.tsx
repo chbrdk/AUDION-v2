@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import type { PersonaProfile } from "@msqdx-glass/types";
 import { Box, Slider, Typography, Stack } from "@mui/material";
 import { MsqdxIcon, MsqdxDashboardCard, MsqdxSelect, MsqdxFormField } from "@msqdx/react";
 import { MsqdxGlassDashboardCardSection } from "./msqdx-glass-dashboard-card-section";
+import { useI18n } from "../i18n/i18n-provider";
 import { FORM_FIELD_ACCENT_SX, THEME_ACCENT } from "../../lib/theme-accent";
 import { MsqdxGlassInlineEditControls } from "../msqdx-glass-inline-edit-controls";
 import { useInlineEdit } from "../hooks/use-inline-edit";
@@ -17,12 +18,6 @@ export type MsqdxGlassBioCardEditProps = {
   savePending?: boolean;
 };
 
-const GENDER_OPTIONS = [
-  { value: "male", label: "Male" },
-  { value: "female", label: "Female" },
-  { value: "diverse", label: "Diverse" }
-];
-
 export const MsqdxGlassBioCardEdit = ({
   profile,
   expanded,
@@ -30,6 +25,12 @@ export const MsqdxGlassBioCardEdit = ({
   onSave,
   savePending = false
 }: MsqdxGlassBioCardEditProps) => {
+  const { t } = useI18n();
+  const genderOptions = useMemo(() => [
+    { value: "male", label: t("personaAdmin.genderMale") },
+    { value: "female", label: t("personaAdmin.genderFemale") },
+    { value: "diverse", label: t("personaAdmin.genderDiverse") },
+  ], [t]);
   // Individual inline edit hooks for each field
   const ageEdit = useInlineEdit({
     initialValue: profile.age ?? null,
@@ -120,30 +121,30 @@ export const MsqdxGlassBioCardEdit = ({
     <Box sx={{ gridColumn: "1 / -1" }}>
       <MsqdxDashboardCard
         id="bio-demographics"
-        title="Biography & Demographics"
+        title={t("personaAdmin.bioDemographics")}
         icon="person"
         iconColor={{ color: THEME_ACCENT.color }}
         expanded={expanded}
         onToggle={onToggle}
       >
         {profile.bio && (
-          <MsqdxGlassDashboardCardSection title="Biography">
+          <MsqdxGlassDashboardCardSection title={t("personaAdmin.biography")}>
             <p style={{ lineHeight: "1.6", whiteSpace: "pre-wrap", margin: 0 }}>
               {profile.bio}
             </p>
           </MsqdxGlassDashboardCardSection>
         )}
 
-        <MsqdxGlassDashboardCardSection title="Demographics">
+        <MsqdxGlassDashboardCardSection title={t("personaAdmin.demographics")}>
           <Stack spacing={3}>
             {/* Age Slider */}
             <Box ref={ageRef} sx={{ position: "relative" }}>
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
                 <Typography variant="body2" component="label" sx={{ fontWeight: 500 }}>
-                  Age
+                  {t("personaAdmin.age")}
                 </Typography>
                 <Typography variant="body2" sx={{ color: "text.secondary", minWidth: "60px", textAlign: "right" }}>
-                  {ageEdit.value !== null ? `${ageEdit.value} years` : "—"}
+                  {ageEdit.value !== null ? `${ageEdit.value} ${t("personaAdmin.years")}` : "—"}
                 </Typography>
               </Box>
               <Slider
@@ -176,12 +177,12 @@ export const MsqdxGlassBioCardEdit = ({
             {/* Gender Select */}
             <Box ref={genderRef} sx={{ position: "relative" }}>
               <MsqdxSelect
-                label="Gender"
+                label={t("personaAdmin.gender")}
                 value={genderEdit.value}
                 onChange={(e) => genderEdit.setValue(String(e.target.value ?? ""))}
                 options={[
-                  { value: "", label: "None" },
-                  ...GENDER_OPTIONS
+                  { value: "", label: t("personaAdmin.genderNone") },
+                  ...genderOptions
                 ]}
                 displayEmpty
                 fullWidth
@@ -201,10 +202,10 @@ export const MsqdxGlassBioCardEdit = ({
             {/* Location Text Field */}
             <Box ref={locationRef} sx={{ position: "relative" }}>
               <MsqdxFormField
-                label="Location"
+                label={t("personaAdmin.location")}
                 value={locationEdit.value}
                 onChange={(e) => locationEdit.setValue(e.target.value)}
-                placeholder="e.g., Berlin, Germany"
+                placeholder={t("personaAdmin.locationPlaceholder")}
                 fullWidth
               />
               <MsqdxGlassInlineEditControls
@@ -221,7 +222,7 @@ export const MsqdxGlassBioCardEdit = ({
             <Box ref={mediaAffinityRef} sx={{ position: "relative" }}>
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
                 <Typography variant="body2" component="label" sx={{ fontWeight: 500 }}>
-                  Media Affinity
+                  {t("personaAdmin.mediaAffinity")}
                 </Typography>
                 <Typography variant="body2" sx={{ color: "text.secondary", minWidth: "80px", textAlign: "right" }}>
                   {mediaAffinityEdit.value !== null ? `${mediaAffinityEdit.value}/100` : "—"}
@@ -234,15 +235,15 @@ export const MsqdxGlassBioCardEdit = ({
                 max={100}
                 step={1}
                 marks={[
-                  { value: 0, label: "Low" },
+                  { value: 0, label: t("personaAdmin.skepticismLow") },
                   { value: 50, label: "50" },
-                  { value: 100, label: "High" }
+                  { value: 100, label: t("personaAdmin.skepticismHigh") }
                 ]}
                 sx={{ color: "var(--color-theme-accent)" }}
               />
               <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.5 }}>
-                <Typography variant="caption" sx={{ color: "text.secondary" }}>Low</Typography>
-                <Typography variant="caption" sx={{ color: "text.secondary" }}>High</Typography>
+                <Typography variant="caption" sx={{ color: "text.secondary" }}>{t("personaAdmin.skepticismLow")}</Typography>
+                <Typography variant="caption" sx={{ color: "text.secondary" }}>{t("personaAdmin.skepticismHigh")}</Typography>
               </Box>
               <MsqdxGlassInlineEditControls
                 hasChanges={mediaAffinityEdit.hasChanges}

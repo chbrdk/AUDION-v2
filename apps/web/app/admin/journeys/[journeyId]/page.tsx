@@ -792,17 +792,17 @@ export default function JourneyEditorPage() {
                   size="small"
                   sx={{ ...FORM_FIELD_ACCENT_SX, "& .MuiInputBase-input": { fontSize: "1.25rem", fontWeight: 600 } }}
                 />
-                <MsqdxButton variant="text" size="small" onClick={saveName} disabled={savePending} sx={{ minWidth: 28, minHeight: 28, p: 0 }} aria-label="Save name">
+                <MsqdxButton variant="text" size="small" onClick={saveName} disabled={savePending} sx={{ minWidth: 28, minHeight: 28, p: 0 }} aria-label={t("journeys.editor.saveName")}>
                   <MsqdxIcon name="check" customSize={16} />
                 </MsqdxButton>
-                <MsqdxButton variant="text" size="small" onClick={() => { setEditingName(false); setNameValue(journey?.name || ""); }} disabled={savePending} sx={{ minWidth: 28, minHeight: 28, p: 0 }} aria-label="Cancel">
+                <MsqdxButton variant="text" size="small" onClick={() => { setEditingName(false); setNameValue(journey?.name || ""); }} disabled={savePending} sx={{ minWidth: 28, minHeight: 28, p: 0 }} aria-label={t("journeys.editor.cancel")}>
                   <MsqdxIcon name="close" customSize={16} />
                 </MsqdxButton>
               </Box>
             ) : (
               <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <MsqdxTypography variant="h5" weight="semibold" sx={{ flex: 1 }}>{journey.name}</MsqdxTypography>
-                <MsqdxButton variant="text" size="small" onClick={startEditingName} disabled={savePending} sx={{ minWidth: 28, minHeight: 28, p: 0 }} aria-label="Edit name">
+                <MsqdxButton variant="text" size="small" onClick={startEditingName} disabled={savePending} sx={{ minWidth: 28, minHeight: 28, p: 0 }} aria-label={t("journeys.editor.editName")}>
                   <MsqdxIcon name="edit" customSize={16} />
                 </MsqdxButton>
               </Box>
@@ -825,10 +825,10 @@ export default function JourneyEditorPage() {
                   minRows={2}
                   sx={FORM_FIELD_ACCENT_SX}
                 />
-                <MsqdxButton variant="text" size="small" onClick={saveDescription} disabled={savePending} sx={{ minWidth: 28, minHeight: 28, p: 0 }} aria-label="Save description">
+                <MsqdxButton variant="text" size="small" onClick={saveDescription} disabled={savePending} sx={{ minWidth: 28, minHeight: 28, p: 0 }} aria-label={t("journeys.editor.saveDescription")}>
                   <MsqdxIcon name="check" customSize={16} />
                 </MsqdxButton>
-                <MsqdxButton variant="text" size="small" onClick={() => { setEditingDescription(false); setDescriptionValue(journey?.description || ""); }} disabled={savePending} sx={{ minWidth: 28, minHeight: 28, p: 0 }} aria-label="Cancel">
+                <MsqdxButton variant="text" size="small" onClick={() => { setEditingDescription(false); setDescriptionValue(journey?.description || ""); }} disabled={savePending} sx={{ minWidth: 28, minHeight: 28, p: 0 }} aria-label={t("journeys.editor.cancel")}>
                   <MsqdxIcon name="close" customSize={16} />
                 </MsqdxButton>
               </Box>
@@ -836,13 +836,13 @@ export default function JourneyEditorPage() {
               journey.description ? (
                 <Box sx={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
                   <MsqdxTypography variant="body2" sx={{ color: "text.secondary", flex: 1 }}>{journey.description}</MsqdxTypography>
-                  <MsqdxButton variant="text" size="small" onClick={startEditingDescription} disabled={savePending} sx={{ minWidth: 28, minHeight: 28, p: 0 }} aria-label="Edit description">
+                  <MsqdxButton variant="text" size="small" onClick={startEditingDescription} disabled={savePending} sx={{ minWidth: 28, minHeight: 28, p: 0 }} aria-label={t("journeys.editor.editDescription")}>
                     <MsqdxIcon name="edit" customSize={14} />
                   </MsqdxButton>
                 </Box>
               ) : (
                 <MsqdxButton variant="text" size="small" onClick={startEditingDescription} disabled={savePending} sx={{ alignSelf: "flex-start", color: "text.secondary" }}>
-                  <MsqdxIcon name="add" customSize={14} /> Add description
+                  <MsqdxIcon name="add" customSize={14} /> {t("journeys.editor.addDescription")}
                 </MsqdxButton>
               )
             )}
@@ -1071,11 +1071,11 @@ export default function JourneyEditorPage() {
                           <MsqdxTypography variant="h6" weight="semibold">{editingPhaseId ? t("journeys.editor.updateDetails") : t("journeys.editor.defineNext")}</MsqdxTypography>
                         </Box>
                         {editingPhaseId && (
-                          <MsqdxButton variant="text" size="small" onClick={() => { setPhaseFormExpanded(false); setEditingPhaseId(null); setPhaseFormData({ name: "", description: "", phase_order: journey.phases.length + 1, expected_duration_min: undefined, expected_duration_max: undefined, duration_unit: "minutes", expected_emotion: undefined, emotion_intensity: undefined }); setMomentDrafts([]); setMomentsError(null); setError(null); }} disabled={addingPhase} aria-label="Cancel editing"><MsqdxIcon name="close" customSize={18} /></MsqdxButton>
+                          <MsqdxButton variant="text" size="small" onClick={() => { setPhaseFormExpanded(false); setEditingPhaseId(null); setPhaseFormData({ name: "", description: "", phase_order: journey.phases.length + 1, expected_duration_min: undefined, expected_duration_max: undefined, duration_unit: "minutes", expected_emotion: undefined, emotion_intensity: undefined }); setMomentDrafts([]); setMomentsError(null); setError(null); }} disabled={addingPhase} aria-label={t("journeys.editor.cancelEditing")}><MsqdxIcon name="close" customSize={18} /></MsqdxButton>
                         )}
                       </Box>
                       {error && <MsqdxTypography variant="body2" color="error">Error: {error}</MsqdxTypography>}
-                      <MsqdxFormField label="Name *" value={phaseFormData.name} onChange={(e) => setPhaseFormData({ ...phaseFormData, name: e.target.value })} placeholder={t("journeys.editor.placeholderPhaseName")} required disabled={addingPhase} fullWidth size="small" sx={FORM_FIELD_ACCENT_SX} />
+                      <MsqdxFormField label={t("journeys.editor.phaseNameLabel")} value={phaseFormData.name} onChange={(e) => setPhaseFormData({ ...phaseFormData, name: e.target.value })} placeholder={t("journeys.editor.placeholderPhaseName")} required disabled={addingPhase} fullWidth size="small" sx={FORM_FIELD_ACCENT_SX} />
                       <MsqdxTextareaField label={t("journeys.editor.phaseDescriptionLabel")} value={phaseFormData.description} onChange={(e) => setPhaseFormData({ ...phaseFormData, description: e.target.value })} placeholder={t("journeys.editor.placeholderDescription")} minRows={3} disabled={addingPhase} fullWidth sx={FORM_FIELD_ACCENT_SX} />
                       <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 1.5 }}>
                         <MsqdxFormField label={t("journeys.editor.durationMin")} value={String(phaseFormData.expected_duration_min ?? "")} onChange={(e) => setPhaseFormData({ ...phaseFormData, expected_duration_min: e.target.value ? parseInt(e.target.value) : undefined })} type="number" disabled={addingPhase} size="small" sx={FORM_FIELD_ACCENT_SX} />

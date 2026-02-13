@@ -88,7 +88,7 @@ export function MsqdxGlassPersonasOverview({ initialList }: MsqdxGlassPersonasOv
       const payload = (await response.json()) as PersonaListResponse;
       setList(payload);
     } catch (e) {
-      setLoadError(e instanceof Error ? e.message : "Failed to load personas");
+      setLoadError(e instanceof Error ? e.message : t("personaAdmin.loadListFailed"));
       setList({ items: [], total: 0, page: 1, page_size: 50 });
     } finally {
       setLoading(false);
@@ -112,7 +112,7 @@ export function MsqdxGlassPersonasOverview({ initialList }: MsqdxGlassPersonasOv
 
     try {
       const segment = (createForm.segment || "unspecified").trim() || "unspecified";
-      const headline = (createForm.headline || "New Persona").trim() || "New Persona";
+      const headline = (createForm.headline || t("personaAdmin.newPersona")).trim() || t("personaAdmin.newPersona");
 
       const payload = {
         project_id: activeProjectId,

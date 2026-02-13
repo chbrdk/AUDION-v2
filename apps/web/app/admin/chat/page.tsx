@@ -63,6 +63,7 @@ import {
 } from "../../../lib/chat-history";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useProject } from "../../../components/projects/project-provider";
+import { useI18n } from "../../../components/i18n/i18n-provider";
 import { buildShareChatUrl } from "../../../lib/share-chat";
 
 type PersonaProfileCard = {
@@ -282,6 +283,7 @@ function AdminChatPageContent() {
   const theme = useTheme();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useI18n();
   const { setHeaderContent } = useAdminHeader();
   const { activeProjectId } = useProject();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -1562,7 +1564,7 @@ function AdminChatPageContent() {
                 px: 4
               }}
             >
-              {loadingPersonas ? "Loading personas…" : "Choose persona"}
+              {loadingPersonas ? t("adminChat.loadingPersonas") : t("adminChat.choosePersona")}
             </Button>
             {loadingPersonas && <CircularProgress size={28} />}
           </Stack>
@@ -1599,7 +1601,7 @@ function AdminChatPageContent() {
               {sending && (
                 <Stack direction="row" spacing={1} alignItems="center">
                   <CircularProgress size={16} />
-                  <Typography variant="body2">Sending…</Typography>
+                  <Typography variant="body2">{t("adminChat.sending")}</Typography>
                 </Stack>
               )}
             </Box>
@@ -1687,7 +1689,7 @@ function AdminChatPageContent() {
                 mx: "auto"
               }}
             >
-              <Tooltip title="Journey-Phasen hinzufügen">
+              <Tooltip title={t("adminChat.addJourneyPhases")}>
                 <Badge
                   badgeContent={pendingImages.length > 0 ? pendingImages.length : 0}
                   color="primary"
@@ -1715,7 +1717,7 @@ function AdminChatPageContent() {
                   </IconButton>
                 </Badge>
               </Tooltip>
-              <Tooltip title="Share chat link">
+              <Tooltip title={t("adminChat.shareChatLink")}>
                 <IconButton
                   onClick={() => setShareDialogOpen(true)}
                   disabled={!activePersonaId || !activeProjectId}
@@ -1727,7 +1729,7 @@ function AdminChatPageContent() {
                   <MsqdxIcon name="share" customSize={22} />
                 </IconButton>
               </Tooltip>
-              <Tooltip title={whisperRecording ? "Stop recording" : "Start voice input"}>
+              <Tooltip title={whisperRecording ? t("adminChat.stopRecording") : t("adminChat.startVoiceInput")}>
                 <IconButton
                   onClick={handleMicToggle}
                   disabled={sending || whisperTranscribing}
@@ -1743,7 +1745,7 @@ function AdminChatPageContent() {
               </Tooltip>
               <MsqdxInput
                 fullWidth
-                placeholder="Ask the persona anything…"
+                placeholder={t("adminChat.placeholder")}
                 value={input}
                 disabled={!activePersonaId || sending}
                 onChange={(event) => setInput(event.target.value)}
@@ -1756,7 +1758,7 @@ function AdminChatPageContent() {
                   },
                 }}
               />
-              <Tooltip title="Toggle persona playback">
+              <Tooltip title={t("adminChat.togglePlayback")}>
                 <IconButton
                   onClick={handleVoiceToggle}
                   sx={{
@@ -1940,19 +1942,19 @@ function AdminChatPageContent() {
           >
             <Tab
               value="phases"
-              label="Journey Phases"
+              label={t("adminChat.journeyPhases")}
               icon={<MsqdxIcon name="route" customSize={14} />}
               iconPosition="start"
             />
             <Tab
               value="variables"
-              label="Variables"
+              label={t("adminChat.variables")}
               icon={<MsqdxIcon name="code" customSize={14} />}
               iconPosition="start"
             />
             <Tab
               value="attachments"
-              label="Attachments"
+              label={t("adminChat.attachments")}
               icon={<MsqdxIcon name="image" customSize={14} />}
               iconPosition="start"
             />
@@ -1971,15 +1973,15 @@ function AdminChatPageContent() {
                 <Stack spacing={1.5}>
                   {/* Journey Selection */}
                   <FormControl fullWidth size="small">
-                    <InputLabel sx={{ fontSize: "0.75rem" }}>Journey</InputLabel>
+                    <InputLabel sx={{ fontSize: "0.75rem" }}>{t("adminChat.journey")}</InputLabel>
                     <Select
                       value={selectedJourneyId || ""}
                       onChange={(e) => setSelectedJourneyId(e.target.value || null)}
-                      label="Journey"
+                      label={t("adminChat.journey")}
                       sx={{ fontSize: "0.8125rem", "& .MuiSelect-select": { py: 0.75 } }}
                     >
                       {journeys.length === 0 ? (
-                        <MenuItem disabled sx={{ fontSize: "0.75rem" }}>None available</MenuItem>
+                        <MenuItem disabled sx={{ fontSize: "0.75rem" }}>{t("adminChat.noneAvailable")}</MenuItem>
                       ) : (
                         journeys.map((journey) => (
                           <MenuItem key={journey.id} value={journey.id} sx={{ fontSize: "0.8125rem", py: 0.5 }}>
@@ -2347,17 +2349,17 @@ function AdminChatPageContent() {
                 try {
                   await navigator.clipboard.writeText(url);
                   setShareLinkCopied(true);
-                  notify("Link copied to clipboard");
+                  notify(t("adminChat.linkCopied"));
                   setTimeout(() => setShareLinkCopied(false), 2000);
                 } catch {
-                  notify("Could not copy to clipboard");
+                  notify(t("adminChat.copyFailed"));
                 }
               }
             }}
             disabled={!activePersonaId || !activeProjectId}
           >
             <MsqdxIcon name="content_copy" customSize={16} />
-            {shareLinkCopied ? "Copied!" : "Copy link"}
+            {shareLinkCopied ? t("adminChat.copied") : t("adminChat.copyLink")}
           </button>
         </DialogActions>
       </Dialog>
@@ -2575,11 +2577,11 @@ function AdminChatPageContent() {
           <MenuItem disabled>
             <Stack direction="row" spacing={1} alignItems="center">
               <CircularProgress size={16} />
-              <Typography variant="body2">Loading personas…</Typography>
+              <Typography variant="body2">{t("adminChat.loadingPersonas")}</Typography>
             </Stack>
           </MenuItem>
         ) : availablePersonas.length === 0 ? (
-          <MenuItem disabled>No personas available</MenuItem>
+          <MenuItem disabled>{t("adminChat.noPersonasAvailable")}</MenuItem>
         ) : (
           availablePersonas.map((persona) => (
             <MenuItem
@@ -2605,11 +2607,16 @@ function AdminChatPageContent() {
   );
 }
 
+function AdminChatLoadingFallback() {
+  const { t } = useI18n();
+  return <Typography>{t("adminChat.loading")}</Typography>;
+}
+
 export default function AdminChatPage() {
   return (
     <Suspense fallback={
       <Box sx={{ p: 3, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Typography>Loading...</Typography>
+        <AdminChatLoadingFallback />
       </Box>
     }>
       <AdminChatPageContent />

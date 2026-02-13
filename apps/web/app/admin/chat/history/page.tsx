@@ -16,9 +16,9 @@ import {
   Checkbox,
   Stack,
   Typography,
-  useTheme,
 } from "@mui/material";
 import { MsqdxIcon } from "@msqdx/react";
+import { useI18n } from "../../../../components/i18n/i18n-provider";
 import { MsqdxGlassChatHistoryList } from "../../../../components/chat/msqdx-glass-chat-history-list";
 import {
   loadConversationsFromLocalStorage,
@@ -30,7 +30,7 @@ import {
 
 export default function ChatHistoryPage() {
   const router = useRouter();
-  const theme = useTheme();
+  const { t } = useI18n();
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [selectedPersonaId, setSelectedPersonaId] = useState<string>("");
   const [showArchived, setShowArchived] = useState(false);
@@ -71,7 +71,7 @@ export default function ChatHistoryPage() {
   };
 
   const handleConversationDelete = (conversationId: string) => {
-    if (confirm("Are you sure you want to delete this conversation?")) {
+    if (confirm(t("chatHistory.deleteConfirm"))) {
       deleteConversationFromLocalStorage(conversationId);
       const loaded = loadConversationsFromLocalStorage(selectedPersonaId || undefined, showArchived);
       setConversations(loaded);
@@ -91,10 +91,10 @@ export default function ChatHistoryPage() {
       {/* Header */}
       <Box>
         <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>
-          Chat History
+          {t("chatHistory.title")}
         </Typography>
         <Typography variant="body2" sx={{ color: "text.secondary" }}>
-          View and manage your conversation history
+          {t("chatHistory.subtitle")}
         </Typography>
       </Box>
 
@@ -103,7 +103,7 @@ export default function ChatHistoryPage() {
         <TextField
           fullWidth
           size="small"
-          placeholder="Search conversations..."
+          placeholder={t("chatHistory.searchPlaceholder")}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           InputProps={{
@@ -116,13 +116,13 @@ export default function ChatHistoryPage() {
           sx={{ maxWidth: { md: 400 } }}
         />
         <FormControl size="small" sx={{ minWidth: 200 }}>
-          <InputLabel>Persona</InputLabel>
+          <InputLabel>{t("chatHistory.persona")}</InputLabel>
           <Select
             value={selectedPersonaId}
             onChange={(e) => setSelectedPersonaId(e.target.value)}
-            label="Persona"
+            label={t("chatHistory.persona")}
           >
-            <MenuItem value="">All Personas</MenuItem>
+            <MenuItem value="">{t("chatHistory.allPersonas")}</MenuItem>
             {availablePersonas.map((persona) => (
               <MenuItem key={persona.id} value={persona.id}>
                 {persona.name}
@@ -138,7 +138,7 @@ export default function ChatHistoryPage() {
               size="small"
             />
           }
-          label="Show archived"
+          label={t("chatHistory.showArchived")}
         />
       </Stack>
 

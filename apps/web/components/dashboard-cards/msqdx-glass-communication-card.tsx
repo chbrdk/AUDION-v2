@@ -6,6 +6,7 @@ import { MsqdxDashboardCard } from "@msqdx/react";
 import { MsqdxGlassDashboardCardSection } from "./msqdx-glass-dashboard-card-section";
 import { MsqdxGlassChipEditor } from "../generic/msqdx-glass-chip-editor";
 import { MsqdxGlassFieldEditor } from "../generic/msqdx-glass-field-editor";
+import { useI18n } from "../i18n/i18n-provider";
 import { THEME_ACCENT } from "../../lib/theme-accent";
 
 export type MsqdxGlassCommunicationCardProps = {
@@ -31,6 +32,7 @@ export const MsqdxGlassCommunicationCard = ({
   aiVocabularyLoading = false,
   highlightedVocabulary = []
 }: MsqdxGlassCommunicationCardProps) => {
+  const { t } = useI18n();
   if (!profile.communication_style) {
     return null;
   }
@@ -38,31 +40,31 @@ export const MsqdxGlassCommunicationCard = ({
   return (
     <MsqdxDashboardCard
       id="communication"
-      title="Communication"
+      title={t("personaAdmin.communication")}
       icon="chat_bubble"
       iconColor={{ color: THEME_ACCENT.color }}
       expanded={expanded}
       onToggle={onToggle}
     >
       <MsqdxGlassChipEditor
-        label="Vocabulary"
+        label={t("personaAdmin.vocabulary")}
         chips={profile.communication_style.vocabulary || []}
         chipClassName="--vocab"
         onSave={onSaveVocabulary || (async () => {})}
         editable={!!onSaveVocabulary}
-        emptyMessage="No vocabulary defined"
+        emptyMessage={t("personaAdmin.noVocabularyDefined")}
         onAiSuggest={onAiSuggestVocabulary}
         aiLoading={aiVocabularyLoading}
         highlightedChips={highlightedVocabulary}
       />
-      <MsqdxGlassDashboardCardSection title="Sentence Structure">
+      <MsqdxGlassDashboardCardSection title={t("personaAdmin.sentenceStructure")}>
         <MsqdxGlassFieldEditor
           field={{
             key: "sentence_structure",
-            label: "Sentence Structure",
+            label: t("personaAdmin.sentenceStructure"),
             type: "textarea",
             config: {
-              placeholder: "e.g., clear, purposeful, uses first-person perspective",
+              placeholder: t("personaAdmin.sentenceStructurePlaceholder"),
               minLength: 10,
               maxLength: 600
             }
@@ -78,11 +80,11 @@ export const MsqdxGlassCommunicationCard = ({
           inline
         />
       </MsqdxGlassDashboardCardSection>
-      <MsqdxGlassDashboardCardSection title="Skepticism">
+      <MsqdxGlassDashboardCardSection title={t("personaAdmin.skepticism")}>
         <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.875rem" }}>
-            <span>Low</span>
-            <span>High</span>
+            <span>{t("personaAdmin.skepticismLow")}</span>
+            <span>{t("personaAdmin.skepticismHigh")}</span>
           </div>
           <div style={{ width: "100%", height: "10px", backgroundColor: "var(--color-neutral)", borderRadius: "5px", overflow: "hidden" }}>
             <div 
@@ -102,7 +104,7 @@ export const MsqdxGlassCommunicationCard = ({
               <MsqdxGlassFieldEditor
                 field={{
                   key: "skepticism_level",
-                  label: "Skepticism level",
+                  label: t("personaAdmin.skepticismLevel"),
                   type: "slider",
                   config: { min: 0, max: 5, step: 1 }
                 }}

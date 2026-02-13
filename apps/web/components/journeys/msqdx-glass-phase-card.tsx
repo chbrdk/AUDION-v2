@@ -355,7 +355,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
       <Box
         component="article"
         data-phase-index={index}
-        aria-label={`Phase ${index + 1}: ${formData.name}`}
+        aria-label={t("journeys.editor.phaseCardAria", { number: index + 1, name: formData.name })}
         sx={{ minWidth: 380 }}
       >
         <MsqdxCard variant="flat" borderRadius="button" sx={{ borderColor: THEME_ACCENT.borderColor }}>
@@ -442,7 +442,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
 
             <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
               <MsqdxFormField
-                label="Duration Min"
+                label={t("journeys.editor.durationMin")}
                 value={String(formData.expected_duration_min ?? "")}
                 onChange={(e) =>
                   setFormData({
@@ -457,7 +457,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
                 sx={FORM_FIELD_ACCENT_SX}
               />
               <MsqdxFormField
-                label="Duration Max"
+                label={t("journeys.editor.durationMax")}
                 value={String(formData.expected_duration_max ?? "")}
                 onChange={(e) =>
                   setFormData({
@@ -490,7 +490,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
 
             <Box sx={{ position: "relative" }}>
               <MsqdxFormField
-                label="Expected Emotion"
+                label={t("journeys.editor.expectedEmotion")}
                 value={formData.expected_emotion ?? ""}
                 onChange={(e) => setFormData({ ...formData, expected_emotion: e.target.value || undefined })}
                 placeholder={t("journeys.editor.placeholderEmotion")}
@@ -630,7 +630,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
     <Box
       component="article"
       data-phase-index={index}
-      aria-label={`Phase ${index + 1}: ${phase.name}`}
+      aria-label={t("journeys.editor.phaseCardAria", { number: index + 1, name: phase.name })}
       sx={{ minWidth: 380 }}
     >
       <MsqdxCard
@@ -672,7 +672,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
               </Box>
             </Box>
             <Box sx={{ display: "flex", gap: 0.5 }}>
-              <MsqdxGlassEditButton onClick={handleStartEdit} size="small" fontSize={16} aria-label="Edit phase" />
+              <MsqdxGlassEditButton onClick={handleStartEdit} size="small" fontSize={16} aria-label={t("journeys.editor.editPhase")} />
               {onDelete && (
                 <MsqdxButton
                   variant="contained"

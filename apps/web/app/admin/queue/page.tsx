@@ -53,7 +53,7 @@ export default async function QueuePage() {
     }
     stats = await fetchQueueStats(projectId, headers);
   } catch (err) {
-    error = err instanceof Error ? err.message : "Unknown error";
+    error = err instanceof Error ? err.message : t("common.unknownError");
     stats = {
       pendingCount: 0,
       processingCount: 0,

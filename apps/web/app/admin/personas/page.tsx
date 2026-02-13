@@ -54,7 +54,7 @@ export default async function PersonaAdminPage() {
   try {
     list = await fetchPersonaList(projectId, headers);
   } catch (err) {
-    error = err instanceof Error ? err.message : "Unknown error";
+    error = err instanceof Error ? err.message : t("common.unknownError");
     list = { items: [], total: 0, page: 1, page_size: 50 };
   }
 

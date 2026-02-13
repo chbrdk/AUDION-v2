@@ -40,7 +40,7 @@ export function MsqdxGlassProjectsOverview({ initialProjects }: MsqdxGlassProjec
       setName("");
       setShowCreate(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to create project");
+      setError(e instanceof Error ? e.message : t("settingsProjects.errors.createProject"));
     } finally {
       setCreating(false);
     }

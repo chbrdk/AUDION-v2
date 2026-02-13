@@ -1,0 +1,20 @@
+---
+description: AUDION Dashboard Design – Tokens, Abstände, Radien, Farben und Komponenten-Klassen für konsistente UI
+globs: "**/*.tsx,**/*.css,**/styles/**"
+alwaysApply: false
+---
+
+# AUDION Dashboard Design (zentrale Referenz)
+
+**Vollständige Spezifikation:** `knowledge/audion-dashboard-design-rules.md` – bei UI-/Dashboard-Arbeiten dort nachschlagen und Werte übernehmen.
+
+## Kurzreferenz
+
+- **Spacing:** Nur Tokens nutzen: `--msqdx-spacing-xxs` (4px) bis `--msqdx-spacing-xxl` (32px). Keine festen px-Werte für Abstände.
+- **Border-Radius:** Karten Standard `--msqdx-radius-3xl` (24px); kleine Karten/Inputs `--msqdx-radius-sm` (8px); Pills 999px.
+- **Farben:** Immer Variablen: `--color-theme-accent`, `--color-text-primary`, `--color-text-secondary`, DX-Palette (`--color-secondary-dx-*`, `-tint` für Hintergründe). Keine Hex-Werte hardcoden.
+- **Layout:** Admin-Seite `.msqdx-glass-admin-page` (flex, gap 2rem, padding 2rem); Grid `.msqdx-glass-admin-grid` (Sidebar 64/280px + Content); Dashboard-Card-Grid `minmax(320px, 1fr)`, gap `--msqdx-spacing-xl`.
+- **Komponenten-Klassen:** Bestehende `.msqdx-glass-*`-Klassen aus `globals.css`, `dashboard-cards.css`, `admin.css` wiederverwenden (z. B. `.msqdx-glass-dashboard-card`, `.msqdx-glass-button`, `.msqdx-glass-chip`, `.msqdx-glass-list-item`, `.msqdx-glass-stat-card`).
+- **Dark Mode:** Alle Flächen/Borders über `[data-theme="dark"]` und gleiche Variablen abdecken.
+
+Bei neuen Screens oder Apps: zuerst `knowledge/audion-dashboard-design-rules.md` prüfen, dann Tokens und Klassen konsequent nutzen.
