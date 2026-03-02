@@ -166,6 +166,16 @@ def init_db():
                         conn.commit()
                         logger.info("Emergency fix applied: 'users.locale' added.")
 
+                    u_plexon_check = conn.execute(text(
+                        "SELECT column_name FROM information_schema.columns "
+                        "WHERE table_schema = 'audion' AND table_name = 'users' AND column_name = 'plexon_user_id'"
+                    ))
+                    if not u_plexon_check.scalar():
+                        logger.warning("CRITICAL: 'plexon_user_id' missing in 'users'. Adding column...")
+                        conn.execute(text("ALTER TABLE audion.users ADD COLUMN IF NOT EXISTS plexon_user_id VARCHAR(128)"))
+                        conn.commit()
+                        logger.info("Emergency fix applied: 'users.plexon_user_id' added.")
+
                 # Check documents.object_key column (Fix for 500 error on upload)
                 docs_check = conn.execute(text(
                     "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'audion' AND table_name = 'documents')"
