@@ -1,18 +1,23 @@
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ..core.config import get_settings
 from ..db import get_db
 from ..models import Project, ProjectMember, ProjectMemberStatus, ProjectRole, User
 from ..schemas import (
     AuthLoginRequest,
     AuthMeResponse,
     AuthPasswordUpdateRequest,
+    AuthPlexonSyncRequest,
     AuthProfileUpdateRequest,
     AuthRegisterRequest,
     AuthTokenResponse,
@@ -47,6 +52,50 @@ def _default_project_id(session: Session, user_id: UUID) -> str | None:
         .order_by(ProjectMember.created_at.asc())
     )
     return str(project_id) if project_id else None
+
+
+def _plexon_derived_password(secret: str, plexon_user_id: str) -> str:
+    """Same derivation as AUDION web (Node): HMAC-SHA256(secret, user_id), base64url, first 32 chars."""
+    raw = hmac.new(secret.encode(), plexon_user_id.encode(), hashlib.sha256).digest()
+    b64 = base64.urlsafe_b64encode(raw).decode().rstrip("=")
+    return b64[:32]
+
+
+@router.post("/plexon-sync", response_model=AuthTokenResponse)
+def plexon_sync(
+    payload: AuthPlexonSyncRequest,
+    x_service_secret: str | None = Header(default=None, alias="X-Service-Secret"),
+    session: Session = Depends(get_db),
+) -> AuthTokenResponse:
+    """
+    Link an existing AUDION user to PLEXON: set password to PLEXON-derived value.
+    Called by AUDION web when register returns 409 (email already registered).
+    Requires X-Service-Secret header matching PLEXON_SERVICE_SECRET.
+    """
+    settings = get_settings()
+    secret = settings.plexon_service_secret
+    if not secret or not x_service_secret or not hmac.compare_digest(secret, x_service_secret):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or missing service secret")
+
+    email = _normalize_email(payload.email)
+    user = session.scalar(select(User).where(User.email == email))
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    derived = _plexon_derived_password(secret, payload.plexon_user_id)
+    user.password_hash = hash_password(derived)
+    if payload.name is not None:
+        user.name = payload.name.strip() or None
+    user.updated_at = datetime.utcnow()
+    session.commit()
+
+    token = create_access_token(user=user)
+    return AuthTokenResponse(
+        access_token=token,
+        token_type="bearer",
+        user=_user_response(user),
+        default_project_id=_default_project_id(session, user.id),
+    )
 
 
 @router.post("/register", response_model=AuthTokenResponse)

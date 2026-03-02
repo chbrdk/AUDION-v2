@@ -22,7 +22,7 @@ In der AUDION-Web-App (Coolify/Lokal) setzen:
 4. Die Web-App ruft das Persona-Backend auf: zuerst `POST /auth/login` mit E-Mail und abgeleitetem Passwort. Falls 401 (User existiert noch nicht im Backend): `POST /auth/register` mit E-Mail, Name und abgeleitetem Passwort. Das Backend gibt wie gewohnt `access_token` und optional `default_project_id` zurück.
 5. Die Web-App setzt die Cookies `audion_auth_token` und `audion_project_id`; der Rest der App läuft unverändert.
 
-**Persona-Backend:** Es sind **keine** Änderungen nötig. Es werden weiterhin `/auth/login` und `/auth/register` mit E-Mail/Passwort verwendet; das Passwort ist bei PLEXON-Login nur ein abgeleitetes, internes Passwort.
+**Persona-Backend:** Zusätzlich zu `/auth/login` und `/auth/register` gibt es **`POST /auth/plexon-sync`**: Wenn sich ein Nutzer per PLEXON anmeldet und die E-Mail schon im Backend existiert (409), ruft die Web-App diesen Endpoint auf. Das Backend setzt das Passwort auf das PLEXON-abgeleitete und gibt einen Token zurück. Dafür muss beim **Persona-Backend (API)** die gleiche Env **`PLEXON_SERVICE_SECRET`** gesetzt sein wie in PLEXON und in der AUDION-Web-App.
 
 ## Registrierung
 
@@ -33,7 +33,7 @@ In der AUDION-Web-App (Coolify/Lokal) setzen:
 - **PLEXON-Env in AUDION (Web) gesetzt?** In Coolify bei der **AUDION-Web-App** müssen `PLEXON_AUTH_URL` (z. B. `https://plexon.projects-a.plygrnd.tech`) und `PLEXON_SERVICE_SECRET` (gleich wie in PLEXON) gesetzt sein. Ohne diese Werte wird das Passwort direkt ans Persona-Backend geschickt; ein reiner PLEXON-Account existiert dort nicht → 401.
 - **PLEXON von AUDION aus erreichbar?** Die AUDION-Web-App (Server) muss `PLEXON_AUTH_URL` per HTTPS aufrufen können. Kein lokales `localhost`; in Coolify die öffentliche PLEXON-URL verwenden.
 - **Persona-Backend erreichbar?** `NEXT_PERSONA_BACKEND_INTERNAL_URL` muss aus dem AUDION-Web-Container auf das Persona-Backend zeigen (z. B. `http://audion-api:8000`). Erreichbarkeitsfehler liefern jetzt 503 mit Hinweis „Authentication service unavailable“.
-- **Bereits in AUDION registriert?** Wer sich früher direkt in AUDION registriert hat, hat ein anderes Passwort im Backend. Bei PLEXON-Login wird ein abgeleitetes Passwort verwendet. Nach 401 versucht die App automatisch Register – bei **409 (Email already registered)** existiert die E-Mail schon im Backend; dann weiter mit dem **bisherigen AUDION-Passwort** einloggen. Reiner PLEXON-Login für solche Accounts wäre nur möglich, wenn das Backend das Passwort auf das abgeleitete umstellt (derzeit kein Automatismus).
+- **Bereits in AUDION registriert?** Bei **409 (Email already registered)** ruft die Web-App automatisch **`POST /auth/plexon-sync`** auf: Das Backend setzt das Passwort des bestehenden Users auf das PLEXON-abgeleitete und liefert einen Token. Danach funktioniert der nächste Login mit PLEXON-Zugangsdaten. Dafür muss beim **Persona-Backend** `PLEXON_SERVICE_SECRET` (gleich wie in PLEXON und Web) gesetzt sein.
 
 ## Siehe auch
 

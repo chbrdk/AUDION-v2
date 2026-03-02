@@ -55,6 +55,9 @@ class Settings(BaseSettings):
     auth_jwt_algorithm: str = "HS256"
     auth_access_token_minutes: int = 60 * 24 * 7  # 7 days
 
+    # PLEXON: same secret as in PLEXON and AUDION web; used for /auth/plexon-sync
+    plexon_service_secret: str | None = None
+
     # Observability
     otel_exporter_otlp_endpoint: str | None = None
     logfire_token: str | None = None

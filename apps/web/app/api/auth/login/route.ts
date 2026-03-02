@@ -6,6 +6,7 @@ import {
   isPlexonAuthConfigured,
   validateCredentialsWithPlexon,
   getPlexonDerivedPassword,
+  type PlexonAuthUser,
 } from "../../../../lib/plexon-auth";
 
 const buildCookieOptions = () => ({
@@ -74,21 +75,72 @@ export async function POST(request: Request) {
   }
 
   let backendBody: { email: string; password: string; name?: string } = { email, password };
+  let plexonUser: PlexonAuthUser | null = null;
 
   if (isPlexonAuthConfigured()) {
-    const plexonUser = await validateCredentialsWithPlexon(email, password);
-    if (plexonUser) {
-      const derivedPassword = getPlexonDerivedPassword(plexonUser.id);
+    const user = await validateCredentialsWithPlexon(email, password);
+    if (user) {
+      plexonUser = user;
+      const derivedPassword = getPlexonDerivedPassword(user.id);
       backendBody = {
-        email: plexonUser.email,
+        email: user.email,
         password: derivedPassword,
-        name: plexonUser.name,
+        name: user.name,
       };
     }
   }
 
   const response = await loginWithBackend(backendBody);
   const dataText = await response.text();
+
+  // 409 = Email already registered (User existiert im Backend mit anderem Passwort). PLEXON-Sync: Passwort auf abgeleitetes umstellen.
+  if (response.status === 409 && plexonUser) {
+    const base = getPersonaBackendBase({ preferPublic: false });
+    const secret = process.env.PLEXON_SERVICE_SECRET ?? "";
+    try {
+      const syncRes = await fetch(`${base}/auth/plexon-sync`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Service-Secret": secret,
+        },
+        body: JSON.stringify({
+          plexon_user_id: plexonUser.id,
+          email: plexonUser.email,
+          name: plexonUser.name,
+        }),
+      });
+      const syncText = await syncRes.text();
+      if (syncRes.ok) {
+        const data = JSON.parse(syncText);
+        const next = NextResponse.json({
+          user: data.user,
+          default_project_id: data.default_project_id,
+        });
+        if (data.access_token) {
+          next.cookies.set(AUTH_COOKIE_NAME, data.access_token, buildCookieOptions());
+        }
+        if (data.default_project_id) {
+          next.cookies.set(PROJECT_COOKIE_NAME, data.default_project_id, {
+            ...buildCookieOptions(),
+            httpOnly: false,
+          });
+        }
+        return next;
+      }
+      return new NextResponse(syncText, {
+        status: syncRes.status,
+        headers: { "Content-Type": syncRes.headers.get("content-type") ?? "application/json" },
+      });
+    } catch (err) {
+      console.error("[AUDION] auth/plexon-sync failed:", err);
+      return NextResponse.json(
+        { detail: "Could not link account to PLEXON", error: err instanceof Error ? err.message : "Unknown error" },
+        { status: 503 }
+      );
+    }
+  }
+
   if (!response.ok) {
     return new NextResponse(dataText, {
       status: response.status,

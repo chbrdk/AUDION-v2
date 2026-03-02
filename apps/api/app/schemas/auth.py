@@ -23,6 +23,13 @@ class AuthLoginRequest(BaseModel):
     password: str = Field(..., min_length=6, max_length=72, description="Plaintext password")
 
 
+class AuthPlexonSyncRequest(BaseModel):
+    """Body for POST /auth/plexon-sync: link existing user to PLEXON-derived password."""
+    plexon_user_id: str = Field(..., min_length=1, description="PLEXON user id")
+    email: EmailStr = Field(..., description="User email (must match existing user)")
+    name: str | None = Field(default=None, description="Optional display name to update")
+
+
 class AuthProfileUpdateRequest(BaseModel):
     email: EmailStr | None = Field(default=None, description="Updated email address")
     name: str | None = Field(default=None, max_length=128, description="Display name")
