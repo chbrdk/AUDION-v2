@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 import { getPersonaBackendBase } from "../../_lib/backend";
 import { buildAuthHeaders, getAuthTokenFromRequest } from "../../_lib/auth";
-import { isPlexonAuthConfigured, getPlexonProfile, patchPlexonProfile } from "../../../../lib/plexon-auth";
+import { isPlexonAuthConfigured, getPlexonProfile, getPlexonProfileByEmail, patchPlexonProfile } from "../../../../lib/plexon-auth";
 
 export async function GET(request: NextRequest) {
   const token = getAuthTokenFromRequest(request);
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
   }
 
   // PLEXON: Profil (Name, Unternehmen, Avatar, Sprache) aus PLEXON holen und mergen
-  let data: { user?: { plexon_user_id?: string; name?: string; company?: string; avatar_url?: string; locale?: string; [k: string]: unknown }; default_project_id?: string } = {};
+  let data: { user?: { plexon_user_id?: string; email?: string; name?: string; company?: string; avatar_url?: string; locale?: string; [k: string]: unknown }; default_project_id?: string } = {};
   try {
     data = JSON.parse(dataText);
   } catch {
@@ -49,15 +49,22 @@ export async function GET(request: NextRequest) {
       headers: { "Content-Type": "application/json" },
     });
   }
-  const plexonUserId = data?.user?.plexon_user_id;
-  if (plexonUserId && isPlexonAuthConfigured() && data.user) {
-    const plexonProfile = await getPlexonProfile(plexonUserId);
-    if (plexonProfile) {
-      data.user.name = plexonProfile.name ?? data.user.name;
-      data.user.company = plexonProfile.company ?? data.user.company;
-      data.user.avatar_url = plexonProfile.avatar_url ?? data.user.avatar_url;
-      data.user.locale = plexonProfile.locale ?? data.user.locale;
-    }
+  if (!isPlexonAuthConfigured() || !data.user) {
+    return NextResponse.json(data, { headers: { "Content-Type": "application/json" } });
+  }
+  let plexonProfile: { id: string; name?: string; company?: string; avatar_url?: string; locale?: string } | null = null;
+  const plexonUserId = data.user.plexon_user_id;
+  if (plexonUserId) {
+    plexonProfile = await getPlexonProfile(plexonUserId);
+  } else if (data.user.email) {
+    plexonProfile = await getPlexonProfileByEmail(String(data.user.email));
+  }
+  if (plexonProfile) {
+    data.user.name = plexonProfile.name ?? data.user.name;
+    data.user.company = plexonProfile.company ?? data.user.company;
+    data.user.avatar_url = plexonProfile.avatar_url ?? data.user.avatar_url;
+    data.user.locale = plexonProfile.locale ?? data.user.locale;
+    if (plexonProfile.id) data.user.plexon_user_id = plexonProfile.id;
   }
   return NextResponse.json(data, {
     headers: { "Content-Type": "application/json" },
@@ -94,8 +101,8 @@ export async function PATCH(request: NextRequest) {
   }
 
   const dataText = await response.text();
-  if (response.ok) {
-    let data: { user?: { plexon_user_id?: string; [k: string]: unknown }; default_project_id?: string } = {};
+  if (response.ok && isPlexonAuthConfigured()) {
+    let data: { user?: { plexon_user_id?: string; email?: string; [k: string]: unknown }; default_project_id?: string } = {};
     try {
       data = JSON.parse(dataText);
     } catch {
@@ -104,8 +111,12 @@ export async function PATCH(request: NextRequest) {
         headers: { "Content-Type": response.headers.get("content-type") ?? "application/json" },
       });
     }
-    const plexonUserId = data?.user?.plexon_user_id;
-    if (plexonUserId && isPlexonAuthConfigured()) {
+    let plexonUserId = data?.user?.plexon_user_id;
+    if (!plexonUserId && data?.user?.email) {
+      const byEmail = await getPlexonProfileByEmail(String(data.user.email));
+      plexonUserId = byEmail?.id ?? undefined;
+    }
+    if (plexonUserId) {
       let patchBody: Record<string, unknown> = {};
       try {
         patchBody = JSON.parse(payload);
