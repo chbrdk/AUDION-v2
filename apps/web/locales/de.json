@@ -70,7 +70,9 @@
       "ctaLoading": "Erstellen…",
       "error": "Registrierung fehlgeschlagen",
       "prompt": "Schon ein Konto?",
-      "link": "Anmelden"
+      "link": "Anmelden",
+      "centralHint": "Ein Konto für alle Dienste?",
+      "centralLink": "In PLEXON registrieren"
     }
   },
   "profile": {

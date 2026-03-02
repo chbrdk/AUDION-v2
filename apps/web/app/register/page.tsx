@@ -167,10 +167,24 @@ export default function RegisterPage() {
 
               <MsqdxTypography variant="body2" color="text.secondary">
                 {t("auth.register.prompt")}{" "}
-                <Link href="/login" style={{ color: "inherit", fontWeight: 600 }}>
+                <Link href={`${basePath}/login`} style={{ color: "inherit", fontWeight: 600 }}>
                   {t("auth.register.link")}
                 </Link>
               </MsqdxTypography>
+              {typeof process.env.NEXT_PUBLIC_PLEXON_REGISTER_URL === "string" &&
+                process.env.NEXT_PUBLIC_PLEXON_REGISTER_URL.trim() !== "" && (
+                  <MsqdxTypography variant="body2" color="text.secondary">
+                    {t("auth.register.centralHint")}{" "}
+                    <Link
+                      href={process.env.NEXT_PUBLIC_PLEXON_REGISTER_URL.trim()}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: "inherit", fontWeight: 600 }}
+                    >
+                      {t("auth.register.centralLink")}
+                    </Link>
+                  </MsqdxTypography>
+                )}
             </Stack>
           </MsqdxMoleculeCard>
         </Box>

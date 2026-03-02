@@ -53,6 +53,14 @@ AUDION uses environment variables for configuration. In Coolify, these are set i
 | `NEXT_PUBLIC_CHAT_API_URL` | Public URL for chat API | `http://chat-api:8001` | web |
 | `NEXT_PERSONA_BACKEND_INTERNAL_URL` | Internal URL for persona backend (server-side) | `http://api:8000` | web |
 
+### PLEXON (central auth)
+
+| Variable | Description | Service |
+|----------|-------------|---------|
+| `PLEXON_AUTH_URL` | PLEXON base URL (e.g. `https://plexon.example.com`). When set, login is validated against PLEXON first. | web |
+| `PLEXON_SERVICE_SECRET` | Shared secret (same as in PLEXON). Required if `PLEXON_AUTH_URL` is set. | web |
+| `NEXT_PUBLIC_PLEXON_REGISTER_URL` | Link to PLEXON registration page (build-time). Shows “Register in PLEXON” on the register page. | web |
+
 **Note**: In Docker Compose/Coolify, use service names for internal URLs:
 - `http://api:8000` (not `http://localhost:8000`)
 - `http://chat-api:8001` (not `http://localhost:8001`)

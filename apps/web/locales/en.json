@@ -70,7 +70,9 @@
       "ctaLoading": "Creating…",
       "error": "Registration failed",
       "prompt": "Already have an account?",
-      "link": "Sign in"
+      "link": "Sign in",
+      "centralHint": "One account for all services?",
+      "centralLink": "Register in PLEXON"
     }
   },
   "profile": {

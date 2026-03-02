@@ -165,7 +165,7 @@ export default function LoginPage() {
 
               <MsqdxTypography variant="body2" color="text.secondary">
                 {t("auth.login.prompt")}{" "}
-                <Link href="/register" style={{ color: "inherit", fontWeight: 600 }}>
+                <Link href={`${basePath}/register`} style={{ color: "inherit", fontWeight: 600 }}>
                   {t("auth.login.link")}
                 </Link>
               </MsqdxTypography>
