@@ -12,7 +12,7 @@ from alembic import op
 
 
 revision = "20260302_plexon_user_id"
-down_revision = "20260211_image_url_text"
+down_revision = "20260211_add_prompt_templates"
 branch_labels = None
 depends_on = None
 
