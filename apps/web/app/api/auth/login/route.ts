@@ -18,22 +18,44 @@ const buildCookieOptions = () => ({
 
 async function loginWithBackend(body: { email: string; password: string; name?: string }) {
   const base = getPersonaBackendBase({ preferPublic: false });
-  const loginRes = await fetch(`${base}/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: body.email, password: body.password }),
-  });
+  let loginRes: Response;
+  try {
+    loginRes = await fetch(`${base}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: body.email, password: body.password }),
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Backend unreachable";
+    console.error("[AUDION] auth/login backend request failed:", msg);
+    return new Response(
+      JSON.stringify({ detail: "Authentication service unavailable", error: msg }),
+      { status: 503, headers: { "Content-Type": "application/json" } }
+    );
+  }
   if (loginRes.ok) {
     return loginRes;
   }
   // Bei PLEXON-Login: wenn User noch nicht im Backend existiert, Register versuchen
   if (body.name !== undefined && loginRes.status === 401) {
-    const regRes = await fetch(`${base}/auth/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: body.email, password: body.password, name: body.name }),
-    });
+    let regRes: Response;
+    try {
+      regRes = await fetch(`${base}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: body.email, password: body.password, name: body.name }),
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Backend unreachable";
+      console.error("[AUDION] auth/register backend request failed:", msg);
+      return new Response(
+        JSON.stringify({ detail: "Authentication service unavailable", error: msg }),
+        { status: 503, headers: { "Content-Type": "application/json" } }
+      );
+    }
     if (regRes.ok) return regRes;
+    // Register fehlgeschlagen: echte Backend-Antwort zurückgeben (nicht 401 maskieren)
+    return regRes;
   }
   return loginRes;
 }

@@ -28,6 +28,13 @@ In der AUDION-Web-App (Coolify/Lokal) setzen:
 
 - Neue User registrieren sich in **PLEXON**. Auf der AUDION-Register-Seite kann optional ein Link „In PLEXON registrieren“ angezeigt werden (`NEXT_PUBLIC_PLEXON_REGISTER_URL`).
 
+## Troubleshooting: 401 beim Login
+
+- **PLEXON-Env in AUDION (Web) gesetzt?** In Coolify bei der **AUDION-Web-App** müssen `PLEXON_AUTH_URL` (z. B. `https://plexon.projects-a.plygrnd.tech`) und `PLEXON_SERVICE_SECRET` (gleich wie in PLEXON) gesetzt sein. Ohne diese Werte wird das Passwort direkt ans Persona-Backend geschickt; ein reiner PLEXON-Account existiert dort nicht → 401.
+- **PLEXON von AUDION aus erreichbar?** Die AUDION-Web-App (Server) muss `PLEXON_AUTH_URL` per HTTPS aufrufen können. Kein lokales `localhost`; in Coolify die öffentliche PLEXON-URL verwenden.
+- **Persona-Backend erreichbar?** `NEXT_PERSONA_BACKEND_INTERNAL_URL` muss aus dem AUDION-Web-Container auf das Persona-Backend zeigen (z. B. `http://audion-api:8000`). Erreichbarkeitsfehler liefern jetzt 503 mit Hinweis „Authentication service unavailable“.
+- **Bereits in AUDION registriert?** Wer sich früher direkt in AUDION registriert hat, hat ein anderes Passwort im Backend. Bei PLEXON-Login wird ein abgeleitetes Passwort verwendet. Nach 401 versucht die App automatisch Register – bei **409 (Email already registered)** existiert die E-Mail schon im Backend; dann weiter mit dem **bisherigen AUDION-Passwort** einloggen. Reiner PLEXON-Login für solche Accounts wäre nur möglich, wenn das Backend das Passwort auf das abgeleitete umstellt (derzeit kein Automatismus).
+
 ## Siehe auch
 
 - CHECKION: `knowledge/checkion-auth-and-database.md` (gleiches PLEXON-Prinzip)
