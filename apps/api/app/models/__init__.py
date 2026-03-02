@@ -123,6 +123,7 @@ class User(Base):
     company = Column(String(256), nullable=True)
     avatar_url = Column(String(512), nullable=True)
     locale = Column(String(8), nullable=True)
+    plexon_user_id = Column(String(128), nullable=True)  # PLEXON user id when linked for profile sync
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     last_login_at = Column(DateTime, nullable=True)

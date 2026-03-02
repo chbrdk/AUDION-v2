@@ -17,7 +17,7 @@ const buildCookieOptions = () => ({
   maxAge: 60 * 60 * 24 * 7, // 7 days
 });
 
-async function loginWithBackend(body: { email: string; password: string; name?: string }) {
+async function loginWithBackend(body: { email: string; password: string; name?: string; plexon_user_id?: string }) {
   const base = getPersonaBackendBase({ preferPublic: false });
   let loginRes: Response;
   try {
@@ -39,12 +39,18 @@ async function loginWithBackend(body: { email: string; password: string; name?: 
   }
   // Bei PLEXON-Login: wenn User noch nicht im Backend existiert, Register versuchen
   if (body.name !== undefined && loginRes.status === 401) {
+    const registerPayload: Record<string, unknown> = {
+      email: body.email,
+      password: body.password,
+      name: body.name,
+    };
+    if (body.plexon_user_id) registerPayload.plexon_user_id = body.plexon_user_id;
     let regRes: Response;
     try {
       regRes = await fetch(`${base}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: body.email, password: body.password, name: body.name }),
+        body: JSON.stringify(registerPayload),
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Backend unreachable";
@@ -74,7 +80,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ detail: "Email and password required" }, { status: 400 });
   }
 
-  let backendBody: { email: string; password: string; name?: string } = { email, password };
+  let backendBody: { email: string; password: string; name?: string; plexon_user_id?: string } = { email, password };
   let plexonUser: PlexonAuthUser | null = null;
 
   if (isPlexonAuthConfigured()) {
@@ -86,6 +92,7 @@ export async function POST(request: Request) {
         email: user.email,
         password: derivedPassword,
         name: user.name,
+        plexon_user_id: user.id,
       };
     }
   }

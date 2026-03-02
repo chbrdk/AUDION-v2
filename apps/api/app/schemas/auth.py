@@ -16,6 +16,7 @@ class AuthRegisterRequest(BaseModel):
         description="Plaintext password",
     )
     name: str | None = Field(default=None, description="Optional display name")
+    plexon_user_id: str | None = Field(default=None, description="PLEXON user id when registering via PLEXON login")
 
 
 class AuthLoginRequest(BaseModel):
@@ -50,6 +51,7 @@ class UserResponse(BaseModel):
     company: str | None = None
     avatar_url: HttpUrl | None = None
     locale: str | None = None
+    plexon_user_id: str | None = None
     created_at: datetime
 
 

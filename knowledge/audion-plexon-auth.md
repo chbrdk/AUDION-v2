@@ -24,6 +24,12 @@ In der AUDION-Web-App (Coolify/Lokal) setzen:
 
 **Persona-Backend:** Zusätzlich zu `/auth/login` und `/auth/register` gibt es **`POST /auth/plexon-sync`**: Wenn sich ein Nutzer per PLEXON anmeldet und die E-Mail schon im Backend existiert (409), ruft die Web-App diesen Endpoint auf. Das Backend setzt das Passwort auf das PLEXON-abgeleitete und gibt einen Token zurück. Dafür muss beim **Persona-Backend (API)** die gleiche Env **`PLEXON_SERVICE_SECRET`** gesetzt sein wie in PLEXON und in der AUDION-Web-App.
 
+## Profil (Name, Unternehmen, Avatar, Sprache) aus PLEXON
+
+- Wenn ein AUDION-User mit PLEXON verknüpft ist (`plexon_user_id` im Backend), liefert **GET /api/auth/me** die Profilfelder **name**, **company**, **avatar_url**, **locale** aus PLEXON (Überschreibung der Backend-Werte).
+- **PATCH /api/auth/me** (Profil-Update) wird sowohl ans Persona-Backend als auch an PLEXON gesendet, sodass Änderungen zentral in PLEXON gespeichert werden und in allen Diensten (CHECKION, AUDION, …) sichtbar sind.
+- `plexon_user_id` wird beim ersten PLEXON-Login gesetzt (Register oder plexon-sync). Nach dem Backend-Update muss die Migration `20260302_plexon_user_id` ausgeführt werden (`alembic upgrade head`).
+
 ## Registrierung
 
 - Neue User registrieren sich in **PLEXON**. Auf der AUDION-Register-Seite kann optional ein Link „In PLEXON registrieren“ angezeigt werden (`NEXT_PUBLIC_PLEXON_REGISTER_URL`).

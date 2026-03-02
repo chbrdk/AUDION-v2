@@ -53,3 +53,65 @@ export function getPlexonDerivedPassword(plexonUserId: string): string {
     .digest("base64url")
     .slice(0, 32);
 }
+
+export type PlexonProfile = {
+  id: string;
+  email: string;
+  name?: string;
+  company?: string;
+  avatar_url?: string;
+  locale?: string;
+};
+
+export async function getPlexonProfile(userId: string): Promise<PlexonProfile | null> {
+  if (!PLEXON_AUTH_URL.trim() || !PLEXON_SERVICE_SECRET.trim()) return null;
+  const base = PLEXON_AUTH_URL.replace(/\/$/, "");
+  try {
+    const res = await fetch(
+      `${base}/api/services/profile?user_id=${encodeURIComponent(userId)}`,
+      { headers: { "X-Service-Secret": PLEXON_SERVICE_SECRET } }
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as { user?: PlexonProfile };
+    return data?.user ?? null;
+  } catch (e) {
+    console.error("[AUDION] PLEXON getProfile error:", e);
+    return null;
+  }
+}
+
+export async function patchPlexonProfile(
+  userId: string,
+  updates: {
+    name?: string | null;
+    email?: string;
+    company?: string | null;
+    avatar_url?: string | null;
+    locale?: string | null;
+  }
+): Promise<PlexonProfile | null> {
+  if (!PLEXON_AUTH_URL.trim() || !PLEXON_SERVICE_SECRET.trim()) return null;
+  const base = PLEXON_AUTH_URL.replace(/\/$/, "");
+  const body: Record<string, unknown> = { user_id: userId };
+  if (updates.name !== undefined) body.name = updates.name;
+  if (updates.email !== undefined) body.email = updates.email;
+  if (updates.company !== undefined) body.company = updates.company;
+  if (updates.avatar_url !== undefined) body.avatar_url = updates.avatar_url;
+  if (updates.locale !== undefined) body.locale = updates.locale;
+  try {
+    const res = await fetch(`${base}/api/services/profile`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Service-Secret": PLEXON_SERVICE_SECRET,
+      },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { user?: PlexonProfile };
+    return data?.user ?? null;
+  } catch (e) {
+    console.error("[AUDION] PLEXON patchProfile error:", e);
+    return null;
+  }
+}

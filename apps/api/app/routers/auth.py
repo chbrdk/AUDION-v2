@@ -40,6 +40,7 @@ def _user_response(user: User) -> UserResponse:
         company=user.company,
         avatar_url=user.avatar_url,
         locale=user.locale,
+        plexon_user_id=user.plexon_user_id,
         created_at=user.created_at,
     )
 
@@ -84,6 +85,7 @@ def plexon_sync(
 
     derived = _plexon_derived_password(secret, payload.plexon_user_id)
     user.password_hash = hash_password(derived)
+    user.plexon_user_id = payload.plexon_user_id
     if payload.name is not None:
         user.name = payload.name.strip() or None
     user.updated_at = datetime.utcnow()
@@ -110,6 +112,7 @@ def register(payload: AuthRegisterRequest, session: Session = Depends(get_db)) -
         email=email,
         password_hash=hash_password(payload.password),
         name=payload.name,
+        plexon_user_id=payload.plexon_user_id,
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow(),
     )
