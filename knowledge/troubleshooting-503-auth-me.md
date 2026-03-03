@@ -1,6 +1,13 @@
-# 503 auf GET /api/auth/me (Service Unavailable)
+# 503 auf Auth/API (Service Unavailable)
 
-Wenn die Web-App unter z. B. `https://audion.projects-a.plygrnd.tech` läuft und im Browser **503 (Service Unavailable)** für `GET …/api/auth/me` erscheint, kann die Next.js-Route das **Persona-Backend (API)** nicht erreichen.
+Wenn die Web-App unter z. B. `https://audion.projects-a.plygrnd.tech` läuft und im Browser **503 (Service Unavailable)** erscheint für z. B.:
+
+- **GET /api/auth/me** (Profil laden)
+- **POST /api/auth/login** (Login)
+- **POST /api/auth/register** (Registrierung)
+- oder andere API-Routen, die an das Persona-Backend weiterleiten,
+
+dann kann die Next.js-Web-App das **Persona-Backend (API)** nicht erreichen. **Ursache und Fix sind immer dieselben** (siehe unten).
 
 ## Ursache
 

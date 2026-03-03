@@ -30,7 +30,11 @@ async function loginWithBackend(body: { email: string; password: string; name?: 
     const msg = err instanceof Error ? err.message : "Backend unreachable";
     console.error("[AUDION] auth/login backend request failed:", msg);
     return new Response(
-      JSON.stringify({ detail: "Authentication service unavailable", error: msg }),
+      JSON.stringify({
+        detail: "Authentication service unavailable",
+        error: msg,
+        hint: "Set NEXT_PERSONA_BACKEND_INTERNAL_URL (or NEXT_PUBLIC_PERSONA_BACKEND_URL) in the web app so it can reach the API. See knowledge/troubleshooting-503-auth-me.md",
+      }),
       { status: 503, headers: { "Content-Type": "application/json" } }
     );
   }
@@ -56,7 +60,11 @@ async function loginWithBackend(body: { email: string; password: string; name?: 
       const msg = err instanceof Error ? err.message : "Backend unreachable";
       console.error("[AUDION] auth/register backend request failed:", msg);
       return new Response(
-        JSON.stringify({ detail: "Authentication service unavailable", error: msg }),
+        JSON.stringify({
+          detail: "Authentication service unavailable",
+          error: msg,
+          hint: "Set NEXT_PERSONA_BACKEND_INTERNAL_URL (or NEXT_PUBLIC_PERSONA_BACKEND_URL) in the web app so it can reach the API. See knowledge/troubleshooting-503-auth-me.md",
+        }),
         { status: 503, headers: { "Content-Type": "application/json" } }
       );
     }

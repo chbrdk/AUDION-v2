@@ -324,9 +324,9 @@ In Coolify sollten alle Services im gleichen Netzwerk sein. Prüfe:
 
 ## Troubleshooting
 
-### 503 auf GET /api/auth/me (Persona backend unreachable)
+### 503 auf /api/auth/* (Persona backend unreachable)
 
-**Problem**: Die Web-App antwortet mit **503 (Service Unavailable)** beim Aufruf von `/api/auth/me` (z. B. beim Laden der Seite oder nach Login).
+**Problem**: Die Web-App antwortet mit **503 (Service Unavailable)** bei Auth-Requests, z. B. **GET /api/auth/me**, **POST /api/auth/login**, **POST /api/auth/register**.
 
 **Ursache**: Die Next.js-Web-App kann das **Persona-Backend (API)** nicht erreichen. Server-seitig wird `NEXT_PERSONA_BACKEND_INTERNAL_URL` bzw. `NEXT_PUBLIC_PERSONA_BACKEND_URL` verwendet; ist die URL falsch oder der API-Container nicht erreichbar, kommt 503.
 
