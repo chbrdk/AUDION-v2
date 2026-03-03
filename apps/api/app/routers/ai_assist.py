@@ -13,6 +13,7 @@ from ..schemas import AiAssistRequest, AiAssistResponse, AiPromptTestRequest, Ai
 from ..services.ai_assist import AiAssistService, PromptTemplateRegistry
 from ..services.auth import get_current_user
 from ..services.access_control import list_accessible_project_ids
+from ..services.usage_report import report_usage
 
 logger = structlog.get_logger(__name__)
 
@@ -116,6 +117,7 @@ def list_templates(
 async def execute_ai_assist(
     payload: AiAssistRequest,
     project_id: str | None = Query(None),
+    current_user=Depends(get_current_user),
     allowed_project_ids: list[UUID] = Depends(allowed_project_ids_dep),
     session: Session = Depends(get_db),
 ) -> AiAssistResponse:
@@ -147,7 +149,18 @@ async def execute_ai_assist(
         
         service = AiAssistService(registry=registry, project_id=project_id)
         service.session = session
-        return await service.generate(enriched_request)
+        response = await service.generate(enriched_request)
+        user_id = (getattr(current_user, "plexon_user_id", None) or str(current_user.id)) if current_user else None
+        if user_id and response.usage:
+            report_usage(
+                user_id=user_id,
+                event_type="llm_request",
+                raw_units={
+                    "input_tokens": response.usage.get("input_tokens") or response.usage.get("prompt_tokens"),
+                    "output_tokens": response.usage.get("output_tokens") or response.usage.get("completion_tokens"),
+                },
+            )
+        return response
     except KeyError as exc:
         logger.warning("ai.assist.template_missing", template_id=payload.template_id)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
@@ -167,7 +180,7 @@ async def execute_ai_assist(
 )
 async def test_prompt(
     payload: AiPromptTestRequest,
-    _current_user=Depends(get_current_user),
+    current_user=Depends(get_current_user),
     session: Session = Depends(get_db),
 ) -> AiAssistResponse:
     """Test a custom prompt directly without requiring a template."""
@@ -175,7 +188,7 @@ async def test_prompt(
         # Enrich context with persona data if persona_id is present
         # We don't check project_id param here as it's a raw test, but we pass allowed_project_ids
         # to ensure the user can only access personas they are allowed to see.
-        allowed_project_ids = list_accessible_project_ids(session, _current_user.id)
+        allowed_project_ids = list_accessible_project_ids(session, current_user.id)
         
         # Helper to serialize context for logging (handling non-serializable objects)
         def log_context(ctx, name="context"):
@@ -199,7 +212,7 @@ async def test_prompt(
 
         service = AiAssistService(registry=registry)
         service.session = session
-        return await service.test_prompt(
+        response = await service.test_prompt(
             prompt=payload.prompt,
             context=enriched_context,
             provider=payload.provider,
@@ -207,6 +220,17 @@ async def test_prompt(
             temperature=payload.temperature,
             max_tokens=payload.max_tokens,
         )
+        user_id = (getattr(current_user, "plexon_user_id", None) or str(current_user.id)) if current_user else None
+        if user_id and response.usage:
+            report_usage(
+                user_id=user_id,
+                event_type="llm_request",
+                raw_units={
+                    "input_tokens": response.usage.get("input_tokens") or response.usage.get("prompt_tokens"),
+                    "output_tokens": response.usage.get("output_tokens") or response.usage.get("completion_tokens"),
+                },
+            )
+        return response
     except RuntimeError as exc:
         logger.warning("ai.assist.provider_not_ready", error=str(exc))
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
