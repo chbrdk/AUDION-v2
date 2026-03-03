@@ -12,6 +12,8 @@ export type AuthUser = {
   avatar_url?: string | null;
   locale?: string | null;
   created_at?: string;
+  /** PLEXON user id when linked; use for usage tracking so PLEXON can attribute tokens. */
+  plexon_user_id?: string | null;
 };
 
 type AuthContextValue = {

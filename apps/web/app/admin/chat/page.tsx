@@ -46,6 +46,7 @@ import { INPUT_ACCENT_SX } from "../../../lib/theme-accent";
 import { VariablePalette } from "../../../components/prompt-builder/VariablePalette";
 import { type VariableDefinition } from "../../../components/prompt-builder/variableDefinitions";
 import { getChatApiBase, getVoiceApiBase, buildApiUrl } from "../../api/_lib/backend";
+import { useAuth } from "../../../components/auth/auth-provider";
 import { useSpeechToText } from "../../../hooks/use-speech-to-text";
 import { useWhisperTranscription } from "../../../hooks/use-whisper-transcription";
 import { useAudioQueue } from "../../../hooks/use-audio-queue";
@@ -284,6 +285,7 @@ function AdminChatPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { t } = useI18n();
+  const { user } = useAuth();
   const { setHeaderContent } = useAdminHeader();
   const { activeProjectId } = useProject();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -767,9 +769,11 @@ function AdminChatPageContent() {
     try {
       const apiBase = voiceStreaming ? getVoiceApiBase() : getChatApiBase();
       const endpointPath = voiceStreaming ? "/chat/stream" : "/message/stream";
+      const userId = user?.plexon_user_id ?? user?.id ?? undefined;
       const requestBody = {
         persona_id: activePersonaId,
         messages: apiMessages,
+        ...(userId && { user_id: userId }),
       };
 
       const response = await fetch(`${apiBase}${endpointPath}`, {

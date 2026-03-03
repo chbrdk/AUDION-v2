@@ -36,8 +36,15 @@ from ..services.persona_store import PersonaService
 from ..services.target_group_store import TargetGroupService
 from ..services.auth import get_current_user
 from ..services.access_control import list_accessible_project_ids
+from ..services.usage_report import report_usage
 
 logger = structlog.get_logger(__name__)
+
+
+def _user_id_for_usage(current_user: User | None) -> str | None:
+    if not current_user:
+        return None
+    return getattr(current_user, "plexon_user_id", None) or str(current_user.id)
 
 router = APIRouter(prefix="/journeys", tags=["journeys"])
 target_group_service = TargetGroupService()
@@ -150,6 +157,7 @@ def _build_journey_ai_context(
 async def generate_journey(
     payload: JourneyGenerateRequest,
     session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> JourneyResponse:
     """
     Generate a journey using AI based on target group, personas, and knowledge.
@@ -227,7 +235,16 @@ async def generate_journey(
         journey = session.get(Journey, journey_id)
         if not journey:
             raise HTTPException(status_code=404, detail="Journey not found after creation")
-        
+
+        uid = _user_id_for_usage(current_user)
+        if uid:
+            report_usage(
+                user_id=uid,
+                event_type="journey_generate",
+                raw_units={"runs": 1},
+                idempotency_key=f"journey_generate:{journey_id}",
+            )
+
         return _journey_to_response(journey)
         
     except HTTPException:
@@ -416,6 +433,7 @@ async def generate_journey_ai_content(
     journey_id: str,
     payload: JourneyAiGenerateRequest,
     session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> JourneyAiGenerationResponse:
     journey = _get_journey_or_404(session, journey_id)
     phase = None
@@ -441,6 +459,16 @@ async def generate_journey_ai_content(
         )
         ai_assist_service = AiAssistService(session=session)
         ai_response = await ai_assist_service.generate(ai_request)
+        uid = _user_id_for_usage(current_user)
+        if uid and ai_response.usage:
+            report_usage(
+                user_id=uid,
+                event_type="llm_request",
+                raw_units={
+                    "input_tokens": ai_response.usage.get("input_tokens") or ai_response.usage.get("prompt_tokens"),
+                    "output_tokens": ai_response.usage.get("output_tokens") or ai_response.usage.get("completion_tokens"),
+                },
+            )
         suggestions = [
             JourneyAiSuggestion(
                 element_type=item.type,

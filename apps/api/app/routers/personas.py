@@ -39,6 +39,7 @@ from ..services.persona_generation import PersonaGenerationService
 from ..services.persona_store import PersonaService
 from ..services.target_group_store import TargetGroupService
 from ..services.storage import StorageService
+from ..services.usage_report import report_usage
 
 router = APIRouter(prefix="/personas", tags=["personas"])
 # Same avatar under /api/persona-admin for reverse proxies that route /api/* to this service
@@ -218,6 +219,12 @@ def _persona_existing_values(persona: Persona) -> List[str]:
     return values
 
 
+def _user_id_for_usage(current_user: User | None) -> str | None:
+    if not current_user:
+        return None
+    return getattr(current_user, "plexon_user_id", None) or str(current_user.id)
+
+
 @router.post(
     "/{persona_id}/ai/pain-points",
     response_model=AiAssistResponse,
@@ -227,6 +234,7 @@ async def generate_persona_pain_points(
     persona_id: str,
     payload: Dict[str, int] | None = Body(default=None),
     session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> AiAssistResponse:
     persona = _get_persona_or_404(session, persona_id)
     max_items = (payload or {}).get("max_items", 3)
@@ -239,7 +247,18 @@ async def generate_persona_pain_points(
     )
     try:
         ai_assist = AiAssistService(session=session)
-        return await ai_assist.generate(ai_request)
+        response = await ai_assist.generate(ai_request)
+        uid = _user_id_for_usage(current_user)
+        if uid and response.usage:
+            report_usage(
+                user_id=uid,
+                event_type="llm_request",
+                raw_units={
+                    "input_tokens": response.usage.get("input_tokens") or response.usage.get("prompt_tokens"),
+                    "output_tokens": response.usage.get("output_tokens") or response.usage.get("completion_tokens"),
+                },
+            )
+        return response
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
@@ -253,6 +272,7 @@ async def generate_persona_interests(
     persona_id: str,
     payload: Dict[str, int] | None = Body(default=None),
     session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> AiAssistResponse:
     persona = _get_persona_or_404(session, persona_id)
     max_items = (payload or {}).get("max_items", 3)
@@ -265,7 +285,18 @@ async def generate_persona_interests(
     )
     try:
         ai_assist = AiAssistService(session=session)
-        return await ai_assist.generate(ai_request)
+        response = await ai_assist.generate(ai_request)
+        uid = _user_id_for_usage(current_user)
+        if uid and response.usage:
+            report_usage(
+                user_id=uid,
+                event_type="llm_request",
+                raw_units={
+                    "input_tokens": response.usage.get("input_tokens") or response.usage.get("prompt_tokens"),
+                    "output_tokens": response.usage.get("output_tokens") or response.usage.get("completion_tokens"),
+                },
+            )
+        return response
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
@@ -279,6 +310,7 @@ async def generate_persona_values(
     persona_id: str,
     payload: Dict[str, int] | None = Body(default=None),
     session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> AiAssistResponse:
     persona = _get_persona_or_404(session, persona_id)
     max_items = (payload or {}).get("max_items", 3)
@@ -291,7 +323,18 @@ async def generate_persona_values(
     )
     try:
         ai_assist = AiAssistService(session=session)
-        return await ai_assist.generate(ai_request)
+        response = await ai_assist.generate(ai_request)
+        uid = _user_id_for_usage(current_user)
+        if uid and response.usage:
+            report_usage(
+                user_id=uid,
+                event_type="llm_request",
+                raw_units={
+                    "input_tokens": response.usage.get("input_tokens") or response.usage.get("prompt_tokens"),
+                    "output_tokens": response.usage.get("output_tokens") or response.usage.get("completion_tokens"),
+                },
+            )
+        return response
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
@@ -311,6 +354,7 @@ async def generate_persona_goals(
     persona_id: str,
     payload: Dict[str, int] | None = Body(default=None),
     session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> AiAssistResponse:
     persona = _get_persona_or_404(session, persona_id)
     max_items = (payload or {}).get("max_items", 3)
@@ -323,7 +367,18 @@ async def generate_persona_goals(
     )
     try:
         ai_assist = AiAssistService(session=session)
-        return await ai_assist.generate(ai_request)
+        response = await ai_assist.generate(ai_request)
+        uid = _user_id_for_usage(current_user)
+        if uid and response.usage:
+            report_usage(
+                user_id=uid,
+                event_type="llm_request",
+                raw_units={
+                    "input_tokens": response.usage.get("input_tokens") or response.usage.get("prompt_tokens"),
+                    "output_tokens": response.usage.get("output_tokens") or response.usage.get("completion_tokens"),
+                },
+            )
+        return response
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
@@ -414,8 +469,11 @@ def create_persona(payload: PersonaCreateRequest, session: Session = Depends(get
     with a "Pending Persona" placeholder name initially and updated once generation completes.
     """
 )
-def generate_persona(payload: PersonaGenerateRequest, session: Session = Depends(get_db)) -> PersonaResponse:
-    
+def generate_persona(
+    payload: PersonaGenerateRequest,
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> PersonaResponse:
     allowed_project_ids = session.info.get("allowed_project_ids") if session.info else None
     if allowed_project_ids is not None:
         try:
@@ -459,6 +517,15 @@ def generate_persona(payload: PersonaGenerateRequest, session: Session = Depends
         chunk_ids=chunk_ids if not target_group_id else None,
         target_group_id=target_group_id,
     )
+
+    uid = _user_id_for_usage(current_user)
+    if uid:
+        report_usage(
+            user_id=uid,
+            event_type="persona_generate",
+            raw_units={"runs": 1},
+            idempotency_key=f"persona_generate:{persona.id}",
+        )
 
     session.refresh(persona)
     return persona_service.get_persona(session, str(persona.id), use_cache=False)

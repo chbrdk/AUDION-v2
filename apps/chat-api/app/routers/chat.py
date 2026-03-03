@@ -16,6 +16,7 @@ from ..db import get_session
 from ..models import Persona, PersonaPrompt
 from ..utils.text import clean_response_text
 from ..ws.chat import get_persona_agent, get_persona_prompt, get_retrieval_agent
+from ..services.usage_report import report_usage
 from .images import get_image_data_url
 from msqdx_glass_proto import ContentDeltaEvent, SourcesEvent, CompleteEvent, ThinkingEvent
 
@@ -137,7 +138,8 @@ class ChatMessageRequest(BaseModel):
     persona_id: str
     message: str | None = Field(default=None)  # Legacy: single message string
     messages: List[ChatMessage] | None = Field(default=None)  # New: messages array with conversation history
-    
+    user_id: str | None = Field(default=None, description="PLEXON user id (or internal id) for usage tracking")
+
     @model_validator(mode='after')
     def validate_message_or_messages(self):
         """Ensure either message or messages is provided."""
@@ -297,33 +299,50 @@ async def send_message(request: ChatMessageRequest) -> ChatMessageResponse:
         # Get persona agent
         persona_agent = get_persona_agent()
         
+        response_holder: list = []  # Mutable container to get usage from sync callback
+
         def generate_response() -> str:
             """Generate response synchronously using OpenAI API."""
-            # Convert messages to OpenAI format (content can be string or array for images)
             openai_messages = [
                 {"role": "system", "content": system_prompt}
             ]
             for msg in anthropic_messages:
                 openai_messages.append({
                     "role": msg.get("role", "user"),
-                    "content": msg.get("content", "")  # Can be string or array (for images)
+                    "content": msg.get("content", ""),
                 })
-            
             response = persona_agent._openai.chat.completions.create(
                 model="gpt-5-mini",
                 max_completion_tokens=600,
                 messages=openai_messages,
             )
-            
-            # Extract text content
+            response_holder.append(response)
             if response.choices and len(response.choices) > 0:
                 return response.choices[0].message.content or ""
             return ""
-        
-        # Run in executor to avoid blocking
+
         loop = asyncio.get_event_loop()
         response_text = await loop.run_in_executor(None, generate_response)
-        
+
+        if request.user_id and response_holder:
+            resp = response_holder[0]
+            usage = getattr(resp, "usage", None)
+            if usage:
+                report_usage(
+                    user_id=request.user_id,
+                    event_type="llm_request",
+                    raw_units={
+                        "input_tokens": getattr(usage, "prompt_tokens", None),
+                        "output_tokens": getattr(usage, "completion_tokens", None),
+                    },
+                )
+            else:
+                report_usage(
+                    user_id=request.user_id,
+                    event_type="chat_message",
+                    raw_units={"runs": 1},
+                )
+
         response_text = clean_response_text(response_text)
         logger.info("chat.persona_agent.complete", response_length=len(response_text))
         
@@ -492,6 +511,7 @@ async def send_message_stream(request: ChatMessageRequest) -> StreamingResponse:
     
     async def generate_stream() -> AsyncIterator[str]:
         """Generate and stream response chunks."""
+        usage_reported = [False]  # Mutable so inner code can set it
         try:
             # Extract query for retrieval (use last user message)
             if request.messages:
@@ -598,6 +618,13 @@ async def send_message_stream(request: ChatMessageRequest) -> StreamingResponse:
                                         yield f"data: {json.dumps({'type': 'sources', 'sources': event.sources})}\n\n"
                                     elif isinstance(event, CompleteEvent):
                                         yield f"data: {json.dumps({'type': 'complete'})}\n\n"
+                                        if request.user_id and not usage_reported[0]:
+                                            usage_reported[0] = True
+                                            report_usage(
+                                                user_id=request.user_id,
+                                                event_type="chat_message",
+                                                raw_units={"runs": 1},
+                                            )
                                     elif isinstance(event, ThinkingEvent):
                                         # Thinking events are typically not sent to frontend for SSE
                                         pass
@@ -625,6 +652,13 @@ async def send_message_stream(request: ChatMessageRequest) -> StreamingResponse:
                         yield f"data: {json.dumps({'type': 'sources', 'sources': event.sources})}\n\n"
                     elif isinstance(event, CompleteEvent):
                         yield f"data: {json.dumps({'type': 'complete'})}\n\n"
+                        if request.user_id and not usage_reported[0]:
+                            usage_reported[0] = True
+                            report_usage(
+                                user_id=request.user_id,
+                                event_type="chat_message",
+                                raw_units={"runs": 1},
+                            )
                     elif isinstance(event, ThinkingEvent):
                         # Thinking events: send status if it's an error, otherwise ignore
                         if hasattr(event, "status") and event.status and "error" in event.status.lower():
@@ -792,7 +826,13 @@ async def send_message_stream(request: ChatMessageRequest) -> StreamingResponse:
                 # Send completion
                 yield f"data: {json.dumps({'type': 'complete'})}\n\n"
                 logger.info("chat.stream.persona_agent.complete")
-            
+                if request.user_id and not usage_reported[0]:
+                    usage_reported[0] = True
+                    report_usage(
+                        user_id=request.user_id,
+                        event_type="chat_message",
+                        raw_units={"runs": 1},
+                    )
         except Exception as e:
             logger.error("chat.stream.error", error=str(e), exc_info=True)
             yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n"

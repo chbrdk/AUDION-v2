@@ -16,6 +16,7 @@ from sqlalchemy import select
 
 from ..db import get_session
 from ..models import Persona, PersonaPrompt
+from ..services.usage_report import report_usage
 from ..services.voice import ElevenLabsVoiceError, get_voice_client
 from ..services.whisper import WhisperTranscriptionService
 from ..utils.text import clean_response_text
@@ -113,6 +114,7 @@ class VoiceChatRequest(BaseModel):
     message: str | None = Field(default=None)  # Legacy: single message string
     messages: List[VoiceChatMessage] | None = Field(default=None)  # New: messages array with conversation history
     voice_id: str | None = Field(default=None)
+    user_id: str | None = Field(default=None, description="PLEXON user id for usage tracking")
     
     @model_validator(mode='after')
     def validate_message_or_messages(self):
@@ -340,6 +342,12 @@ async def voice_chat_stream(request: VoiceChatRequest) -> StreamingResponse:
                 yield chunk_event
 
             yield f"data: {json.dumps({'type': 'complete'})}\n\n"
+            if request.user_id:
+                report_usage(
+                    user_id=request.user_id,
+                    event_type="chat_message",
+                    raw_units={"runs": 1},
+                )
         except Exception as exc:
             logger.error("voice.stream.error", error=str(exc), exc_info=True)
             yield f"data: {json.dumps({'type': 'error', 'error': str(exc)})}\n\n"

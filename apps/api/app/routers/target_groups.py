@@ -33,6 +33,7 @@ from ..services.storage import StorageService
 from ..services.target_group_store import TargetGroupService
 from ..services.auth import get_current_user
 from ..services.access_control import list_accessible_project_ids
+from ..services.usage_report import report_usage
 
 logger = structlog.get_logger(__name__)
 storage = StorageService()
@@ -1113,10 +1114,17 @@ def list_target_group_personas(
     - Additional contract notes in {TARGET_GROUP_DOC_SECTION}
     """
 )
+def _user_id_for_usage(current_user: User | None) -> str | None:
+    if not current_user:
+        return None
+    return getattr(current_user, "plexon_user_id", None) or str(current_user.id)
+
+
 def generate_target_group_persona(
     target_group_id: str,
     payload: TargetGroupPersonaGenerateRequest,
     session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> PersonaResponse:
     logger.info("persona.generate.received", target_group_id=target_group_id, payload=payload.dict())
     try:
@@ -1221,7 +1229,16 @@ def generate_target_group_persona(
             session.delete(persona)
             session.commit()
             raise HTTPException(status_code=400, detail=str(exc)) from exc
-        
+
+        uid = _user_id_for_usage(current_user)
+        if uid:
+            report_usage(
+                user_id=uid,
+                event_type="persona_generate",
+                raw_units={"runs": 1},
+                idempotency_key=f"persona_generate:{persona.id}",
+            )
+
         session.refresh(persona)
         logger.info("persona.generate.returning_response", target_group_id=target_group_id, persona_id=str(persona.id))
         return persona_service.get_persona(session, str(persona.id), use_cache=False)

@@ -23,6 +23,7 @@ import { MsqdxGlassChatPanel } from "../../components/msqdx-glass-chat-panel";
 import { MsqdxIcon, MsqdxInput } from "@msqdx/react";
 import { INPUT_ACCENT_SX_WITH_FALLBACK } from "../../lib/theme-accent";
 import { getChatApiBase, buildApiUrl } from "../../app/api/_lib/backend";
+import { useAuth } from "../../components/auth/auth-provider";
 import { useProject } from "../../components/projects/project-provider";
 import { useI18n } from "../../components/i18n/i18n-provider";
 import { buildAdaptiveSystemPrompt } from "../../lib/adaptive-prompt";
@@ -171,6 +172,7 @@ function ChatSharePageContent() {
   const theme = useTheme();
   const searchParams = useSearchParams();
   const { t } = useI18n();
+  const { user } = useAuth();
   const { activeProjectId, selectProject } = useProject();
   const { setHeaderContent } = useShareChatHeader();
   const personaIdParam = searchParams.get("personaId");
@@ -427,10 +429,15 @@ function ChatSharePageContent() {
 
     try {
       const apiBase = getChatApiBase();
+      const userId = user?.plexon_user_id ?? user?.id ?? undefined;
       const res = await fetch(`${apiBase}/message/stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ persona_id: personaIdParam, messages: apiMessages }),
+        body: JSON.stringify({
+          persona_id: personaIdParam,
+          messages: apiMessages,
+          ...(userId && { user_id: userId }),
+        }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       if (!res.body) throw new Error("No response body");
