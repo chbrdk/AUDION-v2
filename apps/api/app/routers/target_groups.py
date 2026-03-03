@@ -1065,6 +1065,12 @@ def list_target_group_personas(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+def _user_id_for_usage(current_user: User | None) -> str | None:
+    if not current_user:
+        return None
+    return getattr(current_user, "plexon_user_id", None) or str(current_user.id)
+
+
 @router.post(
     "/{target_group_id}/personas/generate",
     response_model=PersonaResponse,
@@ -1114,12 +1120,6 @@ def list_target_group_personas(
     - Additional contract notes in {TARGET_GROUP_DOC_SECTION}
     """
 )
-def _user_id_for_usage(current_user: User | None) -> str | None:
-    if not current_user:
-        return None
-    return getattr(current_user, "plexon_user_id", None) or str(current_user.id)
-
-
 def generate_target_group_persona(
     target_group_id: str,
     payload: TargetGroupPersonaGenerateRequest,
