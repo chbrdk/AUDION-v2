@@ -5,6 +5,18 @@ import { getPersonaBackendBase } from "../../_lib/backend";
 import { buildAuthHeaders, getAuthTokenFromRequest } from "../../_lib/auth";
 import { isPlexonAuthConfigured, getPlexonProfile, getPlexonProfileByEmail, patchPlexonProfile } from "../../../../lib/plexon-auth";
 
+function personaBackend503(message: string, target: string): NextResponse {
+  const body: { error: string; detail: string; hint?: string; target?: string } = {
+    error: "Persona backend unreachable",
+    detail: message,
+    hint: "Set NEXT_PERSONA_BACKEND_INTERNAL_URL (or NEXT_PUBLIC_PERSONA_BACKEND_URL) in the web app so it can reach the API. See knowledge/troubleshooting-503-auth-me.md",
+  };
+  if (process.env.NODE_ENV !== "production" || process.env.NEXT_PUBLIC_EXPOSE_BACKEND_TARGET === "true") {
+    body.target = target;
+  }
+  return NextResponse.json(body, { status: 503 });
+}
+
 export async function GET(request: NextRequest) {
   const token = getAuthTokenFromRequest(request);
   if (!token) {
@@ -25,10 +37,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "fetch failed";
-    return NextResponse.json(
-      { error: "Persona backend unreachable", detail: message, target },
-      { status: 503 }
-    );
+    return personaBackend503(message, target);
   }
 
   const dataText = await response.text();
@@ -94,10 +103,7 @@ export async function PATCH(request: NextRequest) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "fetch failed";
-    return NextResponse.json(
-      { error: "Persona backend unreachable", detail: message, target },
-      { status: 503 }
-    );
+    return personaBackend503(message, target);
   }
 
   const dataText = await response.text();

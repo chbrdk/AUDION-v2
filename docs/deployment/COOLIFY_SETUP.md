@@ -324,6 +324,21 @@ In Coolify sollten alle Services im gleichen Netzwerk sein. Prüfe:
 
 ## Troubleshooting
 
+### 503 auf GET /api/auth/me (Persona backend unreachable)
+
+**Problem**: Die Web-App antwortet mit **503 (Service Unavailable)** beim Aufruf von `/api/auth/me` (z. B. beim Laden der Seite oder nach Login).
+
+**Ursache**: Die Next.js-Web-App kann das **Persona-Backend (API)** nicht erreichen. Server-seitig wird `NEXT_PERSONA_BACKEND_INTERNAL_URL` bzw. `NEXT_PUBLIC_PERSONA_BACKEND_URL` verwendet; ist die URL falsch oder der API-Container nicht erreichbar, kommt 503.
+
+**Lösung**:
+1. **API-Application** in Coolify prüfen: läuft sie, Health Check grün?
+2. **Web-Application** → Environment Variables:
+   - **NEXT_PERSONA_BACKEND_INTERNAL_URL** setzen auf die **interne** URL des API-Containers, z. B. `http://audion-api:8000` (wenn Web und API in derselben Docker-Compose/App sind) oder den Coolify-internen Hostnamen der API.
+   - Wenn Web und API **getrennte** Coolify-Applications sind und kein gemeinsames Netz: dieselbe **öffentliche** API-URL für beide Variablen verwenden, z. B. `https://audion-api.projects-a.plygrnd.tech`.
+3. Nach Anpassung: **Web-App neu deployen** (Redeploy).
+
+Ausführlich: **knowledge/troubleshooting-503-auth-me.md**.
+
 ### Services können sich nicht erreichen
 
 **Problem**: `Connection refused` oder `Name resolution failed`
