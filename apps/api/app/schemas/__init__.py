@@ -55,6 +55,7 @@ from .auth import (
     AuthPlexonSyncRequest,
     AuthProfileUpdateRequest,
     AuthRegisterRequest,
+    AuthTokenCreateRequest,
     AuthTokenResponse,
     UserResponse,
 )
@@ -674,6 +675,7 @@ __all__ = [
     "AuthPlexonSyncRequest",
     "AuthProfileUpdateRequest",
     "AuthRegisterRequest",
+    "AuthTokenCreateRequest",
     "AuthTokenResponse",
     "UserResponse",
     "ProjectCreateRequest",

@@ -130,6 +130,21 @@ class User(Base):
 
     owned_projects = relationship("Project", back_populates="owner")
     memberships = relationship("ProjectMember", back_populates="user", cascade="all, delete-orphan")
+    api_tokens = relationship("ApiToken", back_populates="user", cascade="all, delete-orphan")
+
+
+class ApiToken(Base):
+    """API tokens for Bearer auth (MCP, integrations). One token per user for all services."""
+    __tablename__ = "api_tokens"
+    __table_args__ = {"schema": "audion"}
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("audion.users.id", ondelete="CASCADE"), nullable=False)
+    token_hash = Column(String(64), nullable=False)  # SHA-256 hex of raw token
+    name = Column(String(256), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    user = relationship("User", back_populates="api_tokens")
 
 
 class Project(Base):

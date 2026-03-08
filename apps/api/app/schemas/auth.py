@@ -44,6 +44,11 @@ class AuthPasswordUpdateRequest(BaseModel):
     new_password: str = Field(..., min_length=6, max_length=72)
 
 
+class AuthTokenCreateRequest(BaseModel):
+    """Body for POST /auth/tokens: create API token (optional name)."""
+    name: str | None = Field(default=None, max_length=256, description="Optional label for the token (e.g. MCP Server)")
+
+
 class UserResponse(BaseModel):
     id: str
     email: EmailStr

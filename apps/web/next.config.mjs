@@ -52,11 +52,13 @@ const nextConfig = {
 
   // SWC minification is enabled by default in Next.js 16
 
-  // Proxy API requests to backend services to avoid CORS and Mixed Content issues
+  // Proxy API requests to backend services to avoid CORS and Mixed Content issues.
+  // MCP: when MCP_SERVER_URL is set, /mcp and /mcp/* rewrite to the MCP server (see knowledge/audion-urls-and-paths.md).
   async rewrites() {
     const personaBackend =
       process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL?.trim() || 'http://api:8000';
-    return [
+    const mcpBase = process.env.MCP_SERVER_URL?.replace(/\/$/, '') ?? '';
+    const rewrites = [
       {
         source: '/api/chat/:path*',
         destination: process.env.NEXT_PUBLIC_CHAT_API_URL
@@ -85,6 +87,13 @@ const nextConfig = {
       // NOTE: persona backend routes are handled by Next.js app/api proxies
       // to inject auth headers and project scoping.
     ];
+    if (mcpBase) {
+      rewrites.push(
+        { source: '/mcp', destination: `${mcpBase}/` },
+        { source: '/mcp/:path*', destination: `${mcpBase}/:path*` }
+      );
+    }
+    return rewrites;
   },
 };
 

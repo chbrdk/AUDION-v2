@@ -12,10 +12,13 @@ from sqlalchemy.orm import Session
 from ..core.config import get_settings
 from ..db import get_db
 from ..models import User
-
+from .api_tokens import get_user_id_by_token_hash, hash_token
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 bearer_scheme = HTTPBearer(auto_error=False)
+
+API_TOKEN_PREFIX = "audion_"
+API_TOKEN_LEN = 9 + 64  # audion_ + 64 hex
 
 
 def hash_password(password: str) -> str:
@@ -45,8 +48,25 @@ def get_current_user(
     if not credentials or not credentials.credentials:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
-    settings = get_settings()
     token = credentials.credentials
+
+    # API token (audion_ + 64 hex): resolve via api_tokens table
+    if (
+        token.startswith(API_TOKEN_PREFIX)
+        and len(token) == API_TOKEN_LEN
+        and all(c in "0123456789abcdef" for c in token[9:])
+    ):
+        token_hash = hash_token(token)
+        user_id = get_user_id_by_token_hash(session, token_hash)
+        if user_id is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API token")
+        user = session.get(User, user_id)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+        return user
+
+    # JWT (session / login)
+    settings = get_settings()
     try:
         payload = jwt.decode(token, settings.auth_jwt_secret, algorithms=[settings.auth_jwt_algorithm])
     except JWTError as exc:
