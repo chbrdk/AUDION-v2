@@ -217,7 +217,18 @@ async function main() {
   const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
     log(`${req.method} ${req.url ?? '/'}`);
     try {
-      const parsedBody = req.method === 'POST' ? await parseBody(req) : undefined;
+      // GET (any path): health/readiness for proxies; MCP uses POST only
+      if (req.method === 'GET') {
+        sendJson(res, 200, { status: 'ok', service: 'audion-mcp' });
+        return;
+      }
+      if (req.method !== 'POST') {
+        res.statusCode = 405;
+        res.setHeader('Allow', 'GET, POST');
+        res.end();
+        return;
+      }
+      const parsedBody = await parseBody(req);
       const method =
         parsedBody && typeof parsedBody === 'object' && 'method' in parsedBody
           ? String((parsedBody as { method?: unknown }).method)
