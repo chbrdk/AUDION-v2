@@ -52,6 +52,7 @@ AUDION uses environment variables for configuration. In Coolify, these are set i
 | `NEXT_PUBLIC_PERSONA_BACKEND_URL` | Public URL for persona backend API | `http://api:8000` | web |
 | `NEXT_PUBLIC_CHAT_API_URL` | Public URL for chat API | `http://chat-api:8001` | web |
 | `NEXT_PERSONA_BACKEND_INTERNAL_URL` | Internal URL for persona backend (server-side) | `http://api:8000` | web |
+| `MCP_SERVER_URL` | Interne URL des MCP-Servers für Rewrites `/mcp` → MCP (wie bei CHECKION). Z. B. `http://audion-mcp:3100`. | – | web |
 
 ### PLEXON (central auth)
 
@@ -84,6 +85,8 @@ NEXT_PUBLIC_BASE_PATH=
 NEXT_PUBLIC_PERSONA_BACKEND_URL=http://api:8000
 NEXT_PUBLIC_CHAT_API_URL=http://chat-api:8001
 NEXT_PERSONA_BACKEND_INTERNAL_URL=http://api:8000
+# Optional: wenn MCP unter gleicher Domain erreichbar sein soll (wie CHECKION)
+MCP_SERVER_URL=http://audion-mcp:3100
 ```
 
 ### API Service

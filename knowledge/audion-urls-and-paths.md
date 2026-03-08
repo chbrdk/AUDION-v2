@@ -8,7 +8,7 @@ Do not hardcode URLs or path prefixes in code. Use environment variables and thi
 
 | Variable | Used by | Description |
 |----------|--------|-------------|
-| `AUDION_API_URL` | MCP server, external clients | Base URL of the FastAPI API (e.g. `http://api:8000`, `https://api.audion.example.com`). No trailing slash. Used when calling the API directly (e.g. MCP server). |
+| `AUDION_API_URL` | MCP server, external clients | Base URL of the **FastAPI API** (e.g. `http://api:8000`, `https://api.audion.example.com`). No trailing slash. **In der docker-compose** ist der API-Service Name `api` → URL = **`http://api:8000`**. **Nicht** die Web-App-URL – wenn die Web-App-URL verwendet wird, antwortet die Next.js-Middleware mit Redirect zu `/login` statt JSON. |
 | `NEXT_PERSONA_BACKEND_INTERNAL_URL` | AUDION web (Next.js, server-side) | Internal URL of the FastAPI API when the web app proxies requests (e.g. `http://api:8000`). |
 | `NEXT_PUBLIC_PERSONA_BACKEND_URL` | AUDION web (optional, public) | Public URL of the API when the client or server needs to reach it via a public host. |
 | `NEXT_PUBLIC_PERSONA_BACKEND_DOCS_URL` | AUDION web | URL to the API docs (e.g. `/docs`). |
