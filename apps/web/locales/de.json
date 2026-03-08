@@ -106,6 +106,24 @@
       "title": "Darstellung",
       "subtitle": "Wähle eine Farbe für Sidebar und Akzente. Änderungen wirken sofort im gesamten Dashboard."
     },
+    "apiTokens": {
+      "title": "API-Zugang",
+      "subtitle": "API-Tokens für programmatischen Zugriff (z. B. MCP-Server). Token nur einmal sichtbar – sicher aufbewahren.",
+      "create": "Token erstellen",
+      "creating": "Wird erstellt…",
+      "namePlaceholder": "z. B. MCP Server",
+      "nameLabel": "Name (optional)",
+      "listTitle": "Deine API-Tokens",
+      "empty": "Noch keine Tokens. Erstelle einen für API- oder MCP-Zugriff.",
+      "revoke": "Widerrufen",
+      "revokeConfirm": "Token wirklich widerrufen? Er kann danach nicht mehr genutzt werden.",
+      "newTokenTitle": "Neuer Token",
+      "newTokenCopy": "Kopieren",
+      "newTokenCopied": "Kopiert",
+      "newTokenWarning": "Dieser Token wird nur einmal angezeigt. Speichere ihn sicher.",
+      "errorCreate": "Token konnte nicht erstellt werden",
+      "errorRevoke": "Token konnte nicht widerrufen werden"
+    },
     "session": {
       "title": "Sitzung",
       "subtitle": "Auf diesem Gerät abmelden. Du musst dich danach erneut anmelden.",

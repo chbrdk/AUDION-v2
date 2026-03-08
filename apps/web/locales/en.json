@@ -106,6 +106,24 @@
       "title": "Appearance",
       "subtitle": "Choose a color for the sidebar and accents. Changes apply immediately across the dashboard."
     },
+    "apiTokens": {
+      "title": "API access",
+      "subtitle": "API tokens for programmatic access (e.g. MCP server). Token is shown only once – store it securely.",
+      "create": "Create token",
+      "creating": "Creating…",
+      "namePlaceholder": "e.g. MCP Server",
+      "nameLabel": "Name (optional)",
+      "listTitle": "Your API tokens",
+      "empty": "No tokens yet. Create one for API or MCP access.",
+      "revoke": "Revoke",
+      "revokeConfirm": "Really revoke this token? It cannot be used afterwards.",
+      "newTokenTitle": "New token",
+      "newTokenCopy": "Copy",
+      "newTokenCopied": "Copied",
+      "newTokenWarning": "This token is shown only once. Store it securely.",
+      "errorCreate": "Failed to create token",
+      "errorRevoke": "Failed to revoke token"
+    },
     "session": {
       "title": "Session",
       "subtitle": "Log out from this device. You will need to sign in again to access your projects.",

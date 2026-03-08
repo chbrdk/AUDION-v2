@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Avatar, Box, Divider, Stack } from "@mui/material";
 import { useRouter } from "next/navigation";
 import {
@@ -17,6 +17,7 @@ import { useAuth } from "../../../components/auth/auth-provider";
 import { useI18n } from "../../../components/i18n/i18n-provider";
 import { BrandColorSelector } from "../../../components/settings/brand-color-selector";
 import { FORM_FIELD_ACCENT_SX } from "../../../lib/theme-accent";
+import { buildApiUrl } from "../../api/_lib/backend";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -43,6 +44,24 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  type ApiTokenRow = { id: string; name?: string; createdAt: string };
+  const [apiTokens, setApiTokens] = useState<ApiTokenRow[]>([]);
+  const [loadingTokens, setLoadingTokens] = useState(false);
+  const [creatingToken, setCreatingToken] = useState(false);
+  const [tokenName, setTokenName] = useState("");
+  const [newToken, setNewToken] = useState<string | null>(null);
+
+  const fetchApiTokens = useCallback(() => {
+    setLoadingTokens(true);
+    fetch(buildApiUrl("/api/auth/tokens"))
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data?.data)) setApiTokens(data.data);
+      })
+      .catch(() => setApiTokens([]))
+      .finally(() => setLoadingTokens(false));
+  }, []);
+
   useEffect(() => {
     if (!user) return;
     setName(user.name ?? "");
@@ -51,6 +70,11 @@ export default function ProfilePage() {
     setAvatarUrl(user.avatar_url ?? "");
     setLocale(user.locale ?? "en");
   }, [user]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    fetchApiTokens();
+  }, [user?.id, fetchApiTokens]);
 
   const initials = useMemo(() => {
     const base = (name || user?.email || "A").trim();
@@ -112,6 +136,48 @@ export default function ProfilePage() {
     await logout();
     const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
     router.replace(`${basePath}/login`);
+  };
+
+  const handleCreateToken = async () => {
+    setError(null);
+    setCreatingToken(true);
+    try {
+      const res = await fetch(buildApiUrl("/api/auth/tokens"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: tokenName.trim() || undefined }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error((data as { error?: string }).error ?? t("profile.apiTokens.errorCreate"));
+      setNewToken((data as { token: string }).token);
+      setTokenName("");
+      fetchApiTokens();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("profile.apiTokens.errorCreate"));
+    } finally {
+      setCreatingToken(false);
+    }
+  };
+
+  const handleRevokeToken = async (id: string) => {
+    if (!window.confirm(t("profile.apiTokens.revokeConfirm"))) return;
+    setError(null);
+    try {
+      const res = await fetch(buildApiUrl(`/api/auth/tokens/${encodeURIComponent(id)}`), { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error((data as { error?: string }).error ?? "Failed");
+      }
+      setApiTokens((prev) => prev.filter((t) => t.id !== id));
+      if (newToken) setNewToken(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("profile.apiTokens.errorRevoke"));
+    }
+  };
+
+  const handleCopyToken = () => {
+    if (!newToken) return;
+    void navigator.clipboard.writeText(newToken).then(() => setSuccess(t("profile.apiTokens.newTokenCopied")));
   };
 
   return (
@@ -213,6 +279,110 @@ export default function ProfilePage() {
             {t("profile.appearance.subtitle")}
           </MsqdxTypography>
           <BrandColorSelector />
+        </MsqdxCard>
+
+        <MsqdxCard variant="flat" borderRadius="button" sx={{ p: 2, border: "1px solid", borderColor: "divider" }}>
+          <MsqdxTypography variant="h6" weight="semibold" sx={{ mb: 1 }}>
+            {t("profile.apiTokens.title")}
+          </MsqdxTypography>
+          <MsqdxTypography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
+            {t("profile.apiTokens.subtitle")}
+          </MsqdxTypography>
+          {newToken ? (
+            <Stack spacing={1} sx={{ mb: 2 }}>
+              <MsqdxTypography variant="subtitle2" weight="semibold">
+                {t("profile.apiTokens.newTokenTitle")}
+              </MsqdxTypography>
+              <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
+                <Box
+                  component="code"
+                  sx={{
+                    flex: 1,
+                    minWidth: 200,
+                    p: 1,
+                    borderRadius: 1,
+                    bgcolor: "var(--color-bg-subtle)",
+                    fontSize: "0.85rem",
+                    wordBreak: "break-all",
+                  }}
+                >
+                  {newToken}
+                </Box>
+                <MsqdxButton variant="outlined" size="small" onClick={handleCopyToken}>
+                  {t("profile.apiTokens.newTokenCopy")}
+                </MsqdxButton>
+              </Box>
+              <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
+                {t("profile.apiTokens.newTokenWarning")}
+              </MsqdxTypography>
+              <MsqdxButton variant="text" size="small" onClick={() => setNewToken(null)}>
+                {t("common.close")}
+              </MsqdxButton>
+            </Stack>
+          ) : (
+            <Stack direction="row" spacing={1} sx={{ mb: 2 }} alignItems="center" flexWrap="wrap">
+              <MsqdxFormField
+                label={t("profile.apiTokens.nameLabel")}
+                value={tokenName}
+                onChange={(e) => setTokenName(e.target.value)}
+                placeholder={t("profile.apiTokens.namePlaceholder")}
+                size="small"
+                sx={{ minWidth: 200, ...FORM_FIELD_ACCENT_SX }}
+              />
+              <MsqdxButton
+                variant="contained"
+                onClick={handleCreateToken}
+                disabled={creatingToken}
+                sx={{ mt: 1 }}
+              >
+                {creatingToken ? t("profile.apiTokens.creating") : t("profile.apiTokens.create")}
+              </MsqdxButton>
+            </Stack>
+          )}
+          <MsqdxTypography variant="subtitle2" weight="semibold" sx={{ mb: 1 }}>
+            {t("profile.apiTokens.listTitle")}
+          </MsqdxTypography>
+          {loadingTokens ? (
+            <MsqdxTypography variant="body2" color="text.secondary">
+              {t("common.loading")}
+            </MsqdxTypography>
+          ) : apiTokens.length === 0 ? (
+            <MsqdxTypography variant="body2" color="text.secondary">
+              {t("profile.apiTokens.empty")}
+            </MsqdxTypography>
+          ) : (
+            <Stack spacing={0.5}>
+              {apiTokens.map((token) => (
+                <Box
+                  key={token.id}
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    py: 0.5,
+                    borderBottom: "1px solid var(--color-border-subtle)",
+                  }}
+                >
+                  <Box>
+                    <MsqdxTypography variant="body2">
+                      {token.name || token.id.slice(0, 8)}
+                    </MsqdxTypography>
+                    <MsqdxTypography variant="caption" color="text.secondary">
+                      {new Date(token.createdAt).toLocaleString()}
+                    </MsqdxTypography>
+                  </Box>
+                  <MsqdxButton
+                    variant="text"
+                    size="small"
+                    color="error"
+                    onClick={() => handleRevokeToken(token.id)}
+                  >
+                    {t("profile.apiTokens.revoke")}
+                  </MsqdxButton>
+                </Box>
+              ))}
+            </Stack>
+          )}
         </MsqdxCard>
 
         <MsqdxCard variant="flat" borderRadius="button" sx={{ p: 2, border: "1px solid", borderColor: "divider" }}>
