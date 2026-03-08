@@ -126,3 +126,11 @@ export function buildApiUrl(path: string): string {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   return `${basePath}${normalizedPath}`;
 }
+
+/** GET/POST /api/auth/tokens – list and create API tokens (central reference, same as CHECKION). */
+export const API_AUTH_TOKENS = buildApiUrl("/api/auth/tokens");
+
+/** DELETE /api/auth/tokens/[id] – revoke an API token. */
+export function apiAuthTokenRevoke(id: string): string {
+  return buildApiUrl(`/api/auth/tokens/${encodeURIComponent(id)}`);
+}

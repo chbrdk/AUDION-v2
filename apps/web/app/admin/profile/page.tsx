@@ -17,7 +17,7 @@ import { useAuth } from "../../../components/auth/auth-provider";
 import { useI18n } from "../../../components/i18n/i18n-provider";
 import { BrandColorSelector } from "../../../components/settings/brand-color-selector";
 import { FORM_FIELD_ACCENT_SX } from "../../../lib/theme-accent";
-import { buildApiUrl } from "../../api/_lib/backend";
+import { API_AUTH_TOKENS, apiAuthTokenRevoke } from "../../api/_lib/backend";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -53,7 +53,7 @@ export default function ProfilePage() {
 
   const fetchApiTokens = useCallback(() => {
     setLoadingTokens(true);
-    fetch(buildApiUrl("/api/auth/tokens"))
+    fetch(API_AUTH_TOKENS, { credentials: "include" })
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data?.data)) setApiTokens(data.data);
@@ -142,10 +142,11 @@ export default function ProfilePage() {
     setError(null);
     setCreatingToken(true);
     try {
-      const res = await fetch(buildApiUrl("/api/auth/tokens"), {
+      const res = await fetch(API_AUTH_TOKENS, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: tokenName.trim() || undefined }),
+        credentials: "include",
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error((data as { error?: string }).error ?? t("profile.apiTokens.errorCreate"));
@@ -163,7 +164,7 @@ export default function ProfilePage() {
     if (!window.confirm(t("profile.apiTokens.revokeConfirm"))) return;
     setError(null);
     try {
-      const res = await fetch(buildApiUrl(`/api/auth/tokens/${encodeURIComponent(id)}`), { method: "DELETE" });
+      const res = await fetch(apiAuthTokenRevoke(id), { method: "DELETE", credentials: "include" });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error((data as { error?: string }).error ?? "Failed");

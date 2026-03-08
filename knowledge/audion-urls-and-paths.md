@@ -63,3 +63,5 @@ The MCP server calls the FastAPI API with `AUDION_API_URL` + path. Paths are exa
 ## Web app API routes (Next.js)
 
 The web app uses `buildApiUrl(path)` which prepends `NEXT_PUBLIC_BASE_PATH`. Paths like `/api/auth/me` are then forwarded to the backend by the Next.js API routes; the backend still sees the path as defined by the proxy (e.g. `/auth/me` or `/api/auth/me` depending on proxy config). See `apps/web/app/api/_lib/backend.ts` for how the backend base URL is chosen (internal vs public).
+
+**API token management (same pattern as CHECKION):** Central constants in `apps/web/app/api/_lib/backend.ts`: `API_AUTH_TOKENS` (GET/POST list and create), `apiAuthTokenRevoke(id)` (DELETE). Used on the profile page at **Admin → Profil** (API-Zugang / API access). All token fetches use `credentials: 'include'` so the session cookie is sent.
