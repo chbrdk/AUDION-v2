@@ -41,6 +41,7 @@ import {
   Badge
 } from "@mui/material";
 import { MsqdxGlassChatPanel } from "../../../components/msqdx-glass-chat-panel";
+import { TavusVideoPanel, type TavusSessionConfig } from "../../../components/tavus-video-panel";
 import { MsqdxIcon, MsqdxInput } from "@msqdx/react";
 import { INPUT_ACCENT_SX } from "../../../lib/theme-accent";
 import { VariablePalette } from "../../../components/prompt-builder/VariablePalette";
@@ -326,6 +327,9 @@ function AdminChatPageContent() {
   const [personaMenuAnchor, setPersonaMenuAnchor] = useState<null | HTMLElement>(null);
   const [personaDrawerOpen, setPersonaDrawerOpen] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [videoEnabled, setVideoEnabled] = useState(false);
+  const [tavusSessionConfig, setTavusSessionConfig] = useState<TavusSessionConfig | null>(null);
+  const [tavusSessionLoading, setTavusSessionLoading] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [shareLinkCopied, setShareLinkCopied] = useState(false);
   const typingBuffersRef = useRef<Record<string, string>>({});
@@ -559,6 +563,50 @@ function AdminChatPageContent() {
       stopAudioQueue();
     }
   }, [voiceEnabled, stopAudioQueue]);
+
+  useEffect(() => {
+    if (videoEnabled) {
+      setVideoEnabled(false);
+      setTavusSessionConfig(null);
+    }
+  }, [activePersonaId]);
+
+  const handleVideoToggle = async () => {
+    if (videoEnabled) {
+      setVideoEnabled(false);
+      setTavusSessionConfig(null);
+      return;
+    }
+    if (!activePersonaId) return;
+    setTavusSessionLoading(true);
+    setTavusSessionConfig(null);
+    try {
+      const res = await fetch(buildApiUrl("/api/chat/tavus/session"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ persona_id: activePersonaId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = data.detail ?? data.error ?? (res.status === 400 ? t("adminChat.tavusNoReplica") : t("adminChat.tavusSessionFailed"));
+        if (typeof msg === "string") {
+          notify(msg);
+        } else if (msg && typeof msg === "object" && "message" in msg) {
+          notify(String((msg as { message: string }).message));
+        } else {
+          notify(Array.isArray(msg) ? msg[0] ?? "Tavus error" : "Tavus error");
+        }
+        return;
+      }
+      setTavusSessionConfig(data);
+      setVideoEnabled(true);
+    } catch (e) {
+      notify(t("adminChat.tavusSessionFailed"));
+    } finally {
+      setTavusSessionLoading(false);
+    }
+  };
 
   useEffect(() => {
     handleTranscriptionCompleteRef.current = (text: string) => {
@@ -1611,7 +1659,7 @@ function AdminChatPageContent() {
             </Box>
           )}
 
-          {/* Chat Messages - Scrollable Area; when empty show welcome with large persona avatar */}
+          {/* Chat Messages - or Tavus Video when video mode is on */}
           <Box
             sx={{
               flex: 1,
@@ -1622,10 +1670,26 @@ function AdminChatPageContent() {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              justifyContent: messages.length === 0 ? "center" : "flex-start"
+              justifyContent: videoEnabled && tavusSessionConfig ? "flex-start" : messages.length === 0 ? "center" : "flex-start"
             }}
           >
-            {messages.length === 0 ? (
+            {videoEnabled && tavusSessionConfig ? (
+              <Box sx={{ width: "100%", maxWidth: 720 }}>
+                <Button
+                  variant="text"
+                  size="small"
+                  startIcon={<MsqdxIcon name="keyboard" customSize={18} />}
+                  onClick={() => { setVideoEnabled(false); setTavusSessionConfig(null); }}
+                  sx={{ mb: 1 }}
+                >
+                  {t("adminChat.backToTextChat")}
+                </Button>
+                <TavusVideoPanel
+                  sessionConfig={tavusSessionConfig}
+                  personaName={personaDisplayName ?? undefined}
+                />
+              </Box>
+            ) : messages.length === 0 ? (
               <Box
                 sx={{
                   maxWidth: 480,
@@ -1666,7 +1730,8 @@ function AdminChatPageContent() {
             )}
           </Box>
 
-          {/* Input Area - Fixed at Bottom */}
+          {/* Input Area - Fixed at Bottom (hidden in video mode) */}
+          {!videoEnabled && (
           <Box
             component="form"
             onSubmit={(event) => {
@@ -1773,6 +1838,22 @@ function AdminChatPageContent() {
                   <MsqdxIcon name="headphones" customSize={22} />
                 </IconButton>
               </Tooltip>
+              <Tooltip title={videoEnabled ? t("adminChat.exitVideo") : t("adminChat.videoTavus")}>
+                <IconButton
+                  onClick={() => void handleVideoToggle()}
+                  disabled={!activePersonaId || tavusSessionLoading}
+                  sx={{
+                    backgroundColor: videoEnabled ? "var(--color-secondary-dx-green)" : alpha(theme.palette.text.primary, 0.08),
+                    borderRadius: 999
+                  }}
+                >
+                  {tavusSessionLoading ? (
+                    <CircularProgress size={22} color="inherit" />
+                  ) : (
+                    <MsqdxIcon name="videocam" customSize={22} />
+                  )}
+                </IconButton>
+              </Tooltip>
               <IconButton
                 onClick={() => void handleSend()}
                 disabled={sendDisabled}
@@ -1812,6 +1893,7 @@ function AdminChatPageContent() {
               </Box>
             )}
           </Box>
+          )}
         </Box>
       )}
 

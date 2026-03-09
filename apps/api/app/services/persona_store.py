@@ -342,6 +342,11 @@ class PersonaService:
                 else:
                     persona.target_group_id = None
 
+        if payload.tavus_replica_id is not None:
+            persona.tavus_replica_id = payload.tavus_replica_id.strip() or None
+        if payload.tavus_persona_id is not None:
+            persona.tavus_persona_id = payload.tavus_persona_id.strip() or None
+
         # Update simple fields
         if payload.name:
             persona.name = payload.name
@@ -743,6 +748,8 @@ class PersonaService:
             graphUrl=self._graph_url(persona.id),
             graphBloomUrl=self._graph_bloom_url(persona.id),
             targetGroupId=str(persona.target_group_id) if persona.target_group_id else None,
+            tavusReplicaId=persona.tavus_replica_id,
+            tavusPersonaId=persona.tavus_persona_id,
         )
 
         return PersonaResponse(

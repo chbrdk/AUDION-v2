@@ -55,6 +55,8 @@ export type PersonaMetadata = {
   graphUrl?: string | null;
   graphBloomUrl?: string | null;
   targetGroupId?: string | null;
+  tavusReplicaId?: string | null;
+  tavusPersonaId?: string | null;
 };
 
 export type PersonaDocument = {

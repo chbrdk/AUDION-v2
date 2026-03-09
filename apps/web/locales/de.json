@@ -158,7 +158,12 @@
     "copyLink": "Link kopieren",
     "copied": "Kopiert!",
     "stopRecording": "Aufnahme stoppen",
-    "startVoiceInput": "Spracheingabe starten"
+    "startVoiceInput": "Spracheingabe starten",
+    "videoTavus": "Video (Tavus)",
+    "exitVideo": "Video beenden",
+    "backToTextChat": "Zurück zum Text-Chat",
+    "tavusNoReplica": "Diese Persona hat kein Tavus-Video. Trage die Tavus Replica-ID in den Metadaten ein.",
+    "tavusSessionFailed": "Tavus-Videositzung konnte nicht gestartet werden."
   },
   "chatHistory": {
     "title": "Chat-Verlauf",
@@ -390,6 +395,10 @@
     "createdAt": "Erstellt am",
     "targetGroup": "Zielgruppe",
     "toTargetGroup": "Zur Zielgruppe",
+    "tavusReplicaId": "Tavus Replica-ID",
+    "tavusReplicaIdPlaceholder": "z.B. rf4e9d9790f0 (aus Tavus-Dashboard)",
+    "tavusPersonaId": "Tavus Persona-ID",
+    "tavusPersonaIdPlaceholder": "Optional (aus Tavus-Dashboard)",
     "generateAvatar": "Avatar generieren",
     "generatingAvatar": "Generierung…",
     "archive": "Archivieren",

@@ -222,6 +222,14 @@ class PersonaMetadata(BaseModel):
         default=None,
         description="Target group the persona is assigned to, if any.",
     )
+    tavusReplicaId: str | None = Field(
+        default=None,
+        description="Tavus replica ID for conversational video (CVI) if configured.",
+    )
+    tavusPersonaId: str | None = Field(
+        default=None,
+        description="Optional Tavus persona ID for video chat.",
+    )
 
 
 class PersonaInsight(BaseModel):
@@ -568,6 +576,14 @@ class PersonaPatchRequest(BaseModel):
     target_group_id: Optional[str] = Field(
         default=None,
         description="Target group to assign the persona to (optional; must belong to the project).",
+    )
+    tavus_replica_id: Optional[str] = Field(
+        default=None,
+        description="Tavus replica ID for video chat (CVI).",
+    )
+    tavus_persona_id: Optional[str] = Field(
+        default=None,
+        description="Optional Tavus persona ID for video chat.",
     )
 
 

@@ -77,6 +77,10 @@ class Settings(BaseSettings):
     persona_backend_docs_url: str = "http://localhost:8000/docs"
     root_path: str = ""  # For reverse proxy support
 
+    # Tavus (conversational video)
+    tavus_api_key: str | None = None
+    tavus_api_base: str = "https://tavusapi.com"
+
     # Feature Flags
     use_storion_proxy: bool = False
     storion_sync_poll_interval: float = 5.0

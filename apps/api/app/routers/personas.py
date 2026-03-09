@@ -39,9 +39,11 @@ from ..services.persona_ai_context import (
 )
 from ..services.persona_generation import PersonaGenerationService
 from ..services.persona_store import PersonaService
+from ..services.tavus_client import create_conversation as tavus_create_conversation
 from ..services.target_group_store import TargetGroupService
 from ..services.storage import StorageService
 from ..services.usage_report import report_usage
+from ..core.config import get_settings
 
 router = APIRouter(prefix="/personas", tags=["personas"])
 # Same avatar under /api/persona-admin for reverse proxies that route /api/* to this service
@@ -682,6 +684,8 @@ async def update_persona(
         prompt=prompt_value,
         project_id=body.get("project_id"),
         target_group_id=body.get("target_group_id"),
+        tavus_replica_id=body.get("tavus_replica_id") or body.get("tavusReplicaId"),
+        tavus_persona_id=body.get("tavus_persona_id") or body.get("tavusPersonaId"),
     )
 
     logger.info("persona.update.router.start", persona_id=persona_id, has_profile=profile_json is not None)
@@ -1350,3 +1354,48 @@ def get_persona_avatar(persona_id: str, session: Session = Depends(get_db)):
 def get_persona_avatar_via_admin_path(persona_id: str, session: Session = Depends(get_db)):
     """Serve avatar at /persona-admin/:id/avatar for proxies that route /api/persona-admin to this API."""
     return _serve_persona_avatar(persona_id, session)
+
+
+@persona_admin_router.post(
+    "/tavus/session",
+    summary="Create Tavus video chat session",
+    description="Create a Tavus CVI (Conversational Video Interface) session for the given persona. Persona must have tavus_replica_id configured. Returns conversation_url and related fields for embedding.",
+)
+def create_tavus_session(
+    body: dict = Body(..., embed=True),
+    session: Session = Depends(get_db),
+):
+    """Create a Tavus conversation and return conversation_url (and optional meeting_token) for CVI embed."""
+    settings = get_settings()
+    if not settings.tavus_api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="Tavus video chat is not configured (TAVUS_API_KEY missing).",
+        )
+    persona_id = body.get("persona_id")
+    if not persona_id:
+        raise HTTPException(status_code=400, detail="persona_id is required")
+    persona = _get_persona_or_404(session, persona_id)
+    replica_id = persona.tavus_replica_id
+    if not replica_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Persona has no Tavus replica configured. Set tavus_replica_id in the persona metadata.",
+        )
+    persona_id_tavus = persona.tavus_persona_id
+    conversation_name = body.get("conversation_name") or f"Chat with {persona.name}"
+    try:
+        data = tavus_create_conversation(
+            replica_id=replica_id,
+            persona_id=persona_id_tavus,
+            conversation_name=conversation_name,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
+    except Exception as e:
+        _log.warning("tavus.session.create_failed", persona_id=persona_id, error=str(e))
+        raise HTTPException(
+            status_code=502,
+            detail="Failed to create Tavus session. Please try again later.",
+        ) from e
+    return data

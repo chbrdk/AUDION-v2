@@ -386,7 +386,12 @@ export const MsqdxGlassPersonaAdminPanel = ({
     }));
   };
 
-  const handleSaveMetadataAssignment = async (updates: { project_id?: string; target_group_id?: string | null }) => {
+  const handleSaveMetadataAssignment = async (updates: {
+    project_id?: string;
+    target_group_id?: string | null;
+    tavus_replica_id?: string | null;
+    tavus_persona_id?: string | null;
+  }) => {
     if (!selectedId || !detail) return;
     setMetadataAssignPending(true);
     try {
@@ -606,6 +611,14 @@ export const MsqdxGlassPersonaAdminPanel = ({
         payload.target_group_id = (updates as { target_group_id?: string | null })?.target_group_id !== undefined
           ? (updates as { target_group_id?: string | null }).target_group_id
           : (detail.metadata.targetGroupId ?? null);
+        payload.tavus_replica_id =
+          (updates as { tavus_replica_id?: string | null })?.tavus_replica_id !== undefined
+            ? (updates as { tavus_replica_id?: string | null }).tavus_replica_id ?? null
+            : (detail.metadata as { tavusReplicaId?: string | null }).tavusReplicaId ?? null;
+        payload.tavus_persona_id =
+          (updates as { tavus_persona_id?: string | null })?.tavus_persona_id !== undefined
+            ? (updates as { tavus_persona_id?: string | null }).tavus_persona_id ?? null
+            : (detail.metadata as { tavusPersonaId?: string | null }).tavusPersonaId ?? null;
       }
 
       console.log('[DEBUG] Payload JSON:', JSON.stringify(payload, null, 2));
@@ -1736,6 +1749,66 @@ export const MsqdxGlassPersonaAdminPanel = ({
                             </option>
                           ))}
                         </Box>
+                      </Box>
+                      <Box sx={{ minWidth: 200 }}>
+                        <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.5 }}>
+                          {t("personaAdmin.tavusReplicaId")}
+                        </MsqdxTypography>
+                        <Box
+                          component="input"
+                          type="text"
+                          key={`${selectedId}-tavus-replica`}
+                          defaultValue={detail.metadata.tavusReplicaId ?? ""}
+                          onBlur={(e) => {
+                            const v = e.target.value.trim() || null;
+                            if (v !== (detail.metadata.tavusReplicaId ?? null)) {
+                              handleSaveMetadataAssignment({ tavus_replica_id: v });
+                            }
+                          }}
+                          disabled={metadataAssignPending || savePending}
+                          placeholder={t("personaAdmin.tavusReplicaIdPlaceholder")}
+                          sx={{
+                            width: "100%",
+                            py: 0.75,
+                            px: 1,
+                            fontSize: "0.875rem",
+                            border: "1px solid",
+                            borderColor: "divider",
+                            borderRadius: 1,
+                            bgcolor: "background.paper",
+                            color: "text.primary",
+                          }}
+                        />
+                      </Box>
+                      <Box sx={{ minWidth: 200 }}>
+                        <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.5 }}>
+                          {t("personaAdmin.tavusPersonaId")}
+                        </MsqdxTypography>
+                        <Box
+                          component="input"
+                          type="text"
+                          key={`${selectedId}-tavus-persona`}
+                          defaultValue={detail.metadata.tavusPersonaId ?? ""}
+                          onBlur={(e) => {
+                            const v = e.target.value.trim() || null;
+                            if (v !== (detail.metadata.tavusPersonaId ?? null)) {
+                              handleSaveMetadataAssignment({ tavus_persona_id: v });
+                            }
+                          }}
+                          disabled={metadataAssignPending || savePending}
+                          placeholder={t("personaAdmin.tavusPersonaIdPlaceholder")}
+                          sx={{
+                            width: "100%",
+                            py: 0.75,
+                            px: 1,
+                            fontSize: "0.875rem",
+                            border: "1px solid",
+                            borderColor: "divider",
+                            borderRadius: 1,
+                            bgcolor: "background.paper",
+                            color: "text.primary",
+                          }}
+                        />
                       </Box>
                     </Box>
                   </Box>

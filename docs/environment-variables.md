@@ -54,6 +54,15 @@ AUDION uses environment variables for configuration. In Coolify, these are set i
 | `NEXT_PERSONA_BACKEND_INTERNAL_URL` | Internal URL for persona backend (server-side) | `http://api:8000` | web |
 | `MCP_SERVER_URL` | Interne URL des MCP-Servers für Rewrites `/mcp` → MCP (wie bei CHECKION). Z. B. `http://audion-mcp:3100`. | – | web |
 
+### Tavus (video chat / CVI)
+
+| Variable | Description | Default | Service |
+|----------|-------------|---------|---------|
+| `TAVUS_API_KEY` | Tavus API key for Conversational Video Interface (CVI). When set, admin chat can start video calls with personas that have a Tavus Replica ID. | – | api |
+| `TAVUS_API_BASE` | Tavus API base URL. | `https://tavusapi.com` | api |
+
+See [knowledge/tavus-video-chat.md](../knowledge/tavus-video-chat.md) for setup and persona mapping.
+
 ### PLEXON (central auth)
 
 | Variable | Description | Service |

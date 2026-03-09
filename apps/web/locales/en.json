@@ -158,7 +158,12 @@
     "copyLink": "Copy link",
     "copied": "Copied!",
     "stopRecording": "Stop recording",
-    "startVoiceInput": "Start voice input"
+    "startVoiceInput": "Start voice input",
+    "videoTavus": "Video (Tavus)",
+    "exitVideo": "Exit video call",
+    "backToTextChat": "Back to text chat",
+    "tavusNoReplica": "This persona has no Tavus video configured. Set Tavus Replica ID in the persona metadata.",
+    "tavusSessionFailed": "Failed to start Tavus video session."
   },
   "chatHistory": {
     "title": "Chat History",
@@ -390,6 +395,10 @@
     "createdAt": "Created at",
     "targetGroup": "Target Group",
     "toTargetGroup": "To Target Group",
+    "tavusReplicaId": "Tavus Replica ID",
+    "tavusReplicaIdPlaceholder": "e.g. rf4e9d9790f0 (from Tavus dashboard)",
+    "tavusPersonaId": "Tavus Persona ID",
+    "tavusPersonaIdPlaceholder": "Optional (from Tavus dashboard)",
     "generateAvatar": "Generate avatar",
     "generatingAvatar": "Generating…",
     "archive": "Archive",

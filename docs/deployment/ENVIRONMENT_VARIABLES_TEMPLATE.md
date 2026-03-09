@@ -21,6 +21,10 @@ NEO4J_PASSWORD=dein-neo4j-password
 OPENAI_API_KEY=dein-openai-key
 CLAUDE_API_KEY=dein-claude-key
 
+# Tavus (optional – video chat in admin)
+# TAVUS_API_KEY=dein-tavus-api-key
+# TAVUS_API_BASE=https://tavusapi.com
+
 # Environment
 APP_ENV=production
 ```
@@ -48,7 +52,9 @@ NEXT_PERSONA_BACKEND_INTERNAL_URL=http://audion-api:8000
 
 ```bash
 # Alle gemeinsamen Variables +
-# (keine zusätzlichen)
+# Tavus (optional – Video-Chat im Admin)
+# TAVUS_API_KEY=dein-tavus-api-key
+# TAVUS_API_BASE=https://tavusapi.com
 ```
 
 ### Chat API Service (`audion-chat-api`)

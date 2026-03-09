@@ -297,6 +297,8 @@ class Persona(Base):
     image_url = Column(Text, nullable=True)  # TEXT to allow data URLs from avatar generation (chat-api)
     image_generated_at = Column(DateTime, nullable=True)
     profile_card = Column(JSONB, nullable=True)
+    tavus_replica_id = Column(String(256), nullable=True)  # Tavus replica ID for video chat (CVI)
+    tavus_persona_id = Column(String(256), nullable=True)  # Optional Tavus persona ID
 
     target_group = relationship("TargetGroup", back_populates="personas")
     prompt = relationship("PersonaPrompt", uselist=False, back_populates="persona")
