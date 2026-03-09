@@ -1,4 +1,4 @@
-"""AI service to suggest target groups from project company context."""
+"""AI service to suggest target groups from project company context. Uses OpenAI (GPT) only."""
 from __future__ import annotations
 
 import json
@@ -6,7 +6,6 @@ import re
 from dataclasses import dataclass
 
 import structlog
-from anthropic import Anthropic
 from openai import OpenAI
 
 from ..core.config import get_settings
@@ -28,14 +27,14 @@ def suggest_target_groups(
 ) -> list[TargetGroupSuggestion]:
     """
     Call AI to suggest target groups from company/project context.
+    Uses OpenAI (GPT-5 / ai_openai_model) only.
     Returns a list of TargetGroupSuggestion (name, segment, description).
     """
     if not context_text or not context_text.strip():
         raise ValueError("Company context is empty. Please add a project description or company context first.")
 
-    provider = settings.ai_default_provider
-    if provider == "anthropic" and not settings.claude_api_key and settings.openai_api_key:
-        provider = "openai"
+    if not settings.openai_api_key:
+        raise ValueError("OpenAI API key not configured. Set OPENAI_API_KEY for target group suggestions.")
 
     prompt = f"""Based on the following company/project context, suggest between 3 and {max_suggestions} target groups (audience segments) that would be relevant for this project.
 For each target group provide:
@@ -51,38 +50,21 @@ Company/project context:
 {context_text.strip()}
 ---"""
 
-    response_text = ""
-    if provider == "openai" and settings.openai_api_key:
-        client = OpenAI(api_key=settings.openai_api_key)
-        try:
-            chat = client.chat.completions.create(
-                messages=[
-                    {"role": "system", "content": "You are a helpful marketing and research assistant. Output only valid JSON arrays."},
-                    {"role": "user", "content": prompt},
-                ],
-                model=settings.ai_openai_model or "gpt-4o-mini",
-                temperature=0.5,
-                max_tokens=settings.ai_default_max_tokens or 2048,
-            )
-            response_text = (chat.choices[0].message.content or "").strip()
-        except Exception as e:
-            logger.error("suggest_target_groups.openai_error", error=str(e))
-            raise ValueError(f"OpenAI API error: {e}") from e
-    else:
-        if not settings.claude_api_key:
-            raise ValueError("No AI API key configured. Set CLAUDE_API_KEY or OPENAI_API_KEY.")
-        client = Anthropic(api_key=settings.claude_api_key)
-        try:
-            msg = client.messages.create(
-                model=settings.ai_anthropic_model or "claude-3-5-sonnet-20241022",
-                max_tokens=settings.ai_default_max_tokens or 2048,
-                temperature=0.5,
-                messages=[{"role": "user", "content": prompt}],
-            )
-            response_text = (msg.content[0].text if msg.content else "").strip()
-        except Exception as e:
-            logger.error("suggest_target_groups.anthropic_error", error=str(e))
-            raise ValueError(f"Anthropic API error: {e}") from e
+    client = OpenAI(api_key=settings.openai_api_key)
+    try:
+        chat = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": "You are a helpful marketing and research assistant. Output only valid JSON arrays."},
+                {"role": "user", "content": prompt},
+            ],
+            model=settings.ai_openai_model or "gpt-4o-mini",
+            temperature=0.5,
+            max_tokens=settings.ai_default_max_tokens or 2048,
+        )
+        response_text = (chat.choices[0].message.content or "").strip()
+    except Exception as e:
+        logger.error("suggest_target_groups.openai_error", error=str(e))
+        raise ValueError(f"OpenAI API error: {e}") from e
 
     if not response_text:
         raise ValueError("Empty response from AI.")

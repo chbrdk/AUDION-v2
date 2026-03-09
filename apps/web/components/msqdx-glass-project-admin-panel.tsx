@@ -375,10 +375,17 @@ export function MsqdxGlassProjectAdminPanel({
             });
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
-                throw new Error(err.detail ?? res.statusText ?? "Suggest failed");
+                const msg = Array.isArray(err.detail) ? err.detail[0]?.msg ?? err.detail : err.detail;
+                throw new Error(msg ?? res.statusText ?? "Suggest failed");
             }
             const data = await res.json();
-            setSuggestions(data.suggestions ?? []);
+            const list = data.suggestions ?? [];
+            setSuggestions(list);
+            if (list.length === 0) {
+                setSuggestError(t("settingsProjects.companyContext.suggestEmpty") ?? "Save company context above first, then generate suggestions.");
+            } else {
+                setSuggestError(null);
+            }
         } catch (e) {
             setSuggestError(e instanceof Error ? e.message : "Suggest failed");
         } finally {

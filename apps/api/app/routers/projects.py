@@ -210,6 +210,9 @@ def suggest_target_groups_endpoint(
 
     max_suggestions = min(max(1, (body.max_suggestions if body else 5)), 10)
 
+    if not context_text.strip():
+        return SuggestTargetGroupsResponse(suggestions=[])
+
     try:
         suggestions = run_suggest_target_groups(context_text=context_text, max_suggestions=max_suggestions)
     except ValueError as exc:
