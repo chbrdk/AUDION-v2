@@ -641,7 +641,22 @@ async def update_persona(
     
     # Extract profile JSON directly (no Pydantic!)
     profile_json = body.get("profile")
-    
+
+    # Parse prompt safely: frontend may send camelCase (systemPrompt, templateVersion)
+    prompt_value = None
+    if body.get("prompt") and isinstance(body.get("prompt"), dict):
+        try:
+            raw = body["prompt"]
+            sp = raw.get("systemPrompt") or raw.get("system_prompt") or ""
+            tv = raw.get("templateVersion") or raw.get("template_version") or "1.0.0"
+            try:
+                prompt_value = PersonaPrompt(systemPrompt=sp, templateVersion=tv)
+            except TypeError:
+                prompt_value = PersonaPrompt(system_prompt=sp, template_version=tv)
+        except Exception as prompt_exc:  # noqa: BLE001
+            logger.warning("persona.update.router.prompt_parse_failed", persona_id=persona_id, error=str(prompt_exc))
+            prompt_value = None
+
     # Build payload object manually from JSON
     # Keep Pydantic only for simple fields, not for profile
     payload = PersonaPatchRequest(
@@ -657,9 +672,9 @@ async def update_persona(
         image_url=body.get("image_url"),
         locked_by=body.get("locked_by"),
         locked_at=body.get("locked_at"),
-        prompt=PersonaPrompt(**body["prompt"]) if body.get("prompt") else None,
+        prompt=prompt_value,
     )
-    
+
     logger.info("persona.update.router.start", persona_id=persona_id, has_profile=profile_json is not None)
     if profile_json:
         logger.info(
@@ -673,11 +688,21 @@ async def update_persona(
             age_value=profile_json.get('age'),
             profile_keys=list(profile_json.keys())[:30],
         )
-    
+
     try:
         return persona_service.update_persona(session, persona_id, payload, profile_json=profile_json)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail="Persona not found") from exc
+    except Exception as exc:
+        logger.exception("persona.update.router.failed", persona_id=persona_id, error=str(exc))
+        detail = str(exc)
+        # Surface DB truncation errors so deployers know to run headline migration
+        if "StringDataRightTruncation" in detail or "value too long" in detail:
+            detail = (
+                f"{detail} "
+                "If headline/segment/name is long, ensure migration 20260309_personas_headline_text (headline→TEXT) is applied."
+            )
+        raise HTTPException(status_code=500, detail=detail) from exc
 
 
 @router.delete(

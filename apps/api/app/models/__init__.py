@@ -278,7 +278,7 @@ class Persona(Base):
     project_id = Column(UUID(as_uuid=True), nullable=False)
     name = Column(String(128), nullable=False)
     segment = Column(String(128), nullable=False)
-    headline = Column(String(256), nullable=False)
+    headline = Column(Text, nullable=False)  # TEXT: AI/description can exceed 256 chars
     profile = Column(JSONB, nullable=False)
     confidence = Column(Float, nullable=False)
     version = Column(String(32), nullable=False)
