@@ -102,7 +102,7 @@ def _get_target_group_or_404(
 def list_target_groups(
     project_id: str | None = Query(None),
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(20, ge=1, le=500),
     session: Session = Depends(get_db),
 ) -> TargetGroupListResponse:
     try:
