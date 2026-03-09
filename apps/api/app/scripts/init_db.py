@@ -321,6 +321,16 @@ def init_db():
             logger.info("Running upgrade head...")
             command.upgrade(alembic_cfg, "head")
 
+        # Ensure project company-context columns exist (same engine the app uses at runtime)
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE audion.projects ADD COLUMN IF NOT EXISTS description TEXT NULL"))
+                conn.execute(text("ALTER TABLE audion.projects ADD COLUMN IF NOT EXISTS company_context TEXT NULL"))
+                conn.commit()
+                logger.info("Ensured audion.projects has description and company_context columns.")
+        except Exception as e:
+            logger.warning(f"Project columns ensure failed (may already exist): {e}")
+
         logger.info("Database initialization completed successfully.")
 
     except Exception as e:
