@@ -70,3 +70,42 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export async function POST(request: NextRequest) {
+  try {
+    const personaBackendBase = getPersonaBackendBase({ preferPublic: false });
+    const url = `${personaBackendBase}/personas`;
+    const token = getAuthTokenFromRequest(request);
+    const body = await request.text();
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": request.headers.get("content-type") ?? "application/json",
+        ...buildAuthHeaders(token),
+      },
+      body: body || undefined,
+      cache: "no-store",
+      signal: AbortSignal.timeout(60000),
+    });
+    const contentType = response.headers.get("content-type") ?? "application/json";
+    const responseBody = await response.text();
+    if (!response.ok) {
+      try {
+        return NextResponse.json(JSON.parse(responseBody), { status: response.status });
+      } catch {
+        return NextResponse.json({ detail: responseBody }, { status: response.status });
+      }
+    }
+    return new NextResponse(responseBody, {
+      status: response.status,
+      headers: { "Content-Type": contentType },
+    });
+  } catch (error) {
+    console.error("[api/personas] POST failed:", error);
+    const message = error instanceof Error ? error.message : "Internal server error";
+    if (error instanceof Error && (message.includes("timeout") || error.name === "AbortError")) {
+      return NextResponse.json({ error: "Request timeout" }, { status: 504 });
+    }
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
