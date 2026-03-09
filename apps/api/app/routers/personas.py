@@ -1362,7 +1362,7 @@ def get_persona_avatar_via_admin_path(persona_id: str, session: Session = Depend
     description="Create a Tavus CVI (Conversational Video Interface) session for the given persona. Persona must have tavus_replica_id configured. Returns conversation_url and related fields for embedding.",
 )
 def create_tavus_session(
-    body: dict = Body(..., embed=True),
+    body: dict = Body(...),
     session: Session = Depends(get_db),
 ):
     """Create a Tavus conversation and return conversation_url (and optional meeting_token) for CVI embed."""
