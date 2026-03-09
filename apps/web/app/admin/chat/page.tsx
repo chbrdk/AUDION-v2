@@ -1674,16 +1674,17 @@ function AdminChatPageContent() {
             }}
           >
             {videoEnabled && tavusSessionConfig ? (
-              <Box sx={{ width: "100%", maxWidth: 720 }}>
-                <Button
-                  variant="text"
-                  size="small"
-                  startIcon={<MsqdxIcon name="keyboard" customSize={18} />}
-                  onClick={() => { setVideoEnabled(false); setTavusSessionConfig(null); }}
-                  sx={{ mb: 1 }}
-                >
-                  {t("adminChat.backToTextChat")}
-                </Button>
+              <Box sx={{ width: "100%", height: "100%", minHeight: 0, display: "flex", flexDirection: "column", flex: 1 }}>
+                <Box sx={{ flexShrink: 0, mb: 1.5 }}>
+                  <button
+                    type="button"
+                    className="msqdx-glass-button --ghost"
+                    onClick={() => { setVideoEnabled(false); setTavusSessionConfig(null); }}
+                  >
+                    <MsqdxIcon name="keyboard" customSize={16} />
+                    {t("adminChat.backToTextChat")}
+                  </button>
+                </Box>
                 <TavusVideoPanel
                   sessionConfig={tavusSessionConfig}
                   personaName={personaDisplayName ?? undefined}

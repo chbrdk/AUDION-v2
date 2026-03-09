@@ -45,6 +45,15 @@ If `TAVUS_API_KEY` is not set, the session endpoint returns 503 and the Video op
 - **Next.js proxy**: `apps/web/app/api/chat/tavus/session/route.ts` → forwards to Audion API.
 - **Frontend**: `apps/web/components/tavus-video-panel.tsx` (iframe embed), `apps/web/app/admin/chat/page.tsx` (Video toggle, session request, conditional CVI display).
 
+## Styling (MSQDX)
+
+The Tavus video chat is styled to match the Audion MSQDX design system:
+
+- **TavusVideoPanel** (`tavus-video-panel.tsx`): Uses class `msqdx-glass-tavus-video-panel`, design tokens for border (`--color-neutral`), radius (`--msqdx-radius-3xl`), background (`--color-primary-white`), caption text (`--color-text-secondary`, `--msqdx-font-size-sm`). Dark theme overrides in `apps/web/styles/globals.css`.
+- **Admin chat**: "Back to text chat" uses `msqdx-glass-button --ghost` and `MsqdxIcon` for consistency with the rest of the admin UI.
+
+The iframe content itself is served by Tavus and cannot be restyled from our app.
+
 ## Tavus documentation
 
 - [Tavus API Reference](https://docs.tavus.io/api-reference) – Create Conversation, auth.

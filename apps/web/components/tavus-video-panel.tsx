@@ -17,6 +17,7 @@ type TavusVideoPanelProps = {
 
 /**
  * Embeds Tavus CVI (Conversational Video Interface) via iframe.
+ * Styled to match Audion MSQDX (glass card, tokens).
  * Uses conversation_url from the Tavus create-conversation API; if meeting_token
  * is present (private room), append ?t=TOKEN to the URL per Tavus docs.
  */
@@ -28,8 +29,18 @@ export function TavusVideoPanel({ sessionConfig, personaName, onError }: TavusVi
     const msg = "No conversation URL from Tavus.";
     onError?.(msg);
     return (
-      <Box sx={{ p: 2, textAlign: "center" }}>
-        <Typography color="text.secondary">{msg}</Typography>
+      <Box
+        className="msqdx-glass-tavus-video-panel"
+        sx={{
+          p: 2,
+          textAlign: "center",
+          borderRadius: "var(--msqdx-radius-3xl)",
+          border: "1px solid var(--color-neutral)",
+          backgroundColor: "var(--color-primary-white)",
+          color: "var(--color-text-primary)",
+        }}
+      >
+        <Typography sx={{ color: "var(--color-text-secondary)" }}>{msg}</Typography>
       </Box>
     );
   }
@@ -38,31 +49,48 @@ export function TavusVideoPanel({ sessionConfig, personaName, onError }: TavusVi
 
   return (
     <Box
+      className="msqdx-glass-tavus-video-panel"
       sx={{
         width: "100%",
-        height: "100%",
-        minHeight: 400,
-        borderRadius: 2,
+        flex: 1,
+        minHeight: 0,
+        display: "flex",
+        flexDirection: "column",
+        borderRadius: "var(--msqdx-radius-3xl)",
         overflow: "hidden",
-        bgcolor: "background.paper",
+        border: "1px solid var(--color-neutral)",
+        backgroundColor: "var(--color-primary-white)",
+        boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
       }}
     >
       {personaName && (
-        <Typography variant="caption" sx={{ display: "block", px: 1, py: 0.5, color: "text.secondary" }}>
+        <Box
+          component="span"
+          sx={{
+            flexShrink: 0,
+            display: "block",
+            px: 1.5,
+            py: 1,
+            fontSize: "var(--msqdx-font-size-sm)",
+            color: "var(--color-text-secondary)",
+            borderBottom: "1px solid var(--color-neutral)",
+          }}
+        >
           Video call with {personaName}
-        </Typography>
+        </Box>
       )}
-      <iframe
-        src={embedUrl}
-        title={personaName ? `Tavus video: ${personaName}` : "Tavus video call"}
-        allow="camera; microphone; fullscreen; display-capture"
-        style={{
-          width: "100%",
-          height: "100%",
-          minHeight: 380,
-          border: "none",
-        }}
-      />
+      <Box sx={{ flex: 1, minHeight: 0, display: "flex" }}>
+        <iframe
+          src={embedUrl}
+          title={personaName ? `Tavus video: ${personaName}` : "Tavus video call"}
+          allow="camera; microphone; fullscreen; display-capture"
+          style={{
+            width: "100%",
+            height: "100%",
+            border: "none",
+          }}
+        />
+      </Box>
     </Box>
   );
 }
