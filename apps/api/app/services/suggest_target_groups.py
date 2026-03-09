@@ -58,7 +58,6 @@ Company/project context:
                 {"role": "user", "content": prompt},
             ],
             model=settings.ai_openai_model or "gpt-4o-mini",
-            temperature=0.5,
             max_completion_tokens=settings.ai_default_max_tokens or 2048,
         )
         response_text = (chat.choices[0].message.content or "").strip()
