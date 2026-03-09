@@ -848,7 +848,7 @@ export function MsqdxGlassProjectAdminPanel({
                                                     variant="contained"
                                                     size="small"
                                                     disabled={selectedSuggestions.size === 0}
-                                                    onClick={handleCreateTargetGroups}
+                                                    onClick={() => handleCreateTargetGroups()}
                                                 >
                                                     {t("settingsProjects.companyContext.createSelected") ?? "Create selected"} ({selectedSuggestions.size})
                                                 </MsqdxButton>
