@@ -28,6 +28,11 @@ class Settings(BaseSettings):
 
     # Database - PostgreSQL with audion schema
     database_url: str
+    # Connection pool (optional; defaults avoid TimeoutError under load)
+    database_pool_size: int = 10
+    database_pool_max_overflow: int = 20
+    database_pool_timeout_seconds: float = 30.0
+    database_pool_recycle_seconds: int = 600
 
     redis_url: str
     data_dir: str = "/app/data/uploads"
