@@ -709,7 +709,7 @@ class AiAssistService:
                 default_provider=AiProvider.OPENAI,
                 default_model="dall-e-3" if "image" in tpl.name or "avatar" in tpl.name else "gpt-4-turbo",
                 temperature=0.7,  # Default since PromptTemplate doesn't store configuration yet
-                max_tokens=1024,  # Default since PromptTemplate doesn't store configuration yet
+                max_tokens=4096,  # Default since PromptTemplate doesn't store configuration yet
                 prompt=tpl.template,
                 output={"mode": "text"},
                 metadata={"version": tpl.version}

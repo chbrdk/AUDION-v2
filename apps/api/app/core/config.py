@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     ai_openai_model: str = "gpt-5-mini"
     ai_default_provider: str = "anthropic"
     ai_default_temperature: float = 0.7
-    ai_default_max_tokens: int = 4000
+    ai_default_max_tokens: int = 4096
     ai_knowledge_templates_path: str | None = None
 
     # Auth (JWT)

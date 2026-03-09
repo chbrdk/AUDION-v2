@@ -6,7 +6,7 @@ templates:
     tags: ["journey", "phase", "moments", "touchpoints"]
     default_provider: openai
     default_model: gpt-5-mini
-    max_tokens: 1024
+    max_tokens: 4096
     prompt: |
       You are a Senior Journey Strategist. You support a team in concretizing a journey phase.
 
@@ -62,7 +62,7 @@ templates:
     tags: ["journey", "description"]
     default_provider: openai
     default_model: gpt-5-mini
-    max_tokens: 1024
+    max_tokens: 4096
     prompt: |
       Write a concise and inspiring description for a customer journey phase.
       Avoid marketing language; stay concrete and from the user's perspective.
@@ -85,7 +85,7 @@ templates:
     tags: ["persona", "pain_points"]
     default_provider: openai
     default_model: gpt-5-mini
-    max_tokens: 1024
+    max_tokens: 4096
     prompt: |
       Analyze the persona information and suggest additional pain points
       that the team has not yet documented. Focus on concrete situations
@@ -118,7 +118,7 @@ templates:
     tags: ["persona", "goals"]
     default_provider: openai
     default_model: gpt-5-mini
-    max_tokens: 1024
+    max_tokens: 4096
     prompt: |
       Analyze the persona information and suggest additional goals
       that the team has not yet documented. Focus on concrete aspirations,
@@ -151,7 +151,7 @@ templates:
     tags: ["persona", "interests"]
     default_provider: openai
     default_model: gpt-5-mini
-    max_tokens: 1024
+    max_tokens: 4096
     prompt: |
       Analyze the persona information and suggest additional interests
       that the team has not yet documented. Focus on hobbies, activities,
@@ -184,7 +184,7 @@ templates:
     tags: ["persona", "values"]
     default_provider: openai
     default_model: gpt-5-mini
-    max_tokens: 1024
+    max_tokens: 4096
     prompt: |
       Analyze the persona information and suggest additional values
       that the team has not yet documented. Focus on principles, beliefs,
@@ -217,7 +217,7 @@ templates:
     tags: ["persona", "traits", "knowledge_graph"]
     default_provider: openai
     default_model: gpt-5-mini
-    max_tokens: 1024
+    max_tokens: 4096
     prompt: |
       You are an experienced Persona Analyst. Create personality traits based on knowledge graph relationships and research context.
 
@@ -277,7 +277,7 @@ templates:
     tags: ["persona", "vocabulary", "communication", "knowledge_graph"]
     default_provider: openai
     default_model: gpt-5-mini
-    max_tokens: 1024
+    max_tokens: 4096
     prompt: |
       You are an experienced Communication Analyst. Create vocabulary words based on knowledge graph relationships and research context.
 
@@ -337,7 +337,7 @@ templates:
     tags: ["journey", "phase", "emotion", "creation"]
     default_provider: openai
     default_model: gpt-5-mini
-    max_tokens: 1200
+    max_tokens: 4096
     prompt: |
       You are an experienced Journey Designer. Create a complete journey phase with emotion.
 
@@ -483,7 +483,7 @@ templates:
     tags: ["journey", "phase", "name"]
     default_provider: openai
     default_model: gpt-5-mini
-    max_tokens: 1024
+    max_tokens: 4096
     prompt: |
       Create a concise phase name (max. 50 characters) for a customer journey phase.
       
@@ -506,7 +506,7 @@ templates:
     tags: ["journey", "phase", "emotion"]
     default_provider: openai
     default_model: gpt-5-mini
-    max_tokens: 1024
+    max_tokens: 4096
     prompt: |
       Suggest an appropriate emotion for this journey phase.
       
