@@ -218,6 +218,10 @@ class PersonaMetadata(BaseModel):
         default=None,
         description="Optional link to the persona’s Bloom visualization.",
     )
+    targetGroupId: str | None = Field(
+        default=None,
+        description="Target group the persona is assigned to, if any.",
+    )
 
 
 class PersonaInsight(BaseModel):
@@ -556,6 +560,14 @@ class PersonaPatchRequest(BaseModel):
     prompt: Optional[PersonaPrompt] = Field(
         default=None,
         description="Updated persona prompt definition.",
+    )
+    project_id: Optional[str] = Field(
+        default=None,
+        description="Project to assign the persona to (must be accessible to the user).",
+    )
+    target_group_id: Optional[str] = Field(
+        default=None,
+        description="Target group to assign the persona to (optional; must belong to the project).",
     )
 
 

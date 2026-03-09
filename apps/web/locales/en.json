@@ -368,6 +368,8 @@
     "projectLabel": "Project: {name}",
     "projectIdLabel": "Project: {id}",
     "selectProject": "Select a project to create personas.",
+    "project": "Project",
+    "noTargetGroup": "None",
     "name": "Name",
     "namePlaceholder": "Persona Name",
     "segment": "Segment",

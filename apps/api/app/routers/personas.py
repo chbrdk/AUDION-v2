@@ -673,6 +673,8 @@ async def update_persona(
         locked_by=body.get("locked_by"),
         locked_at=body.get("locked_at"),
         prompt=prompt_value,
+        project_id=body.get("project_id"),
+        target_group_id=body.get("target_group_id"),
     )
 
     logger.info("persona.update.router.start", persona_id=persona_id, has_profile=profile_json is not None)
@@ -690,8 +692,20 @@ async def update_persona(
         )
 
     try:
-        return persona_service.update_persona(session, persona_id, payload, profile_json=profile_json)
+        allowed_project_ids = (session.info or {}).get("allowed_project_ids")
+        return persona_service.update_persona(
+            session,
+            persona_id,
+            payload,
+            profile_json=profile_json,
+            allowed_project_ids=allowed_project_ids,
+        )
     except ValueError as exc:
+        err = str(exc)
+        if err == "persona_not_found":
+            raise HTTPException(status_code=404, detail="Persona not found") from exc
+        if err in ("invalid_project_id", "project_access_denied", "invalid_target_group_id", "target_group_not_found", "target_group_project_access_denied"):
+            raise HTTPException(status_code=400, detail=err) from exc
         raise HTTPException(status_code=404, detail="Persona not found") from exc
     except Exception as exc:
         logger.exception("persona.update.router.failed", persona_id=persona_id, error=str(exc))

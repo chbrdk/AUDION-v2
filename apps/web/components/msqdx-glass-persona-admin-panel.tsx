@@ -25,6 +25,7 @@ import { buildApiUrl } from "../app/api/_lib/backend";
 import { THEME_ACCENT } from "../lib/theme-accent";
 import { useProject } from "./projects/project-provider";
 import { useI18n } from "./i18n/i18n-provider";
+import { targetGroupsApi, type TargetGroupResponse } from "../app/api/_lib/target-groups";
 
 type MsqdxGlassPersonaAdminPanelProps = {
   initialList: PersonaListResponse;
@@ -193,6 +194,8 @@ export const MsqdxGlassPersonaAdminPanel = ({
       "advanced"
     ])
   );
+  const [targetGroupsForMetadata, setTargetGroupsForMetadata] = useState<TargetGroupResponse[]>([]);
+  const [metadataAssignPending, setMetadataAssignPending] = useState(false);
   const documentInputRef = useRef<HTMLInputElement | null>(null);
 
   const selectedListItem: PersonaListItem | undefined = useMemo(
@@ -333,11 +336,44 @@ export const MsqdxGlassPersonaAdminPanel = ({
     });
   }, [detail]);
 
+  useEffect(() => {
+    const projectId = detail?.metadata?.projectId;
+    if (!projectId) {
+      setTargetGroupsForMetadata([]);
+      return;
+    }
+    let cancelled = false;
+    targetGroupsApi
+      .listTargetGroups({ project_id: projectId, page_size: 200 })
+      .then((res) => {
+        if (!cancelled) setTargetGroupsForMetadata(res.items ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setTargetGroupsForMetadata([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [detail?.metadata?.projectId]);
+
   const handleEditField = (field: keyof EditFormState, value: string) => {
     setEditForm((prev) => ({
       ...prev,
       [field]: value,
     }));
+  };
+
+  const handleSaveMetadataAssignment = async (updates: { project_id?: string; target_group_id?: string | null }) => {
+    if (!selectedId || !detail) return;
+    setMetadataAssignPending(true);
+    try {
+      await handleSave(updates);
+      notify(t("personaAdmin.toasts.personaSaved"));
+    } catch {
+      notify(t("personaAdmin.toasts.saveFailed"));
+    } finally {
+      setMetadataAssignPending(false);
+    }
   };
 
   const handleSave = async (updates?: Partial<EditFormState> | Partial<PersonaProfile>) => {
@@ -534,7 +570,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
         completeProfile: JSON.stringify(completeProfile, null, 2),
       });
 
-      const payload = {
+      const payload: Record<string, unknown> = {
         name: updatedName,
         headline: updatedHeadline,
         segment: updatedSegment,
@@ -542,6 +578,12 @@ export const MsqdxGlassPersonaAdminPanel = ({
         updated_by: updatedBy,
         profile: completeProfile,
       };
+      if (detail.metadata) {
+        payload.project_id = (updates as { project_id?: string })?.project_id ?? detail.metadata.projectId;
+        payload.target_group_id = (updates as { target_group_id?: string | null })?.target_group_id !== undefined
+          ? (updates as { target_group_id?: string | null }).target_group_id
+          : (detail.metadata.targetGroupId ?? null);
+      }
 
       console.log('[DEBUG] Payload JSON:', JSON.stringify(payload, null, 2));
       console.log('[DEBUG] Profile keys before send:', Object.keys(completeProfile));
@@ -1613,6 +1655,67 @@ export const MsqdxGlassPersonaAdminPanel = ({
                   expanded={isAccordionExpanded("metadata")}
                   onToggle={toggleAccordion}
                 >
+                  <Box sx={{ pt: 1 }}>
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 2 }}>
+                      <Box sx={{ minWidth: 200 }}>
+                        <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.5 }}>
+                          {t("personaAdmin.project")}
+                        </MsqdxTypography>
+                        <Box
+                          component="select"
+                          value={detail.metadata.projectId ?? ""}
+                          onChange={(e) => handleSaveMetadataAssignment({ project_id: e.target.value, target_group_id: "" })}
+                          disabled={metadataAssignPending || savePending}
+                          sx={{
+                            width: "100%",
+                            py: 0.75,
+                            px: 1,
+                            fontSize: "0.875rem",
+                            border: "1px solid",
+                            borderColor: "divider",
+                            borderRadius: 1,
+                            bgcolor: "background.paper",
+                            color: "text.primary",
+                          }}
+                        >
+                          {projects.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name}
+                            </option>
+                          ))}
+                        </Box>
+                      </Box>
+                      <Box sx={{ minWidth: 200 }}>
+                        <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.5 }}>
+                          {t("personaAdmin.targetGroup")}
+                        </MsqdxTypography>
+                        <Box
+                          component="select"
+                          value={detail.metadata.targetGroupId ?? (detail.profile as { targetGroupId?: string }).targetGroupId ?? ""}
+                          onChange={(e) => handleSaveMetadataAssignment({ target_group_id: e.target.value === "" ? "" : e.target.value })}
+                          disabled={metadataAssignPending || savePending}
+                          sx={{
+                            width: "100%",
+                            py: 0.75,
+                            px: 1,
+                            fontSize: "0.875rem",
+                            border: "1px solid",
+                            borderColor: "divider",
+                            borderRadius: 1,
+                            bgcolor: "background.paper",
+                            color: "text.primary",
+                          }}
+                        >
+                          <option value="">{t("personaAdmin.noTargetGroup")}</option>
+                          {targetGroupsForMetadata.map((tg) => (
+                            <option key={tg.id} value={tg.id}>
+                              {tg.name}
+                            </option>
+                          ))}
+                        </Box>
+                      </Box>
+                    </Box>
+                  </Box>
                   <Box
                     sx={{
                       display: "grid",
@@ -1665,7 +1768,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
                         <MsqdxTypography variant="body2" weight="medium">{formatDate(detail.profile.created_at)}</MsqdxTypography>
                       </Box>
                     )}
-                    {detail.profile.targetGroupId && (
+                    {(detail.metadata.targetGroupId ?? (detail.profile as { targetGroupId?: string }).targetGroupId) && (
                       <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
                         <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
                           {t("personaAdmin.targetGroup")}
@@ -1674,7 +1777,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
                           variant="text"
                           size="small"
                           component="a"
-                          href={`/target-groups/admin?selected=${detail.profile.targetGroupId}`}
+                          href={`/admin/target-groups?selected=${detail.metadata.targetGroupId ?? (detail.profile as { targetGroupId?: string }).targetGroupId}`}
                           sx={{ fontSize: "0.875rem", p: "4px 8px" }}
                           startIcon={<MsqdxIcon name="groups" customSize={14} />}
                         >

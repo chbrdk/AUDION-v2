@@ -25,6 +25,7 @@ from ..models import (
     PersonaPrompt as PersonaPromptModel,
     PersonaSource,
     PersonaStatus,
+    TargetGroup,
 )
 from ..schemas import (
     PersonaCreateRequest,
@@ -297,15 +298,49 @@ class PersonaService:
         self._set_cache(str(persona.id), response)
         return response
 
-    def update_persona(self, session: Session, persona_id: str, payload: PersonaPatchRequest, profile_json: dict | None = None) -> PersonaResponse:
+    def update_persona(
+        self,
+        session: Session,
+        persona_id: str,
+        payload: PersonaPatchRequest,
+        profile_json: dict | None = None,
+        *,
+        allowed_project_ids: list[UUID] | None = None,
+    ) -> PersonaResponse:
         from .generic_field_handler import GenericFieldHandler
         from .field_config import get_preserved_fields
-        
+
         persona = session.get(Persona, UUID(persona_id))
         if not persona:
             raise ValueError("persona_not_found")
 
         before = self._audit_payload(persona)
+
+        # Project and target group assignment (with access control)
+        if allowed_project_ids is not None:
+            if payload.project_id is not None:
+                try:
+                    project_uuid = UUID(payload.project_id)
+                except ValueError:
+                    raise ValueError("invalid_project_id")
+                if project_uuid not in allowed_project_ids:
+                    raise ValueError("project_access_denied")
+                persona.project_id = project_uuid
+            if payload.target_group_id is not None:
+                tg_id = payload.target_group_id.strip() if isinstance(payload.target_group_id, str) else payload.target_group_id
+                if tg_id:
+                    try:
+                        tg_uuid = UUID(tg_id)
+                    except ValueError:
+                        raise ValueError("invalid_target_group_id")
+                    tg = session.get(TargetGroup, tg_uuid)
+                    if not tg:
+                        raise ValueError("target_group_not_found")
+                    if tg.project_id not in allowed_project_ids:
+                        raise ValueError("target_group_project_access_denied")
+                    persona.target_group_id = tg_uuid
+                else:
+                    persona.target_group_id = None
 
         # Update simple fields
         if payload.name:
@@ -707,6 +742,7 @@ class PersonaService:
             consoleUrl=self._console_url(persona.id),
             graphUrl=self._graph_url(persona.id),
             graphBloomUrl=self._graph_bloom_url(persona.id),
+            targetGroupId=str(persona.target_group_id) if persona.target_group_id else None,
         )
 
         return PersonaResponse(
