@@ -1,9 +1,9 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-import { getPersonaBackendBase } from "../../../../_lib/backend";
-import { buildAuthHeaders, getAuthTokenFromRequest } from "../../../../_lib/auth";
-import { resolvePersonaParams } from "../../../../_lib/persona";
+import { getPersonaBackendBase } from "../../../_lib/backend";
+import { buildAuthHeaders, getAuthTokenFromRequest } from "../../../_lib/auth";
+import { resolvePersonaParams } from "../../../_lib/persona";
 
 type RouteParams = {
   params: { targetGroupId: string };
