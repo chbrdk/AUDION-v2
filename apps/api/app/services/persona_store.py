@@ -42,6 +42,18 @@ from .storage import StorageService
 logger = structlog.get_logger(__name__)
 settings = get_settings()
 
+# Backward compatibility: DB may still have headline VARCHAR(256) until migration 20260309 is applied.
+# Truncate so PATCH/create succeed; after migration, increase or set to 0 to disable.
+HEADLINE_MAX_LENGTH = 256
+
+
+def _truncate_headline(value: str | None) -> str | None:
+    if value is None:
+        return None
+    if HEADLINE_MAX_LENGTH <= 0 or len(value) <= HEADLINE_MAX_LENGTH:
+        return value
+    return value[: HEADLINE_MAX_LENGTH - 3] + "..."
+
 
 class PersonaInsightsBuilder(Protocol):
     def build(self, *, persona: Persona, sources: List[PersonaSource]) -> PersonaInsight | None: ...
@@ -244,7 +256,7 @@ class PersonaService:
             project_id=UUID(payload.project_id),
             name=payload.name,
             segment=payload.segment,
-            headline=payload.headline,
+            headline=_truncate_headline(payload.headline) or payload.headline,
             profile=profile_payload,
             confidence=payload.confidence,
             version=payload.version,
@@ -300,8 +312,8 @@ class PersonaService:
             persona.name = payload.name
         if payload.segment:
             persona.segment = payload.segment
-        if payload.headline:
-            persona.headline = payload.headline
+        if payload.headline is not None:
+            persona.headline = _truncate_headline(payload.headline) or payload.headline
         
         # Handle profile update - use raw JSON if available, otherwise Pydantic model
         if profile_json is not None:

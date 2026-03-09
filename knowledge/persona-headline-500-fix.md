@@ -8,6 +8,7 @@
 - **Model**: `audion.personas.headline` changed from `String(256)` to `Text` in `apps/api/app/models/__init__.py`.
 - **Migration**: `20260309_personas_headline_text` alters the column to `TEXT` in the database.
 - **Router**: `update_persona` in `apps/api/app/routers/personas.py` now catches exceptions and returns 500 with a readable `detail` (including a hint to run the headline migration if the error is truncation). Prompt parsing is also safe (camelCase/snake_case, parse errors no longer cause 500).
+- **Defensive truncation**: In `persona_store.py`, `_truncate_headline()` truncates headline to 256 chars before any write (create + update), so **PATCH and create succeed even if the migration has not been applied** on the server. After running the migration, set `HEADLINE_MAX_LENGTH = 0` in `persona_store.py` to allow full-length headlines (or use a larger limit). Target-group persona creation in `target_groups.py` also uses the same truncation.
 
 ## Apply
 From the API app root (e.g. `apps/api`):

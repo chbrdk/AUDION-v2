@@ -1165,12 +1165,14 @@ def generate_target_group_persona(
                     )
         
         logger.info("persona.generate.creating_persona", target_group_id=target_group_id, segment=payload.segment)
-        # Create persona entity
+        # Create persona entity (headline truncated for DBs still on VARCHAR(256) before migration 20260309)
+        from ..services.persona_store import _truncate_headline
+        _headline = payload.description or f"Auto-generated persona for {tg.name}"
         persona = Persona(
             project_id=tg.project_id,
             name="Pending Persona",
             segment=payload.segment,
-            headline=payload.description or f"Auto-generated persona for {tg.name}",
+            headline=_truncate_headline(_headline) or _headline,
             profile={},
             confidence=0.7,
             version="1.0.0",
