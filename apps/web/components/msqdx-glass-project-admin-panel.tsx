@@ -521,23 +521,30 @@ export function MsqdxGlassProjectAdminPanel({
                             project_id: selectedId,
                             target_group_id: selectedTgIdForPersonas,
                             name,
-                            segment,
+                            segment: segment || "Segment",
                             headline: headline || name,
-                            profile: {
-                                bio: bio || "",
-                                age: age ?? undefined,
-                                location: location ?? undefined,
-                                gender: gender ?? undefined,
-                                pain_points: [],
-                                goals: [],
-                                interests: [],
-                                values: [],
-                            },
                         }),
                     });
-                    if (!createRes.ok) throw new Error("Create failed");
+                    if (!createRes.ok) {
+                        const errBody = await createRes.json().catch(() => ({}));
+                        throw new Error(typeof errBody.detail === "string" ? errBody.detail : "Create failed");
+                    }
                     const created = await createRes.json();
                     const personaId = created?.id;
+                    if (personaId && (bio || age || location || gender)) {
+                        await fetch(buildApiUrl(`/api/persona-admin/${personaId}`), {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                profile: {
+                                    bio: bio || "",
+                                    age: age ?? null,
+                                    location: location ?? null,
+                                    gender: gender ?? null,
+                                },
+                            }),
+                        });
+                    }
                     if (doEnrich && personaId) {
                         setEnrichingPersonaIds((prev) => new Set(prev).add(personaId));
                         try {
