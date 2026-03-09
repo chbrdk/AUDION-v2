@@ -10,6 +10,19 @@ Tavus.io provides a **Conversational Video Interface (CVI)** for real-time video
 - **Session flow**: Admin chat calls `POST /api/chat/tavus/session` with `persona_id`. The Audion API loads the persona, reads `tavus_replica_id`, and calls the Tavus API to create a conversation. The response (`conversation_url`, optional `meeting_token`) is returned and used to embed the CVI (iframe).
 - **Security**: The Tavus API key is only used server-side (Audion API). The frontend never sees it; it only receives short-lived session data for the embed.
 
+## Database migration
+
+The Tavus columns (`tavus_replica_id`, `tavus_persona_id`) are added by Alembic migration `20260309_tavus`. You **must** run migrations before using the feature:
+
+- **Docker/Coolify (API container):**  
+  `docker exec -it <api-container> alembic -c apps/api/alembic.ini upgrade head`  
+  (or from the app root inside the container: `alembic upgrade head`)
+
+- **Local (from repo root):**  
+  `cd apps/api && alembic upgrade head`
+
+If you see `column personas.tavus_replica_id does not exist`, the migration has not been applied yet.
+
 ## Configuration
 
 ### Environment variables (API / Persona Backend)
