@@ -261,7 +261,9 @@ export const MsqdxGlassPersonaAdminPanel = ({
       }
       const payload = (await response.json()) as PersonaListResponse;
       setList(payload);
-      if (!payload.items.find((item) => item.id === selectedId)) {
+      const currentInList = payload.items.find((item) => item.id === selectedId);
+      // On detail page with URL-driven persona, never overwrite selectedId (prevents refreshList ↔ sync effect loop).
+      if (!currentInList && !(mode === "detail" && activePersonaId)) {
         setSelectedId(payload.items[0]?.id ?? null);
       }
       notify(t("personaAdmin.toasts.listUpdated"));
@@ -271,7 +273,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
     } finally {
       setListRefreshing(false);
     }
-  }, [selectedId, activeProjectId, t]);
+  }, [selectedId, activeProjectId, t, mode, activePersonaId]);
 
   useEffect(() => {
     void refreshList();
