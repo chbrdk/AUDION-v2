@@ -198,6 +198,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
   const [targetGroupsForMetadata, setTargetGroupsForMetadata] = useState<TargetGroupResponse[]>([]);
   const [metadataAssignPending, setMetadataAssignPending] = useState(false);
   const documentInputRef = useRef<HTMLInputElement | null>(null);
+  const lastTargetGroupsProjectIdRef = useRef<string | null>(null);
 
   const selectedListItem: PersonaListItem | undefined = useMemo(
     () => list.items.find((item) => item.id === selectedId),
@@ -306,22 +307,24 @@ export const MsqdxGlassPersonaAdminPanel = ({
     setRecentVocabularyHighlights([]);
   }, [selectedId]);
 
-  // Auto-refresh ingestion status for documents that are pending or processing
+  // Auto-refresh ingestion status for documents that are pending or processing.
+  // Depend only on a boolean so we don't re-run every time detail is replaced (which would retrigger constantly).
+  const hasActiveIngestion = useMemo(
+    () =>
+      Boolean(
+        detail?.documents?.some(
+          (doc) => doc.ingestionStatus === "pending" || doc.ingestionStatus === "processing"
+        )
+      ),
+    [detail?.documents]
+  );
   useEffect(() => {
-    if (!detail || !selectedId) return;
-
-    const hasActiveIngestion = detail.documents.some(
-      (doc) => doc.ingestionStatus === "pending" || doc.ingestionStatus === "processing"
-    );
-
-    if (!hasActiveIngestion) return;
-
+    if (!selectedId || !hasActiveIngestion) return;
     const interval = setInterval(() => {
       loadDetail(selectedId);
-    }, 2000); // Poll every 2 seconds
-
+    }, 2000);
     return () => clearInterval(interval);
-  }, [detail, selectedId, loadDetail]);
+  }, [hasActiveIngestion, selectedId, loadDetail]);
 
   useEffect(() => {
     if (!detail) {
@@ -338,11 +341,14 @@ export const MsqdxGlassPersonaAdminPanel = ({
   }, [detail]);
 
   useEffect(() => {
-    const projectId = detail?.metadata?.projectId;
+    const projectId = detail?.metadata?.projectId ?? null;
     if (!projectId) {
+      lastTargetGroupsProjectIdRef.current = null;
       setTargetGroupsForMetadata([]);
       return;
     }
+    if (lastTargetGroupsProjectIdRef.current === projectId) return;
+    lastTargetGroupsProjectIdRef.current = projectId;
     let cancelled = false;
     targetGroupsApi
       .listTargetGroups({ project_id: projectId, page_size: 200 })
