@@ -53,6 +53,7 @@ type KnowledgeFormState = {
   content: string;
 };
 
+type PersonaSaveUpdates = Partial<EditFormState> | Partial<PersonaProfile> | { project_id?: string; target_group_id?: string | null };
 
 const defaultEditFormState: EditFormState = {
   name: "",
@@ -376,7 +377,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
     }
   };
 
-  const handleSave = async (updates?: Partial<EditFormState> | Partial<PersonaProfile>) => {
+  const handleSave = async (updates?: PersonaSaveUpdates) => {
     if (!selectedId || !detail) {
       return;
     }
