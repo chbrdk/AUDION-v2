@@ -156,7 +156,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
   mode = "full",
   activePersonaId = null,
 }: MsqdxGlassPersonaAdminPanelProps) => {
-  const { activeProjectId, activeProject } = useProject();
+  const { activeProjectId, activeProject, projects } = useProject();
   const { t } = useI18n();
   const accent = "var(--color-theme-accent)";
 
