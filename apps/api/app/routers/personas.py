@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+import time
 from base64 import b64decode
 from datetime import datetime
 from pathlib import Path
@@ -44,6 +46,8 @@ from ..services.usage_report import report_usage
 router = APIRouter(prefix="/personas", tags=["personas"])
 # Same avatar under /api/persona-admin for reverse proxies that route /api/* to this service
 persona_admin_router = APIRouter(prefix="/api/persona-admin", tags=["personas"])
+
+_log = logging.getLogger(__name__)
 
 generator = PersonaGenerationService()
 persona_service = PersonaService()
@@ -108,6 +112,7 @@ def list_personas(
     page_size: int = Query(20, ge=1, le=100),
     session: Session = Depends(get_db),
 ) -> PersonaListResponse:
+    _log.info("[AUDION-DEBUG] GET /personas (list) project_id=%s at %.3f", project_id, time.monotonic())
     try:
         allowed_project_ids = session.info.get("allowed_project_ids") if session.info else None
         return persona_service.list_personas(
@@ -560,6 +565,8 @@ def generate_persona(
     """
 )
 def get_persona(persona_id: str, session: Session = Depends(get_db)) -> PersonaResponse:
+    # Backend request trace: count GET /personas/:id for debugging request storms (remove after fix verified).
+    _log.info("[AUDION-DEBUG] GET /personas/%s at %.3f", persona_id, time.monotonic())
     try:
         _get_persona_or_404(session, persona_id)
         return persona_service.get_persona(session, persona_id)
