@@ -54,6 +54,7 @@ export type PersonaMetadata = {
   lockedAt?: string | null;
   graphUrl?: string | null;
   graphBloomUrl?: string | null;
+  targetGroupId?: string | null;
 };
 
 export type PersonaDocument = {
