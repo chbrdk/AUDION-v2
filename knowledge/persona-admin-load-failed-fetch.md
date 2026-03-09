@@ -20,6 +20,10 @@
 4. **Reset on persona change**: When `selectedId` changes, reset the ref in the same effect so the new persona load is allowed.
 5. **Polling**: Only call from the interval when `!loadDetailInFlightRef.current`; interval 5s.
 
+## API side: 500 and QueuePool TimeoutError
+
+If the frontend sends many concurrent `GET /personas/:id` requests, the API can hit `QueuePool limit of size X overflow Y reached, connection timed out` and return **500**. Each request holds one DB connection until the handler finishes. Fix: (1) deploy the frontend fix above to reduce requests; (2) increase pool defaults or set `DATABASE_POOL_SIZE` / `DATABASE_POOL_MAX_OVERFLOW` in production (see `knowledge/database-pool-timeout.md`).
+
 ## If it persists
 
 - Check Network tab: which URL repeats and how often.

@@ -165,7 +165,7 @@ if final_url.startswith("postgres://"):
 logger.info(f"FINAL: About to call create_engine with URL starting with: {final_url[:20]}...")
 
 # Pool sizing: avoid TimeoutError when many concurrent requests need a connection.
-# Override via DATABASE_POOL_SIZE, DATABASE_POOL_MAX_OVERFLOW, etc. if needed.
+# Reset connections on return so they are reused quickly (avoids idle-in-transaction holding the slot).
 engine = create_engine(
     final_url,
     pool_pre_ping=True,
@@ -173,6 +173,7 @@ engine = create_engine(
     max_overflow=settings.database_pool_max_overflow,
     pool_recycle=settings.database_pool_recycle_seconds,
     pool_timeout=settings.database_pool_timeout_seconds,
+    pool_reset_on_return="rollback",
     echo=settings.app_env == "development",
     future=True,
     connect_args={

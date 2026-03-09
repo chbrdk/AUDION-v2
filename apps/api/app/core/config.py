@@ -28,9 +28,10 @@ class Settings(BaseSettings):
 
     # Database - PostgreSQL with audion schema
     database_url: str
-    # Connection pool (optional; defaults avoid TimeoutError under load)
-    database_pool_size: int = 10
-    database_pool_max_overflow: int = 20
+    # Connection pool. Defaults allow bursts (e.g. many concurrent GET /personas/:id).
+    # Override via DATABASE_POOL_SIZE, DATABASE_POOL_MAX_OVERFLOW if you see QueuePool TimeoutError.
+    database_pool_size: int = 15
+    database_pool_max_overflow: int = 25
     database_pool_timeout_seconds: float = 30.0
     database_pool_recycle_seconds: int = 600
 
