@@ -13,6 +13,20 @@ Projects can store **company / project context** (description and free-text cont
 
 Defined in [apps/api/app/models/__init__.py](apps/api/app/models/__init__.py) on the `Project` model. Migration: `alembic/versions/20260309_project_company_context.py`.
 
+**If you see `column projects.description does not exist`:** run the migration in the API environment.
+
+- **Alembic (preferred):** In the API container: `cd /app/apps/api && alembic -c alembic.ini upgrade head` (or from repo root: `cd apps/api && alembic upgrade head`).
+- **Direct SQL (if Alembic fails):** In the API container run:
+  `cd /app/apps/api && python -c "
+  from app.db import get_session
+  from sqlalchemy import text
+  with get_session() as s:
+      s.execute(text('ALTER TABLE audion.projects ADD COLUMN IF NOT EXISTS description TEXT NULL'))
+      s.execute(text('ALTER TABLE audion.projects ADD COLUMN IF NOT EXISTS company_context TEXT NULL'))
+      s.commit()
+  print('Done.')
+  "`
+
 ### API
 
 - **PATCH /api/projects/{project_id}**: Update `name`, `description`, `company_context` (all optional).
