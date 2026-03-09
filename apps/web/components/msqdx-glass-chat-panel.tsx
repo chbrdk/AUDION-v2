@@ -179,7 +179,7 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                 }}
               >
                 <Typography
-                  key={`${message.id}-${message.content.length}`}
+                  key={message.id}
                   variant="body1"
                   whiteSpace="pre-wrap"
                   sx={{ 
