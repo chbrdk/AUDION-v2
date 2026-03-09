@@ -201,6 +201,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
   const lastTargetGroupsProjectIdRef = useRef<string | null>(null);
   const loadDetailInFlightRef = useRef(false);
   const loadDetailRef = useRef<(id: string) => Promise<void>>(async () => {});
+  const lastLoadedPersonaIdRef = useRef<string | null>(null);
 
   const selectedListItem: PersonaListItem | undefined = useMemo(
     () => list.items.find((item) => item.id === selectedId),
@@ -286,13 +287,18 @@ export const MsqdxGlassPersonaAdminPanel = ({
   }, [mode, activePersonaId, selectedId]);
 
   // Load detail only when selectedId changes. Use ref so we don't re-run when loadDetail identity changes (would cause request storm).
+  // Only trigger load when selectedId actually changed (guards against duplicate effect runs / Strict Mode).
   useEffect(() => {
-    loadDetailInFlightRef.current = false;
-    if (selectedId) {
-      loadDetailRef.current(selectedId);
-    } else {
+    if (!selectedId) {
+      lastLoadedPersonaIdRef.current = null;
       setDetail(null);
+      loadDetailInFlightRef.current = false;
+      return;
     }
+    if (lastLoadedPersonaIdRef.current === selectedId) return;
+    lastLoadedPersonaIdRef.current = selectedId;
+    loadDetailInFlightRef.current = false;
+    loadDetailRef.current(selectedId);
   }, [selectedId]);
 
   useEffect(() => {
