@@ -558,6 +558,19 @@
       "createOne": "Create",
       "created": "Target group created"
     },
+    "suggestPersonas": {
+      "title": "Suggest personas for target group",
+      "selectTargetGroup": "Select target group",
+      "cta": "Generate persona suggestions",
+      "loading": "Generating…",
+      "empty": "Save company context first and select a target group.",
+      "noSuggestions": "No suggestions. Add company context and try again.",
+      "createOne": "Create",
+      "createAndEnrich": "Create & enrich traits",
+      "createSelected": "Create selected",
+      "created": "Persona created",
+      "enriching": "Enriching…"
+    },
     "overview": {
       "title": "Overview",
       "personas": "Personas",

@@ -4,12 +4,12 @@ from typing import List
 from uuid import UUID, uuid4
 
 import structlog
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Body, BackgroundTasks, Depends, File, Form, HTTPException, Query, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_session
-from ..models import Document, Persona, ProcessingJob, TargetGroup, TargetGroupKnowledgeEntry, User
+from ..models import Document, Persona, ProcessingJob, Project, TargetGroup, TargetGroupKnowledgeEntry, User
 from worker.ingest import enqueue_ingestion
 from ..schemas import (
     PersonaDocument,
@@ -17,6 +17,9 @@ from ..schemas import (
     PersonaKnowledgeUpsertRequest as TargetGroupKnowledgeUpsertRequest,
     PersonaListResponse,
     PersonaResponse,
+    PersonaSuggestionItem,
+    SuggestPersonasRequest,
+    SuggestPersonasResponse,
     TargetGroupCreateRequest,
     TargetGroupListResponse,
     TargetGroupPersonaGenerateRequest,
@@ -29,6 +32,7 @@ from ..schemas import (
 from ..services.persona_generation import PersonaGenerationService
 from ..services.knowledge_ingestion import KnowledgeIngestionService
 from ..services.persona_store import PersonaService
+from ..services.suggest_personas import suggest_personas as run_suggest_personas
 from ..services.storage import StorageService
 from ..services.target_group_store import TargetGroupService
 from ..services.auth import get_current_user
@@ -1069,6 +1073,61 @@ def _user_id_for_usage(current_user: User | None) -> str | None:
     if not current_user:
         return None
     return getattr(current_user, "plexon_user_id", None) or str(current_user.id)
+
+
+@router.post(
+    "/{target_group_id}/suggest-personas",
+    response_model=SuggestPersonasResponse,
+    summary="Suggest personas for this target group",
+    description="Uses AI (OpenAI) with project company context and target group to suggest personas (name, age, headline, bio, location, gender). Save company context on the project first.",
+)
+def suggest_personas_endpoint(
+    target_group_id: str,
+    body: SuggestPersonasRequest | None = Body(None),
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> SuggestPersonasResponse:
+    tg = _get_target_group_or_404(session, target_group_id)
+    project = session.get(Project, tg.project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    parts = []
+    if project.description and project.description.strip():
+        parts.append(project.description.strip())
+    if project.company_context and project.company_context.strip():
+        parts.append(project.company_context.strip())
+    context_text = "\n\n".join(parts) if parts else ""
+
+    max_suggestions = min(max(1, (body.max_suggestions if body else 5)), 10)
+
+    if not context_text.strip():
+        return SuggestPersonasResponse(suggestions=[])
+
+    try:
+        suggestions = run_suggest_personas(
+            context_text=context_text,
+            target_group_name=tg.name or "",
+            target_group_segment=tg.segment or "",
+            target_group_description=(tg.description or "").strip(),
+            max_suggestions=max_suggestions,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    return SuggestPersonasResponse(
+        suggestions=[
+            PersonaSuggestionItem(
+                name=s.name,
+                age=s.age,
+                headline=s.headline,
+                bio=s.bio,
+                location=s.location,
+                gender=s.gender,
+            )
+            for s in suggestions
+        ],
+    )
 
 
 @router.post(

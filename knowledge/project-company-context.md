@@ -48,6 +48,28 @@ After target groups are created from suggestions, users can generate personas pe
 - Use the existing **generate persona** flow with `project_id` and `target_group_id`.
 - [Persona generation](apps/api/app/services/persona_generation.py) uses the **target group name, segment, and description** as fallback when there are no document chunks, so the AI-written descriptions from the suggest flow feed directly into persona generation.
 
+## AI-suggested personas (two-step flow)
+
+Personas can be suggested from **company context + target group** and then created with basics; traits (goals, pain points, interests, values) can be filled via **enrich**.
+
+### Step 1: Suggest personas (basic fields only)
+
+- **Endpoint:** `POST /api/target-groups/{target_group_id}/suggest-personas`
+- **Body (optional):** `{ "max_suggestions": 5 }`
+- **Returns:** `{ "suggestions": [ { "name", "age", "headline", "bio", "location", "gender" }, ... ] }`
+- Uses project `description` + `company_context` and the target group’s name, segment, and description. Implemented in [apps/api/app/services/suggest_personas.py](apps/api/app/services/suggest_personas.py) (OpenAI only, same pattern as suggest_target_groups).
+- If company context is empty, returns `suggestions: []` (200).
+
+### Step 2: Create personas and optionally enrich
+
+- **Create:** Use existing `POST /api/personas` with `project_id`, `target_group_id`, `name`, `segment` (from TG), `headline`, and `profile: { bio, age, location, gender, pain_points: [], goals: [], ... }`.
+- **Enrich:** `POST /api/personas/{persona_id}/enrich` runs the four AI-assist templates (pain points, goals, interests, values) and merges the results into the persona profile. Implemented in [apps/api/app/routers/personas.py](apps/api/app/routers/personas.py) (`enrich_persona`).
+
+### Frontend
+
+- Project admin panel section **Suggest personas for target group**: select target group, generate suggestions, then for each suggestion **Create** (basics only) or **Create & enrich** (create + call enrich). **Create selected** creates all selected with enrich.
+- i18n keys under `settingsProjects.suggestPersonas` in [apps/web/locales/en.json](apps/web/locales/en.json) and [de.json](apps/web/locales/de.json).
+
 ## Frontend
 
 - **Project admin panel** ([apps/web/components/msqdx-glass-project-admin-panel.tsx](apps/web/components/msqdx-glass-project-admin-panel.tsx)):

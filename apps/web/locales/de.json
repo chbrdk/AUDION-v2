@@ -558,6 +558,19 @@
       "createOne": "Anlegen",
       "created": "Zielgruppe angelegt"
     },
+    "suggestPersonas": {
+      "title": "Personas für Zielgruppe vorschlagen",
+      "selectTargetGroup": "Zielgruppe wählen",
+      "cta": "Persona-Vorschläge generieren",
+      "loading": "Wird generiert…",
+      "empty": "Bitte zuerst Unternehmenskontext speichern und eine Zielgruppe wählen.",
+      "noSuggestions": "Keine Vorschläge. Unternehmenskontext ergänzen und erneut versuchen.",
+      "createOne": "Anlegen",
+      "createAndEnrich": "Anlegen & Traits anreichern",
+      "createSelected": "Ausgewählte anlegen",
+      "created": "Persona angelegt",
+      "enriching": "Wird angereichert…"
+    },
     "overview": {
       "title": "Übersicht",
       "personas": "Personas",

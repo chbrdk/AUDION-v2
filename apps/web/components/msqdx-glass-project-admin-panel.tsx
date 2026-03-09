@@ -108,7 +108,7 @@ export function MsqdxGlassProjectAdminPanel({
 
     // Accordion state for collapsible sections
     const [expandedSections, setExpandedSections] = useState<Set<string>>(
-        new Set(["overview", "company-context", "suggest-target-groups", "members", "prompt-templates"])
+        new Set(["overview", "company-context", "suggest-target-groups", "suggest-personas", "members", "prompt-templates"])
     );
 
     // Company context form state (synced from detail on load)
@@ -124,6 +124,18 @@ export function MsqdxGlassProjectAdminPanel({
     const [suggestError, setSuggestError] = useState<string | null>(null);
     const [selectedSuggestions, setSelectedSuggestions] = useState<Set<number>>(new Set());
     const [creatingTgIds, setCreatingTgIds] = useState<Set<number>>(new Set());
+
+    // Suggest personas (per target group) state
+    type PersonaSuggestionItem = { name: string; age?: string | null; headline: string; bio?: string; location?: string | null; gender?: string | null };
+    type TargetGroupOption = { id: string; name: string; segment: string };
+    const [projectTargetGroups, setProjectTargetGroups] = useState<TargetGroupOption[]>([]);
+    const [selectedTgIdForPersonas, setSelectedTgIdForPersonas] = useState<string | null>(null);
+    const [personaSuggestions, setPersonaSuggestions] = useState<PersonaSuggestionItem[]>([]);
+    const [selectedPersonaSuggestions, setSelectedPersonaSuggestions] = useState<Set<number>>(new Set());
+    const [personaSuggestLoading, setPersonaSuggestLoading] = useState(false);
+    const [personaSuggestError, setPersonaSuggestError] = useState<string | null>(null);
+    const [creatingPersonaIndices, setCreatingPersonaIndices] = useState<Set<number>>(new Set());
+    const [enrichingPersonaIds, setEnrichingPersonaIds] = useState<Set<string>>(new Set());
 
     // Prompt templates for this project (full list for cards)
     const [promptTemplates, setPromptTemplates] = useState<AiTemplateSummary[]>([]);
@@ -426,6 +438,148 @@ export function MsqdxGlassProjectAdminPanel({
         }
         await loadDetail(selectedId);
     }, [selectedId, selectedSuggestions, suggestions, loadDetail, t]);
+
+    // Fetch target groups for persona suggestions dropdown when section is expanded
+    useEffect(() => {
+        if (!selectedId || !expandedSections.has("suggest-personas")) return;
+        let cancelled = false;
+        fetch(buildApiUrl(`/api/target-groups?project_id=${encodeURIComponent(selectedId)}&page_size=100`), { cache: "no-store" })
+            .then((res) => (res.ok ? res.json() : { items: [] }))
+            .then((data) => {
+                if (!cancelled && data.items) {
+                    setProjectTargetGroups(
+                        data.items.map((tg: { id: string; name?: string; segment?: string }) => ({
+                            id: tg.id,
+                            name: tg.name || "",
+                            segment: tg.segment || "",
+                        }))
+                    );
+                }
+            })
+            .catch(() => {
+                if (!cancelled) setProjectTargetGroups([]);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [selectedId, expandedSections]);
+
+    const handleSuggestPersonas = useCallback(async () => {
+        if (!selectedId || !selectedTgIdForPersonas) return;
+        setPersonaSuggestLoading(true);
+        setPersonaSuggestError(null);
+        setPersonaSuggestions([]);
+        setSelectedPersonaSuggestions(new Set());
+        try {
+            const res = await fetch(
+                buildApiUrl(`/api/target-groups/${selectedTgIdForPersonas}/suggest-personas`),
+                { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ max_suggestions: 5 }) }
+            );
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                const msg = Array.isArray(err.detail) ? err.detail[0]?.msg ?? err.detail : err.detail;
+                throw new Error(typeof msg === "string" ? msg : res.statusText ?? "Suggest failed");
+            }
+            const data = await res.json();
+            const list = data.suggestions ?? [];
+            setPersonaSuggestions(list);
+            if (list.length === 0) {
+                setPersonaSuggestError(t("settingsProjects.suggestPersonas.noSuggestions") ?? "No suggestions.");
+            } else {
+                setPersonaSuggestError(null);
+            }
+        } catch (e) {
+            setPersonaSuggestError(e instanceof Error ? e.message : "Suggest failed");
+        } finally {
+            setPersonaSuggestLoading(false);
+        }
+    }, [selectedId, selectedTgIdForPersonas, t]);
+
+    const togglePersonaSuggestion = useCallback((index: number) => {
+        setSelectedPersonaSuggestions((prev) => {
+            const next = new Set(prev);
+            if (next.has(index)) next.delete(index);
+            else next.add(index);
+            return next;
+        });
+    }, []);
+
+    const handleCreatePersonas = useCallback(
+        async (indices?: Set<number>, doEnrich?: boolean) => {
+            const toCreate = indices ?? selectedPersonaSuggestions;
+            if (!selectedId || !selectedTgIdForPersonas || toCreate.size === 0) return;
+            const tg = projectTargetGroups.find((g) => g.id === selectedTgIdForPersonas);
+            const segment = tg?.segment ?? "";
+            const toCreateList = Array.from(toCreate).map((i) => ({ index: i, ...personaSuggestions[i] }));
+            for (const { index, name, headline, bio, age, location, gender } of toCreateList) {
+                setCreatingPersonaIndices((prev) => new Set(prev).add(index));
+                try {
+                    const createRes = await fetch(buildApiUrl("/api/personas"), {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            project_id: selectedId,
+                            target_group_id: selectedTgIdForPersonas,
+                            name,
+                            segment,
+                            headline: headline || name,
+                            profile: {
+                                bio: bio || "",
+                                age: age ?? undefined,
+                                location: location ?? undefined,
+                                gender: gender ?? undefined,
+                                pain_points: [],
+                                goals: [],
+                                interests: [],
+                                values: [],
+                            },
+                        }),
+                    });
+                    if (!createRes.ok) throw new Error("Create failed");
+                    const created = await createRes.json();
+                    const personaId = created?.id;
+                    if (doEnrich && personaId) {
+                        setEnrichingPersonaIds((prev) => new Set(prev).add(personaId));
+                        try {
+                            const enrichRes = await fetch(buildApiUrl(`/api/personas/${personaId}/enrich`), { method: "POST" });
+                            if (!enrichRes.ok) throw new Error("Enrich failed");
+                        } finally {
+                            setEnrichingPersonaIds((prev) => {
+                                const n = new Set(prev);
+                                n.delete(personaId);
+                                return n;
+                            });
+                        }
+                    }
+                    setSelectedPersonaSuggestions((prev) => {
+                        const n = new Set(prev);
+                        n.delete(index);
+                        return n;
+                    });
+                    setPersonaSuggestions((prev) => prev.filter((_, i) => i !== index));
+                    notify(t("settingsProjects.suggestPersonas.created") ?? "Persona created");
+                } catch {
+                    // keep selection for retry
+                } finally {
+                    setCreatingPersonaIndices((prev) => {
+                        const n = new Set(prev);
+                        n.delete(index);
+                        return n;
+                    });
+                }
+            }
+            await loadDetail(selectedId);
+        },
+        [
+            selectedId,
+            selectedTgIdForPersonas,
+            selectedPersonaSuggestions,
+            personaSuggestions,
+            projectTargetGroups,
+            loadDetail,
+            t,
+        ]
+    );
 
     // Load prompt templates for selected project
     useEffect(() => {
@@ -858,6 +1012,135 @@ export function MsqdxGlassProjectAdminPanel({
                                                     onClick={() => handleCreateTargetGroups()}
                                                 >
                                                     {t("settingsProjects.companyContext.createSelected") ?? "Create selected"} ({selectedSuggestions.size})
+                                                </MsqdxButton>
+                                            </>
+                                        )}
+                                    </Stack>
+                                </MsqdxDashboardCard>
+                            </Box>
+
+                            {/* Suggest personas for target group */}
+                            <Box sx={{ gridColumn: "1 / -1" }}>
+                                <MsqdxDashboardCard
+                                    id="suggest-personas"
+                                    title={t("settingsProjects.suggestPersonas.title") ?? "Suggest personas for target group"}
+                                    icon="person_search"
+                                    expanded={expandedSections.has("suggest-personas")}
+                                    onToggle={toggleSection}
+                                >
+                                    <Stack spacing={2}>
+                                        <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1 }}>
+                                            <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+                                                {t("settingsProjects.suggestPersonas.selectTargetGroup") ?? "Select target group"}
+                                            </MsqdxTypography>
+                                            <select
+                                                value={selectedTgIdForPersonas ?? ""}
+                                                onChange={(e) => {
+                                                    setSelectedTgIdForPersonas(e.target.value || null);
+                                                    setPersonaSuggestions([]);
+                                                    setPersonaSuggestError(null);
+                                                }}
+                                                style={{
+                                                    minWidth: 200,
+                                                    padding: "6px 10px",
+                                                    borderRadius: 6,
+                                                    border: "1px solid var(--color-neutral, #ccc)",
+                                                }}
+                                            >
+                                                <option value="">—</option>
+                                                {projectTargetGroups.map((tg) => (
+                                                    <option key={tg.id} value={tg.id}>
+                                                        {tg.name || tg.segment || tg.id}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <MsqdxButton
+                                                variant="outlined"
+                                                size="small"
+                                                onClick={handleSuggestPersonas}
+                                                disabled={
+                                                    personaSuggestLoading ||
+                                                    !selectedTgIdForPersonas ||
+                                                    !(companyDescription.trim() || companyContext.trim())
+                                                }
+                                            >
+                                                {personaSuggestLoading
+                                                    ? (t("settingsProjects.suggestPersonas.loading") ?? "Generating…")
+                                                    : (t("settingsProjects.suggestPersonas.cta") ?? "Generate persona suggestions")}
+                                            </MsqdxButton>
+                                        </Box>
+                                        {!(companyDescription.trim() || companyContext.trim()) && (
+                                            <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
+                                                {t("settingsProjects.suggestPersonas.empty") ?? "Save company context above and select a target group."}
+                                            </MsqdxTypography>
+                                        )}
+                                        {personaSuggestError && (
+                                            <MsqdxTypography variant="caption" sx={{ color: "error.main" }}>
+                                                {personaSuggestError}
+                                            </MsqdxTypography>
+                                        )}
+                                        {personaSuggestions.length > 0 && (
+                                            <>
+                                                <Stack spacing={1}>
+                                                    {personaSuggestions.map((ps, i) => (
+                                                        <Box
+                                                            key={i}
+                                                            sx={{
+                                                                p: 1.5,
+                                                                border: "1px solid",
+                                                                borderColor: "divider",
+                                                                borderRadius: 1,
+                                                                display: "flex",
+                                                                alignItems: "flex-start",
+                                                                gap: 1,
+                                                            }}
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selectedPersonaSuggestions.has(i)}
+                                                                onChange={() => togglePersonaSuggestion(i)}
+                                                                disabled={creatingPersonaIndices.has(i)}
+                                                            />
+                                                            <Box sx={{ flex: 1 }}>
+                                                                <MsqdxTypography variant="subtitle2" weight="semibold">
+                                                                    {ps.name}
+                                                                    {ps.age || ps.location ? ` · ${[ps.age, ps.location].filter(Boolean).join(", ")}` : ""}
+                                                                </MsqdxTypography>
+                                                                <MsqdxTypography variant="body2" sx={{ fontStyle: "italic" }}>
+                                                                    {ps.headline}
+                                                                </MsqdxTypography>
+                                                                {ps.bio && (
+                                                                    <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.5 }}>
+                                                                        {ps.bio}
+                                                                    </MsqdxTypography>
+                                                                )}
+                                                            </Box>
+                                                            <MsqdxButton
+                                                                variant="outlined"
+                                                                size="small"
+                                                                disabled={creatingPersonaIndices.has(i)}
+                                                                onClick={() => handleCreatePersonas(new Set([i]), false)}
+                                                            >
+                                                                {creatingPersonaIndices.has(i) ? "…" : (t("settingsProjects.suggestPersonas.createOne") ?? "Create")}
+                                                            </MsqdxButton>
+                                                            <MsqdxButton
+                                                                variant="contained"
+                                                                size="small"
+                                                                disabled={creatingPersonaIndices.has(i)}
+                                                                onClick={() => handleCreatePersonas(new Set([i]), true)}
+                                                            >
+                                                                {creatingPersonaIndices.has(i) ? "…" : (t("settingsProjects.suggestPersonas.createAndEnrich") ?? "Create & enrich")}
+                                                            </MsqdxButton>
+                                                        </Box>
+                                                    ))}
+                                                </Stack>
+                                                <MsqdxButton
+                                                    variant="contained"
+                                                    size="small"
+                                                    disabled={selectedPersonaSuggestions.size === 0}
+                                                    onClick={() => handleCreatePersonas(undefined, true)}
+                                                >
+                                                    {t("settingsProjects.suggestPersonas.createSelected") ?? "Create selected"} ({selectedPersonaSuggestions.size}) + enrich
                                                 </MsqdxButton>
                                             </>
                                         )}

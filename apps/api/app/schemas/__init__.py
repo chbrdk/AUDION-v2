@@ -72,6 +72,11 @@ from .projects import (
     SuggestTargetGroupsResponse,
     TargetGroupSuggestionItem,
 )
+from .persona_suggest import (
+    PersonaSuggestionItem,
+    SuggestPersonasRequest,
+    SuggestPersonasResponse,
+)
 
 
 class DocumentUploadResponse(BaseModel):
@@ -723,6 +728,9 @@ __all__ = [
     "SuggestTargetGroupsRequest",
     "SuggestTargetGroupsResponse",
     "TargetGroupSuggestionItem",
+    "PersonaSuggestionItem",
+    "SuggestPersonasRequest",
+    "SuggestPersonasResponse",
     "JourneyAiGenerateRequest",
     "JourneyAiGenerationResponse",
     "JourneyAiSuggestion",

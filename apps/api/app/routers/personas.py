@@ -391,6 +391,109 @@ async def generate_persona_goals(
 
 
 @router.post(
+    "/{persona_id}/enrich",
+    response_model=PersonaResponse,
+    summary="Enrich persona with AI-generated traits",
+    description="Calls AI to generate pain points, goals, interests, and values for the persona and merges them into the profile. Uses existing persona context.",
+)
+async def enrich_persona(
+    persona_id: str,
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> PersonaResponse:
+    persona = _get_persona_or_404(session, persona_id)
+    max_items = 5
+    ai_assist = AiAssistService(session=session)
+    uid = _user_id_for_usage(current_user)
+
+    def _report(r):
+        if uid and r.usage:
+            report_usage(
+                user_id=uid,
+                event_type="llm_request",
+                raw_units={
+                    "input_tokens": r.usage.get("input_tokens") or r.usage.get("prompt_tokens"),
+                    "output_tokens": r.usage.get("output_tokens") or r.usage.get("completion_tokens"),
+                },
+            )
+
+    existing = (persona.profile or {}) if hasattr(persona, "profile") else {}
+    pain_points = list(existing.get("pain_points") or existing.get("painPoints") or [])
+    goals = list(existing.get("goals") or [])
+    interests = list(existing.get("interests") or [])
+    values = list(existing.get("values") or [])
+
+    try:
+        ctx_pain = _build_persona_ai_context(session, persona, max_items)
+        r_pain = await ai_assist.generate(
+            AiAssistRequest(template_id="persona.pain_points", context=ctx_pain, max_suggestions=max_items),
+        )
+        _report(r_pain)
+        for s in r_pain.suggestions:
+            content = getattr(s, "content", None) or (s if isinstance(s, str) else "")
+            if content:
+                pain_points.append({"label": content, "evidence_count": 1})
+
+        ctx_goals = _build_persona_goals_ai_context(session, persona, max_items)
+        r_goals = await ai_assist.generate(
+            AiAssistRequest(template_id="persona.goals", context=ctx_goals, max_suggestions=max_items),
+        )
+        _report(r_goals)
+        for s in r_goals.suggestions:
+            content = getattr(s, "content", None) or (s if isinstance(s, str) else "")
+            if content:
+                goals.append({"label": content, "priority": 1})
+
+        ctx_interests = _build_persona_interests_ai_context(session, persona, max_items)
+        r_interests = await ai_assist.generate(
+            AiAssistRequest(template_id="persona.interests", context=ctx_interests, max_suggestions=max_items),
+        )
+        _report(r_interests)
+        for s in r_interests.suggestions:
+            content = getattr(s, "content", None) or (s if isinstance(s, str) else "")
+            if content:
+                interests.append(content)
+
+        ctx_values = _build_persona_values_ai_context(session, persona, max_items)
+        r_values = await ai_assist.generate(
+            AiAssistRequest(template_id="persona.values", context=ctx_values, max_suggestions=max_items),
+        )
+        _report(r_values)
+        for s in r_values.suggestions:
+            content = getattr(s, "content", None) or (s if isinstance(s, str) else "")
+            if content:
+                values.append(content)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    profile_json = {
+        "pain_points": pain_points,
+        "painPoints": pain_points,
+        "goals": goals,
+        "interests": interests,
+        "values": values,
+    }
+    payload = PersonaPatchRequest(
+        name=None,
+        segment=None,
+        headline=None,
+        profile=None,
+        confidence=None,
+        version=None,
+        status=None,
+        updated_by=uid or "system",
+    )
+    allowed_project_ids = (session.info or {}).get("allowed_project_ids")
+    return persona_service.update_persona(
+        session,
+        persona_id,
+        payload,
+        profile_json=profile_json,
+        allowed_project_ids=allowed_project_ids,
+    )
+
+
+@router.post(
     "",
     response_model=PersonaResponse,
     status_code=status.HTTP_201_CREATED,
