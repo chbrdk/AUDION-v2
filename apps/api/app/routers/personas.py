@@ -1384,11 +1384,26 @@ def create_tavus_session(
         )
     persona_id_tavus = persona.tavus_persona_id
     conversation_name = body.get("conversation_name") or f"Chat with {persona.name}"
+    # Use the same system prompt as in text chat (from DB); fallback to short summary if no prompt.
+    conversational_context = None
+    if persona.prompt and getattr(persona.prompt, "system_prompt", None):
+        full_prompt = (persona.prompt.system_prompt or "").strip()
+        if full_prompt:
+            # Tavus may have context length limits; 12k chars is a safe upper bound for conversational_context.
+            conversational_context = full_prompt[:12000] if len(full_prompt) > 12000 else full_prompt
+    if not conversational_context:
+        parts = [f"You are in a conversation as {persona.name}."]
+        if persona.headline:
+            parts.append(f"Summary: {persona.headline}")
+        if persona.segment:
+            parts.append(f"Segment: {persona.segment}.")
+        conversational_context = " ".join(parts) if len(parts) > 1 else (parts[0] if parts else None)
     try:
         data = tavus_create_conversation(
             replica_id=replica_id,
             persona_id=persona_id_tavus,
             conversation_name=conversation_name,
+            conversational_context=conversational_context,
         )
     except ValueError as e:
         raise HTTPException(status_code=503, detail=str(e)) from e

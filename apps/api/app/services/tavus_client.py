@@ -15,10 +15,12 @@ def create_conversation(
     replica_id: str,
     persona_id: str | None = None,
     conversation_name: str | None = None,
+    conversational_context: str | None = None,
 ) -> dict[str, Any]:
     """
     Create a Tavus conversation (video call session) via POST /v2/conversations.
     Returns dict with conversation_url, conversation_id, meeting_token (if require_auth), etc.
+    conversational_context: optional context from Audion persona (headline, segment) passed to Tavus.
     """
     settings = get_settings()
     if not settings.tavus_api_key:
@@ -30,6 +32,8 @@ def create_conversation(
         payload["persona_id"] = persona_id
     if conversation_name:
         payload["conversation_name"] = conversation_name
+    if conversational_context:
+        payload["conversational_context"] = conversational_context
     headers = {
         "Content-Type": "application/json",
         "x-api-key": settings.tavus_api_key,
