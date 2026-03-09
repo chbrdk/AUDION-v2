@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { Box, Stack } from "@mui/material";
+import { Box, Stack, TextField } from "@mui/material";
 import Link from "next/link";
 import { MsqdxButton, MsqdxCard, MsqdxFormField, MsqdxTypography, MsqdxIcon, MsqdxDashboardCard, MsqdxChip } from "@msqdx/react";
 import { MsqdxGlassCollapsiblePanel } from "./admin/msqdx-glass-collapsible-panel";
@@ -13,6 +13,8 @@ import { useI18n } from "./i18n/i18n-provider";
 type ProjectDetail = {
     id: string;
     name: string;
+    description?: string | null;
+    company_context?: string | null;
     created_at: string;
     updated_at: string;
     members: ProjectMember[];
@@ -106,8 +108,22 @@ export function MsqdxGlassProjectAdminPanel({
 
     // Accordion state for collapsible sections
     const [expandedSections, setExpandedSections] = useState<Set<string>>(
-        new Set(["overview", "members", "prompt-templates"])
+        new Set(["overview", "company-context", "suggest-target-groups", "members", "prompt-templates"])
     );
+
+    // Company context form state (synced from detail on load)
+    const [companyDescription, setCompanyDescription] = useState("");
+    const [companyContext, setCompanyContext] = useState("");
+    const [savingContext, setSavingContext] = useState(false);
+    const [contextSaveError, setContextSaveError] = useState<string | null>(null);
+
+    // Suggest target groups state
+    type TargetGroupSuggestion = { name: string; segment: string; description: string };
+    const [suggestions, setSuggestions] = useState<TargetGroupSuggestion[]>([]);
+    const [suggestLoading, setSuggestLoading] = useState(false);
+    const [suggestError, setSuggestError] = useState<string | null>(null);
+    const [selectedSuggestions, setSelectedSuggestions] = useState<Set<number>>(new Set());
+    const [creatingTgIds, setCreatingTgIds] = useState<Set<number>>(new Set());
 
     // Prompt templates for this project (full list for cards)
     const [promptTemplates, setPromptTemplates] = useState<AiTemplateSummary[]>([]);
@@ -189,6 +205,8 @@ export function MsqdxGlassProjectAdminPanel({
                 setDetail({
                     id: basicDetail.id,
                     name: basicDetail.name,
+                    description: basicDetail.description ?? null,
+                    company_context: basicDetail.company_context ?? null,
                     created_at: basicDetail.created_at || "",
                     updated_at: basicDetail.updated_at || "",
                     members: basicDetail.members || [],
@@ -310,6 +328,97 @@ export function MsqdxGlassProjectAdminPanel({
             setDetail(null);
         }
     }, [selectedId, loadDetail]);
+
+    // Sync company context form from detail
+    useEffect(() => {
+        if (detail) {
+            setCompanyDescription(detail.description ?? "");
+            setCompanyContext(detail.company_context ?? "");
+        }
+    }, [detail?.id, detail?.description, detail?.company_context]);
+
+    // Save company context (PATCH project)
+    const handleSaveCompanyContext = useCallback(async () => {
+        if (!selectedId) return;
+        setSavingContext(true);
+        setContextSaveError(null);
+        try {
+            const res = await fetch(buildApiUrl(`/api/projects/${selectedId}`), {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ description: companyDescription || null, company_context: companyContext || null }),
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.detail ?? res.statusText ?? "Save failed");
+            }
+            await loadDetail(selectedId);
+            notify(t("settingsProjects.companyContext.saved") ?? "Company context saved");
+        } catch (e) {
+            setContextSaveError(e instanceof Error ? e.message : "Save failed");
+        } finally {
+            setSavingContext(false);
+        }
+    }, [selectedId, companyDescription, companyContext, loadDetail, t]);
+
+    const handleSuggestTargetGroups = useCallback(async () => {
+        if (!selectedId) return;
+        setSuggestLoading(true);
+        setSuggestError(null);
+        setSuggestions([]);
+        setSelectedSuggestions(new Set());
+        try {
+            const res = await fetch(buildApiUrl(`/api/projects/${selectedId}/suggest-target-groups`), {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ max_suggestions: 5 }),
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.detail ?? res.statusText ?? "Suggest failed");
+            }
+            const data = await res.json();
+            setSuggestions(data.suggestions ?? []);
+        } catch (e) {
+            setSuggestError(e instanceof Error ? e.message : "Suggest failed");
+        } finally {
+            setSuggestLoading(false);
+        }
+    }, [selectedId]);
+
+    const toggleSuggestion = useCallback((index: number) => {
+        setSelectedSuggestions((prev) => {
+            const next = new Set(prev);
+            if (next.has(index)) next.delete(index);
+            else next.add(index);
+            return next;
+        });
+    }, []);
+
+    const handleCreateTargetGroups = useCallback(async (indices?: Set<number>) => {
+        const toCreateSet = indices ?? selectedSuggestions;
+        if (!selectedId || toCreateSet.size === 0) return;
+        const toCreate = Array.from(toCreateSet).map((i) => ({ index: i, ...suggestions[i] }));
+        for (const { index, name, segment, description } of toCreate) {
+            setCreatingTgIds((prev) => new Set(prev).add(index));
+            try {
+                const res = await fetch(buildApiUrl("/api/target-groups"), {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ project_id: selectedId, name, segment, description: description || null }),
+                });
+                if (!res.ok) throw new Error("Create failed");
+                setSelectedSuggestions((prev) => { const n = new Set(prev); n.delete(index); return n; });
+                setSuggestions((prev) => prev.filter((_, i) => i !== index));
+                notify(t("settingsProjects.companyContext.created") ?? "Target group created");
+            } catch {
+                // keep selection so user can retry
+            } finally {
+                setCreatingTgIds((prev) => { const n = new Set(prev); n.delete(index); return n; });
+            }
+        }
+        await loadDetail(selectedId);
+    }, [selectedId, selectedSuggestions, suggestions, loadDetail, t]);
 
     // Load prompt templates for selected project
     useEffect(() => {
@@ -608,6 +717,145 @@ export function MsqdxGlassProjectAdminPanel({
                                         </Box>
                                     </Box>
                                 </MsqdxCard>
+                            </Box>
+
+                            {/* Company Context / Unternehmenskontext */}
+                            <Box sx={{ gridColumn: "1 / -1" }}>
+                                <MsqdxDashboardCard
+                                    id="company-context"
+                                    title={t("settingsProjects.companyContext.title") ?? "Company & context"}
+                                    icon="business"
+                                    expanded={expandedSections.has("company-context")}
+                                    onToggle={toggleSection}
+                                >
+                                    <Stack spacing={2}>
+                                        <TextField
+                                            label={t("settingsProjects.companyContext.description") ?? "Project / company description"}
+                                            value={companyDescription}
+                                            onChange={(e) => setCompanyDescription(e.target.value)}
+                                            placeholder={t("settingsProjects.companyContext.descriptionPlaceholder") ?? "Short description of the project or company..."}
+                                            multiline
+                                            minRows={2}
+                                            maxRows={6}
+                                            size="small"
+                                            fullWidth
+                                            variant="outlined"
+                                        />
+                                        <TextField
+                                            label={t("settingsProjects.companyContext.contextLabel") ?? "Company context"}
+                                            value={companyContext}
+                                            onChange={(e) => setCompanyContext(e.target.value)}
+                                            placeholder={t("settingsProjects.companyContext.contextPlaceholder") ?? "Industry, products, target markets, tone of voice, etc. This context is used to suggest target groups and personas."}
+                                            multiline
+                                            minRows={3}
+                                            maxRows={10}
+                                            size="small"
+                                            fullWidth
+                                            variant="outlined"
+                                        />
+                                        {contextSaveError && (
+                                            <MsqdxTypography variant="caption" sx={{ color: "error.main" }}>
+                                                {contextSaveError}
+                                            </MsqdxTypography>
+                                        )}
+                                        <MsqdxButton
+                                            variant="contained"
+                                            size="small"
+                                            onClick={handleSaveCompanyContext}
+                                            disabled={savingContext}
+                                        >
+                                            {savingContext ? (t("common.saving") ?? "Saving...") : (t("common.save") ?? "Save")}
+                                        </MsqdxButton>
+                                    </Stack>
+                                </MsqdxDashboardCard>
+                            </Box>
+
+                            {/* Suggest target groups from context */}
+                            <Box sx={{ gridColumn: "1 / -1" }}>
+                                <MsqdxDashboardCard
+                                    id="suggest-target-groups"
+                                    title={t("settingsProjects.companyContext.suggestTitle") ?? "Suggest target groups from context"}
+                                    icon="auto_awesome"
+                                    expanded={expandedSections.has("suggest-target-groups")}
+                                    onToggle={toggleSection}
+                                >
+                                    <Stack spacing={2}>
+                                        <MsqdxButton
+                                            variant="outlined"
+                                            size="small"
+                                            onClick={handleSuggestTargetGroups}
+                                            disabled={suggestLoading || !(companyDescription.trim() || companyContext.trim())}
+                                        >
+                                            {suggestLoading ? (t("settingsProjects.companyContext.suggestLoading") ?? "Generating…") : (t("settingsProjects.companyContext.suggestCta") ?? "Generate suggestions")}
+                                        </MsqdxButton>
+                                        {!(companyDescription.trim() || companyContext.trim()) && (
+                                            <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
+                                                {t("settingsProjects.companyContext.suggestEmpty") ?? "Save company context above first, then generate suggestions."}
+                                            </MsqdxTypography>
+                                        )}
+                                        {suggestError && (
+                                            <MsqdxTypography variant="caption" sx={{ color: "error.main" }}>
+                                                {suggestError}
+                                            </MsqdxTypography>
+                                        )}
+                                        {suggestions.length > 0 && (
+                                            <>
+                                                <Stack spacing={1}>
+                                                    {suggestions.map((sg, i) => (
+                                                        <Box
+                                                            key={i}
+                                                            sx={{
+                                                                p: 1.5,
+                                                                border: "1px solid",
+                                                                borderColor: "divider",
+                                                                borderRadius: 1,
+                                                                display: "flex",
+                                                                alignItems: "flex-start",
+                                                                gap: 1,
+                                                            }}
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selectedSuggestions.has(i)}
+                                                                onChange={() => toggleSuggestion(i)}
+                                                                disabled={creatingTgIds.has(i)}
+                                                            />
+                                                            <Box sx={{ flex: 1 }}>
+                                                                <MsqdxTypography variant="subtitle2" weight="semibold">
+                                                                    {sg.name}
+                                                                </MsqdxTypography>
+                                                                <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
+                                                                    {sg.segment}
+                                                                </MsqdxTypography>
+                                                                {sg.description && (
+                                                                    <MsqdxTypography variant="body2" sx={{ mt: 0.5 }}>
+                                                                        {sg.description}
+                                                                    </MsqdxTypography>
+                                                                )}
+                                                            </Box>
+                                                            <MsqdxButton
+                                                                variant="contained"
+                                                                size="small"
+                                                                disabled={creatingTgIds.has(i)}
+                                                                onClick={() => handleCreateTargetGroups(new Set([i]))}
+                                                            >
+                                                                {creatingTgIds.has(i) ? "…" : (t("settingsProjects.companyContext.createOne") ?? "Create")}
+                                                            </MsqdxButton>
+                                                        </Box>
+                                                    ))}
+                                                </Stack>
+                                                <MsqdxButton
+                                                    variant="contained"
+                                                    size="small"
+                                                    disabled={selectedSuggestions.size === 0}
+                                                    onClick={handleCreateTargetGroups}
+                                                >
+                                                    {t("settingsProjects.companyContext.createSelected") ?? "Create selected"} ({selectedSuggestions.size})
+                                                </MsqdxButton>
+                                            </>
+                                        )}
+                                    </Stack>
+                                </MsqdxDashboardCard>
                             </Box>
 
                             {/* Overview Stats Card */}

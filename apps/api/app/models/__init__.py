@@ -154,6 +154,8 @@ class Project(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     name = Column(String(128), nullable=False)
     owner_user_id = Column(UUID(as_uuid=True), ForeignKey("audion.users.id"), nullable=False)
+    description = Column(Text, nullable=True)
+    company_context = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

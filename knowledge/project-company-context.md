@@ -1,0 +1,46 @@
+# Project company context and AI-suggested target groups
+
+## Purpose
+
+Projects can store **company / project context** (description and free-text context). This context is used to **suggest target groups** via AI; users can then create those target groups and generate personas per group using the existing persona flow.
+
+## Data model
+
+### Project fields (backend)
+
+- **description** (Text, nullable): Short project or company description.
+- **company_context** (Text, nullable): Free text for industry, products, target markets, tone of voice, etc.
+
+Defined in [apps/api/app/models/__init__.py](apps/api/app/models/__init__.py) on the `Project` model. Migration: `alembic/versions/20260309_project_company_context.py`.
+
+### API
+
+- **PATCH /api/projects/{project_id}**: Update `name`, `description`, `company_context` (all optional).
+- **GET /api/projects/{project_id}**: Returns project including `description` and `company_context`.
+- **POST /api/projects/{project_id}/suggest-target-groups**: Request body optional `{ "max_suggestions": 5 }`. Returns `{ "suggestions": [ { "name", "segment", "description" }, ... ] }`. Requires project membership and admin/owner role. Uses project `description` + `company_context` as input; if empty, returns 400.
+
+## AI suggest flow
+
+1. User fills in **Company & context** in the project admin panel and saves (PATCH project).
+2. User clicks **Generate suggestions** → frontend calls **POST /api/projects/{id}/suggest-target-groups**.
+3. Backend builds context string from `project.description` and `project.company_context`, calls [apps/api/app/services/suggest_target_groups.py](apps/api/app/services/suggest_target_groups.py) (OpenAI or Anthropic).
+4. AI returns a JSON array of `{ name, segment, description }`; backend validates and returns it.
+5. Frontend shows the list; user selects items and clicks **Create selected** (or **Create** per row). Each create is **POST /api/target-groups** with `project_id`, `name`, `segment`, `description`.
+
+## Personas after creating target groups
+
+After target groups are created from suggestions, users can generate personas per target group as today:
+
+- Use the existing **generate persona** flow with `project_id` and `target_group_id`.
+- [Persona generation](apps/api/app/services/persona_generation.py) uses the **target group name, segment, and description** as fallback when there are no document chunks, so the AI-written descriptions from the suggest flow feed directly into persona generation.
+
+## Frontend
+
+- **Project admin panel** ([apps/web/components/msqdx-glass-project-admin-panel.tsx](apps/web/components/msqdx-glass-project-admin-panel.tsx)):
+  - Section **Company & context**: fields for description and company_context, Save button.
+  - Section **Suggest target groups from context**: Generate button, list of suggestions with checkboxes, Create / Create selected.
+- i18n keys under `settingsProjects.companyContext` in [apps/web/locales/en.json](apps/web/locales/en.json) and [de.json](apps/web/locales/de.json).
+
+## Configuration
+
+Same AI settings as the rest of the app: `CLAUDE_API_KEY` or `OPENAI_API_KEY`, `ai_default_provider`, `ai_anthropic_model`, `ai_openai_model`, `ai_default_max_tokens`.

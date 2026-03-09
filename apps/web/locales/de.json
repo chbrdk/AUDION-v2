@@ -543,6 +543,21 @@
       "manage": "Prompt-Templates verwalten",
       "empty": "Noch keine Prompt-Templates. Im Prompt-Editor anlegen und bearbeiten."
     },
+    "companyContext": {
+      "title": "Unternehmen & Kontext",
+      "description": "Projekt- / Unternehmensbeschreibung",
+      "descriptionPlaceholder": "Kurze Beschreibung des Projekts oder Unternehmens…",
+      "contextLabel": "Unternehmenskontext",
+      "contextPlaceholder": "Branche, Produkte, Zielmärkte, Tonfall usw. Dieser Kontext wird genutzt, um Zielgruppen und Personas vorzuschlagen.",
+      "saved": "Unternehmenskontext gespeichert",
+      "suggestTitle": "Zielgruppen aus Kontext vorschlagen",
+      "suggestCta": "Vorschläge generieren",
+      "suggestLoading": "Wird generiert…",
+      "suggestEmpty": "Bitte zuerst den Unternehmenskontext oben speichern, dann Vorschläge generieren.",
+      "createSelected": "Ausgewählte anlegen",
+      "createOne": "Anlegen",
+      "created": "Zielgruppe angelegt"
+    },
     "overview": {
       "title": "Übersicht",
       "personas": "Personas",

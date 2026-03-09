@@ -68,6 +68,9 @@ from .projects import (
     ProjectMemberResponse,
     ProjectResponse,
     ProjectUpdateRequest,
+    SuggestTargetGroupsRequest,
+    SuggestTargetGroupsResponse,
+    TargetGroupSuggestionItem,
 )
 
 
@@ -717,6 +720,9 @@ __all__ = [
     "ProjectMemberResponse",
     "ProjectResponse",
     "ProjectUpdateRequest",
+    "SuggestTargetGroupsRequest",
+    "SuggestTargetGroupsResponse",
+    "TargetGroupSuggestionItem",
     "JourneyAiGenerateRequest",
     "JourneyAiGenerationResponse",
     "JourneyAiSuggestion",

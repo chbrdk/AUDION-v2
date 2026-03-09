@@ -11,6 +11,8 @@ export type ProjectSummary = {
   id: string;
   name: string;
   owner_user_id: string;
+  description?: string | null;
+  company_context?: string | null;
   created_at: string;
   updated_at: string;
 };

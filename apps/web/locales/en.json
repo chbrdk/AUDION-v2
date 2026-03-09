@@ -543,6 +543,21 @@
       "manage": "Manage prompt templates",
       "empty": "No prompt templates yet. Add and edit them in the prompt editor."
     },
+    "companyContext": {
+      "title": "Company & context",
+      "description": "Project / company description",
+      "descriptionPlaceholder": "Short description of the project or company…",
+      "contextLabel": "Company context",
+      "contextPlaceholder": "Industry, products, target markets, tone of voice, etc. This context is used to suggest target groups and personas.",
+      "saved": "Company context saved",
+      "suggestTitle": "Suggest target groups from context",
+      "suggestCta": "Generate suggestions",
+      "suggestLoading": "Generating…",
+      "suggestEmpty": "Save company context above first, then generate suggestions.",
+      "createSelected": "Create selected",
+      "createOne": "Create",
+      "created": "Target group created"
+    },
     "overview": {
       "title": "Overview",
       "personas": "Personas",
