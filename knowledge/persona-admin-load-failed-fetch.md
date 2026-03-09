@@ -8,15 +8,17 @@
 
 ## Cause
 
-1. **Overlapping requests**: Multiple `loadDetail` calls in flight (e.g. from effect re-runs or polling) exhaust browser connection/socket limits.
-2. **Aggressive polling**: Ingestion-status polling every 2s multiplied by re-renders or unstable deps can increase request rate.
+1. **Effect re-runs (main cause)**: The effect that loads detail had `[selectedId, loadDetail]` as deps. If `loadDetail` gets a new reference every render (e.g. from `useCallback` depending on `t` from i18n), the effect runs every render → `loadDetail(selectedId)` every time → setState → re-render → effect again → hundreds of requests.
+2. **Overlapping requests**: Multiple `loadDetail` calls in flight exhaust browser connection/socket limits.
+3. **Aggressive polling**: Polling interval and unstable deps can add more requests.
 
 ## Fix (in `msqdx-glass-persona-admin-panel.tsx`)
 
-1. **In-flight guard**: `loadDetailInFlightRef` — skip starting a new `loadDetail` if one is already running. Ref is set `true` at start and `false` in `finally`.
-2. **Reset on persona change**: When `selectedId` changes, reset the ref in the same effect that calls `loadDetail(selectedId)` so the new persona load is allowed.
-3. **Polling**: Only call `loadDetail` from the interval when `!loadDetailInFlightRef.current`. Polling interval increased from 2s to 5s to reduce load.
-4. **Stable polling deps**: Polling effect depends on `hasActiveIngestion` (derived from `detail?.documents` via `useMemo`), not on `detail`, to avoid re-creating the interval on every detail update.
+1. **Effect deps – no `loadDetail`**: The effect that loads detail when `selectedId` changes must **not** depend on `loadDetail`. Use `loadDetailRef`: set `loadDetailRef.current = loadDetail` after defining `loadDetail`, and in the effect call `loadDetailRef.current(selectedId)` with deps **only `[selectedId]`**. So the effect runs exactly once per `selectedId` change.
+2. **Polling effect**: Same idea – use `loadDetailRef.current(selectedId)` in the interval and remove `loadDetail` from the effect deps; deps stay `[hasActiveIngestion, selectedId]`.
+3. **In-flight guard**: `loadDetailInFlightRef` — skip starting a new `loadDetail` if one is already running. Ref is set `true` at start and `false` in `finally`.
+4. **Reset on persona change**: When `selectedId` changes, reset the ref in the same effect so the new persona load is allowed.
+5. **Polling**: Only call from the interval when `!loadDetailInFlightRef.current`; interval 5s.
 
 ## If it persists
 

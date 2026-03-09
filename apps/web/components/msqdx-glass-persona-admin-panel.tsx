@@ -200,6 +200,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
   const documentInputRef = useRef<HTMLInputElement | null>(null);
   const lastTargetGroupsProjectIdRef = useRef<string | null>(null);
   const loadDetailInFlightRef = useRef(false);
+  const loadDetailRef = useRef<(id: string) => Promise<void>>(async () => {});
 
   const selectedListItem: PersonaListItem | undefined = useMemo(
     () => list.items.find((item) => item.id === selectedId),
@@ -239,6 +240,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
     },
     [activeProjectId, t]
   );
+  loadDetailRef.current = loadDetail;
 
   const refreshList = useCallback(async () => {
     if (!activeProjectId) {
@@ -283,14 +285,15 @@ export const MsqdxGlassPersonaAdminPanel = ({
     }
   }, [mode, activePersonaId, selectedId]);
 
+  // Load detail only when selectedId changes. Use ref so we don't re-run when loadDetail identity changes (would cause request storm).
   useEffect(() => {
     loadDetailInFlightRef.current = false;
     if (selectedId) {
-      loadDetail(selectedId);
+      loadDetailRef.current(selectedId);
     } else {
       setDetail(null);
     }
-  }, [selectedId, loadDetail]);
+  }, [selectedId]);
 
   useEffect(() => {
     if (!recentTraitHighlights.length) return;
@@ -326,10 +329,10 @@ export const MsqdxGlassPersonaAdminPanel = ({
   useEffect(() => {
     if (!selectedId || !hasActiveIngestion) return;
     const interval = setInterval(() => {
-      if (!loadDetailInFlightRef.current) loadDetail(selectedId);
+      if (!loadDetailInFlightRef.current) loadDetailRef.current(selectedId);
     }, 5000);
     return () => clearInterval(interval);
-  }, [hasActiveIngestion, selectedId, loadDetail]);
+  }, [hasActiveIngestion, selectedId]);
 
   useEffect(() => {
     if (!detail) {
