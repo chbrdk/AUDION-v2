@@ -199,6 +199,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
   const [metadataAssignPending, setMetadataAssignPending] = useState(false);
   const documentInputRef = useRef<HTMLInputElement | null>(null);
   const lastTargetGroupsProjectIdRef = useRef<string | null>(null);
+  const loadDetailInFlightRef = useRef(false);
 
   const selectedListItem: PersonaListItem | undefined = useMemo(
     () => list.items.find((item) => item.id === selectedId),
@@ -212,6 +213,8 @@ export const MsqdxGlassPersonaAdminPanel = ({
         setDetailError(t("personaAdmin.noValidPersona"));
         return;
       }
+      if (loadDetailInFlightRef.current) return;
+      loadDetailInFlightRef.current = true;
       setDetailError(null);
       setDetailLoading(true);
       try {
@@ -230,6 +233,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
         setDetail(null);
         setDetailError(t("personaAdmin.loadFailed"));
       } finally {
+        loadDetailInFlightRef.current = false;
         setDetailLoading(false);
       }
     },
@@ -280,6 +284,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
   }, [mode, activePersonaId, selectedId]);
 
   useEffect(() => {
+    loadDetailInFlightRef.current = false;
     if (selectedId) {
       loadDetail(selectedId);
     } else {
@@ -321,8 +326,8 @@ export const MsqdxGlassPersonaAdminPanel = ({
   useEffect(() => {
     if (!selectedId || !hasActiveIngestion) return;
     const interval = setInterval(() => {
-      loadDetail(selectedId);
-    }, 2000);
+      if (!loadDetailInFlightRef.current) loadDetail(selectedId);
+    }, 5000);
     return () => clearInterval(interval);
   }, [hasActiveIngestion, selectedId, loadDetail]);
 
