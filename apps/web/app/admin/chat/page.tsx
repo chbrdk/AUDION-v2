@@ -359,7 +359,6 @@ function AdminChatPageContent() {
   const typingTimersRef = useRef<Record<string, ReturnType<typeof setTimeout> | null>>({});
   const personaMenuOpen = Boolean(personaMenuAnchor);
   const previousInputRef = useRef("");
-  const lastEnsuredPersonaIdRef = useRef<string | null>(null);
   const speechSessionActiveRef = useRef(false);
   const handleSendRef = useRef<((messageText?: string) => Promise<void>) | null>(null);
   const {
@@ -633,27 +632,20 @@ function AdminChatPageContent() {
     };
   }, [activeTargetGroupId]);
 
+  // Ensure compact chat prompt exists whenever user selects a persona for chat (so first message uses it).
   useEffect(() => {
     if (!activePersonaId) return;
-    if (lastEnsuredPersonaIdRef.current === activePersonaId) return;
-    fetch(buildApiUrl(`/api/personas/${encodeURIComponent(activePersonaId)}/ensure-chat-prompt`), {
-      method: "POST",
-      credentials: "include",
-    })
-      .then(() => {
-        lastEnsuredPersonaIdRef.current = activePersonaId;
-      })
-      .catch(() => {});
+    const url = buildApiUrl(`/api/personas/${encodeURIComponent(activePersonaId)}/ensure-chat-prompt`);
+    fetch(url, { method: "POST", credentials: "include" }).catch(() => {});
   }, [activePersonaId]);
 
+  // Ensure compact chat prompt for each persona in the selected target group (so target-group chat uses them).
   useEffect(() => {
     if (targetGroupPersonas.length === 0) return;
     const toEnsure = targetGroupPersonas.slice(0, 10).map((p) => p.id);
     toEnsure.forEach((personaId) => {
-      fetch(buildApiUrl(`/api/personas/${encodeURIComponent(personaId)}/ensure-chat-prompt`), {
-        method: "POST",
-        credentials: "include",
-      }).catch(() => {});
+      const url = buildApiUrl(`/api/personas/${encodeURIComponent(personaId)}/ensure-chat-prompt`);
+      fetch(url, { method: "POST", credentials: "include" }).catch(() => {});
     });
   }, [targetGroupPersonas]);
 
