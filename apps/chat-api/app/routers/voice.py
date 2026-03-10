@@ -210,7 +210,7 @@ async def voice_chat_stream(request: VoiceChatRequest) -> StreamingResponse:
             logger.info("voice.stream.retrieval.starting", persona_id=request.persona_id)
             loop = asyncio.get_event_loop()
             
-            # Try to get sources with a timeout (30 seconds max)
+            # Try to get sources with a timeout (30 seconds max); fallback to empty on any error
             try:
                 _, hits = await asyncio.wait_for(
                     loop.run_in_executor(
@@ -232,7 +232,14 @@ async def voice_chat_stream(request: VoiceChatRequest) -> StreamingResponse:
                 yield f"data: {json.dumps({'type': 'sources', 'sources': sources})}\n\n"
             except asyncio.TimeoutError:
                 logger.warning("voice.stream.retrieval.timeout", persona_id=request.persona_id)
-                # Continue without sources if retrieval times out
+                yield f"data: {json.dumps({'type': 'sources', 'sources': []})}\n\n"
+            except Exception as e:
+                logger.warning(
+                    "voice.stream.retrieval.failed",
+                    persona_id=request.persona_id,
+                    error=str(e),
+                    message="Continuing without sources (e.g. FlagEmbedding/transformers)."
+                )
                 yield f"data: {json.dumps({'type': 'sources', 'sources': []})}\n\n"
 
             logger.info("voice.stream.persona_agent.starting", persona_id=request.persona_id)

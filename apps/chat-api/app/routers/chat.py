@@ -262,7 +262,7 @@ async def send_message(request: ChatMessageRequest) -> ChatMessageResponse:
     
     logger.info("chat.message.received", persona_id=request.persona_id, message_length=len(user_message_for_logging))
     
-    # Get relevant sources
+    # Get relevant sources (graceful fallback if FlagEmbedding/transformers incompatible)
     try:
         logger.info("chat.retrieval.starting", query=retrieval_query[:100])
         loop = asyncio.get_event_loop()
@@ -272,12 +272,15 @@ async def send_message(request: ChatMessageRequest) -> ChatMessageResponse:
         )
         logger.info("chat.retrieval.complete", hits_count=len(hits))
     except Exception as e:
-        logger.error("chat.retrieval.failed", error=str(e), exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve sources: {str(e)}"
-        ) from e
-    
+        logger.warning(
+            "chat.retrieval.failed",
+            error=str(e),
+            exc_info=True,
+            message="Continuing without sources (e.g. FlagEmbedding/transformers compatibility)."
+        )
+        embedding = []
+        hits = []
+
     # Convert hits to source format
     sources = [
         {
