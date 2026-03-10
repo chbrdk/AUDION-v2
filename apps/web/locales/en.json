@@ -163,7 +163,27 @@
     "exitVideo": "Exit video call",
     "backToTextChat": "Back to text chat",
     "tavusNoReplica": "This persona has no Tavus video configured. Set Tavus Replica ID in the persona metadata.",
-    "tavusSessionFailed": "Failed to start Tavus video session."
+    "tavusSessionFailed": "Failed to start Tavus video session.",
+    "choosePersonaTitle": "Choose a persona to start",
+    "choosePersonaSubtitle": "Pick the audience voice you'd like to talk to.",
+    "chatMode": {
+      "persona": "Persona",
+      "targetGroup": "Target group"
+    },
+    "targetGroup": {
+      "selectTargetGroup": "Select target group",
+      "selectTargetGroupSubtitle": "Ask one question and get an answer from each persona in this target group.",
+      "targetGroup": "Target group",
+      "none": "— None —",
+      "noPersonas": "No personas in this target group.",
+      "personaCount": "{{count}} personas",
+      "personas": "personas",
+      "askingAll": "Asking all personas…",
+      "askAllTitle": "Ask the whole target group",
+      "askAllSubtitle": "Type a question and send. Each persona will answer; responses appear side by side.",
+      "responsesFrom": "Responses from personas",
+      "responsesReceived": "Responses received."
+    }
   },
   "chatHistory": {
     "title": "Chat History",

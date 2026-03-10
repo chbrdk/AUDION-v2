@@ -228,6 +228,20 @@ type Message = {
   images?: string[]; // Base64 data URLs for display (thumbnails)
 };
 
+type TargetGroupListItem = { id: string; name: string; segment?: string };
+
+type TargetGroupRoundResponse = {
+  personaId: string;
+  personaName: string;
+  content: string;
+  sources?: Array<{ chunk_id: string; document_id: string; title: string; confidence: number; excerpt: string }>;
+};
+
+type TargetGroupRound = {
+  userMessage: string;
+  responses: TargetGroupRoundResponse[];
+};
+
 /** Avoid Mixed Content: use same-origin proxy when avatar URL is http/localhost on HTTPS. */
 function safeAvatarSrc(avatarUrl: string | null | undefined, personaId: string | undefined): string | undefined {
   if (!avatarUrl || !personaId) return avatarUrl ?? undefined;
@@ -332,6 +346,15 @@ function AdminChatPageContent() {
   const [tavusSessionLoading, setTavusSessionLoading] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [shareLinkCopied, setShareLinkCopied] = useState(false);
+  // Target group chat mode: one question, all personas answer side-by-side
+  const [chatMode, setChatMode] = useState<"persona" | "target_group">("persona");
+  const [availableTargetGroups, setAvailableTargetGroups] = useState<TargetGroupListItem[]>([]);
+  const [loadingTargetGroups, setLoadingTargetGroups] = useState(false);
+  const [activeTargetGroupId, setActiveTargetGroupId] = useState<string | undefined>();
+  const [targetGroupPersonas, setTargetGroupPersonas] = useState<PersonaSummary[]>([]);
+  const [loadingTargetGroupPersonas, setLoadingTargetGroupPersonas] = useState(false);
+  const [targetGroupRounds, setTargetGroupRounds] = useState<TargetGroupRound[]>([]);
+  const [sendingTargetGroup, setSendingTargetGroup] = useState(false);
   const typingBuffersRef = useRef<Record<string, string>>({});
   const typingTimersRef = useRef<Record<string, ReturnType<typeof setTimeout> | null>>({});
   const personaMenuOpen = Boolean(personaMenuAnchor);
@@ -539,6 +562,77 @@ function AdminChatPageContent() {
   }, [activeProjectId]);
 
   useEffect(() => {
+    const loadTargetGroups = async () => {
+      if (!activeProjectId) {
+        setAvailableTargetGroups([]);
+        setActiveTargetGroupId(undefined);
+        return;
+      }
+      setLoadingTargetGroups(true);
+      try {
+        const res = await fetch(buildApiUrl(`/api/target-groups?project_id=${encodeURIComponent(activeProjectId)}&page_size=100`), { cache: "no-store" });
+        if (!res.ok) {
+          setAvailableTargetGroups([]);
+          return;
+        }
+        const data = await res.json();
+        const items = data.items ?? [];
+        setAvailableTargetGroups(
+          items.map((tg: { id: string; name?: string; segment?: string }) => ({
+            id: tg.id,
+            name: tg.name ?? tg.id,
+            segment: tg.segment,
+          }))
+        );
+      } catch {
+        setAvailableTargetGroups([]);
+      } finally {
+        setLoadingTargetGroups(false);
+      }
+    };
+    loadTargetGroups();
+  }, [activeProjectId]);
+
+  useEffect(() => {
+    if (!activeTargetGroupId) {
+      setTargetGroupPersonas([]);
+      return;
+    }
+    let cancelled = false;
+    setLoadingTargetGroupPersonas(true);
+    fetch(buildApiUrl(`/api/target-groups/${encodeURIComponent(activeTargetGroupId)}/personas?page_size=50`), { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : { items: [] }))
+      .then((data) => {
+        const items = data.items ?? [];
+        const personas: PersonaSummary[] = items.map((p: any) => {
+          const systemPrompt = p.prompt?.systemPrompt ?? p.prompt?.system_prompt ?? null;
+          const imageUrl = p.avatarUrl ?? p.imageUrl ?? p.image_url;
+          return {
+            id: p.id,
+            name: p.name,
+            segment: p.segment,
+            headline: p.headline,
+            confidence: p.confidence ?? 1.0,
+            image_url: imageUrl,
+            profileCard: p.profile_card ?? null,
+            profile: normalizePersonaProfile(p.profile),
+            systemPrompt: systemPrompt,
+          };
+        });
+        if (!cancelled) setTargetGroupPersonas(personas);
+      })
+      .catch(() => {
+        if (!cancelled) setTargetGroupPersonas([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingTargetGroupPersonas(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTargetGroupId]);
+
+  useEffect(() => {
     if (!speechSessionActiveRef.current) {
       return;
     }
@@ -643,7 +737,123 @@ function AdminChatPageContent() {
     setVoiceEnabled((prev) => !prev);
   };
 
-  const sendDisabled = !activePersonaId || sending || input.trim().length === 0;
+  const hasPersonaSelection = Boolean(activePersonaId);
+  const hasTargetGroupSelection = Boolean(activeTargetGroupId);
+  const showSelectionState =
+    (chatMode === "persona" && !hasPersonaSelection) ||
+    (chatMode === "target_group" && !hasTargetGroupSelection);
+  const showChatState =
+    (chatMode === "persona" && hasPersonaSelection) ||
+    (chatMode === "target_group" && hasTargetGroupSelection);
+  const sendDisabled =
+    chatMode === "persona"
+      ? !activePersonaId || sending || input.trim().length === 0
+      : !activeTargetGroupId || sendingTargetGroup || targetGroupPersonas.length === 0 || input.trim().length === 0;
+
+  const MAX_PERSONAS_PER_TARGET_GROUP_ROUND = 10;
+
+  const handleSendTargetGroup = useCallback(async () => {
+    const question = input.trim();
+    if (!activeTargetGroupId || !question || targetGroupPersonas.length === 0 || sendingTargetGroup) return;
+    const personasToAsk = targetGroupPersonas.slice(0, MAX_PERSONAS_PER_TARGET_GROUP_ROUND);
+    setSendingTargetGroup(true);
+    setInput("");
+    const apiBase = getChatApiBase();
+    const userId = user?.plexon_user_id ?? user?.id ?? undefined;
+    const requestPromises = personasToAsk.map(async (persona): Promise<TargetGroupRoundResponse> => {
+      const normalizedProfile = persona.profile
+        ? {
+            name: persona.profile.name,
+            fullName: persona.profile.fullName,
+            headline: persona.profile.headline,
+            bio: persona.profile.bio,
+            age: persona.profile.age,
+            location: persona.profile.location,
+            gender: persona.profile.gender,
+            media_affinity: persona.profile.media_affinity,
+            interests: persona.profile.interests ?? [],
+            colorPalette: persona.profile.colorPalette ?? [],
+            attentionSpan: persona.profile.attentionSpan,
+            socialMediaUsage: persona.profile.socialMediaUsage ?? [],
+            values: persona.profile.values ?? [],
+            traits: persona.profile.traits ?? {},
+            painPoints: persona.profile.painPoints ?? [],
+            goals: persona.profile.goals ?? [],
+            communicationStyle: persona.profile.communicationStyle,
+          }
+        : {
+            name: persona.name,
+            fullName: persona.name,
+            headline: persona.headline ?? null,
+            bio: null,
+            age: null,
+            location: null,
+            gender: null,
+            media_affinity: null,
+            interests: [] as string[],
+            colorPalette: [] as string[],
+            attentionSpan: null,
+            socialMediaUsage: [] as string[],
+            values: [] as string[],
+            traits: {} as Record<string, number>,
+            painPoints: [] as Array<{ label?: string; evidenceCount?: number }>,
+            goals: [] as Array<{ label?: string; priority?: number }>,
+            communicationStyle: undefined,
+          };
+      const systemPrompt = buildAdaptiveSystemPrompt({
+        persona: normalizedProfile,
+        journeyPhases: undefined,
+        conversationHistory: [],
+        learnings: [],
+        messageCount: 1,
+        baseSystemPrompt: persona.systemPrompt ?? undefined,
+      });
+      const apiMessages = [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: question },
+      ];
+      const res = await fetch(`${apiBase}/message`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          persona_id: persona.id,
+          messages: apiMessages,
+          ...(userId && { user_id: userId }),
+        }),
+      });
+      if (!res.ok) {
+        const errText = await res.text().catch(() => "Request failed");
+        return {
+          personaId: persona.id,
+          personaName: persona.name,
+          content: `Error: ${errText}`,
+          sources: [],
+        };
+      }
+      const data = await res.json();
+      return {
+        personaId: persona.id,
+        personaName: persona.name,
+        content: data.response ?? "",
+        sources: data.sources ?? [],
+      };
+    });
+    try {
+      const responses = await Promise.all(requestPromises);
+      setTargetGroupRounds((prev) => prev.concat({ userMessage: question, responses }));
+      notify(t("adminChat.targetGroup.responsesReceived"));
+    } catch (e) {
+      notify(e instanceof Error ? e.message : "Failed to get responses");
+    } finally {
+      setSendingTargetGroup(false);
+    }
+  }, [
+    activeTargetGroupId,
+    input,
+    targetGroupPersonas,
+    sendingTargetGroup,
+    user,
+  ]);
 
   const handleSend = async (messageText?: string) => {
     const rawContent = (messageText?.trim() || input.trim());
@@ -1474,12 +1684,24 @@ function AdminChatPageContent() {
     setCurrentSystemPrompt(systemPrompt);
   }, [activePersona, activePersonaId, selectedJourney, selectedPhases, messages, learnings]);
 
-  // Update header with persona info when activePersona changes
+  // Update header with persona or target group info
   useEffect(() => {
-    // Only run on client side
     if (typeof window === "undefined") return;
 
-    if (activePersonaId && activePersona) {
+    if (chatMode === "target_group" && activeTargetGroupId) {
+      const tg = availableTargetGroups.find((g) => g.id === activeTargetGroupId);
+      setHeaderContent(
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, px: 1 }}>
+          <MsqdxIcon name="groups" customSize={24} />
+          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+            {tg?.name ?? activeTargetGroupId}
+          </Typography>
+          <Typography variant="caption" sx={{ color: "text.secondary" }}>
+            {t("adminChat.chatMode.targetGroup")} · {targetGroupPersonas.length} {t("adminChat.targetGroup.personas")}
+          </Typography>
+        </Box>
+      );
+    } else if (activePersonaId && activePersona) {
       setHeaderContent(
         <Button
           variant="text"
@@ -1518,11 +1740,10 @@ function AdminChatPageContent() {
       setHeaderContent(null);
     }
 
-    // Cleanup: reset header when component unmounts
     return () => {
       setHeaderContent(null);
     };
-  }, [activePersonaId, activePersona, personaDisplayName, setHeaderContent, theme]);
+  }, [chatMode, activePersonaId, activePersona, activeTargetGroupId, availableTargetGroups, targetGroupPersonas.length, personaDisplayName, setHeaderContent, theme, t]);
 
   // Auto-save conversation
   useEffect(() => {
@@ -1574,57 +1795,116 @@ function AdminChatPageContent() {
         minHeight: 0
       }}
     >
-      {/* Persona Selection - wenn keine Persona ausgewählt */}
-      {!activePersonaId && (
+      {/* Mode switch + Selection (Persona or Target group) */}
+      {showSelectionState && (
         <Box
           sx={{
             display: "flex",
+            flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
             flex: 1,
-            minHeight: 0
+            minHeight: 0,
+            p: 2
           }}
         >
-          <Stack
-            spacing={2.5}
-            alignItems="center"
-            textAlign="center"
-            sx={{
-              background: alpha(theme.palette.background.paper, 0.92),
-              borderRadius: 4,
-              border: "1px solid var(--color-neutral)",
-              px: { xs: 3, md: 4 },
-              py: { xs: 4, md: 5 },
-              maxWidth: 480,
-              width: "min(90%, 480px)"
+          <Tabs
+            value={chatMode}
+            onChange={(_, v: "persona" | "target_group") => {
+              setChatMode(v);
+              if (v === "persona") setActiveTargetGroupId(undefined);
+              else setActivePersonaId(undefined);
             }}
+            sx={{ mb: 2, minHeight: 40 }}
           >
-            <Typography variant="h5" sx={{ fontWeight: 500 }}>
-              Choose a persona to start
-            </Typography>
-            <Typography variant="body2">
-              Pick the audience voice you&apos;d like to talk to.
-            </Typography>
-            <Button
-              variant="contained"
-              size="large"
-              startIcon={<MsqdxIcon name="person_add" customSize={22} />}
-              onClick={(event) => setPersonaMenuAnchor(event.currentTarget)}
-              disabled={loadingPersonas}
+            <Tab label={t("adminChat.chatMode.persona")} value="persona" />
+            <Tab label={t("adminChat.chatMode.targetGroup")} value="target_group" />
+          </Tabs>
+          {chatMode === "persona" && (
+            <Stack
+              spacing={2.5}
+              alignItems="center"
+              textAlign="center"
               sx={{
-                borderRadius: 999,
-                px: 4
+                background: alpha(theme.palette.background.paper, 0.92),
+                borderRadius: 4,
+                border: "1px solid var(--color-neutral)",
+                px: { xs: 3, md: 4 },
+                py: { xs: 4, md: 5 },
+                maxWidth: 480,
+                width: "min(90%, 480px)"
               }}
             >
-              {loadingPersonas ? t("adminChat.loadingPersonas") : t("adminChat.choosePersona")}
-            </Button>
-            {loadingPersonas && <CircularProgress size={28} />}
-          </Stack>
+              <Typography variant="h5" sx={{ fontWeight: 500 }}>
+                {t("adminChat.choosePersonaTitle")}
+              </Typography>
+              <Typography variant="body2">
+                {t("adminChat.choosePersonaSubtitle")}
+              </Typography>
+              <Button
+                variant="contained"
+                size="large"
+                startIcon={<MsqdxIcon name="person_add" customSize={22} />}
+                onClick={(event) => setPersonaMenuAnchor(event.currentTarget)}
+                disabled={loadingPersonas}
+                sx={{ borderRadius: 999, px: 4 }}
+              >
+                {loadingPersonas ? t("adminChat.loadingPersonas") : t("adminChat.choosePersona")}
+              </Button>
+              {loadingPersonas && <CircularProgress size={28} />}
+            </Stack>
+          )}
+          {chatMode === "target_group" && (
+            <Stack
+              spacing={2}
+              alignItems="center"
+              sx={{
+                background: alpha(theme.palette.background.paper, 0.92),
+                borderRadius: 4,
+                border: "1px solid var(--color-neutral)",
+                px: { xs: 3, md: 4 },
+                py: { xs: 4, md: 5 },
+                maxWidth: 480,
+                width: "min(90%, 480px)"
+              }}
+            >
+              <Typography variant="h5" sx={{ fontWeight: 500 }}>
+                {t("adminChat.targetGroup.selectTargetGroup")}
+              </Typography>
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                {t("adminChat.targetGroup.selectTargetGroupSubtitle")}
+              </Typography>
+              <FormControl fullWidth size="medium" sx={{ minWidth: 260 }}>
+                <InputLabel>{t("adminChat.targetGroup.targetGroup")}</InputLabel>
+                <Select
+                  value={activeTargetGroupId ?? ""}
+                  onChange={(e) => setActiveTargetGroupId(e.target.value || undefined)}
+                  label={t("adminChat.targetGroup.targetGroup")}
+                  disabled={loadingTargetGroups}
+                >
+                  <MenuItem value="">{t("adminChat.targetGroup.none")}</MenuItem>
+                  {availableTargetGroups.map((tg) => (
+                    <MenuItem key={tg.id} value={tg.id}>
+                      {tg.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              {loadingTargetGroupPersonas && <CircularProgress size={24} />}
+              {activeTargetGroupId && !loadingTargetGroupPersonas && (
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  {targetGroupPersonas.length === 0
+                    ? t("adminChat.targetGroup.noPersonas")
+                    : t("adminChat.targetGroup.personaCount", { count: targetGroupPersonas.length })}
+                </Typography>
+              )}
+            </Stack>
+          )}
         </Box>
       )}
 
-      {/* Chat Interface - wenn Persona ausgewählt */}
-      {activePersonaId && (
+      {/* Chat Interface - Persona mode or Target group mode with selection */}
+      {showChatState && (
         <Box
           sx={{
             display: "flex",
@@ -1635,7 +1915,7 @@ function AdminChatPageContent() {
           }}
         >
           {/* Status Bar */}
-          {(thinkingLabel || sending) && (
+          {(thinkingLabel || sending || sendingTargetGroup) && (
             <Box
               sx={{
                 display: "flex",
@@ -1645,21 +1925,27 @@ function AdminChatPageContent() {
                 flexShrink: 0
               }}
             >
-              {thinkingLabel && (
+              {thinkingLabel && !sendingTargetGroup && (
                 <Typography variant="body2" sx={{ color: alpha(theme.palette.text.primary, 0.7) }}>
                   {thinkingLabel}
                 </Typography>
               )}
-              {sending && (
+              {sending && !sendingTargetGroup && (
                 <Stack direction="row" spacing={1} alignItems="center">
                   <CircularProgress size={16} />
                   <Typography variant="body2">{t("adminChat.sending")}</Typography>
                 </Stack>
               )}
+              {sendingTargetGroup && (
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <CircularProgress size={16} />
+                  <Typography variant="body2">{t("adminChat.targetGroup.askingAll")}</Typography>
+                </Stack>
+              )}
             </Box>
           )}
 
-          {/* Chat Messages - or Tavus Video when video mode is on */}
+          {/* Chat Messages - Persona thread, or Target group rounds (side-by-side), or Tavus Video */}
           <Box
             sx={{
               flex: 1,
@@ -1670,10 +1956,95 @@ function AdminChatPageContent() {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              justifyContent: videoEnabled && tavusSessionConfig ? "flex-start" : messages.length === 0 ? "center" : "flex-start"
+              justifyContent:
+                videoEnabled && tavusSessionConfig
+                  ? "flex-start"
+                  : chatMode === "target_group"
+                    ? (targetGroupRounds.length === 0 ? "center" : "flex-start")
+                    : messages.length === 0
+                      ? "center"
+                      : "flex-start"
             }}
           >
-            {videoEnabled && tavusSessionConfig ? (
+            {chatMode === "target_group" ? (
+              targetGroupRounds.length === 0 ? (
+                <Box
+                  sx={{
+                    maxWidth: 480,
+                    width: "100%",
+                    textAlign: "center",
+                    px: 2,
+                    py: 3,
+                    borderRadius: 4,
+                    border: "1px solid var(--color-neutral)",
+                    backgroundColor: alpha(theme.palette.background.paper, 0.8)
+                  }}
+                >
+                  <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                    {t("adminChat.targetGroup.askAllTitle")}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+                    {t("adminChat.targetGroup.askAllSubtitle")}
+                  </Typography>
+                </Box>
+              ) : (
+                <Stack spacing={3} sx={{ width: "100%", maxWidth: 1200 }}>
+                  {targetGroupRounds.map((round, roundIndex) => (
+                    <Box key={roundIndex}>
+                      <Stack spacing={0.5} alignItems="flex-end" sx={{ mb: 1 }}>
+                        <Typography variant="caption" sx={{ letterSpacing: 1, textTransform: "uppercase", color: "text.secondary" }}>
+                          You
+                        </Typography>
+                        <Box
+                          sx={{
+                            alignSelf: "flex-end",
+                            maxWidth: "85%",
+                            px: 2,
+                            py: 1.5,
+                            borderRadius: "36px 12px 36px 36px",
+                            border: "1px solid var(--color-secondary-dx-orange)",
+                            backgroundColor: theme.palette.background.paper
+                          }}
+                        >
+                          <Typography variant="body2">{round.userMessage}</Typography>
+                        </Box>
+                      </Stack>
+                      <Typography variant="caption" sx={{ display: "block", mb: 1, color: "text.secondary" }}>
+                        {t("adminChat.targetGroup.responsesFrom")}
+                      </Typography>
+                      <Box
+                        sx={{
+                          display: "grid",
+                          gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)", lg: "repeat(4, 1fr)" },
+                          gap: 1.5,
+                          overflowX: "auto"
+                        }}
+                      >
+                        {round.responses.map((r) => (
+                          <Paper
+                            key={r.personaId}
+                            variant="outlined"
+                            sx={{
+                              p: 1.5,
+                              borderColor: "var(--color-secondary-dx-pink)",
+                              borderWidth: 1,
+                              borderRadius: 2
+                            }}
+                          >
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                              {r.personaName}
+                            </Typography>
+                            <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
+                              {r.content}
+                            </Typography>
+                          </Paper>
+                        ))}
+                      </Box>
+                    </Box>
+                  ))}
+                </Stack>
+              )
+            ) : videoEnabled && tavusSessionConfig ? (
               <Box sx={{ width: "100%", height: "100%", minHeight: 0, display: "flex", flexDirection: "column", flex: 1 }}>
                 <Box sx={{ flexShrink: 0, mb: 1.5 }}>
                   <button
@@ -1737,7 +2108,11 @@ function AdminChatPageContent() {
             component="form"
             onSubmit={(event) => {
               event.preventDefault();
-              handleSend();
+              if (chatMode === "target_group") {
+                void handleSendTargetGroup();
+              } else {
+                void handleSend();
+              }
             }}
             sx={{
               padding: "1rem",
@@ -1777,7 +2152,7 @@ function AdminChatPageContent() {
                 >
                   <IconButton
                     onClick={() => setJourneyDialogOpen(true)}
-                    disabled={!activePersonaId || sending}
+                    disabled={chatMode !== "persona" || !activePersonaId || sending}
                     sx={{
                       backgroundColor: alpha(theme.palette.text.primary, 0.08),
                       borderRadius: 999
@@ -1787,6 +2162,7 @@ function AdminChatPageContent() {
                   </IconButton>
                 </Badge>
               </Tooltip>
+              {chatMode === "persona" && (
               <Tooltip title={t("adminChat.shareChatLink")}>
                 <IconButton
                   onClick={() => setShareDialogOpen(true)}
@@ -1799,6 +2175,7 @@ function AdminChatPageContent() {
                   <MsqdxIcon name="share" customSize={22} />
                 </IconButton>
               </Tooltip>
+              )}
               <Tooltip title={whisperRecording ? t("adminChat.stopRecording") : t("adminChat.startVoiceInput")}>
                 <IconButton
                   onClick={handleMicToggle}
@@ -1817,7 +2194,7 @@ function AdminChatPageContent() {
                 fullWidth
                 placeholder={t("adminChat.placeholder")}
                 value={input}
-                disabled={!activePersonaId || sending}
+                disabled={sendDisabled}
                 onChange={(event) => setInput(event.target.value)}
                 size="large"
                 sx={{
@@ -1856,7 +2233,7 @@ function AdminChatPageContent() {
                 </IconButton>
               </Tooltip>
               <IconButton
-                onClick={() => void handleSend()}
+                type="submit"
                 disabled={sendDisabled}
                 sx={{
                   backgroundColor: sendDisabled
