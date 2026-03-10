@@ -465,6 +465,11 @@ function AdminChatPageContent() {
   const personaAttentionSpan = personaProfile?.attentionSpan;
   const personaBio = personaProfile?.bio;
 
+  const ensureChatPromptForPersona = useCallback((personaId: string) => {
+    const url = buildApiUrl(`/api/personas/${encodeURIComponent(personaId)}/ensure-chat-prompt`);
+    fetch(url, { method: "POST", credentials: "include" }).catch(() => {});
+  }, []);
+
   const clearTypingState = (id: string) => {
     if (typingTimersRef.current[id]) {
       clearTimeout(typingTimersRef.current[id]!);
@@ -619,7 +624,10 @@ function AdminChatPageContent() {
             systemPrompt: systemPrompt,
           };
         });
-        if (!cancelled) setTargetGroupPersonas(personas);
+        if (!cancelled) {
+          setTargetGroupPersonas(personas);
+          personas.slice(0, 10).forEach((p) => ensureChatPromptForPersona(p.id));
+        }
       })
       .catch(() => {
         if (!cancelled) setTargetGroupPersonas([]);
@@ -630,21 +638,19 @@ function AdminChatPageContent() {
     return () => {
       cancelled = true;
     };
-  }, [activeTargetGroupId]);
+  }, [activeTargetGroupId, ensureChatPromptForPersona]);
 
-  // Ensure compact chat prompt exists whenever user selects a persona for chat (so first message uses it).
+  // Ensure compact chat prompt when selection changes (backup; primary call is in selection handlers).
   useEffect(() => {
     if (!activePersonaId) return;
     const url = buildApiUrl(`/api/personas/${encodeURIComponent(activePersonaId)}/ensure-chat-prompt`);
     fetch(url, { method: "POST", credentials: "include" }).catch(() => {});
   }, [activePersonaId]);
 
-  // Ensure compact chat prompt for each persona in the selected target group (so target-group chat uses them).
   useEffect(() => {
     if (targetGroupPersonas.length === 0) return;
-    const toEnsure = targetGroupPersonas.slice(0, 10).map((p) => p.id);
-    toEnsure.forEach((personaId) => {
-      const url = buildApiUrl(`/api/personas/${encodeURIComponent(personaId)}/ensure-chat-prompt`);
+    targetGroupPersonas.slice(0, 10).forEach((p) => {
+      const url = buildApiUrl(`/api/personas/${encodeURIComponent(p.id)}/ensure-chat-prompt`);
       fetch(url, { method: "POST", credentials: "include" }).catch(() => {});
     });
   }, [targetGroupPersonas]);
@@ -1625,6 +1631,9 @@ function AdminChatPageContent() {
         setConversationTitle(conversation.metadata.title);
         setMessages(conversation.messages);
         setActivePersonaId(conversation.metadata.personaId);
+        if (conversation.metadata.personaId) {
+          ensureChatPromptForPersona(conversation.metadata.personaId);
+        }
         if (conversation.learnings) {
           setLearnings(conversation.learnings);
         }
@@ -1641,7 +1650,7 @@ function AdminChatPageContent() {
         }
       }
     }
-  }, [searchParams]);
+  }, [searchParams, ensureChatPromptForPersona]);
 
   // Create new conversation when persona changes (if no conversationId in URL and no messages)
   useEffect(() => {
@@ -3076,6 +3085,7 @@ function AdminChatPageContent() {
               onClick={() => {
                 setActivePersonaId(persona.id);
                 setPersonaMenuAnchor(null);
+                ensureChatPromptForPersona(persona.id);
               }}
               sx={{ alignItems: "flex-start" }}
             >
