@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Box, Stack, TextField } from "@mui/material";
 import Link from "next/link";
 import { MsqdxButton, MsqdxCard, MsqdxFormField, MsqdxTypography, MsqdxIcon, MsqdxDashboardCard, MsqdxChip } from "@msqdx/react";
@@ -66,6 +67,7 @@ export function MsqdxGlassProjectAdminPanel({
     mode = "full",
 }: MsqdxGlassProjectAdminPanelProps) {
     const { t } = useI18n();
+    const router = useRouter();
     const accent = "var(--color-theme-accent)";
     const {
         projects: providerProjects,
@@ -1374,21 +1376,29 @@ export function MsqdxGlassProjectAdminPanel({
                                                                 />
                                                                 <MsqdxChip variant="outlined" size="small" label={journey.journey_type} />
                                                             </Box>
-                                                            <Link
-                                                                href={ADMIN_ROUTES.journeyDetail(journey.id)}
-                                                                style={{ marginTop: 4, fontSize: "0.75rem" }}
-                                                                onClick={(e) => e.stopPropagation()}
+                                                            <MsqdxButton
+                                                                variant="text"
+                                                                size="small"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    router.push(ADMIN_ROUTES.journeyDetail(journey.id));
+                                                                }}
+                                                                sx={{ mt: 0.5, alignSelf: "flex-start", fontSize: "0.75rem" }}
                                                             >
                                                                 {t("settingsProjects.projectJourneys.view") ?? "View journey"} →
-                                                            </Link>
+                                                            </MsqdxButton>
                                                         </Stack>
                                                     </MsqdxCard>
                                                 ))}
                                             </Box>
                                         )}
-                                        <Link href={ADMIN_ROUTES.journeys} style={{ fontSize: "0.875rem" }}>
+                                        <MsqdxButton
+                                            variant="outlined"
+                                            size="small"
+                                            onClick={() => router.push(ADMIN_ROUTES.journeys)}
+                                        >
                                             {t("settingsProjects.projectJourneys.allJourneys") ?? "All journeys"} →
-                                        </Link>
+                                        </MsqdxButton>
                                     </Stack>
                                 </MsqdxDashboardCard>
                             </Box>
