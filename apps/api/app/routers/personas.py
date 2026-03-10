@@ -394,10 +394,11 @@ async def generate_persona_goals(
     "/{persona_id}/enrich",
     response_model=PersonaResponse,
     summary="Enrich persona with AI-generated traits",
-    description="Calls AI to generate pain points, goals, interests, and values for the persona and merges them into the profile. Uses existing persona context.",
+    description="Calls AI to generate pain points, goals, interests, and values for the persona and merges them into the profile. Optional body can include profile_overlay: { bio, age, location, gender } to ensure they are saved.",
 )
 async def enrich_persona(
     persona_id: str,
+    body: dict | None = Body(default=None),
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> PersonaResponse:
@@ -422,6 +423,10 @@ async def enrich_persona(
     goals = list(existing.get("goals") or [])
     interests = list(existing.get("interests") or [])
     values = list(existing.get("values") or [])
+
+    overlay = (body or {}).get("profile_overlay") if isinstance(body, dict) else None
+    if not isinstance(overlay, dict):
+        overlay = {}
 
     try:
         ctx_pain = _build_persona_ai_context(session, persona, max_items)
@@ -473,6 +478,11 @@ async def enrich_persona(
         "interests": interests,
         "values": values,
     }
+    for key in ("bio", "age", "location", "gender"):
+        if overlay and key in overlay:
+            profile_json[key] = overlay[key]
+        elif existing and key in existing:
+            profile_json[key] = existing[key]
     payload = PersonaPatchRequest(
         name=None,
         segment=None,

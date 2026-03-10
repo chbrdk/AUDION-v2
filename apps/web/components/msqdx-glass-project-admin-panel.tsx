@@ -516,6 +516,7 @@ export function MsqdxGlassProjectAdminPanel({
                 try {
                     const createRes = await fetch(buildApiUrl("/api/personas"), {
                         method: "POST",
+                        credentials: "include",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
                             project_id: selectedId,
@@ -534,6 +535,7 @@ export function MsqdxGlassProjectAdminPanel({
                     if (personaId && (bio || age || location || gender)) {
                         await fetch(buildApiUrl(`/api/persona-admin/${personaId}`), {
                             method: "PATCH",
+                            credentials: "include",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({
                                 profile: {
@@ -545,10 +547,16 @@ export function MsqdxGlassProjectAdminPanel({
                             }),
                         });
                     }
+                    const profileOverlay = { bio: bio || "", age: age ?? null, location: location ?? null, gender: gender ?? null };
                     if (doEnrich && personaId) {
                         setEnrichingPersonaIds((prev) => new Set(prev).add(personaId));
                         try {
-                            const enrichRes = await fetch(buildApiUrl(`/api/personas/${personaId}/enrich`), { method: "POST" });
+                            const enrichRes = await fetch(buildApiUrl(`/api/personas/${personaId}/enrich`), {
+                                method: "POST",
+                                credentials: "include",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ profile_overlay: profileOverlay }),
+                            });
                             if (!enrichRes.ok) throw new Error("Enrich failed");
                         } finally {
                             setEnrichingPersonaIds((prev) => {

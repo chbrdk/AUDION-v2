@@ -22,10 +22,15 @@ export async function POST(request: NextRequest, context: RouteParams) {
     const baseUrl = getPersonaBackendBase({ preferPublic: false });
     const target = `${baseUrl}/personas/${personaId}/enrich`;
     const token = getAuthTokenFromRequest(request);
+    const body = await request.text();
 
     const response = await fetch(target, {
       method: "POST",
-      headers: buildAuthHeaders(token),
+      headers: {
+        "Content-Type": request.headers.get("content-type") ?? "application/json",
+        ...buildAuthHeaders(token),
+      },
+      body: body || undefined,
       cache: "no-store",
       signal: AbortSignal.timeout(120000),
     });
