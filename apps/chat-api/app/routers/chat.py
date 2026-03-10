@@ -201,9 +201,12 @@ async def _send_message_impl(request: ChatMessageRequest) -> ChatMessageResponse
                 detail=f"Persona not found: {request.persona_id}"
             )
         
-        # Get persona prompt
+        # Get latest persona prompt (most recent by created_at)
         prompt = session.scalar(
-            select(PersonaPrompt).where(PersonaPrompt.persona_id == persona_uuid)
+            select(PersonaPrompt)
+            .where(PersonaPrompt.persona_id == persona_uuid)
+            .order_by(PersonaPrompt.created_at.desc())
+            .limit(1)
         )
     
     # Determine system prompt and messages
@@ -474,9 +477,12 @@ async def send_message_stream(request: ChatMessageRequest) -> StreamingResponse:
                 detail=f"Persona not found: {request.persona_id}"
             )
         
-        # Get persona prompt
+        # Get latest persona prompt (most recent by created_at)
         prompt = session.scalar(
-            select(PersonaPrompt).where(PersonaPrompt.persona_id == persona_uuid)
+            select(PersonaPrompt)
+            .where(PersonaPrompt.persona_id == persona_uuid)
+            .order_by(PersonaPrompt.created_at.desc())
+            .limit(1)
         )
     
     # Extract persona segment for tool filtering

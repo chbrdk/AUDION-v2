@@ -14,7 +14,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from ..db import get_session
-from ..models import Document, DocumentChunk, Persona, PersonaKnowledgeEntry, ProcessingJob, TargetGroup, User
+from ..models import Document, DocumentChunk, Persona, PersonaKnowledgeEntry, PersonaPrompt as PersonaPromptModel, ProcessingJob, TargetGroup, User
 from worker.ingest import enqueue_ingestion
 from ..schemas import (
     AiAssistRequest,
@@ -41,12 +41,14 @@ from ..services.persona_ai_context import (
     build_persona_sentence_structure_ai_context as _build_persona_sentence_structure_ai_context,
 )
 from ..services.persona_generation import PersonaGenerationService
+from ..services.persona_prompt_builder import CHAT_PROMPT_TEMPLATE_VERSION, build_compact_chat_prompt
 from ..services.persona_store import PersonaService
 from ..services.tavus_client import create_conversation as tavus_create_conversation
 from ..services.target_group_store import TargetGroupService
 from ..services.storage import StorageService
 from ..services.usage_report import report_usage
 from ..core.config import get_settings
+from msqdx_glass_proto import PersonaPrompt as PersonaPromptProto
 
 router = APIRouter(prefix="/personas", tags=["personas"])
 # Same avatar under /api/persona-admin for reverse proxies that route /api/* to this service
@@ -574,6 +576,12 @@ async def enrich_persona(
             profile_json[key] = existing[key]
         else:
             profile_json[key] = "" if key == "bio" else None
+    compact_prompt = build_compact_chat_prompt(
+        name=persona.name or "",
+        segment=persona.segment or "",
+        headline=persona.headline or "",
+        profile=profile_json,
+    )
     payload = PersonaPatchRequest(
         name=None,
         segment=None,
@@ -583,6 +591,11 @@ async def enrich_persona(
         version=None,
         status=None,
         updated_by=uid or "system",
+        prompt=PersonaPromptProto(
+            persona_id=str(persona.id),
+            system_prompt=compact_prompt,
+            template_version=CHAT_PROMPT_TEMPLATE_VERSION,
+        ),
     )
     allowed_project_ids = (session.info or {}).get("allowed_project_ids")
     return persona_service.update_persona(
@@ -592,6 +605,41 @@ async def enrich_persona(
         profile_json=profile_json,
         allowed_project_ids=allowed_project_ids,
     )
+
+
+@router.post(
+    "/{persona_id}/ensure-chat-prompt",
+    summary="Ensure compact chat prompt exists",
+    description="Builds and saves a compact system prompt from the persona profile if missing or not the current template version. Idempotent.",
+)
+def ensure_chat_prompt(
+    persona_id: str,
+    session: Session = Depends(get_db),
+) -> dict:
+    persona = _get_persona_or_404(session, persona_id)
+    latest = session.scalar(
+        select(PersonaPromptModel)
+        .where(PersonaPromptModel.persona_id == persona.id)
+        .order_by(PersonaPromptModel.created_at.desc())
+    )
+    if latest and getattr(latest, "template_version", None) == CHAT_PROMPT_TEMPLATE_VERSION:
+        return {"ensured": False, "prompt_length": len(latest.system_prompt or "")}
+    profile = (persona.profile or {}) if hasattr(persona, "profile") else {}
+    built = build_compact_chat_prompt(
+        name=persona.name or "",
+        segment=persona.segment or "",
+        headline=persona.headline or "",
+        profile=profile,
+    )
+    session.add(
+        PersonaPromptModel(
+            persona_id=persona.id,
+            system_prompt=built,
+            template_version=CHAT_PROMPT_TEMPLATE_VERSION,
+        )
+    )
+    session.commit()
+    return {"ensured": True, "prompt_length": len(built)}
 
 
 @router.post(

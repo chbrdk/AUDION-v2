@@ -270,11 +270,13 @@ class PersonaService:
         session.flush()
 
         if payload.prompt:
+            sp = getattr(payload.prompt, "systemPrompt", None) or getattr(payload.prompt, "system_prompt", None) or ""
+            tv = getattr(payload.prompt, "templateVersion", None) or getattr(payload.prompt, "template_version", None) or "unknown"
             session.add(
                 PersonaPromptModel(
                     persona_id=persona.id,
-                    system_prompt=payload.prompt.systemPrompt,
-                    template_version=payload.prompt.templateVersion,
+                    system_prompt=sp,
+                    template_version=tv,
                 )
             )
 
@@ -470,11 +472,13 @@ class PersonaService:
         persona.updated_at = datetime.utcnow()
 
         if payload.prompt:
+            sp = getattr(payload.prompt, "systemPrompt", None) or getattr(payload.prompt, "system_prompt", None) or ""
+            tv = getattr(payload.prompt, "templateVersion", None) or getattr(payload.prompt, "template_version", None) or "unknown"
             session.add(
                 PersonaPromptModel(
                     persona_id=persona.id,
-                    system_prompt=payload.prompt.systemPrompt,
-                    template_version=payload.prompt.templateVersion,
+                    system_prompt=sp,
+                    template_version=tv,
                 )
             )
 

@@ -359,6 +359,7 @@ function AdminChatPageContent() {
   const typingTimersRef = useRef<Record<string, ReturnType<typeof setTimeout> | null>>({});
   const personaMenuOpen = Boolean(personaMenuAnchor);
   const previousInputRef = useRef("");
+  const lastEnsuredPersonaIdRef = useRef<string | null>(null);
   const speechSessionActiveRef = useRef(false);
   const handleSendRef = useRef<((messageText?: string) => Promise<void>) | null>(null);
   const {
@@ -631,6 +632,30 @@ function AdminChatPageContent() {
       cancelled = true;
     };
   }, [activeTargetGroupId]);
+
+  useEffect(() => {
+    if (!activePersonaId) return;
+    if (lastEnsuredPersonaIdRef.current === activePersonaId) return;
+    fetch(buildApiUrl(`/api/personas/${encodeURIComponent(activePersonaId)}/ensure-chat-prompt`), {
+      method: "POST",
+      credentials: "include",
+    })
+      .then(() => {
+        lastEnsuredPersonaIdRef.current = activePersonaId;
+      })
+      .catch(() => {});
+  }, [activePersonaId]);
+
+  useEffect(() => {
+    if (targetGroupPersonas.length === 0) return;
+    const toEnsure = targetGroupPersonas.slice(0, 10).map((p) => p.id);
+    toEnsure.forEach((personaId) => {
+      fetch(buildApiUrl(`/api/personas/${encodeURIComponent(personaId)}/ensure-chat-prompt`), {
+        method: "POST",
+        credentials: "include",
+      }).catch(() => {});
+    });
+  }, [targetGroupPersonas]);
 
   useEffect(() => {
     if (!speechSessionActiveRef.current) {

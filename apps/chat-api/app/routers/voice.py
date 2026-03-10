@@ -153,7 +153,12 @@ async def voice_chat_stream(request: VoiceChatRequest) -> StreamingResponse:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Persona not found: {request.persona_id}"
             )
-        prompt = session.scalar(select(PersonaPrompt).where(PersonaPrompt.persona_id == persona_uuid))
+        prompt = session.scalar(
+            select(PersonaPrompt)
+            .where(PersonaPrompt.persona_id == persona_uuid)
+            .order_by(PersonaPrompt.created_at.desc())
+            .limit(1)
+        )
 
     # Determine system prompt and messages
     base_system_prompt = prompt.system_prompt if prompt else get_persona_prompt(request.persona_id)

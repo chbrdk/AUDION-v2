@@ -104,9 +104,12 @@ def get_persona_prompt(persona_id: str) -> str | None:
         if not persona:
             return None
         
-        # Try to get stored prompt
+        # Try to get latest stored prompt (most recent by created_at)
         prompt = session.scalar(
-            select(PersonaPrompt).where(PersonaPrompt.persona_id == persona_uuid)
+            select(PersonaPrompt)
+            .where(PersonaPrompt.persona_id == persona_uuid)
+            .order_by(PersonaPrompt.created_at.desc())
+            .limit(1)
         )
         
         if prompt:
