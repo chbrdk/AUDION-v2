@@ -28,16 +28,16 @@ async def test_journey_generation_service_initialization():
 def test_save_journey_draft():
     """Test saving a journey draft to database."""
     from app.db import get_session
-    
+
     service = JourneyGenerationService()
-    
+
     draft = JourneyDraft(
         name="Test Journey",
         description="Test description",
         journey_type="purchase",
         phases=[],
     )
-    
+
     journey = service.save_journey_draft(
         draft=draft,
         target_group_id=uuid4(),
@@ -45,12 +45,45 @@ def test_save_journey_draft():
         project_id=None,
         created_by="test_user",
     )
-    
+
     assert journey.name == "Test Journey"
     assert journey.journey_type == "purchase"
     assert journey.creation_mode.value == "ai_generated"
-    
+
     # Cleanup
+    with get_session() as session:
+        session.delete(journey)
+        session.commit()
+
+
+def test_save_journey_draft_without_target_group():
+    """Test saving a journey draft with target_group_id=None (project-only generation)."""
+    from app.db import get_session
+
+    service = JourneyGenerationService()
+    org_id = uuid4()
+    project_id = uuid4()
+
+    draft = JourneyDraft(
+        name="Project-only Journey",
+        description="From company context only",
+        journey_type="customer_journey",
+        phases=[{"name": "Phase 1", "description": "First", "phase_order": 1, "elements": []}],
+    )
+
+    journey = service.save_journey_draft(
+        draft=draft,
+        target_group_id=None,
+        organization_id=org_id,
+        project_id=project_id,
+        created_by="test_user",
+    )
+
+    assert journey.name == "Project-only Journey"
+    assert journey.target_group_id is None
+    assert journey.project_id == project_id
+    assert journey.organization_id == org_id
+
     with get_session() as session:
         session.delete(journey)
         session.commit()

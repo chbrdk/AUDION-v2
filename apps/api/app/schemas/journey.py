@@ -128,6 +128,14 @@ class JourneyGenerateRequest(BaseModel):
     use_async: bool = Field(default=False, description="Whether to generate asynchronously via Celery task")
 
 
+class ProjectGenerateJourneyRequest(BaseModel):
+    """Request body for POST /projects/{project_id}/generate-journey."""
+    target_group_id: Optional[str] = Field(default=None, description="Optional target group ID; if omitted, only project context is used")
+    journey_type: str = Field(default="customer_journey", description="Type of journey (e.g. customer_journey, onboarding)")
+    organization_id: Optional[str] = Field(default=None, description="Optional; defaults to project_id if not provided")
+    created_by: Optional[str] = Field(default=None, description="User who triggered the generation")
+
+
 class ValidationRequest(BaseModel):
     persona_ids: List[str] = Field(..., description="List of persona IDs to validate against")
     mode: str = Field(default="automated", description="Validation mode: chat, automated, or both")

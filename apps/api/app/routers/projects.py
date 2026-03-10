@@ -5,24 +5,28 @@ from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
-from ..db import get_db
-from ..models import Project, ProjectMember, ProjectMemberStatus, ProjectRole, User
+from ..db import get_db, get_session
+from ..models import Journey, JourneyPhase, Project, ProjectMember, ProjectMemberStatus, ProjectRole, TargetGroup, User
 from ..schemas import (
     ProjectCreateRequest,
     ProjectDetailResponse,
     ProjectListResponse,
     ProjectMemberAddRequest,
     ProjectMemberResponse,
+    ProjectGenerateJourneyRequest,
     ProjectResponse,
     ProjectUpdateRequest,
     SuggestTargetGroupsRequest,
     SuggestTargetGroupsResponse,
     TargetGroupSuggestionItem,
 )
+from ..schemas.journey import JourneyResponse
 from ..services.ai_assist import seed_default_templates_for_project
 from ..services.auth import get_current_user
+from ..services.journey_generation import JourneyGenerationService
+from ..services.journey_serializer import to_journey_response
 from ..services.suggest_target_groups import suggest_target_groups as run_suggest_target_groups
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -221,6 +225,72 @@ def suggest_target_groups_endpoint(
     return SuggestTargetGroupsResponse(
         suggestions=[TargetGroupSuggestionItem(name=s.name, segment=s.segment, description=s.description) for s in suggestions],
     )
+
+
+@router.post(
+    "/{project_id}/generate-journey",
+    response_model=JourneyResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Generate journey from project knowledge",
+    description="Generates a full user journey from project description, company context, and optionally target group (personas + knowledge chunks). Returns the created journey with phases and elements.",
+)
+async def generate_journey_from_project_endpoint(
+    project_id: str,
+    body: ProjectGenerateJourneyRequest | None = Body(None),
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> JourneyResponse:
+    project = _get_project(session, project_id)
+    membership = _require_member(session, project_id=project.id, user_id=current_user.id)
+    _require_admin_or_owner(membership)
+
+    payload = body or ProjectGenerateJourneyRequest()
+    target_group_id: UUID | None = None
+    if payload.target_group_id and payload.target_group_id.strip():
+        try:
+            tg_uuid = UUID(payload.target_group_id.strip())
+        except ValueError:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid target_group_id") from None
+        tg = session.get(TargetGroup, tg_uuid)
+        if not tg or tg.project_id != project.id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Target group not found or does not belong to this project")
+        target_group_id = tg_uuid
+
+    organization_id = project.id
+    if payload.organization_id and payload.organization_id.strip():
+        try:
+            organization_id = UUID(payload.organization_id.strip())
+        except ValueError:
+            pass
+
+    service = JourneyGenerationService()
+    draft = await service.generate_journey_from_project(
+        session=session,
+        project_id=project.id,
+        target_group_id=target_group_id,
+        journey_type=payload.journey_type or "customer_journey",
+        organization_id=organization_id,
+    )
+    created = service.save_journey_draft(
+        draft=draft,
+        target_group_id=target_group_id,
+        organization_id=organization_id,
+        project_id=project.id,
+        created_by=getattr(current_user, "plexon_user_id", None) or str(current_user.id),
+    )
+
+    with get_session() as resp_session:
+        journey = resp_session.get(
+            Journey,
+            created.id,
+            options=[
+                joinedload(Journey.phases).joinedload(JourneyPhase.elements),
+                joinedload(Journey.phases).joinedload(JourneyPhase.expectations),
+            ],
+        )
+        if not journey:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Journey created but could not be loaded")
+        return to_journey_response(journey)
 
 
 @router.post("/{project_id}/members", response_model=ProjectMemberResponse, status_code=status.HTTP_201_CREATED)

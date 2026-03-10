@@ -575,6 +575,18 @@
       "created": "Persona created",
       "enriching": "Enriching…"
     },
+    "generateJourney": {
+      "title": "Generate journey from project knowledge",
+      "selectTargetGroup": "Target group (optional)",
+      "targetGroupOptional": "— None —",
+      "journeyType": "Journey type",
+      "cta": "Generate journey",
+      "loading": "Generating…",
+      "success": "Journey created.",
+      "viewJourney": "View journey",
+      "error": "Generate journey failed",
+      "emptyContext": "Save company context or select a target group first."
+    },
     "overview": {
       "title": "Overview",
       "personas": "Personas",

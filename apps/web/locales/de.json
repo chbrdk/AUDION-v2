@@ -575,6 +575,18 @@
       "created": "Persona angelegt",
       "enriching": "Wird angereichert…"
     },
+    "generateJourney": {
+      "title": "Journey aus Projektwissen generieren",
+      "selectTargetGroup": "Zielgruppe (optional)",
+      "targetGroupOptional": "— Keine —",
+      "journeyType": "Journey-Typ",
+      "cta": "Journey generieren",
+      "loading": "Wird generiert…",
+      "success": "Journey erstellt.",
+      "viewJourney": "Journey anzeigen",
+      "error": "Journey-Generierung fehlgeschlagen",
+      "emptyContext": "Bitte zuerst Unternehmenskontext speichern oder eine Zielgruppe wählen."
+    },
     "overview": {
       "title": "Übersicht",
       "personas": "Personas",

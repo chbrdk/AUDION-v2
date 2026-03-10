@@ -458,7 +458,11 @@ templates:
     prompt: |
       Based on the following information:
 
+      COMPANY / PROJECT CONTEXT:
+      ${company_context}
+
       TARGET GROUP: ${target_group_name}
+      TARGET GROUP SUMMARY: ${target_group_summary}
       JOURNEY TYPE: ${journey_type}
 
       PERSONAS:

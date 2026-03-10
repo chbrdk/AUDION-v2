@@ -108,7 +108,7 @@ export function MsqdxGlassProjectAdminPanel({
 
     // Accordion state for collapsible sections
     const [expandedSections, setExpandedSections] = useState<Set<string>>(
-        new Set(["overview", "company-context", "suggest-target-groups", "suggest-personas", "members", "prompt-templates"])
+        new Set(["overview", "company-context", "suggest-target-groups", "suggest-personas", "generate-journey", "members", "prompt-templates"])
     );
 
     // Company context form state (synced from detail on load)
@@ -136,6 +136,13 @@ export function MsqdxGlassProjectAdminPanel({
     const [personaSuggestError, setPersonaSuggestError] = useState<string | null>(null);
     const [creatingPersonaIndices, setCreatingPersonaIndices] = useState<Set<number>>(new Set());
     const [enrichingPersonaIds, setEnrichingPersonaIds] = useState<Set<string>>(new Set());
+
+    // Generate journey from project knowledge state
+    const [selectedTgIdForJourney, setSelectedTgIdForJourney] = useState<string | null>(null);
+    const [journeyType, setJourneyType] = useState<string>("customer_journey");
+    const [generateJourneyLoading, setGenerateJourneyLoading] = useState(false);
+    const [generateJourneyError, setGenerateJourneyError] = useState<string | null>(null);
+    const [generateJourneySuccess, setGenerateJourneySuccess] = useState<string | null>(null);
 
     // Prompt templates for this project (full list for cards)
     const [promptTemplates, setPromptTemplates] = useState<AiTemplateSummary[]>([]);
@@ -439,9 +446,9 @@ export function MsqdxGlassProjectAdminPanel({
         await loadDetail(selectedId);
     }, [selectedId, selectedSuggestions, suggestions, loadDetail, t]);
 
-    // Fetch target groups for persona suggestions dropdown when section is expanded
+    // Fetch target groups for persona suggestions and generate-journey dropdowns when section is expanded
     useEffect(() => {
-        if (!selectedId || !expandedSections.has("suggest-personas")) return;
+        if (!selectedId || (!expandedSections.has("suggest-personas") && !expandedSections.has("generate-journey"))) return;
         let cancelled = false;
         fetch(buildApiUrl(`/api/target-groups?project_id=${encodeURIComponent(selectedId)}&page_size=100`), { cache: "no-store" })
             .then((res) => (res.ok ? res.json() : { items: [] }))
@@ -595,6 +602,36 @@ export function MsqdxGlassProjectAdminPanel({
             t,
         ]
     );
+
+    const handleGenerateJourney = useCallback(async () => {
+        if (!selectedId) return;
+        setGenerateJourneyLoading(true);
+        setGenerateJourneyError(null);
+        setGenerateJourneySuccess(null);
+        try {
+            const res = await fetch(buildApiUrl(`/api/projects/${selectedId}/generate-journey`), {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    target_group_id: selectedTgIdForJourney || null,
+                    journey_type: journeyType || "customer_journey",
+                    organization_id: selectedId,
+                }),
+            });
+            if (!res.ok) {
+                const errText = await res.text();
+                throw new Error(errText || "Generate journey failed");
+            }
+            const data = await res.json();
+            setGenerateJourneySuccess(data?.id ?? "ok");
+            notify(t("settingsProjects.generateJourney.success") ?? "Journey created");
+        } catch (e) {
+            setGenerateJourneyError(e instanceof Error ? e.message : "Generate journey failed");
+        } finally {
+            setGenerateJourneyLoading(false);
+        }
+    }, [selectedId, selectedTgIdForJourney, journeyType, t]);
 
     // Load prompt templates for selected project
     useEffect(() => {
@@ -1159,6 +1196,86 @@ export function MsqdxGlassProjectAdminPanel({
                                                 </MsqdxButton>
                                             </>
                                         )}
+                                    </Stack>
+                                </MsqdxDashboardCard>
+                            </Box>
+
+                            {/* Generate journey from project knowledge */}
+                            <Box sx={{ gridColumn: "1 / -1" }}>
+                                <MsqdxDashboardCard
+                                    id="generate-journey"
+                                    title={t("settingsProjects.generateJourney.title") ?? "Generate journey from project knowledge"}
+                                    icon="route"
+                                    expanded={expandedSections.has("generate-journey")}
+                                    onToggle={toggleSection}
+                                >
+                                    <Stack spacing={2}>
+                                        <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1 }}>
+                                            <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+                                                {t("settingsProjects.generateJourney.selectTargetGroup") ?? "Target group (optional)"}
+                                            </MsqdxTypography>
+                                            <select
+                                                value={selectedTgIdForJourney ?? ""}
+                                                onChange={(e) => {
+                                                    setSelectedTgIdForJourney(e.target.value || null);
+                                                    setGenerateJourneyError(null);
+                                                }}
+                                                style={{
+                                                    minWidth: 200,
+                                                    padding: "6px 10px",
+                                                    borderRadius: 6,
+                                                    border: "1px solid var(--color-neutral, #ccc)",
+                                                }}
+                                            >
+                                                <option value="">{t("settingsProjects.generateJourney.targetGroupOptional") ?? "— None —"}</option>
+                                                {projectTargetGroups.map((tg) => (
+                                                    <option key={tg.id} value={tg.id}>
+                                                        {tg.name || tg.segment || tg.id}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </Box>
+                                        <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1 }}>
+                                            <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+                                                {t("settingsProjects.generateJourney.journeyType") ?? "Journey type"}
+                                            </MsqdxTypography>
+                                            <TextField
+                                                size="small"
+                                                value={journeyType}
+                                                onChange={(e) => setJourneyType(e.target.value)}
+                                                placeholder="customer_journey"
+                                                sx={{ minWidth: 200 }}
+                                                variant="outlined"
+                                            />
+                                        </Box>
+                                        {generateJourneyError && (
+                                            <MsqdxTypography variant="caption" sx={{ color: "error.main" }}>
+                                                {generateJourneyError}
+                                            </MsqdxTypography>
+                                        )}
+                                        {generateJourneySuccess && (
+                                            <MsqdxTypography variant="caption" sx={{ color: "success.main" }}>
+                                                {t("settingsProjects.generateJourney.success") ?? "Journey created."}
+                                                {generateJourneySuccess !== "ok" && (
+                                                    <>
+                                                        {" "}
+                                                        <Link href={`/journeys/${generateJourneySuccess}`} style={{ marginLeft: 4 }}>
+                                                            {t("settingsProjects.generateJourney.viewJourney") ?? "View journey"}
+                                                        </Link>
+                                                    </>
+                                                )}
+                                            </MsqdxTypography>
+                                        )}
+                                        <MsqdxButton
+                                            variant="contained"
+                                            size="small"
+                                            onClick={() => handleGenerateJourney()}
+                                            disabled={generateJourneyLoading}
+                                        >
+                                            {generateJourneyLoading
+                                                ? (t("settingsProjects.generateJourney.loading") ?? "Generating…")
+                                                : (t("settingsProjects.generateJourney.cta") ?? "Generate journey")}
+                                        </MsqdxButton>
                                     </Stack>
                                 </MsqdxDashboardCard>
                             </Box>

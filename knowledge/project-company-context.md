@@ -75,6 +75,33 @@ Personas can be suggested from **company context + target group** and then creat
 - Project admin panel section **Suggest personas for target group**: select target group, generate suggestions, then for each suggestion **Create** (basics only) or **Create & enrich** (create + call enrich). **Create selected** creates all selected with enrich.
 - i18n keys under `settingsProjects.suggestPersonas` in [apps/web/locales/en.json](apps/web/locales/en.json) and [de.json](apps/web/locales/de.json).
 
+## Generate journey from project knowledge
+
+A full user journey (phases and elements) can be generated from **all available project knowledge**: project description + company_context, and optionally a target group (personas + TG-linked knowledge chunks via KnowledgeExplorerService).
+
+### Endpoint
+
+- **POST /api/projects/{project_id}/generate-journey**
+- **Auth:** Project member with admin or owner role (same as other project endpoints).
+- **Body:** `{ "target_group_id": null | "<uuid>", "journey_type": "customer_journey", "organization_id": null | "<uuid>", "created_by": null | "<user_id>" }`
+  - `target_group_id`: optional; if omitted, only project context is used (no personas, no TG chunks).
+  - `journey_type`: e.g. `customer_journey`, `onboarding`; default `customer_journey`.
+  - `organization_id`: optional; defaults to `project_id` if not provided (Journey table requires non-null `organization_id`).
+- **Returns:** `201` with full **JourneyResponse** (id, name, phases with elements, etc.). The journey is created and persisted in one call.
+
+### Flow
+
+1. Backend loads the project and builds `company_context` from `project.description` + `project.company_context`.
+2. If `target_group_id` is set: load target group (must belong to project), personas of that TG, and **KnowledgeExplorerService.get_chunks_for_target_group** (limit 50); aggregate chunk content into `knowledge_context`.
+3. If no target group: `target_group_name` = "General (no target group selected)", persona_summaries = "None", knowledge = company_context only.
+4. Call the **journey.full_generation** template (see [apps/api/app/prompts/templates.yaml](apps/api/app/prompts/templates.yaml)) with `company_context`, `target_group_name`, `target_group_summary`, `persona_summaries`, `knowledge_context`, `journey_type`.
+5. Parse AI JSON into **JourneyDraft**; **save_journey_draft** with `target_group_id` (possibly `None`), `organization_id`, `project_id`. Element types from the AI are mapped to **JourneyElementType** (fallback `action` for unknown values).
+6. Re-fetch the created journey with phases/elements/expectations loaded and return it via shared **to_journey_response** ([apps/api/app/services/journey_serializer.py](apps/api/app/services/journey_serializer.py)).
+
+### Frontend
+
+- Project admin panel section **Generate journey from project knowledge**: optional target group dropdown (same list as suggest personas), journey type field (default `customer_journey`), **Generate journey** button. On success, shows a message and optional link to the new journey. i18n under `settingsProjects.generateJourney`.
+
 ## Frontend
 
 - **Project admin panel** ([apps/web/components/msqdx-glass-project-admin-panel.tsx](apps/web/components/msqdx-glass-project-admin-panel.tsx)):
