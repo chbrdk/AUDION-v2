@@ -8,6 +8,8 @@ services:
       dockerfile: apps/web/Dockerfile
       args:
         RUN_WEB_BUILD: "true"
+    image: audion-web
+    pull_policy: never
     container_name: audion-web
     command: npm run start --workspace apps/web
     ports:
@@ -40,6 +42,8 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
+    image: audion-api
+    pull_policy: never
     container_name: audion-api
     ports:
       - "8000:8000"
@@ -101,6 +105,8 @@ services:
     build:
       context: .
       dockerfile: apps/indexing-api/Dockerfile
+    image: audion-indexing-api
+    pull_policy: never
     container_name: audion-indexing-api
     # No external port - only internal access
     environment:
@@ -153,6 +159,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.mcp-server
+    image: audion-mcp
+    pull_policy: never
     container_name: audion-mcp
     # No external port needed if accessed via web /mcp rewrite
     environment:
@@ -175,6 +183,8 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
+    image: audion-api
+    pull_policy: never
     container_name: audion-celery-beat
     command: celery -A app.celery_app beat --loglevel=info
     environment:

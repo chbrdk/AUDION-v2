@@ -15,6 +15,25 @@ Das Projekt besteht aus:
 
 ---
 
+## Docker Compose Buildpack: "pull access denied"
+
+Wenn Coolify den Stack mit **Docker Compose** (ein Build, dann `docker compose up -d`) deployt, kann es zu folgendem Fehler kommen:
+
+```text
+pull access denied for i4skcwkw48g4wk0ww04o8wk0_web, repository does not exist or may require 'docker login'
+```
+
+**Ursache:** Beim `up` versucht Compose, Images mit dem Coolify-Projektnamen zu **pullen** (z. B. von Docker Hub). Die Images wurden aber nur lokal gebaut und nie gepusht.
+
+**Lösung im Repo:** In `docker-compose.yml` ist für alle Services mit `build:` gesetzt:
+
+- **`image:`** – fester Name (z. B. `audion-web`, `audion-api`), damit das gebaute Image lokal unter diesem Namen getaggt wird.
+- **`pull_policy: never`** – beim `up` werden diese Images **nicht** gezogen, es werden nur die zuvor gebauten lokalen Images verwendet.
+
+Build-Reihenfolge in Coolify: zuerst **build** (Images werden als `audion-web`, `audion-api` usw. erzeugt), danach **up** (startet diese Images ohne Pull).
+
+---
+
 ## Kritische Unterschiede zu Docker Compose
 
 ### 1. Kein Docker Compose Support
