@@ -29,6 +29,18 @@ cannot import name 'is_torch_fx_available' from 'transformers.utils.import_utils
    - `apps/chat-api/app/routers/chat.py`: on retrieval exception, log warning and use empty `sources`.
    - `apps/chat-api/app/routers/voice.py`: same for stream; yield empty sources and continue.
 
+## Qdrant 401 "Must provide an API key or an Authorization bearer token"
+
+If retrieval fails with **401 Unauthorized** and that message, the Qdrant instance (e.g. Qdrant Cloud) requires an API key. The chat-api must send it:
+
+- **Config**: `apps/chat-api/app/core/config.py` → `qdrant_api_key: str | None = None`
+- **Env**: Set `QDRANT_API_KEY` to your Qdrant API key (e.g. from Qdrant Cloud dashboard).
+- **Usage**: `RetrievalAgent` and `PersonaDiscoveryService` pass `api_key=settings.qdrant_api_key` into `QdrantClient`. If unset, no key is sent (for local Qdrant without auth).
+
+In `docker-compose.yml`, chat-api has `QDRANT_API_KEY=${QDRANT_API_KEY:-}` so you can set it in the host env or in Coolify.
+
+---
+
 ## References
 
 - [FlagEmbedding #1266](https://github.com/FlagOpen/FlagEmbedding/issues/1266) – dependency on transformers version.

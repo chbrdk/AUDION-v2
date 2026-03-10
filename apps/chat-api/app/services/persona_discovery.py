@@ -26,7 +26,11 @@ class PersonaDiscoveryService:
     def __init__(self) -> None:
         self._anthropic = Anthropic(api_key=settings.anthropic_api_key)
         # Disable compatibility check to avoid warnings with Qdrant 1.11.3
-        self._qdrant = QdrantClient(settings.qdrant_url, check_compatibility=False)
+        self._qdrant = QdrantClient(
+            url=settings.qdrant_url,
+            api_key=settings.qdrant_api_key,
+            check_compatibility=False,
+        )
         self._collection = "research_chunks"
 
     def discover(self, *, query_embedding: list[float]) -> List[PersonaCandidate]:

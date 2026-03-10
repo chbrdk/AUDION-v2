@@ -19,7 +19,11 @@ class RetrievalAgent:
         settings = get_settings()
         self._embedder: BGEM3FlagModel | None = None  # Lazy load
         # Disable compatibility check to avoid warnings with Qdrant 1.11.3
-        self._qdrant = QdrantClient(settings.qdrant_url, check_compatibility=False)
+        self._qdrant = QdrantClient(
+            url=settings.qdrant_url,
+            api_key=settings.qdrant_api_key,
+            check_compatibility=False,
+        )
         self._collection = "research_chunks"
     
     @property

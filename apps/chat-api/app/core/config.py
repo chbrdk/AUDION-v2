@@ -27,6 +27,7 @@ class Settings(BaseSettings):
 
     database_url: str
     qdrant_url: str
+    qdrant_api_key: str | None = None  # Required for Qdrant Cloud / secured instances
     neo4j_uri: str
     neo4j_user: str
     neo4j_password: str
