@@ -6,6 +6,8 @@ import Link from "next/link";
 import { MsqdxButton, MsqdxCard, MsqdxFormField, MsqdxTypography, MsqdxIcon, MsqdxDashboardCard, MsqdxChip } from "@msqdx/react";
 import { MsqdxGlassCollapsiblePanel } from "./admin/msqdx-glass-collapsible-panel";
 import { buildApiUrl } from "../app/api/_lib/backend";
+import { journeysApi, type JourneyResponse } from "../app/api/_lib/journeys";
+import { ADMIN_ROUTES } from "../lib/routes";
 import { aiAssistApi, type AiTemplateSummary } from "../app/api/_lib/ai-assist";
 import { useProject, type ProjectSummary, type ProjectMember } from "./projects/project-provider";
 import { useI18n } from "./i18n/i18n-provider";
@@ -108,7 +110,7 @@ export function MsqdxGlassProjectAdminPanel({
 
     // Accordion state for collapsible sections
     const [expandedSections, setExpandedSections] = useState<Set<string>>(
-        new Set(["overview", "company-context", "suggest-target-groups", "suggest-personas", "generate-journey", "members", "prompt-templates"])
+        new Set(["overview", "company-context", "project-journeys", "suggest-target-groups", "suggest-personas", "generate-journey", "members", "prompt-templates"])
     );
 
     // Company context form state (synced from detail on load)
@@ -143,6 +145,11 @@ export function MsqdxGlassProjectAdminPanel({
     const [generateJourneyLoading, setGenerateJourneyLoading] = useState(false);
     const [generateJourneyError, setGenerateJourneyError] = useState<string | null>(null);
     const [generateJourneySuccess, setGenerateJourneySuccess] = useState<string | null>(null);
+
+    // Project journeys overview
+    const [projectJourneys, setProjectJourneys] = useState<JourneyResponse[]>([]);
+    const [projectJourneysLoading, setProjectJourneysLoading] = useState(false);
+    const [projectJourneysError, setProjectJourneysError] = useState<string | null>(null);
 
     // Prompt templates for this project (full list for cards)
     const [promptTemplates, setPromptTemplates] = useState<AiTemplateSummary[]>([]);
@@ -470,6 +477,33 @@ export function MsqdxGlassProjectAdminPanel({
             cancelled = true;
         };
     }, [selectedId, expandedSections]);
+
+    // Load project journeys when "project-journeys" section is expanded (or after generating a journey)
+    useEffect(() => {
+        if (!selectedId || !expandedSections.has("project-journeys")) return;
+        let cancelled = false;
+        setProjectJourneysLoading(true);
+        setProjectJourneysError(null);
+        journeysApi
+            .listJourneys({ project_id: selectedId, page: 1, page_size: 50 })
+            .then((data) => {
+                if (!cancelled) {
+                    setProjectJourneys(Array.isArray(data) ? data : []);
+                }
+            })
+            .catch((e) => {
+                if (!cancelled) {
+                    setProjectJourneys([]);
+                    setProjectJourneysError(e instanceof Error ? e.message : "Failed to load journeys");
+                }
+            })
+            .finally(() => {
+                if (!cancelled) setProjectJourneysLoading(false);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [selectedId, expandedSections, generateJourneySuccess]);
 
     const handleSuggestPersonas = useCallback(async () => {
         if (!selectedId || !selectedTgIdForPersonas) return;
@@ -1259,7 +1293,7 @@ export function MsqdxGlassProjectAdminPanel({
                                                 {generateJourneySuccess !== "ok" && (
                                                     <>
                                                         {" "}
-                                                        <Link href={`/journeys/${generateJourneySuccess}`} style={{ marginLeft: 4 }}>
+                                                        <Link href={ADMIN_ROUTES.journeyDetail(generateJourneySuccess)} style={{ marginLeft: 4 }}>
                                                             {t("settingsProjects.generateJourney.viewJourney") ?? "View journey"}
                                                         </Link>
                                                     </>
@@ -1276,6 +1310,85 @@ export function MsqdxGlassProjectAdminPanel({
                                                 ? (t("settingsProjects.generateJourney.loading") ?? "Generating…")
                                                 : (t("settingsProjects.generateJourney.cta") ?? "Generate journey")}
                                         </MsqdxButton>
+                                    </Stack>
+                                </MsqdxDashboardCard>
+                            </Box>
+
+                            {/* Project journeys overview */}
+                            <Box sx={{ gridColumn: "1 / -1" }}>
+                                <MsqdxDashboardCard
+                                    id="project-journeys"
+                                    title={t("settingsProjects.projectJourneys.title") ?? "Journeys in this project"}
+                                    icon="route"
+                                    expanded={expandedSections.has("project-journeys")}
+                                    onToggle={toggleSection}
+                                >
+                                    <Stack spacing={2}>
+                                        {projectJourneysLoading && (
+                                            <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+                                                {t("journeys.loading") ?? "Loading…"}
+                                            </MsqdxTypography>
+                                        )}
+                                        {projectJourneysError && (
+                                            <MsqdxTypography variant="body2" sx={{ color: "error.main" }}>
+                                                {projectJourneysError}
+                                            </MsqdxTypography>
+                                        )}
+                                        {!projectJourneysLoading && !projectJourneysError && projectJourneys.length === 0 && (
+                                            <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+                                                {t("settingsProjects.projectJourneys.empty") ?? "No journeys yet. Create one above or go to Journeys."}
+                                            </MsqdxTypography>
+                                        )}
+                                        {!projectJourneysLoading && projectJourneys.length > 0 && (
+                                            <Box
+                                                sx={{
+                                                    display: "grid",
+                                                    gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" },
+                                                    gap: 1.5,
+                                                }}
+                                            >
+                                                {projectJourneys.map((journey) => (
+                                                    <MsqdxCard
+                                                        key={journey.id}
+                                                        clickable
+                                                        onClick={() => window.open(ADMIN_ROUTES.journeyDetail(journey.id), "_self")}
+                                                        sx={{
+                                                            p: 1.5,
+                                                            border: "1px solid",
+                                                            borderColor: "divider",
+                                                            "&:hover": { borderColor: "primary.main" },
+                                                        }}
+                                                    >
+                                                        <Stack spacing={0.5}>
+                                                            <MsqdxTypography variant="subtitle2" weight="semibold">
+                                                                {journey.name}
+                                                            </MsqdxTypography>
+                                                            <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
+                                                                {journey.description || (t("journeys.type", { type: journey.journey_type }) ?? journey.journey_type)}
+                                                            </MsqdxTypography>
+                                                            <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mt: 0.5 }}>
+                                                                <MsqdxChip
+                                                                    variant="outlined"
+                                                                    size="small"
+                                                                    label={t("journeys.phases", { count: journey.phases?.length ?? 0 }) ?? `${journey.phases?.length ?? 0} phases`}
+                                                                />
+                                                                <MsqdxChip variant="outlined" size="small" label={journey.journey_type} />
+                                                            </Box>
+                                                            <Link
+                                                                href={ADMIN_ROUTES.journeyDetail(journey.id)}
+                                                                style={{ marginTop: 4, fontSize: "0.75rem" }}
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            >
+                                                                {t("settingsProjects.projectJourneys.view") ?? "View journey"} →
+                                                            </Link>
+                                                        </Stack>
+                                                    </MsqdxCard>
+                                                ))}
+                                            </Box>
+                                        )}
+                                        <Link href={ADMIN_ROUTES.journeys} style={{ fontSize: "0.875rem" }}>
+                                            {t("settingsProjects.projectJourneys.allJourneys") ?? "All journeys"} →
+                                        </Link>
                                     </Stack>
                                 </MsqdxDashboardCard>
                             </Box>

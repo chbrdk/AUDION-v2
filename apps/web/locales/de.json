@@ -587,6 +587,12 @@
       "error": "Journey-Generierung fehlgeschlagen",
       "emptyContext": "Bitte zuerst Unternehmenskontext speichern oder eine Zielgruppe wählen."
     },
+    "projectJourneys": {
+      "title": "Journeys in diesem Projekt",
+      "empty": "Noch keine Journeys. Oben eine anlegen oder zu Journeys wechseln.",
+      "view": "Journey anzeigen",
+      "allJourneys": "Alle Journeys"
+    },
     "overview": {
       "title": "Übersicht",
       "personas": "Personas",

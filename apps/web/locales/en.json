@@ -587,6 +587,12 @@
       "error": "Generate journey failed",
       "emptyContext": "Save company context or select a target group first."
     },
+    "projectJourneys": {
+      "title": "Journeys in this project",
+      "empty": "No journeys yet. Create one above or go to Journeys.",
+      "view": "View journey",
+      "allJourneys": "All journeys"
+    },
     "overview": {
       "title": "Overview",
       "personas": "Personas",
