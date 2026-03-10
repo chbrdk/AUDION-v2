@@ -177,6 +177,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
   const [documentUploadPending, setDocumentUploadPending] = useState(false);
   const [avatarGeneratePending, setAvatarGeneratePending] = useState(false);
   const [enrichPending, setEnrichPending] = useState(false);
+  const [ensureChatPromptPending, setEnsureChatPromptPending] = useState(false);
   const [knowledgeForm, setKnowledgeForm] = useState<KnowledgeFormState>(defaultKnowledgeForm);
   const [knowledgePending, setKnowledgePending] = useState(false);
   const { execute: runPersonaAiAssist, loading: personaAiLoading } = useAiAssist();
@@ -1322,6 +1323,33 @@ export const MsqdxGlassPersonaAdminPanel = ({
     }
   };
 
+  const handleEnsureChatPrompt = async () => {
+    if (!selectedId) return;
+    setEnsureChatPromptPending(true);
+    try {
+      const response = await fetch(buildApiUrl(`/api/personas/${selectedId}/ensure-chat-prompt`), {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(typeof err.detail === "string" ? err.detail : "Ensure chat prompt failed");
+      }
+      const data = (await response.json()) as { ensured?: boolean; prompt_length?: number };
+      if (data.ensured) {
+        notify(t("personaAdmin.toasts.chatPromptUpdated"));
+      } else {
+        notify(t("personaAdmin.toasts.chatPromptAlreadyCurrent"));
+      }
+    } catch (error) {
+      console.error("Ensure chat prompt failed", error);
+      notify((error instanceof Error ? error.message : t("personaAdmin.toasts.chatPromptFailed")) ?? "Failed");
+    } finally {
+      setEnsureChatPromptPending(false);
+    }
+  };
+
   const handleGenerateAvatar = async () => {
     if (!selectedId) {
       return;
@@ -1679,6 +1707,9 @@ export const MsqdxGlassPersonaAdminPanel = ({
                             <Box sx={{ display: "flex", gap: 0.5, alignItems: "center", mt: 1, flexWrap: "wrap" }}>
                               <MsqdxButton variant="outlined" size="small" onClick={handleEnrichWithAi} disabled={enrichPending || savePending} startIcon={<MsqdxIcon name="auto_awesome" customSize={16} />}>
                                 {enrichPending ? t("personaAdmin.enrichingWithAi") : t("personaAdmin.enrichWithAi")}
+                              </MsqdxButton>
+                              <MsqdxButton variant="text" size="small" onClick={handleEnsureChatPrompt} disabled={ensureChatPromptPending || savePending} startIcon={<MsqdxIcon name="chat" customSize={16} />}>
+                                {ensureChatPromptPending ? t("personaAdmin.ensuringChatPrompt") : t("personaAdmin.ensureChatPrompt")}
                               </MsqdxButton>
                               <MsqdxButton variant="text" size="small" onClick={handleGenerateAvatar} disabled={avatarGeneratePending} startIcon={<MsqdxIcon name="photo_camera" customSize={16} />}>
                                 {avatarGeneratePending ? t("personaAdmin.generatingAvatar") : t("personaAdmin.generateAvatar")}
