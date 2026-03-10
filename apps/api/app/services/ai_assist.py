@@ -32,6 +32,17 @@ from ..services.target_group_store import TargetGroupService
 
 logger = structlog.get_logger(__name__)
 
+# Prompt caching: last context variable that ends the cacheable prefix (Anthropic ephemeral cache; OpenAI prefix-first).
+# Template prompt is split after the last occurrence of ${var}; prefix is cacheable, suffix is variable.
+# Overridden by template.cache_prefix_last_variable when set in YAML.
+TEMPLATE_CACHE_PREFIX_LAST_VAR: Dict[str, str] = {
+    "journey.full_generation": "knowledge_context",
+    "persona.pain_points": "persona_profile",
+    "persona.goals": "persona_profile",
+    "persona.interests": "persona_profile",
+    "persona.values": "persona_profile",
+}
+
 
 class PromptTemplateRegistry:
     """Loads and caches AI prompt templates from YAML."""
@@ -790,7 +801,20 @@ class AiAssistService:
             max_tokens = template.max_tokens or self.settings.ai_default_max_tokens
 
         prompt_context = self._build_context(request.context, request.prompt_variables)
-        rendered_prompt = self._render_prompt(template.prompt, prompt_context)
+        cache_last_var = getattr(template, "cache_prefix_last_variable", None) or TEMPLATE_CACHE_PREFIX_LAST_VAR.get(
+            request.template_id
+        )
+        prompt_prefix: str | None = None
+        prompt_suffix: str | None = None
+        if cache_last_var:
+            prompt_prefix, prompt_suffix = self._render_prompt_prefix_suffix(
+                template.prompt, prompt_context, cache_last_var
+            )
+        rendered_prompt = (
+            (prompt_prefix + "\n\n" + prompt_suffix)
+            if (prompt_prefix is not None and prompt_suffix is not None)
+            else self._render_prompt(template.prompt, prompt_context)
+        )
 
         logger.info(
             "ai.assist.dispatch",
@@ -799,6 +823,7 @@ class AiAssistService:
             model=model,
             temperature=temperature,
             max_tokens=max_tokens,
+            cache_split=bool(cache_last_var),
         )
         
         # Log the full rendered prompt for debugging
@@ -817,6 +842,8 @@ class AiAssistService:
             prompt=rendered_prompt,
             temperature=temperature,
             max_tokens=max_tokens,
+            prompt_prefix=prompt_prefix if cache_last_var else None,
+            prompt_suffix=prompt_suffix if cache_last_var else None,
         )
 
         logger.info(
@@ -866,6 +893,29 @@ class AiAssistService:
             return json.dumps(value, ensure_ascii=False, indent=2)
         return str(value)
 
+    def _render_prompt_prefix_suffix(
+        self,
+        prompt: str,
+        context: Dict[str, Any],
+        cache_prefix_last_variable: str | None,
+    ) -> tuple[str, str]:
+        """Split prompt into cacheable prefix and variable suffix for prompt caching.
+        If cache_prefix_last_variable is set, the prompt is split after the last occurrence
+        of ${cache_prefix_last_variable}; prefix and suffix are each rendered with full context.
+        """
+        if not cache_prefix_last_variable:
+            return self._render_prompt(prompt, context), ""
+        placeholder = "${" + cache_prefix_last_variable + "}"
+        last_idx = prompt.rfind(placeholder)
+        if last_idx == -1:
+            return self._render_prompt(prompt, context), ""
+        end_idx = last_idx + len(placeholder)
+        prefix_tpl = prompt[:end_idx]
+        suffix_tpl = prompt[end_idx:].strip()
+        prefix = self._render_prompt(prefix_tpl, context)
+        suffix = self._render_prompt(suffix_tpl, context) if suffix_tpl else ""
+        return prefix, suffix
+
     def _render_prompt(self, prompt: str, context: Dict[str, Any]) -> str:
         # Step 1: Find and resolve extended variables (e.g., ${persona:${persona_id}.name})
         # Pattern matches: ${resolver_type:${id_var}.property.path}
@@ -908,7 +958,14 @@ class AiAssistService:
         prompt: str,
         temperature: float,
         max_tokens: int,
+        prompt_prefix: str | None = None,
+        prompt_suffix: str | None = None,
     ) -> tuple[str, Dict[str, Any]]:
+        use_cache_blocks = (
+            prompt_prefix is not None
+            and prompt_suffix is not None
+            and len(prompt_prefix.strip()) > 0
+        )
         if provider == AiProvider.ANTHROPIC:
             # Get API key from settings/environment variables only
             api_key = self.settings.claude_api_key
@@ -919,11 +976,18 @@ class AiAssistService:
                 self._anthropic = Anthropic(api_key=api_key)
             if not self._anthropic:
                 raise RuntimeError("Anthropic API key not configured")
+            if use_cache_blocks:
+                content = [
+                    {"type": "text", "text": prompt_prefix, "cache_control": {"type": "ephemeral"}},
+                    {"type": "text", "text": prompt_suffix},
+                ]
+            else:
+                content = prompt
             message = self._anthropic.messages.create(
                 model=model,
                 max_tokens=max_tokens,
                 temperature=temperature,
-                messages=[{"role": "user", "content": prompt}],
+                messages=[{"role": "user", "content": content}],
             )
             text_chunks = [
                 part.text for part in message.content if hasattr(part, "text") and isinstance(part.text, str)
@@ -952,11 +1016,15 @@ class AiAssistService:
             )
         if not self._openai:
             raise RuntimeError("OpenAI API key not configured")
+        # When using cache split: send prefix then suffix as one message so prefix-first caching can apply
+        user_content = (
+            (prompt_prefix + "\n\n" + prompt_suffix) if use_cache_blocks else prompt
+        )
         # GPT-5 Mini only supports default temperature (1), so we don't pass temperature parameter
         response = self._openai.chat.completions.create(
             model=model,
             max_completion_tokens=max_tokens,
-            messages=[{"role": "user", "content": prompt}],
+            messages=[{"role": "user", "content": user_content}],
         )
         
         # Extract response content (content can be str or list of content parts)

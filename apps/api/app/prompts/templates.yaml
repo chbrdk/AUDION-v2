@@ -454,6 +454,8 @@ templates:
     tags: ["journey", "generation", "full", "phases"]
     default_provider: openai
     default_model: gpt-5-mini
+    # Optional: last context variable that ends the cacheable prefix (prompt caching)
+    cache_prefix_last_variable: knowledge_context
     prompt: |
       Based on the following information:
 

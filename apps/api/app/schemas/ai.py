@@ -95,6 +95,10 @@ class AiTemplateDefinition(BaseModel):
     metadata: Dict[str, Any] = Field(
         default_factory=dict, description="Template specific metadata (e.g., sample responses)."
     )
+    cache_prefix_last_variable: Optional[str] = Field(
+        default=None,
+        description="Last context variable that ends the cacheable prefix for prompt caching (Anthropic/OpenAI).",
+    )
 
 
 class AiTemplateSummary(BaseModel):
