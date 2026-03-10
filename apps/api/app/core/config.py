@@ -55,6 +55,8 @@ class Settings(BaseSettings):
     ai_default_temperature: float = 0.7
     ai_default_max_tokens: int = 4096
     ai_knowledge_templates_path: str | None = None
+    # Timeout for AI API HTTP requests (e.g. OpenAI). Long prompts (e.g. journey generation) may need 300s.
+    ai_request_timeout_seconds: float = 300.0
 
     # Auth (JWT)
     auth_jwt_secret: str

@@ -936,10 +936,11 @@ class AiAssistService:
             raise RuntimeError("OpenAI API key not configured. Set OPENAI_API_KEY environment variable.")
         
         if not self._openai and api_key:
-            # Use http_client to avoid proxies parameter issues
+            # Use http_client to avoid proxies parameter issues. Use configurable timeout for long prompts (e.g. journey generation).
             import httpx
+            timeout_s = getattr(self.settings, "ai_request_timeout_seconds", 300.0) or 300.0
             http_client = httpx.Client(
-                timeout=httpx.Timeout(60.0, connect=10.0),
+                timeout=httpx.Timeout(float(timeout_s), connect=10.0),
             )
             self._openai = OpenAI(
                 api_key=api_key,

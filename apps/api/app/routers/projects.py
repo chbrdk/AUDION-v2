@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID, uuid4
 
+import httpx
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
@@ -264,13 +265,35 @@ async def generate_journey_from_project_endpoint(
             pass
 
     service = JourneyGenerationService()
-    draft = await service.generate_journey_from_project(
-        session=session,
-        project_id=project.id,
-        target_group_id=target_group_id,
-        journey_type=payload.journey_type or "customer_journey",
-        organization_id=organization_id,
-    )
+    try:
+        draft = await service.generate_journey_from_project(
+            session=session,
+            project_id=project.id,
+            target_group_id=target_group_id,
+            journey_type=payload.journey_type or "customer_journey",
+            organization_id=organization_id,
+        )
+    except ValueError as exc:
+        if "project_not_found" in str(exc):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found") from exc
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except (httpx.TimeoutException, TimeoutError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            detail="Journey generation timed out. Try again or reduce company context.",
+        ) from exc
+    except Exception as exc:
+        err_msg = getattr(exc, "message", None) or str(exc)
+        if "timed out" in err_msg.lower() or "timeout" in err_msg.lower():
+            raise HTTPException(
+                status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+                detail="Journey generation timed out. Try again or reduce company context.",
+            ) from exc
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Journey generation failed. Please try again.",
+        ) from exc
+
     created = service.save_journey_draft(
         draft=draft,
         target_group_id=target_group_id,
