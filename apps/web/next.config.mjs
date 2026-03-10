@@ -13,6 +13,8 @@ const nextConfig = {
     },
     // @msqdx/react excluded: optimizePackageImports can trigger TDZ with DS barrel
     optimizePackageImports: ['@mui/material', '@mui/icons-material', '@msqdx/tokens'],
+    // Avoid "socket hang up" / ECONNRESET when proxying to chat-api (LLM can take >30s)
+    proxyTimeout: 120 * 1000, // 120 seconds
   },
   // Prevent static generation of error pages
   generateBuildId: async () => {
