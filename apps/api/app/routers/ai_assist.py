@@ -31,6 +31,9 @@ from ..services.persona_ai_context import (
     build_persona_goals_ai_context,
     build_persona_interests_ai_context,
     build_persona_values_ai_context,
+    build_persona_traits_ai_context,
+    build_persona_vocabulary_ai_context,
+    build_persona_sentence_structure_ai_context,
 )
 
 def _enrich_persona_context(
@@ -70,6 +73,12 @@ def _enrich_persona_context(
         persona_context = build_persona_interests_ai_context(session, persona, max_items)
     elif "values" in template_id:
         persona_context = build_persona_values_ai_context(session, persona, max_items)
+    elif "traits" in template_id:
+        persona_context = build_persona_traits_ai_context(session, persona, max_items)
+    elif "vocabulary" in template_id:
+        persona_context = build_persona_vocabulary_ai_context(session, persona, max_items)
+    elif "sentence_structure" in template_id:
+        persona_context = build_persona_sentence_structure_ai_context(session, persona)
     else:
         # Default: use pain_points context builder
         persona_context = build_persona_ai_context(session, persona, max_items)

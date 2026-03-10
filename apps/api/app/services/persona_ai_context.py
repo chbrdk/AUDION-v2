@@ -163,3 +163,93 @@ def build_persona_values_ai_context(session: Session, persona: Persona, max_item
     }
 
 
+def _persona_existing_traits(persona: Persona) -> str:
+    """Format existing traits for template (persona.traits expects existing_traits string)."""
+    profile = persona.profile or {}
+    raw = profile.get("traits")
+    if not raw:
+        return "Keine Traits dokumentiert."
+    if isinstance(raw, dict):
+        lines = [f"{k}: {v}" if isinstance(v, str) else str(k) for k, v in raw.items()]
+        return "\n".join(lines) if lines else "Keine Traits dokumentiert."
+    if isinstance(raw, list):
+        lines = []
+        for item in raw:
+            if isinstance(item, dict):
+                name = item.get("name") or item.get("label") or item.get("title") or item.get("content")
+                desc = item.get("description") or item.get("type")
+                if name and desc:
+                    lines.append(f"{name}: {desc}")
+                elif name:
+                    lines.append(name)
+            elif isinstance(item, str):
+                lines.append(item)
+        return "\n".join(lines) if lines else "Keine Traits dokumentiert."
+    return "Keine Traits dokumentiert."
+
+
+def _persona_existing_vocabulary(persona: Persona) -> str:
+    """Format existing vocabulary for template (persona.vocabulary expects existing_vocabulary string)."""
+    profile = persona.profile or {}
+    comm = profile.get("communication_style") or profile.get("communicationStyle") or {}
+    if isinstance(comm, str):
+        return "Keine Vocabulary dokumentiert."
+    raw = comm.get("vocabulary") if isinstance(comm, dict) else None
+    if not raw or not isinstance(raw, list):
+        return "Keine Vocabulary dokumentiert."
+    lines = []
+    for item in raw:
+        if isinstance(item, dict):
+            word = item.get("word") or item.get("label") or item.get("title") or item.get("content")
+            if word:
+                lines.append(word)
+        elif isinstance(item, str):
+            lines.append(item)
+    return "\n".join(lines) if lines else "Keine Vocabulary dokumentiert."
+
+
+def build_persona_traits_ai_context(session: Session, persona: Persona, max_items: int) -> Dict[str, Any]:
+    """Build context for persona.traits template (persona_name, persona_headline, persona_bio, existing_traits, etc.)."""
+    profile = persona.profile or {}
+    profile_json = json.dumps(profile, ensure_ascii=False, indent=2)
+    return {
+        "persona_name": persona.name or "",
+        "persona_headline": persona.headline or "",
+        "persona_bio": (profile.get("bio") or "").strip(),
+        "existing_traits": _persona_existing_traits(persona),
+        "graph_relationships_summary": "Use persona profile and target group for context.",
+        "knowledge_context": profile_json,
+        "target_group_summary": _persona_target_group_summary(session, persona),
+        "max_items": max_items,
+    }
+
+
+def build_persona_vocabulary_ai_context(session: Session, persona: Persona, max_items: int) -> Dict[str, Any]:
+    """Build context for persona.vocabulary template."""
+    profile = persona.profile or {}
+    profile_json = json.dumps(profile, ensure_ascii=False, indent=2)
+    return {
+        "persona_name": persona.name or "",
+        "persona_headline": persona.headline or "",
+        "persona_bio": (profile.get("bio") or "").strip(),
+        "existing_vocabulary": _persona_existing_vocabulary(persona),
+        "graph_relationships_summary": "Use persona profile and target group for context.",
+        "knowledge_context": profile_json,
+        "target_group_summary": _persona_target_group_summary(session, persona),
+        "max_items": max_items,
+    }
+
+
+def build_persona_sentence_structure_ai_context(session: Session, persona: Persona) -> Dict[str, Any]:
+    """Build context for persona.sentence_structure template (single text output)."""
+    profile = persona.profile or {}
+    profile_json = json.dumps(profile, ensure_ascii=False, indent=2)
+    return {
+        "persona_name": persona.name or "",
+        "persona_headline": persona.headline or "",
+        "persona_bio": (profile.get("bio") or "").strip(),
+        "target_group_summary": _persona_target_group_summary(session, persona),
+        "persona_profile": profile_json,
+    }
+
+

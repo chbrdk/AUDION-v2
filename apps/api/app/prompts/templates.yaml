@@ -330,6 +330,46 @@ templates:
         title: word
         type: description
 
+  - template_id: persona.sentence_structure
+    label: Persona Sentence Structure
+    description: "Generate a short description of how this persona structures sentences (e.g. short vs long, formal vs casual)."
+    category: persona
+    tags: ["persona", "communication", "sentence_structure"]
+    default_provider: openai
+    default_model: gpt-5-mini
+    max_tokens: 512
+    prompt: |
+      You are a Communication Analyst. Based on the persona and target group, describe how this persona typically structures sentences when they write or speak.
+
+      PERSONA
+      -------
+      Name: ${persona_name}
+      Headline: ${persona_headline}
+      Bio: ${persona_bio}
+
+      TARGET GROUP
+      ------------
+      ${target_group_summary}
+
+      FULL PROFILE (for context)
+      --------------------------
+      ${persona_profile}
+
+      TASK
+      ----
+      Write one short paragraph (2-4 sentences) describing this persona's typical sentence structure: length (short vs long), formality, use of bullet points or narrative, typical phrasing. Output a JSON object with a key "sentence_structure" whose value is an array of one object with key "content" containing this description text.
+
+      FORMAT
+      ------
+      {"sentence_structure": [{"content": "Your 2-4 sentence description here."}]}
+    output:
+      mode: json
+      key: sentence_structure
+      item_fields:
+        content: content
+        title: content
+        type: content
+
   - template_id: journey.phase.create
     label: Journey Phase Creation (with Emotion)
     description: "Generate a complete journey phase including name, description, duration, and expected emotion based on journey context."

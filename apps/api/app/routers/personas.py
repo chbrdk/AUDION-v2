@@ -36,6 +36,9 @@ from ..services.persona_ai_context import (
     build_persona_goals_ai_context as _build_persona_goals_ai_context,
     build_persona_interests_ai_context as _build_persona_interests_ai_context,
     build_persona_values_ai_context as _build_persona_values_ai_context,
+    build_persona_traits_ai_context as _build_persona_traits_ai_context,
+    build_persona_vocabulary_ai_context as _build_persona_vocabulary_ai_context,
+    build_persona_sentence_structure_ai_context as _build_persona_sentence_structure_ai_context,
 )
 from ..services.persona_generation import PersonaGenerationService
 from ..services.persona_store import PersonaService
@@ -424,6 +427,30 @@ async def enrich_persona(
     interests = list(existing.get("interests") or [])
     values = list(existing.get("values") or [])
 
+    # Traits: store as dict name -> description (merge with existing)
+    existing_traits_raw = existing.get("traits")
+    if isinstance(existing_traits_raw, dict):
+        traits = dict(existing_traits_raw)
+    elif isinstance(existing_traits_raw, list):
+        traits = {}
+        for item in existing_traits_raw:
+            if isinstance(item, dict):
+                name = item.get("name") or item.get("label") or item.get("title") or item.get("content")
+                desc = item.get("description") or item.get("type") or ""
+                if name:
+                    traits[name] = desc
+            elif isinstance(item, str):
+                traits[item] = ""
+    else:
+        traits = {}
+
+    # Communication style: vocabulary (list of {word, description} or str), sentence_structure (str)
+    comm_style = existing.get("communication_style") or existing.get("communicationStyle") or {}
+    if not isinstance(comm_style, dict):
+        comm_style = {}
+    vocabulary = list(comm_style.get("vocabulary") or [])
+    sentence_structure = (comm_style.get("sentence_structure") or "").strip()
+
     overlay = (body or {}).get("profile_overlay") if isinstance(body, dict) else None
     if not isinstance(overlay, dict):
         overlay = {}
@@ -468,8 +495,52 @@ async def enrich_persona(
             content = getattr(s, "content", None) or (s if isinstance(s, str) else "")
             if content:
                 values.append(content)
+
+        # Traits (persona.traits returns list of {name, description})
+        ctx_traits = _build_persona_traits_ai_context(session, persona, max_items)
+        r_traits = await ai_assist.generate(
+            AiAssistRequest(template_id="persona.traits", context=ctx_traits, max_suggestions=max_items),
+        )
+        _report(r_traits)
+        for s in r_traits.suggestions:
+            name = getattr(s, "content", None) or (s if isinstance(s, str) else None)
+            desc = getattr(s, "type", None) or getattr(s, "title", None) or ""
+            if name:
+                traits[name] = desc or ""
+
+        # Vocabulary (persona.vocabulary returns list of {word, description})
+        ctx_vocab = _build_persona_vocabulary_ai_context(session, persona, max_items)
+        r_vocab = await ai_assist.generate(
+            AiAssistRequest(template_id="persona.vocabulary", context=ctx_vocab, max_suggestions=max_items),
+        )
+        _report(r_vocab)
+        for s in r_vocab.suggestions:
+            word = getattr(s, "content", None) or (s if isinstance(s, str) else None)
+            desc = getattr(s, "type", None) or getattr(s, "title", None) or ""
+            if word:
+                vocabulary.append({"word": word, "description": desc or ""})
+
+        # Sentence structure (persona.sentence_structure returns single description)
+        ctx_sent = _build_persona_sentence_structure_ai_context(session, persona)
+        r_sent = await ai_assist.generate(
+            AiAssistRequest(template_id="persona.sentence_structure", context=ctx_sent, max_suggestions=1),
+        )
+        _report(r_sent)
+        if r_sent.suggestions:
+            content = getattr(r_sent.suggestions[0], "content", None) or (
+                r_sent.suggestions[0] if isinstance(r_sent.suggestions[0], str) else ""
+            )
+            if content:
+                sentence_structure = content.strip()
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    # Build communication_style with vocabulary and sentence_structure; keep skepticism_level if present
+    merged_comm = dict(comm_style)
+    merged_comm["vocabulary"] = vocabulary
+    merged_comm["sentence_structure"] = sentence_structure
+    if "skepticism_level" not in merged_comm:
+        merged_comm["skepticism_level"] = merged_comm.get("skepticism_level", 0)
 
     profile_json = {
         "pain_points": pain_points,
@@ -477,12 +548,18 @@ async def enrich_persona(
         "goals": goals,
         "interests": interests,
         "values": values,
+        "traits": traits,
+        "communication_style": merged_comm,
+        "communicationStyle": merged_comm,
     }
+    # Demographics: always set from overlay first, then existing, so they are never dropped
     for key in ("bio", "age", "location", "gender"):
-        if overlay and key in overlay:
+        if overlay is not None and key in overlay:
             profile_json[key] = overlay[key]
-        elif existing and key in existing:
+        elif key in existing:
             profile_json[key] = existing[key]
+        else:
+            profile_json[key] = "" if key == "bio" else None
     payload = PersonaPatchRequest(
         name=None,
         segment=None,

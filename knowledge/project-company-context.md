@@ -62,8 +62,13 @@ Personas can be suggested from **company context + target group** and then creat
 
 ### Step 2: Create personas and optionally enrich
 
-- **Create:** Use existing `POST /api/personas` with `project_id`, `target_group_id`, `name`, `segment` (from TG), `headline`, and `profile: { bio, age, location, gender, pain_points: [], goals: [], ... }`.
-- **Enrich:** `POST /api/personas/{persona_id}/enrich` runs the four AI-assist templates (pain points, goals, interests, values) and merges the results into the persona profile. Implemented in [apps/api/app/routers/personas.py](apps/api/app/routers/personas.py) (`enrich_persona`).
+- **Create:** Use existing `POST /api/personas` with `project_id`, `target_group_id`, `name`, `segment` (from TG), `headline`, and optionally `profile` (bio, age, location, gender, etc.).
+- **Enrich:** `POST /api/personas/{persona_id}/enrich` runs AI for:
+  - **Pain points, goals, interests, values** (existing).
+  - **Traits** (persona.traits) – merged into `profile.traits` (dict: name → description).
+  - **Vocabulary** (persona.vocabulary) – merged into `profile.communication_style.vocabulary` (list of `{ word, description }`).
+  - **Sentence structure** (persona.sentence_structure) – set on `profile.communication_style.sentence_structure`.
+  - **Demographics** are always written from the optional body `profile_overlay: { bio, age, location, gender }` (or existing profile), so they are never dropped. Implemented in [apps/api/app/routers/personas.py](apps/api/app/routers/personas.py) (`enrich_persona`).
 
 ### Frontend
 
