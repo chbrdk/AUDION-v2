@@ -749,6 +749,11 @@ function AdminChatPageContent() {
     chatMode === "persona"
       ? !activePersonaId || sending || input.trim().length === 0
       : !activeTargetGroupId || sendingTargetGroup || targetGroupPersonas.length === 0 || input.trim().length === 0;
+  // Input field: only disable when there is no valid context or a request is in flight (not when text is empty)
+  const inputDisabled =
+    chatMode === "persona"
+      ? !activePersonaId || sending
+      : !activeTargetGroupId || sendingTargetGroup || targetGroupPersonas.length === 0;
 
   const MAX_PERSONAS_PER_TARGET_GROUP_ROUND = 10;
 
@@ -2194,7 +2199,7 @@ function AdminChatPageContent() {
                 fullWidth
                 placeholder={t("adminChat.placeholder")}
                 value={input}
-                disabled={sendDisabled}
+                disabled={inputDisabled}
                 onChange={(event) => setInput(event.target.value)}
                 size="large"
                 sx={{
