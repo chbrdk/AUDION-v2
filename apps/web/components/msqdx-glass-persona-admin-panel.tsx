@@ -176,6 +176,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
   const [listRefreshing, setListRefreshing] = useState(false);
   const [documentUploadPending, setDocumentUploadPending] = useState(false);
   const [avatarGeneratePending, setAvatarGeneratePending] = useState(false);
+  const [enrichPending, setEnrichPending] = useState(false);
   const [knowledgeForm, setKnowledgeForm] = useState<KnowledgeFormState>(defaultKnowledgeForm);
   const [knowledgePending, setKnowledgePending] = useState(false);
   const { execute: runPersonaAiAssist, loading: personaAiLoading } = useAiAssist();
@@ -1290,6 +1291,37 @@ export const MsqdxGlassPersonaAdminPanel = ({
     documentInputRef.current?.click();
   };
 
+  const handleEnrichWithAi = async () => {
+    if (!selectedId || !detail) return;
+    setEnrichPending(true);
+    try {
+      const profile = detail.profile as Record<string, unknown> | undefined;
+      const profileOverlay = {
+        bio: profile?.bio ?? "",
+        age: profile?.age ?? null,
+        location: profile?.location ?? null,
+        gender: profile?.gender ?? null,
+      };
+      const response = await fetch(buildApiUrl(`/api/personas/${selectedId}/enrich`), {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile_overlay: profileOverlay }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(typeof err.detail === "string" ? err.detail : "Enrich failed");
+      }
+      await loadDetail(selectedId);
+      notify(t("personaAdmin.toasts.personaEnriched"));
+    } catch (error) {
+      console.error("Enrich with AI failed", error);
+      notify((error instanceof Error ? error.message : t("personaAdmin.toasts.enrichFailed")) ?? "Enrich failed");
+    } finally {
+      setEnrichPending(false);
+    }
+  };
+
   const handleGenerateAvatar = async () => {
     if (!selectedId) {
       return;
@@ -1645,6 +1677,9 @@ export const MsqdxGlassPersonaAdminPanel = ({
                               )}
                             </div>
                             <Box sx={{ display: "flex", gap: 0.5, alignItems: "center", mt: 1, flexWrap: "wrap" }}>
+                              <MsqdxButton variant="outlined" size="small" onClick={handleEnrichWithAi} disabled={enrichPending || savePending} startIcon={<MsqdxIcon name="auto_awesome" customSize={16} />}>
+                                {enrichPending ? t("personaAdmin.enrichingWithAi") : t("personaAdmin.enrichWithAi")}
+                              </MsqdxButton>
                               <MsqdxButton variant="text" size="small" onClick={handleGenerateAvatar} disabled={avatarGeneratePending} startIcon={<MsqdxIcon name="photo_camera" customSize={16} />}>
                                 {avatarGeneratePending ? t("personaAdmin.generatingAvatar") : t("personaAdmin.generateAvatar")}
                               </MsqdxButton>
