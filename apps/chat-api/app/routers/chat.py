@@ -315,7 +315,7 @@ async def send_message(request: ChatMessageRequest) -> ChatMessageResponse:
                     "content": msg.get("content", ""),
                 })
             response = persona_agent._openai.chat.completions.create(
-                model="gpt-5-mini",
+                model=settings.chat_model,
                 max_completion_tokens=600,
                 messages=openai_messages,
             )

@@ -1,5 +1,17 @@
 # FlagEmbedding and transformers compatibility
 
+## Chat model (persona responses)
+
+The persona chat (non-streaming `POST /chat/message` and voice stream) uses **OpenAI**. The model is configured in chat-api:
+
+- **Config**: `apps/chat-api/app/core/config.py` → `chat_model` (default: `gpt-5-mini`).
+- **Env**: Set `CHAT_MODEL` to override (e.g. `gpt-4o-mini` if gpt-5-mini is unavailable).
+- **Usage**: `apps/chat-api/app/routers/chat.py` and `apps/chat-api/app/routers/voice.py` use `settings.chat_model`.
+
+---
+
+# FlagEmbedding and transformers compatibility
+
 ## Problem
 
 FlagEmbedding 1.3.5 depends on Hugging Face `transformers`. Newer transformers versions removed `is_torch_fx_available` from `transformers.utils.import_utils`, causing:

@@ -41,6 +41,8 @@ class Settings(BaseSettings):
     logfire_token: str | None = None
     openai_api_key: str  # Required for chat
     chat_use_tools: bool = True  # Enable tools/functions for chat (default: True)
+    # Model used for persona chat (non-streaming /message and voice stream)
+    chat_model: str = "gpt-5-mini"
 
 
 @lru_cache

@@ -14,6 +14,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import select
 
+from ..core.config import get_settings
 from ..db import get_session
 from ..models import Persona, PersonaPrompt
 from ..services.usage_report import report_usage
@@ -24,6 +25,7 @@ from ..ws.chat import get_persona_agent, get_persona_prompt, get_retrieval_agent
 
 router = APIRouter(prefix="/voice", tags=["voice"])
 logger = structlog.get_logger(__name__)
+settings = get_settings()
 
 
 def select_model_for_messages(messages: List[Dict[str, Any]]) -> str:
@@ -262,7 +264,7 @@ async def voice_chat_stream(request: VoiceChatRequest) -> StreamingResponse:
                         })
                     
                     stream = persona_agent._openai.chat.completions.create(
-                        model="gpt-5-mini",
+                        model=settings.chat_model,
                         max_completion_tokens=600,
                         messages=openai_messages,
                         stream=True,
