@@ -2,27 +2,27 @@
 
 ## Overview
 
-The **compact chat prompt** is a shortened, specialized system prompt built from persona profile data. It tells the LLM how to behave as the persona: identity, views, tone, vocabulary, and brevity. No extra AI calls are used; the prompt is assembled from existing profile fields.
+The **compact chat prompt** is a shortened, specialized system prompt built from persona profile data. It tells the chat LLM how to behave as the persona: identity, views, tone, vocabulary, and brevity. The prompt is **built by an LLM** from the full profile so all info can be smartly condensed and prioritized; a deterministic fallback is used if the LLM call fails.
 
 ## Template Version
 
-- **Version**: `2025-03-compact`
+- **Version**: `2025-03-llm`
 - **Constant**: `CHAT_PROMPT_TEMPLATE_VERSION` in `apps/api/app/services/persona_prompt_builder.py`
 
 ## When the Prompt Is Ensured
 
 1. **On persona selection for chat**  
-   When a user selects a persona (or a target group) for chat, the frontend calls `POST /api/personas/{persona_id}/ensure-chat-prompt` for the selected persona(s). The main API builds the compact prompt from the current profile if missing or if the stored prompt is not the current template version, and saves it.
+   When a user selects a persona (or a target group) for chat, the frontend calls `POST /api/personas/{persona_id}/ensure-chat-prompt`. The API calls the LLM (template `persona.build_chat_prompt`) with a serialized profile summary; the LLM returns a compact German system prompt, which is saved. On timeout/error, a deterministic `build_compact_chat_prompt` fallback is used.
 
 2. **After enrichment**  
-   When `POST /personas/{id}/enrich` runs, a compact prompt is built from the merged profile and saved as part of the same update.
+   When `POST /personas/{id}/enrich` runs, the same LLM builder is used on the merged profile; the result is saved as part of the update. Fallback as above.
 
 ## Builder
 
 - **Module**: `apps/api/app/services/persona_prompt_builder.py`
-- **Function**: `build_compact_chat_prompt(name, segment, headline, profile)`
-- **Input**: Persona name, segment, headline, and profile dict (pain_points, goals, values, interests, communication_style, traits, bio).
-- **Output**: Single string (German). Long labels are truncated (e.g. 120 chars for pain points/goals).
+- **LLM**: `build_compact_chat_prompt_llm(session, name, segment, headline, profile)` — async, uses template `persona.build_chat_prompt`, input is `build_persona_profile_summary(...)`.
+- **Fallback**: `build_compact_chat_prompt(name, segment, headline, profile)` — no AI; deterministic assembly with truncation.
+- **Template**: `persona.build_chat_prompt` in `apps/api/app/prompts/templates.yaml` (mode: text, ~600–800 chars target).
 
 ## API
 

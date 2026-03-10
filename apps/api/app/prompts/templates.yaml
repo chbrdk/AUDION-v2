@@ -370,6 +370,38 @@ templates:
         title: content
         type: content
 
+  - template_id: persona.build_chat_prompt
+    label: Persona Chat Prompt (LLM)
+    description: "Build a compact, chat-optimized system prompt from full persona profile data. Output is used as the system prompt for persona chat."
+    category: persona
+    tags: ["persona", "chat", "system_prompt"]
+    default_provider: openai
+    default_model: gpt-5-mini
+    max_tokens: 1024
+    prompt: |
+      Du bist Experte für Persona-basierte Chat-Systeme. Aus den folgenden Persona-Daten soll ein kurzer, prägnanter System-Prompt für einen Chat entstehen.
+
+      PERSONA-PROFIL (Vollständige Daten)
+      -----------------------------------
+      ${persona_profile_summary}
+
+      AUFGABE
+      -------
+      Erstelle einen System-Prompt in Deutsch, mit dem ein Sprachmodell im Chat exakt als diese Persona antwortet.
+      Der Prompt muss enthalten:
+      - Wer die Persona ist (Name, Segment, kurze Charakterisierung).
+      - Klare Verhaltensregel: Immer in der Rolle bleiben, nie als Assistent aus der Rolle fallen.
+      - Die wichtigsten Ansichten, Schmerzpunkte und Ziele (kompakt, priorisiert).
+      - Ton, Sprache und typische Formulierungen (Wortschatz, Satzbau, Skepsis-Level).
+      - Anweisung: Antworte knapp (1–2 Absätze), nur aus Persona-Sicht.
+
+      FORMAT
+      ------
+      Gib nur den fertigen System-Prompt als Fließtext aus, ohne JSON, ohne Überschriften, ohne "System-Prompt:"-Präfix.
+      Maximale Länge: etwa 600–800 Zeichen. Jede Zeile zählt; keine Füllphrase.
+    output:
+      mode: text
+
   - template_id: journey.phase.create
     label: Journey Phase Creation (with Emotion)
     description: "Generate a complete journey phase including name, description, duration, and expected emotion based on journey context."

@@ -41,7 +41,11 @@ from ..services.persona_ai_context import (
     build_persona_sentence_structure_ai_context as _build_persona_sentence_structure_ai_context,
 )
 from ..services.persona_generation import PersonaGenerationService
-from ..services.persona_prompt_builder import CHAT_PROMPT_TEMPLATE_VERSION, build_compact_chat_prompt
+from ..services.persona_prompt_builder import (
+    CHAT_PROMPT_TEMPLATE_VERSION,
+    build_compact_chat_prompt,
+    build_compact_chat_prompt_llm,
+)
 from ..services.persona_store import PersonaService
 from ..services.tavus_client import create_conversation as tavus_create_conversation
 from ..services.target_group_store import TargetGroupService
@@ -576,12 +580,28 @@ async def enrich_persona(
             profile_json[key] = existing[key]
         else:
             profile_json[key] = "" if key == "bio" else None
-    compact_prompt = build_compact_chat_prompt(
-        name=persona.name or "",
-        segment=persona.segment or "",
-        headline=persona.headline or "",
-        profile=profile_json,
-    )
+    try:
+        compact_prompt = await build_compact_chat_prompt_llm(
+            session,
+            name=persona.name or "",
+            segment=persona.segment or "",
+            headline=persona.headline or "",
+            profile=profile_json,
+        )
+    except Exception:  # noqa: BLE001
+        compact_prompt = build_compact_chat_prompt(
+            name=persona.name or "",
+            segment=persona.segment or "",
+            headline=persona.headline or "",
+            profile=profile_json,
+        )
+    if not (compact_prompt or compact_prompt.strip()):
+        compact_prompt = build_compact_chat_prompt(
+            name=persona.name or "",
+            segment=persona.segment or "",
+            headline=persona.headline or "",
+            profile=profile_json,
+        )
     payload = PersonaPatchRequest(
         name=None,
         segment=None,
@@ -610,9 +630,9 @@ async def enrich_persona(
 @router.post(
     "/{persona_id}/ensure-chat-prompt",
     summary="Ensure compact chat prompt exists",
-    description="Builds and saves a compact system prompt from the persona profile if missing or not the current template version. Idempotent.",
+    description="Builds and saves a compact system prompt from the persona profile via LLM (or fallback) if missing or not the current template version. Idempotent.",
 )
-def ensure_chat_prompt(
+async def ensure_chat_prompt(
     persona_id: str,
     session: Session = Depends(get_db),
 ) -> dict:
@@ -625,12 +645,28 @@ def ensure_chat_prompt(
     if latest and getattr(latest, "template_version", None) == CHAT_PROMPT_TEMPLATE_VERSION:
         return {"ensured": False, "prompt_length": len(latest.system_prompt or "")}
     profile = (persona.profile or {}) if hasattr(persona, "profile") else {}
-    built = build_compact_chat_prompt(
-        name=persona.name or "",
-        segment=persona.segment or "",
-        headline=persona.headline or "",
-        profile=profile,
-    )
+    try:
+        built = await build_compact_chat_prompt_llm(
+            session,
+            name=persona.name or "",
+            segment=persona.segment or "",
+            headline=persona.headline or "",
+            profile=profile,
+        )
+    except Exception:  # noqa: BLE001
+        built = build_compact_chat_prompt(
+            name=persona.name or "",
+            segment=persona.segment or "",
+            headline=persona.headline or "",
+            profile=profile,
+        )
+    if not (built or built.strip()):
+        built = build_compact_chat_prompt(
+            name=persona.name or "",
+            segment=persona.segment or "",
+            headline=persona.headline or "",
+            profile=profile,
+        )
     session.add(
         PersonaPromptModel(
             persona_id=persona.id,
