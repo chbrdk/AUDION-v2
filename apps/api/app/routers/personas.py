@@ -427,28 +427,42 @@ async def enrich_persona(
     interests = list(existing.get("interests") or [])
     values = list(existing.get("values") or [])
 
-    # Traits: store as dict name -> description (merge with existing)
+    # Traits: PersonaProfile expects Dict[str, float] (trait name -> score). Merge with existing.
     existing_traits_raw = existing.get("traits")
+    traits: Dict[str, float] = {}
     if isinstance(existing_traits_raw, dict):
-        traits = dict(existing_traits_raw)
+        for k, v in existing_traits_raw.items():
+            if isinstance(v, (int, float)):
+                traits[k] = float(v)
+            elif isinstance(v, str):
+                try:
+                    traits[k] = float(v)
+                except (ValueError, TypeError):
+                    traits[k] = 1.0
+            else:
+                traits[k] = 1.0
     elif isinstance(existing_traits_raw, list):
-        traits = {}
         for item in existing_traits_raw:
             if isinstance(item, dict):
                 name = item.get("name") or item.get("label") or item.get("title") or item.get("content")
-                desc = item.get("description") or item.get("type") or ""
                 if name:
-                    traits[name] = desc
+                    traits[name] = 1.0
             elif isinstance(item, str):
-                traits[item] = ""
-    else:
-        traits = {}
+                traits[item] = 1.0
 
-    # Communication style: vocabulary (list of {word, description} or str), sentence_structure (str)
+    # Communication style: PersonaProfile expects vocabulary as List[str]. sentence_structure as str.
     comm_style = existing.get("communication_style") or existing.get("communicationStyle") or {}
     if not isinstance(comm_style, dict):
         comm_style = {}
-    vocabulary = list(comm_style.get("vocabulary") or [])
+    raw_vocab = comm_style.get("vocabulary") or []
+    vocabulary: List[str] = []
+    for item in raw_vocab:
+        if isinstance(item, str):
+            vocabulary.append(item)
+        elif isinstance(item, dict):
+            w = item.get("word") or item.get("label") or item.get("title") or item.get("content")
+            if w:
+                vocabulary.append(str(w))
     sentence_structure = (comm_style.get("sentence_structure") or "").strip()
 
     overlay = (body or {}).get("profile_overlay") if isinstance(body, dict) else None
@@ -497,6 +511,7 @@ async def enrich_persona(
                 values.append(content)
 
         # Traits (persona.traits returns list of {name, description})
+        # PersonaProfile expects traits: Dict[str, float] (trait name -> score)
         ctx_traits = _build_persona_traits_ai_context(session, persona, max_items)
         r_traits = await ai_assist.generate(
             AiAssistRequest(template_id="persona.traits", context=ctx_traits, max_suggestions=max_items),
@@ -504,11 +519,11 @@ async def enrich_persona(
         _report(r_traits)
         for s in r_traits.suggestions:
             name = getattr(s, "content", None) or (s if isinstance(s, str) else None)
-            desc = getattr(s, "type", None) or getattr(s, "title", None) or ""
             if name:
-                traits[name] = desc or ""
+                traits[name] = 1.0
 
         # Vocabulary (persona.vocabulary returns list of {word, description})
+        # PersonaProfile expects communication_style.vocabulary: List[str]
         ctx_vocab = _build_persona_vocabulary_ai_context(session, persona, max_items)
         r_vocab = await ai_assist.generate(
             AiAssistRequest(template_id="persona.vocabulary", context=ctx_vocab, max_suggestions=max_items),
@@ -516,9 +531,8 @@ async def enrich_persona(
         _report(r_vocab)
         for s in r_vocab.suggestions:
             word = getattr(s, "content", None) or (s if isinstance(s, str) else None)
-            desc = getattr(s, "type", None) or getattr(s, "title", None) or ""
             if word:
-                vocabulary.append({"word": word, "description": desc or ""})
+                vocabulary.append(str(word))
 
         # Sentence structure (persona.sentence_structure returns single description)
         ctx_sent = _build_persona_sentence_structure_ai_context(session, persona)

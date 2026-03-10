@@ -826,6 +826,39 @@ class PersonaService:
         # Apply normalization to potentially legacy fields
         defaults["goals"] = normalize_goals(defaults["goals"])
         defaults["pain_points"] = normalize_pain_points(defaults["pain_points"])
+
+        # PersonaProfile (msqdx_glass_proto) expects traits: Dict[str, float] and vocabulary: List[str]
+        raw_traits = defaults.get("traits") or {}
+        if isinstance(raw_traits, dict):
+            traits_normalized: Dict[str, float] = {}
+            for k, v in raw_traits.items():
+                if isinstance(v, (int, float)):
+                    traits_normalized[k] = float(v)
+                elif isinstance(v, str):
+                    try:
+                        traits_normalized[k] = float(v)
+                    except (ValueError, TypeError):
+                        traits_normalized[k] = 1.0
+                else:
+                    traits_normalized[k] = 1.0
+            defaults["traits"] = traits_normalized
+        else:
+            defaults["traits"] = {}
+
+        raw_comm = defaults.get("communication_style") or {}
+        if isinstance(raw_comm, dict):
+            raw_vocab = raw_comm.get("vocabulary") or []
+            vocab_normalized: List[str] = []
+            for item in raw_vocab:
+                if isinstance(item, str):
+                    vocab_normalized.append(item)
+                elif isinstance(item, dict):
+                    w = item.get("word") or item.get("label") or item.get("title") or item.get("content")
+                    if w:
+                        vocab_normalized.append(str(w))
+            raw_comm = dict(raw_comm)
+            raw_comm["vocabulary"] = vocab_normalized
+            defaults["communication_style"] = raw_comm
         
         # Create PersonaProfile instance
         profile = PersonaProfile(**defaults)
