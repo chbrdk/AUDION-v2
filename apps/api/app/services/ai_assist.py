@@ -783,7 +783,11 @@ class AiAssistService:
         provider = request.provider or template.default_provider or AiProvider(self.settings.ai_default_provider)
         model = request.model or template.default_model or self._default_model(provider)
         temperature = template.temperature or self.settings.ai_default_temperature
-        max_tokens = template.max_tokens or self.settings.ai_default_max_tokens
+        # Journey full generation: no token limit so all phases/elements can be generated
+        if request.template_id == "journey.full_generation":
+            max_tokens = 16384
+        else:
+            max_tokens = template.max_tokens or self.settings.ai_default_max_tokens
 
         prompt_context = self._build_context(request.context, request.prompt_variables)
         rendered_prompt = self._render_prompt(template.prompt, prompt_context)

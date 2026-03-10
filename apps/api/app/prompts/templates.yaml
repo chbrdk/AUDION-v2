@@ -454,7 +454,6 @@ templates:
     tags: ["journey", "generation", "full", "phases"]
     default_provider: openai
     default_model: gpt-5-mini
-    max_tokens: 4096
     prompt: |
       Based on the following information:
 
