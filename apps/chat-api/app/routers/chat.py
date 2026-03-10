@@ -166,6 +166,25 @@ class ChatMessageResponse(BaseModel):
 async def send_message(request: ChatMessageRequest) -> ChatMessageResponse:
     """Send a message to a persona and get a response."""
     try:
+        return await _send_message_impl(request)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(
+            "chat.message.endpoint.error",
+            persona_id=getattr(request, "persona_id", None),
+            error=str(e),
+            error_type=type(e).__name__,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Chat error: {type(e).__name__}: {str(e)}",
+        ) from e
+
+
+async def _send_message_impl(request: ChatMessageRequest) -> ChatMessageResponse:
+    """Implementation of send_message to allow top-level error handling."""
+    try:
         persona_uuid = UUID(request.persona_id)
     except ValueError as e:
         raise HTTPException(
@@ -232,8 +251,22 @@ async def send_message(request: ChatMessageRequest) -> ChatMessageResponse:
                 anthropic_messages.append(anthropic_message)
         
         system_prompt = "\n\n".join(system_parts)
-        retrieval_query = next((m.content[:100] for m in request.messages if m.role == "user"), "")
-        user_message_for_logging = retrieval_query
+        def _first_user_text(msgs):
+            for m in msgs:
+                if m.role != "user":
+                    continue
+                c = m.content
+                if isinstance(c, str):
+                    return c[:100] if c else ""
+                if isinstance(c, list):
+                    for block in c:
+                        if isinstance(block, dict) and block.get("type") == "text":
+                            t = block.get("text", "")
+                            return (t[:100] if t else "") if isinstance(t, str) else ""
+                break
+            return ""
+        retrieval_query = _first_user_text(request.messages)
+        user_message_for_logging = retrieval_query or "(no text)"
         
         # Union logging removed - Audion is now autonomous
     elif request.message:
@@ -346,14 +379,24 @@ async def send_message(request: ChatMessageRequest) -> ChatMessageResponse:
                     raw_units={"runs": 1},
                 )
 
-        response_text = clean_response_text(response_text)
+        response_text = clean_response_text(response_text if response_text is not None else "")
         logger.info("chat.persona_agent.complete", response_length=len(response_text))
         
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error("chat.persona_agent.failed", error=str(e), exc_info=True)
+        err_msg = str(e)
+        err_type = type(e).__name__
+        logger.error(
+            "chat.persona_agent.failed",
+            error=err_msg,
+            error_type=err_type,
+            persona_id=request.persona_id,
+            exc_info=True,
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to generate response: {str(e)}"
+            detail=f"Failed to generate response: {err_type}: {err_msg}"
         ) from e
     
     # Format sources for response
