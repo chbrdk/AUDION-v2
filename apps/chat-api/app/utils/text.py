@@ -21,8 +21,8 @@ def _dedupe_sentences(paragraph: str) -> str:
     return " ".join(deduped)
 
 
-def clean_response_text(text: str, max_paragraphs: int = 3) -> str:
-    """Remove doc references, confidence blocks, duplicates, and limit paragraphs."""
+def clean_response_text(text: str, max_paragraphs: int = 2) -> str:
+    """Remove doc references, confidence blocks, duplicates, and limit paragraphs (default 2 for brevity)."""
     without_refs = DOC_PATTERN.sub("", text)
     without_refs = NUM_PATTERN.sub("", without_refs)
     without_confidence = CONFIDENCE_PATTERN.sub("", without_refs)

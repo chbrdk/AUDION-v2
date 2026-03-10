@@ -90,8 +90,7 @@ class PersonaAgent:
                     user_content += f"\n\nRelevant context:\n{sources_text}"
                 
                 stream = self._openai.chat.completions.create(
-                    model="gpt-5-mini",
-                    max_completion_tokens=600,
+                    model=settings.chat_model,
                     messages=[
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_content}
@@ -236,11 +235,10 @@ class PersonaAgent:
                                    content_is_list=False,
                                    content_preview=str(content)[:100] if content else "")
                 
-                logger.info("persona.agent.openai_call_starting", model="gpt-5-mini", has_tools=bool(functions), messages_count=len(messages))
+                logger.info("persona.agent.openai_call_starting", model=settings.chat_model, has_tools=bool(functions), messages_count=len(messages))
                 try:
                     stream = self._openai.chat.completions.create(
-                        model="gpt-5-mini",
-                        max_completion_tokens=4000,
+                        model=settings.chat_model,
                         messages=messages,
                         tools=functions if functions else None,
                         stream=True,

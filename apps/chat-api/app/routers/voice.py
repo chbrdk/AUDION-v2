@@ -265,7 +265,6 @@ async def voice_chat_stream(request: VoiceChatRequest) -> StreamingResponse:
                     
                     stream = persona_agent._openai.chat.completions.create(
                         model=settings.chat_model,
-                        max_completion_tokens=600,
                         messages=openai_messages,
                         stream=True,
                     )

@@ -275,13 +275,9 @@ async def _send_message_impl(request: ChatMessageRequest) -> ChatMessageResponse
         anthropic_messages = [{
             "role": "user",
             "content": (
-                "Answer succinctly in natural, conversational language. "
-                "Avoid repeating words or phrases, do not include document IDs, chunk IDs, brackets, or the word 'doc'. "
-                "Keep the reply to at most three short paragraphs, unless the user explicitly asks for more detail. "
-                "Share only the most relevant details, and go deeper only when it truly adds value. "
-                "Avoid repeating words or phrases, do not include document IDs, chunk IDs, brackets, or the word 'doc'. "
-                "Keep the reply to at most three short paragraphs, unless the user explicitly asks for more detail. "
-                "Share only the most relevant details, and go deeper only when it truly adds value. "
+                "Antworte knapp und natürlich (max. 1–2 kurze Absätze, ca. 50–80 Wörter). "
+                "Keine Doc-IDs, Chunk-IDs, Klammern oder das Wort 'doc'. Keine Wiederholungen. "
+                "Nur bei ausdrücklicher Nachfrage länger antworten. "
                 f"User message: {request.message}"
             ),
         }]
@@ -349,7 +345,6 @@ async def _send_message_impl(request: ChatMessageRequest) -> ChatMessageResponse
                 })
             response = persona_agent._openai.chat.completions.create(
                 model=settings.chat_model,
-                max_completion_tokens=600,
                 messages=openai_messages,
             )
             response_holder.append(response)
@@ -379,7 +374,10 @@ async def _send_message_impl(request: ChatMessageRequest) -> ChatMessageResponse
                     raw_units={"runs": 1},
                 )
 
-        response_text = clean_response_text(response_text if response_text is not None else "")
+        response_text = clean_response_text(
+            response_text if response_text is not None else "",
+            max_paragraphs=2,
+        )
         logger.info("chat.persona_agent.complete", response_length=len(response_text))
         
     except HTTPException:
@@ -537,12 +535,9 @@ async def send_message_stream(request: ChatMessageRequest) -> StreamingResponse:
         anthropic_messages = [{
             "role": "user",
             "content": (
-                "Answer succinctly in natural, conversational language. "
-                "Avoid repeating words or phrases, do not include document IDs, chunk IDs, brackets, or the word 'doc'. "
-                "Keep the reply under 90 words and at most three short paragraphs unless the user explicitly asks for more detail. "
-                "Do not mention confidence scores, percentages, or meta commentary. "
-                "Avoid markdown formatting (no bold, bullets) unless the user requests it. "
-                "Share only the most relevant details, and go deeper only when it truly adds value. "
+                "Antworte knapp und natürlich (max. 1–2 kurze Absätze, ca. 50–80 Wörter). "
+                "Keine Doc-IDs, Chunk-IDs, Klammern, 'doc', keine Confidence-Scores oder Meta-Kommentare. "
+                "Kein Markdown (fett, Aufzählungen) außer auf Nachfrage. Nur bei ausdrücklicher Nachfrage länger antworten. "
                 f"User message: {request.message}"
             ),
         }]
@@ -761,8 +756,7 @@ async def send_message_stream(request: ChatMessageRequest) -> StreamingResponse:
                         
                         # Legacy mode: No tools (backward compatibility)
                         stream = persona_agent._openai.chat.completions.create(
-                            model="gpt-5-mini",
-                            max_completion_tokens=600,
+                            model=settings.chat_model,
                             messages=openai_messages,
                             stream=True,
                         )
