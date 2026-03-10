@@ -192,7 +192,7 @@ async def _send_message_impl(request: ChatMessageRequest) -> ChatMessageResponse
             detail=f"Invalid persona_id format: {e}"
         ) from e
     
-    # Get persona from database
+    # Get persona and latest stored chat prompt from database (same DB as main API)
     with get_session() as session:
         persona = session.get(Persona, persona_uuid)
         if not persona:
@@ -200,17 +200,29 @@ async def _send_message_impl(request: ChatMessageRequest) -> ChatMessageResponse
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Persona not found: {request.persona_id}"
             )
-        
-        # Get latest persona prompt (most recent by created_at)
-        prompt = session.scalar(
+        # Latest persona prompt by created_at (written by main API ensure-chat-prompt / enrich)
+        prompt_row = session.scalar(
             select(PersonaPrompt)
             .where(PersonaPrompt.persona_id == persona_uuid)
             .order_by(PersonaPrompt.created_at.desc())
             .limit(1)
         )
-    
-    # Determine system prompt and messages
-    base_system_prompt = prompt.system_prompt if prompt else get_persona_prompt(request.persona_id)
+        # Read prompt text while session is active; support both snake_case and camelCase ORM
+        base_system_prompt = None
+        if prompt_row is not None:
+            base_system_prompt = (getattr(prompt_row, "system_prompt", None) or getattr(prompt_row, "systemPrompt", None)) or ""
+            base_system_prompt = (base_system_prompt or "").strip()
+            logger.info(
+                "chat.prompt.loaded_from_db",
+                persona_id=request.persona_id,
+                prompt_length=len(base_system_prompt),
+                template_version=getattr(prompt_row, "template_version", None) or getattr(prompt_row, "templateVersion", None),
+            )
+
+    if not base_system_prompt:
+        base_system_prompt = (get_persona_prompt(request.persona_id) or "").strip()
+        logger.info("chat.prompt.using_fallback", persona_id=request.persona_id, prompt_length=len(base_system_prompt or ""))
+
     if not base_system_prompt:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -468,7 +480,7 @@ async def send_message_stream(request: ChatMessageRequest) -> StreamingResponse:
             detail=f"Invalid persona_id format: {e}"
         ) from e
     
-    # Get persona from database
+    # Get persona and latest stored chat prompt from database
     with get_session() as session:
         persona = session.get(Persona, persona_uuid)
         if not persona:
@@ -476,22 +488,31 @@ async def send_message_stream(request: ChatMessageRequest) -> StreamingResponse:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Persona not found: {request.persona_id}"
             )
-        
-        # Get latest persona prompt (most recent by created_at)
-        prompt = session.scalar(
+        prompt_row = session.scalar(
             select(PersonaPrompt)
             .where(PersonaPrompt.persona_id == persona_uuid)
             .order_by(PersonaPrompt.created_at.desc())
             .limit(1)
         )
-    
-    # Extract persona segment for tool filtering
+        base_system_prompt = None
+        if prompt_row is not None:
+            base_system_prompt = (getattr(prompt_row, "system_prompt", None) or getattr(prompt_row, "systemPrompt", None)) or ""
+            base_system_prompt = (base_system_prompt or "").strip()
+            logger.info("chat.stream.prompt.loaded_from_db", persona_id=request.persona_id, prompt_length=len(base_system_prompt))
+
+    if not base_system_prompt:
+        base_system_prompt = (get_persona_prompt(request.persona_id) or "").strip()
+        logger.info("chat.stream.prompt.using_fallback", persona_id=request.persona_id)
+
+    if not base_system_prompt:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Persona prompt not found"
+        )
+
+    # Extract persona segment for tool filtering; persona is still in scope (detached)
     persona_segment: str | None = persona.segment if persona and persona.segment else None
-    
-    # Check if tools are enabled via feature flag
     use_tools = settings.chat_use_tools
-    
-    # Load tools if enabled
     tools = None
     if use_tools:
         from ..agents.tools import KNOWLEDGE_TOOLS
@@ -499,14 +520,6 @@ async def send_message_stream(request: ChatMessageRequest) -> StreamingResponse:
         logger.info("chat.tools.enabled", persona_id=request.persona_id, tools_count=len(tools), persona_segment=persona_segment)
     else:
         logger.info("chat.tools.disabled", persona_id=request.persona_id, using_legacy_retrieval=True)
-    
-    # Determine system prompt and messages
-    base_system_prompt = prompt.system_prompt if prompt else get_persona_prompt(request.persona_id)
-    if not base_system_prompt:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Persona prompt not found"
-        )
     
     # Build messages array from request
     if request.messages:

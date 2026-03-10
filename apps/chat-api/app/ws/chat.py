@@ -113,7 +113,9 @@ def get_persona_prompt(persona_id: str) -> str | None:
         )
         
         if prompt:
-            return f"{prompt.system_prompt}\n\n{GUIDELINE_APPENDIX}"
+            raw = getattr(prompt, "system_prompt", None) or getattr(prompt, "systemPrompt", None) or ""
+            if (raw or "").strip():
+                return f"{raw.strip()}\n\n{GUIDELINE_APPENDIX}"
         
         # Fallback: generate a basic prompt from persona data
         return f"""You are {persona.name}, representing the {persona.segment} perspective.

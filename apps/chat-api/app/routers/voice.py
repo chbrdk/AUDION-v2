@@ -153,15 +153,19 @@ async def voice_chat_stream(request: VoiceChatRequest) -> StreamingResponse:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Persona not found: {request.persona_id}"
             )
-        prompt = session.scalar(
+        prompt_row = session.scalar(
             select(PersonaPrompt)
             .where(PersonaPrompt.persona_id == persona_uuid)
             .order_by(PersonaPrompt.created_at.desc())
             .limit(1)
         )
+        base_system_prompt = None
+        if prompt_row is not None:
+            base_system_prompt = (getattr(prompt_row, "system_prompt", None) or getattr(prompt_row, "systemPrompt", None)) or ""
+            base_system_prompt = (base_system_prompt or "").strip()
 
-    # Determine system prompt and messages
-    base_system_prompt = prompt.system_prompt if prompt else get_persona_prompt(request.persona_id)
+    if not base_system_prompt:
+        base_system_prompt = (get_persona_prompt(request.persona_id) or "").strip()
     if not base_system_prompt:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

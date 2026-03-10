@@ -33,7 +33,10 @@ The **compact chat prompt** is a shortened, specialized system prompt built from
 
 ## Chat-API
 
-- Chat-API loads the **latest** persona prompt by `created_at` descending wherever it reads `PersonaPrompt` (non-streaming and streaming chat, voice, ws/chat). So the most recently saved compact prompt is used for the conversation.
+- Chat-API uses the **same database** (same `DATABASE_URL`, `audion` schema) as the main API. It loads the latest persona prompt with `select(PersonaPrompt).where(...).order_by(PersonaPrompt.created_at.desc()).limit(1)` and reads the prompt text **while the session is still active** so the value is not detached.
+- Prompt attribute is read safely: `getattr(prompt_row, "system_prompt", None) or getattr(prompt_row, "systemPrompt", None)` so both snake_case and camelCase ORM mappings work.
+- If no row exists, `get_persona_prompt(persona_id)` returns a fallback built from persona name/segment/headline. Logs: `chat.prompt.loaded_from_db` (with `prompt_length`, `template_version`) when using DB; `chat.prompt.using_fallback` when using fallback.
+- So the most recently saved compact prompt (from ensure-chat-prompt or enrich) is used for the conversation. Ensure the persona has had "Chat-Prompt aktualisieren" or enrichment run at least once so a row exists.
 
 ## Frontend
 
