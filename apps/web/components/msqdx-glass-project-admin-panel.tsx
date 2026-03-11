@@ -987,56 +987,141 @@ export function MsqdxGlassProjectAdminPanel({
                                 </MsqdxCard>
                             </Box>
 
-                            {/* Overview Stats Card – directly under meta card, 4 columns */}
-                            <Box sx={{ gridColumn: "1 / -1" }}>
-                                <MsqdxDashboardCard
-                                    id="overview"
-                                    title={t("settingsProjects.overview.title") || "Overview"}
-                                    icon="dashboard"
-                                    expanded={expandedSections.has("overview")}
-                                    onToggle={toggleSection}
-                                >
-                                    <Box
-                                        sx={{
-                                            display: "grid",
-                                            gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" },
-                                            gap: 2,
-                                        }}
+                            {/* Overview + Team Members: 50/50 row directly under meta card */}
+                            <Box
+                                sx={{
+                                    gridColumn: "1 / -1",
+                                    display: "grid",
+                                    gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+                                    gap: 2,
+                                    alignItems: "stretch",
+                                }}
+                            >
+                                <Box sx={{ minWidth: 0 }}>
+                                    <MsqdxDashboardCard
+                                        id="overview"
+                                        title={t("settingsProjects.overview.title") || "Overview"}
+                                        icon="dashboard"
+                                        expanded={expandedSections.has("overview")}
+                                        onToggle={toggleSection}
                                     >
-                                        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", py: 0.5 }}>
-                                            <MsqdxTypography variant="h6" weight="semibold">
-                                                {detail.stats.persona_count}
-                                            </MsqdxTypography>
-                                            <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
-                                                {t("settingsProjects.overview.personas") || "Personas"}
-                                            </MsqdxTypography>
+                                        <Box
+                                            sx={{
+                                                display: "grid",
+                                                gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" },
+                                                gap: 2,
+                                            }}
+                                        >
+                                            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", py: 0.5 }}>
+                                                <MsqdxTypography variant="h6" weight="semibold">
+                                                    {detail.stats.persona_count}
+                                                </MsqdxTypography>
+                                                <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+                                                    {t("settingsProjects.overview.personas") || "Personas"}
+                                                </MsqdxTypography>
+                                            </Box>
+                                            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", py: 0.5 }}>
+                                                <MsqdxTypography variant="h6" weight="semibold">
+                                                    {detail.stats.target_group_count}
+                                                </MsqdxTypography>
+                                                <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+                                                    {t("settingsProjects.overview.targetGroups") || "Target Groups"}
+                                                </MsqdxTypography>
+                                            </Box>
+                                            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", py: 0.5 }}>
+                                                <MsqdxTypography variant="h6" weight="semibold">
+                                                    {detail.members.length}
+                                                </MsqdxTypography>
+                                                <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+                                                    {t("settingsProjects.overview.members") || "Team Members"}
+                                                </MsqdxTypography>
+                                            </Box>
+                                            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", py: 0.5 }}>
+                                                <MsqdxTypography variant="h6" weight="semibold">
+                                                    {detail.stats.template_override_count}
+                                                </MsqdxTypography>
+                                                <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+                                                    {t("settingsProjects.overview.templates") || "Template Overrides"}
+                                                </MsqdxTypography>
+                                            </Box>
                                         </Box>
-                                        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", py: 0.5 }}>
-                                            <MsqdxTypography variant="h6" weight="semibold">
-                                                {detail.stats.target_group_count}
-                                            </MsqdxTypography>
-                                            <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
-                                                {t("settingsProjects.overview.targetGroups") || "Target Groups"}
-                                            </MsqdxTypography>
-                                        </Box>
-                                        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", py: 0.5 }}>
-                                            <MsqdxTypography variant="h6" weight="semibold">
-                                                {detail.members.length}
-                                            </MsqdxTypography>
-                                            <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
-                                                {t("settingsProjects.overview.members") || "Team Members"}
-                                            </MsqdxTypography>
-                                        </Box>
-                                        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", py: 0.5 }}>
-                                            <MsqdxTypography variant="h6" weight="semibold">
-                                                {detail.stats.template_override_count}
-                                            </MsqdxTypography>
-                                            <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
-                                                {t("settingsProjects.overview.templates") || "Template Overrides"}
-                                            </MsqdxTypography>
-                                        </Box>
-                                    </Box>
-                                </MsqdxDashboardCard>
+                                    </MsqdxDashboardCard>
+                                </Box>
+                                <Box sx={{ minWidth: 0 }}>
+                                    <MsqdxDashboardCard
+                                        id="members"
+                                        title={t("settingsProjects.members.title")}
+                                        icon="group"
+                                        expanded={expandedSections.has("members")}
+                                        onToggle={toggleSection}
+                                    >
+                                        <Stack spacing={2}>
+                                            <Box sx={{ p: 2, backgroundColor: "action.hover", borderRadius: 1 }}>
+                                                <Stack spacing={1.5}>
+                                                    <MsqdxFormField
+                                                        label={t("settingsProjects.members.userEmail")}
+                                                        value={memberEmail}
+                                                        onChange={(e) => setMemberEmail(e.target.value)}
+                                                        placeholder={t("settingsProjects.members.userEmailPlaceholder")}
+                                                        size="small"
+                                                    />
+                                                    {memberError && (
+                                                        <MsqdxTypography variant="caption" sx={{ color: "error.main" }}>
+                                                            {memberError}
+                                                        </MsqdxTypography>
+                                                    )}
+                                                    <MsqdxButton
+                                                        variant="contained"
+                                                        size="small"
+                                                        onClick={handleAddMember}
+                                                        disabled={updatingMembers}
+                                                        fullWidth
+                                                    >
+                                                        {t("settingsProjects.members.addMember")}
+                                                    </MsqdxButton>
+                                                </Stack>
+                                            </Box>
+                                            {detail.members.length === 0 && (
+                                                <MsqdxTypography variant="body2" sx={{ color: "text.secondary", textAlign: "center", py: 2 }}>
+                                                    {t("settingsProjects.members.none")}
+                                                </MsqdxTypography>
+                                            )}
+                                            {detail.members.map((member) => (
+                                                <Box
+                                                    key={member.id}
+                                                    sx={{
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "space-between",
+                                                        p: 1.5,
+                                                        border: "1px solid",
+                                                        borderColor: "divider",
+                                                        borderRadius: 1,
+                                                    }}
+                                                >
+                                                    <Box>
+                                                        <MsqdxTypography variant="subtitle2" weight="semibold">
+                                                            {member.name || member.email}
+                                                        </MsqdxTypography>
+                                                        <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
+                                                            {member.email} · {member.role}
+                                                        </MsqdxTypography>
+                                                    </Box>
+                                                    {member.role !== "owner" && (
+                                                        <MsqdxButton
+                                                            variant="text"
+                                                            size="small"
+                                                            onClick={() => handleRemoveMember(member)}
+                                                            disabled={updatingMembers}
+                                                        >
+                                                            {t("settingsProjects.members.remove")}
+                                                        </MsqdxButton>
+                                                    )}
+                                                </Box>
+                                            ))}
+                                        </Stack>
+                                    </MsqdxDashboardCard>
+                                </Box>
                             </Box>
 
                             {/* Company Context / Unternehmenskontext */}
@@ -1596,86 +1681,6 @@ export function MsqdxGlassProjectAdminPanel({
                                 </MsqdxDashboardCard>
                                 </Box>
                             </Box>
-                            </Box>
-
-                            {/* Team Members Card */}
-                            <Box sx={{ gridColumn: { xs: "1 / -1", md: "span 6" } }}>
-                                <MsqdxDashboardCard
-                                    id="members"
-                                    title={t("settingsProjects.members.title")}
-                                    icon="group"
-                                    expanded={expandedSections.has("members")}
-                                    onToggle={toggleSection}
-                                >
-                                    <Stack spacing={2}>
-                                        {/* Add Member Form */}
-                                        <Box sx={{ p: 2, backgroundColor: "action.hover", borderRadius: 1 }}>
-                                            <Stack spacing={1.5}>
-                                                <MsqdxFormField
-                                                    label={t("settingsProjects.members.userEmail")}
-                                                    value={memberEmail}
-                                                    onChange={(e) => setMemberEmail(e.target.value)}
-                                                    placeholder={t("settingsProjects.members.userEmailPlaceholder")}
-                                                    size="small"
-                                                />
-                                                {memberError && (
-                                                    <MsqdxTypography variant="caption" sx={{ color: "error.main" }}>
-                                                        {memberError}
-                                                    </MsqdxTypography>
-                                                )}
-                                                <MsqdxButton
-                                                    variant="contained"
-                                                    size="small"
-                                                    onClick={handleAddMember}
-                                                    disabled={updatingMembers}
-                                                    fullWidth
-                                                >
-                                                    {t("settingsProjects.members.addMember")}
-                                                </MsqdxButton>
-                                            </Stack>
-                                        </Box>
-
-                                        {/* Members List */}
-                                        {detail.members.length === 0 && (
-                                            <MsqdxTypography variant="body2" sx={{ color: "text.secondary", textAlign: "center", py: 2 }}>
-                                                {t("settingsProjects.members.none")}
-                                            </MsqdxTypography>
-                                        )}
-                                        {detail.members.map((member) => (
-                                            <Box
-                                                key={member.id}
-                                                sx={{
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    justifyContent: "space-between",
-                                                    p: 1.5,
-                                                    border: "1px solid",
-                                                    borderColor: "divider",
-                                                    borderRadius: 1,
-                                                }}
-                                            >
-                                                <Box>
-                                                    <MsqdxTypography variant="subtitle2" weight="semibold">
-                                                        {member.name || member.email}
-                                                    </MsqdxTypography>
-                                                    <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
-                                                        {member.email} · {member.role}
-                                                    </MsqdxTypography>
-                                                </Box>
-                                                {member.role !== "owner" && (
-                                                    <MsqdxButton
-                                                        variant="text"
-                                                        size="small"
-                                                        onClick={() => handleRemoveMember(member)}
-                                                        disabled={updatingMembers}
-                                                    >
-                                                        {t("settingsProjects.members.remove")}
-                                                    </MsqdxButton>
-                                                )}
-                                            </Box>
-                                        ))}
-                                    </Stack>
-                                </MsqdxDashboardCard>
                             </Box>
 
                             {/* Prompt Templates Card – always show when project is selected */}

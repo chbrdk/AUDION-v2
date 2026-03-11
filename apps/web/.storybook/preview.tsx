@@ -94,8 +94,9 @@ const preview: Preview = {
           <style>{`
             .msqdx-material-symbol, .material-symbols-outlined {
               font-family: 'Material Symbols Outlined', sans-serif !important;
-              font-weight: normal;
+              font-weight: 400;
               font-style: normal;
+              font-variation-settings: "wght" 400, "FILL" 0, "GRAD" 0, "opsz" 20;
               font-size: 24px;
               line-height: 1;
               letter-spacing: normal;
