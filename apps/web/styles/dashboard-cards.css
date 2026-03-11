@@ -7,6 +7,21 @@
   margin-top: var(--msqdx-spacing-xxl);
 }
 
+/* Three-column row: equal height cards that fill the row */
+.msqdx-glass-dashboard-grid-three-cols .msqdx-dashboard-card,
+.msqdx-glass-dashboard-grid-three-cols [role="region"][aria-label="Accordion"] {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.msqdx-glass-dashboard-grid-three-cols [id$="-panel"] {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 /* Cards: same white background as MsqdxCard (persona list). Match persona list cards exactly. */
 .msqdx-glass-dashboard-grid .msqdx-dashboard-card,
 .msqdx-glass-dashboard-grid [role="region"][aria-label="Accordion"] {

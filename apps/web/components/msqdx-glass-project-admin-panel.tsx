@@ -1083,16 +1083,19 @@ export function MsqdxGlassProjectAdminPanel({
                                 </MsqdxDashboardCard>
                             </Box>
 
-                            {/* Three cards in one row: full width, 3 equal columns */}
+                            {/* Three cards in one row: full width, 3 equal columns, equal height */}
                             <Box
+                                className="msqdx-glass-dashboard-grid-three-cols"
                                 sx={{
                                     gridColumn: "1 / -1",
                                     display: "grid",
                                     gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" },
                                     gap: 2,
+                                    alignItems: "stretch",
                                 }}
                             >
-                            <Box sx={{ minWidth: 0 }}>
+                            <Box sx={{ minWidth: 0, display: "flex", flexDirection: "column", minHeight: 0 }}>
+                                <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
                                 <MsqdxDashboardCard
                                     id="suggest-target-groups"
                                     title={t("settingsProjects.companyContext.suggestTitle") ?? "Suggest target groups from context"}
@@ -1177,9 +1180,11 @@ export function MsqdxGlassProjectAdminPanel({
                                         )}
                                     </Stack>
                                 </MsqdxDashboardCard>
+                                </Box>
                             </Box>
 
-                            <Box sx={{ minWidth: 0 }}>
+                            <Box sx={{ minWidth: 0, display: "flex", flexDirection: "column", minHeight: 0 }}>
+                                <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
                                 <MsqdxDashboardCard
                                     id="suggest-personas"
                                     title={t("settingsProjects.suggestPersonas.title") ?? "Suggest personas for target group"}
@@ -1305,9 +1310,11 @@ export function MsqdxGlassProjectAdminPanel({
                                         )}
                                     </Stack>
                                 </MsqdxDashboardCard>
+                                </Box>
                             </Box>
 
-                            <Box sx={{ minWidth: 0 }}>
+                            <Box sx={{ minWidth: 0, display: "flex", flexDirection: "column", minHeight: 0 }}>
+                                <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
                                 <MsqdxDashboardCard
                                     id="generate-journey"
                                     title={t("settingsProjects.generateJourney.title") ?? "Generate journey from project knowledge"}
@@ -1384,11 +1391,23 @@ export function MsqdxGlassProjectAdminPanel({
                                         </MsqdxButton>
                                     </Stack>
                                 </MsqdxDashboardCard>
+                                </Box>
                             </Box>
                             </Box>
 
-                            {/* Project journeys overview */}
-                            <Box sx={{ gridColumn: "1 / -1" }}>
+                            {/* Project journeys, Personas, Target Groups – 3 columns, equal height */}
+                            <Box
+                                className="msqdx-glass-dashboard-grid-three-cols"
+                                sx={{
+                                    gridColumn: "1 / -1",
+                                    display: "grid",
+                                    gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" },
+                                    gap: 2,
+                                    alignItems: "stretch",
+                                }}
+                            >
+                            <Box sx={{ minWidth: 0, display: "flex", flexDirection: "column", minHeight: 0 }}>
+                                <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
                                 <MsqdxDashboardCard
                                     id="project-journeys"
                                     title={t("settingsProjects.projectJourneys.title") ?? "Journeys in this project"}
@@ -1472,6 +1491,90 @@ export function MsqdxGlassProjectAdminPanel({
                                         </MsqdxButton>
                                     </Stack>
                                 </MsqdxDashboardCard>
+                                </Box>
+                            </Box>
+
+                            <Box sx={{ minWidth: 0, display: "flex", flexDirection: "column", minHeight: 0 }}>
+                                <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+                                <MsqdxDashboardCard
+                                    id="personas"
+                                    title={`${t("settingsProjects.personas.title") || "Personas"} (${detail.stats.persona_count})`}
+                                    icon="person"
+                                    expanded={expandedSections.has("personas")}
+                                    onToggle={toggleSection}
+                                >
+                                    <Stack spacing={1}>
+                                        {detail.stats.persona_count === 0 ? (
+                                            <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+                                                {t("settingsProjects.personas.empty") ?? t("adminDashboard.noPersonas") ?? "No personas yet."}
+                                            </MsqdxTypography>
+                                        ) : (
+                                            detail.recent_personas?.map((persona) => (
+                                                <Box
+                                                    key={persona.id}
+                                                    sx={{
+                                                        p: 1.5,
+                                                        border: "1px solid",
+                                                        borderColor: "divider",
+                                                        borderRadius: 1,
+                                                    }}
+                                                >
+                                                    <MsqdxTypography variant="subtitle2" weight="semibold">
+                                                        {persona.name}
+                                                    </MsqdxTypography>
+                                                    {persona.segment && (
+                                                        <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
+                                                            {persona.segment}
+                                                        </MsqdxTypography>
+                                                    )}
+                                                </Box>
+                                            ))
+                                        )}
+                                    </Stack>
+                                </MsqdxDashboardCard>
+                                </Box>
+                            </Box>
+
+                            <Box sx={{ minWidth: 0, display: "flex", flexDirection: "column", minHeight: 0 }}>
+                                <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+                                <MsqdxDashboardCard
+                                    id="target-groups"
+                                    title={`${t("settingsProjects.targetGroups.title") || "Target Groups"} (${detail.stats.target_group_count})`}
+                                    icon="groups"
+                                    expanded={expandedSections.has("target-groups")}
+                                    onToggle={toggleSection}
+                                >
+                                    <Stack spacing={1}>
+                                        {detail.stats.target_group_count === 0 ? (
+                                            <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+                                                {t("settingsProjects.targetGroups.empty") ?? t("adminDashboard.noTargetGroups") ?? "No target groups yet."}
+                                            </MsqdxTypography>
+                                        ) : (
+                                            detail.recent_target_groups?.map((group) => (
+                                                <Box
+                                                    key={group.id}
+                                                    sx={{
+                                                        p: 1.5,
+                                                        border: "1px solid",
+                                                        borderColor: "divider",
+                                                        borderRadius: 1,
+                                                    }}
+                                                >
+                                                    <MsqdxTypography variant="subtitle2" weight="semibold">
+                                                        {group.name}
+                                                    </MsqdxTypography>
+                                                    {group.segment && (
+                                                        <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
+                                                            {group.segment}
+                                                        </MsqdxTypography>
+                                                    )}
+                                                </Box>
+                                            ))
+                                        )}
+                                    </Stack>
+                                </MsqdxDashboardCard>
+                                </Box>
+                            </Box>
                             </Box>
 
                             {/* Team Members Card */}
@@ -1553,78 +1656,6 @@ export function MsqdxGlassProjectAdminPanel({
                                     </Stack>
                                 </MsqdxDashboardCard>
                             </Box>
-
-                            {/* Personas Card */}
-                            {detail.stats.persona_count > 0 && (
-                                <Box sx={{ gridColumn: { xs: "1 / -1", md: "span 6" } }}>
-                                    <MsqdxDashboardCard
-                                        id="personas"
-                                        title={`${t("settingsProjects.personas.title") || "Personas"} (${detail.stats.persona_count})`}
-                                        icon="person"
-                                        expanded={expandedSections.has("personas")}
-                                        onToggle={toggleSection}
-                                    >
-                                        <Stack spacing={1}>
-                                            {detail.recent_personas?.map((persona) => (
-                                                <Box
-                                                    key={persona.id}
-                                                    sx={{
-                                                        p: 1.5,
-                                                        border: "1px solid",
-                                                        borderColor: "divider",
-                                                        borderRadius: 1,
-                                                    }}
-                                                >
-                                                    <MsqdxTypography variant="subtitle2" weight="semibold">
-                                                        {persona.name}
-                                                    </MsqdxTypography>
-                                                    {persona.segment && (
-                                                        <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
-                                                            {persona.segment}
-                                                        </MsqdxTypography>
-                                                    )}
-                                                </Box>
-                                            ))}
-                                        </Stack>
-                                    </MsqdxDashboardCard>
-                                </Box>
-                            )}
-
-                            {/* Target Groups Card */}
-                            {detail.stats.target_group_count > 0 && (
-                                <Box sx={{ gridColumn: { xs: "1 / -1", md: "span 6" } }}>
-                                    <MsqdxDashboardCard
-                                        id="target-groups"
-                                        title={`${t("settingsProjects.targetGroups.title") || "Target Groups"} (${detail.stats.target_group_count})`}
-                                        icon="groups"
-                                        expanded={expandedSections.has("target-groups")}
-                                        onToggle={toggleSection}
-                                    >
-                                        <Stack spacing={1}>
-                                            {detail.recent_target_groups?.map((group) => (
-                                                <Box
-                                                    key={group.id}
-                                                    sx={{
-                                                        p: 1.5,
-                                                        border: "1px solid",
-                                                        borderColor: "divider",
-                                                        borderRadius: 1,
-                                                    }}
-                                                >
-                                                    <MsqdxTypography variant="subtitle2" weight="semibold">
-                                                        {group.name}
-                                                    </MsqdxTypography>
-                                                    {group.segment && (
-                                                        <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
-                                                            {group.segment}
-                                                        </MsqdxTypography>
-                                                    )}
-                                                </Box>
-                                            ))}
-                                        </Stack>
-                                    </MsqdxDashboardCard>
-                                </Box>
-                            )}
 
                             {/* Prompt Templates Card – always show when project is selected */}
                             <Box sx={{ gridColumn: "1 / -1" }}>
