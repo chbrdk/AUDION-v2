@@ -16,6 +16,7 @@ import {
 import { useAuth } from "../../../components/auth/auth-provider";
 import { useI18n } from "../../../components/i18n/i18n-provider";
 import { BrandColorSelector } from "../../../components/settings/brand-color-selector";
+import { useThemeMode } from "../../../components/theme-registry";
 import { FORM_FIELD_ACCENT_SX } from "../../../lib/theme-accent";
 import { API_AUTH_TOKENS, apiAuthTokenRevoke } from "../../api/_lib/backend";
 
@@ -23,6 +24,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const { user, updateProfile, changePassword, logout } = useAuth();
   const { t, setLocale: setUiLocale } = useI18n();
+  const { themeMode, toggleTheme } = useThemeMode();
 
   const languageOptions = [
     { value: "de", label: "Deutsch" },
@@ -278,6 +280,38 @@ export default function ProfilePage() {
           </MsqdxTypography>
           <MsqdxTypography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
             {t("profile.appearance.subtitle")}
+          </MsqdxTypography>
+          <Box sx={{ mb: 2 }}>
+            <MsqdxTypography variant="subtitle2" weight="medium" sx={{ mb: 0.5 }}>
+              {t("settingsTheme.modeTitle")}
+            </MsqdxTypography>
+            <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 1 }}>
+              {t("settingsTheme.modeSubtitle")}
+            </MsqdxTypography>
+            <Stack direction="row" spacing={1} flexWrap="wrap">
+              <MsqdxButton
+                variant={themeMode === "light" ? "contained" : "outlined"}
+                size="small"
+                onClick={() => themeMode !== "light" && toggleTheme()}
+                disabled={themeMode === "light"}
+              >
+                {t("settingsTheme.light")}
+              </MsqdxButton>
+              <MsqdxButton
+                variant={themeMode === "dark" ? "contained" : "outlined"}
+                size="small"
+                onClick={() => themeMode !== "dark" && toggleTheme()}
+                disabled={themeMode === "dark"}
+              >
+                {t("settingsTheme.dark")}
+              </MsqdxButton>
+            </Stack>
+          </Box>
+          <MsqdxTypography variant="subtitle2" weight="medium" sx={{ mb: 0.5 }}>
+            {t("settingsTheme.sidebarTitle")}
+          </MsqdxTypography>
+          <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 1 }}>
+            {t("settingsTheme.sidebarSubtitle")}
           </MsqdxTypography>
           <BrandColorSelector />
         </MsqdxCard>
