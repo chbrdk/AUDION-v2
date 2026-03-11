@@ -52,9 +52,11 @@
 
 [data-theme="dark"] {
   color-scheme: dark;
-  background-color: var(--audion-light-html-background-color, var(--color-neutral));
+  background-color: var(--color-neutral);
   color: #ffffff;
-  --color-primary-white: #fff;
+  --audion-light-html-background-color: #0f0f0f;
+  --color-primary-white: #1a1a1a;
+  --color-background: #1a1a1a;
   --color-secondary-dx-yellow: #fef14d;
   --color-secondary-dx-yellow-tint: rgba(254, 241, 77, 0.2);
   --color-secondary-dx-pink: #f256b6;
@@ -86,7 +88,7 @@ html {
 }
 
 [data-theme="dark"] html {
-  background-color: #ffffff;
+  background-color: #0f0f0f;
 }
 
 body {
@@ -110,7 +112,56 @@ body:has(.msqdx-glass-admin-panel) {
 }
 
 [data-theme="dark"] body {
-  background-color: var(--audion-light-html-background-color, #ffffff) !important;
+  background-color: #0f0f0f !important;
+  color: #ffffff;
+}
+
+[data-theme="dark"] main,
+[data-theme="dark"] .msqdx-glass-admin-content,
+[data-theme="dark"] .msqdx-glass-panel,
+[data-theme="dark"] .msqdx-glass-detail,
+[data-theme="dark"] .msqdx-glass-admin-page {
+  background-color: #0f0f0f !important;
+}
+
+[data-theme="dark"] .msqdx-glass-panel,
+[data-theme="dark"] .msqdx-glass-detail {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .msqdx-glass-muted,
+[data-theme="dark"] .msqdx-glass-detail__header p {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+[data-theme="dark"] main .MuiPaper-root,
+[data-theme="dark"] main .MuiCard-root,
+[data-theme="dark"] .msqdx-glass-admin-content .MuiPaper-root,
+[data-theme="dark"] .msqdx-glass-admin-content .MuiCard-root,
+[data-theme="dark"] .msqdx-card {
+  background-color: var(--color-primary-white, #1a1a1a) !important;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .msqdx-glass-settings-grid {
+  background-color: transparent !important;
+}
+
+[data-theme="dark"] .msqdx-glass-settings-card {
+  background-color: #1a1a1a !important;
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-subtitle,
+[data-theme="dark"] .msqdx-glass-panel__header p {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] .msqdx-glass-detail__header h1 {
   color: #ffffff;
 }
 
@@ -380,6 +431,10 @@ main {
   margin: 0;
   color: #475569;
   font-size: 0.75rem;
+}
+
+[data-theme="dark"] .msqdx-glass-list-item__meta {
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .msqdx-glass-chip {
@@ -1385,10 +1440,16 @@ main {
   border: 1px solid rgba(15, 23, 42, 0.1);
   border-radius: 14px;
   padding: 0.75rem 1rem;
-  background: #fff;
+  background: var(--color-primary-white, #fff);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+
+[data-theme="dark"] .msqdx-glass-card-list li {
+  background: #1a1a1a;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
 }
 
 .msqdx-glass-card-list__actions {
