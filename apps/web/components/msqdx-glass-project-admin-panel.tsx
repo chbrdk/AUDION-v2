@@ -1083,8 +1083,16 @@ export function MsqdxGlassProjectAdminPanel({
                                 </MsqdxDashboardCard>
                             </Box>
 
-                            {/* Suggest target groups from context – 3-column row */}
-                            <Box>
+                            {/* Three cards in one row: full width, 3 equal columns */}
+                            <Box
+                                sx={{
+                                    gridColumn: "1 / -1",
+                                    display: "grid",
+                                    gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" },
+                                    gap: 2,
+                                }}
+                            >
+                            <Box sx={{ minWidth: 0 }}>
                                 <MsqdxDashboardCard
                                     id="suggest-target-groups"
                                     title={t("settingsProjects.companyContext.suggestTitle") ?? "Suggest target groups from context"}
@@ -1171,8 +1179,7 @@ export function MsqdxGlassProjectAdminPanel({
                                 </MsqdxDashboardCard>
                             </Box>
 
-                            {/* Suggest personas for target group – 3-column row */}
-                            <Box>
+                            <Box sx={{ minWidth: 0 }}>
                                 <MsqdxDashboardCard
                                     id="suggest-personas"
                                     title={t("settingsProjects.suggestPersonas.title") ?? "Suggest personas for target group"}
@@ -1300,8 +1307,7 @@ export function MsqdxGlassProjectAdminPanel({
                                 </MsqdxDashboardCard>
                             </Box>
 
-                            {/* Generate journey from project knowledge – 3-column row */}
-                            <Box>
+                            <Box sx={{ minWidth: 0 }}>
                                 <MsqdxDashboardCard
                                     id="generate-journey"
                                     title={t("settingsProjects.generateJourney.title") ?? "Generate journey from project knowledge"}
@@ -1378,6 +1384,7 @@ export function MsqdxGlassProjectAdminPanel({
                                         </MsqdxButton>
                                     </Stack>
                                 </MsqdxDashboardCard>
+                            </Box>
                             </Box>
 
                             {/* Project journeys overview */}
