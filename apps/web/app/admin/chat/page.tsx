@@ -242,6 +242,15 @@ type TargetGroupRound = {
   responses: TargetGroupRoundResponse[];
 };
 
+type StreamingResponseSlot = {
+  personaId: string;
+  personaName: string;
+  content: string;
+  done: boolean;
+  sources?: TargetGroupRoundResponse["sources"];
+  error?: string;
+};
+
 /** Avoid Mixed Content: use same-origin proxy when avatar URL is http/localhost on HTTPS. */
 function safeAvatarSrc(avatarUrl: string | null | undefined, personaId: string | undefined): string | undefined {
   if (!avatarUrl || !personaId) return avatarUrl ?? undefined;
@@ -354,6 +363,11 @@ function AdminChatPageContent() {
   const [targetGroupPersonas, setTargetGroupPersonas] = useState<PersonaSummary[]>([]);
   const [loadingTargetGroupPersonas, setLoadingTargetGroupPersonas] = useState(false);
   const [targetGroupRounds, setTargetGroupRounds] = useState<TargetGroupRound[]>([]);
+  const [targetGroupStreamingRound, setTargetGroupStreamingRound] = useState<{
+    userMessage: string;
+    responses: StreamingResponseSlot[];
+  } | null>(null);
+  const targetGroupStreamingRoundRef = useRef<{ userMessage: string; responses: StreamingResponseSlot[] } | null>(null);
   const [sendingTargetGroup, setSendingTargetGroup] = useState(false);
   const typingBuffersRef = useRef<Record<string, string>>({});
   const typingTimersRef = useRef<Record<string, ReturnType<typeof setTimeout> | null>>({});
@@ -786,9 +800,22 @@ function AdminChatPageContent() {
     const personasToAsk = targetGroupPersonas.slice(0, MAX_PERSONAS_PER_TARGET_GROUP_ROUND);
     setSendingTargetGroup(true);
     setInput("");
+
+    const initialSlots: StreamingResponseSlot[] = personasToAsk.map((p) => ({
+      personaId: p.id,
+      personaName: p.name,
+      content: "",
+      done: false,
+    }));
+    const initialRound = { userMessage: question, responses: initialSlots };
+    setTargetGroupStreamingRound(initialRound);
+    targetGroupStreamingRoundRef.current = initialRound;
+
     const apiBase = getChatApiBase();
     const userId = user?.plexon_user_id ?? user?.id ?? undefined;
-    const requestPromises = personasToAsk.map(async (persona): Promise<TargetGroupRoundResponse> => {
+
+    const runStreamForPersona = async (persona: PersonaSummary): Promise<void> => {
+      const personaId = persona.id;
       const normalizedProfile = persona.profile
         ? {
             name: persona.profile.name,
@@ -840,47 +867,171 @@ function AdminChatPageContent() {
         { role: "system", content: systemPrompt },
         { role: "user", content: question },
       ];
-      const res = await fetch(`${apiBase}/message`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          persona_id: persona.id,
-          messages: apiMessages,
-          ...(userId && { user_id: userId }),
-        }),
-      });
-      if (!res.ok) {
-        const errText = await res.text().catch(() => "Request failed");
-        return {
-          personaId: persona.id,
-          personaName: persona.name,
-          content: `Error: ${errText}`,
-          sources: [],
-        };
+
+      try {
+        const res = await fetch(`${apiBase}/message/stream`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            persona_id: persona.id,
+            messages: apiMessages,
+            ...(userId && { user_id: userId }),
+          }),
+        });
+        if (!res.ok) {
+          const errText = await res.text().catch(() => "Request failed");
+          setTargetGroupStreamingRound((prev) => {
+            if (!prev) return prev;
+            const next = {
+              ...prev,
+              responses: prev.responses.map((r) =>
+                r.personaId === personaId ? { ...r, content: `Error: ${errText}`, done: true, error: errText } : r
+              ),
+            };
+            targetGroupStreamingRoundRef.current = next;
+            return next;
+          });
+          return;
+        }
+        if (!res.body) {
+          setTargetGroupStreamingRound((prev) => {
+            if (!prev) return prev;
+            const next = {
+              ...prev,
+              responses: prev.responses.map((r) =>
+                r.personaId === personaId ? { ...r, content: "No response body", done: true, error: "No response body" } : r
+              ),
+            };
+            targetGroupStreamingRoundRef.current = next;
+            return next;
+          });
+          return;
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let streamErr: string | null = null;
+
+        while (true) {
+          const readResult = await reader.read();
+          if (readResult.done) break;
+          buffer += decoder.decode(readResult.value, { stream: true });
+          const lines = buffer.split("\n\n");
+          buffer = lines.pop() ?? "";
+
+          for (const line of lines) {
+            if (!line.trim() || !line.startsWith("data: ")) continue;
+            let parsed: { type?: string; delta?: string; sources?: unknown[]; error?: string } | null = null;
+            try {
+              parsed = JSON.parse(line.slice(6)) as { type?: string; delta?: string; sources?: unknown[]; error?: string };
+            } catch {
+              continue;
+            }
+            if (!parsed?.type) continue;
+
+            if (parsed.type === "delta" && parsed.delta) {
+              setTargetGroupStreamingRound((prev) => {
+                if (!prev) return prev;
+                const next = {
+                  ...prev,
+                  responses: prev.responses.map((r) =>
+                    r.personaId === personaId ? { ...r, content: r.content + parsed!.delta } : r
+                  ),
+                };
+                targetGroupStreamingRoundRef.current = next;
+                return next;
+              });
+            } else if (parsed.type === "sources" && Array.isArray(parsed.sources)) {
+              const normalized = (parsed.sources as Array<{ chunk_id?: string; document_id?: string; title?: string; confidence?: number; content?: string }>).map((s, i) => ({
+                chunk_id: s.chunk_id ?? `chunk-${i}`,
+                document_id: s.document_id ?? "Unknown",
+                title: s.title ?? "Research",
+                confidence: typeof s.confidence === "number" ? s.confidence : 0.8,
+                excerpt: s.content ?? "",
+              }));
+              setTargetGroupStreamingRound((prev) => {
+                if (!prev) return prev;
+                const next = {
+                  ...prev,
+                  responses: prev.responses.map((r) => (r.personaId === personaId ? { ...r, sources: normalized } : r)),
+                };
+                targetGroupStreamingRoundRef.current = next;
+                return next;
+              });
+            } else if (parsed.type === "complete") {
+              setTargetGroupStreamingRound((prev) => {
+                if (!prev) return prev;
+                const next = {
+                  ...prev,
+                  responses: prev.responses.map((r) => (r.personaId === personaId ? { ...r, done: true } : r)),
+                };
+                targetGroupStreamingRoundRef.current = next;
+                return next;
+              });
+              break;
+            } else if (parsed.type === "error") {
+              streamErr = typeof parsed.error === "string" ? parsed.error : String(parsed.error ?? "Error");
+              setTargetGroupStreamingRound((prev) => {
+                if (!prev) return prev;
+                const next = {
+                  ...prev,
+                  responses: prev.responses.map((r) =>
+                    r.personaId === personaId ? { ...r, done: true, error: streamErr ?? undefined, content: r.content || streamErr ?? "" } : r
+                  ),
+                };
+                targetGroupStreamingRoundRef.current = next;
+                return next;
+              });
+              break;
+            }
+          }
+          if (streamErr) break;
+        }
+        reader.releaseLock();
+      } catch (e) {
+        const errMsg = e instanceof Error ? e.message : "Failed to get response";
+        setTargetGroupStreamingRound((prev) => {
+          if (!prev) return prev;
+          const next = {
+            ...prev,
+            responses: prev.responses.map((r) =>
+              r.personaId === personaId ? { ...r, content: `Error: ${errMsg}`, done: true, error: errMsg } : r
+            ),
+          };
+          targetGroupStreamingRoundRef.current = next;
+          return next;
+        });
       }
-      const data = await res.json();
-      return {
-        personaId: persona.id,
-        personaName: persona.name,
-        content: data.response ?? "",
-        sources: data.sources ?? [],
+    };
+
+    const streamPromises = personasToAsk.map((p) => runStreamForPersona(p));
+    await Promise.all(streamPromises);
+
+    const roundToCommit = targetGroupStreamingRoundRef.current;
+    if (roundToCommit) {
+      const round: TargetGroupRound = {
+        userMessage: roundToCommit.userMessage,
+        responses: roundToCommit.responses.map((r) => ({
+          personaId: r.personaId,
+          personaName: r.personaName,
+          content: r.error ? (r.content || r.error) : r.content,
+          sources: r.sources ?? [],
+        })),
       };
-    });
-    try {
-      const responses = await Promise.all(requestPromises);
-      setTargetGroupRounds((prev) => prev.concat({ userMessage: question, responses }));
-      notify(t("adminChat.targetGroup.responsesReceived"));
-    } catch (e) {
-      notify(e instanceof Error ? e.message : "Failed to get responses");
-    } finally {
-      setSendingTargetGroup(false);
+      setTargetGroupRounds((r) => r.concat(round));
     }
+    setTargetGroupStreamingRound(null);
+    targetGroupStreamingRoundRef.current = null;
+    setSendingTargetGroup(false);
+    notify(t("adminChat.targetGroup.responsesReceived"));
   }, [
     activeTargetGroupId,
     input,
     targetGroupPersonas,
     sendingTargetGroup,
     user,
+    t,
   ]);
 
   const handleSend = async (messageText?: string) => {
@@ -1991,14 +2142,14 @@ function AdminChatPageContent() {
                 videoEnabled && tavusSessionConfig
                   ? "flex-start"
                   : chatMode === "target_group"
-                    ? (targetGroupRounds.length === 0 ? "center" : "flex-start")
+                    ? (targetGroupRounds.length === 0 && !targetGroupStreamingRound ? "center" : "flex-start")
                     : messages.length === 0
                       ? "center"
                       : "flex-start"
             }}
           >
             {chatMode === "target_group" ? (
-              targetGroupRounds.length === 0 ? (
+              targetGroupRounds.length === 0 && !targetGroupStreamingRound ? (
                 <Box
                   sx={{
                     maxWidth: 480,
@@ -2073,6 +2224,75 @@ function AdminChatPageContent() {
                       </Box>
                     </Box>
                   ))}
+                  {targetGroupStreamingRound && (
+                    <Box>
+                      <Stack spacing={0.5} alignItems="flex-end" sx={{ mb: 1 }}>
+                        <Typography variant="caption" sx={{ letterSpacing: 1, textTransform: "uppercase", color: "text.secondary" }}>
+                          You
+                        </Typography>
+                        <Box
+                          sx={{
+                            alignSelf: "flex-end",
+                            maxWidth: "85%",
+                            px: 2,
+                            py: 1.5,
+                            borderRadius: "36px 12px 36px 36px",
+                            border: "1px solid var(--color-secondary-dx-orange)",
+                            backgroundColor: theme.palette.background.paper
+                          }}
+                        >
+                          <Typography variant="body2">{targetGroupStreamingRound.userMessage}</Typography>
+                        </Box>
+                      </Stack>
+                      <Typography variant="caption" sx={{ display: "block", mb: 1, color: "text.secondary" }}>
+                        {t("adminChat.targetGroup.responsesFrom")}
+                      </Typography>
+                      <Box
+                        sx={{
+                          display: "grid",
+                          gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)", lg: "repeat(4, 1fr)" },
+                          gap: 1.5,
+                          overflowX: "auto"
+                        }}
+                      >
+                        {targetGroupStreamingRound.responses.map((slot) => (
+                          <Paper
+                            key={slot.personaId}
+                            variant="outlined"
+                            sx={{
+                              p: 1.5,
+                              borderColor: slot.error ? "error.main" : "var(--color-secondary-dx-pink)",
+                              borderWidth: 1,
+                              borderRadius: 2
+                            }}
+                          >
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                              {slot.personaName}
+                            </Typography>
+                            {slot.error ? (
+                              <Typography variant="body2" sx={{ color: "error.main", whiteSpace: "pre-wrap" }}>
+                                {slot.content || slot.error}
+                              </Typography>
+                            ) : (
+                              <>
+                                <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
+                                  {slot.content}
+                                </Typography>
+                                {!slot.done && (
+                                  <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.5, mt: 0.5 }}>
+                                    <CircularProgress size={14} />
+                                    <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                                      …
+                                    </Typography>
+                                  </Box>
+                                )}
+                              </>
+                            )}
+                          </Paper>
+                        ))}
+                      </Box>
+                    </Box>
+                  )}
                 </Stack>
               )
             ) : videoEnabled && tavusSessionConfig ? (
