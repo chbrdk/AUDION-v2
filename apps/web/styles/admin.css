@@ -58,6 +58,12 @@
   background-color: var(--color-theme-accent) !important;
 }
 
+/* Main content wrapper and top strip (header area) – dark background in dark theme */
+[data-theme="dark"] .msqdx-glass-app-layout > div > div:last-of-type,
+[data-theme="dark"] .msqdx-glass-app-layout > div > div:last-of-type > div {
+  background-color: #0f0f0f !important;
+}
+
 .msqdx-glass-admin-nav,
 .msqdx-admin-nav {
   background: var(--audion-light-border-color, #0f172a);

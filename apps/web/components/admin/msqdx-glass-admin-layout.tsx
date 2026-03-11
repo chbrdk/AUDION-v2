@@ -136,6 +136,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
   return (
     <>
       <BrandColorInitializer />
+      <Box className="msqdx-glass-app-layout" sx={{ display: "contents" }}>
       <MsqdxAppLayout
         sidebar={
           <MsqdxAdminNav
@@ -338,6 +339,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
         />
       )}
     </MsqdxAppLayout>
+      </Box>
     </>
   );
 };
