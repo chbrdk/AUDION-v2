@@ -24,6 +24,10 @@ Defined in `apps/web/styles/globals.css` under `[data-theme="dark"]`:
 
 - **Profile / Identity panel** (`.msqdx-glass-panel`): Card containers (Stack children) use background `#1a1a1a`; all text, labels, inputs, textareas, selects are forced to white/dark in `globals.css` so the Identity and other profile cards are fully dark with white fonts.
 
+- **Journeys** (`.msqdx-glass-journeys-overview`, `.msqdx-glass-journeys-grid`): List/grid of journey cards (and "Create" card) get dark background and light text via `.msqdx-glass-journeys-grid > *` and typography/chip overrides under `.msqdx-glass-journeys-overview`. Journey timeline (`.msqdx-glass-journey-timeline__*`) and phase cards (`.msqdx-glass-journey-phase`, `.msqdx-glass-journey-phase__*`) have dark overrides for header, steps, form fields, sections, and chips in `globals.css`.
+
+- **Journey editor page** (`.msqdx-glass-journey-editor-page`): The journey detail/editor page (header card, metadata accordion, phases section, timeline viewport, phase cards, create-phase form, add-phase card) is fully dark-themed. The timeline viewport has class `.msqdx-glass-journey-timeline-viewport` (dark background, light scrollbar). All cards, typography, buttons, inputs, textareas, selects, chips, dividers, and dashboard cards inside `.msqdx-glass-detail` are overridden for dark mode in `globals.css`.
+
 ## Adding New Dark-Aware Components
 
 1. Prefer CSS variables: use `var(--color-primary-white)` or `var(--color-neutral)` for backgrounds so they follow the theme.

@@ -752,7 +752,7 @@ export default function JourneyEditorPage() {
   }
 
   return (
-    <div className="msqdx-glass-panel">
+    <div className="msqdx-glass-panel msqdx-glass-journey-editor-page">
       <div className="msqdx-glass-detail">
         <MsqdxCard
           variant="flat"
@@ -1021,6 +1021,7 @@ export default function JourneyEditorPage() {
               </Box>
               <Box
                 ref={timelineRef}
+                className="msqdx-glass-journey-timeline-viewport"
                 onScroll={handleTimelineScroll}
                 tabIndex={0}
                 onKeyDown={handleTimelineKeyDown}

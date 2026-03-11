@@ -112,8 +112,9 @@ export function MsqdxGlassJourneysOverview({ initialJourneys }: MsqdxGlassJourne
   };
 
   return (
-    <Box sx={{ width: "100%" }}>
+    <Box sx={{ width: "100%" }} className="msqdx-glass-journeys-overview">
       <Box
+        className="msqdx-glass-journeys-grid"
         sx={{
           display: "grid",
           gridTemplateColumns: {

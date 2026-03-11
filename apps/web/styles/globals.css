@@ -173,6 +173,23 @@ body:has(.msqdx-glass-admin-panel) {
   background-color: transparent !important;
 }
 
+[data-theme="dark"] .msqdx-glass-journeys-grid > * {
+  background-color: var(--color-primary-white, #1a1a1a) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-journeys-overview .MuiTypography-root,
+[data-theme="dark"] .msqdx-glass-journeys-overview .MuiChip-label,
+[data-theme="dark"] .msqdx-glass-journeys-overview span {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .msqdx-glass-journeys-overview .MuiTypography-caption,
+[data-theme="dark"] .msqdx-glass-journeys-overview [class*="subtitle"] {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
 [data-theme="dark"] .msqdx-glass-settings-card {
   background-color: #1a1a1a !important;
   color: #ffffff;
@@ -855,6 +872,27 @@ main {
   color: var(--color-text-primary);
 }
 
+[data-theme="dark"] .msqdx-glass-journey-timeline__header h3,
+[data-theme="dark"] .msqdx-glass-journey-timeline__count,
+[data-theme="dark"] .msqdx-glass-journey-timeline__step,
+[data-theme="dark"] .msqdx-glass-journey-timeline__step-label {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .msqdx-glass-journey-timeline__step {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-journey-timeline__step.--active {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: var(--color-theme-accent) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-journey-timeline__steps::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+}
+
 .msqdx-glass-journey-timeline__header {
   display: flex;
   justify-content: space-between;
@@ -974,6 +1012,49 @@ main {
 .msqdx-glass-journey-timeline__viewport::-webkit-scrollbar-thumb {
   background: rgba(148, 163, 184, 0.5);
   border-radius: 999px;
+}
+
+[data-theme="dark"] .msqdx-glass-journey-phase {
+  background: #1a1a1a !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-journey-phase.--active {
+  background: #1f1f1f !important;
+  border-color: var(--color-theme-accent) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-journey-phase.--cta {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-journey-phase__form-field input,
+[data-theme="dark"] .msqdx-glass-journey-phase__form-field textarea,
+[data-theme="dark"] .msqdx-glass-journey-phase__form-field select,
+[data-theme="dark"] .msqdx-glass-journey-phase__title-input,
+[data-theme="dark"] .msqdx-glass-journey-phase__description-input,
+[data-theme="dark"] .msqdx-glass-journey-phase__moment-row {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .msqdx-glass-journey-phase__section-hint,
+[data-theme="dark"] .msqdx-glass-journey-phase__moment-hint,
+[data-theme="dark"] .msqdx-glass-journey-phase__eyebrow,
+[data-theme="dark"] .msqdx-glass-journey-phase__cta-subtitle {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-journey-phase__section {
+  border-top-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-journey-phase__chip {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
 }
 
 .msqdx-glass-journey-phase {
@@ -1546,6 +1627,126 @@ main {
 
 [data-theme="dark"] .msqdx-glass-detail__section {
   border-top-color: var(--color-theme-accent);
+}
+
+/* Journey editor page: timeline viewport and all content */
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .msqdx-glass-journey-timeline-viewport {
+  background-color: #0f0f0f !important;
+}
+
+[data-theme="dark"] .msqdx-glass-journey-timeline-viewport::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25) !important;
+  border-radius: 4px;
+}
+
+[data-theme="dark"] .msqdx-glass-journey-timeline-viewport::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail .MuiCard-root,
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail [class*="MuiPaper-root"],
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail .msqdx-card,
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail__section .MuiBox-root[role="tablist"] {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail .MuiTypography-root,
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail span,
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail label {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail .MuiTypography-caption,
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail [class*="text.secondary"] {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail .MuiButton-root {
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail .MuiButton-outlined {
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail .MuiButton-outlined:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: var(--color-theme-accent) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail .MuiButton-contained {
+  background-color: var(--color-theme-accent) !important;
+  color: #fff !important;
+}
+
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail .material-symbols-outlined,
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail [class*="material-symbol"],
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail svg {
+  color: inherit !important;
+  fill: currentColor !important;
+}
+
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail input,
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail textarea,
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail [class*="MuiInputBase-input"],
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail [class*="MuiOutlinedInput-input"] {
+  color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail .MuiOutlinedInput-notchedOutline,
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail fieldset {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail .MuiChip-root {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail .MuiDivider-root {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail [class*="MsqdxDashboardCard"],
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail [class*="msqdx-dashboard-card"] {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail [class*="MsqdxDashboardCard"] .MuiTypography-root,
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail [class*="msqdx-dashboard-card"] .MuiTypography-root {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail [class*="MsqdxDashboardCard"] .MuiTypography-caption,
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail [class*="msqdx-dashboard-card"] .MuiTypography-caption {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail__section [role="tablist"]::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail .MuiBox-root[style*="borderLeft"] {
+  border-left-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail [class*="MuiSelect-select"],
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail select {
+  color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.06) !important;
 }
 
 .msqdx-glass-detail__section-header {
