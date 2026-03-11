@@ -1173,9 +1173,9 @@ export function MsqdxGlassProjectAdminPanel({
                                 </MsqdxDashboardCard>
                             </Box>
 
-                            {/* Three cards in one row: full width, 3 equal columns, equal height */}
+                            {/* Three action cards: brand background, black text, outline buttons black */}
                             <Box
-                                className="msqdx-glass-dashboard-grid-three-cols"
+                                className="msqdx-glass-dashboard-grid-three-cols msqdx-dashboard-action-cards"
                                 sx={{
                                     gridColumn: "1 / -1",
                                     display: "grid",

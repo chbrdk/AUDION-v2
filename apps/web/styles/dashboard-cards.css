@@ -22,6 +22,90 @@
   flex-direction: column;
 }
 
+/* Action cards row (Suggest target groups, Suggest personas, Generate journey): brand background, black text, outline buttons black */
+.msqdx-dashboard-action-cards > .MuiBox-root {
+  background-color: var(--color-theme-accent) !important;
+}
+.msqdx-dashboard-action-cards .msqdx-dashboard-card,
+.msqdx-dashboard-action-cards [role="region"][aria-label="Accordion"],
+.msqdx-dashboard-action-cards [id$="-panel"] {
+  background-color: var(--color-theme-accent) !important;
+  border-color: rgba(0, 0, 0, 0.15) !important;
+}
+.msqdx-dashboard-action-cards .MuiTypography-root,
+.msqdx-dashboard-action-cards .msqdx-typography,
+.msqdx-dashboard-action-cards span,
+.msqdx-dashboard-action-cards p,
+.msqdx-dashboard-action-cards label,
+.msqdx-dashboard-action-cards a {
+  color: #000 !important;
+}
+.msqdx-dashboard-action-cards .MuiTypography-caption,
+.msqdx-dashboard-action-cards [class*="caption"] {
+  color: rgba(0, 0, 0, 0.85) !important;
+}
+.msqdx-dashboard-action-cards .material-symbols-outlined,
+.msqdx-dashboard-action-cards [class*="material-symbol"],
+.msqdx-dashboard-action-cards svg {
+  color: #000 !important;
+  fill: #000 !important;
+}
+/* Outline buttons: black border and text */
+.msqdx-dashboard-action-cards .MuiButton-outlined,
+.msqdx-dashboard-action-cards button[class*="outlined"] {
+  color: #000 !important;
+  border-color: #000 !important;
+}
+.msqdx-dashboard-action-cards .MuiButton-outlined:hover:not(:disabled),
+.msqdx-dashboard-action-cards button[class*="outlined"]:hover:not(:disabled) {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+  border-color: #000 !important;
+  color: #000 !important;
+}
+/* Contained buttons: keep accent or darker for contrast; ensure text visible */
+.msqdx-dashboard-action-cards .MuiButton-contained {
+  background-color: #000 !important;
+  color: #fff !important;
+  border-color: #000 !important;
+}
+.msqdx-dashboard-action-cards .MuiButton-contained:hover:not(:disabled) {
+  background-color: rgba(0, 0, 0, 0.85) !important;
+  color: #fff !important;
+}
+/* Select/input in action cards: black text, visible border */
+.msqdx-dashboard-action-cards input,
+.msqdx-dashboard-action-cards textarea,
+.msqdx-dashboard-action-cards select,
+.msqdx-dashboard-action-cards [class*="MuiInputBase-input"],
+.msqdx-dashboard-action-cards [class*="MuiSelect-select"] {
+  color: #000 !important;
+  border-color: rgba(0, 0, 0, 0.4) !important;
+}
+.msqdx-dashboard-action-cards .MuiOutlinedInput-notchedOutline,
+.msqdx-dashboard-action-cards fieldset {
+  border-color: rgba(0, 0, 0, 0.4) !important;
+}
+.msqdx-dashboard-action-cards .msqdx-glass-dashboard-card-header,
+.msqdx-dashboard-action-cards .msqdx-glass-dashboard-card-icon,
+.msqdx-dashboard-action-cards .msqdx-glass-dashboard-card-toggle {
+  color: #000 !important;
+}
+.msqdx-dashboard-action-cards .msqdx-glass-dashboard-card-icon {
+  background: rgba(0, 0, 0, 0.12) !important;
+  color: #000 !important;
+}
+.msqdx-dashboard-action-cards .msqdx-dashboard-list-checkbox {
+  accent-color: #000;
+}
+
+/* Dark mode: keep action cards with brand background (override generic dark grid rule) */
+[data-theme="dark"] .msqdx-dashboard-action-cards > .MuiBox-root,
+[data-theme="dark"] .msqdx-dashboard-action-cards .msqdx-dashboard-card,
+[data-theme="dark"] .msqdx-dashboard-action-cards [role="region"][aria-label="Accordion"],
+[data-theme="dark"] .msqdx-dashboard-action-cards [id$="-panel"] {
+  background-color: var(--color-theme-accent) !important;
+}
+
 /* Cards: same white background as MsqdxCard (persona list). Match persona list cards exactly. */
 .msqdx-glass-dashboard-grid .msqdx-dashboard-card,
 .msqdx-glass-dashboard-grid [role="region"][aria-label="Accordion"] {
