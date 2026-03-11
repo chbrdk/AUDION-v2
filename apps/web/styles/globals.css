@@ -275,7 +275,12 @@ body:has(.msqdx-glass-admin-panel) {
 [data-theme="dark"] .msqdx-glass-panel [class*="MuiSelect-select"],
 [data-theme="dark"] .msqdx-glass-panel [role="combobox"] {
   color: #ffffff !important;
-  background-color: #0f0f0f !important;
+  background-color: transparent !important;
+}
+
+[data-theme="dark"] .msqdx-glass-panel .MuiOutlinedInput-root,
+[data-theme="dark"] .msqdx-glass-panel .MuiInputBase-root {
+  background-color: transparent !important;
 }
 
 [data-theme="dark"] .msqdx-glass-panel input,
@@ -283,7 +288,7 @@ body:has(.msqdx-glass-admin-panel) {
 [data-theme="dark"] .msqdx-glass-panel [class*="MuiInputBase-input"],
 [data-theme="dark"] .msqdx-glass-panel [class*="MuiOutlinedInput-input"] {
   color: #ffffff !important;
-  background-color: #0f0f0f !important;
+  background-color: transparent !important;
   border-color: rgba(255, 255, 255, 0.2) !important;
 }
 
@@ -1077,7 +1082,7 @@ main {
 [data-theme="dark"] .msqdx-glass-journey-phase__title-input,
 [data-theme="dark"] .msqdx-glass-journey-phase__description-input,
 [data-theme="dark"] .msqdx-glass-journey-phase__moment-row {
-  background: rgba(255, 255, 255, 0.06) !important;
+  background: transparent !important;
   border-color: rgba(255, 255, 255, 0.2) !important;
   color: #ffffff !important;
 }
@@ -1756,7 +1761,7 @@ main {
 [data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail [class*="MuiInputBase-input"],
 [data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail [class*="MuiOutlinedInput-input"] {
   color: #ffffff !important;
-  background-color: rgba(255, 255, 255, 0.06) !important;
+  background-color: transparent !important;
   border-color: rgba(255, 255, 255, 0.2) !important;
 }
 
@@ -1803,7 +1808,7 @@ main {
 [data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail [class*="MuiSelect-select"],
 [data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail select {
   color: #ffffff !important;
-  background-color: rgba(255, 255, 255, 0.06) !important;
+  background-color: transparent !important;
 }
 
 .msqdx-glass-detail__section-header {

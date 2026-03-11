@@ -190,6 +190,8 @@ export const MsqdxGlassPersonaAdminPanel = ({
       "metadata",
       "persona-basics",
       "bio-demographics",
+      "personality-traits",
+      "personality-interests",
       "personality-values",
       "pain-points-goals",
       "communication",
@@ -1951,10 +1953,12 @@ export const MsqdxGlassPersonaAdminPanel = ({
                 </MsqdxDashboardCard>
               </Box>
 
-              {/* Card: Persönlichkeit & Werte - 50% width */}
+              {/* Cards: Personality (Traits), Interests, Values – three columns */}
               <MsqdxGlassPersonalityCard
                 profile={detail.profile}
-                expanded={isAccordionExpanded("personality-values")}
+                expandedTraits={isAccordionExpanded("personality-traits")}
+                expandedInterests={isAccordionExpanded("personality-interests")}
+                expandedValues={isAccordionExpanded("personality-values")}
                 onToggle={toggleAccordion}
                 onSaveInterests={handleSaveInterests}
                 onSaveValues={handleSaveValues}
