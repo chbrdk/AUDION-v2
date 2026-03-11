@@ -952,7 +952,7 @@ export function MsqdxGlassProjectAdminPanel({
                     <div className="msqdx-glass-detail">
                         <div className="msqdx-glass-dashboard-grid">
                             {/* Project Header Card */}
-                            <Box sx={{ gridColumn: "1 / -1" }}>
+                            <Box className="msqdx-dashboard-project-header" sx={{ gridColumn: "1 / -1" }}>
                                 <MsqdxCard>
                                     <MsqdxTypography variant="h4" weight="semibold" sx={{ mb: 0.5 }}>
                                         {detail.name}
@@ -1509,6 +1509,7 @@ export function MsqdxGlassProjectAdminPanel({
                                         {!projectJourneysLoading && projectJourneys.length > 0 && (
                                             <>
                                             <Box
+                                                className="msqdx-dashboard-journey-list"
                                                 sx={{
                                                     display: "grid",
                                                     gridTemplateColumns: "1fr",
@@ -1700,6 +1701,7 @@ export function MsqdxGlassProjectAdminPanel({
                                         )}
                                         {!promptTemplatesLoading && promptTemplates.length > 0 && (
                                             <Box
+                                                className="msqdx-dashboard-prompt-templates-list"
                                                 sx={{
                                                     display: "grid",
                                                     gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)" },

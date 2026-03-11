@@ -43,7 +43,7 @@ export const MsqdxGlassAdminDashboard = ({
   const greetingTitle = `${t(`adminDashboard.${greetingKey}`)}${displayName ? `, ${displayName}` : ""}`;
 
   return (
-    <Box sx={{ width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
+    <Box className="msqdx-admin-dashboard" sx={{ width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
       {/* Time-based greeting + username */}
       <MsqdxMoleculeCard
         variant="flat"

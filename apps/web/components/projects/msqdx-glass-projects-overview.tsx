@@ -62,23 +62,25 @@ export function MsqdxGlassProjectsOverview({ initialProjects }: MsqdxGlassProjec
       >
         {/* Create Project */}
         {!showCreate ? (
-          <MsqdxMoleculeCard
-            variant="flat"
-            borderRadius="button"
-            clickable
-            hoverable
-            onClick={() => setShowCreate(true)}
-            title={t("settingsProjects.createProject.title")}
-            titleVariant="h6"
-            subtitle={t("settingsProjects.createProject.placeholder")}
-            headerActions={<MsqdxIcon name="add" customSize={22} style={{ color: accent }} />}
-            sx={{
-              minHeight: 140,
-              border: "2px dashed",
-              borderColor: accent,
-              "& .MuiTypography-h6": { color: accent },
-            }}
-          />
+          <Box className="msqdx-create-project-card" sx={{ minHeight: 140, display: "block" }}>
+            <MsqdxMoleculeCard
+              variant="flat"
+              borderRadius="button"
+              clickable
+              hoverable
+              onClick={() => setShowCreate(true)}
+              title={t("settingsProjects.createProject.title")}
+              titleVariant="h6"
+              subtitle={t("settingsProjects.createProject.placeholder")}
+              headerActions={<MsqdxIcon name="add" customSize={22} style={{ color: accent }} />}
+              sx={{
+                minHeight: 140,
+                border: "2px dashed",
+                borderColor: accent,
+                "& .MuiTypography-h6": { color: accent },
+              }}
+            />
+          </Box>
         ) : (
           <MsqdxMoleculeCard
             variant="flat"

@@ -30,7 +30,26 @@
 }
 
 [data-theme="dark"] .msqdx-glass-admin-header-bar {
+  background-color: #0f0f0f !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   border-bottom-color: var(--color-theme-accent);
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .msqdx-glass-admin-header-bar *,
+[data-theme="dark"] .msqdx-glass-admin-header-bar .MuiTypography-root,
+[data-theme="dark"] .msqdx-glass-admin-header-bar .MuiButton-root,
+[data-theme="dark"] .msqdx-glass-admin-header-bar button,
+[data-theme="dark"] .msqdx-glass-admin-header-bar a,
+[data-theme="dark"] .msqdx-glass-admin-header-bar span {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .msqdx-glass-admin-header-bar .material-symbols-outlined,
+[data-theme="dark"] .msqdx-glass-admin-header-bar [class*="material-symbol"],
+[data-theme="dark"] .msqdx-glass-admin-header-bar svg {
+  color: #ffffff !important;
+  fill: #ffffff !important;
 }
 
 [data-theme="dark"] .msqdx-glass-admin-header-corner {

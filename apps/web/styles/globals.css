@@ -219,6 +219,55 @@ body:has(.msqdx-glass-admin-panel) {
   color: #ffffff !important;
 }
 
+/* Create Project card and similar admin content cards (Projects/Settings) */
+[data-theme="dark"] .msqdx-create-project-card,
+[data-theme="dark"] .msqdx-create-project-card > div {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+[data-theme="dark"] .msqdx-create-project-card .MuiTypography-root,
+[data-theme="dark"] .msqdx-create-project-card span,
+[data-theme="dark"] .msqdx-create-project-card p,
+[data-theme="dark"] .msqdx-create-project-card .material-symbols-outlined,
+[data-theme="dark"] .msqdx-create-project-card [class*="material-symbol"],
+[data-theme="dark"] .msqdx-create-project-card svg {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+}
+
+/* Admin dashboard: greeting + Projects/Personas/Target Groups cards and list rows */
+[data-theme="dark"] .msqdx-admin-dashboard .MuiBox-root[role="button"],
+[data-theme="dark"] .msqdx-admin-dashboard a .MuiBox-root,
+[data-theme="dark"] .msqdx-admin-dashboard .msqdx-card,
+[data-theme="dark"] .msqdx-admin-dashboard [class*="MoleculeCard"] {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme="dark"] .msqdx-admin-dashboard .MuiTypography-root,
+[data-theme="dark"] .msqdx-admin-dashboard span,
+[data-theme="dark"] .msqdx-admin-dashboard .material-symbols-outlined,
+[data-theme="dark"] .msqdx-admin-dashboard [class*="material-symbol"],
+[data-theme="dark"] .msqdx-admin-dashboard svg {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+}
+
+[data-theme="dark"] .msqdx-admin-dashboard .MuiTypography-caption {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+[data-theme="dark"] .msqdx-admin-dashboard a {
+  color: inherit !important;
+}
+
+[data-theme="dark"] .msqdx-admin-dashboard [style*="rgba(0, 0, 0, 0.04)"] {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
 button {
   font: inherit;
 }

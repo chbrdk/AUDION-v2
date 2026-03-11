@@ -33,6 +33,78 @@
   background-color: var(--color-background, #1a1a1a) !important;
 }
 
+/* Project header card (name, id, CREATED, UPDATED) – dark theme */
+[data-theme="dark"] .msqdx-dashboard-project-header,
+[data-theme="dark"] .msqdx-dashboard-project-header .MuiBox-root,
+[data-theme="dark"] .msqdx-dashboard-project-header .msqdx-card,
+[data-theme="dark"] .msqdx-dashboard-project-header [class*="MuiPaper-root"],
+[data-theme="dark"] .msqdx-dashboard-project-header [class*="MuiCard-root"] {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+[data-theme="dark"] .msqdx-dashboard-project-header .MuiTypography-root,
+[data-theme="dark"] .msqdx-dashboard-project-header span,
+[data-theme="dark"] .msqdx-dashboard-project-header p {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .msqdx-dashboard-project-header .MuiTypography-caption {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+[data-theme="dark"] .msqdx-dashboard-project-header .MuiBox-root {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Journey list cards (Journeys in this project) – dark theme */
+[data-theme="dark"] .msqdx-dashboard-journey-list .msqdx-card,
+[data-theme="dark"] .msqdx-dashboard-journey-list .MuiBox-root[role="button"],
+[data-theme="dark"] .msqdx-dashboard-journey-list > div {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme="dark"] .msqdx-dashboard-journey-list .MuiTypography-root,
+[data-theme="dark"] .msqdx-dashboard-journey-list span,
+[data-theme="dark"] .msqdx-dashboard-journey-list .MuiChip-root {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .msqdx-dashboard-journey-list .MuiTypography-caption,
+[data-theme="dark"] .msqdx-dashboard-journey-list .MuiChip-root {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+[data-theme="dark"] .msqdx-dashboard-journey-list .MuiChip-outlined {
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Prompt template cards (Prompt templates panel) – dark theme */
+[data-theme="dark"] .msqdx-dashboard-prompt-templates-list a,
+[data-theme="dark"] .msqdx-dashboard-prompt-templates-list .msqdx-card,
+[data-theme="dark"] .msqdx-dashboard-prompt-templates-list .MuiBox-root[href] {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme="dark"] .msqdx-dashboard-prompt-templates-list .MuiTypography-root,
+[data-theme="dark"] .msqdx-dashboard-prompt-templates-list span,
+[data-theme="dark"] .msqdx-dashboard-prompt-templates-list .MuiChip-root {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .msqdx-dashboard-prompt-templates-list .MuiTypography-caption {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+[data-theme="dark"] .msqdx-dashboard-prompt-templates-list .MuiChip-outlined {
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
 /* Header padding */
 .msqdx-glass-dashboard-grid .summary-button {
   padding: var(--msqdx-spacing-sm) var(--msqdx-spacing-md) !important;
