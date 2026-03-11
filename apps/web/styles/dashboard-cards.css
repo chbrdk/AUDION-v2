@@ -25,12 +25,15 @@
 /* Action cards row (Suggest target groups, Suggest personas, Generate journey): brand background, black text, outline buttons black */
 .msqdx-dashboard-action-cards > .MuiBox-root {
   background-color: var(--color-theme-accent) !important;
+  border-radius: var(--msqdx-radius-3xl, 1.5rem);
+  overflow: hidden;
 }
 .msqdx-dashboard-action-cards .msqdx-dashboard-card,
 .msqdx-dashboard-action-cards [role="region"][aria-label="Accordion"],
 .msqdx-dashboard-action-cards [id$="-panel"] {
   background-color: var(--color-theme-accent) !important;
   border-color: rgba(0, 0, 0, 0.15) !important;
+  border-radius: var(--msqdx-radius-3xl, 1.5rem);
 }
 .msqdx-dashboard-action-cards .MuiTypography-root,
 .msqdx-dashboard-action-cards .msqdx-typography,
