@@ -558,6 +558,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
                   {momentDrafts.map((moment) => (
                     <MsqdxCard
                       key={moment.id}
+                      className="msqdx-glass-journey-moment-card"
                       variant="flat"
                       sx={{
                         display: "flex",
