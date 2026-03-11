@@ -661,6 +661,10 @@
     "eyebrow": "Appearance",
     "title": "Theme Settings",
     "subtitle": "Customize the sidebar background color to match your preference.",
+    "modeTitle": "Theme mode",
+    "modeSubtitle": "Light or dark mode for the interface.",
+    "light": "Light",
+    "dark": "Dark",
     "sidebarTitle": "Sidebar Background Color",
     "sidebarSubtitle": "Choose a color for the admin sidebar background. Changes apply immediately.",
     "options": {

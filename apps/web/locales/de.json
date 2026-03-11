@@ -661,6 +661,10 @@
     "eyebrow": "Darstellung",
     "title": "Theme‑Einstellungen",
     "subtitle": "Passe die Sidebar‑Hintergrundfarbe an.",
+    "modeTitle": "Theme‑Modus",
+    "modeSubtitle": "Hell- oder Dunkelmodus für die Oberfläche.",
+    "light": "Hell",
+    "dark": "Dunkel",
     "sidebarTitle": "Sidebar‑Hintergrundfarbe",
     "sidebarSubtitle": "Wähle eine Farbe für die Admin‑Sidebar. Änderungen wirken sofort.",
     "options": {
