@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import select
 
 from ..core.config import get_settings
+from ..core.http_exceptions import exception_to_http
 from ..db import get_session
 from ..models import Persona, PersonaPrompt
 from ..services.usage_report import report_usage
@@ -460,11 +461,10 @@ async def transcribe_audio(
             language_probability=language_prob
         )
         
+    except HTTPException:
+        raise
     except Exception as exc:
         logger.error("transcription.error", error=str(exc), exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Transcription failed: {str(exc)}"
-        ) from exc
+        raise exception_to_http(exc, "Transcription") from exc
 
 

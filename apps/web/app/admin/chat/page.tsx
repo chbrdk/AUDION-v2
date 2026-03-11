@@ -387,6 +387,7 @@ function AdminChatPageContent() {
     resetTranscript
   } = useSpeechToText();
   const handleTranscriptionCompleteRef = useRef<((text: string) => void) | null>(null);
+  const replaceMessageVariablesRef = useRef<((message: string) => string) | null>(null);
 
   const {
     recording: whisperRecording,
@@ -1050,7 +1051,7 @@ function AdminChatPageContent() {
     t,
   ]);
 
-  const handleSend = async (messageText?: string) => {
+  const handleSend = useCallback(async (messageText?: string) => {
     const rawContent = (messageText?.trim() || input.trim());
 
     if (!activePersonaId || sending || !rawContent) {
@@ -1064,7 +1065,7 @@ function AdminChatPageContent() {
     stopAudioQueue();
 
     // Ersetze Variablen in der User-Nachricht BEVOR sie gesendet wird
-    const contentToSend = replaceMessageVariables(rawContent);
+    const contentToSend = (replaceMessageVariablesRef.current ?? ((m: string) => m))(rawContent);
 
     // Extract learnings from conversation history
     const newLearnings = extractLearnings(messages, activePersonaId);
@@ -1398,7 +1399,23 @@ function AdminChatPageContent() {
     } finally {
       setSending(false);
     }
-  };
+  }, [
+    activePersonaId,
+    sending,
+    input,
+    messages,
+    learnings,
+    selectedJourney,
+    personaProfile,
+    activePersona,
+    personaDisplayName,
+    personaProfileCard,
+    speechListening,
+    voiceEnabled,
+    user,
+    pendingImageIds,
+    pendingImages,
+  ]);
 
   useEffect(() => {
     handleSendRef.current = handleSend;
@@ -1650,6 +1667,7 @@ function AdminChatPageContent() {
 
     return replacedMessage;
   };
+  replaceMessageVariablesRef.current = replaceMessageVariables;
 
   const compressImage = (file: File, maxWidth: number = 1024, maxHeight: number = 1024, quality: number = 0.7): Promise<string> => {
     return new Promise((resolve, reject) => {

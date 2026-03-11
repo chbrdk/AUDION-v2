@@ -8,6 +8,7 @@ from fastapi import APIRouter, Body, BackgroundTasks, Depends, File, Form, HTTPE
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ..core.http_exceptions import exception_to_http
 from ..db import get_session
 from ..models import Document, Persona, ProcessingJob, Project, TargetGroup, TargetGroupKnowledgeEntry, User
 from worker.ingest import enqueue_ingestion
@@ -324,7 +325,7 @@ def list_target_group_chunks(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
         logger.error("knowledge.chunks.error", target_group_id=target_group_id, error=str(exc), exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to retrieve chunks") from exc
+        raise exception_to_http(exc, "Retrieve chunks") from exc
 
 
 @router.get(
@@ -447,7 +448,7 @@ def get_target_group_clusters(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
         logger.error("knowledge.clusters.error", target_group_id=target_group_id, error=str(exc), exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to cluster chunks") from exc
+        raise exception_to_http(exc, "Cluster chunks") from exc
 
 
 @router.get(
@@ -511,7 +512,7 @@ def get_similar_chunks(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
         logger.error("knowledge.similar.error", target_group_id=target_group_id, chunk_id=chunk_id, error=str(exc), exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to find similar chunks") from exc
+        raise exception_to_http(exc, "Find similar chunks") from exc
 
 
 @router.get(

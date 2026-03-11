@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import select
 
 from ..core.config import get_settings
+from ..core.http_exceptions import exception_to_http
 from ..db import get_session
 from ..models import Persona, PersonaPrompt
 from ..utils.text import clean_response_text
@@ -177,10 +178,7 @@ async def send_message(request: ChatMessageRequest, _: None = Depends(verify_req
             error=str(e),
             error_type=type(e).__name__,
         )
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Chat error: {type(e).__name__}: {str(e)}",
-        ) from e
+        raise exception_to_http(e, "Chat") from e
 
 
 async def _send_message_impl(request: ChatMessageRequest) -> ChatMessageResponse:
@@ -399,19 +397,14 @@ async def _send_message_impl(request: ChatMessageRequest) -> ChatMessageResponse
     except HTTPException:
         raise
     except Exception as e:
-        err_msg = str(e)
-        err_type = type(e).__name__
         logger.error(
             "chat.persona_agent.failed",
-            error=err_msg,
-            error_type=err_type,
+            error=str(e),
+            error_type=type(e).__name__,
             persona_id=request.persona_id,
             exc_info=True,
         )
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to generate response: {err_type}: {err_msg}"
-        ) from e
+        raise exception_to_http(e, "Generate response") from e
     
     # Format sources for response
     chat_sources = [
