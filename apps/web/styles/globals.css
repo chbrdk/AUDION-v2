@@ -190,6 +190,28 @@ body:has(.msqdx-glass-admin-panel) {
   color: rgba(255, 255, 255, 0.85) !important;
 }
 
+/* Personas overview page: grid of persona cards (name, project, segment · draft, View) */
+[data-theme="dark"] .msqdx-glass-personas-grid > * {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-personas-overview .MuiTypography-root,
+[data-theme="dark"] .msqdx-glass-personas-overview .MuiChip-label,
+[data-theme="dark"] .msqdx-glass-personas-overview span {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .msqdx-glass-personas-overview .MuiTypography-caption,
+[data-theme="dark"] .msqdx-glass-personas-overview [class*="subtitle"] {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-personas-overview [style*="rgba(0, 0, 0, 0.03)"] {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
 [data-theme="dark"] .msqdx-glass-settings-card {
   background-color: #1a1a1a !important;
   color: #ffffff;
@@ -281,6 +303,7 @@ body:has(.msqdx-glass-admin-panel) {
 }
 
 /* Admin dashboard: greeting + Projects/Personas/Target Groups cards and list rows */
+[data-theme="dark"] .msqdx-admin-dashboard .msqdx-admin-dashboard-teaser-row,
 [data-theme="dark"] .msqdx-admin-dashboard .MuiBox-root[role="button"],
 [data-theme="dark"] .msqdx-admin-dashboard a .MuiBox-root,
 [data-theme="dark"] .msqdx-admin-dashboard .msqdx-card,

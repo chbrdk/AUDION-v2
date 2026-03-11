@@ -203,8 +203,10 @@ export const MsqdxGlassAdminDashboard = ({
                   key={persona.id}
                   href={ADMIN_ROUTES.personas}
                   style={{ textDecoration: "none", color: "inherit" }}
+                  className="msqdx-admin-dashboard-persona-row"
                 >
                   <Box
+                    className="msqdx-admin-dashboard-teaser-row"
                     sx={{
                       display: "flex",
                       alignItems: "center",
@@ -289,8 +291,10 @@ export const MsqdxGlassAdminDashboard = ({
                   key={tg.id}
                   href={ADMIN_ROUTES.targetGroups}
                   style={{ textDecoration: "none", color: "inherit" }}
+                  className="msqdx-admin-dashboard-tg-row"
                 >
                   <Box
+                    className="msqdx-admin-dashboard-teaser-row"
                     sx={{
                       display: "flex",
                       alignItems: "center",

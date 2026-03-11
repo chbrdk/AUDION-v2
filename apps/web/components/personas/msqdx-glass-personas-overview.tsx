@@ -169,8 +169,9 @@ export function MsqdxGlassPersonasOverview({ initialList }: MsqdxGlassPersonasOv
   };
 
   return (
-    <Box sx={{ width: "100%" }}>
+    <Box sx={{ width: "100%" }} className="msqdx-glass-personas-overview">
       <Box
+        className="msqdx-glass-personas-grid"
         sx={{
           display: "grid",
           gridTemplateColumns: {
