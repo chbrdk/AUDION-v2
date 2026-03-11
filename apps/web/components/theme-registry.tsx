@@ -21,19 +21,8 @@ const defaultThemeContext: ThemeContextType = {
 
 const ThemeContext = createContext<ThemeContextType>(defaultThemeContext);
 
-export const useThemeMode = () => {
-  // #region agent log
-  // Workaround for Next.js 16 prerendering bug: check if we're in a browser context
-  // During prerendering, React context is null, so we return a default value
-  try {
-    const context = useContext(ThemeContext);
-    return context;
-  } catch (e) {
-    // During prerendering, context might be null - return default
-    return defaultThemeContext;
-  }
-  // #endregion
-};
+// Re-export so consumers use the same context as ThemeRegistrySSRSafe (used by ThemeRegistryNoSSR in admin/settings/chat etc.)
+export { useThemeMode } from "./theme-registry-ssr-safe";
 
 const lightShadows: Shadows = [
   "none",
