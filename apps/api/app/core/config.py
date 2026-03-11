@@ -79,6 +79,9 @@ class Settings(BaseSettings):
     persona_backend_docs_url: str = "http://localhost:8000/docs"
     root_path: str = ""  # For reverse proxy support
 
+    # CORS: comma-separated origins (e.g. https://app.example.com,https://admin.example.com). Empty = allow all (dev).
+    cors_origins: str = ""
+
     # Tavus (conversational video)
     tavus_api_key: str | None = None
     tavus_api_base: str = "https://tavusapi.com"

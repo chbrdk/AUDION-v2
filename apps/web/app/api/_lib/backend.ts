@@ -127,6 +127,19 @@ export function buildApiUrl(path: string): string {
   return `${basePath}${normalizedPath}`;
 }
 
+/**
+ * Fetch with a timeout for proxy/API routes to avoid hanging requests.
+ * Uses AbortSignal.timeout (60s default). Override with options.signal or second argument.
+ */
+export async function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {},
+  ms = 60_000
+): Promise<Response> {
+  const signal = options.signal ?? AbortSignal.timeout(ms);
+  return fetch(url, { ...options, signal });
+}
+
 /** GET/POST /api/auth/tokens – list and create API tokens (central reference, same as CHECKION). */
 export const API_AUTH_TOKENS = buildApiUrl("/api/auth/tokens");
 

@@ -13,6 +13,7 @@ from ..agents.persona import PersonaAgent
 from ..agents.retrieval import RetrievalAgent
 from ..db import get_session
 from ..models import Persona, PersonaPrompt
+from ..deps import verify_websocket_token
 from ..services.persona_discovery import PersonaDiscoveryService
 
 router = APIRouter()
@@ -138,7 +139,9 @@ async def chat_ws(websocket: WebSocket, conversation_id: str) -> None:
     """WebSocket endpoint for real-time chat with persona discovery."""
     import structlog
     logger = structlog.get_logger(__name__)
-    
+
+    if not await verify_websocket_token(websocket):
+        return
     try:
         await manager.connect(websocket)
         logger.info("ws.connection.established", conversation_id=conversation_id)

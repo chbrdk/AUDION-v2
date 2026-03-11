@@ -622,7 +622,15 @@ function AdminChatPageContent() {
     let cancelled = false;
     setLoadingTargetGroupPersonas(true);
     fetch(buildApiUrl(`/api/target-groups/${encodeURIComponent(activeTargetGroupId)}/personas?page_size=50`), { cache: "no-store" })
-      .then((res) => (res.ok ? res.json() : { items: [] }))
+      .then(async (res) => {
+        if (!res.ok) {
+          const errBody = await res.text().catch(() => res.statusText || "Unknown error");
+          console.error("Target group personas load failed:", res.status, errBody);
+          notify(t("adminChat.targetGroup.loadError") + (errBody ? ` ${errBody.slice(0, 80)}` : ""));
+          return { items: [] };
+        }
+        return res.json();
+      })
       .then((data) => {
         const items = data.items ?? [];
         const personas: PersonaSummary[] = items.map((p: any) => {
@@ -645,8 +653,12 @@ function AdminChatPageContent() {
           personas.slice(0, 10).forEach((p) => ensureChatPromptForPersona(p.id));
         }
       })
-      .catch(() => {
-        if (!cancelled) setTargetGroupPersonas([]);
+      .catch((err) => {
+        console.error("Target group personas fetch error:", err);
+        if (!cancelled) {
+          setTargetGroupPersonas([]);
+          notify(t("adminChat.targetGroup.loadError"));
+        }
       })
       .finally(() => {
         if (!cancelled) setLoadingTargetGroupPersonas(false);
@@ -1770,7 +1782,8 @@ function AdminChatPageContent() {
       }, 100);
     } catch (error) {
       console.error("Failed to upload images:", error);
-      // TODO: Zeige Fehler-Message an User
+      const msg = error instanceof Error ? error.message : t("adminChat.imageUploadFailed");
+      notify(msg);
     }
   };
 

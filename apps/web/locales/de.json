@@ -152,6 +152,7 @@
     "noPersonasAvailable": "Keine Personas verfügbar",
     "linkCopied": "Link in Zwischenablage kopiert",
     "copyFailed": "Konnte nicht in Zwischenablage kopieren",
+    "imageUploadFailed": "Bild-Upload fehlgeschlagen",
     "journey": "Journey",
     "noneAvailable": "Keine verfügbar",
     "loading": "Laden…",
@@ -182,7 +183,8 @@
       "askAllTitle": "Ganze Zielgruppe befragen",
       "askAllSubtitle": "Frage eingeben und absenden. Jede Persona antwortet; die Antworten erscheinen nebeneinander.",
       "responsesFrom": "Antworten der Personas",
-      "responsesReceived": "Antworten erhalten."
+      "responsesReceived": "Antworten erhalten.",
+      "loadError": "Zielgruppen-Personas konnten nicht geladen werden."
     }
   },
   "chatHistory": {
@@ -519,6 +521,7 @@
     "eyebrow": "Workspace",
     "title": "Projekte",
     "subtitle": "Personas, Zielgruppen, Journeys und Prompt‑Templates sind projektbasiert. Wechsel Projekte oder lade Teammitglieder ein.",
+    "targetGroupsLoadError": "Zielgruppen konnten nicht geladen werden.",
     "roles": {
       "member": "Mitglied",
       "admin": "Admin"

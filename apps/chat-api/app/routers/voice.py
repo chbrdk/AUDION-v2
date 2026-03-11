@@ -9,7 +9,7 @@ from typing import AsyncIterator, List, Dict, Any
 from uuid import UUID
 
 import structlog
-from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import select
@@ -19,6 +19,7 @@ from ..db import get_session
 from ..models import Persona, PersonaPrompt
 from ..services.usage_report import report_usage
 from ..services.voice import ElevenLabsVoiceError, get_voice_client
+from ..deps import verify_request_token
 from ..services.whisper import WhisperTranscriptionService
 from ..utils.text import clean_response_text
 from ..ws.chat import get_persona_agent, get_persona_prompt, get_retrieval_agent
@@ -136,7 +137,7 @@ def _find_sentence_boundary(text: str) -> int:
 
 
 @router.post("/chat/stream")
-async def voice_chat_stream(request: VoiceChatRequest) -> StreamingResponse:
+async def voice_chat_stream(request: VoiceChatRequest, _: None = Depends(verify_request_token)) -> StreamingResponse:
     """Stream persona response along with synchronized voice audio."""
     try:
         persona_uuid = UUID(request.persona_id)
@@ -389,7 +390,8 @@ class TranscriptionResponse(BaseModel):
 @router.post("/transcribe", response_model=TranscriptionResponse)
 async def transcribe_audio(
     audio: UploadFile = File(...),
-    language: str | None = None
+    language: str | None = None,
+    _: None = Depends(verify_request_token),
 ) -> TranscriptionResponse:
     """
     Transcribe audio file to text using Whisper.

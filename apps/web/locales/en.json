@@ -152,6 +152,7 @@
     "noPersonasAvailable": "No personas available",
     "linkCopied": "Link copied to clipboard",
     "copyFailed": "Could not copy to clipboard",
+    "imageUploadFailed": "Image upload failed",
     "journey": "Journey",
     "noneAvailable": "None available",
     "loading": "Loading…",
@@ -182,7 +183,8 @@
       "askAllTitle": "Ask the whole target group",
       "askAllSubtitle": "Type a question and send. Each persona will answer; responses appear side by side.",
       "responsesFrom": "Responses from personas",
-      "responsesReceived": "Responses received."
+      "responsesReceived": "Responses received.",
+      "loadError": "Failed to load target group personas."
     }
   },
   "chatHistory": {
@@ -519,6 +521,7 @@
     "eyebrow": "Workspace",
     "title": "Projects",
     "subtitle": "Every persona, target group, journey, and prompt template is scoped to a project. Switch between projects or invite teammates to collaborate.",
+    "targetGroupsLoadError": "Failed to load target groups.",
     "roles": {
       "member": "Member",
       "admin": "Admin"

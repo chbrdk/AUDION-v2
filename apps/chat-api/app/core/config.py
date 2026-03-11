@@ -41,6 +41,10 @@ class Settings(BaseSettings):
     otel_exporter_otlp_endpoint: str | None = None
     logfire_token: str | None = None
     openai_api_key: str  # Required for chat
+    # CORS: comma-separated origins. Empty = allow all (dev).
+    cors_origins: str = ""
+    # Auth: when set, requests must send Authorization: Bearer <key> or X-API-Key: <key>. Empty = no auth.
+    auth_api_key: str = ""
     chat_use_tools: bool = True  # Enable tools/functions for chat (default: True)
     # Model used for persona chat (non-streaming /message, stream, voice)
     chat_model: str = "gpt-5-nano"

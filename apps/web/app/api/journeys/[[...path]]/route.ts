@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-import { getPersonaBackendBase } from "../../_lib/backend";
+import { fetchWithTimeout, getPersonaBackendBase } from "../../_lib/backend";
 import { buildAuthHeaders, getAuthTokenFromRequest } from "../../_lib/auth";
 
 const buildTargetUrl = (request: NextRequest, path: string) => {
@@ -15,15 +15,19 @@ const forward = async (request: NextRequest, target: string) => {
   const token = getAuthTokenFromRequest(request);
   const body =
     request.method === "GET" || request.method === "HEAD" ? undefined : await request.text();
-  const upstream = await fetch(target, {
-    method: request.method,
-    cache: "no-store",
-    headers: {
-      ...(body ? { "Content-Type": request.headers.get("content-type") ?? "application/json" } : {}),
-      ...buildAuthHeaders(token),
+  const upstream = await fetchWithTimeout(
+    target,
+    {
+      method: request.method,
+      cache: "no-store",
+      headers: {
+        ...(body ? { "Content-Type": request.headers.get("content-type") ?? "application/json" } : {}),
+        ...buildAuthHeaders(token),
+      },
+      body,
     },
-    body,
-  });
+    60_000
+  );
 
   const contentType = upstream.headers.get("content-type") ?? "application/json";
   const responseBody = await upstream.text();

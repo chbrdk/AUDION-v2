@@ -6,6 +6,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy import text
 import structlog
 
+from .core.config import get_settings
 from .core.logging import configure_logging
 from .core.telemetry import configure_tracing
 from .db import Base, engine
@@ -74,9 +75,11 @@ def create_app() -> FastAPI:
         openapi_url="/openapi.json"
     )
     app.add_middleware(RequestLoggingMiddleware)
+    settings = get_settings()
+    origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()] if settings.cors_origins else ["*"]
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

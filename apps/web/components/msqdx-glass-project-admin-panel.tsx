@@ -460,7 +460,15 @@ export function MsqdxGlassProjectAdminPanel({
         if (!selectedId || (!expandedSections.has("suggest-personas") && !expandedSections.has("generate-journey"))) return;
         let cancelled = false;
         fetch(buildApiUrl(`/api/target-groups?project_id=${encodeURIComponent(selectedId)}&page_size=100`), { cache: "no-store" })
-            .then((res) => (res.ok ? res.json() : { items: [] }))
+            .then(async (res) => {
+                if (!res.ok) {
+                    const errBody = await res.text().catch(() => res.statusText || "Unknown error");
+                    console.error("Target groups load failed:", res.status, errBody);
+                    notify(t("settingsProjects.targetGroupsLoadError") + (errBody ? ` ${errBody.slice(0, 80)}` : ""));
+                    return { items: [] };
+                }
+                return res.json();
+            })
             .then((data) => {
                 if (!cancelled && data.items) {
                     setProjectTargetGroups(
@@ -472,8 +480,12 @@ export function MsqdxGlassProjectAdminPanel({
                     );
                 }
             })
-            .catch(() => {
-                if (!cancelled) setProjectTargetGroups([]);
+            .catch((err) => {
+                console.error("Target groups fetch error:", err);
+                if (!cancelled) {
+                    setProjectTargetGroups([]);
+                    notify(t("settingsProjects.targetGroupsLoadError"));
+                }
             });
         return () => {
             cancelled = true;

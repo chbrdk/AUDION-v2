@@ -6,7 +6,7 @@ from typing import AsyncIterator, List, Dict, Any
 from uuid import UUID
 
 import structlog
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import select
@@ -17,6 +17,7 @@ from ..models import Persona, PersonaPrompt
 from ..utils.text import clean_response_text
 from ..ws.chat import get_persona_agent, get_persona_prompt, get_retrieval_agent
 from ..services.usage_report import report_usage
+from ..deps import verify_request_token
 from .images import get_image_data_url
 from msqdx_glass_proto import ContentDeltaEvent, SourcesEvent, CompleteEvent, ThinkingEvent
 
@@ -163,7 +164,7 @@ class ChatMessageResponse(BaseModel):
 
 
 @router.post("/message", response_model=ChatMessageResponse, status_code=status.HTTP_200_OK)
-async def send_message(request: ChatMessageRequest) -> ChatMessageResponse:
+async def send_message(request: ChatMessageRequest, _: None = Depends(verify_request_token)) -> ChatMessageResponse:
     """Send a message to a persona and get a response."""
     try:
         return await _send_message_impl(request)
@@ -432,7 +433,7 @@ async def _send_message_impl(request: ChatMessageRequest) -> ChatMessageResponse
 
 
 @router.post("/message/stream")
-async def send_message_stream(request: ChatMessageRequest) -> StreamingResponse:
+async def send_message_stream(request: ChatMessageRequest, _: None = Depends(verify_request_token)) -> StreamingResponse:
     """Send a message to a persona and stream the response."""
     # Log immediately at function start - before any try/except
     # Use both structlog and print to ensure visibility
