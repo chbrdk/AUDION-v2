@@ -6,7 +6,7 @@ import { Box, Stack, TextField } from "@mui/material";
 import Link from "next/link";
 import { MsqdxButton, MsqdxCard, MsqdxFormField, MsqdxTypography, MsqdxIcon, MsqdxDashboardCard, MsqdxChip } from "@msqdx/react";
 import { MsqdxGlassCollapsiblePanel } from "./admin/msqdx-glass-collapsible-panel";
-import { buildApiUrl } from "../app/api/_lib/backend";
+import { buildApiUrl, fetchWithTimeout } from "../app/api/_lib/backend";
 import { journeysApi, type JourneyResponse } from "../app/api/_lib/journeys";
 import { ADMIN_ROUTES } from "../lib/routes";
 import { aiAssistApi, type AiTemplateSummary } from "../app/api/_lib/ai-assist";
@@ -262,7 +262,7 @@ export function MsqdxGlassProjectAdminPanel({
         setListRefreshing(true);
         try {
             await refreshProjects();
-            const response = await fetch(buildApiUrl(`/api/projects`), { cache: "no-store" });
+            const response = await fetchWithTimeout(buildApiUrl(`/api/projects`), { cache: "no-store" });
             if (response.ok) {
                 const data = await response.json();
                 setProjects(data.items || []);
@@ -459,7 +459,7 @@ export function MsqdxGlassProjectAdminPanel({
     useEffect(() => {
         if (!selectedId || (!expandedSections.has("suggest-personas") && !expandedSections.has("generate-journey"))) return;
         let cancelled = false;
-        fetch(buildApiUrl(`/api/target-groups?project_id=${encodeURIComponent(selectedId)}&page_size=100`), { cache: "no-store" })
+        fetchWithTimeout(buildApiUrl(`/api/target-groups?project_id=${encodeURIComponent(selectedId)}&page_size=100`), { cache: "no-store" })
             .then(async (res) => {
                 if (!res.ok) {
                     const errBody = await res.text().catch(() => res.statusText || "Unknown error");

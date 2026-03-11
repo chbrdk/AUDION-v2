@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Dict, List
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
 from fastapi.responses import RedirectResponse, Response, StreamingResponse
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
@@ -52,6 +52,7 @@ from ..services.target_group_store import TargetGroupService
 from ..services.storage import StorageService
 from ..services.usage_report import report_usage
 from ..core.config import get_settings
+from ..core.upload_limits import read_upload_with_limit
 from msqdx_glass_proto import PersonaPrompt as PersonaPromptProto
 
 router = APIRouter(prefix="/personas", tags=["personas"])
@@ -1165,12 +1166,14 @@ async def upload_persona_document(
     settings = get_settings()
     
     persona = _get_persona_or_404(session, persona_id)
-    contents = await file.read()
+    contents = await read_upload_with_limit(
+        file, settings.upload_max_document_bytes, label="Document"
+    )
     if not contents:
         raise HTTPException(status_code=400, detail="File was empty")
     content_type = file.content_type or "application/octet-stream"
     filename = file.filename or "upload.bin"
-    
+
     # Proxy to STORION if enabled
     if settings.use_storion_proxy:
         try:
@@ -1370,8 +1373,12 @@ async def upload_persona_avatar(
     updated_by: str = Form("persona-admin-ui"),
     session: Session = Depends(get_db),
 ) -> PersonaResponse:
+    from ..core.config import get_settings
+    settings = get_settings()
     persona = _get_persona_or_404(session, persona_id)
-    contents = await file.read()
+    contents = await read_upload_with_limit(
+        file, settings.upload_max_avatar_bytes, label="Avatar image"
+    )
     if not contents:
         raise HTTPException(status_code=400, detail="File was empty")
     content_type = file.content_type or "image/png"

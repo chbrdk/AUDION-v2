@@ -48,6 +48,8 @@ class Settings(BaseSettings):
     chat_use_tools: bool = True  # Enable tools/functions for chat (default: True)
     # Model used for persona chat (non-streaming /message, stream, voice)
     chat_model: str = "gpt-5-nano"
+    # Upload size limit for audio (bytes). Reject with 413 if exceeded.
+    upload_max_audio_bytes: int = 20 * 1024 * 1024  # 20 MB for audio
 
 
 @lru_cache

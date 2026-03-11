@@ -33,6 +33,8 @@ from ..services.persona_generation import PersonaGenerationService
 from ..services.knowledge_ingestion import KnowledgeIngestionService
 from ..services.persona_store import PersonaService
 from ..services.suggest_personas import suggest_personas as run_suggest_personas
+from ..core.config import get_settings
+from ..core.upload_limits import read_upload_with_limit
 from ..services.storage import StorageService
 from ..services.target_group_store import TargetGroupService
 from ..services.auth import get_current_user
@@ -868,7 +870,9 @@ async def upload_target_group_document(
 
     try:
         tg = _get_target_group_or_404(session, target_group_id)
-        contents = await file.read()
+        contents = await read_upload_with_limit(
+            file, settings.upload_max_document_bytes, label="Document"
+        )
         if not contents:
             raise HTTPException(status_code=400, detail="File was empty")
         content_type = file.content_type or "application/octet-stream"

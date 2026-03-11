@@ -29,6 +29,25 @@ logger = structlog.get_logger(__name__)
 settings = get_settings()
 
 
+async def _read_upload_with_limit(file: UploadFile, max_bytes: int, label: str = "File") -> bytes:
+    """Read upload file up to max_bytes; raise 413 if larger."""
+    chunks: list[bytes] = []
+    total = 0
+    chunk_size = 1024 * 1024  # 1 MB
+    while True:
+        chunk = await file.read(chunk_size)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > max_bytes:
+            raise HTTPException(
+                status_code=413,
+                detail=f"{label} too large; max {max_bytes // (1024 * 1024)} MB",
+            )
+        chunks.append(chunk)
+    return b"".join(chunks)
+
+
 def select_model_for_messages(messages: List[Dict[str, Any]]) -> str:
     """
     Wählt das passende Modell basierend auf dem Inhalt der Messages.
@@ -405,9 +424,11 @@ async def transcribe_audio(
     """
     try:
         logger.info("transcription.request", filename=audio.filename, language=language)
-        
-        # Read audio data
-        audio_data = await audio.read()
+
+        # Read audio data (with size limit)
+        audio_data = await _read_upload_with_limit(
+            audio, settings.upload_max_audio_bytes, label="Audio file"
+        )
         if not audio_data:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

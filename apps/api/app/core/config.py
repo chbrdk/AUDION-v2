@@ -86,6 +86,10 @@ class Settings(BaseSettings):
     tavus_api_key: str | None = None
     tavus_api_base: str = "https://tavusapi.com"
 
+    # Upload size limits (bytes). Reject with 413 if exceeded.
+    upload_max_document_bytes: int = 10 * 1024 * 1024  # 10 MB for documents
+    upload_max_avatar_bytes: int = 5 * 1024 * 1024  # 5 MB for avatar images
+
     # Feature Flags
     use_storion_proxy: bool = False
     storion_sync_poll_interval: float = 5.0

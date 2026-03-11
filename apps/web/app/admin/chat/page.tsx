@@ -46,7 +46,7 @@ import { MsqdxIcon, MsqdxInput } from "@msqdx/react";
 import { INPUT_ACCENT_SX } from "../../../lib/theme-accent";
 import { VariablePalette } from "../../../components/prompt-builder/VariablePalette";
 import { type VariableDefinition } from "../../../components/prompt-builder/variableDefinitions";
-import { getChatApiBase, getVoiceApiBase, buildApiUrl } from "../../api/_lib/backend";
+import { getChatApiBase, getVoiceApiBase, buildApiUrl, fetchWithTimeout } from "../../api/_lib/backend";
 import { useAuth } from "../../../components/auth/auth-provider";
 import { useSpeechToText } from "../../../hooks/use-speech-to-text";
 import { useWhisperTranscription } from "../../../hooks/use-whisper-transcription";
@@ -621,7 +621,7 @@ function AdminChatPageContent() {
     }
     let cancelled = false;
     setLoadingTargetGroupPersonas(true);
-    fetch(buildApiUrl(`/api/target-groups/${encodeURIComponent(activeTargetGroupId)}/personas?page_size=50`), { cache: "no-store" })
+    fetchWithTimeout(buildApiUrl(`/api/target-groups/${encodeURIComponent(activeTargetGroupId)}/personas?page_size=50`), { cache: "no-store" })
       .then(async (res) => {
         if (!res.ok) {
           const errBody = await res.text().catch(() => res.statusText || "Unknown error");
