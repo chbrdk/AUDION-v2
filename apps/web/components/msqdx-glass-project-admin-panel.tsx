@@ -980,6 +980,58 @@ export function MsqdxGlassProjectAdminPanel({
                                 </MsqdxCard>
                             </Box>
 
+                            {/* Overview Stats Card – directly under meta card, 4 columns */}
+                            <Box sx={{ gridColumn: "1 / -1" }}>
+                                <MsqdxDashboardCard
+                                    id="overview"
+                                    title={t("settingsProjects.overview.title") || "Overview"}
+                                    icon="dashboard"
+                                    expanded={expandedSections.has("overview")}
+                                    onToggle={toggleSection}
+                                >
+                                    <Box
+                                        sx={{
+                                            display: "grid",
+                                            gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" },
+                                            gap: 2,
+                                        }}
+                                    >
+                                        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", py: 0.5 }}>
+                                            <MsqdxTypography variant="h6" weight="semibold">
+                                                {detail.stats.persona_count}
+                                            </MsqdxTypography>
+                                            <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+                                                {t("settingsProjects.overview.personas") || "Personas"}
+                                            </MsqdxTypography>
+                                        </Box>
+                                        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", py: 0.5 }}>
+                                            <MsqdxTypography variant="h6" weight="semibold">
+                                                {detail.stats.target_group_count}
+                                            </MsqdxTypography>
+                                            <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+                                                {t("settingsProjects.overview.targetGroups") || "Target Groups"}
+                                            </MsqdxTypography>
+                                        </Box>
+                                        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", py: 0.5 }}>
+                                            <MsqdxTypography variant="h6" weight="semibold">
+                                                {detail.members.length}
+                                            </MsqdxTypography>
+                                            <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+                                                {t("settingsProjects.overview.members") || "Team Members"}
+                                            </MsqdxTypography>
+                                        </Box>
+                                        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", py: 0.5 }}>
+                                            <MsqdxTypography variant="h6" weight="semibold">
+                                                {detail.stats.template_override_count}
+                                            </MsqdxTypography>
+                                            <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+                                                {t("settingsProjects.overview.templates") || "Template Overrides"}
+                                            </MsqdxTypography>
+                                        </Box>
+                                    </Box>
+                                </MsqdxDashboardCard>
+                            </Box>
+
                             {/* Company Context / Unternehmenskontext */}
                             <Box sx={{ gridColumn: "1 / -1" }}>
                                 <MsqdxDashboardCard
@@ -1031,8 +1083,8 @@ export function MsqdxGlassProjectAdminPanel({
                                 </MsqdxDashboardCard>
                             </Box>
 
-                            {/* Suggest target groups from context */}
-                            <Box sx={{ gridColumn: "1 / -1" }}>
+                            {/* Suggest target groups from context – 3-column row */}
+                            <Box>
                                 <MsqdxDashboardCard
                                     id="suggest-target-groups"
                                     title={t("settingsProjects.companyContext.suggestTitle") ?? "Suggest target groups from context"}
@@ -1119,8 +1171,8 @@ export function MsqdxGlassProjectAdminPanel({
                                 </MsqdxDashboardCard>
                             </Box>
 
-                            {/* Suggest personas for target group */}
-                            <Box sx={{ gridColumn: "1 / -1" }}>
+                            {/* Suggest personas for target group – 3-column row */}
+                            <Box>
                                 <MsqdxDashboardCard
                                     id="suggest-personas"
                                     title={t("settingsProjects.suggestPersonas.title") ?? "Suggest personas for target group"}
@@ -1248,8 +1300,8 @@ export function MsqdxGlassProjectAdminPanel({
                                 </MsqdxDashboardCard>
                             </Box>
 
-                            {/* Generate journey from project knowledge */}
-                            <Box sx={{ gridColumn: "1 / -1" }}>
+                            {/* Generate journey from project knowledge – 3-column row */}
+                            <Box>
                                 <MsqdxDashboardCard
                                     id="generate-journey"
                                     title={t("settingsProjects.generateJourney.title") ?? "Generate journey from project knowledge"}
@@ -1411,52 +1463,6 @@ export function MsqdxGlassProjectAdminPanel({
                                         >
                                             {t("settingsProjects.projectJourneys.allJourneys") ?? "All journeys"} →
                                         </MsqdxButton>
-                                    </Stack>
-                                </MsqdxDashboardCard>
-                            </Box>
-
-                            {/* Overview Stats Card */}
-                            <Box sx={{ gridColumn: { xs: "1 / -1", md: "span 6" } }}>
-                                <MsqdxDashboardCard
-                                    id="overview"
-                                    title={t("settingsProjects.overview.title") || "Overview"}
-                                    icon="dashboard"
-                                    expanded={expandedSections.has("overview")}
-                                    onToggle={toggleSection}
-                                >
-                                    <Stack spacing={2}>
-                                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                            <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
-                                                {t("settingsProjects.overview.personas") || "Personas"}
-                                            </MsqdxTypography>
-                                            <MsqdxTypography variant="h6" weight="semibold">
-                                                {detail.stats.persona_count}
-                                            </MsqdxTypography>
-                                        </Box>
-                                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                            <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
-                                                {t("settingsProjects.overview.targetGroups") || "Target Groups"}
-                                            </MsqdxTypography>
-                                            <MsqdxTypography variant="h6" weight="semibold">
-                                                {detail.stats.target_group_count}
-                                            </MsqdxTypography>
-                                        </Box>
-                                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                            <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
-                                                {t("settingsProjects.overview.members") || "Team Members"}
-                                            </MsqdxTypography>
-                                            <MsqdxTypography variant="h6" weight="semibold">
-                                                {detail.members.length}
-                                            </MsqdxTypography>
-                                        </Box>
-                                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                            <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
-                                                {t("settingsProjects.overview.templates") || "Template Overrides"}
-                                            </MsqdxTypography>
-                                            <MsqdxTypography variant="h6" weight="semibold">
-                                                {detail.stats.template_override_count}
-                                            </MsqdxTypography>
-                                        </Box>
                                     </Stack>
                                 </MsqdxDashboardCard>
                             </Box>
