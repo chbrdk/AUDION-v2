@@ -245,3 +245,15 @@
   border-top: 3px solid var(--color-secondary-dx-orange);
 }
 
+/* Native checkboxes in suggestion lists: smaller size */
+.msqdx-dashboard-list-checkbox {
+  width: 14px;
+  height: 14px;
+  font-size: 12px;
+  cursor: pointer;
+  accent-color: var(--color-theme-accent, var(--color-secondary-dx-pink));
+}
+.msqdx-dashboard-list-checkbox:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}

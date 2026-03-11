@@ -2,9 +2,9 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Box, Stack, TextField } from "@mui/material";
+import { Box, Stack } from "@mui/material";
 import Link from "next/link";
-import { MsqdxButton, MsqdxCard, MsqdxFormField, MsqdxTypography, MsqdxIcon, MsqdxDashboardCard, MsqdxChip } from "@msqdx/react";
+import { MsqdxButton, MsqdxCard, MsqdxFormField, MsqdxTypography, MsqdxIcon, MsqdxDashboardCard, MsqdxChip, MsqdxSelect } from "@msqdx/react";
 import { MsqdxGlassCollapsiblePanel } from "./admin/msqdx-glass-collapsible-panel";
 import { buildApiUrl, fetchWithTimeout } from "../app/api/_lib/backend";
 import { journeysApi, type JourneyResponse } from "../app/api/_lib/journeys";
@@ -1134,7 +1134,7 @@ export function MsqdxGlassProjectAdminPanel({
                                     onToggle={toggleSection}
                                 >
                                     <Stack spacing={2}>
-                                        <TextField
+                                        <MsqdxFormField
                                             label={t("settingsProjects.companyContext.description") ?? "Project / company description"}
                                             value={companyDescription}
                                             onChange={(e) => setCompanyDescription(e.target.value)}
@@ -1144,9 +1144,8 @@ export function MsqdxGlassProjectAdminPanel({
                                             maxRows={6}
                                             size="small"
                                             fullWidth
-                                            variant="outlined"
                                         />
-                                        <TextField
+                                        <MsqdxFormField
                                             label={t("settingsProjects.companyContext.contextLabel") ?? "Company context"}
                                             value={companyContext}
                                             onChange={(e) => setCompanyContext(e.target.value)}
@@ -1156,7 +1155,6 @@ export function MsqdxGlassProjectAdminPanel({
                                             maxRows={10}
                                             size="small"
                                             fullWidth
-                                            variant="outlined"
                                         />
                                         {contextSaveError && (
                                             <MsqdxTypography variant="caption" sx={{ color: "error.main" }}>
@@ -1232,6 +1230,7 @@ export function MsqdxGlassProjectAdminPanel({
                                                         >
                                                             <input
                                                                 type="checkbox"
+                                                                className="msqdx-dashboard-list-checkbox"
                                                                 checked={selectedSuggestions.has(i)}
                                                                 onChange={() => toggleSuggestion(i)}
                                                                 disabled={creatingTgIds.has(i)}
@@ -1286,30 +1285,24 @@ export function MsqdxGlassProjectAdminPanel({
                                 >
                                     <Stack spacing={2}>
                                         <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1 }}>
-                                            <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
-                                                {t("settingsProjects.suggestPersonas.selectTargetGroup") ?? "Select target group"}
-                                            </MsqdxTypography>
-                                            <select
+                                            <MsqdxSelect
+                                                label={t("settingsProjects.suggestPersonas.selectTargetGroup") ?? "Select target group"}
                                                 value={selectedTgIdForPersonas ?? ""}
                                                 onChange={(e) => {
-                                                    setSelectedTgIdForPersonas(e.target.value || null);
+                                                    setSelectedTgIdForPersonas((e.target.value as string) || null);
                                                     setPersonaSuggestions([]);
                                                     setPersonaSuggestError(null);
                                                 }}
-                                                style={{
-                                                    minWidth: 200,
-                                                    padding: "6px 10px",
-                                                    borderRadius: 6,
-                                                    border: "1px solid var(--color-neutral, #ccc)",
-                                                }}
-                                            >
-                                                <option value="">—</option>
-                                                {projectTargetGroups.map((tg) => (
-                                                    <option key={tg.id} value={tg.id}>
-                                                        {tg.name || tg.segment || tg.id}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                                options={[
+                                                    { value: "", label: "—" },
+                                                    ...projectTargetGroups.map((tg) => ({
+                                                        value: tg.id,
+                                                        label: tg.name || tg.segment || tg.id,
+                                                    })),
+                                                ]}
+                                                size="small"
+                                                sx={{ minWidth: 200 }}
+                                            />
                                             <MsqdxButton
                                                 variant="outlined"
                                                 size="small"
@@ -1353,6 +1346,7 @@ export function MsqdxGlassProjectAdminPanel({
                                                         >
                                                             <input
                                                                 type="checkbox"
+                                                                className="msqdx-dashboard-list-checkbox"
                                                                 checked={selectedPersonaSuggestions.has(i)}
                                                                 onChange={() => togglePersonaSuggestion(i)}
                                                                 disabled={creatingPersonaIndices.has(i)}
@@ -1416,41 +1410,30 @@ export function MsqdxGlassProjectAdminPanel({
                                 >
                                     <Stack spacing={2}>
                                         <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1 }}>
-                                            <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
-                                                {t("settingsProjects.generateJourney.selectTargetGroup") ?? "Target group (optional)"}
-                                            </MsqdxTypography>
-                                            <select
+                                            <MsqdxSelect
+                                                label={t("settingsProjects.generateJourney.selectTargetGroup") ?? "Target group (optional)"}
                                                 value={selectedTgIdForJourney ?? ""}
                                                 onChange={(e) => {
-                                                    setSelectedTgIdForJourney(e.target.value || null);
+                                                    setSelectedTgIdForJourney((e.target.value as string) || null);
                                                     setGenerateJourneyError(null);
                                                 }}
-                                                style={{
-                                                    minWidth: 200,
-                                                    padding: "6px 10px",
-                                                    borderRadius: 6,
-                                                    border: "1px solid var(--color-neutral, #ccc)",
-                                                }}
-                                            >
-                                                <option value="">{t("settingsProjects.generateJourney.targetGroupOptional") ?? "— None —"}</option>
-                                                {projectTargetGroups.map((tg) => (
-                                                    <option key={tg.id} value={tg.id}>
-                                                        {tg.name || tg.segment || tg.id}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </Box>
-                                        <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1 }}>
-                                            <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
-                                                {t("settingsProjects.generateJourney.journeyType") ?? "Journey type"}
-                                            </MsqdxTypography>
-                                            <TextField
+                                                options={[
+                                                    { value: "", label: t("settingsProjects.generateJourney.targetGroupOptional") ?? "— None —" },
+                                                    ...projectTargetGroups.map((tg) => ({
+                                                        value: tg.id,
+                                                        label: tg.name || tg.segment || tg.id,
+                                                    })),
+                                                ]}
                                                 size="small"
+                                                sx={{ minWidth: 200 }}
+                                            />
+                                            <MsqdxFormField
+                                                label={t("settingsProjects.generateJourney.journeyType") ?? "Journey type"}
                                                 value={journeyType}
                                                 onChange={(e) => setJourneyType(e.target.value)}
                                                 placeholder="customer_journey"
+                                                size="small"
                                                 sx={{ minWidth: 200 }}
-                                                variant="outlined"
                                             />
                                         </Box>
                                         {generateJourneyError && (
