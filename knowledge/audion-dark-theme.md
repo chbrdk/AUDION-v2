@@ -22,6 +22,8 @@ Defined in `apps/web/styles/globals.css` under `[data-theme="dark"]`:
 - **Settings cards**: `.msqdx-glass-settings-card` – background #1a1a1a, border rgba(255,255,255,0.15)
 - **List items, stat cards, accordions**: existing dark overrides use rgba(255,255,255,0.03–0.1) or #1a1a1a
 
+- **Profile / Identity panel** (`.msqdx-glass-panel`): Card containers (Stack children) use background `#1a1a1a`; all text, labels, inputs, textareas, selects are forced to white/dark in `globals.css` so the Identity and other profile cards are fully dark with white fonts.
+
 ## Adding New Dark-Aware Components
 
 1. Prefer CSS variables: use `var(--color-primary-white)` or `var(--color-neutral)` for backgrounds so they follow the theme.

@@ -165,6 +165,60 @@ body:has(.msqdx-glass-admin-panel) {
   color: #ffffff;
 }
 
+/* Profile / Identity and all admin panel cards: dark background, white text */
+[data-theme="dark"] .msqdx-glass-panel .MuiStack-root > .MuiBox-root,
+[data-theme="dark"] .msqdx-glass-panel .MuiStack-root > div {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-panel .MuiDivider-root {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-panel p,
+[data-theme="dark"] .msqdx-glass-panel span,
+[data-theme="dark"] .msqdx-glass-panel label,
+[data-theme="dark"] .msqdx-glass-panel .MuiFormLabel-root,
+[data-theme="dark"] .msqdx-glass-panel .MuiInputLabel-root,
+[data-theme="dark"] .msqdx-glass-panel [class*="Typography"],
+[data-theme="dark"] .msqdx-glass-panel [class*="FormLabel"],
+[data-theme="dark"] .msqdx-glass-panel [class*="InputLabel"] {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .msqdx-glass-panel select,
+[data-theme="dark"] .msqdx-glass-panel [class*="MuiSelect-select"],
+[data-theme="dark"] .msqdx-glass-panel [role="combobox"] {
+  color: #ffffff !important;
+  background-color: #0f0f0f !important;
+}
+
+[data-theme="dark"] .msqdx-glass-panel input,
+[data-theme="dark"] .msqdx-glass-panel textarea,
+[data-theme="dark"] .msqdx-glass-panel [class*="MuiInputBase-input"],
+[data-theme="dark"] .msqdx-glass-panel [class*="MuiOutlinedInput-input"] {
+  color: #ffffff !important;
+  background-color: #0f0f0f !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-panel input::placeholder,
+[data-theme="dark"] .msqdx-glass-panel textarea::placeholder {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-panel [class*="MuiOutlinedInput-notchedOutline"],
+[data-theme="dark"] .msqdx-glass-panel fieldset {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-panel code {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+
 button {
   font: inherit;
 }
