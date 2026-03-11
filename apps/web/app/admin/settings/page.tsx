@@ -5,6 +5,11 @@ export default async function SettingsLandingPage() {
   const t = await getServerT();
   const cards = [
     {
+      title: t("settings.cards.profile.title"),
+      description: t("settings.cards.profile.description"),
+      href: "/admin/profile",
+    },
+    {
       title: t("settings.cards.projects.title"),
       description: t("settings.cards.projects.description"),
       href: "/admin/settings/projects",

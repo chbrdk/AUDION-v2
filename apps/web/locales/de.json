@@ -495,6 +495,10 @@
     "title": "Einstellungen",
     "subtitle": "Zentralisiere die KI‑Konfiguration. Prüfe Provider‑Status, Prompt‑Templates und Rollout‑Status neuer Funktionen.",
     "cards": {
+      "profile": {
+        "title": "Profil",
+        "description": "Dein Konto, Darstellung und API‑Tokens."
+      },
       "projects": {
         "title": "Projekte & Zugriff",
         "description": "Projekte anlegen, Ownership wechseln und Zugriffe verwalten."
