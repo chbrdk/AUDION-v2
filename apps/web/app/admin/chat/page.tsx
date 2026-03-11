@@ -977,7 +977,7 @@ function AdminChatPageContent() {
                 const next = {
                   ...prev,
                   responses: prev.responses.map((r) =>
-                    r.personaId === personaId ? { ...r, done: true, error: streamErr ?? undefined, content: r.content || streamErr ?? "" } : r
+                    r.personaId === personaId ? { ...r, done: true, error: streamErr ?? undefined, content: r.content || (streamErr ?? "") } : r
                   ),
                 };
                 targetGroupStreamingRoundRef.current = next;
