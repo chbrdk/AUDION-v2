@@ -2174,7 +2174,8 @@ function AdminChatPageContent() {
                   </Typography>
                 </Box>
               ) : (
-                <Stack spacing={3} sx={{ width: "100%", maxWidth: 1200 }}>
+                <Box sx={{ pt: 2.5, pl: 2.5 }}>
+                  <Stack spacing={3} sx={{ width: "100%", maxWidth: 1200 }}>
                   {targetGroupRounds.map((round, roundIndex) => (
                     <Box key={roundIndex}>
                       <Stack spacing={0.5} alignItems="flex-end" sx={{ mb: 1 }}>
@@ -2204,6 +2205,7 @@ function AdminChatPageContent() {
                           gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)", lg: "repeat(4, 1fr)" },
                           gap: 1.5,
                           overflowX: "auto",
+                          overflowY: "visible",
                           alignItems: "start"
                         }}
                       >
@@ -2279,6 +2281,7 @@ function AdminChatPageContent() {
                           gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)", lg: "repeat(4, 1fr)" },
                           gap: 1.5,
                           overflowX: "auto",
+                          overflowY: "visible",
                           alignItems: "start"
                         }}
                       >
@@ -2341,7 +2344,8 @@ function AdminChatPageContent() {
                       </Box>
                     </Box>
                   )}
-                </Stack>
+                  </Stack>
+                </Box>
               )
             ) : videoEnabled && tavusSessionConfig ? (
               <Box sx={{ width: "100%", height: "100%", minHeight: 0, display: "flex", flexDirection: "column", flex: 1 }}>
