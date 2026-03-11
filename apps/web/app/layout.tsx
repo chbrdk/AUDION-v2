@@ -35,10 +35,18 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html lang={locale} suppressHydrationWarning>
       <head>
+        {/* Material Symbols: preconnect so font is ready before first paint; block display avoids showing icon name as text */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
+          rel="preload"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,200..700,0..1,-50..200&display=block"
+          as="style"
+        />
+        <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,200..700,0..1,-50..200&display=optional"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,200..700,0..1,-50..200&display=block"
         />
         <Script
           src={`${basePath}/suppress-extension-errors.js`}
