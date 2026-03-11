@@ -755,6 +755,7 @@ export default function JourneyEditorPage() {
     <div className="msqdx-glass-panel msqdx-glass-journey-editor-page">
       <div className="msqdx-glass-detail">
         <MsqdxCard
+          className="msqdx-glass-journey-editor-header"
           variant="flat"
           borderRadius="md"
           component="header"
@@ -1061,7 +1062,7 @@ export default function JourneyEditorPage() {
                   />
                 ))}
                 {phaseFormExpanded ? (
-                  <MsqdxCard variant="flat" borderRadius="button" sx={{ minWidth: 380, p: 2, borderColor: THEME_ACCENT.borderColor }}>
+                  <MsqdxCard className="msqdx-glass-journey-timeline-card" variant="flat" borderRadius="button" sx={{ minWidth: 380, p: 2, borderColor: THEME_ACCENT.borderColor }}>
                     <Box component="form" onSubmit={handleSubmitPhase} aria-label="Create new phase" sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                       <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
                         <Box sx={{ width: 32, height: 32, borderRadius: "full", bgcolor: "primary.main", color: "primary.contrastText", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.875rem", fontWeight: 700 }}>
@@ -1122,6 +1123,7 @@ export default function JourneyEditorPage() {
                   </MsqdxCard>
                 ) : (
                   <MsqdxCard
+                    className="msqdx-glass-journey-timeline-card"
                     variant="flat"
                     sx={{
                       minWidth: 380,

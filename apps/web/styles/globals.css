@@ -1634,6 +1634,13 @@ main {
   color: #ffffff;
 }
 
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-journey-editor-header,
+[data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-journey-editor-header > div {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
 [data-theme="dark"] .msqdx-glass-journey-timeline-viewport {
   background-color: #0f0f0f !important;
 }
@@ -1647,6 +1654,11 @@ main {
   background: rgba(255, 255, 255, 0.4) !important;
 }
 
+/* All cards inside timeline viewport (phase cards, form card, add-phase card) */
+[data-theme="dark"] .msqdx-glass-journey-timeline-viewport .msqdx-glass-journey-phase-card,
+[data-theme="dark"] .msqdx-glass-journey-timeline-viewport .msqdx-glass-journey-timeline-card,
+[data-theme="dark"] .msqdx-glass-journey-timeline-viewport > [data-phase-index],
+[data-theme="dark"] .msqdx-glass-journey-timeline-viewport [data-phase-index] > *,
 [data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail .MuiCard-root,
 [data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail [class*="MuiPaper-root"],
 [data-theme="dark"] .msqdx-glass-journey-editor-page .msqdx-glass-detail .msqdx-card,

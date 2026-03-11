@@ -358,7 +358,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
         aria-label={t("journeys.editor.phaseCardAria", { number: index + 1, name: formData.name })}
         sx={{ minWidth: 380 }}
       >
-        <MsqdxCard variant="flat" borderRadius="button" sx={{ borderColor: THEME_ACCENT.borderColor }}>
+        <MsqdxCard className="msqdx-glass-journey-phase-card" variant="flat" borderRadius="button" sx={{ borderColor: THEME_ACCENT.borderColor }}>
           <Box sx={{ display: "flex", flexDirection: "column", gap: "8px", alignItems: "stretch" }}>
             <Box sx={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
               <Box
@@ -634,6 +634,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
       sx={{ minWidth: 380 }}
     >
       <MsqdxCard
+        className="msqdx-glass-journey-phase-card"
         variant="flat"
         borderRadius="button"
         sx={{
