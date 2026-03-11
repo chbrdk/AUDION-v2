@@ -124,8 +124,9 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
   };
 
   return (
-    <Box sx={{ width: "100%" }}>
+    <Box sx={{ width: "100%" }} className="msqdx-glass-target-groups-overview">
       <Box
+        className="msqdx-glass-target-groups-grid"
         sx={{
           display: "grid",
           gridTemplateColumns: {
