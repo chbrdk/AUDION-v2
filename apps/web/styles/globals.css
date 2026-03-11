@@ -143,6 +143,32 @@ body:has(.msqdx-glass-admin-panel) {
   color: #ffffff;
 }
 
+/* Teaser/link cards across all admin pages (Projects, Personas, Target Groups, etc.) */
+[data-theme="dark"] .msqdx-glass-admin-content a > *:first-child,
+[data-theme="dark"] .msqdx-glass-admin-content a > div,
+[data-theme="dark"] .msqdx-glass-admin-content a > .MuiBox-root {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-admin-content a {
+  color: inherit !important;
+}
+
+[data-theme="dark"] .msqdx-glass-admin-content a .MuiTypography-root,
+[data-theme="dark"] .msqdx-glass-admin-content a span,
+[data-theme="dark"] .msqdx-glass-admin-content a .material-symbols-outlined,
+[data-theme="dark"] .msqdx-glass-admin-content a [class*="material-symbol"],
+[data-theme="dark"] .msqdx-glass-admin-content a svg {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+}
+
+[data-theme="dark"] .msqdx-glass-admin-content a .MuiTypography-caption {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
 [data-theme="dark"] .msqdx-glass-settings-grid {
   background-color: transparent !important;
 }

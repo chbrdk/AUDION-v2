@@ -30,7 +30,8 @@
 }
 
 [data-theme="dark"] .msqdx-glass-admin-header-bar {
-  background-color: #0f0f0f !important;
+  /* Keep transparent so the brand-color corner (from MsqdxAppLayout) remains visible */
+  background-color: transparent !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   border-bottom-color: var(--color-theme-accent);
   color: #ffffff !important;
@@ -53,7 +54,8 @@
 }
 
 [data-theme="dark"] .msqdx-glass-admin-header-corner {
-  /* No background-color in dark theme */
+  /* Keep brand-color corner visible in dark theme */
+  background-color: var(--color-theme-accent) !important;
 }
 
 .msqdx-glass-admin-nav,
