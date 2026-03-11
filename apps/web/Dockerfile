@@ -41,10 +41,15 @@ FROM deps AS builder
 ARG RUN_WEB_BUILD=false
 ARG NODE_ENV=production
 ENV NODE_ENV=${NODE_ENV}
+# Ensure design system and node_modules from deps are present (avoids cache/context quirks)
+COPY --from=deps /msqdx-design-system /msqdx-design-system
+COPY --from=deps /app/node_modules /app/node_modules
 COPY packages/types packages/types
 COPY apps/web apps/web
 RUN npm run build --workspace packages/types
 RUN mkdir -p apps/web/.next
+# Verify @msqdx/react is resolvable before build (fail fast with clear error)
+RUN node -e "try { require.resolve('@msqdx/react'); console.log('@msqdx/react OK'); } catch (e) { console.error('@msqdx/react not found - design system may be missing'); process.exit(1); }"
 RUN --mount=type=cache,target=/tmp/.next-cache \
     sh -c 'if [ "${RUN_WEB_BUILD}" = "true" ]; then CI=true FORCE_COLOR=0 npm run build:web; else echo "Skipping Next.js build"; fi'
 

@@ -210,6 +210,8 @@ NEO4J_dbms_security_procedures_unrestricted=apoc.*
   - `NODE_IMAGE=node:22.11.0-alpine`
   - `RUN_WEB_BUILD=true`
 
+**Design-System-Abhängigkeit:** Der Web-Build benötigt `@msqdx/react` aus dem externen Repo `msqdx-design-system`. Das Dockerfile klont es im `deps`-Stage nach `/msqdx-design-system` und kopiert es im `builder`-Stage explizit. Bei "Module not found: @msqdx/react" Build-Cache leeren und erneut bauen (siehe Troubleshooting 2a).
+
 **Environment Variables:**
 ```bash
 # Public URLs (Coolify generiert automatisch)
@@ -733,6 +735,16 @@ docker exec {postgres-container} pg_dump -U persona persona > backup.sql
 - Build Logs in Coolify prüfen
 - Build Context korrekt setzen
 - Build Args prüfen
+
+**2a. Web Build: "Module not found: Can't resolve '@msqdx/react'"**
+
+**Ursache:** Die Web-App nutzt `@msqdx/react` über `file:../../../msqdx-design-system/packages/react`. Im Docker-Build wird das Repo per `git clone` nach `/msqdx-design-system` geholt; fehlt es dort oder wird der Builder-Stage nicht zuverlässig übernommen, schlägt der Next-Build fehl.
+
+**Lösung:**
+- Im Dockerfile wird in der Builder-Stage explizit `COPY --from=deps /msqdx-design-system` und `COPY --from=deps /app/node_modules` ausgeführt; Build ohne Cache testen.
+- In Coolify: **Build-Cache leeren** und neu deployen (z. B. "Clear build cache" / "Rebuild without cache"), falls eine alte Layer-Cache-Schicht ohne Design-System verwendet wird.
+- Sicherstellen, dass der `deps`-Stage das Clone-Step ausführt (Git im Image, Netzwerk-Zugriff auf `github.com/chbrdk/msqdx-design-system`).
+- Siehe auch: `apps/web/Dockerfile` (Clone, explizite COPY im Builder, Vorprüfung mit `require.resolve('@msqdx/react')`).
 
 **3. Volume Mount Issues**
 
