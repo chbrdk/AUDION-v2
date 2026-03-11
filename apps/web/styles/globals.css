@@ -457,6 +457,18 @@ main {
   }
 }
 
+/* Target group chat cards: light entrance (uses --msqdx-transition) */
+@keyframes msqdxCardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--msqdx-spacing-xs, 8px));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .msqdx-glass-field {
   display: flex;
   flex-direction: column;

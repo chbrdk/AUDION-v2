@@ -234,6 +234,7 @@ type TargetGroupRoundResponse = {
   personaId: string;
   personaName: string;
   content: string;
+  image_url?: string | null;
   sources?: Array<{ chunk_id: string; document_id: string; title: string; confidence: number; excerpt: string }>;
 };
 
@@ -247,6 +248,7 @@ type StreamingResponseSlot = {
   personaName: string;
   content: string;
   done: boolean;
+  image_url?: string | null;
   sources?: TargetGroupRoundResponse["sources"];
   error?: string;
 };
@@ -806,6 +808,7 @@ function AdminChatPageContent() {
       personaName: p.name,
       content: "",
       done: false,
+      image_url: p.image_url ?? null,
     }));
     const initialRound = { userMessage: question, responses: initialSlots };
     setTargetGroupStreamingRound(initialRound);
@@ -1016,6 +1019,7 @@ function AdminChatPageContent() {
           personaId: r.personaId,
           personaName: r.personaName,
           content: r.error ? (r.content || r.error) : r.content,
+          image_url: r.image_url ?? null,
           sources: r.sources ?? [],
         })),
       };
@@ -2199,26 +2203,48 @@ function AdminChatPageContent() {
                           display: "grid",
                           gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)", lg: "repeat(4, 1fr)" },
                           gap: 1.5,
-                          overflowX: "auto"
+                          overflowX: "auto",
+                          alignItems: "start"
                         }}
                       >
-                        {round.responses.map((r) => (
+                        {round.responses.map((r, cardIndex) => (
                           <Paper
                             key={r.personaId}
                             variant="outlined"
                             sx={{
+                              position: "relative",
                               p: 1.5,
                               borderColor: "var(--color-secondary-dx-pink)",
                               borderWidth: 1,
-                              borderRadius: 2
+                              borderRadius: 2,
+                              animation: "msqdxCardEnter var(--msqdx-transition) ease-out both",
+                              animationDelay: `${cardIndex * 60}ms`
                             }}
                           >
-                            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
-                              {r.personaName}
-                            </Typography>
-                            <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
-                              {r.content}
-                            </Typography>
+                            {r.image_url && (
+                              <Avatar
+                                src={safeAvatarSrc(r.image_url, r.personaId)}
+                                sx={{
+                                  position: "absolute",
+                                  left: 0,
+                                  top: 0,
+                                  transform: "translate(-50%, -50%)",
+                                  width: 40,
+                                  height: 40,
+                                  border: "2px solid",
+                                  borderColor: "var(--color-secondary-dx-pink)",
+                                  bgcolor: "background.paper"
+                                }}
+                              />
+                            )}
+                            <Box sx={{ pt: r.image_url ? 2.5 : 0, pl: r.image_url ? 2.5 : 0 }}>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                                {r.personaName}
+                              </Typography>
+                              <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
+                                {r.content}
+                              </Typography>
+                            </Box>
                           </Paper>
                         ))}
                       </Box>
@@ -2252,42 +2278,64 @@ function AdminChatPageContent() {
                           display: "grid",
                           gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)", lg: "repeat(4, 1fr)" },
                           gap: 1.5,
-                          overflowX: "auto"
+                          overflowX: "auto",
+                          alignItems: "start"
                         }}
                       >
-                        {targetGroupStreamingRound.responses.map((slot) => (
+                        {targetGroupStreamingRound.responses.map((slot, cardIndex) => (
                           <Paper
                             key={slot.personaId}
                             variant="outlined"
                             sx={{
+                              position: "relative",
                               p: 1.5,
                               borderColor: slot.error ? "error.main" : "var(--color-secondary-dx-pink)",
                               borderWidth: 1,
-                              borderRadius: 2
+                              borderRadius: 2,
+                              animation: "msqdxCardEnter var(--msqdx-transition) ease-out both",
+                              animationDelay: `${cardIndex * 60}ms`
                             }}
                           >
-                            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
-                              {slot.personaName}
-                            </Typography>
-                            {slot.error ? (
-                              <Typography variant="body2" sx={{ color: "error.main", whiteSpace: "pre-wrap" }}>
-                                {slot.content || slot.error}
-                              </Typography>
-                            ) : (
-                              <>
-                                <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
-                                  {slot.content}
-                                </Typography>
-                                {!slot.done && (
-                                  <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.5, mt: 0.5 }}>
-                                    <CircularProgress size={14} />
-                                    <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                                      …
-                                    </Typography>
-                                  </Box>
-                                )}
-                              </>
+                            {slot.image_url && (
+                              <Avatar
+                                src={safeAvatarSrc(slot.image_url, slot.personaId)}
+                                sx={{
+                                  position: "absolute",
+                                  left: 0,
+                                  top: 0,
+                                  transform: "translate(-50%, -50%)",
+                                  width: 40,
+                                  height: 40,
+                                  border: "2px solid",
+                                  borderColor: slot.error ? "error.main" : "var(--color-secondary-dx-pink)",
+                                  bgcolor: "background.paper"
+                                }}
+                              />
                             )}
+                            <Box sx={{ pt: slot.image_url ? 2.5 : 0, pl: slot.image_url ? 2.5 : 0 }}>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                                {slot.personaName}
+                              </Typography>
+                              {slot.error ? (
+                                <Typography variant="body2" sx={{ color: "error.main", whiteSpace: "pre-wrap" }}>
+                                  {slot.content || slot.error}
+                                </Typography>
+                              ) : (
+                                <>
+                                  <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
+                                    {slot.content}
+                                  </Typography>
+                                  {!slot.done && (
+                                    <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.5, mt: 0.5 }}>
+                                      <CircularProgress size={14} />
+                                      <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                                        …
+                                      </Typography>
+                                    </Box>
+                                  )}
+                                </>
+                              )}
+                            </Box>
                           </Paper>
                         ))}
                       </Box>
