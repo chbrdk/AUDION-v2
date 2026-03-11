@@ -152,6 +152,8 @@ export function MsqdxGlassProjectAdminPanel({
     const [projectJourneys, setProjectJourneys] = useState<JourneyResponse[]>([]);
     const [projectJourneysLoading, setProjectJourneysLoading] = useState(false);
     const [projectJourneysError, setProjectJourneysError] = useState<string | null>(null);
+    const [showAllProjectJourneys, setShowAllProjectJourneys] = useState(false);
+    const PROJECT_JOURNEYS_PREVIEW_LIMIT = 3;
 
     // Prompt templates for this project (full list for cards)
     const [promptTemplates, setPromptTemplates] = useState<AiTemplateSummary[]>([]);
@@ -518,6 +520,11 @@ export function MsqdxGlassProjectAdminPanel({
             cancelled = true;
         };
     }, [selectedId, expandedSections, generateJourneySuccess]);
+
+    // Reset "show all journeys" when switching project
+    useEffect(() => {
+        setShowAllProjectJourneys(false);
+    }, [selectedId]);
 
     const handleSuggestPersonas = useCallback(async () => {
         if (!selectedId || !selectedTgIdForPersonas) return;
@@ -1432,14 +1439,15 @@ export function MsqdxGlassProjectAdminPanel({
                                             </MsqdxTypography>
                                         )}
                                         {!projectJourneysLoading && projectJourneys.length > 0 && (
+                                            <>
                                             <Box
                                                 sx={{
                                                     display: "grid",
-                                                    gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" },
+                                                    gridTemplateColumns: "1fr",
                                                     gap: 1.5,
                                                 }}
                                             >
-                                                {projectJourneys.map((journey) => (
+                                                {(showAllProjectJourneys ? projectJourneys : projectJourneys.slice(0, PROJECT_JOURNEYS_PREVIEW_LIMIT)).map((journey) => (
                                                     <MsqdxCard
                                                         key={journey.id}
                                                         clickable
@@ -1481,6 +1489,19 @@ export function MsqdxGlassProjectAdminPanel({
                                                     </MsqdxCard>
                                                 ))}
                                             </Box>
+                                            {projectJourneys.length > PROJECT_JOURNEYS_PREVIEW_LIMIT && (
+                                                <MsqdxButton
+                                                    variant="text"
+                                                    size="small"
+                                                    onClick={() => setShowAllProjectJourneys((prev) => !prev)}
+                                                    sx={{ mt: 1, alignSelf: "flex-start" }}
+                                                >
+                                                    {showAllProjectJourneys
+                                                        ? (t("settingsProjects.projectJourneys.showLess") ?? "Show less")
+                                                        : (t("settingsProjects.projectJourneys.showAll", { count: projectJourneys.length }) ?? `Show all (${projectJourneys.length})`)}
+                                                </MsqdxButton>
+                                            )}
+                                            </>
                                         )}
                                         <MsqdxButton
                                             variant="outlined"

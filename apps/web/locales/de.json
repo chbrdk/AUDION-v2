@@ -619,7 +619,9 @@
       "title": "Journeys in diesem Projekt",
       "empty": "Noch keine Journeys. Oben eine anlegen oder zu Journeys wechseln.",
       "view": "Journey anzeigen",
-      "allJourneys": "Alle Journeys"
+      "allJourneys": "Alle Journeys",
+      "showAll": "Alle anzeigen ({count})",
+      "showLess": "Weniger anzeigen"
     },
     "overview": {
       "title": "Übersicht",

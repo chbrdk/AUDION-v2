@@ -619,7 +619,9 @@
       "title": "Journeys in this project",
       "empty": "No journeys yet. Create one above or go to Journeys.",
       "view": "View journey",
-      "allJourneys": "All journeys"
+      "allJourneys": "All journeys",
+      "showAll": "Show all ({count})",
+      "showLess": "Show less"
     },
     "overview": {
       "title": "Overview",
