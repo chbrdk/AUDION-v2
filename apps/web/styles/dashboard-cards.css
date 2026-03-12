@@ -185,6 +185,82 @@
   background-color: var(--color-theme-accent) !important;
 }
 
+/* Dark mode: force black text and black buttons in action cards (override .msqdx-glass-panel white text – use .msqdx-glass-panel for higher specificity) */
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiStack-root > .MuiBox-root,
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiStack-root > div {
+  color: #000 !important;
+}
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards p,
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards span,
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards label,
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiFormLabel-root,
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiInputLabel-root,
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards [class*="Typography"],
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards [class*="FormLabel"],
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards [class*="InputLabel"],
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiTypography-root,
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .msqdx-typography,
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards a {
+  color: #000 !important;
+}
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiTypography-caption,
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards [class*="caption"] {
+  color: rgba(0, 0, 0, 0.85) !important;
+}
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .material-symbols-outlined,
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards [class*="material-symbol"],
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .msqdx-material-symbol,
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiSvgIcon-root,
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards svg {
+  color: #000 !important;
+  fill: #000 !important;
+}
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards select,
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards [class*="MuiSelect-select"],
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards [role="combobox"],
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards input,
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards textarea,
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards [class*="MuiInputBase-input"],
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards [class*="MuiOutlinedInput-input"] {
+  color: #000 !important;
+}
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiButton-root,
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiButtonBase-root.MuiButton-root,
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards button {
+  color: #000 !important;
+}
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiButton-outlined,
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiButtonBase-root.MuiButton-outlined {
+  color: #000 !important;
+  border-color: #000 !important;
+}
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiButton-outlined:hover:not(:disabled),
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiButtonBase-root.MuiButton-outlined:hover:not(:disabled) {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+  border-color: #000 !important;
+  color: #000 !important;
+}
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiButton-contained {
+  background-color: #000 !important;
+  color: #fff !important;
+  border-color: #000 !important;
+}
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiButton-contained:hover:not(:disabled) {
+  background-color: rgba(0, 0, 0, 0.85) !important;
+  color: #fff !important;
+}
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .summary-button,
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards [id$="-summary"],
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .summary-button *,
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards [id$="-summary"] * {
+  color: #000 !important;
+}
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .summary-button > div:last-of-type,
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards [id$="-summary"] > div:last-of-type {
+  border-color: #000 !important;
+  color: #000 !important;
+}
+
 /* Cards: same white background as MsqdxCard (persona list). Match persona list cards exactly. */
 .msqdx-glass-dashboard-grid .msqdx-dashboard-card,
 .msqdx-glass-dashboard-grid [role="region"][aria-label="Accordion"] {
