@@ -1462,6 +1462,7 @@ export function MsqdxGlassProjectAdminPanel({
                                             size="small"
                                             onClick={() => handleGenerateJourney()}
                                             disabled={generateJourneyLoading}
+                                            sx={{ backgroundColor: "#000", color: "#fff", "&:hover": { backgroundColor: "rgba(0,0,0,0.85)", color: "#fff" } }}
                                         >
                                             {generateJourneyLoading
                                                 ? (t("settingsProjects.generateJourney.loading") ?? "Generating…")

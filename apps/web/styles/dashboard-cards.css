@@ -130,6 +130,21 @@
   border-color: #000 !important;
   color: #000 !important;
 }
+/* Selects in action card panels: black border */
+#suggest-target-groups-panel .MuiOutlinedInput-root fieldset,
+#suggest-personas-panel .MuiOutlinedInput-root fieldset,
+#generate-journey-panel .MuiOutlinedInput-root fieldset {
+  border-color: #000 !important;
+  border-width: 1px !important;
+}
+#suggest-target-groups-panel .MuiOutlinedInput-root:hover fieldset,
+#suggest-target-groups-panel .MuiOutlinedInput-root.Mui-focused fieldset,
+#suggest-personas-panel .MuiOutlinedInput-root:hover fieldset,
+#suggest-personas-panel .MuiOutlinedInput-root.Mui-focused fieldset,
+#generate-journey-panel .MuiOutlinedInput-root:hover fieldset,
+#generate-journey-panel .MuiOutlinedInput-root.Mui-focused fieldset {
+  border-color: #000 !important;
+}
 /* Fallback: any outlined button inside action card panels */
 .msqdx-dashboard-action-cards [id$="-panel"] button.MuiButton-outlined,
 .msqdx-dashboard-action-cards [id$="-panel"] .MuiButton-outlined {
@@ -186,11 +201,27 @@
 .msqdx-dashboard-action-cards [class*="MuiSelect-select"],
 .msqdx-dashboard-action-cards [role="combobox"] {
   color: #000 !important;
-  border-color: rgba(0, 0, 0, 0.4) !important;
+  border-color: #000 !important;
 }
 .msqdx-dashboard-action-cards .MuiOutlinedInput-notchedOutline,
 .msqdx-dashboard-action-cards fieldset {
-  border-color: rgba(0, 0, 0, 0.4) !important;
+  border-color: #000 !important;
+}
+/* Select/input root: black border default and on focus/hover */
+.msqdx-dashboard-action-cards .MuiOutlinedInput-root,
+.msqdx-dashboard-action-cards .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline,
+.msqdx-dashboard-action-cards .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline,
+.msqdx-dashboard-action-cards .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline {
+  border-color: #000 !important;
+}
+.msqdx-dashboard-action-cards .MuiOutlinedInput-root fieldset {
+  border-color: #000 !important;
+  border-width: 1px !important;
+}
+.msqdx-dashboard-action-cards .MuiOutlinedInput-root:hover fieldset,
+.msqdx-dashboard-action-cards .MuiOutlinedInput-root.Mui-focused fieldset {
+  border-color: #000 !important;
+  border-width: 1px !important;
 }
 /* Select dropdown icon (arrow_drop_down) black */
 .msqdx-dashboard-action-cards .MuiSelect-icon,
