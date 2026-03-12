@@ -49,18 +49,50 @@
 }
 .msqdx-dashboard-action-cards .material-symbols-outlined,
 .msqdx-dashboard-action-cards [class*="material-symbol"],
+.msqdx-dashboard-action-cards .msqdx-material-symbol,
 .msqdx-dashboard-action-cards svg {
   color: #000 !important;
   fill: #000 !important;
 }
-/* Outline buttons: black border and text */
+
+/* Accordion summary (card header): title + icon + expand chevron – all black */
+.msqdx-dashboard-action-cards .summary-button,
+.msqdx-dashboard-action-cards [id$="-summary"],
+.msqdx-dashboard-action-cards .summary-button *,
+.msqdx-dashboard-action-cards [id$="-summary"] * {
+  color: #000 !important;
+}
+.msqdx-dashboard-action-cards .summary-button .msqdx-material-symbol,
+.msqdx-dashboard-action-cards [id$="-summary"] .msqdx-material-symbol,
+.msqdx-dashboard-action-cards .summary-button svg,
+.msqdx-dashboard-action-cards [id$="-summary"] svg {
+  color: #000 !important;
+  fill: #000 !important;
+}
+/* Expand icon wrapper (expand_more) – black border and icon */
+.msqdx-dashboard-action-cards .summary-button > div:last-of-type,
+.msqdx-dashboard-action-cards [id$="-summary"] > div:last-of-type {
+  color: #000 !important;
+  border-color: #000 !important;
+}
+.msqdx-dashboard-action-cards .summary-button > div:last-of-type .msqdx-material-symbol,
+.msqdx-dashboard-action-cards .summary-button > div:last-of-type svg,
+.msqdx-dashboard-action-cards [id$="-summary"] > div:last-of-type .msqdx-material-symbol,
+.msqdx-dashboard-action-cards [id$="-summary"] > div:last-of-type svg {
+  color: #000 !important;
+  fill: #000 !important;
+}
+
+/* Outline buttons (e.g. "Generate suggestions"): black border and text */
 .msqdx-dashboard-action-cards .MuiButton-outlined,
-.msqdx-dashboard-action-cards button[class*="outlined"] {
+.msqdx-dashboard-action-cards .MuiButtonBase-root.MuiButton-outlined,
+.msqdx-dashboard-action-cards button.MuiButton-outlined {
   color: #000 !important;
   border-color: #000 !important;
 }
 .msqdx-dashboard-action-cards .MuiButton-outlined:hover:not(:disabled),
-.msqdx-dashboard-action-cards button[class*="outlined"]:hover:not(:disabled) {
+.msqdx-dashboard-action-cards .MuiButtonBase-root.MuiButton-outlined:hover:not(:disabled),
+.msqdx-dashboard-action-cards button.MuiButton-outlined:hover:not(:disabled) {
   background-color: rgba(0, 0, 0, 0.08) !important;
   border-color: #000 !important;
   color: #000 !important;
@@ -75,18 +107,51 @@
   background-color: rgba(0, 0, 0, 0.85) !important;
   color: #fff !important;
 }
+/* Panel content: brand background (transparent so card shows through), no extra background on inner rows */
+.msqdx-dashboard-action-cards [id$="-panel"],
+.msqdx-dashboard-action-cards [id$="-panel"] .MuiBox-root,
+.msqdx-dashboard-action-cards [id$="-panel"] .MuiStack-root {
+  background-color: transparent !important;
+}
+
+/* Labels in action cards (SELECT TARGET GROUP, JOURNEY TYPE, etc.): black */
+.msqdx-dashboard-action-cards .MuiInputLabel-root,
+.msqdx-dashboard-action-cards .MuiFormLabel-root,
+.msqdx-dashboard-action-cards .MuiInputLabel-root.MuiInputLabel-shrink,
+.msqdx-dashboard-action-cards label {
+  color: #000 !important;
+}
+.msqdx-dashboard-action-cards .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline legend span,
+.msqdx-dashboard-action-cards fieldset legend span {
+  color: #000 !important;
+}
+
 /* Select/input in action cards: black text, visible border */
 .msqdx-dashboard-action-cards input,
 .msqdx-dashboard-action-cards textarea,
 .msqdx-dashboard-action-cards select,
 .msqdx-dashboard-action-cards [class*="MuiInputBase-input"],
-.msqdx-dashboard-action-cards [class*="MuiSelect-select"] {
+.msqdx-dashboard-action-cards [class*="MuiSelect-select"],
+.msqdx-dashboard-action-cards [role="combobox"] {
   color: #000 !important;
   border-color: rgba(0, 0, 0, 0.4) !important;
 }
 .msqdx-dashboard-action-cards .MuiOutlinedInput-notchedOutline,
 .msqdx-dashboard-action-cards fieldset {
   border-color: rgba(0, 0, 0, 0.4) !important;
+}
+/* Select dropdown icon (arrow_drop_down) black */
+.msqdx-dashboard-action-cards .MuiSelect-icon,
+.msqdx-dashboard-action-cards [class*="MuiSelect-select"] + svg,
+.msqdx-dashboard-action-cards .MuiSvgIcon-root {
+  color: #000 !important;
+  fill: #000 !important;
+}
+/* Input/select wrappers: transparent background so brand color shows */
+.msqdx-dashboard-action-cards .MuiOutlinedInput-root,
+.msqdx-dashboard-action-cards .MuiInputBase-root,
+.msqdx-dashboard-action-cards .MuiFormControl-root {
+  background-color: transparent !important;
 }
 .msqdx-dashboard-action-cards .msqdx-glass-dashboard-card-header,
 .msqdx-dashboard-action-cards .msqdx-glass-dashboard-card-icon,
