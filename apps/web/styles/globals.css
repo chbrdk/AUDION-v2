@@ -23,7 +23,7 @@
   color-scheme: light;
   font-family: var(--font-noto-sans-jp), 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', system-ui,
     -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background-color: var(--color-theme-accent, var(--audion-light-html-background-color, var(--color-neutral)));
+  background-color: var(--audion-light-html-background-color, var(--color-neutral));
   color: #0f172a;
   --color-primary-white: #fff;
   --color-secondary-dx-yellow: #fef14d;
@@ -52,7 +52,7 @@
 
 [data-theme="dark"] {
   color-scheme: dark;
-  background-color: var(--color-theme-accent, var(--color-neutral));
+  background-color: var(--color-neutral);
   color: #ffffff;
   --audion-light-html-background-color: #0f0f0f;
   --color-primary-white: #1a1a1a;
@@ -82,14 +82,13 @@
 
 html {
   height: 100%;
-  background: var(--color-theme-accent, var(--audion-light-html-background-color, #0f172a)) !important;
-  background-color: var(--color-theme-accent, var(--audion-light-html-background-color, #0f172a));
+  background: var(--audion-light-html-background-color, #0f172a) !important;
+  background-color: var(--audion-light-html-background-color, #0f172a);
   transition: background-color 0.3s ease;
 }
 
 [data-theme="dark"] html {
-  background-color: var(--color-theme-accent, #0f0f0f);
-  background: var(--color-theme-accent, #0f0f0f) !important;
+  background-color: #0f0f0f;
 }
 
 body {
@@ -100,7 +99,7 @@ body {
   flex-direction: column;
   font-family: var(--font-noto-sans-jp), 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', system-ui,
     -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background-color: var(--color-theme-accent, var(--audion-light-html-background-color, #0f172a)) !important;
+  background-color: var(--audion-light-html-background-color, #0f172a) !important;
   color: #0f172a;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
@@ -113,7 +112,7 @@ body:has(.msqdx-glass-admin-panel) {
 }
 
 [data-theme="dark"] body {
-  background-color: var(--color-theme-accent, #0f0f0f) !important;
+  background-color: #0f0f0f !important;
   color: #ffffff;
 }
 
@@ -122,7 +121,7 @@ body:has(.msqdx-glass-admin-panel) {
 [data-theme="dark"] .msqdx-glass-panel,
 [data-theme="dark"] .msqdx-glass-detail,
 [data-theme="dark"] .msqdx-glass-admin-page {
-  background-color: var(--color-theme-accent, #0f0f0f) !important;
+  background-color: #0f0f0f !important;
 }
 
 [data-theme="dark"] .msqdx-glass-panel,
