@@ -83,19 +83,38 @@
   fill: #000 !important;
 }
 
-/* Outline buttons (e.g. "Generate suggestions"): black border and text */
+/* All outline buttons in action cards: default black outline + black text (override MUI primary) */
 .msqdx-dashboard-action-cards .MuiButton-outlined,
 .msqdx-dashboard-action-cards .MuiButtonBase-root.MuiButton-outlined,
-.msqdx-dashboard-action-cards button.MuiButton-outlined {
+.msqdx-dashboard-action-cards button.MuiButton-outlined,
+.msqdx-dashboard-action-cards .MuiButton-outlinedPrimary,
+.msqdx-dashboard-action-cards .MuiButton-colorPrimary.MuiButton-outlined,
+.msqdx-dashboard-action-cards .MuiButton-root.MuiButton-outlined {
   color: #000 !important;
+  border: 1px solid #000 !important;
   border-color: #000 !important;
+  background-color: transparent !important;
 }
 .msqdx-dashboard-action-cards .MuiButton-outlined:hover:not(:disabled),
 .msqdx-dashboard-action-cards .MuiButtonBase-root.MuiButton-outlined:hover:not(:disabled),
-.msqdx-dashboard-action-cards button.MuiButton-outlined:hover:not(:disabled) {
+.msqdx-dashboard-action-cards button.MuiButton-outlined:hover:not(:disabled),
+.msqdx-dashboard-action-cards .MuiButton-outlinedPrimary:hover:not(:disabled) {
   background-color: rgba(0, 0, 0, 0.08) !important;
   border-color: #000 !important;
   color: #000 !important;
+}
+.msqdx-dashboard-action-cards .MuiButton-outlined.Mui-disabled,
+.msqdx-dashboard-action-cards .MuiButton-outlined:disabled {
+  border-color: rgba(0, 0, 0, 0.26) !important;
+  color: rgba(0, 0, 0, 0.26) !important;
+}
+/* Fallback: any outlined button inside action card panels */
+.msqdx-dashboard-action-cards [id$="-panel"] button.MuiButton-outlined,
+.msqdx-dashboard-action-cards [id$="-panel"] .MuiButton-outlined {
+  color: #000 !important;
+  border: 1px solid #000 !important;
+  border-color: #000 !important;
+  background-color: transparent !important;
 }
 /* Contained buttons: keep accent or darker for contrast; ensure text visible */
 .msqdx-dashboard-action-cards .MuiButton-contained {
@@ -230,9 +249,13 @@
   color: #000 !important;
 }
 [data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiButton-outlined,
-[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiButtonBase-root.MuiButton-outlined {
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiButtonBase-root.MuiButton-outlined,
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiButton-outlinedPrimary,
+[data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiButton-colorPrimary.MuiButton-outlined {
   color: #000 !important;
+  border: 1px solid #000 !important;
   border-color: #000 !important;
+  background-color: transparent !important;
 }
 [data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiButton-outlined:hover:not(:disabled),
 [data-theme="dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiButtonBase-root.MuiButton-outlined:hover:not(:disabled) {
