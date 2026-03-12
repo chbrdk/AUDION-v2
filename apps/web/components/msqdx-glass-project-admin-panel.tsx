@@ -1199,6 +1199,7 @@ export function MsqdxGlassProjectAdminPanel({
                                             size="small"
                                             onClick={handleSuggestTargetGroups}
                                             disabled={suggestLoading || !(companyDescription.trim() || companyContext.trim())}
+                                            sx={{ color: "#000", borderColor: "#000", "&:hover": { borderColor: "#000", color: "#000", backgroundColor: "rgba(0,0,0,0.08)" } }}
                                         >
                                             {suggestLoading ? (t("settingsProjects.companyContext.suggestLoading") ?? "Generating…") : (t("settingsProjects.companyContext.suggestCta") ?? "Generate suggestions")}
                                         </MsqdxButton>
@@ -1312,6 +1313,7 @@ export function MsqdxGlassProjectAdminPanel({
                                                     !selectedTgIdForPersonas ||
                                                     !(companyDescription.trim() || companyContext.trim())
                                                 }
+                                                sx={{ color: "#000", borderColor: "#000", "&:hover": { borderColor: "#000", color: "#000", backgroundColor: "rgba(0,0,0,0.08)" } }}
                                             >
                                                 {personaSuggestLoading
                                                     ? (t("settingsProjects.suggestPersonas.loading") ?? "Generating…")
@@ -1370,6 +1372,7 @@ export function MsqdxGlassProjectAdminPanel({
                                                                 size="small"
                                                                 disabled={creatingPersonaIndices.has(i)}
                                                                 onClick={() => handleCreatePersonas(new Set([i]), false)}
+                                                                sx={{ color: "#000", borderColor: "#000", "&:hover": { borderColor: "#000", color: "#000", backgroundColor: "rgba(0,0,0,0.08)" } }}
                                                             >
                                                                 {creatingPersonaIndices.has(i) ? "…" : (t("settingsProjects.suggestPersonas.createOne") ?? "Create")}
                                                             </MsqdxButton>

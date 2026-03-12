@@ -108,6 +108,28 @@
   border-color: rgba(0, 0, 0, 0.26) !important;
   color: rgba(0, 0, 0, 0.26) !important;
 }
+/* Force black outline buttons via panel IDs (beats MUI emotion/styled injection) */
+#suggest-target-groups-panel .MuiButton-outlined,
+#suggest-target-groups-panel button.MuiButton-outlined,
+#suggest-personas-panel .MuiButton-outlined,
+#suggest-personas-panel button.MuiButton-outlined,
+#generate-journey-panel .MuiButton-outlined,
+#generate-journey-panel button.MuiButton-outlined {
+  color: #000 !important;
+  border: 1px solid #000 !important;
+  border-color: #000 !important;
+  background-color: transparent !important;
+}
+#suggest-target-groups-panel .MuiButton-outlined:hover:not(:disabled),
+#suggest-target-groups-panel button.MuiButton-outlined:hover:not(:disabled),
+#suggest-personas-panel .MuiButton-outlined:hover:not(:disabled),
+#suggest-personas-panel button.MuiButton-outlined:hover:not(:disabled),
+#generate-journey-panel .MuiButton-outlined:hover:not(:disabled),
+#generate-journey-panel button.MuiButton-outlined:hover:not(:disabled) {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+  border-color: #000 !important;
+  color: #000 !important;
+}
 /* Fallback: any outlined button inside action card panels */
 .msqdx-dashboard-action-cards [id$="-panel"] button.MuiButton-outlined,
 .msqdx-dashboard-action-cards [id$="-panel"] .MuiButton-outlined {
