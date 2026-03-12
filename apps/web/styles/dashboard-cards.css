@@ -161,6 +161,13 @@
 #generate-journey-panel .MuiOutlinedInput-root.Mui-focused fieldset {
   border-color: #000 !important;
 }
+/* Generate journey panel: input border (solid, 1px, theme accent contrast) */
+#generate-journey-panel .MuiInputBase-input,
+#generate-journey-panel .MuiOutlinedInput-input {
+  border-style: solid !important;
+  border-width: 1px !important;
+  border-color: var(--color-theme-accent-contrast) !important;
+}
 /* Contained button in generate-journey panel: black background, white text (override MUI/styled) */
 #generate-journey-panel .MuiButton-contained,
 #generate-journey-panel button.MuiButton-contained {
