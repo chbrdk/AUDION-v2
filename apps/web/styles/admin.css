@@ -113,7 +113,7 @@
   max-width: 100%;
   overflow-x: hidden;
   box-sizing: border-box;
-  padding-top: 2rem; /* more space below header on every page */
+  /* Position under header (z-index 0); padding-top from layout sx clears header height */
   /* Custom scrollbar styling - positioned further inside */
   scrollbar-width: thin;
   scrollbar-color: rgba(0, 0, 0, 0.2) transparent;

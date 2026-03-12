@@ -179,6 +179,8 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
           },
         }}
       >
+      {/* Wrapper so main (absolute) positions relative to this container; header and main both start at top, main under header (z-index) */}
+      <Box sx={{ position: "relative", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
       {/* Header Bar – Page Title, Hamburger, Panel Toggle (Logo/Corner via MsqdxAppLayout) */}
       <Box
         component="header"
@@ -281,16 +283,22 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
         </Box>
       </Box>
 
-      {/* Content Area */}
+      {/* Content Area – starts at top, under header (lower z-index); padding-top clears header height */}
       <Box
         component="main"
         className="msqdx-glass-admin-content"
         suppressHydrationWarning
         sx={{
-          flex: 1,
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 0,
           overflowX: "hidden",
           overflowY: "auto",
           padding: { xs: "1rem", md: "1.5rem" },
+          paddingTop: { xs: "calc(56px + 1rem)", md: "calc(64px + 1.5rem)" },
           minWidth: 0,
           maxWidth: "100%",
           width: "100%"
@@ -309,6 +317,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
           </Box>
         )}
         {children}
+      </Box>
       </Box>
 
       {/* Mobile Overlay for Navigation */}
