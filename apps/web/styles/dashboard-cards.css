@@ -110,7 +110,18 @@
 /* Panel content: brand background (transparent so card shows through), no extra background on inner rows */
 .msqdx-dashboard-action-cards [id$="-panel"],
 .msqdx-dashboard-action-cards [id$="-panel"] .MuiBox-root,
-.msqdx-dashboard-action-cards [id$="-panel"] .MuiStack-root {
+.msqdx-dashboard-action-cards [id$="-panel"] .MuiStack-root,
+.msqdx-dashboard-action-cards [id$="-panel"] .MuiStack-root > .MuiBox-root,
+.msqdx-dashboard-action-cards [id$="-panel"] .MuiStack-root > div {
+  background-color: transparent !important;
+}
+
+/* Override dark-mode globals: panel inner rows must stay transparent so brand color shows */
+[data-theme="dark"] .msqdx-dashboard-action-cards [id$="-panel"],
+[data-theme="dark"] .msqdx-dashboard-action-cards [id$="-panel"] .MuiBox-root,
+[data-theme="dark"] .msqdx-dashboard-action-cards [id$="-panel"] .MuiStack-root,
+[data-theme="dark"] .msqdx-dashboard-action-cards [id$="-panel"] .MuiStack-root > .MuiBox-root,
+[data-theme="dark"] .msqdx-dashboard-action-cards [id$="-panel"] .MuiStack-root > div {
   background-color: transparent !important;
 }
 
