@@ -130,6 +130,22 @@
   border-color: #000 !important;
   color: #000 !important;
 }
+/* Action card outline buttons: class hook so ID+class wins over styled components */
+#suggest-target-groups-panel button.msqdx-action-card-outlined-btn,
+#suggest-personas-panel button.msqdx-action-card-outlined-btn,
+#generate-journey-panel button.msqdx-action-card-outlined-btn {
+  color: #000 !important;
+  border: 1px solid #000 !important;
+  border-color: #000 !important;
+  background-color: transparent !important;
+}
+#suggest-target-groups-panel button.msqdx-action-card-outlined-btn:hover:not(:disabled),
+#suggest-personas-panel button.msqdx-action-card-outlined-btn:hover:not(:disabled),
+#generate-journey-panel button.msqdx-action-card-outlined-btn:hover:not(:disabled) {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+  border-color: #000 !important;
+  color: #000 !important;
+}
 /* Selects in action card panels: black border */
 #suggest-target-groups-panel .MuiOutlinedInput-root fieldset,
 #suggest-personas-panel .MuiOutlinedInput-root fieldset,

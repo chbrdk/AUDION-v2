@@ -1195,6 +1195,7 @@ export function MsqdxGlassProjectAdminPanel({
                                 >
                                     <Stack spacing={2}>
                                         <MsqdxButton
+                                            className="msqdx-action-card-outlined-btn"
                                             variant="outlined"
                                             size="small"
                                             onClick={handleSuggestTargetGroups}
@@ -1306,6 +1307,7 @@ export function MsqdxGlassProjectAdminPanel({
                                                 sx={{ minWidth: 200 }}
                                             />
                                             <MsqdxButton
+                                                className="msqdx-action-card-outlined-btn"
                                                 variant="outlined"
                                                 size="small"
                                                 onClick={handleSuggestPersonas}
@@ -1369,6 +1371,7 @@ export function MsqdxGlassProjectAdminPanel({
                                                                 )}
                                                             </Box>
                                                             <MsqdxButton
+                                                                className="msqdx-action-card-outlined-btn"
                                                                 variant="outlined"
                                                                 size="small"
                                                                 disabled={creatingPersonaIndices.has(i)}
