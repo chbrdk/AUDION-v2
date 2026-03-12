@@ -32,8 +32,7 @@
 [data-theme="dark"] .msqdx-glass-admin-header-bar {
   /* Keep transparent so the brand-color corner (from MsqdxAppLayout) remains visible */
   background-color: transparent !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-  border-bottom-color: var(--color-theme-accent);
+  border-bottom: none;
   color: #ffffff !important;
 }
 

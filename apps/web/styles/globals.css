@@ -118,10 +118,14 @@ body:has(.msqdx-glass-admin-panel) {
 
 [data-theme="dark"] main,
 [data-theme="dark"] .msqdx-glass-admin-content,
-[data-theme="dark"] .msqdx-glass-panel,
 [data-theme="dark"] .msqdx-glass-detail,
 [data-theme="dark"] .msqdx-glass-admin-page {
   background-color: #0f0f0f !important;
+}
+
+/* Sidebar (project menu) keeps brand color in dark theme */
+[data-theme="dark"] .msqdx-glass-panel {
+  background-color: var(--color-theme-accent) !important;
 }
 
 [data-theme="dark"] .msqdx-glass-panel,
