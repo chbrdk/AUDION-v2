@@ -163,8 +163,12 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
           "& > div:last-of-type > div": {
             borderColor: `${THEME_ACCENT_WITH_FALLBACK.borderColor} !important`,
           },
-          /* Corner/Logo – Kontrast-Text bei hellen Farben (gelb, grau, grün). Wrapper transparent. */
+          /* Corner/Logo – absolut positioniert, hoher z-index (AUDION-Text über allem); Kontrast-Text bei hellen Farben. */
           "& > div:last-of-type > div > div:first-of-type": {
+            position: "absolute !important",
+            top: 0,
+            left: 0,
+            zIndex: 100000,
             backgroundColor: "transparent !important",
             color: "var(--color-theme-accent-contrast, #ffffff) !important",
           },
