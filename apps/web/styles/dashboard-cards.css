@@ -145,6 +145,18 @@
 #generate-journey-panel .MuiOutlinedInput-root.Mui-focused fieldset {
   border-color: #000 !important;
 }
+/* Contained button in generate-journey panel: black background, white text (override MUI/styled) */
+#generate-journey-panel .MuiButton-contained,
+#generate-journey-panel button.MuiButton-contained {
+  background-color: #000 !important;
+  color: #fff !important;
+  border-color: #000 !important;
+}
+#generate-journey-panel .MuiButton-contained:hover:not(:disabled),
+#generate-journey-panel button.MuiButton-contained:hover:not(:disabled) {
+  background-color: rgba(0, 0, 0, 0.85) !important;
+  color: #fff !important;
+}
 /* Fallback: any outlined button inside action card panels */
 .msqdx-dashboard-action-cards [id$="-panel"] button.MuiButton-outlined,
 .msqdx-dashboard-action-cards [id$="-panel"] .MuiButton-outlined {

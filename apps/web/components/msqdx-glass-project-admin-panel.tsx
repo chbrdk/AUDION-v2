@@ -1302,6 +1302,7 @@ export function MsqdxGlassProjectAdminPanel({
                                                     })),
                                                 ]}
                                                 size="small"
+                                                borderColor="black"
                                                 sx={{ minWidth: 200 }}
                                             />
                                             <MsqdxButton
@@ -1428,6 +1429,7 @@ export function MsqdxGlassProjectAdminPanel({
                                                     })),
                                                 ]}
                                                 size="small"
+                                                borderColor="black"
                                                 sx={{ minWidth: 200 }}
                                             />
                                             <MsqdxFormField
