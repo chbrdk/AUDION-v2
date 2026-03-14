@@ -6,8 +6,36 @@ import { AUTH_COOKIE_NAME } from "./lib/auth-constants";
 const PUBLIC_PATHS = new Set(["/", "/login", "/register", "/chat"]);
 const PROTECTED_PREFIXES = ["/admin", "/upload", "/personas", "/target-groups", "/queue"];
 
+// Paths that should allow CORS from Figma plugins (origin: null)
+const CORS_API_PREFIXES = ["/api/", "/persona-backend/", "/auth/"];
+
+function corsHeaders() {
+  return {
+    "Access-Control-Allow-Origin": "null",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Max-Age": "86400",
+  };
+}
+
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+  const origin = request.headers.get("origin");
+
+  // Handle CORS preflight (OPTIONS) for Figma plugin requests from "null" origin
+  const isApiPath = CORS_API_PREFIXES.some((p) => pathname.startsWith(p));
+  if (isApiPath && origin === "null") {
+    if (request.method === "OPTIONS") {
+      return new NextResponse(null, { status: 204, headers: corsHeaders() });
+    }
+    // For non-preflight requests, add CORS headers to the response
+    const response = NextResponse.next();
+    for (const [key, value] of Object.entries(corsHeaders())) {
+      response.headers.set(key, value);
+    }
+    return response;
+  }
+
   if (pathname.startsWith("/_next") || pathname.startsWith("/api") || pathname.startsWith("/favicon")) {
     return NextResponse.next();
   }
@@ -37,5 +65,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next|api|favicon.ico).*)"],
+  matcher: ["/((?!_next|favicon.ico).*)"],
 };
+
