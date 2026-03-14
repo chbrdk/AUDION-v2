@@ -14,14 +14,23 @@ const parseCookieValue = (cookieHeader: string | null, name: string): string | n
 };
 
 export const getAuthTokenFromRequest = (request?: NextRequest): string | null => {
-  if (request?.cookies) {
-    return request.cookies.get(AUTH_COOKIE_NAME)?.value ?? null;
+  // 1. Try to get from cookies first (for web app users)
+  let token = request?.cookies?.get(AUTH_COOKIE_NAME)?.value ?? null;
+  
+  // 2. Fallback to Authorization header (for Figma plugin / API users)
+  if (!token) {
+    const headerToken = request?.headers?.get("authorization");
+    if (headerToken?.toLowerCase().startsWith("bearer ")) {
+      token = headerToken.slice(7).trim();
+    }
   }
-  const headerToken = request?.headers?.get("authorization");
-  if (headerToken?.toLowerCase().startsWith("bearer ")) {
-    return headerToken.slice(7).trim();
+
+  // 3. Last resort: parse raw cookie header (for some proxy scenarios)
+  if (!token) {
+    token = parseCookieValue(request?.headers?.get("cookie") ?? null, AUTH_COOKIE_NAME);
   }
-  return parseCookieValue(request?.headers?.get("cookie") ?? null, AUTH_COOKIE_NAME);
+
+  return token;
 };
 
 export const getProjectIdFromRequest = (request?: NextRequest): string | null => {
