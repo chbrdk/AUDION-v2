@@ -78,7 +78,7 @@ class App {
   private handlePluginMessage(msg: any): void {
     switch (msg.type) {
       case 'settings-loaded':
-        this.state.settings = msg.settings || { audionApiUrl: 'https://192.168.50.101/audion/api' };
+        this.state.settings = msg.settings || { audionApiUrl: 'https://audion.projects-a.plygrnd.tech' };
         this.render();
         break;
 
@@ -136,7 +136,7 @@ class App {
 
   private async loadPersonas(): Promise<void> {
     try {
-      const apiUrl = this.state.settings?.audionApiUrl || 'https://192.168.50.101/audion/api';
+      const apiUrl = this.state.settings?.audionApiUrl || 'https://audion.projects-a.plygrnd.tech';
       // Set API URL temporarily
       const { setApiBaseUrl } = await import('./api/audion-client');
       setApiBaseUrl(apiUrl);
@@ -404,8 +404,8 @@ class App {
               <input
                 id="api-url"
                 type="text"
-                value="${this.state.settings?.audionApiUrl || 'https://192.168.50.101/audion/api'}"
-                placeholder="https://192.168.50.101/audion/api"
+                value="${this.state.settings?.audionApiUrl || 'https://audion.projects-a.plygrnd.tech'}"
+                placeholder="https://audion.projects-a.plygrnd.tech"
                 style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 14px;"
               />
             </div>

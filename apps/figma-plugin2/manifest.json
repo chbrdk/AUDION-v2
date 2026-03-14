@@ -1,0 +1,20 @@
+{
+  "name": "AUDION Persona Chat 2",
+  "id": "audion-persona-chat-2",
+  "api": "1.0.0",
+  "main": "dist/code.js",
+  "ui": "dist/ui.html",
+  "editorType": [
+    "figma"
+  ],
+  "networkAccess": {
+    "allowedDomains": [
+      "*"
+    ],
+    "reasoning": "Plugin needs network access to connect to AUDION API running on different servers (e.g., 192.168.50.101 or localhost for development). Users configure the API URL in plugin settings."
+  },
+  "permissions": [
+    "currentuser"
+  ]
+}
+

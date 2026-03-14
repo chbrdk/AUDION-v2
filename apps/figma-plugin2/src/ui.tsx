@@ -144,7 +144,7 @@ function App() {
     setIsLoggingIn(true);
     setLoginError(null);
     try {
-      const authUrl = `${settings?.audionApiUrl || 'https://192.168.50.101/audion/api'}/auth/login`;
+      const authUrl = `${settings?.audionApiUrl || 'https://audion.projects-a.plygrnd.tech'}/auth/login`;
 
       const response = await fetch(authUrl, {
         method: 'POST',
@@ -161,7 +161,7 @@ function App() {
       const data = await response.json();
       const token = data.access_token;
 
-      const newSettings = { ...settings, authToken: token, audionApiUrl: settings?.audionApiUrl || 'https://192.168.50.101/audion/api' };
+      const newSettings = { ...settings, authToken: token, audionApiUrl: settings?.audionApiUrl || 'https://audion.projects-a.plygrnd.tech' };
       setSettings(newSettings);
       setAuthToken(token);
       setApiBaseUrl(newSettings.audionApiUrl);

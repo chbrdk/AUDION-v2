@@ -1,7 +1,7 @@
 import type { Persona, TargetGroup, ChatRequest, ChatMessage } from '../types';
 
 // Base URL from central config
-const DEFAULT_API_URL = 'https://192.168.50.101/audion/api';
+const DEFAULT_API_URL = 'https://audion.projects-a.plygrnd.tech';
 
 let apiBaseUrl = DEFAULT_API_URL;
 let currentAuthToken: string | undefined;
