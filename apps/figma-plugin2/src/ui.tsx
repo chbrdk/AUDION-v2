@@ -144,7 +144,7 @@ function App() {
     setIsLoggingIn(true);
     setLoginError(null);
     try {
-      const authUrl = `${settings?.audionApiUrl || 'https://audion.projects-a.plygrnd.tech'}/auth/login`;
+      const authUrl = `${settings?.audionApiUrl || 'https://audion.projects-a.plygrnd.tech'}/api/auth/login`;
 
       const response = await fetch(authUrl, {
         method: 'POST',

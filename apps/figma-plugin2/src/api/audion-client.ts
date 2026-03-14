@@ -80,7 +80,7 @@ export async function listPersonas(
   page: number = 1,
   pageSize: number = 100
 ): Promise<PersonaListResponse> {
-  const url = `${apiBaseUrl}/persona-backend/personas?page=${page}&page_size=${pageSize}`;
+  const url = `${apiBaseUrl}/api/personas?page=${page}&page_size=${pageSize}`;
   return fetchWithErrorHandling<PersonaListResponse>(url);
 }
 
@@ -88,14 +88,14 @@ export async function listTargetGroups(
   page: number = 1,
   pageSize: number = 100
 ): Promise<TargetGroupListResponse> {
-  const url = `${apiBaseUrl}/persona-backend/target-groups?page=${page}&page_size=${pageSize}`;
+  const url = `${apiBaseUrl}/api/target-groups?page=${page}&page_size=${pageSize}`;
   return fetchWithErrorHandling<TargetGroupListResponse>(url);
 }
 
 export async function sendMessage(
   request: ChatRequest
 ): Promise<ChatMessageResponse> {
-  const url = `${apiBaseUrl}/chat/message`;
+  const url = `${apiBaseUrl}/api/chat/message`;
   return fetchWithErrorHandling<ChatMessageResponse>(url, {
     method: 'POST',
     body: JSON.stringify(request),
@@ -134,7 +134,7 @@ export class AudionWebSocket {
 
   connect(): void {
     const wsUrl = apiBaseUrl.replace('https://', 'wss://').replace('http://', 'ws://');
-    let url = `${wsUrl}/chat/ws/chat/${this.conversationId}`;
+    let url = `${wsUrl}/api/chat/ws/chat/${this.conversationId}`;
     if (currentAuthToken) {
       url += `?token=${currentAuthToken}`;
     }
@@ -196,7 +196,7 @@ export interface ImageUploadResponse {
 
 export async function uploadImage(imageBase64: string): Promise<string> {
   // Upload image to /images/upload endpoint
-  const url = `${apiBaseUrl}/chat/images/upload`;
+  const url = `${apiBaseUrl}/api/chat/images/upload`;
   
   try {
     const response = await fetchWithErrorHandling<ImageUploadResponse>(url, {

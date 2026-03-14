@@ -131,6 +131,7 @@ export async function POST(request: Request) {
         const next = NextResponse.json({
           user: data.user,
           default_project_id: data.default_project_id,
+          access_token: data.access_token,
         });
         if (data.access_token) {
           next.cookies.set(AUTH_COOKIE_NAME, data.access_token, buildCookieOptions());
@@ -167,6 +168,7 @@ export async function POST(request: Request) {
   const next = NextResponse.json({
     user: data.user,
     default_project_id: data.default_project_id,
+    access_token: data.access_token,
   });
 
   if (data.access_token) {
