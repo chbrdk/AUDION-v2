@@ -56,13 +56,15 @@ def create_app() -> FastAPI:
     async def health():
         return {"status": "ok"}
     origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()] if settings.cors_origins else ["*"]
-    # Figma plugins run in iframes with origin "null" – always allow it
-    if "null" not in origins and "*" not in origins:
+    # Figma plugins run in iframes with origin "null" – always allow it explicitly
+    if "null" not in origins:
         origins.append("null")
+    # When allow_origins includes "*", credentials must be False per the CORS spec
+    use_credentials = "*" not in origins
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
-        allow_credentials=True,
+        allow_credentials=use_credentials,
         allow_methods=["*"],
         allow_headers=["*"],
     )
