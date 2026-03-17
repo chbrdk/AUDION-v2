@@ -7,6 +7,7 @@ import type {
 } from './types';
 import { generateConversationId } from './services/conversation-service';
 import { sendMessage, uploadImage, listPersonas } from './api/audion-client';
+import { URL_CONFIG } from './config/urls';
 import type { ChatRequest } from './types';
 
 type View = 'chat' | 'settings';
@@ -78,7 +79,7 @@ class App {
   private handlePluginMessage(msg: any): void {
     switch (msg.type) {
       case 'settings-loaded':
-        this.state.settings = msg.settings || { audionApiUrl: 'https://audion.projects-a.plygrnd.tech' };
+        this.state.settings = msg.settings || { audionApiUrl: URL_CONFIG.AUDION_API_BASE };
         this.render();
         break;
 
@@ -136,7 +137,7 @@ class App {
 
   private async loadPersonas(): Promise<void> {
     try {
-      const apiUrl = this.state.settings?.audionApiUrl || 'https://audion.projects-a.plygrnd.tech';
+      const apiUrl = this.state.settings?.audionApiUrl || URL_CONFIG.AUDION_API_BASE;
       // Set API URL temporarily
       const { setApiBaseUrl } = await import('./api/audion-client');
       setApiBaseUrl(apiUrl);
@@ -404,8 +405,8 @@ class App {
               <input
                 id="api-url"
                 type="text"
-                value="${this.state.settings?.audionApiUrl || 'https://audion.projects-a.plygrnd.tech'}"
-                placeholder="https://audion.projects-a.plygrnd.tech"
+                value="${this.state.settings?.audionApiUrl || URL_CONFIG.AUDION_API_BASE}"
+                placeholder="${URL_CONFIG.AUDION_API_BASE}"
                 style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 14px;"
               />
             </div>

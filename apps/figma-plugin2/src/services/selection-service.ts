@@ -1,5 +1,5 @@
 import type { SelectionMetadata } from '../types';
-import { getFigmaFileUrl } from '../api/figma-api';
+import { getFigmaFileUrl, getFigmaFileId } from '../api/figma-api';
 
 export function getSelectedNodes(): readonly SceneNode[] {
   return figma.currentPage.selection;
@@ -53,11 +53,26 @@ export function extractMetadata(node: SceneNode): SelectionMetadata {
   }
 
   const figmaUrl = getFigmaFileUrl(node.id);
+  const fileId = getFigmaFileId();
+
+  // Extract Visual Styles for Iterative Context
+  const visualStyles: any = {};
+  if ('fills' in node && Array.isArray(node.fills)) {
+    const solid = node.fills.find(f => f.type === 'SOLID') as SolidPaint;
+    if (solid) {
+      const toHex = (c: number) => Math.round(c * 255).toString(16).padStart(2, '0');
+      visualStyles.fill = `#${toHex(solid.color.r)}${toHex(solid.color.g)}${toHex(solid.color.b)}`.toUpperCase();
+      visualStyles.opacity = solid.opacity;
+    }
+  }
+  if ('cornerRadius' in node && typeof node.cornerRadius === 'number') visualStyles.cornerRadius = node.cornerRadius;
+  if ('paddingTop' in node) visualStyles.padding = { top: node.paddingTop, right: node.paddingRight, bottom: node.paddingBottom, left: node.paddingLeft };
+  if ('itemSpacing' in node && node.itemSpacing > 0) visualStyles.gap = node.itemSpacing;
+  if ('layoutMode' in node) visualStyles.layout = node.layoutMode;
 
   // Map Figma node types to our types
   let selectionType: 'ARTBOARD' | 'GROUP' | 'FRAME' = 'FRAME';
   if (node.type === 'FRAME') {
-    // Check if it's an artboard (frames with isArtboard = true)
     if ('isArtboard' in node && node.isArtboard) {
       selectionType = 'ARTBOARD';
     } else {
@@ -73,7 +88,9 @@ export function extractMetadata(node: SceneNode): SelectionMetadata {
     type: selectionType,
     bounds,
     layers,
+    visualStyles,
     figmaUrl,
+    fileId,
   };
 }
 

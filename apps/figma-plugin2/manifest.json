@@ -9,9 +9,10 @@
   ],
   "networkAccess": {
     "allowedDomains": [
-      "*"
+      "*",
+      "https://api.openai.com"
     ],
-    "reasoning": "Plugin needs network access to connect to AUDION API running on different servers (e.g., 192.168.50.101 or localhost for development). Users configure the API URL in plugin settings."
+    "reasoning": "Plugin needs network access to connect to AUDION API and OpenAI for wireframe generation."
   },
   "permissions": [
     "currentuser"

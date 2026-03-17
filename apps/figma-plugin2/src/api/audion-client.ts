@@ -1,7 +1,7 @@
-import type { Persona, TargetGroup, ChatRequest, ChatMessage } from '../types';
+import type { Persona, TargetGroup, ChatRequest, ChatMessage, JourneyResponse, Project } from '../types';
+import { URL_CONFIG } from '../config/urls';
 
-// Base URL from central config
-const DEFAULT_API_URL = 'https://audion.projects-a.plygrnd.tech';
+const DEFAULT_API_URL = URL_CONFIG.AUDION_API_BASE;
 
 let apiBaseUrl = DEFAULT_API_URL;
 let currentAuthToken: string | undefined;
@@ -90,6 +90,31 @@ export async function listTargetGroups(
 ): Promise<TargetGroupListResponse> {
   const url = `${apiBaseUrl}/api/target-groups?page=${page}&page_size=${pageSize}`;
   return fetchWithErrorHandling<TargetGroupListResponse>(url);
+}
+
+export async function listProjects(
+  page: number = 1,
+  pageSize: number = 100
+): Promise<Project[]> {
+  const url = `${apiBaseUrl}/api/projects?page=${page}&page_size=${pageSize}`;
+  return fetchWithErrorHandling<Project[]>(url);
+}
+
+export async function listJourneys(
+  projectId?: string,
+  page: number = 1,
+  pageSize: number = 100
+): Promise<JourneyResponse[]> {
+  let url = `${apiBaseUrl}/api/journeys?page=${page}&page_size=${pageSize}`;
+  if (projectId) {
+    url += `&project_id=${projectId}`;
+  }
+  return fetchWithErrorHandling<JourneyResponse[]>(url);
+}
+
+export async function getJourney(id: string): Promise<JourneyResponse> {
+  const url = `${apiBaseUrl}/api/journeys/${id}`;
+  return fetchWithErrorHandling<JourneyResponse>(url);
 }
 
 export async function sendMessage(

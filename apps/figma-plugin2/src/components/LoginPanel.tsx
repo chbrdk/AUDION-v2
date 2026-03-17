@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
+import { MsqdxLogo } from './MsqdxLogo';
+import { t, Language } from '../translations';
 
 interface LoginPanelProps {
   onLoginData: (email: string, password: string) => void;
   isLoading: boolean;
   error: string | null;
+  lang: Language;
 }
 
-export function LoginPanel({ onLoginData, isLoading, error }: LoginPanelProps) {
+export function LoginPanel({ onLoginData, isLoading, error, lang }: LoginPanelProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -20,65 +23,84 @@ export function LoginPanel({ onLoginData, isLoading, error }: LoginPanelProps) {
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'center',
-      padding: '24px',
       height: '100%',
-      backgroundColor: '#f5f5f5'
     }}>
-      <div style={{
-        backgroundColor: '#fff',
-        padding: '24px',
-        borderRadius: '8px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-      }}>
-        <h2 style={{ marginTop: 0, marginBottom: '24px', textAlign: 'center' }}>AUDION Login</h2>
+      <div 
+        className="msqdx-card"
+        style={{
+          padding: '32px 24px',
+          backgroundColor: 'var(--msqdx-bg-card)',
+          boxShadow: '0 8px 24px -4px rgba(15, 23, 42, 0.08)'
+        }}
+      >
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <div style={{ margin: '0 auto 16px', display: 'flex', justifyContent: 'center' }}>
+            <MsqdxLogo height={24} />
+          </div>
+          <p style={{ color: 'var(--msqdx-text-secondary)', fontSize: '12px', marginTop: '8px' }}>
+            {lang === 'de' ? 'Melde dich mit deinem Account an.' : 'Log in to your account.'}
+          </p>
+        </div>
         
         {error && (
-          <div style={{
+          <div className="msqdx-mono" style={{
             padding: '12px',
-            marginBottom: '16px',
-            backgroundColor: '#fee2e2',
+            marginBottom: '20px',
+            backgroundColor: 'rgba(220, 38, 38, 0.05)',
+            border: '1px solid rgba(220, 38, 38, 0.15)',
             color: '#dc2626',
-            borderRadius: '4px',
-            fontSize: '14px'
+            borderRadius: '12px',
+            fontSize: '10px',
+            textAlign: 'center'
           }}>
-            {error}
+            ERROR: {error.toUpperCase()}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>
-              Email
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label className="msqdx-mono" style={{ fontSize: '9px', fontWeight: '600', color: 'var(--msqdx-text-secondary)' }}>
+              {t('email', lang)}
             </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              placeholder="name@company.com"
               style={{
                 width: '100%',
-                padding: '10px',
-                border: '1px solid #e0e0e0',
-                borderRadius: '4px',
+                padding: '12px',
+                background: 'rgba(15, 23, 42, 0.03)',
+                border: '1px solid var(--msqdx-border-color)',
+                borderRadius: '10px',
+                color: 'var(--msqdx-text-main)',
+                fontSize: '14px',
+                outline: 'none',
                 boxSizing: 'border-box'
               }}
             />
           </div>
           
-          <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>
-              Password
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label className="msqdx-mono" style={{ fontSize: '9px', fontWeight: '600', color: 'var(--msqdx-text-secondary)' }}>
+              {t('password', lang)}
             </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              placeholder="••••••••"
               style={{
                 width: '100%',
-                padding: '10px',
-                border: '1px solid #e0e0e0',
-                borderRadius: '4px',
+                padding: '12px',
+                background: 'rgba(15, 23, 42, 0.03)',
+                border: '1px solid var(--msqdx-border-color)',
+                borderRadius: '10px',
+                color: 'var(--msqdx-text-main)',
+                fontSize: '14px',
+                outline: 'none',
                 boxSizing: 'border-box'
               }}
             />
@@ -87,19 +109,16 @@ export function LoginPanel({ onLoginData, isLoading, error }: LoginPanelProps) {
           <button
             type="submit"
             disabled={isLoading}
+            className="msqdx-button"
             style={{
               padding: '12px',
-              backgroundColor: '#000',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '4px',
-              fontWeight: 500,
-              cursor: isLoading ? 'not-allowed' : 'pointer',
-              opacity: isLoading ? 0.7 : 1,
-              marginTop: '8px'
+              marginTop: '8px',
+              height: '44px'
             }}
           >
-            {isLoading ? 'Logging in...' : 'Login'}
+            <span className="msqdx-mono" style={{ fontSize: '12px', fontWeight: '700' }}>
+              {isLoading ? t('loggingIn', lang).toUpperCase() : t('login', lang).toUpperCase()}
+            </span>
           </button>
         </form>
       </div>

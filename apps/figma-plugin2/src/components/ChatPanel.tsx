@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import type { ChatMessage, Persona } from '../types';
 import { sendMessage, uploadImage } from '../api/audion-client';
 import type { ChatRequest } from '../types';
+import { t, Language } from '../translations';
 
 interface ChatPanelProps {
   persona: Persona | null;
@@ -9,6 +10,7 @@ interface ChatPanelProps {
   selectionMetadata: any;
   screenshot?: string | null;
   onMessageSent?: () => void;
+  lang: Language;
 }
 
 export function ChatPanel({
@@ -17,6 +19,7 @@ export function ChatPanel({
   selectionMetadata,
   screenshot,
   onMessageSent,
+  lang,
 }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -78,7 +81,7 @@ export function ChatPanel({
         metadata: selectionMetadata
           ? {
               selection: selectionMetadata,
-              figma_file_id: selectionMetadata.nodeId,
+              figma_file_id: selectionMetadata.fileId,
             }
           : undefined,
       };
@@ -111,121 +114,171 @@ export function ChatPanel({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+      {/* Messages Scroll Area */}
       <div
+        className="scroll-container"
         style={{
           flex: 1,
-          overflowY: 'auto',
-          padding: '12px',
+          padding: '4px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '8px',
+          gap: '20px',
+          marginBottom: '12px'
         }}
       >
         {messages.length === 0 && (
           <div
             style={{
-              color: '#666',
+              color: 'var(--msqdx-text-secondary)',
               textAlign: 'center',
-              padding: '20px',
-              fontSize: '14px',
+              padding: '40px 20px',
+              fontSize: '13px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '12px'
             }}
           >
-            {persona
-              ? `Start chatting with ${persona.name} about your selection`
-              : 'Select a persona to start chatting'}
+            <div style={{ fontSize: '32px', opacity: 0.5 }}>✨</div>
+            <div className="msqdx-mono" style={{ fontSize: '11px', fontWeight: '500' }}>
+              {persona
+                ? (lang === 'de' ? `CHATTE JETZT MIT ${persona.name.toUpperCase()}` : `CHAT NOW WITH ${persona.name.toUpperCase()}`)
+                : (lang === 'de' ? 'WÄHLE EINE PERSONA AUS' : 'SELECT A PERSONA')}
+            </div>
           </div>
         )}
 
-        {messages.map((message, index) => (
-          <div
-            key={index}
-            style={{
-              alignSelf: message.role === 'user' ? 'flex-end' : 'flex-start',
-              maxWidth: '80%',
-              padding: '8px 12px',
-              borderRadius: '8px',
-              backgroundColor:
-                message.role === 'user' ? '#0d99ff' : '#f0f0f0',
-              color: message.role === 'user' ? '#fff' : '#000',
-              fontSize: '14px',
-              wordWrap: 'break-word',
-            }}
-          >
-            {message.content}
-          </div>
-        ))}
+        {messages.map((message, index) => {
+          const isUser = message.role === 'user';
+          const labelColor = isUser ? 'var(--msqdx-orange, #ff6a3b)' : 'var(--msqdx-primary, #3b82f6)';
+          const label = isUser ? (lang === 'de' ? 'DU' : 'YOU') : (persona?.name.toUpperCase() || 'PERSONA');
+          
+          return (
+            <div
+              key={index}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+                alignItems: isUser ? 'flex-end' : 'flex-start',
+                maxWidth: '90%',
+                alignSelf: isUser ? 'flex-end' : 'flex-start',
+              }}
+            >
+              <div className="msqdx-mono" style={{ fontSize: '9px', color: labelColor, fontWeight: '600' }}>
+                {label}
+              </div>
+              <div
+                style={{
+                  padding: '16px 20px',
+                  borderRadius: isUser ? '24px 8px 24px 24px' : '8px 24px 24px 24px',
+                  backgroundColor: 'var(--msqdx-bg-card)',
+                  color: 'var(--msqdx-text-main)',
+                  fontSize: '13px',
+                  lineHeight: '1.5',
+                  wordWrap: 'break-word',
+                  border: `1px solid var(--msqdx-border-color)`,
+                  boxShadow: '0 2px 8px -2px rgba(15, 23, 42, 0.04)'
+                }}
+              >
+                {message.content}
+              </div>
+            </div>
+          );
+        })}
 
         {isLoading && (
           <div
+            className="loading-pulse"
             style={{
               alignSelf: 'flex-start',
-              padding: '8px 12px',
-              borderRadius: '8px',
-              backgroundColor: '#f0f0f0',
-              fontSize: '14px',
-            }}
-          >
-            Thinking...
+              padding: '12px 20px',
+              borderRadius: '12px 32px 32px 32px',
+            backgroundColor: 'var(--msqdx-bg-card)',
+            border: '1px solid var(--msqdx-border-color)',
+            fontSize: '13px',
+            color: 'var(--msqdx-text-secondary)',
+          }}
+        >
+          <span className="msqdx-mono" style={{ fontSize: '10px' }}>{lang === 'de' ? 'DENKT NACH...' : 'THINKING...'}</span>
           </div>
         )}
 
         {error && (
           <div
+            className="msqdx-mono"
             style={{
               padding: '8px 12px',
               borderRadius: '8px',
-              backgroundColor: '#ffebee',
-              color: '#c62828',
-              fontSize: '14px',
+              backgroundColor: 'rgba(220, 38, 38, 0.05)',
+              border: '1px solid rgba(220, 38, 38, 0.15)',
+              color: '#dc2626',
+              fontSize: '10px',
+              textAlign: 'center'
             }}
           >
-            Error: {error}
+            ERROR: {error}
           </div>
         )}
 
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Input Area */}
       <div
         style={{
-          borderTop: '1px solid #e0e0e0',
-          padding: '12px',
           display: 'flex',
           gap: '8px',
+          alignItems: 'flex-end',
+          padding: '4px'
         }}
       >
-        <input
-          type="text"
+        <textarea
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
-          onKeyPress={handleKeyPress}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              handleSend();
+            }
+          }}
           placeholder={
-            persona ? 'Type your message...' : 'Select a persona first'
+            persona ? (lang === 'de' ? `NACHRICHT AN ${persona.name.toUpperCase()}...` : `MESSAGE ${persona.name.toUpperCase()}...`) : (lang === 'de' ? 'PERSONA WÄHLEN...' : 'SELECT PERSONA...')
           }
           disabled={!persona || isLoading}
+          rows={1}
           style={{
             flex: 1,
-            padding: '8px',
-            border: '1px solid #e0e0e0',
-            borderRadius: '4px',
-            fontSize: '14px',
+            padding: '12px 16px',
+            background: 'rgba(15, 23, 42, 0.03)',
+            border: '1px solid var(--msqdx-border-color)',
+            borderRadius: '16px',
+            fontSize: '13px',
+            color: 'var(--msqdx-text-main)',
+            outline: 'none',
+            resize: 'none',
+            maxHeight: '120px',
+            fontFamily: 'inherit'
           }}
         />
         <button
           onClick={handleSend}
           disabled={!persona || !inputValue.trim() || isLoading}
+          className="msqdx-button"
           style={{
-            padding: '8px 16px',
-            backgroundColor: persona ? '#0d99ff' : '#ccc',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: persona && inputValue.trim() ? 'pointer' : 'not-allowed',
-            fontSize: '14px',
+            height: '42px',
+            padding: '0 16px',
+            borderRadius: '16px',
+            flexShrink: 0,
+            background: persona && inputValue.trim() ? 'var(--msqdx-primary)' : 'rgba(15, 23, 42, 0.05)',
+            color: persona && inputValue.trim() ? 'white' : 'var(--msqdx-text-secondary)'
           }}
         >
-          Send
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
         </button>
       </div>
     </div>

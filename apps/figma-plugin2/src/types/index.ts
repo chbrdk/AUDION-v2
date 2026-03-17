@@ -4,7 +4,9 @@ export interface SelectionMetadata {
   type: 'ARTBOARD' | 'GROUP' | 'FRAME';
   bounds: { x: number; y: number; width: number; height: number };
   layers: Array<{ id: string; name: string; type: string }>;
+  visualStyles?: any;
   figmaUrl: string;
+  fileId: string;
 }
 
 export interface ConversationHistory {
@@ -35,10 +37,23 @@ export interface TargetGroup {
   description?: string;
 }
 
+export interface Project {
+  id: string;
+  name: string;
+  description?: string;
+  organization_id: string;
+}
+
 export interface PluginSettings {
   audionApiUrl: string;
+  /** Optional: Opal or other discovery URL to resolve tools/APIs for direct access. */
+  opalDiscoveryUrl?: string;
   defaultPersonaId?: string;
+  projectId?: string;
   authToken?: string;
+  brandColor?: string;
+  language?: 'de' | 'en';
+  openAiApiKey?: string;
 }
 
 export interface AuthResponse {
@@ -70,3 +85,73 @@ export interface ChatRequest {
   };
 }
 
+export interface JourneyResponse {
+  id: string;
+  name: string;
+  description?: string;
+  journey_type: string;
+  status: string;
+  phases: PhaseResponse[];
+}
+
+export interface PhaseResponse {
+  id: string;
+  name: string;
+  description?: string;
+  phase_order: number;
+  elements: ElementResponse[];
+}
+
+export interface ElementResponse {
+  id: string;
+  element_type: string;
+  content: string;
+  element_order: number;
+  metadata?: Record<string, any>;
+}
+
+export interface ExpectationResponse {
+  id: string;
+  metric_name: string;
+  expected_value?: number;
+}
+
+export interface ScannedComponent {
+  id: string; // The Figma key or ID
+  name: string;
+  description: string;
+  documentation: string; // LLM-friendly description of variants and props
+  visualBlueprint?: string; // Deep analysis of internal structure and styles
+  variants: Record<string, string[]>;
+  properties: Array<{ name: string; type: string; defaultValue?: string }>;
+  // AI Enriched Metadata
+  tags?: string[];
+  styleCategory?: string; // e.g. "Glassmorphism", "Flat", "Material"
+  usageNotes?: string;
+}
+
+export interface ScannedPageSection {
+  name: string;
+  componentIds?: string[];
+  childNames?: string[];
+}
+
+export interface ScannedPage {
+  id: string;
+  name: string;
+  description?: string;
+  pageType?: 'landing' | 'dashboard' | 'article' | 'generic';
+  structure: ScannedPageSection[];
+  componentRefs: string[];
+  blueprintSummary: string;
+}
+
+export interface ComponentKnowledgeBase {
+  components: ScannedComponent[];
+  pages: ScannedPage[];
+  lastUpdated: number;
+}
+
+export type ViewportType = 'desktop' | 'mobile' | 'both';
+export type AIModelType = 'gpt-5-mini' | 'gpt-4o-mini' | 'gpt-4o';
+export type DesignMode = 'fast' | 'styled' | 'tools';

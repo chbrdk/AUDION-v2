@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import type { PluginSettings, Persona } from '../types';
-import { getApiBaseUrl, setApiBaseUrl } from '../api/audion-client';
+import { getApiBaseUrl, setApiBaseUrl, listProjects } from '../api/audion-client';
+import { URL_CONFIG } from '../config/urls';
 import { listPersonas } from '../api/audion-client';
+import { BrandColorSelector } from './BrandColorSelector';
+import { t, Language } from '../translations';
+import { Project } from '../types';
 
 const STORAGE_KEY_SETTINGS = 'audion-settings';
 
@@ -12,7 +16,7 @@ export async function loadSettings(): Promise<PluginSettings> {
       const msg = event.data.pluginMessage;
       if (msg.type === 'settings-loaded') {
         window.removeEventListener('message', handler);
-        resolve(msg.settings || { audionApiUrl: getApiBaseUrl() });
+        resolve(msg.settings || { audionApiUrl: getApiBaseUrl(), opalDiscoveryUrl: URL_CONFIG.OPAL_DISCOVERY_URL || undefined });
       }
     };
     window.addEventListener('message', handler);
@@ -42,37 +46,51 @@ async function saveSettings(settings: PluginSettings): Promise<void> {
 }
 
 interface SettingsPanelProps {
+  initialSettings: PluginSettings;
   onSettingsChange?: (settings: PluginSettings) => void;
 }
 
-export function SettingsPanel({ onSettingsChange }: SettingsPanelProps) {
-  const [settings, setSettings] = useState<PluginSettings>({
-    audionApiUrl: getApiBaseUrl(),
-  });
+export function SettingsPanel({ initialSettings, onSettingsChange }: SettingsPanelProps) {
+  const [settings, setSettings] = useState<PluginSettings>(initialSettings);
   const [personas, setPersonas] = useState<Persona[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
+  const lang: Language = settings.language || 'de';
+
   useEffect(() => {
-    loadSettings().then((loadedSettings) => {
-      setSettings(loadedSettings);
-      setIsLoading(false);
-    });
-  }, []);
+    // Sync if props change
+    setSettings(initialSettings);
+  }, [initialSettings]);
 
   useEffect(() => {
     if (settings.audionApiUrl) {
       loadPersonas();
+      loadProjects();
     }
   }, [settings.audionApiUrl]);
 
+  const loadProjects = async () => {
+    try {
+      const response: any = await listProjects(1, 100);
+      const projectList = Array.isArray(response) ? response : (response?.items || []);
+      setProjects(projectList);
+    } catch (error) {
+      console.error('Failed to load projects for settings:', error);
+      setProjects([]);
+    }
+  };
+
   const loadPersonas = async () => {
     try {
-      const response = await listPersonas(1, 100);
-      setPersonas(response.items);
+      const response: any = await listPersonas(1, 100);
+      const personaList = Array.isArray(response) ? response : (response?.items || []);
+      setPersonas(personaList);
     } catch (error) {
       console.error('Failed to load personas for settings:', error);
+      setPersonas([]);
     }
   };
 
@@ -83,7 +101,7 @@ export function SettingsPanel({ onSettingsChange }: SettingsPanelProps) {
     try {
       await saveSettings(settings);
       setApiBaseUrl(settings.audionApiUrl);
-      setSaveMessage('Settings saved successfully');
+      setSaveMessage(t('saveSuccess', lang));
       onSettingsChange?.(settings);
       
       // Reload personas with new API URL
@@ -100,11 +118,7 @@ export function SettingsPanel({ onSettingsChange }: SettingsPanelProps) {
   };
 
   const handleClearHistory = async () => {
-    if (
-      !confirm(
-        'Are you sure you want to clear all conversation history? This cannot be undone.'
-      )
-    ) {
+    if (!confirm(t('confirmClear', lang))) {
       return;
     }
 
@@ -113,7 +127,7 @@ export function SettingsPanel({ onSettingsChange }: SettingsPanelProps) {
         const msg = event.data.pluginMessage;
         if (msg.type === 'conversations-cleared') {
           window.removeEventListener('message', handler);
-          setSaveMessage('Conversation history cleared');
+          setSaveMessage(t('historyCleared', lang));
           setTimeout(() => setSaveMessage(null), 3000);
           resolve();
         } else if (msg.type === 'conversations-error') {
@@ -132,59 +146,97 @@ export function SettingsPanel({ onSettingsChange }: SettingsPanelProps) {
     });
   };
 
-  if (isLoading) {
-    return <div style={{ padding: '12px' }}>Loading settings...</div>;
-  }
-
   return (
-    <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      <div>
-        <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '500' }}>
-          Settings
-        </h3>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <label className="msqdx-mono" style={{ fontSize: '9px', fontWeight: '600', color: 'var(--msqdx-text-secondary)' }}>
+            {t('apiUrl', lang)}
+          </label>
+          <input
+            type="text"
+            value={settings.audionApiUrl}
+            onChange={(e) =>
+              setSettings({ ...settings, audionApiUrl: e.target.value })
+            }
+            placeholder="https://api.audion.tech"
+            style={{
+              width: '100%',
+              padding: '10px 14px',
+              background: 'rgba(15,23,42,0.03)',
+              border: '1px solid var(--msqdx-border-color)',
+              borderRadius: '10px',
+              fontSize: '13px',
+              color: 'var(--msqdx-text-main)',
+              outline: 'none'
+            }}
+          />
+        </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div>
-            <label
-              style={{
-                display: 'block',
-                fontSize: '12px',
-                fontWeight: '500',
-                marginBottom: '4px',
-                color: '#666',
-              }}
-            >
-              AUDION API URL
-            </label>
-            <input
-              type="text"
-              value={settings.audionApiUrl}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <label className="msqdx-mono" style={{ fontSize: '9px', fontWeight: '600', color: 'var(--msqdx-text-secondary)' }}>
+            {t('discoveryUrl', lang)}
+          </label>
+          <input
+            type="text"
+            value={settings.opalDiscoveryUrl || ''}
+            onChange={(e) =>
+              setSettings({ ...settings, opalDiscoveryUrl: e.target.value || undefined })
+            }
+            placeholder={t('discoveryUrlPlaceholder', lang)}
+            style={{
+              width: '100%',
+              padding: '10px 14px',
+              background: 'rgba(15,23,42,0.03)',
+              border: '1px solid var(--msqdx-border-color)',
+              borderRadius: '10px',
+              fontSize: '13px',
+              color: 'var(--msqdx-text-main)',
+              outline: 'none'
+            }}
+          />
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <label className="msqdx-mono" style={{ fontSize: '9px', fontWeight: '600', color: 'var(--msqdx-text-secondary)' }}>
+            {t('selectProject', lang)}
+          </label>
+          <div style={{ position: 'relative' }}>
+            <select
+              value={settings.projectId || ''}
               onChange={(e) =>
-                setSettings({ ...settings, audionApiUrl: e.target.value })
+                setSettings({
+                  ...settings,
+                  projectId: e.target.value || undefined,
+                })
               }
-              placeholder="https://audion.projects-a.plygrnd.tech"
               style={{
                 width: '100%',
-                padding: '8px',
-                border: '1px solid #e0e0e0',
-                borderRadius: '4px',
-                fontSize: '14px',
-              }}
-            />
-          </div>
-
-          <div>
-            <label
-              style={{
-                display: 'block',
-                fontSize: '12px',
-                fontWeight: '500',
-                marginBottom: '4px',
-                color: '#666',
+                padding: '10px 14px',
+                background: 'rgba(15,23,42,0.03)',
+                border: '1px solid var(--msqdx-border-color)',
+                borderRadius: '10px',
+                fontSize: '13px',
+                color: 'var(--msqdx-text-main)',
+                outline: 'none',
+                appearance: 'none'
               }}
             >
-              Default Persona
-            </label>
+              <option value="">{t('selectProject', lang)}</option>
+              {(projects || []).map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <label className="msqdx-mono" style={{ fontSize: '9px', fontWeight: '600', color: 'var(--msqdx-text-secondary)' }}>
+            {t('defaultPersona', lang)}
+          </label>
+          <div style={{ position: 'relative' }}>
             <select
               value={settings.defaultPersonaId || ''}
               onChange={(e) =>
@@ -195,81 +247,148 @@ export function SettingsPanel({ onSettingsChange }: SettingsPanelProps) {
               }
               style={{
                 width: '100%',
-                padding: '8px',
-                border: '1px solid #e0e0e0',
-                borderRadius: '4px',
-                fontSize: '14px',
-                backgroundColor: '#fff',
+                padding: '10px 14px',
+                background: 'rgba(15,23,42,0.03)',
+                border: '1px solid var(--msqdx-border-color)',
+                borderRadius: '10px',
+                fontSize: '13px',
+                color: 'var(--msqdx-text-main)',
+                outline: 'none',
+                appearance: 'none'
               }}
             >
-              <option value="">-- No default persona --</option>
-              {personas.map((persona) => (
+              <option value="">{t('noDefaultPersona', lang)}</option>
+              {(personas || []).map((persona) => (
                 <option key={persona.id} value={persona.id}>
                   {persona.name} ({persona.segment})
                 </option>
               ))}
             </select>
           </div>
+        </div>
 
-          {saveMessage && (
-            <div
-              style={{
-                padding: '8px',
-                borderRadius: '4px',
-                fontSize: '14px',
-                backgroundColor: saveMessage.includes('Error')
-                  ? '#ffebee'
-                  : '#e8f5e9',
-                color: saveMessage.includes('Error') ? '#c62828' : '#2e7d32',
-              }}
-            >
-              {saveMessage}
-            </div>
-          )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <label className="msqdx-mono" style={{ fontSize: '9px', fontWeight: '600', color: 'var(--msqdx-text-secondary)' }}>
+            {t('language', lang)}
+          </label>
+          <select
+            value={settings.language || 'de'}
+            onChange={(e) =>
+              setSettings({
+                ...settings,
+                language: e.target.value as Language,
+              })
+            }
+            style={{
+              width: '100%',
+              padding: '10px 14px',
+              background: 'rgba(15,23,42,0.03)',
+              border: '1px solid var(--msqdx-border-color)',
+              borderRadius: '10px',
+              fontSize: '13px',
+              color: 'var(--msqdx-text-main)',
+              outline: 'none',
+              appearance: 'none'
+            }}
+          >
+            <option value="de">Deutsch</option>
+            <option value="en">English</option>
+          </select>
+        </div>
 
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              style={{
-                flex: 1,
-                padding: '8px 16px',
-                backgroundColor: '#0d99ff',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: isSaving ? 'not-allowed' : 'pointer',
-                fontSize: '14px',
-              }}
-            >
-              {isSaving ? 'Saving...' : 'Save Settings'}
-            </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <label className="msqdx-mono" style={{ fontSize: '9px', fontWeight: '600', color: 'var(--msqdx-text-secondary)' }}>
+            {t('openAiApiKey', lang)}
+          </label>
+          <input
+            type="password"
+            value={settings.openAiApiKey || ''}
+            onChange={(e) =>
+              setSettings({ ...settings, openAiApiKey: e.target.value })
+            }
+            placeholder="sk-..."
+            style={{
+              width: '100%',
+              padding: '10px 14px',
+              background: 'rgba(15,23,42,0.03)',
+              border: '1px solid var(--msqdx-border-color)',
+              borderRadius: '10px',
+              fontSize: '13px',
+              color: 'var(--msqdx-text-main)',
+              outline: 'none'
+            }}
+          />
+        </div>
+
+        <BrandColorSelector 
+          selectedColor={settings.brandColor || '#0f172a'} 
+          onColorSelect={(color) => setSettings({ ...settings, brandColor: color })}
+        />
+
+        {saveMessage !== null && (
+          <div
+            className="msqdx-mono"
+            style={{
+              padding: '10px',
+              borderRadius: '8px',
+              fontSize: '11px',
+              backgroundColor: (saveMessage as string).indexOf('Error') !== -1
+                ? 'rgba(220, 38, 38, 0.05)'
+                : 'rgba(0, 202, 85, 0.05)',
+              color: (saveMessage as string).indexOf('Error') !== -1 ? '#dc2626' : '#00ca55',
+              border: '1px solid ' + ((saveMessage as string).indexOf('Error') !== -1 ? 'rgba(220, 38, 38, 0.15)' : 'rgba(0, 202, 85, 0.15)'),
+              textAlign: 'center'
+            }}
+          >
+            {(saveMessage as string).toUpperCase()}
           </div>
+        )}
+
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="msqdx-button"
+            style={{
+              flex: 1,
+              height: '42px',
+              borderRadius: '12px',
+            }}
+          >
+            <span className="msqdx-mono">{isSaving ? t('saving', lang) : t('saveSettings', lang)}</span>
+          </button>
         </div>
       </div>
 
       <div
         style={{
-          borderTop: '1px solid #e0e0e0',
-          paddingTop: '16px',
+          borderTop: '1px solid var(--msqdx-border-color)',
+          paddingTop: '20px',
+          marginTop: '10px'
         }}
       >
-        <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '500' }}>
-          Data Management
-        </h4>
-        <button
-          onClick={handleClearHistory}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: '#ff5252',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: '14px',
+        <div 
+          className="msqdx-mono" 
+          style={{ 
+            fontSize: '9px', 
+            fontWeight: '600', 
+            color: 'var(--msqdx-text-secondary)',
+            marginBottom: '12px'
           }}
         >
-          Clear All Conversation History
+          {t('dangerZone', lang)}
+        </div>
+        <button
+          onClick={handleClearHistory}
+          className="msqdx-button secondary"
+          style={{
+            width: '100%',
+            height: '40px',
+            borderColor: '#dc2626',
+            color: '#dc2626'
+          }}
+        >
+          <span className="msqdx-mono">{t('clearHistory', lang)}</span>
         </button>
       </div>
     </div>

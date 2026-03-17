@@ -47,13 +47,36 @@ export async function captureSelection(
 }
 
 export function convertToBase64(imageBytes: Uint8Array): string {
-  // Convert Uint8Array to base64
-  const base64 = btoa(
-    Array.from(imageBytes)
-      .map((byte) => String.fromCharCode(byte))
-      .join('')
-  );
+  // Manual base64 encoding that works in both main thread and UI
+  // Avoiding btoa() as it's not available in Figma's main thread
+  const base64 = manualBase64Encode(imageBytes);
   return `data:image/png;base64,${base64}`;
+}
+
+function manualBase64Encode(bytes: Uint8Array): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  let result = '';
+  let i;
+  const l = bytes.length;
+  for (i = 2; i < l; i += 3) {
+    result += chars[bytes[i - 2] >> 2];
+    result += chars[((bytes[i - 2] & 0x03) << 4) | (bytes[i - 1] >> 4)];
+    result += chars[((bytes[i - 1] & 0x0f) << 2) | (bytes[i] >> 6)];
+    result += chars[bytes[i] & 0x3f];
+  }
+  if (i === l + 1) {
+    // 1 octet remains
+    result += chars[bytes[i - 2] >> 2];
+    result += chars[(bytes[i - 2] & 0x03) << 4];
+    result += '==';
+  } else if (i === l) {
+    // 2 octets remain
+    result += chars[bytes[i - 2] >> 2];
+    result += chars[((bytes[i - 2] & 0x03) << 4) | (bytes[i - 1] >> 4)];
+    result += chars[(bytes[i - 1] & 0x0f) << 2];
+    result += '=';
+  }
+  return result;
 }
 
 export async function optimizeImage(
