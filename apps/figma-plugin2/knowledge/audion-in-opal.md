@@ -6,12 +6,16 @@ AUDION **stellt sich selbst** im Opal-Format bereit: Die AUDION-API hat einen Di
 
 ## AUDION Discovery URL
 
-| Umgebung | URL (empfohlen) | Alternative |
-|----------|------------------|-------------|
-| **Production** | `https://audion.projects-a.plygrnd.tech/api/discovery` | `.../api/.well-known/discovery` |
-| **Eigene Instanz** | `https://<base>/api/discovery` | `https://<base>/api/.well-known/discovery` |
+Die richtige URL hängt vom **Reverse-Proxy** ab:
 
-Hinweis: `/.well-known/` wird von vielen Proxies blockiert oder nicht durchgereicht. Die Route **`/api/discovery`** (ohne .well-known) liefert dasselbe JSON – diese URL zuerst testen.
+| Setup | Discovery-URL |
+|-------|-------------------------------|
+| **Nginx mit `/api` → Backend** (siehe `infrastructure/nginx/nginx.conf`, location `/api`) | `https://audion.projects-a.plygrnd.tech/api/discovery` |
+| **Nur `/api/persona-backend` → Backend** (ohne allgemeines `/api`) | `https://audion.projects-a.plygrnd.tech/api/persona-backend/discovery` |
+
+- Im Repo ist in **`infrastructure/nginx/nginx.conf`** inzwischen eine **location `/api`** mit Rewrite auf die Persona-API eingetragen. Nach Deploy und Reload von Nginx sind **`/api/discovery`**, **`/api/personas`**, **`/api/auth/login`** usw. erreichbar.
+- Wenn bei euch nur **`/api/persona-backend`** an die API geht, **`/api/discovery`** also 404 gibt: **`/api/persona-backend/discovery`** verwenden.
+- Alternative (gleiche Response): **`/api/discovery`** bzw. **`/api/persona-backend/.well-known/discovery`** (`.well-known` wird oft blockiert).
 
 - **Methode:** `GET`
 - **Auth:** Optional `Authorization: Bearer <token>`

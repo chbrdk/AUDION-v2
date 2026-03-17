@@ -11,9 +11,11 @@ export const URL_CONFIG = {
   AUDION_API_BASE,
 
   /**
-   * AUDION Discovery URL (Opal-format). Use /api/discovery (alternate route; .well-known often blocked by proxies).
+   * AUDION Discovery URL (Opal-format).
+   * Nginx mit location /api → .../api/discovery. Nur /api/persona-backend → .../api/persona-backend/discovery.
    */
   AUDION_DISCOVERY_URL: `${AUDION_API_BASE}/api/discovery`,
+  AUDION_DISCOVERY_URL_PERSONA_BACKEND: `${AUDION_API_BASE}/api/persona-backend/discovery`,
 
   /** Optional: Other Opal discovery URL (e.g. Opal hub). When set, tools from that discovery can be used. */
   OPAL_DISCOVERY_URL: '', // Set via settings or env; empty = disabled
