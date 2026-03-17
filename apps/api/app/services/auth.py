@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -42,13 +42,22 @@ def create_access_token(*, user: User) -> str:
 
 
 def get_current_user(
-    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     session: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
 ) -> User:
-    if not credentials or not credentials.credentials:
+    """
+    Resolve user from Bearer token or X-API-Key (no cookie required).
+    For Opal / server-to-server: use API token (audion_<64 hex>) as
+    Authorization: Bearer <token> or X-API-Key: <token>.
+    """
+    token = None
+    if credentials and credentials.credentials:
+        token = credentials.credentials
+    if not token and x_api_key and x_api_key.strip():
+        token = x_api_key.strip()
+    if not token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
-
-    token = credentials.credentials
 
     # API token (audion_ + 64 hex): resolve via api_tokens table
     if (
