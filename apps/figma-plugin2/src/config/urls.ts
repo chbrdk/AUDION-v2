@@ -4,11 +4,19 @@
  * @see knowledge/urls-and-discovery.md
  */
 
+const AUDION_API_BASE = 'https://audion.projects-a.plygrnd.tech';
+
 export const URL_CONFIG = {
   /** Default AUDION API base (used when no settings override). */
-  AUDION_API_BASE: 'https://audion.projects-a.plygrnd.tech',
+  AUDION_API_BASE,
 
-  /** Optional: Opal (or other) discovery URL. When set, tools/APIs can be resolved from discovery. */
+  /**
+   * AUDION Discovery URL (Opal-format). AUDION exposes this so it can be registered in Opal.
+   * Default: AUDION API base + /.well-known/discovery
+   */
+  AUDION_DISCOVERY_URL: `${AUDION_API_BASE}/.well-known/discovery`,
+
+  /** Optional: Other Opal discovery URL (e.g. Opal hub). When set, tools from that discovery can be used. */
   OPAL_DISCOVERY_URL: '', // Set via settings or env; empty = disabled
 } as const;
 

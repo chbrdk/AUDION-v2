@@ -5,7 +5,8 @@
 All API and discovery URLs are defined in **`src/config/urls.ts`**. Do not hardcode URLs elsewhere.
 
 - **`URL_CONFIG.AUDION_API_BASE`** – Default AUDION API base (overridable in plugin settings).
-- **`URL_CONFIG.OPAL_DISCOVERY_URL`** – Optional default for Opal discovery (can be overridden in settings as `opalDiscoveryUrl`).
+- **`URL_CONFIG.AUDION_DISCOVERY_URL`** – AUDION’s own discovery URL (Opal-format). Use this to register AUDION in Opal; see `knowledge/audion-in-opal.md`.
+- **`URL_CONFIG.OPAL_DISCOVERY_URL`** – Optional other Opal discovery (e.g. Opal hub); overridable in settings as `opalDiscoveryUrl`.
 
 ## Bearer token
 
