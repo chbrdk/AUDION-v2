@@ -6,13 +6,12 @@ AUDION **stellt sich selbst** im Opal-Format bereit: Die AUDION-API hat einen Di
 
 ## AUDION Discovery URL
 
-| Umgebung | URL |
-|----------|-----|
-| **Default (Production)** | `https://audion.projects-a.plygrnd.tech/.well-known/discovery` |
-| **Eigene Instanz** | `https://<deine-audion-base>/.well-known/discovery` |
+| Umgebung | URL (empfohlen) | Alternative |
+|----------|------------------|-------------|
+| **Production** | `https://audion.projects-a.plygrnd.tech/api/discovery` | `.../api/.well-known/discovery` |
+| **Eigene Instanz** | `https://<base>/api/discovery` | `https://<base>/api/.well-known/discovery` |
 
-Falls die API in eurer Umgebung unter `/api` gemountet ist, lautet die URL:  
-`https://<base>/api/.well-known/discovery`.
+Hinweis: `/.well-known/` wird von vielen Proxies blockiert oder nicht durchgereicht. Die Route **`/api/discovery`** (ohne .well-known) liefert dasselbe JSON – diese URL zuerst testen.
 
 - **Methode:** `GET`
 - **Auth:** Optional `Authorization: Bearer <token>`

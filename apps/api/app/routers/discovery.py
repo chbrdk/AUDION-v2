@@ -94,16 +94,30 @@ def _tools() -> list[DiscoveredTool]:
     ]
 
 
-@router.get(
-    "/.well-known/discovery",
-    response_model=DiscoveryResponse,
-    summary="Opal discovery",
-    description="Returns AUDION API tools in Opal discovery format. Use this URL when registering AUDION in Opal. Optional: Authorization Bearer token.",
-)
-async def get_discovery(request: Request) -> DiscoveryResponse:
+async def _discovery_response(request: Request) -> DiscoveryResponse:
     base = str(request.base_url).rstrip("/")
     return DiscoveryResponse(
         base_url=base,
         tools=_tools(),
         version="1.0",
     )
+
+
+@router.get(
+    "/.well-known/discovery",
+    response_model=DiscoveryResponse,
+    summary="Opal discovery (.well-known)",
+    description="Returns AUDION API tools in Opal discovery format. Optional: Authorization Bearer token.",
+)
+async def get_discovery_well_known(request: Request) -> DiscoveryResponse:
+    return await _discovery_response(request)
+
+
+@router.get(
+    "/discovery",
+    response_model=DiscoveryResponse,
+    summary="Opal discovery (alternate)",
+    description="Same as /.well-known/discovery. Use if .well-known is blocked by proxy. Optional: Authorization Bearer token.",
+)
+async def get_discovery_alt(request: Request) -> DiscoveryResponse:
+    return await _discovery_response(request)
