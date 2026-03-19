@@ -30,18 +30,21 @@ Diese Regeln begründen, warum ein „Figma-Executor“, der rohe Befehle ausgib
 
 ---
 
-## 2. Aktuelle Architektur (Kurz)
+## 2. Aktuelle Architektur: Agent mit Figma-Tools (alleiniger Modus)
 
-- **Director (Planner):** Unterteilt User-Prompt in Sektionen (Name + Beschreibung).
-- **Design Spec (Designer):** Pro Sektion → neutraler Design-Baum (container, text, placeholder, button, …).
-- **Figma Executor:** Übersetzt Design-Baum in eine **einzige JSON-Liste** von Befehlen (createFrame, createRectangle, createText, appendChild, …).
-- **Command-Interpreter:** Führt die Liste sequenziell aus (kein weiterer LLM-Rundgang).
+**UI:** Tab **„Experimental“** öffnet eine Auswahlseite; dort führt der Button **„LLM Designer“** auf eine eigene Unterseite mit Wireframe-Generierung (Prompt, Viewport, Modell, Wissen, „Wireframe generieren“). Chat und Journeys enthalten keine Agent-/Wireframe-Funktionen.
 
-**Schwächen:** Ein falscher Befehl (z. B. appendChild auf Rechteck) bricht alles ab; Reihenfolge und Parent-Ids müssen in einem Rutsch stimmen; Timeouts bei großen Bäumen; kein Reagieren auf Rückgaben (z. B. „Node X erstellt“).
+Der Plugin nutzt **nur** den tool-basierten Agenten für „Insert Wireframe“:
+
+- **createStage** erzeugt die Bühne (id `"stage"`); **runWireframeToolAgent** sendet den User-Prompt an OpenAI mit Tools (createSection, createRow, addText, createButton, createHeader, createHero, …).
+- Der Agent ruft Tools in einer Schleife auf; **executeTool** führt jeden Aufruf in der Figma-Plugin-API aus und liefert zurück (z. B. sectionId, rowId).
+- Kein Director/Designer/Executor mehr; keine runCommands-Befehlsliste.
+
+(Die frühere Variante mit Director → Designer → Figma Executor → runCommands wurde entfernt.)
 
 ---
 
-## 3. Vorgeschlagene Architektur: Agent mit Figma-Tools
+## 3. Agent mit Figma-Tools (Details)
 
 ### 3.1 Grundidee
 

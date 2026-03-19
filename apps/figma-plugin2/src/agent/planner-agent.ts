@@ -1,3 +1,7 @@
+/**
+ * @deprecated Not used by generate-wireframe anymore; the plugin uses only the Wireframe Tool Agent (runWireframeToolAgent).
+ * Kept for reference or potential future use (e.g. export/replay).
+ */
 import { ViewportType, SelectionMetadata, ComponentKnowledgeBase } from '../types';
 
 export const PLANNER_AGENT_SYSTEM_PROMPT = `

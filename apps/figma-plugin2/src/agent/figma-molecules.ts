@@ -16,10 +16,24 @@ import {
   generateId,
   createSvgNode,
 } from './figma-atoms';
+import { tokens, fillFromToken } from './design-tokens';
+import type { SpacingPreset } from './design-tokens';
+
+/** Optional map of token key -> Figma Variable for binding (e.g. "colors-primary", "radius-md"). Set when running in plugin after getOrCreateWireframeVariables(). */
+export type WireframeVariableMap = Record<string, unknown>;
+
+/** Minimal Figma variables API for binding (from plugin: figma.variables). */
+export type FigmaVariablesApi = {
+  setBoundVariableForPaint: (paint: unknown, field: string, variable: unknown) => unknown;
+};
 
 export interface ToolContext {
   nodeMap: NodeMap;
   api?: FigmaApiLike | null;
+  /** When set, molecules can bind node properties (fills, cornerRadius, etc.) to these Figma variables. */
+  variables?: WireframeVariableMap | null;
+  /** When set (in plugin), use for setBoundVariableForPaint so bindings apply. */
+  variablesApi?: FigmaVariablesApi | null;
 }
 
 export interface CreateButtonArgs {
@@ -34,25 +48,22 @@ export type CreateButtonResult =
   | { success: true; buttonId: string }
   | { success: false; error: string };
 
-const DEFAULT_BUTTON_HEIGHT = 44;
-const BUTTON_PADDING = 12;
-
 function buttonFillsForVariant(variant: 'primary' | 'secondary' | 'outline'): SolidFill[] | undefined {
   switch (variant) {
     case 'primary':
-      return [{ type: 'SOLID', color: { r: 0.2, g: 0.2, b: 0.2 }, opacity: 1 }];
+      return [fillFromToken(tokens.colors.primary)];
     case 'secondary':
-      return [{ type: 'SOLID', color: { r: 0.9, g: 0.9, b: 0.9 }, opacity: 1 }];
+      return [fillFromToken(tokens.colors.secondary)];
     case 'outline':
       return undefined;
     default:
-      return [{ type: 'SOLID', color: { r: 0.2, g: 0.2, b: 0.2 }, opacity: 1 }];
+      return [fillFromToken(tokens.colors.primary)];
   }
 }
 
 function buttonStrokesForVariant(variant: 'primary' | 'secondary' | 'outline'): SolidFill[] | undefined {
   if (variant === 'outline') {
-    return [{ type: 'SOLID', color: { r: 0.3, g: 0.3, b: 0.3 }, opacity: 1 }];
+    return [fillFromToken(tokens.colors.border)];
   }
   return undefined;
 }
@@ -72,56 +83,78 @@ export async function createButton(
   }
 
   const variant = args.variant ?? 'primary';
-  const width = args.width ?? 140;
-  const height = DEFAULT_BUTTON_HEIGHT;
+  const width = args.width ?? tokens.sizing.buttonMinWidth;
+  const height = tokens.sizing.buttonHeight;
+  const paddingX = tokens.sizing.buttonPaddingX;
   const buttonId = args.id ?? generateId('btn');
+  const innerId = `${buttonId}_inner`;
 
   try {
-    // 1. Frame for button container (no layout so rect and text can overlap)
+    // 1. Outer frame with padding (so we can bind tw-spacing-3 to padding in Figma)
+    const paddingVar = context.variables?.['spacing-3'];
     createFrame(nodeMap, {
       id: buttonId,
       name: `Button: ${args.label}`,
       width,
       height,
-      layoutMode: 'NONE',
-      fills: undefined,
+      layoutMode: 'HORIZONTAL',
+      paddingLeft: paddingX,
+      paddingRight: paddingX,
+      paddingLeftVariable: paddingVar,
+      paddingRightVariable: paddingVar,
     }, api);
 
-    // 2. Rectangle for background
+    // 2. Inner frame (NONE) so rect and text can overlap
+    createFrame(nodeMap, {
+      id: innerId,
+      name: 'Button content',
+      width: width - paddingX * 2,
+      height,
+      layoutMode: 'NONE',
+    }, api);
+
+    // 3. Rectangle for background (bind to Figma variables)
     const rectId = generateId('btn_rect');
+    const fillVar = variant === 'primary' ? context.variables?.['colors-primary'] : context.variables?.['colors-secondary'];
+    const radiusVar = context.variables?.['radius-md'];
     createRectangle(nodeMap, {
       id: rectId,
       name: 'Button background',
-      width,
+      width: width - paddingX * 2,
       height,
       fills: buttonFillsForVariant(variant),
       strokes: buttonStrokesForVariant(variant),
       strokeWeight: variant === 'outline' ? 1 : undefined,
-      cornerRadius: 8,
+      cornerRadius: tokens.radius.md,
+      fillVariable: fillVar,
+      cornerRadiusVariable: radiusVar,
+      _variablesApi: context.variablesApi ?? undefined,
     }, api);
 
-    // 3. Load font and create text label
+    // 4. Text label
     await loadFont('Inter', 'Regular', api);
     const textId = generateId('btn_text');
     const textFill: SolidFill = variant === 'primary'
-      ? { type: 'SOLID', color: { r: 1, g: 1, b: 1 }, opacity: 1 }
-      : { type: 'SOLID', color: { r: 0.2, g: 0.2, b: 0.2 }, opacity: 1 };
+      ? fillFromToken(tokens.colors.primaryForeground)
+      : fillFromToken(tokens.colors.secondaryForeground);
+    const bodySize = tokens.typography.body.fontSize;
     await createText(nodeMap, {
       id: textId,
       name: 'Button label',
       characters: args.label,
-      fontSize: 14,
-      fontFamily: 'Inter',
-      fontStyle: 'Regular',
+      fontSize: bodySize,
+      fontFamily: tokens.typography.fontFamily,
+      fontStyle: tokens.typography.body.fontStyle,
       fills: [textFill],
       textAutoResize: 'HEIGHT',
-      x: BUTTON_PADDING,
-      y: (height - 14) / 2,
+      x: 0,
+      y: (height - bodySize) / 2,
     }, api);
 
-    // 4. Build hierarchy: rect and text into button frame, then button frame into parent
-    appendChild(nodeMap, buttonId, rectId);
-    appendChild(nodeMap, buttonId, textId);
+    // 5. Hierarchy: rect + text -> inner frame -> button frame -> parent
+    appendChild(nodeMap, innerId, rectId);
+    appendChild(nodeMap, innerId, textId);
+    appendChild(nodeMap, buttonId, innerId);
     appendChild(nodeMap, args.parentId, buttonId);
 
     return { success: true, buttonId };
@@ -169,16 +202,17 @@ export async function createButtonRow(
   }
 
   const direction = args.direction ?? 'horizontal';
-  const gap = args.gap ?? 12;
+  const gap = args.gap ?? tokens.spacing[3];
   const buttonRowId = args.id ?? generateId('button_row');
-  const defaultBtnWidth = 140;
+  const defaultBtnWidth = tokens.sizing.buttonMinWidth;
+  const btnHeight = tokens.sizing.buttonHeight;
   const n = args.buttons.length;
   const rowWidth = direction === 'horizontal'
     ? n * defaultBtnWidth + (n - 1) * gap
     : defaultBtnWidth;
   const rowHeight = direction === 'horizontal'
-    ? DEFAULT_BUTTON_HEIGHT
-    : n * DEFAULT_BUTTON_HEIGHT + (n - 1) * gap;
+    ? btnHeight
+    : n * btnHeight + (n - 1) * gap;
 
   try {
     createFrame(nodeMap, {
@@ -236,9 +270,6 @@ export type CreateIconButtonResult =
   | { success: true; buttonId: string }
   | { success: false; error: string };
 
-const ICON_BUTTON_HEIGHT = 44;
-const ICON_BUTTON_PADDING = 12;
-const DEFAULT_ICON_SIZE = 24;
 
 /**
  * Creates a button with optional icon (from SVG code) and/or label.
@@ -270,8 +301,9 @@ export async function createIconButton(
     });
   }
 
-  const iconSize = args.iconSize ?? DEFAULT_ICON_SIZE;
-  const height = ICON_BUTTON_HEIGHT;
+  const iconSize = args.iconSize ?? tokens.sizing.iconSize;
+  const height = tokens.sizing.buttonHeight;
+  const paddingX = tokens.sizing.buttonPaddingX;
   const buttonId = args.id ?? generateId('icon_btn');
 
   try {
@@ -293,7 +325,7 @@ export async function createIconButton(
         fills: buttonFillsForVariant(args.variant ?? 'primary'),
         strokes: buttonStrokesForVariant(args.variant ?? 'primary'),
         strokeWeight: args.variant === 'outline' ? 1 : undefined,
-        cornerRadius: 8,
+        cornerRadius: tokens.radius.md,
       }, api);
       const svgResult = createSvgNode(nodeMap, args.iconSvg!.trim(), generateId('icon_btn_svg'), api);
       if (!svgResult.success) return svgResult;
@@ -311,25 +343,25 @@ export async function createIconButton(
       return { success: true, buttonId };
     }
 
-    const gap = 8;
-    await loadFont('Inter', 'Regular', api);
+    const gap = tokens.spacing[2];
+    await loadFont(tokens.typography.fontFamily, tokens.typography.body.fontStyle, api);
     const textId = generateId('icon_btn_text');
     const textFill: SolidFill = args.variant === 'primary'
-      ? { type: 'SOLID', color: { r: 1, g: 1, b: 1 }, opacity: 1 }
-      : { type: 'SOLID', color: { r: 0.2, g: 0.2, b: 0.2 }, opacity: 1 };
+      ? fillFromToken(tokens.colors.primaryForeground)
+      : fillFromToken(tokens.colors.secondaryForeground);
     await createText(nodeMap, {
       id: textId,
       name: 'Label',
       characters: args.label!,
-      fontSize: 14,
-      fontFamily: 'Inter',
-      fontStyle: 'Regular',
+      fontSize: tokens.typography.body.fontSize,
+      fontFamily: tokens.typography.fontFamily,
+      fontStyle: tokens.typography.body.fontStyle,
       fills: [textFill],
       textAutoResize: 'HEIGHT',
     }, api);
     const textNode = nodeMap.get(textId);
     const textW = textNode && 'width' in textNode ? (textNode as { width: number }).width : 60;
-    const width = ICON_BUTTON_PADDING + iconSize + gap + textW + ICON_BUTTON_PADDING;
+    const width = paddingX + iconSize + gap + textW + paddingX;
     const rectId = generateId('icon_btn_rect');
 
     createFrame(nodeMap, {
@@ -347,7 +379,7 @@ export async function createIconButton(
       fills: buttonFillsForVariant(args.variant ?? 'primary'),
       strokes: buttonStrokesForVariant(args.variant ?? 'primary'),
       strokeWeight: args.variant === 'outline' ? 1 : undefined,
-      cornerRadius: 8,
+      cornerRadius: tokens.radius.md,
     }, api);
     const svgResult = createSvgNode(nodeMap, args.iconSvg!.trim(), generateId('icon_btn_svg'), api);
     if (!svgResult.success) return svgResult;
@@ -356,12 +388,12 @@ export async function createIconButton(
       (svgNode as { resize: (w: number, h: number) => void }).resize(iconSize, iconSize);
     }
     if (svgNode && 'x' in svgNode && 'y' in svgNode) {
-      (svgNode as { x: number; y: number }).x = ICON_BUTTON_PADDING;
+      (svgNode as { x: number; y: number }).x = paddingX;
       (svgNode as { x: number; y: number }).y = (height - iconSize) / 2;
     }
     if (textNode && 'x' in textNode && 'y' in textNode) {
-      (textNode as { x: number; y: number }).x = ICON_BUTTON_PADDING + iconSize + gap;
-      (textNode as { y: number }).y = (height - 14) / 2;
+      (textNode as { x: number; y: number }).x = paddingX + iconSize + gap;
+      (textNode as { y: number }).y = (height - tokens.typography.body.fontSize) / 2;
     }
     appendChild(nodeMap, buttonId, rectId);
     appendChild(nodeMap, buttonId, svgResult.nodeId);
@@ -428,13 +460,6 @@ export function createStage(
 
 // --- createSection ---
 
-export type SpacingPreset = 'compact' | 'normal' | 'spacious';
-
-const SPACING_VALUES: Record<SpacingPreset, { gap: number; padding: number }> = {
-  compact: { gap: 8, padding: 12 },
-  normal: { gap: 16, padding: 20 },
-  spacious: { gap: 24, padding: 32 },
-};
 
 export interface CreateSectionArgs {
   parentId: string;
@@ -469,10 +494,12 @@ export function createSection(
   }
 
   const direction = args.direction ?? 'vertical';
-  const preset = args.spacing ? SPACING_VALUES[args.spacing] : null;
+  const preset = args.spacing ? tokens.sectionPresets[args.spacing] : null;
   const gap = args.gap ?? preset?.gap ?? 16;
   const padding = args.padding ?? preset?.padding ?? 20;
   const sectionId = args.id ?? generateId('section');
+  const parentWidth = parent && 'width' in parent ? (parent as { width: number }).width : 400;
+  const sectionWidth = args.width ?? parentWidth;
 
   const counterAxisAlign = args.align === 'center' ? 'CENTER' as const : args.align === 'max' ? 'MAX' as const : args.align === 'min' ? 'MIN' as const : undefined;
 
@@ -480,7 +507,7 @@ export function createSection(
     createFrame(nodeMap, {
       id: sectionId,
       name: args.name ?? `Section ${sectionId}`,
-      width: args.width ?? 400,
+      width: sectionWidth,
       height: args.height ?? 300,
       layoutMode: direction === 'horizontal' ? 'HORIZONTAL' : 'VERTICAL',
       itemSpacing: gap,
@@ -531,12 +558,13 @@ export function createRow(
   const gap = args.gap ?? 24;
   const padding = args.padding ?? 20;
   const rowCounterAlign = args.align === 'center' ? 'CENTER' as const : args.align === 'max' ? 'MAX' as const : args.align === 'min' ? 'MIN' as const : undefined;
+  const parentWidth = parent && 'width' in parent ? (parent as { width: number }).width : 800;
 
   try {
     createFrame(nodeMap, {
       id: rowId,
       name: args.name ?? `Row ${rowId}`,
-      width: 800,
+      width: parentWidth,
       height: 200,
       layoutMode: 'HORIZONTAL',
       primaryAxisSizingMode: 'AUTO',
@@ -626,7 +654,6 @@ export type CreateDividerResult =
   | { success: true; dividerId: string }
   | { success: false; error: string };
 
-const DIVIDER_STROKE: SolidFill = { type: 'SOLID', color: { r: 0.85, g: 0.85, b: 0.85 }, opacity: 1 };
 
 /**
  * Creates a divider line (horizontal or vertical) in a wrapper frame and appends to parent.
@@ -642,7 +669,9 @@ export function createDivider(
   }
 
   const orientation = args.orientation ?? 'horizontal';
-  const length = args.length ?? 200;
+  const parentWidth = parent && 'width' in parent ? (parent as { width: number }).width : 0;
+  const defaultLength = orientation === 'horizontal' && parentWidth >= 200 ? parentWidth - 40 : 200;
+  const length = args.length ?? defaultLength;
   const strokeWeight = args.strokeWeight ?? 1;
   const dividerId = args.id ?? generateId('divider');
 
@@ -666,7 +695,7 @@ export function createDivider(
       length,
       x: 0,
       y: 0,
-      strokes: [DIVIDER_STROKE],
+      strokes: [fillFromToken(tokens.colors.border)],
       strokeWeight,
     }, api);
 
@@ -699,8 +728,6 @@ export type CreateAvatarResult =
   | { success: true; avatarId: string }
   | { success: false; error: string };
 
-const AVATAR_FILL: SolidFill = { type: 'SOLID', color: { r: 0.75, g: 0.75, b: 0.78 }, opacity: 1 };
-const AVATAR_TEXT_FILL: SolidFill = { type: 'SOLID', color: { r: 1, g: 1, b: 1 }, opacity: 1 };
 
 /**
  * Creates an avatar: circle (ellipse) with centered initials text.
@@ -715,7 +742,7 @@ export async function createAvatar(
     return { success: false, error: `createAvatar: parent "${args.parentId}" not found or not a container` };
   }
 
-  const size = args.size ?? 40;
+  const size = args.size ?? tokens.sizing.avatarSize;
   const avatarId = args.id ?? generateId('avatar');
   const initials = (args.initials || '?').slice(0, 2).toUpperCase();
 
@@ -734,7 +761,7 @@ export async function createAvatar(
       name: 'Circle',
       width: size,
       height: size,
-      fills: [AVATAR_FILL],
+      fills: [fillFromToken(tokens.colors.avatar)],
     }, api);
     appendChild(nodeMap, avatarId, ellipseId);
 
@@ -748,7 +775,7 @@ export async function createAvatar(
       fontSize,
       fontFamily: 'Inter',
       fontStyle: 'Semi Bold',
-      fills: [AVATAR_TEXT_FILL],
+      fills: [fillFromToken(tokens.colors.primaryForeground)],
       textAlignHorizontal: 'CENTER',
       textAutoResize: 'HEIGHT',
       x: Math.round((size - fontSize) / 2),
@@ -930,10 +957,6 @@ export type CreateInputResult =
   | { success: true; inputId: string }
   | { success: false; error: string };
 
-const INPUT_FIELD_HEIGHT = 36;
-const INPUT_WIDTH = 280;
-const INPUT_STROKE: SolidFill = { type: 'SOLID', color: { r: 0.75, g: 0.75, b: 0.78 }, opacity: 1 };
-const INPUT_PLACEHOLDER_FILL: SolidFill = { type: 'SOLID', color: { r: 0.55, g: 0.55, b: 0.55 }, opacity: 1 };
 
 /**
  * Creates a single input field: optional label, stroke rectangle as field, optional placeholder text.
@@ -949,14 +972,16 @@ export async function createInput(
   }
 
   const inputId = args.id ?? generateId('input');
-  const labelGap = 4;
-  const totalHeight = (args.label ? 12 + labelGap : 0) + INPUT_FIELD_HEIGHT;
+  const labelGap = tokens.spacing[1];
+  const inputHeight = tokens.sizing.inputHeight;
+  const inputWidth = tokens.sizing.inputWidth;
+  const totalHeight = (args.label ? tokens.typography.small.fontSize + labelGap : 0) + inputHeight;
 
   try {
     createFrame(nodeMap, {
       id: inputId,
       name: `Input: ${(args.label || args.placeholder || 'Field').slice(0, 30)}`,
-      width: INPUT_WIDTH,
+      width: inputWidth,
       height: totalHeight,
       layoutMode: 'VERTICAL',
       itemSpacing: labelGap,
@@ -980,8 +1005,8 @@ export async function createInput(
     createFrame(nodeMap, {
       id: fieldFrameId,
       name: 'Field',
-      width: INPUT_WIDTH,
-      height: INPUT_FIELD_HEIGHT,
+      width: inputWidth,
+      height: inputHeight,
       layoutMode: 'NONE',
     }, api);
 
@@ -989,10 +1014,10 @@ export async function createInput(
     createRectangle(nodeMap, {
       id: rectId,
       name: 'Border',
-      width: INPUT_WIDTH,
-      height: INPUT_FIELD_HEIGHT,
-      cornerRadius: 4,
-      strokes: [INPUT_STROKE],
+      width: inputWidth,
+      height: inputHeight,
+      cornerRadius: tokens.radius.sm,
+      strokes: [fillFromToken(tokens.colors.input)],
       strokeWeight: 1,
       x: 0,
       y: 0,
@@ -1000,7 +1025,7 @@ export async function createInput(
     appendChild(nodeMap, fieldFrameId, rectId);
 
     if (args.placeholder) {
-      await loadFont('Inter', 'Regular', api);
+      await loadFont(tokens.typography.fontFamily, tokens.typography.body.fontStyle, api);
       const phTextId = generateId('input_ph');
       await createText(nodeMap, {
         id: phTextId,
@@ -1009,9 +1034,9 @@ export async function createInput(
         fontSize: 12,
         fontFamily: 'Inter',
         fontStyle: 'Regular',
-        fills: [INPUT_PLACEHOLDER_FILL],
-        x: 8,
-        y: Math.round((INPUT_FIELD_HEIGHT - 12) / 2),
+        fills: [fillFromToken(tokens.colors.placeholder)],
+        x: tokens.spacing[2],
+        y: Math.round((inputHeight - tokens.typography.small.fontSize) / 2),
       }, api);
       appendChild(nodeMap, fieldFrameId, phTextId);
     }
@@ -1113,7 +1138,6 @@ export type CreateCheckboxResult =
   | { success: true; checkboxId: string }
   | { success: false; error: string };
 
-const CHECKBOX_SIZE = 18;
 const CHECKBOX_STROKE: SolidFill = { type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.52 }, opacity: 1 };
 const CHECKBOX_CHECKED_FILL: SolidFill = { type: 'SOLID', color: { r: 0.2, g: 0.5, b: 0.9 }, opacity: 1 };
 
@@ -1139,7 +1163,7 @@ export async function createCheckbox(
     createFrame(nodeMap, {
       id: checkboxId,
       name: `Checkbox: ${label.slice(0, 30)}`,
-      width: CHECKBOX_SIZE + gap + (label ? 120 : 0),
+      width: tokens.sizing.checkboxSize + gap + (label ? 120 : 0),
       height: rowHeight,
       layoutMode: 'HORIZONTAL',
       itemSpacing: gap,
@@ -1153,14 +1177,14 @@ export async function createCheckbox(
     createRectangle(nodeMap, {
       id: boxId,
       name: 'Box',
-      width: CHECKBOX_SIZE,
-      height: CHECKBOX_SIZE,
+      width: tokens.sizing.checkboxSize,
+      height: tokens.sizing.checkboxSize,
       cornerRadius: 4,
       strokes: [CHECKBOX_STROKE],
       strokeWeight: 1,
       fills: args.checked ? [CHECKBOX_CHECKED_FILL] : undefined,
       x: 0,
-      y: (rowHeight - CHECKBOX_SIZE) / 2,
+      y: (rowHeight - tokens.sizing.checkboxSize) / 2,
     }, api);
     appendChild(nodeMap, checkboxId, boxId);
 
@@ -1195,7 +1219,6 @@ export type CreateRadioResult =
   | { success: true; radioId: string }
   | { success: false; error: string };
 
-const RADIO_SIZE = 18;
 const RADIO_STROKE: SolidFill = { type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.52 }, opacity: 1 };
 const RADIO_SELECTED_FILL: SolidFill = { type: 'SOLID', color: { r: 0.2, g: 0.5, b: 0.9 }, opacity: 1 };
 
@@ -1221,7 +1244,7 @@ export async function createRadio(
     createFrame(nodeMap, {
       id: radioId,
       name: `Radio: ${label.slice(0, 30)}`,
-      width: RADIO_SIZE + gap + (label ? 120 : 0),
+      width: tokens.sizing.radioSize + gap + (label ? 120 : 0),
       height: rowHeight,
       layoutMode: 'HORIZONTAL',
       itemSpacing: gap,
@@ -1235,13 +1258,13 @@ export async function createRadio(
     createEllipse(nodeMap, {
       id: circleId,
       name: 'Circle',
-      width: RADIO_SIZE,
-      height: RADIO_SIZE,
+      width: tokens.sizing.radioSize,
+      height: tokens.sizing.radioSize,
       strokes: [RADIO_STROKE],
       strokeWeight: 1,
       fills: args.selected ? [RADIO_SELECTED_FILL] : undefined,
       x: 0,
-      y: (rowHeight - RADIO_SIZE) / 2,
+      y: (rowHeight - tokens.sizing.radioSize) / 2,
     }, api);
     appendChild(nodeMap, radioId, circleId);
 
@@ -1277,10 +1300,6 @@ export type CreateTextareaResult =
   | { success: true; textareaId: string }
   | { success: false; error: string };
 
-const TEXTAREA_MIN_ROWS = 2;
-const TEXTAREA_MAX_ROWS = 8;
-const TEXTAREA_ROW_HEIGHT = 24;
-const TEXTAREA_WIDTH = 280;
 
 /**
  * Creates a multi-line text field: optional label, stroke rectangle (taller than input), optional placeholder.
@@ -1296,16 +1315,18 @@ export async function createTextarea(
   }
 
   const textareaId = args.id ?? generateId('textarea');
-  const labelGap = 4;
-  const rows = Math.min(TEXTAREA_MAX_ROWS, Math.max(TEXTAREA_MIN_ROWS, args.rows ?? 3));
-  const fieldHeight = rows * TEXTAREA_ROW_HEIGHT;
-  const totalHeight = (args.label ? 12 + labelGap : 0) + fieldHeight;
+  const labelGap = tokens.spacing[1];
+  const tw = tokens.sizing.textareaWidth;
+  const rowH = tokens.sizing.textareaRowHeight;
+  const rows = Math.min(tokens.sizing.textareaMaxRows, Math.max(tokens.sizing.textareaMinRows, args.rows ?? 3));
+  const fieldHeight = rows * rowH;
+  const totalHeight = (args.label ? tokens.typography.small.fontSize + labelGap : 0) + fieldHeight;
 
   try {
     createFrame(nodeMap, {
       id: textareaId,
       name: `Textarea: ${(args.label || args.placeholder || 'Field').slice(0, 30)}`,
-      width: TEXTAREA_WIDTH,
+      width: tw,
       height: totalHeight,
       layoutMode: 'VERTICAL',
       itemSpacing: labelGap,
@@ -1329,7 +1350,7 @@ export async function createTextarea(
     createFrame(nodeMap, {
       id: fieldFrameId,
       name: 'Field',
-      width: TEXTAREA_WIDTH,
+      width: tw,
       height: fieldHeight,
       layoutMode: 'NONE',
     }, api);
@@ -1338,10 +1359,10 @@ export async function createTextarea(
     createRectangle(nodeMap, {
       id: rectId,
       name: 'Border',
-      width: TEXTAREA_WIDTH,
+      width: tw,
       height: fieldHeight,
-      cornerRadius: 4,
-      strokes: [INPUT_STROKE],
+      cornerRadius: tokens.radius.sm,
+      strokes: [fillFromToken(tokens.colors.input)],
       strokeWeight: 1,
       x: 0,
       y: 0,
@@ -1349,18 +1370,18 @@ export async function createTextarea(
     appendChild(nodeMap, fieldFrameId, rectId);
 
     if (args.placeholder) {
-      await loadFont('Inter', 'Regular', api);
+      await loadFont(tokens.typography.fontFamily, tokens.typography.body.fontStyle, api);
       const phTextId = generateId('textarea_ph');
       await createText(nodeMap, {
         id: phTextId,
         name: 'Placeholder',
         characters: args.placeholder,
-        fontSize: 12,
-        fontFamily: 'Inter',
-        fontStyle: 'Regular',
-        fills: [INPUT_PLACEHOLDER_FILL],
-        x: 8,
-        y: 8,
+        fontSize: tokens.typography.small.fontSize,
+        fontFamily: tokens.typography.fontFamily,
+        fontStyle: tokens.typography.small.fontStyle,
+        fills: [fillFromToken(tokens.colors.placeholder)],
+        x: tokens.spacing[2],
+        y: tokens.spacing[2],
       }, api);
       appendChild(nodeMap, fieldFrameId, phTextId);
     }
@@ -1378,9 +1399,6 @@ export async function createTextarea(
 
 const TABLE_MAX_COLUMNS = 10;
 const TABLE_MAX_ROWS = 20;
-const TABLE_ROW_HEIGHT = 32;
-const TABLE_CELL_PADDING = 8;
-const TABLE_CELL_MIN_WIDTH = 60;
 
 export interface CreateTableArgs {
   parentId: string;
@@ -1412,17 +1430,17 @@ export async function createTable(
   const cols = Math.max(1, Math.min(TABLE_MAX_COLUMNS, args.columns));
   const rowCount = Math.max(1, Math.min(TABLE_MAX_ROWS, args.rows));
   const tableId = args.id ?? generateId('table');
-  const cellWidth = Math.max(TABLE_CELL_MIN_WIDTH, Math.round(400 / cols));
+  const cellWidth = Math.max(tokens.sizing.tableCellMinWidth, Math.round(400 / cols));
   const tableWidth = cols * cellWidth;
 
   try {
-    await loadFont('Inter', 'Regular', api);
+    await loadFont(tokens.typography.fontFamily, tokens.typography.body.fontStyle, api);
 
     createFrame(nodeMap, {
       id: tableId,
       name: `Table ${cols}x${rowCount}`,
       width: tableWidth,
-      height: rowCount * TABLE_ROW_HEIGHT,
+      height: rowCount * tokens.sizing.tableRowHeight,
       layoutMode: 'VERTICAL',
       itemSpacing: 0,
       paddingTop: 0,
@@ -1440,7 +1458,7 @@ export async function createTable(
         id: rowId,
         name: `Row ${r}`,
         width: tableWidth,
-        height: TABLE_ROW_HEIGHT,
+        height: tokens.sizing.tableRowHeight,
         layoutMode: 'HORIZONTAL',
         itemSpacing: 0,
         paddingTop: 0,
@@ -1459,25 +1477,23 @@ export async function createTable(
           id: cellId,
           name: `Cell ${r}-${c}`,
           width: cellWidth,
-          height: TABLE_ROW_HEIGHT,
+          height: tokens.sizing.tableRowHeight,
           layoutMode: 'NONE',
         }, api);
 
         const textId = generateId(`table_text_${r}_${c}`);
-        const fill: SolidFill = isHeader
-          ? { type: 'SOLID', color: { r: 0.2, g: 0.2, b: 0.2 }, opacity: 1 }
-          : { type: 'SOLID', color: { r: 0.35, g: 0.35, b: 0.35 }, opacity: 1 };
+        const cellFontSize = isHeader ? tokens.typography.small.fontSize : tokens.typography.caption.fontSize;
         await createText(nodeMap, {
           id: textId,
           name: 'Cell text',
           characters: text || ' ',
-          fontSize: isHeader ? 12 : 11,
-          fontFamily: 'Inter',
-          fontStyle: isHeader ? 'Semi Bold' : 'Regular',
-          fills: [fill],
+          fontSize: cellFontSize,
+          fontFamily: tokens.typography.fontFamily,
+          fontStyle: isHeader ? tokens.typography.h3.fontStyle : tokens.typography.body.fontStyle,
+          fills: [fillFromToken(isHeader ? tokens.colors.foreground : tokens.colors.mutedForeground)],
           textAutoResize: 'HEIGHT',
-          x: TABLE_CELL_PADDING,
-          y: Math.round((TABLE_ROW_HEIGHT - (isHeader ? 12 : 11)) / 2),
+          x: tokens.spacing[2],
+          y: Math.round((tokens.sizing.tableRowHeight - cellFontSize) / 2),
         }, api);
         appendChild(nodeMap, cellId, textId);
         appendChild(nodeMap, rowId, cellId);
@@ -1507,11 +1523,6 @@ export type CreateListResult =
   | { success: true; listId: string }
   | { success: false; error: string };
 
-const LIST_ITEM_SPACING = 6;
-const LIST_ROW_GAP = 8;
-const BULLET_SIZE = 6;
-const BULLET_FILL: SolidFill = { type: 'SOLID', color: { r: 0.3, g: 0.3, b: 0.32 }, opacity: 1 };
-
 /**
  * Creates a list: vertical frame with one row per item. variant bullet = small ellipse, numbered = "1." "2." …, plain = text only.
  */
@@ -1533,15 +1544,15 @@ export async function createList(
   const variant = args.variant ?? 'bullet';
 
   try {
-    await loadFont('Inter', 'Regular', api);
+    await loadFont(tokens.typography.fontFamily, tokens.typography.body.fontStyle, api);
 
     createFrame(nodeMap, {
       id: listId,
       name: `List ${args.items.length} items`,
       width: 320,
-      height: args.items.length * (20 + LIST_ITEM_SPACING) - LIST_ITEM_SPACING,
+      height: args.items.length * (tokens.sizing.listItemHeight + tokens.sizing.listItemSpacing) - tokens.sizing.listItemSpacing,
       layoutMode: 'VERTICAL',
-      itemSpacing: LIST_ITEM_SPACING,
+      itemSpacing: tokens.sizing.listItemSpacing,
       paddingTop: 0,
       paddingBottom: 0,
       paddingLeft: 0,
@@ -1555,9 +1566,9 @@ export async function createList(
         id: rowId,
         name: `List item ${i + 1}`,
         width: 320,
-        height: 20,
+        height: tokens.sizing.listItemHeight,
         layoutMode: 'HORIZONTAL',
-        itemSpacing: LIST_ROW_GAP,
+        itemSpacing: tokens.spacing[2],
         paddingTop: 0,
         paddingBottom: 0,
         paddingLeft: 0,
@@ -1569,11 +1580,11 @@ export async function createList(
         createEllipse(nodeMap, {
           id: bulletId,
           name: 'Bullet',
-          width: BULLET_SIZE,
-          height: BULLET_SIZE,
-          fills: [BULLET_FILL],
+          width: tokens.sizing.bulletSize,
+          height: tokens.sizing.bulletSize,
+          fills: [fillFromToken(tokens.colors.foreground)],
           x: 0,
-          y: (20 - BULLET_SIZE) / 2,
+          y: (tokens.sizing.listItemHeight - tokens.sizing.bulletSize) / 2,
         }, api);
         appendChild(nodeMap, rowId, bulletId);
       } else if (variant === 'numbered') {
@@ -1582,13 +1593,13 @@ export async function createList(
           id: numId,
           name: 'Number',
           characters: `${i + 1}.`,
-          fontSize: 12,
-          fontFamily: 'Inter',
-          fontStyle: 'Regular',
-          fills: [{ type: 'SOLID', color: { r: 0.35, g: 0.35, b: 0.35 }, opacity: 1 }],
+          fontSize: tokens.typography.small.fontSize,
+          fontFamily: tokens.typography.fontFamily,
+          fontStyle: tokens.typography.small.fontStyle,
+          fills: [fillFromToken(tokens.colors.mutedForeground)],
           textAutoResize: 'HEIGHT',
           x: 0,
-          y: 4,
+          y: tokens.spacing[1],
         }, api);
         appendChild(nodeMap, rowId, numId);
       }
@@ -1626,9 +1637,6 @@ export type CreateHeaderResult =
   | { success: true; headerId: string }
   | { success: false; error: string };
 
-const HEADER_LOGO_WIDTH = 80;
-const HEADER_LOGO_HEIGHT = 32;
-const HEADER_NAV_GAP = 24;
 
 /**
  * Creates a header section: horizontal section with logo placeholder, nav items (addText), and optional CTA button.
@@ -1646,12 +1654,13 @@ export async function createHeader(
   const headerId = args.id ?? generateId('header');
 
   try {
+    const parentWidth = parent && 'width' in parent ? (parent as { width: number }).width : 800;
     const sectionResult = createSection(context, {
       parentId: args.parentId,
       direction: 'horizontal',
       spacing: 'normal',
-      width: 800,
-      height: 64,
+      width: parentWidth,
+      height: tokens.sizing.headerHeight,
       align: 'center',
       id: headerId,
     });
@@ -1662,10 +1671,10 @@ export async function createHeader(
       createRectangle(nodeMap, {
         id: logoRectId,
         name: 'Logo',
-        width: HEADER_LOGO_WIDTH,
-        height: HEADER_LOGO_HEIGHT,
-        fills: [{ type: 'SOLID', color: { r: 0.92, g: 0.92, b: 0.94 }, opacity: 1 }],
-        cornerRadius: 4,
+        width: tokens.sizing.logoWidth,
+        height: tokens.sizing.logoHeight,
+        fills: [fillFromToken(tokens.colors.card)],
+        cornerRadius: tokens.radius.sm,
         x: 0,
         y: 0,
       }, api);
@@ -1682,10 +1691,10 @@ export async function createHeader(
       createRectangle(nodeMap, {
         id: logoRectId,
         name: 'Logo',
-        width: HEADER_LOGO_WIDTH,
-        height: HEADER_LOGO_HEIGHT,
-        fills: [{ type: 'SOLID', color: { r: 0.92, g: 0.92, b: 0.94 }, opacity: 1 }],
-        cornerRadius: 4,
+        width: tokens.sizing.logoWidth,
+        height: tokens.sizing.logoHeight,
+        fills: [fillFromToken(tokens.colors.card)],
+        cornerRadius: tokens.radius.sm,
         x: 0,
         y: 0,
       }, api);
@@ -1704,6 +1713,20 @@ export async function createHeader(
     }
 
     if (args.ctaLabel != null && args.ctaLabel !== '') {
+      const headerSpacerId = generateId('header_spacer');
+      createFrame(nodeMap, {
+        id: headerSpacerId,
+        name: 'Spacer',
+        width: 0,
+        height: tokens.sizing.headerHeight,
+        layoutMode: 'NONE',
+      }, api);
+      appendChild(nodeMap, headerId, headerSpacerId);
+      const spacerNode = nodeMap.get(headerSpacerId);
+      if (spacerNode && 'layoutGrow' in spacerNode) {
+        (spacerNode as SceneNode & { layoutGrow: number }).layoutGrow = 1;
+      }
+
       const btnResult = await createButton(context, {
         parentId: headerId,
         label: args.ctaLabel,
@@ -1753,13 +1776,14 @@ export async function createHero(
   }
 
   const heroId = args.id ?? generateId('hero');
+  const parentWidth = parent && 'width' in parent ? (parent as { width: number }).width : 600;
 
   try {
     const sectionResult = createSection(context, {
       parentId: args.parentId,
       direction: 'vertical',
       spacing: 'spacious',
-      width: 600,
+      width: parentWidth,
       height: 400,
       id: heroId,
     });
@@ -1784,10 +1808,12 @@ export async function createHero(
     }
 
     if (args.imageLabel != null && args.imageLabel !== '') {
+      const heroImageWidth = Math.max(320, parentWidth - 64);
+      const heroImageHeight = Math.min(400, Math.round(heroImageWidth * 0.35));
       const imgResult = await addPlaceholderImage(context, {
         parentId: heroId,
-        width: 560,
-        height: 280,
+        width: heroImageWidth,
+        height: heroImageHeight,
         label: args.imageLabel,
         id: generateId('hero_image'),
       });
@@ -1810,6 +1836,313 @@ export async function createHero(
   }
 }
 
+// --- createFooter ---
+
+export interface CreateFooterArgs {
+  parentId: string;
+  /** Left-aligned text (e.g. "© 2025 Company") */
+  leftText?: string;
+  /** Optional link labels in the center (e.g. ["Impressum", "Datenschutz", "AGB"]) */
+  linkLabels?: string[];
+  /** Right-aligned text (e.g. "All rights reserved") */
+  rightText?: string;
+  id?: string;
+}
+
+export type CreateFooterResult =
+  | { success: true; footerId: string }
+  | { success: false; error: string };
+
+
+/**
+ * Creates a footer section: horizontal bar with optional left text, optional link labels, optional right text.
+ */
+export async function createFooter(
+  context: ToolContext,
+  args: CreateFooterArgs
+): Promise<CreateFooterResult> {
+  const { nodeMap, api } = context;
+  const parent = nodeMap.get(args.parentId);
+  if (!parent || !('appendChild' in parent)) {
+    return { success: false, error: `createFooter: parent "${args.parentId}" not found or not a container` };
+  }
+
+  const footerId = args.id ?? generateId('footer');
+  const parentWidth = parent && 'width' in parent ? (parent as { width: number }).width : 800;
+
+  try {
+    const sectionResult = createSection(context, {
+      parentId: args.parentId,
+      direction: 'horizontal',
+      spacing: 'normal',
+      width: parentWidth,
+      height: tokens.sizing.footerHeight,
+      align: 'center',
+      id: footerId,
+    });
+    if (!sectionResult.success) return sectionResult;
+
+    if (args.leftText != null && args.leftText !== '') {
+      const t = await addText(context, {
+        parentId: footerId,
+        content: args.leftText,
+        variant: 'small',
+        id: generateId('footer_left'),
+      });
+      if (!t.success) return t;
+    }
+
+    const linkLabels = args.linkLabels ?? [];
+    for (const label of linkLabels) {
+      const t = await addText(context, {
+        parentId: footerId,
+        content: label,
+        variant: 'small',
+        id: generateId('footer_link'),
+      });
+      if (!t.success) return t;
+    }
+
+    if (args.rightText != null && args.rightText !== '') {
+      const hasLeft = (args.leftText != null && args.leftText !== '') || linkLabels.length > 0;
+      if (hasLeft) {
+        const footerSpacerId = generateId('footer_spacer');
+        createFrame(nodeMap, {
+          id: footerSpacerId,
+          name: 'Spacer',
+          width: 0,
+          height: tokens.sizing.footerHeight,
+          layoutMode: 'NONE',
+        }, api);
+        appendChild(nodeMap, footerId, footerSpacerId);
+        const spacerNode = nodeMap.get(footerSpacerId);
+        if (spacerNode && 'layoutGrow' in spacerNode) {
+          (spacerNode as SceneNode & { layoutGrow: number }).layoutGrow = 1;
+        }
+      }
+      const t = await addText(context, {
+        parentId: footerId,
+        content: args.rightText,
+        variant: 'small',
+        id: generateId('footer_right'),
+      });
+      if (!t.success) return t;
+    }
+
+    return { success: true, footerId };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { success: false, error: message };
+  }
+}
+
+// --- createTabs ---
+
+export interface CreateTabsArgs {
+  parentId: string;
+  /** Tab labels (e.g. ["Overview", "Details", "Settings"]) */
+  tabLabels: string[];
+  id?: string;
+}
+
+export type CreateTabsResult =
+  | { success: true; tabsId: string; tabBarId: string; contentAreaId: string }
+  | { success: false; error: string };
+
+const TAB_BAR_HEIGHT = 44;
+const TAB_GAP = 8;
+
+/**
+ * Creates a tabs container: tab bar (horizontal labels) + content area frame. Add content to contentAreaId.
+ */
+export async function createTabs(
+  context: ToolContext,
+  args: CreateTabsArgs
+): Promise<CreateTabsResult> {
+  const { nodeMap, api } = context;
+  const parent = nodeMap.get(args.parentId);
+  if (!parent || !('appendChild' in parent)) {
+    return { success: false, error: `createTabs: parent "${args.parentId}" not found or not a container` };
+  }
+
+  if (!args.tabLabels || args.tabLabels.length === 0) {
+    return { success: false, error: 'createTabs: tabLabels array is required and must not be empty' };
+  }
+
+  const tabsId = args.id ?? generateId('tabs');
+  const tabBarId = `${tabsId}_bar`;
+  const contentAreaId = `${tabsId}_content`;
+  const parentWidth = parent && 'width' in parent ? (parent as { width: number }).width : 600;
+
+  try {
+    createFrame(nodeMap, {
+      id: tabsId,
+      name: 'Tabs',
+      width: parentWidth,
+      height: 280,
+      layoutMode: 'VERTICAL',
+      itemSpacing: 0,
+      paddingTop: 0,
+      paddingBottom: 0,
+      paddingLeft: 0,
+      paddingRight: 0,
+    }, api);
+
+    createFrame(nodeMap, {
+      id: tabBarId,
+      name: 'Tab bar',
+      width: parentWidth,
+      height: TAB_BAR_HEIGHT,
+      layoutMode: 'HORIZONTAL',
+      itemSpacing: TAB_GAP,
+      paddingTop: 8,
+      paddingBottom: 8,
+      paddingLeft: 12,
+      paddingRight: 12,
+    }, api);
+
+    createFrame(nodeMap, {
+      id: contentAreaId,
+      name: 'Tab content',
+      width: parentWidth,
+      height: 232,
+      layoutMode: 'VERTICAL',
+      itemSpacing: 12,
+      paddingTop: 16,
+      paddingBottom: 16,
+      paddingLeft: 16,
+      paddingRight: 16,
+    }, api);
+
+    for (let i = 0; i < args.tabLabels.length; i++) {
+      const t = await addText(context, {
+        parentId: tabBarId,
+        content: args.tabLabels[i],
+        variant: 'body',
+        id: `${tabBarId}_label_${i}`,
+      });
+      if (!t.success) return t;
+    }
+
+    appendChild(nodeMap, tabsId, tabBarId);
+    appendChild(nodeMap, tabsId, contentAreaId);
+    appendChild(nodeMap, args.parentId, tabsId);
+
+    return { success: true, tabsId, tabBarId, contentAreaId };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { success: false, error: message };
+  }
+}
+
+// --- createStepper ---
+
+export interface CreateStepperArgs {
+  parentId: string;
+  /** Step labels (e.g. ["Schritt 1", "Schritt 2", "Schritt 3"]) */
+  steps: string[];
+  direction?: 'horizontal' | 'vertical';
+  id?: string;
+}
+
+export type CreateStepperResult =
+  | { success: true; stepperId: string }
+  | { success: false; error: string };
+
+const STEP_CIRCLE_SIZE = 32;
+const STEP_GAP = 16;
+
+/**
+ * Creates a stepper: numbered circles (1, 2, 3…) with labels. Horizontal or vertical layout.
+ */
+export async function createStepper(
+  context: ToolContext,
+  args: CreateStepperArgs
+): Promise<CreateStepperResult> {
+  const { nodeMap, api } = context;
+  const parent = nodeMap.get(args.parentId);
+  if (!parent || !('appendChild' in parent)) {
+    return { success: false, error: `createStepper: parent "${args.parentId}" not found or not a container` };
+  }
+
+  if (!args.steps || args.steps.length === 0) {
+    return { success: false, error: 'createStepper: steps array is required and must not be empty' };
+  }
+
+  const stepperId = args.id ?? generateId('stepper');
+  const direction = args.direction ?? 'horizontal';
+
+  try {
+    createFrame(nodeMap, {
+      id: stepperId,
+      name: 'Stepper',
+      width: direction === 'horizontal' ? args.steps.length * (STEP_CIRCLE_SIZE + 80) : 200,
+      height: direction === 'horizontal' ? 56 : args.steps.length * 56,
+      layoutMode: direction === 'horizontal' ? 'HORIZONTAL' : 'VERTICAL',
+      itemSpacing: STEP_GAP,
+      paddingTop: 8,
+      paddingBottom: 8,
+      paddingLeft: 8,
+      paddingRight: 8,
+      counterAxisAlignItems: 'CENTER',
+    }, api);
+
+    for (let i = 0; i < args.steps.length; i++) {
+      const stepFrameId = `${stepperId}_step_${i}`;
+      const circleId = `${stepperId}_circle_${i}`;
+
+      createFrame(nodeMap, {
+        id: stepFrameId,
+        name: `Step ${i + 1}`,
+        width: direction === 'horizontal' ? 120 : 184,
+        height: 40,
+        layoutMode: 'HORIZONTAL',
+        itemSpacing: 8,
+        paddingTop: 0,
+        paddingBottom: 0,
+        paddingLeft: 0,
+        paddingRight: 0,
+        counterAxisAlignItems: 'CENTER',
+      }, api);
+
+      createEllipse(nodeMap, {
+        id: circleId,
+        name: `Step ${i + 1} circle`,
+        width: STEP_CIRCLE_SIZE,
+        height: STEP_CIRCLE_SIZE,
+        strokes: [{ type: 'SOLID', color: { r: 0.3, g: 0.3, b: 0.3 }, opacity: 1 }],
+        strokeWeight: 2,
+      }, api);
+
+      appendChild(nodeMap, stepFrameId, circleId);
+
+      const numResult = await addText(context, {
+        parentId: stepFrameId,
+        content: String(i + 1),
+        variant: 'body',
+        id: `${stepperId}_num_${i}`,
+      });
+      if (!numResult.success) return numResult;
+
+      const labelResult = await addText(context, {
+        parentId: stepFrameId,
+        content: args.steps[i],
+        variant: 'small',
+        id: `${stepperId}_label_${i}`,
+      });
+      if (!labelResult.success) return labelResult;
+
+      appendChild(nodeMap, stepperId, stepFrameId);
+    }
+
+    appendChild(nodeMap, args.parentId, stepperId);
+    return { success: true, stepperId };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { success: false, error: message };
+  }
+}
+
 // --- addText ---
 
 export interface AddTextArgs {
@@ -1824,13 +2157,14 @@ export type AddTextResult =
   | { success: true; textId: string }
   | { success: false; error: string };
 
+/** Text variant -> font (derived from design tokens). */
 const TEXT_VARIANT_FONT: Record<string, { size: number; family: string; style: string }> = {
-  h1: { size: 24, family: 'Inter', style: 'Bold' },
-  h2: { size: 20, family: 'Inter', style: 'Bold' },
-  h3: { size: 18, family: 'Inter', style: 'Semi Bold' },
-  body: { size: 14, family: 'Inter', style: 'Regular' },
-  small: { size: 12, family: 'Inter', style: 'Regular' },
-  caption: { size: 11, family: 'Inter', style: 'Regular' },
+  h1: { size: tokens.typography.h1.fontSize, family: tokens.typography.fontFamily, style: tokens.typography.h1.fontStyle },
+  h2: { size: tokens.typography.h2.fontSize, family: tokens.typography.fontFamily, style: tokens.typography.h2.fontStyle },
+  h3: { size: tokens.typography.h3.fontSize, family: tokens.typography.fontFamily, style: tokens.typography.h3.fontStyle },
+  body: { size: tokens.typography.body.fontSize, family: tokens.typography.fontFamily, style: tokens.typography.body.fontStyle },
+  small: { size: tokens.typography.small.fontSize, family: tokens.typography.fontFamily, style: tokens.typography.small.fontStyle },
+  caption: { size: tokens.typography.caption.fontSize, family: tokens.typography.fontFamily, style: tokens.typography.caption.fontStyle },
 };
 
 /**
@@ -1852,7 +2186,6 @@ export async function addText(
 
   try {
     await loadFont(font.family, font.style, api);
-    const fill: SolidFill = { type: 'SOLID', color: { r: 0.2, g: 0.2, b: 0.2 }, opacity: 1 };
     await createText(nodeMap, {
       id: textId,
       name: `Text: ${(args.content || '').slice(0, 30)}`,
@@ -1860,7 +2193,7 @@ export async function addText(
       fontSize: font.size,
       fontFamily: font.family,
       fontStyle: font.style,
-      fills: [fill],
+      fills: [fillFromToken(tokens.colors.foreground)],
       textAlignHorizontal: args.align === 'center' ? 'CENTER' : args.align === 'right' ? 'RIGHT' : 'LEFT',
       textAutoResize: 'HEIGHT',
     }, api);
@@ -1934,8 +2267,6 @@ export type AddPlaceholderImageResult =
   | { success: true; placeholderId: string }
   | { success: false; error: string };
 
-const PLACEHOLDER_FILL: SolidFill = { type: 'SOLID', color: { r: 0.88, g: 0.88, b: 0.88 }, opacity: 1 };
-
 /** Default label prefix for image placeholders so it's clear what the field describes. */
 export const PLACEHOLDER_IMAGE_LABEL_PREFIX = 'image:';
 
@@ -1953,8 +2284,11 @@ export async function addPlaceholderImage(
     return { success: false, error: `addPlaceholderImage: parent "${args.parentId}" not found or not a container` };
   }
 
-  const width = args.width ?? 320;
-  const height = args.height ?? 180;
+  const parentWidth = parent && 'width' in parent ? (parent as { width: number }).width : 0;
+  const effectiveWidth = args.width ?? (parentWidth >= 400 ? parentWidth - 64 : 320);
+  const effectiveHeight = args.height ?? (parentWidth >= 400 ? Math.min(400, Math.round(effectiveWidth * 0.3)) : 180);
+  const width = effectiveWidth;
+  const height = effectiveHeight;
   const placeholderId = args.id ?? generateId('placeholder');
   const label = args.label != null && args.label !== ''
     ? (args.label.startsWith(PLACEHOLDER_IMAGE_LABEL_PREFIX) ? args.label : `${PLACEHOLDER_IMAGE_LABEL_PREFIX}${args.label}`)
@@ -1975,7 +2309,7 @@ export async function addPlaceholderImage(
       name: 'Image area',
       width,
       height,
-      fills: [PLACEHOLDER_FILL],
+      fills: [fillFromToken(tokens.colors.muted)],
       cornerRadius: 4,
       x: 0,
       y: 0,

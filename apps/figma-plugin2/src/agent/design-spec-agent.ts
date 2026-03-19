@@ -1,8 +1,10 @@
 /**
  * Design Spec Agent – Translates a section (from Planner) into a neutral design tree.
  * No Figma API terms. Output is used by the Figma Executor to generate commands.
+ *
+ * @deprecated Not used by generate-wireframe anymore; the plugin uses only the Wireframe Tool Agent.
+ * Kept for reference or potential future use (e.g. export/replay).
  */
-
 import type { ViewportType } from '../types';
 import type { DesignSpecRoot } from './design-spec-schema';
 import { DESIGN_SPEC_JSON_SCHEMA_FLAT } from './design-spec-schema';

@@ -1,9 +1,9 @@
 import type { Persona, TargetGroup, ChatRequest, ChatMessage, JourneyResponse, Project } from '../types';
 import { URL_CONFIG } from '../config/urls';
 
-const DEFAULT_API_URL = URL_CONFIG.AUDION_API_BASE;
+const DEFAULT_API_URL: string = URL_CONFIG.AUDION_API_BASE;
 
-let apiBaseUrl = DEFAULT_API_URL;
+let apiBaseUrl: string = DEFAULT_API_URL;
 let currentAuthToken: string | undefined;
 
 export function setApiBaseUrl(url: string): void {

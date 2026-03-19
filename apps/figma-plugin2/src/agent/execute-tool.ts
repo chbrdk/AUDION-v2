@@ -26,6 +26,9 @@ import {
   createList,
   createHeader,
   createHero,
+  createFooter,
+  createTabs,
+  createStepper,
   addSvg,
   createIconButton,
 } from './figma-molecules';
@@ -73,6 +76,12 @@ import type {
   CreateHeaderResult,
   CreateHeroArgs,
   CreateHeroResult,
+  CreateFooterArgs,
+  CreateFooterResult,
+  CreateTabsArgs,
+  CreateTabsResult,
+  CreateStepperArgs,
+  CreateStepperResult,
   AddSvgArgs,
   AddSvgResult,
   CreateIconButtonArgs,
@@ -102,6 +111,9 @@ export type ToolName =
   | 'createList'
   | 'createHeader'
   | 'createHero'
+  | 'createFooter'
+  | 'createTabs'
+  | 'createStepper'
   | 'groupNodes';
 
 export type ToolArgsMap = {
@@ -126,6 +138,9 @@ export type ToolArgsMap = {
   createList: CreateListArgs;
   createHeader: CreateHeaderArgs;
   createHero: CreateHeroArgs;
+  createFooter: CreateFooterArgs;
+  createTabs: CreateTabsArgs;
+  createStepper: CreateStepperArgs;
   groupNodes: GroupNodesArgs;
   addSvg: AddSvgArgs;
   createIconButton: CreateIconButtonArgs;
@@ -153,6 +168,9 @@ export type ToolResultMap = {
   createList: CreateListResult;
   createHeader: CreateHeaderResult;
   createHero: CreateHeroResult;
+  createFooter: CreateFooterResult;
+  createTabs: CreateTabsResult;
+  createStepper: CreateStepperResult;
   groupNodes: GroupNodesResult;
   addSvg: AddSvgResult;
   createIconButton: CreateIconButtonResult;
@@ -275,6 +293,21 @@ export async function executeTool<T extends ToolName>(
       }
       case 'createHero': {
         const out = await createHero(context, args as CreateHeroArgs);
+        if (out.success) return { success: true, tool: toolName, result: out } as ExecuteToolResult<T>;
+        return { success: false, tool: toolName, error: out.error } as ExecuteToolResult<T>;
+      }
+      case 'createFooter': {
+        const out = await createFooter(context, args as CreateFooterArgs);
+        if (out.success) return { success: true, tool: toolName, result: out } as ExecuteToolResult<T>;
+        return { success: false, tool: toolName, error: out.error } as ExecuteToolResult<T>;
+      }
+      case 'createTabs': {
+        const out = await createTabs(context, args as CreateTabsArgs);
+        if (out.success) return { success: true, tool: toolName, result: out } as ExecuteToolResult<T>;
+        return { success: false, tool: toolName, error: out.error } as ExecuteToolResult<T>;
+      }
+      case 'createStepper': {
+        const out = await createStepper(context, args as CreateStepperArgs);
         if (out.success) return { success: true, tool: toolName, result: out } as ExecuteToolResult<T>;
         return { success: false, tool: toolName, error: out.error } as ExecuteToolResult<T>;
       }

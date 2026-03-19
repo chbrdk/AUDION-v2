@@ -10,6 +10,11 @@ module.exports = {
   output: {
     filename: '[name].js',
     path: path.resolve(__dirname, 'dist'),
+    publicPath: '',
+  },
+  optimization: {
+    splitChunks: false,
+    runtimeChunk: false,
   },
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx'],

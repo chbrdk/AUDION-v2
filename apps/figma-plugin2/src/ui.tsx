@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ChatPanel } from './components/ChatPanel';
 import { PersonaSelector } from './components/PersonaSelector';
@@ -13,7 +13,6 @@ import type {
   ComponentKnowledgeBase,
   ViewportType,
   AIModelType,
-  DesignMode,
 } from './types';
 import { generateConversationId } from './services/conversation-service';
 import { LoginPanel } from './components/LoginPanel';
@@ -24,6 +23,10 @@ import { MsqdxLogo } from './components/MsqdxLogo';
 import { t, Language } from './translations';
 import { JourneysPanel } from './components/JourneysPanel';
 import { AgentPanel } from './components/AgentPanel';
+import { DSLDesignerPanel } from './components/DSLDesignerPanel';
+import { RAGDesignPanel } from './components/RAGDesignPanel';
+import type { RAGComponentPayload } from './services/rag-selection-service';
+import { validateLayout } from './api/rag-compose-client';
 
 const globalStyles = 
   "@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@300;400;500;700&display=swap');" +
@@ -125,10 +128,12 @@ const globalStyles =
   "  animation: pulse 1.5s infinite ease-in-out;" +
   "}";
 
-type View = 'chat' | 'settings' | 'login' | 'journeys' | 'agent';
+type View = 'chat' | 'settings' | 'login' | 'journeys' | 'experimental';
+type ExperimentalSubPage = null | 'llmdesigner' | 'dsldesigner' | 'ragdesign';
 
 function App() {
   const [view, setView] = useState<View>('chat');
+  const [experimentalSubPage, setExperimentalSubPage] = useState<ExperimentalSubPage>(null);
   const [selection, setSelection] = useState<SelectionMetadata | null>(null);
   const [selectedPersona, setSelectedPersona] = useState<Persona | null>(null);
   const [conversation, setConversation] = useState<ConversationHistory | null>(null);
@@ -137,18 +142,40 @@ function App() {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isCapturingScreenshot, setIsCapturingScreenshot] = useState(false);
   const [isGeneratingWireframe, setIsGeneratingWireframe] = useState(false);
-  const [isGeneratingWireframeImage, setIsGeneratingWireframeImage] = useState(false);
-  const [isGeneratingConceptPrompt, setIsGeneratingConceptPrompt] = useState(false);
-  const [isGeneratingConceptAssembly, setIsGeneratingConceptAssembly] = useState(false);
-  const [conceptPromptResult, setConceptPromptResult] = useState<string | null>(null);
-  const [conceptAssemblyResult, setConceptAssemblyResult] = useState<{ implementationPrompt: string; sectionCount?: number } | null>(null);
   const [generationProgress, setGenerationProgress] = useState<string | null>(null);
-  const [debugCode, setDebugCode] = useState<{ original: string, cleaned: string } | null>(null);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [knowledgeBase, setKnowledgeBase] = useState<ComponentKnowledgeBase>({ components: [], pages: [], lastUpdated: 0 });
   const [isScanningComponents, setIsScanningComponents] = useState(false);
   const [isScanningPage, setIsScanningPage] = useState(false);
+  const [dslJsonText, setDslJsonText] = useState('');
+  const [isRenderingDSL, setIsRenderingDSL] = useState(false);
+  const [dslRenderError, setDslRenderError] = useState<string | null>(null);
+  const [dslRenderSuccess, setDslRenderSuccess] = useState(false);
+  const [isRenderingCompose, setIsRenderingCompose] = useState(false);
+  const [composeRenderError, setComposeRenderError] = useState<string | null>(null);
+  const [composeRenderSuccess, setComposeRenderSuccess] = useState(false);
+  const [isRefining, setIsRefining] = useState(false);
+  const [refineProgress, setRefineProgress] = useState<string | null>(null);
+  const [refineError, setRefineError] = useState<string | null>(null);
+  const [ragComponents, setRagComponents] = useState<RAGComponentPayload[] | null>(null);
+  const [ragFileKey, setRagFileKey] = useState<string>('plugin-selection');
+  const [ragInferredMetadata, setRagInferredMetadata] = useState<{
+    aestheticStyle?: string;
+    commonContexts?: string[];
+    usageHint?: string;
+  } | null>(null);
+  const [layoutFeedback, setLayoutFeedback] = useState<string | null>(null);
+  const [layoutCheckInProgress, setLayoutCheckInProgress] = useState(false);
+  const [layoutCheckError, setLayoutCheckError] = useState<string | null>(null);
+  const fileKeyResolveRef = useRef<((key: string | null) => void) | null>(null);
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
   const lang: Language = settings?.language || 'de';
+
+  const goToExperimental = () => {
+    setExperimentalSubPage(null);
+    setView('experimental');
+  };
 
   useEffect(() => {
     // Add global styles
@@ -217,50 +244,112 @@ function App() {
           }
           break;
 
-        case 'wireframe-image-generated':
-          setIsGeneratingWireframeImage(false);
-          setGenerationProgress(null);
-          break;
-
-        case 'wireframe-image-error':
-          setIsGeneratingWireframeImage(false);
-          setGenerationProgress(null);
-          if (msg.error) alert('Wireframe-Bild: ' + msg.error);
-          break;
-
-        case 'concept-prompt-generated':
-          setIsGeneratingConceptPrompt(false);
-          setConceptPromptResult(msg.prompt ?? null);
-          break;
-
-        case 'concept-prompt-error':
-          setIsGeneratingConceptPrompt(false);
-          if (msg.error) alert('Konzeptionsprompt: ' + msg.error);
-          break;
-
-        case 'concept-assembly-done':
-          setIsGeneratingConceptAssembly(false);
-          setGenerationProgress(null);
-          setConceptAssemblyResult({
-            implementationPrompt: msg.implementationPrompt ?? '',
-            sectionCount: msg.sectionCount,
-          });
-          break;
-
-        case 'concept-assembly-error':
-          setIsGeneratingConceptAssembly(false);
-          setGenerationProgress(null);
-          if (msg.error) alert('Wireframe konzipieren: ' + msg.error);
-          break;
-
         case 'generation-progress':
           setGenerationProgress(msg.message);
           break;
 
-        case 'debug-code':
-          console.log("AGENT DEBUG - ORIGINAL CODE:", msg.original);
-          console.log("AGENT DEBUG - CLEANED CODE:", msg.cleaned);
-          setDebugCode({ original: msg.original, cleaned: msg.cleaned });
+        case 'dsl-render-success':
+          setIsRenderingDSL(false);
+          setDslRenderError(null);
+          setDslRenderSuccess(true);
+          break;
+
+        case 'dsl-render-error':
+          setIsRenderingDSL(false);
+          setDslRenderError((msg as { error?: string }).error ?? 'Unknown error');
+          break;
+
+        case 'rag-compose-render-success':
+          setIsRenderingCompose(false);
+          setComposeRenderError(null);
+          setComposeRenderSuccess(true);
+          setLayoutFeedback(null);
+          setLayoutCheckError(null);
+          break;
+
+        case 'rag-compose-render-error':
+          setIsRenderingCompose(false);
+          setComposeRenderError((msg as { error?: string }).error ?? 'Unknown error');
+          break;
+
+        case 'rag-refine-progress':
+          setRefineProgress((msg as { message?: string }).message ?? null);
+          break;
+
+        case 'rag-refine-success':
+          setIsRefining(false);
+          setRefineProgress(null);
+          setRefineError(null);
+          break;
+
+        case 'rag-refine-error':
+          setIsRefining(false);
+          setRefineProgress(null);
+          setRefineError((msg as { error?: string }).error ?? 'Unknown error');
+          break;
+
+        case 'rag-refine-debug': {
+          const d = msg as { tool?: string; args?: unknown; result?: unknown };
+          if (d.tool != null) {
+            console.log('[RAG Refine]', d.tool, d.args, d.result);
+          }
+          break;
+        }
+
+        case 'rag-screenshot-exported': {
+          const base64 = (msg as { base64?: string }).base64;
+          if (base64) {
+            setLayoutCheckInProgress(true);
+            setLayoutCheckError(null);
+            const ragUrl = settingsRef.current?.ragApiUrl || URL_CONFIG.RAG_API_BASE;
+            validateLayout(ragUrl, base64)
+              .then((r) => {
+                setLayoutFeedback(r.feedback);
+                setLayoutCheckInProgress(false);
+              })
+              .catch((err) => {
+                setLayoutCheckError(err instanceof Error ? err.message : 'Validation failed');
+                setLayoutFeedback(null);
+                setLayoutCheckInProgress(false);
+              });
+          }
+          break;
+        }
+
+        case 'rag-screenshot-error': {
+          setLayoutCheckInProgress(false);
+          setLayoutCheckError((msg as { error?: string }).error ?? 'Export failed');
+          setLayoutFeedback(null);
+          break;
+        }
+
+        case 'file-key': {
+          const resolver = fileKeyResolveRef.current;
+          if (resolver) {
+            fileKeyResolveRef.current = null;
+            resolver((msg as { fileKey?: string | null }).fileKey ?? null);
+          }
+          break;
+        }
+
+        case 'rag-components-loaded': {
+          const m = msg as {
+            components: RAGComponentPayload[];
+            fileKey?: string;
+            inferred?: { aestheticStyle?: string; commonContexts?: string[]; usageHint?: string };
+          };
+          setRagComponents(m.components);
+          setRagFileKey(m.fileKey ?? 'plugin-selection');
+          setRagInferredMetadata(m.inferred ?? null);
+          break;
+        }
+
+        case 'selection-dsl':
+          setDslJsonText(JSON.stringify((msg as { dsl: unknown }).dsl, null, 2));
+          break;
+
+        case 'selection-empty-dsl':
+          setDslRenderError('No selection. Select a frame or group first.');
           break;
 
         case 'knowledge-loaded': {
@@ -415,7 +504,7 @@ function App() {
     setView('login');
   };
 
-  const handleGenerateWireframe = async (userInput: string, viewport: ViewportType, model: AIModelType, mode: DesignMode) => {
+  const handleGenerateWireframe = async (userInput: string, viewport: ViewportType, model: AIModelType) => {
     if (!settings?.openAiApiKey) {
       figma.notify('OpenAI API-Key fehlt. Bitte in Einstellungen eintragen.');
       return;
@@ -429,58 +518,6 @@ function App() {
         viewport,
         model,
         apiKey: settings.openAiApiKey,
-        mode,
-      },
-    }, '*');
-  };
-
-  const handleGenerateWireframeImage = (userInput: string, size: string) => {
-    if (!settings?.openAiApiKey) {
-      figma.notify('OpenAI API-Key fehlt. Bitte in Einstellungen eintragen.');
-      return;
-    }
-    setIsGeneratingWireframeImage(true);
-    parent.postMessage({
-      pluginMessage: {
-        type: 'generate-wireframe-image',
-        prompt: userInput,
-        apiKey: settings.openAiApiKey,
-        size: size || '1024x1536',
-      },
-    }, '*');
-  };
-
-  const handleGenerateConceptPrompt = (userInput: string, viewport?: string) => {
-    if (!settings?.openAiApiKey) {
-      figma.notify('OpenAI API-Key fehlt. Bitte in Einstellungen eintragen.');
-      return;
-    }
-    setIsGeneratingConceptPrompt(true);
-    setConceptPromptResult(null);
-    parent.postMessage({
-      pluginMessage: {
-        type: 'generate-concept-prompt',
-        prompt: userInput,
-        apiKey: settings.openAiApiKey,
-        viewport: viewport || 'desktop',
-      },
-    }, '*');
-  };
-
-  const handleGenerateWireframeConcept = (userInput: string, viewport?: string, imageSize?: string) => {
-    if (!settings?.openAiApiKey) {
-      figma.notify('OpenAI API-Key fehlt. Bitte in Einstellungen eintragen.');
-      return;
-    }
-    setIsGeneratingConceptAssembly(true);
-    setConceptAssemblyResult(null);
-    parent.postMessage({
-      pluginMessage: {
-        type: 'generate-wireframe-concept',
-        prompt: userInput,
-        apiKey: settings.openAiApiKey,
-        viewport: viewport || 'desktop',
-        imageSize: imageSize || '1024x1536',
       },
     }, '*');
   };
@@ -597,19 +634,6 @@ function App() {
             <span className="msqdx-mono" style={{ fontSize: '9px', fontWeight: '700' }}>{t('chat', lang)}</span>
           </button>
           <button 
-            onClick={() => setView('settings')}
-            className={'msqdx-button secondary' + (view === 'settings' ? ' active' : '')}
-            style={{ 
-              padding: '6px 12px', 
-              height: '28px',
-              borderColor: view === 'settings' ? 'var(--msqdx-primary)' : 'var(--msqdx-border-color)',
-              background: view === 'settings' ? 'rgba(15,23,42,0.03)' : 'transparent',
-              color: view === 'settings' ? 'var(--msqdx-primary)' : 'var(--msqdx-text-main)'
-            }}
-          >
-            <span className="msqdx-mono" style={{ fontSize: '9px', fontWeight: '700' }}>{t('setup', lang)}</span>
-          </button>
-          <button 
             onClick={() => setView('journeys')}
             className={'msqdx-button secondary' + (view === 'journeys' ? ' active' : '')}
             style={{ 
@@ -623,17 +647,38 @@ function App() {
             <span className="msqdx-mono" style={{ fontSize: '9px', fontWeight: '700' }}>{t('journeys', lang)}</span>
           </button>
           <button 
-            onClick={() => setView('agent')}
-            className={'msqdx-button secondary' + (view === 'agent' ? ' active' : '')}
+            onClick={goToExperimental}
+            className={'msqdx-button secondary' + (view === 'experimental' ? ' active' : '')}
             style={{ 
               padding: '6px 12px', 
               height: '28px',
-              borderColor: view === 'agent' ? 'var(--msqdx-primary)' : 'var(--msqdx-border-color)',
-              background: view === 'agent' ? 'rgba(15,23,42,0.03)' : 'transparent',
-              color: view === 'agent' ? 'var(--msqdx-primary)' : 'var(--msqdx-text-main)'
+              borderColor: view === 'experimental' ? 'var(--msqdx-primary)' : 'var(--msqdx-border-color)',
+              background: view === 'experimental' ? 'rgba(15,23,42,0.03)' : 'transparent',
+              color: view === 'experimental' ? 'var(--msqdx-primary)' : 'var(--msqdx-text-main)'
             }}
           >
-            <span className="msqdx-mono" style={{ fontSize: '9px', fontWeight: '700' }}>{t('agent', lang)}</span>
+            <span className="msqdx-mono" style={{ fontSize: '9px', fontWeight: '700' }}>{t('experimental', lang)}</span>
+          </button>
+          <button 
+            onClick={() => setView('settings')}
+            className={'msqdx-button secondary' + (view === 'settings' ? ' active' : '')}
+            title={t('setup', lang)}
+            style={{ 
+              padding: '0 8px', 
+              height: '28px',
+              width: '28px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderColor: view === 'settings' ? 'var(--msqdx-primary)' : 'var(--msqdx-border-color)',
+              background: view === 'settings' ? 'rgba(15,23,42,0.03)' : 'transparent',
+              color: view === 'settings' ? 'var(--msqdx-primary)' : 'var(--msqdx-text-main)'
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z" />
+            </svg>
           </button>
           <button 
             onClick={handleLogout}
@@ -716,21 +761,226 @@ function App() {
           <JourneysPanel lang={lang} projectId={settings?.projectId} />
         )}
 
+        {view === 'experimental' && experimentalSubPage === null && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: 1 }}>
+            <header>
+              <h1 className="msqdx-mono" style={{ fontSize: '14px', fontWeight: '700', color: 'var(--msqdx-text-primary)', margin: 0 }}>
+                {t('experimental', lang)}
+              </h1>
+              <p style={{ fontSize: '12px', color: 'var(--msqdx-text-secondary)', margin: '6px 0 0 0' }}>
+                {lang === 'de' ? 'Experimentelle Funktionen – wähle eine Option.' : 'Experimental features – choose an option.'}
+              </p>
+            </header>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button
+                type="button"
+                onClick={() => setExperimentalSubPage('llmdesigner')}
+                className="msqdx-button secondary"
+                style={{
+                  width: '100%',
+                  padding: '16px',
+                  height: 'auto',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  gap: '4px',
+                  textAlign: 'left',
+                }}
+              >
+                <span className="msqdx-mono" style={{ fontSize: '11px', fontWeight: '700' }}>{t('llmdesigner', lang)}</span>
+                <span style={{ fontSize: '12px', opacity: 0.9, fontWeight: 400 }}>
+                  {lang === 'de' ? 'Wireframes per KI generieren (Prompt, Viewport, Modell, Wissen).' : 'Generate wireframes with AI (prompt, viewport, model, knowledge).'}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setExperimentalSubPage('dsldesigner')}
+                className="msqdx-button secondary"
+                style={{
+                  width: '100%',
+                  padding: '16px',
+                  height: 'auto',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  gap: '4px',
+                  textAlign: 'left',
+                }}
+              >
+                <span className="msqdx-mono" style={{ fontSize: '11px', fontWeight: '700' }}>{t('dsldesigner', lang)}</span>
+                <span style={{ fontSize: '12px', opacity: 0.9, fontWeight: 400 }}>
+                  {lang === 'de' ? 'Wireframes aus DSL (Befehle, Struktur) erzeugen.' : 'Generate wireframes from DSL (commands, structure).'}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setExperimentalSubPage('ragdesign')}
+                className="msqdx-button secondary"
+                style={{
+                  width: '100%',
+                  padding: '16px',
+                  height: 'auto',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  gap: '4px',
+                  textAlign: 'left',
+                }}
+              >
+                <span className="msqdx-mono" style={{ fontSize: '11px', fontWeight: '700' }}>{t('ragdesign', lang)}</span>
+                <span style={{ fontSize: '12px', opacity: 0.9, fontWeight: 400 }}>
+                  {lang === 'de' ? 'Designs aus Library-Komponenten per RAG + Claude.' : 'Compose designs from library components via RAG + Claude.'}
+                </span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {view === 'experimental' && experimentalSubPage === 'ragdesign' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1, minHeight: 0 }}>
+            <button
+              type="button"
+              onClick={() => setExperimentalSubPage(null)}
+              className="msqdx-button secondary"
+              style={{ alignSelf: 'flex-start', padding: '6px 12px', height: '28px', fontSize: '11px' }}
+            >
+              ← {lang === 'de' ? 'Zurück' : 'Back'}
+            </button>
+            <header style={{ marginBottom: '4px' }}>
+              <h1 className="msqdx-mono" style={{ fontSize: '14px', fontWeight: '700', color: 'var(--msqdx-text-primary)', margin: 0 }}>
+                {t('ragdesign', lang)}
+              </h1>
+              <p style={{ fontSize: '12px', color: 'var(--msqdx-text-secondary)', margin: '4px 0 0 0' }}>
+                {lang === 'de' ? 'Designs aus Library-Komponenten per RAG + Claude.' : 'Compose designs from library components via RAG + Claude.'}
+              </p>
+            </header>
+            <RAGDesignPanel
+              lang={lang}
+              ragApiUrl={settings?.ragApiUrl || URL_CONFIG.RAG_API_BASE}
+              projectId={settings?.projectId}
+              hasApiKey={!!settings?.openAiApiKey}
+              isRefining={isRefining}
+              refineProgress={refineProgress}
+              refineError={refineError}
+              onRefineLayout={() => {
+                setIsRefining(true);
+                setRefineError(null);
+                setRefineProgress(null);
+                parent.postMessage({ pluginMessage: { type: 'rag-refine' } }, '*');
+              }}
+              getFileKey={() =>
+                new Promise<string | null>((resolve) => {
+                  fileKeyResolveRef.current = resolve;
+                  parent.postMessage({ pluginMessage: { type: 'get-file-key' } }, '*');
+                  setTimeout(() => {
+                    if (fileKeyResolveRef.current) {
+                      fileKeyResolveRef.current(null);
+                      fileKeyResolveRef.current = null;
+                    }
+                  }, 3000);
+                })
+              }
+              ragComponents={ragComponents}
+              ragFileKey={ragFileKey}
+              inferredFromSelection={ragInferredMetadata}
+              onLoadRAGComponents={() => {
+                setRagComponents(null);
+                setRagInferredMetadata(null);
+                parent.postMessage({ pluginMessage: { type: 'get-rag-components' } }, '*');
+              }}
+              onComposeSuccess={() => {
+                setComposeRenderSuccess(true);
+                setComposeRenderError(null);
+              }}
+              onComposeError={(err) => {
+                setComposeRenderError(err);
+              }}
+              onRender={(composition, resolvedKeys, resolvedTypes) => {
+                setComposeRenderSuccess(false);
+                setComposeRenderError(null);
+                setIsRenderingCompose(true);
+                parent.postMessage(
+                  { pluginMessage: { type: 'rag-compose-render', composition, resolvedKeys, resolvedTypes } },
+                  '*'
+                );
+              }}
+              isRendering={isRenderingCompose}
+              renderError={composeRenderError}
+              renderSuccess={composeRenderSuccess}
+              onCheckLayout={() => {
+                setLayoutFeedback(null);
+                setLayoutCheckError(null);
+                parent.postMessage({ pluginMessage: { type: 'rag-export-screenshot' } }, '*');
+              }}
+              layoutFeedback={layoutFeedback}
+              layoutCheckInProgress={layoutCheckInProgress}
+              layoutCheckError={layoutCheckError}
+            />
+          </div>
+        )}
+
+        {view === 'experimental' && experimentalSubPage === 'dsldesigner' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1, minHeight: 0 }}>
+            <button
+              type="button"
+              onClick={() => setExperimentalSubPage(null)}
+              className="msqdx-button secondary"
+              style={{ alignSelf: 'flex-start', padding: '6px 12px', height: '28px', fontSize: '11px' }}
+            >
+              ← {lang === 'de' ? 'Zurück' : 'Back'}
+            </button>
+            <header style={{ marginBottom: '4px' }}>
+              <h1 className="msqdx-mono" style={{ fontSize: '14px', fontWeight: '700', color: 'var(--msqdx-text-primary)', margin: 0 }}>
+                {t('dsldesigner', lang)}
+              </h1>
+              <p style={{ fontSize: '12px', color: 'var(--msqdx-text-secondary)', margin: '4px 0 0 0' }}>
+                {lang === 'de' ? 'Wireframes aus DSL (Befehle, Struktur) erzeugen.' : 'Generate wireframes from DSL (commands, structure).'}
+              </p>
+            </header>
+            <DSLDesignerPanel
+              lang={lang}
+              hasApiKey={!!settings?.openAiApiKey}
+              apiKey={settings?.openAiApiKey}
+              dslJsonValue={dslJsonText}
+              onDslJsonChange={setDslJsonText}
+              onRender={(json) => {
+                setDslRenderSuccess(false);
+                setDslRenderError(null);
+                setIsRenderingDSL(true);
+                parent.postMessage({ pluginMessage: { type: 'dsl-render', dslJson: json } }, '*');
+              }}
+              onReadSelection={() => {
+                setDslRenderError(null);
+                parent.postMessage({ pluginMessage: { type: 'read-selection-dsl' } }, '*');
+              }}
+              isRendering={isRenderingDSL}
+              renderError={dslRenderError}
+              renderSuccess={dslRenderSuccess}
+            />
+          </div>
+        )}
+
+        {view === 'experimental' && experimentalSubPage === 'llmdesigner' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
+            <button
+              type="button"
+              onClick={() => setExperimentalSubPage(null)}
+              className="msqdx-button secondary"
+              style={{ alignSelf: 'flex-start', padding: '6px 12px', height: '28px', fontSize: '11px' }}
+            >
+              ← {lang === 'de' ? 'Zurück' : 'Back'}
+            </button>
+            <header style={{ marginBottom: '4px' }}>
+              <h1 className="msqdx-mono" style={{ fontSize: '14px', fontWeight: '700', color: 'var(--msqdx-text-primary)', margin: 0 }}>
+                {t('llmdesigner', lang)}
+              </h1>
+              <p style={{ fontSize: '12px', color: 'var(--msqdx-text-secondary)', margin: '4px 0 0 0' }}>
+                {lang === 'de' ? 'Wireframes per KI generieren (Prompt, Viewport, Modell, Wissen).' : 'Generate wireframes with AI (prompt, viewport, model, knowledge).'}
+              </p>
+            </header>
             <AgentPanel 
               lang={lang} 
               hasApiKey={!!settings?.openAiApiKey} 
               onGenerate={handleGenerateWireframe}
-              onGenerateWireframeImage={handleGenerateWireframeImage}
-              onGenerateConceptPrompt={handleGenerateConceptPrompt}
-              onGenerateWireframeConcept={handleGenerateWireframeConcept}
               isGenerating={isGeneratingWireframe}
-              isGeneratingWireframeImage={isGeneratingWireframeImage}
-              isGeneratingConceptPrompt={isGeneratingConceptPrompt}
-              isGeneratingConceptAssembly={isGeneratingConceptAssembly}
-              conceptPromptResult={conceptPromptResult}
-              conceptAssemblyResult={conceptAssemblyResult}
               progressMessage={generationProgress}
-              debugCode={debugCode}
               knowledgeBase={knowledgeBase}
               onScanComponents={() => {
                 setIsScanningComponents(true);
@@ -748,13 +998,9 @@ function App() {
               }}
               onExport={handleExportKnowledge}
               onImport={handleImportKnowledge}
-              onInsertToolButton={() => {
-                parent.postMessage({ pluginMessage: { type: 'insert-tool-button' } }, '*');
-              }}
-              onInsertToolWireframe={() => {
-                parent.postMessage({ pluginMessage: { type: 'insert-tool-wireframe' } }, '*');
-              }}
             />
+          </div>
+        )}
       </div>
     </div>
   );

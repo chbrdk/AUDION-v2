@@ -1,8 +1,10 @@
 /**
  * Figma Executor Agent – Only agent that knows the Figma Plugin API.
  * Outputs a list of whitelisted commands (no generated code). Self-corrects on interpreter errors.
+ *
+ * @deprecated Not used by generate-wireframe anymore; the plugin uses only the Wireframe Tool Agent.
+ * Kept for reference or potential future use (e.g. export/replay).
  */
-
 import { FIGMA_COMMAND_JSON_SCHEMA } from './figma-command-schema';
 import type { FigmaCommand, FigmaExecutorResponse } from './figma-command-schema';
 

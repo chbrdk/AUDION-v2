@@ -46,11 +46,11 @@ Creates the main container frame (Bühne), appends to `figma.currentPage`. Used 
 
 ### createSection
 
-Frame with layoutMode VERTICAL/HORIZONTAL, itemSpacing, padding; **appends to parentId** (stage or rowId). **spacing** preset: `compact` (8/12), `normal` (16/20), `spacious` (24/32) for gap/padding. Optional **align**: `min` \| `center` \| `max` → counterAxisAlignItems (align children). **Returns:** `{ success: true, sectionId }` or `{ success: false, error }`.
+Frame with layoutMode VERTICAL/HORIZONTAL, itemSpacing, padding; **appends to parentId** (stage or rowId). **Width:** defaults to **parent width** (so sections under stage use full viewport width). Use a smaller width for nested content columns (e.g. 720). **spacing** preset: `compact` (8/12), `normal` (16/20), `spacious` (24/32). Optional **align**: `min` \| `center` \| `max`. **Returns:** `{ success: true, sectionId }` or `{ success: false, error }`.
 
 ### createRow
 
-Horizontal frame for **multi-column layout**. parentId usually `"stage"`. Then createSection(parentId: rowId) for each column (2–3 sections side by side). gap default 24, padding 20. Optional **align**: `min` \| `center` \| `max` for vertical alignment of row content. **Returns:** `{ success: true, rowId }`.
+Horizontal frame for **multi-column layout**. **Width:** defaults to **parent width** (full stage width when parentId is stage). parentId usually `"stage"`. Then createSection(parentId: rowId) for each column (2–3 sections side by side). gap default 24, padding 20. Optional **align**: `min` \| `center` \| `max`. **Returns:** `{ success: true, rowId }`.
 
 ### addText
 
@@ -118,7 +118,19 @@ Horizontal section (createSection direction horizontal) + logo placeholder (crea
 
 ### createHero
 
-Vertical section (createSection) + addText(title, h1) + optional addText(subtitle) + optional addPlaceholderImage(imageLabel) + optional createButtonRow(ctaLabel). **Returns:** `{ success: true, heroId }`. Args: parentId, title, subtitle?, imageLabel?, ctaLabel?, id?.
+Vertical section (createSection, full parent width) + addText(title, h1) + optional addText(subtitle) + optional addPlaceholderImage(imageLabel) + optional createButtonRow(ctaLabel). **Returns:** `{ success: true, heroId }`. Args: parentId, title, subtitle?, imageLabel?, ctaLabel?, id?.
+
+### createFooter
+
+Horizontal section (createSection, full parent width) + optional addText(leftText) + addText for each linkLabel + optional addText(rightText). **Returns:** `{ success: true, footerId }`. Args: parentId, leftText?, linkLabels?: string[], rightText?, id?.
+
+### createTabs
+
+Wrapper frame (vertical) + tab bar frame (horizontal, addText per tabLabels) + content area frame. Content is added to **contentAreaId**. **Returns:** `{ success: true, tabsId, tabBarId, contentAreaId }`. Args: parentId, tabLabels: string[], id?.
+
+### createStepper
+
+Horizontal or vertical frame with one step per label: circle (createEllipse) + step number + label (addText). **Returns:** `{ success: true, stepperId }`. Args: parentId, steps: string[], direction?: 'horizontal' | 'vertical', id?.
 
 ### groupNodes (Atom)
 
@@ -134,7 +146,7 @@ Button with optional **icon (SVG code)** and/or label. Icon-only: square button 
 
 ### executeTool
 
-Dispatcher in `src/agent/execute-tool.ts`: `executeTool(context, toolName, args)` → createSection, createRow, createButton, addText, addPlaceholderImage, createCard, createDivider, createAvatar, createBadge, createSpacer, createInput, createForm, createTable, createButtonRow, setLayout, createCheckbox, createRadio, createTextarea, createList, createHeader, createHero, groupNodes, **addSvg**, **createIconButton**. Returns `ExecuteToolResult<T>`.
+Dispatcher in `src/agent/execute-tool.ts`: `executeTool(context, toolName, args)` → createSection, createRow, createButton, addText, addPlaceholderImage, createCard, createDivider, createAvatar, createBadge, createSpacer, createInput, createForm, createTable, createButtonRow, setLayout, createCheckbox, createRadio, createTextarea, createList, createHeader, createHero, createFooter, createTabs, createStepper, groupNodes, addSvg, createIconButton. Returns `ExecuteToolResult<T>`.
 
 ## Umgesetzt
 
@@ -143,8 +155,9 @@ Dispatcher in `src/agent/execute-tool.ts`: `executeTool(context, toolName, args)
 - **Layout:** createSection/createRow unterstützen align (min | center | max). setLayout ändert bestehende Frames (layoutMode, itemSpacing, padding, Align).
 - **Formulare:** createCheckbox, createRadio, createTextarea ergänzen createInput/createForm (Listen, Optionen, mehrzeilige Felder).
 - **Listen:** createList für Aufzählungen (bullet, numbered, plain).
-- **Optionale Blöcke:** createHeader (Logo + Nav + CTA), createHero (Titel + Subtitle + Bild + CTA), groupNodes (bestehende Nodes gruppieren).
-- **Icons/SVG:** addSvg(parentId, svgCode) – Agent kann einfachen SVG-Code schreiben; createIconButton für Icon-Buttons (nur Icon oder Icon+Label). Nutzt figma.createNodeFromSvg im Plugin.
+- **Optionale Blöcke:** createHeader, createHero, createFooter (leftText, linkLabels, rightText), createTabs (tabLabels → contentAreaId), createStepper (steps, direction), groupNodes.
+- **Layout:** Sections/Rows mit parentId "stage" nutzen automatisch die volle Stage-Breite; für zentrierte Inhalte verschachtelte createSection mit kleinerer width (z. B. 720) und align "center".
+- **Icons/SVG:** addSvg(parentId, svgCode); createIconButton (Icon und/oder Label). Nutzt figma.createNodeFromSvg im Plugin.
 
 ## References
 

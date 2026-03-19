@@ -79,6 +79,12 @@ export interface CreateFrameOpts {
   opacity?: number;
   x?: number;
   y?: number;
+  /** When set (in plugin), bind layout padding/spacing to these Figma Variables. */
+  paddingLeftVariable?: unknown;
+  paddingRightVariable?: unknown;
+  paddingTopVariable?: unknown;
+  paddingBottomVariable?: unknown;
+  itemSpacingVariable?: unknown;
 }
 
 export function createFrame(
@@ -110,10 +116,19 @@ export function createFrame(
     frame.counterAxisAlignItems = ca;
   }
   if (opts.itemSpacing != null && typeof opts.itemSpacing === 'number') frame.itemSpacing = opts.itemSpacing;
-  if (opts.paddingTop != null && typeof opts.paddingTop === 'number') frame.paddingTop = opts.paddingTop;
-  if (opts.paddingBottom != null && typeof opts.paddingBottom === 'number') frame.paddingBottom = opts.paddingBottom;
-  if (opts.paddingLeft != null && typeof opts.paddingLeft === 'number') frame.paddingLeft = opts.paddingLeft;
-  if (opts.paddingRight != null && typeof opts.paddingRight === 'number') frame.paddingRight = opts.paddingRight;
+  // Bind layout variables first (so Figma shows tw-spacing etc.); then set numeric fallbacks only where not bound
+  const setBound = (frame as any).setBoundVariable;
+  if (typeof setBound === 'function') {
+    if (opts.paddingLeftVariable) try { setBound.call(frame, 'paddingLeft', opts.paddingLeftVariable); } catch (_) {}
+    if (opts.paddingRightVariable) try { setBound.call(frame, 'paddingRight', opts.paddingRightVariable); } catch (_) {}
+    if (opts.paddingTopVariable) try { setBound.call(frame, 'paddingTop', opts.paddingTopVariable); } catch (_) {}
+    if (opts.paddingBottomVariable) try { setBound.call(frame, 'paddingBottom', opts.paddingBottomVariable); } catch (_) {}
+    if (opts.itemSpacingVariable) try { setBound.call(frame, 'itemSpacing', opts.itemSpacingVariable); } catch (_) {}
+  }
+  if (opts.paddingTop != null && typeof opts.paddingTop === 'number' && !opts.paddingTopVariable) frame.paddingTop = opts.paddingTop;
+  if (opts.paddingBottom != null && typeof opts.paddingBottom === 'number' && !opts.paddingBottomVariable) frame.paddingBottom = opts.paddingBottom;
+  if (opts.paddingLeft != null && typeof opts.paddingLeft === 'number' && !opts.paddingLeftVariable) frame.paddingLeft = opts.paddingLeft;
+  if (opts.paddingRight != null && typeof opts.paddingRight === 'number' && !opts.paddingRightVariable) frame.paddingRight = opts.paddingRight;
   applyFills(frame, opts.fills);
   applyStrokes(frame, opts.strokes, opts.strokeWeight);
   if (opts.cornerRadius != null && typeof opts.cornerRadius === 'number') frame.cornerRadius = opts.cornerRadius;
@@ -136,6 +151,15 @@ export interface CreateRectangleOpts {
   opacity?: number;
   x?: number;
   y?: number;
+  /** When set (and in plugin), bind the first fill's color to this Figma Variable. */
+  fillVariable?: unknown;
+  /** When set (and in plugin), bind cornerRadius to this Figma Variable. */
+  cornerRadiusVariable?: unknown;
+  /** When set (in plugin), bind width/height to these Figma Variables. */
+  widthVariable?: unknown;
+  heightVariable?: unknown;
+  /** Figma variables API from plugin (set by molecules when context.variablesApi is available). */
+  _variablesApi?: { setBoundVariableForPaint: (paint: unknown, field: string, variable: unknown) => unknown } | null;
 }
 
 export function createRectangle(
@@ -155,6 +179,23 @@ export function createRectangle(
   if (opts.opacity != null && typeof opts.opacity === 'number') rect.opacity = opts.opacity;
   if (opts.x != null && typeof opts.x === 'number') rect.x = opts.x;
   if (opts.y != null && typeof opts.y === 'number') rect.y = opts.y;
+  // Bind to Figma variables when variables API was passed from plugin
+  const varsApi = opts._variablesApi;
+  if (varsApi && opts.fillVariable) {
+    const fills = rect.fills as readonly { type: string }[] | undefined;
+    if (fills && fills.length > 0) {
+      try {
+        const paint = varsApi.setBoundVariableForPaint(fills[0], 'color', opts.fillVariable);
+        (rect as unknown as { fills: unknown[] }).fills = [paint];
+      } catch (_) {}
+    }
+  }
+  const setBound = (rect as any).setBoundVariable;
+  if (typeof setBound === 'function') {
+    if (opts.cornerRadiusVariable) try { setBound.call(rect, 'cornerRadius', opts.cornerRadiusVariable); } catch (_) {}
+    if (opts.widthVariable) try { setBound.call(rect, 'width', opts.widthVariable); } catch (_) {}
+    if (opts.heightVariable) try { setBound.call(rect, 'height', opts.heightVariable); } catch (_) {}
+  }
   nodeMap.set(id, rect);
   return id;
 }

@@ -9,8 +9,8 @@ import {
 } from './wireframe-tool-agent';
 
 describe('wireframe-tool-agent', () => {
-  it('exposes 24 tools with expected names', () => {
-    expect(FIGMA_WIREFRAME_TOOLS).toHaveLength(24);
+  it('exposes 27 tools with expected names', () => {
+    expect(FIGMA_WIREFRAME_TOOLS).toHaveLength(27);
     const names = FIGMA_WIREFRAME_TOOLS.map((t) => t.function.name).sort();
     expect(names).toEqual([
       'addPlaceholderImage',
@@ -23,6 +23,7 @@ describe('wireframe-tool-agent', () => {
       'createCard',
       'createCheckbox',
       'createDivider',
+      'createFooter',
       'createForm',
       'createHeader',
       'createHero',
@@ -33,7 +34,9 @@ describe('wireframe-tool-agent', () => {
       'createRow',
       'createSection',
       'createSpacer',
+      'createStepper',
       'createTable',
+      'createTabs',
       'createTextarea',
       'groupNodes',
       'setLayout',
@@ -60,6 +63,8 @@ describe('wireframe-tool-agent', () => {
       model: 'gpt-4o-mini',
       userPrompt: 'Hero section',
       viewport: 'desktop',
+      stageWidth: 1440,
+      stageHeight: 1024,
       nodeMap,
     });
     expect(result.success).toBe(false);

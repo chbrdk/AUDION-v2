@@ -46,6 +46,8 @@ export interface Project {
 
 export interface PluginSettings {
   audionApiUrl: string;
+  /** Optional: RAG/Compose API URL for RAGDesign (Library-First). Defaults to audionApiUrl. */
+  ragApiUrl?: string;
   /** Optional: Opal or other discovery URL to resolve tools/APIs for direct access. */
   opalDiscoveryUrl?: string;
   defaultPersonaId?: string;
@@ -154,4 +156,3 @@ export interface ComponentKnowledgeBase {
 
 export type ViewportType = 'desktop' | 'mobile' | 'both';
 export type AIModelType = 'gpt-5-mini' | 'gpt-4o-mini' | 'gpt-4o';
-export type DesignMode = 'fast' | 'styled' | 'tools';

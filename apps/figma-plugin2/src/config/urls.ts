@@ -6,6 +6,9 @@
 
 const AUDION_API_BASE = 'https://audion.projects-a.plygrnd.tech';
 
+/** CREATION: RAG-backed design composition API (separate service). See github.com/chbrdk/CREATION */
+const CREATION_API_BASE = 'https://creation-api.projects-a.plygrnd.tech';
+
 export const URL_CONFIG = {
   /** Default AUDION API base (used when no settings override). */
   AUDION_API_BASE,
@@ -19,6 +22,9 @@ export const URL_CONFIG = {
 
   /** Optional: Other Opal discovery URL (e.g. Opal hub). When set, tools from that discovery can be used. */
   OPAL_DISCOVERY_URL: '', // Set via settings or env; empty = disabled
+
+  /** CREATION RAG/Compose API base for RAGDesign. Separate service. Overridable via settings.ragApiUrl. */
+  RAG_API_BASE: CREATION_API_BASE,
 } as const;
 
 export type UrlConfigKey = keyof typeof URL_CONFIG;

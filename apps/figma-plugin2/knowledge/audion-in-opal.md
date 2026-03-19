@@ -4,18 +4,23 @@ AUDION **stellt sich selbst** im Opal-Format bereit: Die AUDION-API hat einen Di
 
 ---
 
-## AUDION Discovery URL
+## AUDION Discovery URL (Production)
 
-Die richtige URL hängt vom **Reverse-Proxy** ab:
+**Live-Check (Stand: Repo-Code):**
 
-| Setup | Discovery-URL |
-|-------|-------------------------------|
-| **Nginx mit `/api` → Backend** (siehe `infrastructure/nginx/nginx.conf`, location `/api`) | `https://audion.projects-a.plygrnd.tech/api/discovery` |
-| **Nur `/api/persona-backend` → Backend** (ohne allgemeines `/api`) | `https://audion.projects-a.plygrnd.tech/api/persona-backend/discovery` |
+| URL | Ergebnis |
+|-----|----------|
+| `https://audion.projects-a.plygrnd.tech/api/personas` | **401 Unauthorized** → Backend-API ist unter `/api/*` erreichbar |
+| `https://audion.projects-a.plygrnd.tech/api/discovery` | **404 Not Found** → Discovery-Route fehlt im aktuell deployten Backend |
+| `https://audion.projects-a.plygrnd.tech/api/persona-backend/discovery` | **404** (Backend unter diesem Pfad nicht angebunden oder Discovery nicht deployt) |
 
-- Im Repo ist in **`infrastructure/nginx/nginx.conf`** inzwischen eine **location `/api`** mit Rewrite auf die Persona-API eingetragen. Nach Deploy und Reload von Nginx sind **`/api/discovery`**, **`/api/personas`**, **`/api/auth/login`** usw. erreichbar.
-- Wenn bei euch nur **`/api/persona-backend`** an die API geht, **`/api/discovery`** also 404 gibt: **`/api/persona-backend/discovery`** verwenden.
-- Alternative (gleiche Response): **`/api/discovery`** bzw. **`/api/persona-backend/.well-known/discovery`** (`.well-known` wird oft blockiert).
+**Korrekte URL (sobald Backend mit Discovery-Router deployt ist):**
+
+- **`https://audion.projects-a.plygrnd.tech/api/discovery`**
+
+Die API liegt in Production unter **`/api`** (z. B. `/api/personas` → 401). Die Route **`/discovery`** ist im Code in `apps/api/app/routers/discovery.py` vorhanden; 404 bedeutet: **aktuell deploytes Image enthält den Discovery-Endpoint noch nicht**. Nach Deploy des aktuellen API-Stands sollte `https://audion.projects-a.plygrnd.tech/api/discovery` antworten.
+
+Falls ihr einen anderen Proxy verwendet (z. B. nur `/api/persona-backend` → Backend), dann **`https://audion.projects-a.plygrnd.tech/api/persona-backend/discovery`** testen.
 
 - **Methode:** `GET`
 - **Auth:** Optional `Authorization: Bearer <token>`

@@ -1,8 +1,10 @@
 /**
  * Command Interpreter – Executes whitelisted Figma commands only (no generated code).
  * Uses only the official Figma Plugin API. On error, returns a message for the Figma Executor to self-correct.
+ *
+ * @deprecated Not used by generate-wireframe anymore; the plugin uses only the Wireframe Tool Agent (executeTool loop).
+ * Kept for reference or potential future use (e.g. export/replay). Tests in command-interpreter.test.ts still validate this module.
  */
-
 import type {
   FigmaCommand,
   LoadFontCommand,

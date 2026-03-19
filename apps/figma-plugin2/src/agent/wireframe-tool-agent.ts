@@ -37,7 +37,7 @@ export const FIGMA_WIREFRAME_TOOLS: OpenAITool[] = [
     type: 'function',
     function: {
       name: 'createSection',
-      description: 'Create a section container (Frame) inside the stage or a row. Use parentId "stage" for full-width sections, or a rowId for columns. Use direction: "horizontal" to place elements (e.g. buttons, inputs) side by side; "vertical" (default) stacks them. Prefer spacing: "spacious" for more space.',
+      description: 'Create a section container (Frame) inside the stage or a row. When parentId is "stage", section width defaults to full stage width (viewport). Use a smaller width only for nested content columns. Use direction: "horizontal" for elements side by side; "vertical" (default) stacks them. Prefer spacing: "spacious".',
       parameters: {
         type: 'object',
         properties: {
@@ -47,8 +47,8 @@ export const FIGMA_WIREFRAME_TOOLS: OpenAITool[] = [
           spacing: { type: 'string', enum: ['compact', 'normal', 'spacious'], description: 'Preset for gap and padding; use "spacious" for more space' },
           gap: { type: 'number', description: 'Item spacing (overrides spacing preset)' },
           padding: { type: 'number', description: 'Padding (overrides spacing preset)' },
-          width: { type: 'number', description: 'Section width (default 400)' },
-          height: { type: 'number', description: 'Section height (default 300)' },
+          width: { type: 'number', description: 'Section width. Omit or use parent width for full-width; use e.g. 720 for a centered content column inside a section.' },
+          height: { type: 'number', description: 'Section height in px. Set appropriately for the content (e.g. hero 400–500, features 300–400, footer 80). Default 300 if omitted.' },
           align: { type: 'string', enum: ['min', 'center', 'max'], description: 'Align children: min=left/top, center=centered, max=right/bottom' },
         },
         required: ['parentId', 'name'],
@@ -440,6 +440,66 @@ export const FIGMA_WIREFRAME_TOOLS: OpenAITool[] = [
   {
     type: 'function',
     function: {
+      name: 'createFooter',
+      description: 'Create a footer section: horizontal bar with optional left text (e.g. copyright), optional link labels (e.g. Impressum, Datenschutz), optional right text. Use at the bottom of the page.',
+      parameters: {
+        type: 'object',
+        properties: {
+          parentId: { type: 'string', description: 'Use "stage" or a sectionId' },
+          leftText: { type: 'string', description: 'Left-aligned text (e.g. "© 2025 Company")' },
+          linkLabels: {
+            type: 'array',
+            description: 'Optional link labels in the center (e.g. ["Impressum", "Datenschutz", "AGB"])',
+            items: { type: 'string' },
+          },
+          rightText: { type: 'string', description: 'Right-aligned text (e.g. "All rights reserved")' },
+        },
+        required: ['parentId'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'createTabs',
+      description: 'Create a tabs container: tab bar with labels + content area. Add content to the returned contentAreaId (e.g. addText, createButton). Use for dashboard sections or multi-panel UIs.',
+      parameters: {
+        type: 'object',
+        properties: {
+          parentId: { type: 'string', description: 'Use "stage" or a sectionId' },
+          tabLabels: {
+            type: 'array',
+            description: 'Tab labels (e.g. ["Overview", "Details", "Settings"])',
+            items: { type: 'string' },
+          },
+        },
+        required: ['parentId', 'tabLabels'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'createStepper',
+      description: 'Create a stepper: numbered steps (1, 2, 3…) with labels. Use for onboarding, checkout, or multi-step forms.',
+      parameters: {
+        type: 'object',
+        properties: {
+          parentId: { type: 'string', description: 'ID of the section or frame' },
+          steps: {
+            type: 'array',
+            description: 'Step labels (e.g. ["Cart", "Shipping", "Payment"])',
+            items: { type: 'string' },
+          },
+          direction: { type: 'string', enum: ['horizontal', 'vertical'], description: 'Layout direction (default horizontal)' },
+        },
+        required: ['parentId', 'steps'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'groupNodes',
       description: 'Group existing nodes into a single group under a parent. Use when you need to group several elements (e.g. logo + text) for selection or layout. childIds must be IDs of nodes already in the nodeMap under the same parent.',
       parameters: {
@@ -495,6 +555,19 @@ export const FIGMA_WIREFRAME_TOOLS: OpenAITool[] = [
 
 export const WIREFRAME_TOOL_AGENT_SYSTEM_PROMPT = `You are a Figma wireframe builder. A root frame with id "stage" already exists; all content must go inside it.
 
+You receive exact stage dimensions (width × height in px). You MUST plan and implement the layout for that canvas:
+- Use the given stage width for all top-level sections (they auto-size to full width). Plan content widths and heights accordingly.
+- Section heights: set height in createSection so sections use the space (e.g. hero 400–500px, features 300–400px, footer 80px). Do not leave default 300px for every section.
+- Full-width content: for hero images or banners use addPlaceholderImage with width equal to (stage width minus padding), e.g. width: stageWidth - 64 for 32px side padding.
+- Content columns: in a 2- or 3-column row, each column should get a sensible share of the width (e.g. 3 columns on 1440px → ~460px per column with gaps). Use createSection(parentId: rowId, width: calculatedWidth) so columns are evenly wide.
+- Centered content: for a max-width content block (e.g. 720px or 1120px) create a nested section with that width and align "center" on the parent so it centers on the stage.
+- Buttons and inputs: size for the container (e.g. full-width input in a 720px content section → width: 720 or slightly less).
+
+Best practices:
+- Order: create sections first (createSection with parentId "stage"), then add content using returned sectionId/rowId. Only use IDs from previous tool calls or "stage".
+- Prefer spacing: "spacious" for sections. Use createHeader for top nav, createHero for hero blocks, createSection for generic areas.
+- Typography: h1 = main headline, h2 = section titles, body = body text.
+
 Rules:
 1. Full-width sections: call createSection with parentId: "stage" and a name. Use spacing: "spacious" for generous spacing.
 2. Layout: Use createSection with direction: "horizontal" when elements (buttons, inputs, text+image) should sit side by side; direction: "vertical" (default) when they should stack. Use align: "center" or "max" on createSection/createRow to center or right-align content. To change layout of an existing frame use setLayout(nodeId, ...).
@@ -505,7 +578,7 @@ Rules:
 7. For contact forms, login forms, or grouped inputs use createForm with fields (each field can have label and placeholder). For a single input use createInput. For checkboxes (e.g. "Newsletter") use createCheckbox; for radio options use createRadio multiple times in same section; for multi-line text use createTextarea with rows.
 8. For bullet or numbered lists use createList with items: [...] and variant: "bullet" or "numbered" or "plain".
 9. For data grids, pricing tables, or comparison tables use createTable with columns, rows, optional headerRow and cellTexts (max 10 columns, 20 rows).
-10. For a top navigation bar use createHeader with parentId "stage", optional logoLabel, navItems array, and ctaLabel. For a hero block (headline + optional subtitle + image + CTA) use createHero. To group existing nodes use groupNodes(parentId, childIds).
+10. For a top navigation bar use createHeader with parentId "stage", optional logoLabel, navItems array, and ctaLabel. For a hero block use createHero. For a bottom footer use createFooter with optional leftText, linkLabels, rightText. For tabbed content use createTabs(parentId, tabLabels); add content to the returned contentAreaId. For multi-step flows use createStepper(parentId, steps, direction). To group existing nodes use groupNodes(parentId, childIds).
 11. For icons or custom vector graphics use addSvg(parentId, svgCode) with full SVG markup; you can write simple SVG (e.g. path, circle, rect). For icon-only or icon+label buttons use createIconButton with iconSvg and optional label.
 12. When the wireframe is complete, reply with a short summary and do not call any more tools.
 13. Use h1 for main headings, h2 for section titles, body for body text.`;
@@ -516,7 +589,15 @@ export interface RunWireframeToolAgentOptions {
   model: string;
   userPrompt: string;
   viewport: string;
+  /** Stage width in px (e.g. 1440 desktop, 390 mobile). Agent uses this to plan layout and component sizes. */
+  stageWidth: number;
+  /** Stage height in px (e.g. 1024). Agent uses this to plan section heights. */
+  stageHeight: number;
   nodeMap: NodeMap;
+  /** Optional map from token key to Figma Variable for binding (from getOrCreateWireframeVariables()). */
+  variableMap?: Record<string, unknown> | null;
+  /** Figma variables API (figma.variables) so atoms can bind variables to nodes. Required for variable binding. */
+  variablesApi?: { setBoundVariableForPaint: (paint: unknown, field: string, variable: unknown) => unknown } | null;
   maxSteps?: number;
   requestTimeoutMs?: number;
   onProgress?: (message: string) => void;
@@ -551,16 +632,22 @@ export async function runWireframeToolAgent(options: RunWireframeToolAgentOption
     model,
     userPrompt,
     viewport,
+    stageWidth,
+    stageHeight,
     nodeMap,
+    variableMap,
+    variablesApi,
     maxSteps = 15,
     requestTimeoutMs = 60000,
     onProgress,
   } = options;
 
-  const context: ToolContext = { nodeMap };
+  const layoutContext = `Stage dimensions: ${stageWidth}×${stageHeight} px. Layout all content for this canvas: use full-width sections (they auto-size to ${stageWidth}px), set section heights appropriately (e.g. hero 400–500px, footer ~80px), and size components for the available width (e.g. hero image width ${stageWidth - 64}, content columns ~${Math.round((stageWidth - 96) / 3)}px each in a 3-col row, max content width 1120 or 720 for centered text).`;
+
+  const context: ToolContext = { nodeMap, variables: variableMap ?? undefined, variablesApi: variablesApi ?? undefined };
   const messages: ChatMessage[] = [
     { role: 'system', content: WIREFRAME_TOOL_AGENT_SYSTEM_PROMPT },
-    { role: 'user', content: `Viewport: ${viewport}. Build a wireframe: ${userPrompt}. Use createSection with parentId "stage" for each area, then addText and createButton inside those sections.` },
+    { role: 'user', content: `${layoutContext}\n\nViewport: ${viewport}. Build a wireframe: ${userPrompt}. Use createSection with parentId "stage" for each area, set width/height where needed, then addText, createButton, addPlaceholderImage etc. inside those sections.` },
   ];
 
   let firstSectionId: string | undefined;
@@ -585,19 +672,30 @@ export async function runWireframeToolAgent(options: RunWireframeToolAgentOption
       tool_choice: 'auto',
     });
 
-    const res = await timeout(
-      doFetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-        body,
-      }),
-      requestTimeoutMs,
-      'OpenAI request timeout'
-    );
+    let res: Response;
+    try {
+      res = await timeout(
+        doFetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+          body,
+        }),
+        requestTimeoutMs,
+        'OpenAI request timeout'
+      );
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { success: false, error: msg };
+    }
 
     if (!res.ok) {
       const errText = await res.text();
-      return { success: false, error: `OpenAI ${res.status}: ${errText.slice(0, 200)}` };
+      let detail = errText.slice(0, 300);
+      try {
+        const errJson = JSON.parse(errText);
+        if (errJson.error?.message) detail = errJson.error.message;
+      } catch (_) {}
+      return { success: false, error: `OpenAI ${res.status}: ${detail}` };
     }
 
     const data = await res.json();

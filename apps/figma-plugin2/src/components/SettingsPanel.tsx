@@ -199,6 +199,30 @@ export function SettingsPanel({ initialSettings, onSettingsChange }: SettingsPan
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           <label className="msqdx-mono" style={{ fontSize: '9px', fontWeight: '600', color: 'var(--msqdx-text-secondary)' }}>
+            {t('ragApiUrl', lang)}
+          </label>
+          <input
+            type="text"
+            value={settings.ragApiUrl || ''}
+            onChange={(e) =>
+              setSettings({ ...settings, ragApiUrl: e.target.value || undefined })
+            }
+            placeholder={t('ragApiUrlPlaceholder', lang)}
+            style={{
+              width: '100%',
+              padding: '10px 14px',
+              background: 'rgba(15,23,42,0.03)',
+              border: '1px solid var(--msqdx-border-color)',
+              borderRadius: '10px',
+              fontSize: '13px',
+              color: 'var(--msqdx-text-main)',
+              outline: 'none'
+            }}
+          />
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <label className="msqdx-mono" style={{ fontSize: '9px', fontWeight: '600', color: 'var(--msqdx-text-secondary)' }}>
             {t('selectProject', lang)}
           </label>
           <div style={{ position: 'relative' }}>
