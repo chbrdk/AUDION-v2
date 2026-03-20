@@ -1,7 +1,14 @@
 import {
   HTML_FIGMA_CSS_REGRESSION_FIXTURE_PATH,
+  CREATION_JOURNEY_SCREEN_BRIEF_PATH,
   getHtmlFigmaCssRegressionFixtureUrl,
 } from './urls';
+
+describe('CREATION_JOURNEY_SCREEN_BRIEF_PATH', () => {
+  it('is the journey-screen-brief API path', () => {
+    expect(CREATION_JOURNEY_SCREEN_BRIEF_PATH).toBe('/api/v1/journey-screen-brief');
+  });
+});
 
 describe('getHtmlFigmaCssRegressionFixtureUrl', () => {
   it('appends fixture path without duplicate slash', () => {

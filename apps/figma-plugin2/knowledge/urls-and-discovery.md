@@ -9,6 +9,8 @@ All API and discovery URLs are defined in **`src/config/urls.ts`**. Do not hardc
 - **`URL_CONFIG.OPAL_DISCOVERY_URL`** – Optional other Opal discovery (e.g. Opal hub); overridable in settings as `opalDiscoveryUrl`.
 - **`URL_CONFIG.RAG_API_BASE`** – CREATION (RAG / compose / capture). Overridable in settings as `ragApiUrl`.
 - **`HTML_FIGMA_CSS_REGRESSION_FIXTURE_PATH`** + **`getHtmlFigmaCssRegressionFixtureUrl(base)`** – CREATION serves the CSS regression HTML at `{base}/fixtures/html-figma-css-regression.html`. Used by **HTML TO FIGMA → CSS regression (test page)**; the CREATION host must match this base.
+- **`CREATION_GENERATE_SITE_TO_LAYERS_PATH`** – Prompt → PageSpec → layers (`POST`, Bearer `creationPluginApiSecret`).
+- **`CREATION_JOURNEY_SCREEN_BRIEF_PATH`** – Journey phase + persona → screen brief + PageSpec user prompt (`POST`, same secret). See `knowledge/journey-screen-brief-plugin.md`.
 
 ## Bearer token
 

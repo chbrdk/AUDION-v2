@@ -18,6 +18,10 @@ import { generateConversationId } from './services/conversation-service';
 import { LoginPanel } from './components/LoginPanel';
 import { setAuthToken, setApiBaseUrl } from './api/audion-client';
 import { URL_CONFIG, getHtmlFigmaCssRegressionFixtureUrl } from './config/urls';
+import {
+  JOURNEY_PROMPT_SITE_COMPONENT_LIBRARY,
+  JOURNEY_PROMPT_SITE_RENDER_MODE,
+} from './config/journey-prompt-site';
 import { convertToBase64 } from './services/screenshot-service';
 import { MsqdxLogo } from './components/MsqdxLogo';
 import { t, Language } from './translations';
@@ -178,6 +182,9 @@ function App() {
   const [promptSiteSuccess, setPromptSiteSuccess] = useState(false);
   const [promptSitePreviewUrl, setPromptSitePreviewUrl] = useState<string | null>(null);
   const [promptSiteRenderMeta, setPromptSiteRenderMeta] = useState<PromptSiteRenderMeta | null>(null);
+  const [journeyBriefLoading, setJourneyBriefLoading] = useState(false);
+  const [journeyPromptPrefill, setJourneyPromptPrefill] = useState<string | null>(null);
+  const [journeyPromptPrefillToken, setJourneyPromptPrefillToken] = useState(0);
   const fileKeyResolveRef = useRef<((key: string | null) => void) | null>(null);
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
@@ -331,6 +338,49 @@ function App() {
           setPromptSiteSuccess(false);
           setPromptSitePreviewUrl(null);
           setPromptSiteRenderMeta(null);
+          break;
+
+        case 'journey-screen-brief-success': {
+          setJourneyBriefLoading(false);
+          const jp =
+            typeof (msg as { pageSpecUserPrompt?: string }).pageSpecUserPrompt === 'string'
+              ? (msg as { pageSpecUserPrompt: string }).pageSpecUserPrompt.trim()
+              : '';
+          if (jp) {
+            setJourneyPromptPrefill(jp);
+            setJourneyPromptPrefillToken((t) => t + 1);
+          }
+          const jm = msg as { chainGenerate?: boolean; viewport?: string };
+          if (jm.chainGenerate && jp) {
+            setPromptSiteLoading(true);
+            setPromptSiteError(null);
+            setPromptSiteSuccess(false);
+            setPromptSitePreviewUrl(null);
+            setPromptSiteRenderMeta(null);
+            const viewport =
+              jm.viewport === 'tablet' || jm.viewport === 'mobile' ? jm.viewport : 'desktop';
+            parent.postMessage(
+              {
+                pluginMessage: {
+                  type: 'prompt-site-to-figma',
+                  prompt: jp,
+                  viewport,
+                  componentLibrary: 'default',
+                  renderMode: 'free',
+                },
+              },
+              '*'
+            );
+          }
+          break;
+        }
+
+        case 'journey-screen-brief-error':
+          setJourneyBriefLoading(false);
+          console.error(
+            'journey-screen-brief-error',
+            (msg as { error?: string }).error ?? 'unknown'
+          );
           break;
 
         case 'rag-refine-debug': {
@@ -744,7 +794,9 @@ function App() {
       <div 
         className="scroll-container"
         style={{ 
-          flex: 1, 
+          flex: 1,
+          /* Critical for Figma iframe: allows this flex child to shrink so overflow-y scroll works (avoids clipped / dead-click UI). */
+          minHeight: 0,
           display: 'flex', 
           flexDirection: 'column', 
           gap: '16px',
@@ -803,7 +855,62 @@ function App() {
         )}
 
         {view === 'journeys' && (
-          <JourneysPanel lang={lang} projectId={settings?.projectId} />
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              width: '100%',
+              flexShrink: 0,
+            }}
+          >
+            <JourneysPanel
+              lang={lang}
+              projectId={settings?.projectId}
+              pluginLanguage={settings?.language}
+              creationReady={Boolean(
+                typeof settings?.creationPluginApiSecret === 'string' &&
+                  settings.creationPluginApiSecret.trim().length > 0 &&
+                  (settings?.ragApiUrl || URL_CONFIG.RAG_API_BASE)
+              )}
+              journeyBriefLoading={journeyBriefLoading}
+              onJourneyBriefStart={() => setJourneyBriefLoading(true)}
+            />
+            <PromptSiteToFigmaPanel
+              lang={lang}
+              loading={promptSiteLoading}
+              error={promptSiteError}
+              success={promptSiteSuccess}
+              previewUrl={promptSitePreviewUrl}
+              renderMeta={promptSiteRenderMeta}
+              prefillPrompt={journeyPromptPrefill}
+              prefillToken={journeyPromptPrefillToken}
+              journeyPipeline
+              onGenerate={(prompt, viewport, _componentLibrary, _renderMode) => {
+                setPromptSiteLoading(true);
+                setPromptSiteError(null);
+                setPromptSiteSuccess(false);
+                setPromptSitePreviewUrl(null);
+                setPromptSiteRenderMeta(null);
+                parent.postMessage(
+                  {
+                    pluginMessage: {
+                      type: 'prompt-site-to-figma',
+                      prompt,
+                      viewport,
+                      componentLibrary: JOURNEY_PROMPT_SITE_COMPONENT_LIBRARY,
+                      renderMode: JOURNEY_PROMPT_SITE_RENDER_MODE,
+                    },
+                  },
+                  '*'
+                );
+              }}
+              onClearFeedback={() => {
+                setPromptSiteError(null);
+                setPromptSiteSuccess(false);
+              }}
+            />
+          </div>
         )}
 
         {view === 'experimental' && experimentalSubPage === null && (
@@ -1024,6 +1131,8 @@ function App() {
               success={promptSiteSuccess}
               previewUrl={promptSitePreviewUrl}
               renderMeta={promptSiteRenderMeta}
+              prefillPrompt={journeyPromptPrefill}
+              prefillToken={journeyPromptPrefillToken}
               onGenerate={(prompt, viewport, componentLibrary, renderMode) => {
                 setPromptSiteLoading(true);
                 setPromptSiteError(null);

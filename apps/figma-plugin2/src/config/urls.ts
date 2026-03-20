@@ -37,6 +37,9 @@ export const HTML_FIGMA_CSS_REGRESSION_FIXTURE_PATH =
 /** CREATION: prompt → PageSpec → site-preview → capture → layers. Same host as {@link URL_CONFIG.RAG_API_BASE}. */
 export const CREATION_GENERATE_SITE_TO_LAYERS_PATH = "/api/v1/generate-site-to-layers" as const;
 
+/** CREATION: journey phase + persona → screen brief + PageSpec user prompt. Same host as {@link URL_CONFIG.RAG_API_BASE}. */
+export const CREATION_JOURNEY_SCREEN_BRIEF_PATH = "/api/v1/journey-screen-brief" as const;
+
 /** Debug preview page for generated Prompt→Site jobs (auth required on CREATION). */
 export const CREATION_GENERATE_SITE_PREVIEW_PATH = "/api/v1/generate-site-preview" as const;
 

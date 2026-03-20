@@ -17,6 +17,14 @@ export interface PromptSiteToFigmaPanelProps {
   success: boolean;
   previewUrl?: string | null;
   renderMeta?: PromptSiteRenderMeta | null;
+  /** When `prefillToken` changes with a non-empty `prefillPrompt`, the textarea is replaced (e.g. Journey → CREATION brief). */
+  prefillPrompt?: string | null;
+  /** Bump to re-apply the same prompt text if needed. */
+  prefillToken?: number;
+  /**
+   * Journeys tab: hide library/render-mode; always use default library + free (native LLM).
+   */
+  journeyPipeline?: boolean;
   onGenerate: (
     prompt: string,
     viewport: ViewportChoice,
@@ -33,13 +41,36 @@ export function PromptSiteToFigmaPanel({
   success,
   previewUrl,
   renderMeta,
+  prefillPrompt,
+  prefillToken,
+  journeyPipeline = false,
   onGenerate,
   onClearFeedback,
 }: PromptSiteToFigmaPanelProps) {
   const [prompt, setPrompt] = React.useState('');
   const [viewport, setViewport] = React.useState<ViewportChoice>('desktop');
   const [componentLibrary, setComponentLibrary] = React.useState<LibraryChoice>('default');
-  const [renderMode, setRenderMode] = React.useState<ModeChoice>('production');
+  const [renderMode, setRenderMode] = React.useState<ModeChoice>(() =>
+    journeyPipeline ? 'free' : 'production'
+  );
+
+  useEffect(() => {
+    if (
+      prefillToken != null &&
+      prefillPrompt != null &&
+      typeof prefillPrompt === 'string' &&
+      prefillPrompt.length > 0
+    ) {
+      setPrompt(prefillPrompt);
+    }
+  }, [prefillToken, prefillPrompt]);
+
+  useEffect(() => {
+    if (journeyPipeline) {
+      setComponentLibrary('default');
+      setRenderMode('free');
+    }
+  }, [journeyPipeline]);
 
   useEffect(() => {
     if (error || success) {
@@ -53,7 +84,9 @@ export function PromptSiteToFigmaPanel({
   const handleSubmit = () => {
     const trimmed = prompt.trim();
     if (!trimmed) return;
-    onGenerate(trimmed, viewport, componentLibrary, renderMode);
+    const lib = journeyPipeline ? 'default' : componentLibrary;
+    const mode = journeyPipeline ? 'free' : renderMode;
+    onGenerate(trimmed, viewport, lib, mode);
   };
 
   const labelTitle = t('promptSiteToFigmaTitle', lang);
@@ -70,7 +103,7 @@ export function PromptSiteToFigmaPanel({
       <p style={{ fontSize: '11px', color: 'var(--msqdx-text-secondary)', margin: 0, lineHeight: 1.4 }}>
         <strong style={{ color: 'var(--msqdx-text-primary)' }}>{labelTitle}</strong>
         <br />
-        {labelHint}
+        {journeyPipeline ? t('journeyBriefPipelineFixed', lang) : labelHint}
       </p>
       <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--msqdx-text-secondary)' }}>
         {labelPrompt}
@@ -115,51 +148,55 @@ export function PromptSiteToFigmaPanel({
           <option value="mobile">Mobile</option>
         </select>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-        <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--msqdx-text-secondary)' }}>
-          {lang === 'de' ? 'Component Library' : 'Component library'}
-        </label>
-        <select
-          value={componentLibrary}
-          onChange={(e) => setComponentLibrary(e.target.value as LibraryChoice)}
-          disabled={loading}
-          style={{
-            width: '100%',
-            padding: '10px 12px',
-            borderRadius: '8px',
-            border: '1px solid var(--msqdx-border-color)',
-            fontSize: '13px',
-            background: 'rgba(15,23,42,0.03)',
-            color: 'var(--msqdx-text-main)',
-          }}
-        >
-          <option value="default">Default</option>
-          <option value="porsche">Porsche</option>
-        </select>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-        <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--msqdx-text-secondary)' }}>
-          {lang === 'de' ? 'Render Mode' : 'Render mode'}
-        </label>
-        <select
-          value={renderMode}
-          onChange={(e) => setRenderMode(e.target.value as ModeChoice)}
-          disabled={loading}
-          style={{
-            width: '100%',
-            padding: '10px 12px',
-            borderRadius: '8px',
-            border: '1px solid var(--msqdx-border-color)',
-            fontSize: '13px',
-            background: 'rgba(15,23,42,0.03)',
-            color: 'var(--msqdx-text-main)',
-          }}
-        >
-          <option value="production">{lang === 'de' ? 'Production' : 'Production'}</option>
-          <option value="experimental">{lang === 'de' ? 'Experimental' : 'Experimental'}</option>
-          <option value="free">{lang === 'de' ? 'Free (native LLM)' : 'Free (native LLM)'}</option>
-        </select>
-      </div>
+      {!journeyPipeline ? (
+        <>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--msqdx-text-secondary)' }}>
+              {lang === 'de' ? 'Component Library' : 'Component library'}
+            </label>
+            <select
+              value={componentLibrary}
+              onChange={(e) => setComponentLibrary(e.target.value as LibraryChoice)}
+              disabled={loading}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: '8px',
+                border: '1px solid var(--msqdx-border-color)',
+                fontSize: '13px',
+                background: 'rgba(15,23,42,0.03)',
+                color: 'var(--msqdx-text-main)',
+              }}
+            >
+              <option value="default">Default</option>
+              <option value="porsche">Porsche</option>
+            </select>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--msqdx-text-secondary)' }}>
+              {lang === 'de' ? 'Render Mode' : 'Render mode'}
+            </label>
+            <select
+              value={renderMode}
+              onChange={(e) => setRenderMode(e.target.value as ModeChoice)}
+              disabled={loading}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: '8px',
+                border: '1px solid var(--msqdx-border-color)',
+                fontSize: '13px',
+                background: 'rgba(15,23,42,0.03)',
+                color: 'var(--msqdx-text-main)',
+              }}
+            >
+              <option value="production">{lang === 'de' ? 'Production' : 'Production'}</option>
+              <option value="experimental">{lang === 'de' ? 'Experimental' : 'Experimental'}</option>
+              <option value="free">{lang === 'de' ? 'Free (native LLM)' : 'Free (native LLM)'}</option>
+            </select>
+          </div>
+        </>
+      ) : null}
       <button
         type="button"
         onClick={handleSubmit}

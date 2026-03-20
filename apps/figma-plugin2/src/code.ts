@@ -21,7 +21,12 @@ import { executeTool } from './agent/execute-tool';
 import { runWireframeToolAgent } from './agent/wireframe-tool-agent';
 import { getOrCreateWireframeVariables } from './figma-variables';
 import type { ComponentKnowledgeBase } from './types';
-import { URL_CONFIG, CREATION_GENERATE_SITE_PREVIEW_PATH, CREATION_GENERATE_SITE_TO_LAYERS_PATH } from './config/urls';
+import {
+  URL_CONFIG,
+  CREATION_GENERATE_SITE_PREVIEW_PATH,
+  CREATION_GENERATE_SITE_TO_LAYERS_PATH,
+  CREATION_JOURNEY_SCREEN_BRIEF_PATH,
+} from './config/urls';
 import {
   listDiscoveredTools,
   callDiscoveredTool,
@@ -807,6 +812,94 @@ figma.ui.onmessage = async (msg) => {
           figma.notify(message.slice(0, 60));
           figma.ui.postMessage({
             type: 'prompt-site-to-figma-error',
+            error: message,
+          });
+        }
+        break;
+      }
+
+      case 'journey-screen-brief': {
+        const m = msg as {
+          body?: unknown;
+          chainGenerate?: boolean;
+          viewport?: string;
+          componentLibrary?: string;
+          renderMode?: string;
+        };
+        const settings = await figma.clientStorage.getAsync('audion-settings');
+        const apiBaseUrl = (settings?.ragApiUrl || URL_CONFIG.RAG_API_BASE || '').replace(/\/$/, '');
+        const pluginSecret =
+          typeof settings?.creationPluginApiSecret === 'string'
+            ? settings.creationPluginApiSecret.trim()
+            : '';
+        if (!apiBaseUrl) {
+          figma.notify('RAG-API-URL nicht konfiguriert');
+          figma.ui.postMessage({
+            type: 'journey-screen-brief-error',
+            error: 'RAG-API-URL in Einstellungen fehlt',
+          });
+          break;
+        }
+        if (!pluginSecret) {
+          figma.notify('CREATION Plugin Secret in SETUP eintragen');
+          figma.ui.postMessage({
+            type: 'journey-screen-brief-error',
+            error: 'CREATION plugin secret missing in settings',
+          });
+          break;
+        }
+        if (m.body == null || typeof m.body !== 'object') {
+          figma.ui.postMessage({
+            type: 'journey-screen-brief-error',
+            error: 'Missing journey-screen-brief body',
+          });
+          break;
+        }
+        try {
+          const res = await withTimeout(
+            figmaFetch(apiBaseUrl + CREATION_JOURNEY_SCREEN_BRIEF_PATH, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${pluginSecret}`,
+              },
+              body: JSON.stringify(m.body),
+            }),
+            120_000,
+            'Journey screen brief timeout'
+          );
+          if (!res.ok) {
+            const errBody = await res.text();
+            const detail = errBody
+              ? errBody.slice(0, 400) + (errBody.length > 400 ? '…' : '')
+              : res.statusText;
+            throw new Error(`${res.status}: ${detail}`);
+          }
+          const data = (await res.json()) as {
+            pageSpecUserPrompt?: string;
+            screenBrief?: unknown;
+            tokensUsed?: number;
+          };
+          const prompt = typeof data.pageSpecUserPrompt === 'string' ? data.pageSpecUserPrompt.trim() : '';
+          if (!prompt) {
+            throw new Error('CREATION response missing pageSpecUserPrompt');
+          }
+          figma.ui.postMessage({
+            type: 'journey-screen-brief-success',
+            pageSpecUserPrompt: prompt,
+            screenBrief: data.screenBrief,
+            tokensUsed: data.tokensUsed,
+            chainGenerate: m.chainGenerate === true,
+            viewport: m.viewport,
+            componentLibrary: m.componentLibrary,
+            renderMode: m.renderMode,
+          });
+          figma.notify('Screen-Prompt erstellt');
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          figma.notify(message.slice(0, 60));
+          figma.ui.postMessage({
+            type: 'journey-screen-brief-error',
             error: message,
           });
         }
