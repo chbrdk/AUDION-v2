@@ -223,6 +223,63 @@ export function SettingsPanel({ initialSettings, onSettingsChange }: SettingsPan
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           <label className="msqdx-mono" style={{ fontSize: '9px', fontWeight: '600', color: 'var(--msqdx-text-secondary)' }}>
+            {t('creationPluginApiSecret', lang)}
+          </label>
+          <input
+            type="password"
+            autoComplete="off"
+            value={settings.creationPluginApiSecret || ''}
+            onChange={(e) =>
+              setSettings({ ...settings, creationPluginApiSecret: e.target.value || undefined })
+            }
+            placeholder="••••••••"
+            style={{
+              width: '100%',
+              padding: '10px 14px',
+              background: 'rgba(15,23,42,0.03)',
+              border: '1px solid var(--msqdx-border-color)',
+              borderRadius: '10px',
+              fontSize: '13px',
+              color: 'var(--msqdx-text-main)',
+              outline: 'none',
+            }}
+          />
+          <p className="msqdx-mono" style={{ fontSize: '9px', color: 'var(--msqdx-text-secondary)', margin: 0, lineHeight: 1.35 }}>
+            {t('creationPluginApiSecretHint', lang)}
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <label className="msqdx-mono" style={{ fontSize: '9px', fontWeight: '600', color: 'var(--msqdx-text-secondary)' }}>
+            {t('htmlToFigmaImageDebug', lang)}
+          </label>
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '10px 12px',
+              border: '1px solid var(--msqdx-border-color)',
+              borderRadius: '10px',
+              background: 'rgba(15,23,42,0.03)',
+              cursor: 'pointer'
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={Boolean(settings.htmlToFigmaImageDebug)}
+              onChange={(e) =>
+                setSettings({ ...settings, htmlToFigmaImageDebug: e.target.checked })
+              }
+            />
+            <span className="msqdx-mono" style={{ fontSize: '10px', color: 'var(--msqdx-text-secondary)' }}>
+              {t('htmlToFigmaImageDebugHint', lang)}
+            </span>
+          </label>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <label className="msqdx-mono" style={{ fontSize: '9px', fontWeight: '600', color: 'var(--msqdx-text-secondary)' }}>
             {t('selectProject', lang)}
           </label>
           <div style={{ position: 'relative' }}>

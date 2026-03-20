@@ -21,7 +21,7 @@ import { executeTool } from './agent/execute-tool';
 import { runWireframeToolAgent } from './agent/wireframe-tool-agent';
 import { getOrCreateWireframeVariables } from './figma-variables';
 import type { ComponentKnowledgeBase } from './types';
-import { URL_CONFIG } from './config/urls';
+import { URL_CONFIG, CREATION_GENERATE_SITE_PREVIEW_PATH, CREATION_GENERATE_SITE_TO_LAYERS_PATH } from './config/urls';
 import {
   listDiscoveredTools,
   callDiscoveredTool,
@@ -37,6 +37,7 @@ import {
 import { figmaNodeToDSL } from './dsl/reverse/nodeReader';
 import { renderComposition } from './composition/renderer';
 import { runRagRefinementAgent } from './agent/rag-refinement-agent';
+import { addLayersToFrame, defaultFont } from './html-figma/figma';
 
 /** Figma plugin fetch only accepts method, headers, body. Pass only these to avoid "Unrecognized key(s): signal". */
 function figmaFetch(
@@ -174,6 +175,7 @@ figma.ui.onmessage = async (msg) => {
           const defaultSettings = {
             audionApiUrl: URL_CONFIG.AUDION_API_BASE,
             ragApiUrl: URL_CONFIG.RAG_API_BASE,
+            htmlToFigmaImageDebug: false,
             opalDiscoveryUrl: URL_CONFIG.OPAL_DISCOVERY_URL || undefined,
           };
           figma.ui.postMessage({
@@ -186,6 +188,7 @@ figma.ui.onmessage = async (msg) => {
             settings: {
               audionApiUrl: URL_CONFIG.AUDION_API_BASE,
               ragApiUrl: URL_CONFIG.RAG_API_BASE,
+              htmlToFigmaImageDebug: false,
               opalDiscoveryUrl: URL_CONFIG.OPAL_DISCOVERY_URL || undefined,
             },
           });
@@ -528,6 +531,283 @@ figma.ui.onmessage = async (msg) => {
           figma.ui.postMessage({
             type: 'screenshot-error',
             error: error instanceof Error ? error.message : 'Unknown error',
+          });
+        }
+        break;
+      }
+
+      case 'html-to-figma-capture': {
+        const url = typeof (msg as { url?: string }).url === 'string'
+          ? (msg as { url: string }).url.trim()
+          : '';
+        if (!url || !url.startsWith('http')) {
+          figma.notify('Ungültige URL');
+          figma.ui.postMessage({
+            type: 'html-to-figma-error',
+            error: 'Ungültige oder fehlende URL (http/https)',
+          });
+          break;
+        }
+        const settings = await figma.clientStorage.getAsync('audion-settings');
+        const htmlToFigmaImageDebug = Boolean(settings?.htmlToFigmaImageDebug);
+        const apiBaseUrl = (settings?.ragApiUrl || URL_CONFIG.RAG_API_BASE || '').replace(/\/$/, '');
+        if (!apiBaseUrl) {
+          figma.notify('RAG-API-URL nicht konfiguriert');
+          figma.ui.postMessage({
+            type: 'html-to-figma-error',
+            error: 'RAG-API-URL in Einstellungen fehlt',
+          });
+          break;
+        }
+        try {
+          const res = await withTimeout(
+            figmaFetch(
+              apiBaseUrl +
+                '/api/v1/capture-page' +
+                (htmlToFigmaImageDebug ? '?debugImages=1' : ''),
+              {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain' },
+              body: JSON.stringify({ url }),
+            }),
+            90_000,
+            'Capture timeout'
+          );
+          if (!res.ok) {
+            const errBody = await res.text();
+            const detail = errBody ? (errBody.slice(0, 200) + (errBody.length > 200 ? '…' : '')) : res.statusText;
+            throw new Error(`${res.status}: ${detail}`);
+          }
+          const data = (await res.json()) as {
+            layers?: unknown;
+            imageDebug?: Record<string, unknown>;
+            meta?: {
+              jobId?: string;
+              previewUrl?: string;
+            };
+          };
+          const layers = data?.layers;
+          if (layers == null) {
+            throw new Error('Keine Layer in der Antwort');
+          }
+          if (data?.imageDebug) {
+            console.info('[html-figma:image-debug:backend]', data.imageDebug);
+            figma.ui.postMessage({ type: 'html-to-figma-image-debug', stage: 'backend', payload: data.imageDebug });
+          }
+          await figma.loadFontAsync(defaultFont);
+          const baseFrame = figma.currentPage;
+          const rootLayers = Array.isArray(layers) ? layers : [layers];
+          const collectImageStats = (nodes: unknown[]): { paints: number; withBase64: number; withImageHash: number } => {
+            const stats = { paints: 0, withBase64: 0, withImageHash: 0 };
+            const walk = (node: unknown) => {
+              if (!node || typeof node !== 'object') return;
+              const n = node as { fills?: unknown; backgrounds?: unknown; children?: unknown };
+              const paintArrays = [n.fills, n.backgrounds];
+              for (const arr of paintArrays) {
+                if (!Array.isArray(arr)) continue;
+                for (const p of arr) {
+                  if (!p || typeof p !== 'object') continue;
+                  const paint = p as { type?: unknown; base64?: unknown; imageHash?: unknown };
+                  if (paint.type === 'IMAGE') {
+                    stats.paints++;
+                    if (typeof paint.base64 === 'string' && paint.base64.length > 0) stats.withBase64++;
+                    if (typeof paint.imageHash === 'string' && paint.imageHash.length > 0) stats.withImageHash++;
+                  }
+                }
+              }
+              if (Array.isArray(n.children)) n.children.forEach(walk);
+            };
+            nodes.forEach(walk);
+            return stats;
+          };
+          const beforeStats = collectImageStats(rootLayers as unknown[]);
+          console.info('[html-figma:image-debug:plugin:before-addLayers]', beforeStats);
+          figma.ui.postMessage({ type: 'html-to-figma-image-debug', stage: 'plugin-before', payload: beforeStats });
+          let frameRoot: SceneNode | null = null;
+          await addLayersToFrame(rootLayers as Parameters<typeof addLayersToFrame>[0], baseFrame, ({ node, parent }) => {
+            if (!parent) {
+              frameRoot = node;
+              node.name = 'HTML-to-Figma';
+            }
+          });
+          const afterStats = collectImageStats(rootLayers as unknown[]);
+          console.info('[html-figma:image-debug:plugin:after-addLayers]', afterStats);
+          figma.ui.postMessage({ type: 'html-to-figma-image-debug', stage: 'plugin-after', payload: afterStats });
+          if (frameRoot) {
+            figma.currentPage.selection = [frameRoot];
+            figma.viewport.scrollAndZoomIntoView([frameRoot]);
+          }
+          figma.notify('Seite eingefügt');
+          figma.ui.postMessage({ type: 'html-to-figma-success' });
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          figma.notify(message.slice(0, 60));
+          figma.ui.postMessage({
+            type: 'html-to-figma-error',
+            error: message,
+          });
+        }
+        break;
+      }
+
+      case 'prompt-site-to-figma': {
+        const prompt =
+          typeof (msg as { prompt?: string }).prompt === 'string'
+            ? (msg as { prompt: string }).prompt.trim()
+            : '';
+        const viewportRaw = (msg as { viewport?: string }).viewport;
+        const viewport =
+          viewportRaw === 'tablet' || viewportRaw === 'mobile' ? viewportRaw : 'desktop';
+        const componentLibraryRaw = (msg as { componentLibrary?: string }).componentLibrary;
+        const componentLibrary = componentLibraryRaw === 'porsche' ? 'porsche' : 'default';
+        const renderModeRaw = (msg as { renderMode?: string }).renderMode;
+        const renderMode =
+          renderModeRaw === 'experimental' || renderModeRaw === 'free'
+            ? renderModeRaw
+            : 'production';
+        if (!prompt) {
+          figma.notify('Prompt fehlt');
+          figma.ui.postMessage({
+            type: 'prompt-site-to-figma-error',
+            error: 'Missing prompt',
+          });
+          break;
+        }
+        const settings = await figma.clientStorage.getAsync('audion-settings');
+        const apiBaseUrl = (settings?.ragApiUrl || URL_CONFIG.RAG_API_BASE || '').replace(/\/$/, '');
+        const pluginSecret =
+          typeof settings?.creationPluginApiSecret === 'string'
+            ? settings.creationPluginApiSecret.trim()
+            : '';
+        if (!apiBaseUrl) {
+          figma.notify('RAG-API-URL nicht konfiguriert');
+          figma.ui.postMessage({
+            type: 'prompt-site-to-figma-error',
+            error: 'RAG-API-URL in Einstellungen fehlt',
+          });
+          break;
+        }
+        if (!pluginSecret) {
+          figma.notify('CREATION Plugin Secret in SETUP eintragen');
+          figma.ui.postMessage({
+            type: 'prompt-site-to-figma-error',
+            error: 'CREATION plugin secret missing in settings',
+          });
+          break;
+        }
+        try {
+          const res = await withTimeout(
+            figmaFetch(apiBaseUrl + CREATION_GENERATE_SITE_TO_LAYERS_PATH, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${pluginSecret}`,
+              },
+              body: JSON.stringify({ prompt, viewport, componentLibrary, renderMode }),
+            }),
+            120_000,
+            'Generate site timeout'
+          );
+          if (!res.ok) {
+            const errBody = await res.text();
+            const detail = errBody
+              ? errBody.slice(0, 400) + (errBody.length > 400 ? '…' : '')
+              : res.statusText;
+            throw new Error(`${res.status}: ${detail}`);
+          }
+          const data = (await res.json()) as {
+            layers?: unknown;
+            imageDebug?: Record<string, unknown>;
+            meta?: {
+              jobId?: string;
+              previewUrl?: string;
+              componentLibrary?: string;
+              renderMode?: string;
+              adapterUsed?: string;
+              fallbackCount?: number;
+              fidelityWarnings?: Array<{ message?: string }>;
+            };
+          };
+          const layers = data?.layers;
+          if (layers == null) {
+            throw new Error('Keine Layer in der Antwort');
+          }
+          if (data?.imageDebug) {
+            console.info('[prompt-site:image-debug:backend]', data.imageDebug);
+            figma.ui.postMessage({
+              type: 'html-to-figma-image-debug',
+              stage: 'backend',
+              payload: data.imageDebug,
+            });
+          }
+          await figma.loadFontAsync(defaultFont);
+          const baseFrame = figma.currentPage;
+          const rootLayers = Array.isArray(layers) ? layers : [layers];
+          const collectImageStats = (nodes: unknown[]): { paints: number; withBase64: number; withImageHash: number } => {
+            const stats = { paints: 0, withBase64: 0, withImageHash: 0 };
+            const walk = (node: unknown) => {
+              if (!node || typeof node !== 'object') return;
+              const n = node as { fills?: unknown; backgrounds?: unknown; children?: unknown };
+              const paintArrays = [n.fills, n.backgrounds];
+              for (const arr of paintArrays) {
+                if (!Array.isArray(arr)) continue;
+                for (const p of arr) {
+                  if (!p || typeof p !== 'object') continue;
+                  const paint = p as { type?: unknown; base64?: unknown; imageHash?: unknown };
+                  if (paint.type === 'IMAGE') {
+                    stats.paints++;
+                    if (typeof paint.base64 === 'string' && paint.base64.length > 0) stats.withBase64++;
+                    if (typeof paint.imageHash === 'string' && paint.imageHash.length > 0) stats.withImageHash++;
+                  }
+                }
+              }
+              if (Array.isArray(n.children)) n.children.forEach(walk);
+            };
+            nodes.forEach(walk);
+            return stats;
+          };
+          const beforeStats = collectImageStats(rootLayers as unknown[]);
+          figma.ui.postMessage({
+            type: 'html-to-figma-image-debug',
+            stage: 'plugin-before',
+            payload: beforeStats,
+          });
+          let frameRoot: SceneNode | null = null;
+          await addLayersToFrame(rootLayers as Parameters<typeof addLayersToFrame>[0], baseFrame, ({ node, parent }) => {
+            if (!parent) {
+              frameRoot = node;
+              node.name = 'Prompt → Site';
+            }
+          });
+          const afterStats = collectImageStats(rootLayers as unknown[]);
+          figma.ui.postMessage({
+            type: 'html-to-figma-image-debug',
+            stage: 'plugin-after',
+            payload: afterStats,
+          });
+          if (frameRoot) {
+            figma.currentPage.selection = [frameRoot];
+            figma.viewport.scrollAndZoomIntoView([frameRoot]);
+          }
+          figma.notify('Landingpage eingefügt');
+          const fallbackPreviewUrl =
+            typeof data?.meta?.jobId === 'string'
+              ? `${apiBaseUrl}${CREATION_GENERATE_SITE_PREVIEW_PATH}/${encodeURIComponent(data.meta.jobId)}`
+              : undefined;
+          figma.ui.postMessage({
+            type: 'prompt-site-to-figma-success',
+            previewUrl:
+              typeof data?.meta?.previewUrl === 'string'
+                ? data.meta.previewUrl
+                : fallbackPreviewUrl,
+            renderMeta: data?.meta,
+          });
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          figma.notify(message.slice(0, 60));
+          figma.ui.postMessage({
+            type: 'prompt-site-to-figma-error',
+            error: message,
           });
         }
         break;

@@ -27,4 +27,23 @@ export const URL_CONFIG = {
   RAG_API_BASE: CREATION_API_BASE,
 } as const;
 
+/**
+ * Path on the CREATION host (same base as {@link URL_CONFIG.RAG_API_BASE}) for the bundled CSS regression HTML.
+ * @see CREATION `test-fixtures/html-figma-css-regression.html` served at this path.
+ */
+export const HTML_FIGMA_CSS_REGRESSION_FIXTURE_PATH =
+  "/fixtures/html-figma-css-regression.html" as const;
+
+/** CREATION: prompt → PageSpec → site-preview → capture → layers. Same host as {@link URL_CONFIG.RAG_API_BASE}. */
+export const CREATION_GENERATE_SITE_TO_LAYERS_PATH = "/api/v1/generate-site-to-layers" as const;
+
+/** Debug preview page for generated Prompt→Site jobs (auth required on CREATION). */
+export const CREATION_GENERATE_SITE_PREVIEW_PATH = "/api/v1/generate-site-preview" as const;
+
+/** Full URL for the HTML-to-Figma CSS regression fixture (uses your configured CREATION / RAG API base). */
+export function getHtmlFigmaCssRegressionFixtureUrl(creationApiBase: string): string {
+  const base = creationApiBase.trim().replace(/\/$/, "");
+  return `${base}${HTML_FIGMA_CSS_REGRESSION_FIXTURE_PATH}`;
+}
+
 export type UrlConfigKey = keyof typeof URL_CONFIG;

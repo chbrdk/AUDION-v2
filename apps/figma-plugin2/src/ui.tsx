@@ -17,7 +17,7 @@ import type {
 import { generateConversationId } from './services/conversation-service';
 import { LoginPanel } from './components/LoginPanel';
 import { setAuthToken, setApiBaseUrl } from './api/audion-client';
-import { URL_CONFIG } from './config/urls';
+import { URL_CONFIG, getHtmlFigmaCssRegressionFixtureUrl } from './config/urls';
 import { convertToBase64 } from './services/screenshot-service';
 import { MsqdxLogo } from './components/MsqdxLogo';
 import { t, Language } from './translations';
@@ -25,6 +25,9 @@ import { JourneysPanel } from './components/JourneysPanel';
 import { AgentPanel } from './components/AgentPanel';
 import { DSLDesignerPanel } from './components/DSLDesignerPanel';
 import { RAGDesignPanel } from './components/RAGDesignPanel';
+import { HtmlToFigmaPanel } from './components/HtmlToFigmaPanel';
+import { PromptSiteToFigmaPanel } from './components/PromptSiteToFigmaPanel';
+import type { PromptSiteRenderMeta } from './prompt-site-render-meta';
 import type { RAGComponentPayload } from './services/rag-selection-service';
 import { validateLayout } from './api/rag-compose-client';
 
@@ -129,7 +132,7 @@ const globalStyles =
   "}";
 
 type View = 'chat' | 'settings' | 'login' | 'journeys' | 'experimental';
-type ExperimentalSubPage = null | 'llmdesigner' | 'dsldesigner' | 'ragdesign';
+type ExperimentalSubPage = null | 'llmdesigner' | 'dsldesigner' | 'ragdesign' | 'htmltofigma';
 
 function App() {
   const [view, setView] = useState<View>('chat');
@@ -167,6 +170,14 @@ function App() {
   const [layoutFeedback, setLayoutFeedback] = useState<string | null>(null);
   const [layoutCheckInProgress, setLayoutCheckInProgress] = useState(false);
   const [layoutCheckError, setLayoutCheckError] = useState<string | null>(null);
+  const [htmlToFigmaLoading, setHtmlToFigmaLoading] = useState(false);
+  const [htmlToFigmaError, setHtmlToFigmaError] = useState<string | null>(null);
+  const [htmlToFigmaSuccess, setHtmlToFigmaSuccess] = useState(false);
+  const [promptSiteLoading, setPromptSiteLoading] = useState(false);
+  const [promptSiteError, setPromptSiteError] = useState<string | null>(null);
+  const [promptSiteSuccess, setPromptSiteSuccess] = useState(false);
+  const [promptSitePreviewUrl, setPromptSitePreviewUrl] = useState<string | null>(null);
+  const [promptSiteRenderMeta, setPromptSiteRenderMeta] = useState<PromptSiteRenderMeta | null>(null);
   const fileKeyResolveRef = useRef<((key: string | null) => void) | null>(null);
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
@@ -286,6 +297,40 @@ function App() {
           setIsRefining(false);
           setRefineProgress(null);
           setRefineError((msg as { error?: string }).error ?? 'Unknown error');
+          break;
+
+        case 'html-to-figma-success':
+          setHtmlToFigmaLoading(false);
+          setHtmlToFigmaError(null);
+          setHtmlToFigmaSuccess(true);
+          break;
+
+        case 'html-to-figma-error':
+          setHtmlToFigmaLoading(false);
+          setHtmlToFigmaError((msg as { error?: string }).error ?? 'Unknown error');
+          setHtmlToFigmaSuccess(false);
+          break;
+
+        case 'prompt-site-to-figma-success':
+          setPromptSiteLoading(false);
+          setPromptSiteError(null);
+          setPromptSiteSuccess(true);
+          setPromptSitePreviewUrl(
+            typeof (msg as { previewUrl?: string }).previewUrl === 'string'
+              ? (msg as { previewUrl: string }).previewUrl
+              : null
+          );
+          setPromptSiteRenderMeta(
+            ((msg as { renderMeta?: unknown }).renderMeta as PromptSiteRenderMeta | undefined) ?? null
+          );
+          break;
+
+        case 'prompt-site-to-figma-error':
+          setPromptSiteLoading(false);
+          setPromptSiteError((msg as { error?: string }).error ?? 'Unknown error');
+          setPromptSiteSuccess(false);
+          setPromptSitePreviewUrl(null);
+          setPromptSiteRenderMeta(null);
           break;
 
         case 'rag-refine-debug': {
@@ -829,6 +874,25 @@ function App() {
                   {lang === 'de' ? 'Designs aus Library-Komponenten per RAG + Claude.' : 'Compose designs from library components via RAG + Claude.'}
                 </span>
               </button>
+              <button
+                type="button"
+                onClick={() => setExperimentalSubPage('htmltofigma')}
+                className="msqdx-button secondary"
+                style={{
+                  width: '100%',
+                  padding: '16px',
+                  height: 'auto',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  gap: '4px',
+                  textAlign: 'left',
+                }}
+              >
+                <span className="msqdx-mono" style={{ fontSize: '11px', fontWeight: '700' }}>{t('htmltofigma', lang)}</span>
+                <span style={{ fontSize: '12px', opacity: 0.9, fontWeight: 400 }}>
+                  {lang === 'de' ? 'Webseite per URL laden und als Figma-Layer einfügen.' : 'Load a webpage by URL and insert as Figma layers.'}
+                </span>
+              </button>
             </div>
           </div>
         )}
@@ -912,6 +976,69 @@ function App() {
               layoutFeedback={layoutFeedback}
               layoutCheckInProgress={layoutCheckInProgress}
               layoutCheckError={layoutCheckError}
+            />
+          </div>
+        )}
+
+        {view === 'experimental' && experimentalSubPage === 'htmltofigma' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1, minHeight: 0 }}>
+            <button
+              type="button"
+              onClick={() => setExperimentalSubPage(null)}
+              className="msqdx-button secondary"
+              style={{ alignSelf: 'flex-start', padding: '6px 12px', height: '28px', fontSize: '11px' }}
+            >
+              ← {lang === 'de' ? 'Zurück' : 'Back'}
+            </button>
+            <header style={{ marginBottom: '4px' }}>
+              <h1 className="msqdx-mono" style={{ fontSize: '14px', fontWeight: '700', color: 'var(--msqdx-text-primary)', margin: 0 }}>
+                {t('htmltofigma', lang)}
+              </h1>
+              <p style={{ fontSize: '12px', color: 'var(--msqdx-text-secondary)', margin: '4px 0 0 0' }}>
+                {lang === 'de' ? 'Webseite per URL laden und als Figma-Layer einfügen.' : 'Load a webpage by URL and insert as Figma layers.'}
+              </p>
+            </header>
+            <HtmlToFigmaPanel
+              lang={lang}
+              loading={htmlToFigmaLoading}
+              error={htmlToFigmaError}
+              success={htmlToFigmaSuccess}
+              regressionFixtureUrl={getHtmlFigmaCssRegressionFixtureUrl(
+                settings?.ragApiUrl || URL_CONFIG.RAG_API_BASE
+              )}
+              onCapture={(url) => {
+                setHtmlToFigmaLoading(true);
+                setHtmlToFigmaError(null);
+                setHtmlToFigmaSuccess(false);
+                parent.postMessage({ pluginMessage: { type: 'html-to-figma-capture', url } }, '*');
+              }}
+              onClearFeedback={() => {
+                setHtmlToFigmaError(null);
+                setHtmlToFigmaSuccess(false);
+              }}
+            />
+            <PromptSiteToFigmaPanel
+              lang={lang}
+              loading={promptSiteLoading}
+              error={promptSiteError}
+              success={promptSiteSuccess}
+              previewUrl={promptSitePreviewUrl}
+              renderMeta={promptSiteRenderMeta}
+              onGenerate={(prompt, viewport, componentLibrary, renderMode) => {
+                setPromptSiteLoading(true);
+                setPromptSiteError(null);
+                setPromptSiteSuccess(false);
+                setPromptSitePreviewUrl(null);
+                setPromptSiteRenderMeta(null);
+                parent.postMessage(
+                  { pluginMessage: { type: 'prompt-site-to-figma', prompt, viewport, componentLibrary, renderMode } },
+                  '*'
+                );
+              }}
+              onClearFeedback={() => {
+                setPromptSiteError(null);
+                setPromptSiteSuccess(false);
+              }}
             />
           </div>
         )}

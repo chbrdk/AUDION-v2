@@ -7,6 +7,8 @@ All API and discovery URLs are defined in **`src/config/urls.ts`**. Do not hardc
 - **`URL_CONFIG.AUDION_API_BASE`** – Default AUDION API base (overridable in plugin settings).
 - **`URL_CONFIG.AUDION_DISCOVERY_URL`** – AUDION’s own discovery URL (Opal-format). Use this to register AUDION in Opal; see `knowledge/audion-in-opal.md`.
 - **`URL_CONFIG.OPAL_DISCOVERY_URL`** – Optional other Opal discovery (e.g. Opal hub); overridable in settings as `opalDiscoveryUrl`.
+- **`URL_CONFIG.RAG_API_BASE`** – CREATION (RAG / compose / capture). Overridable in settings as `ragApiUrl`.
+- **`HTML_FIGMA_CSS_REGRESSION_FIXTURE_PATH`** + **`getHtmlFigmaCssRegressionFixtureUrl(base)`** – CREATION serves the CSS regression HTML at `{base}/fixtures/html-figma-css-regression.html`. Used by **HTML TO FIGMA → CSS regression (test page)**; the CREATION host must match this base.
 
 ## Bearer token
 

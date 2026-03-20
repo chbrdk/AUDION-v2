@@ -48,6 +48,13 @@ export interface PluginSettings {
   audionApiUrl: string;
   /** Optional: RAG/Compose API URL for RAGDesign (Library-First). Defaults to audionApiUrl. */
   ragApiUrl?: string;
+  /** Optional: enable html-to-figma image debug flow (`?debugImages=1`). */
+  htmlToFigmaImageDebug?: boolean;
+  /**
+   * CREATION `PLUGIN_API_SECRET` — required for Prompt→Site→Figma (`POST /api/v1/generate-site-to-layers`).
+   * Never commit real values; store only in Figma client storage.
+   */
+  creationPluginApiSecret?: string;
   /** Optional: Opal or other discovery URL to resolve tools/APIs for direct access. */
   opalDiscoveryUrl?: string;
   defaultPersonaId?: string;
