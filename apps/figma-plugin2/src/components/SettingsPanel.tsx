@@ -48,9 +48,10 @@ async function saveSettings(settings: PluginSettings): Promise<void> {
 interface SettingsPanelProps {
   initialSettings: PluginSettings;
   onSettingsChange?: (settings: PluginSettings) => void;
+  onLogout?: () => void;
 }
 
-export function SettingsPanel({ initialSettings, onSettingsChange }: SettingsPanelProps) {
+export function SettingsPanel({ initialSettings, onSettingsChange, onLogout }: SettingsPanelProps) {
   const [settings, setSettings] = useState<PluginSettings>(initialSettings);
   const [personas, setPersonas] = useState<Persona[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -471,6 +472,34 @@ export function SettingsPanel({ initialSettings, onSettingsChange }: SettingsPan
         >
           <span className="msqdx-mono">{t('clearHistory', lang)}</span>
         </button>
+        {onLogout != null ? (
+          <>
+            <p
+              className="msqdx-mono"
+              style={{
+                fontSize: '9px',
+                color: 'var(--msqdx-text-secondary)',
+                margin: '16px 0 8px 0',
+                lineHeight: 1.35,
+              }}
+            >
+              {t('logoutHint', lang)}
+            </p>
+            <button
+              type="button"
+              onClick={onLogout}
+              className="msqdx-button secondary"
+              style={{
+                width: '100%',
+                height: '40px',
+                borderColor: '#ff6a3b',
+                color: '#ff6a3b',
+              }}
+            >
+              <span className="msqdx-mono">{t('logout', lang)}</span>
+            </button>
+          </>
+        ) : null}
       </div>
     </div>
   );

@@ -4,15 +4,17 @@
  */
 
 import { buildDSLSystemPrompt } from '../dsl/systemPrompt';
+import type { ComponentKnowledgeBase } from '../types';
 
 const OPENAI_CHAT_URL = 'https://api.openai.com/v1/chat/completions';
 
 export async function generateDSLFromPrompt(
   apiKey: string,
   userPrompt: string,
-  widthPx: number = 1440
+  widthPx: number = 1440,
+  knowledgeBase?: ComponentKnowledgeBase | null
 ): Promise<string> {
-  const systemPrompt = buildDSLSystemPrompt(widthPx);
+  const systemPrompt = buildDSLSystemPrompt(widthPx, knowledgeBase);
   const res = await fetch(OPENAI_CHAT_URL, {
     method: 'POST',
     headers: {

@@ -4,6 +4,12 @@
   "api": "1.0.0",
   "main": "dist/code.js",
   "ui": "dist/ui.html",
+  "menu": [
+    {
+      "name": "Section concept (MSQDX)",
+      "command": "msqdx-show-section-concept"
+    }
+  ],
   "editorType": [
     "figma"
   ],

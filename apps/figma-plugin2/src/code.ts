@@ -14,11 +14,6 @@ import {
 import type { SelectionMetadata } from './types';
 import { scanSelectedComponents } from './agent/scanner';
 import { scanSelectedPage } from './agent/page-scanner';
-import { KNOWLEDGE_ENRICHMENT_SYSTEM_PROMPT, buildEnrichmentPrompt } from './agent/enrichment-agent';
-import { createFrame } from './agent/figma-atoms';
-import { createButton, createSection, addText, createStage } from './agent/figma-molecules';
-import { executeTool } from './agent/execute-tool';
-import { runWireframeToolAgent } from './agent/wireframe-tool-agent';
 import { getOrCreateWireframeVariables } from './figma-variables';
 import type { ComponentKnowledgeBase } from './types';
 import {
@@ -27,6 +22,12 @@ import {
   CREATION_GENERATE_SITE_TO_LAYERS_PATH,
   CREATION_JOURNEY_SCREEN_BRIEF_PATH,
 } from './config/urls';
+import {
+  PLUGIN_UI_DEFAULT,
+  PLUGIN_UI_STORAGE_KEY,
+  clampPluginUiSize,
+  parseStoredPluginUiSize,
+} from './config/plugin-ui';
 import {
   listDiscoveredTools,
   callDiscoveredTool,
@@ -43,7 +44,14 @@ import { figmaNodeToDSL } from './dsl/reverse/nodeReader';
 import { renderComposition } from './composition/renderer';
 import { runRagRefinementAgent } from './agent/rag-refinement-agent';
 import { addLayersToFrame, defaultFont } from './html-figma/figma';
-
+import { applyMsqdxSectionConceptPluginData } from './services/apply-msqdx-section-plugin-data';
+import {
+  buildImportedSectionRow,
+  type JourneyImportedSectionRow,
+} from './services/journey-imported-section';
+import { MSQDX_SECTION_CONCEPT_PLUGIN_DATA_KEY } from './config/msqdx-section-metadata';
+import { SettingsController } from './plugin/controllers/SettingsController';
+import { KnowledgeController, normalizeKnowledge, STORAGE_KEY_KNOWLEDGE } from './plugin/controllers/KnowledgeController';
 /** Figma plugin fetch only accepts method, headers, body. Pass only these to avoid "Unrecognized key(s): signal". */
 function figmaFetch(
   url: string,
@@ -70,18 +78,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promi
   ]);
 }
 
-const STORAGE_KEY_KNOWLEDGE = 'audion-knowledge-base';
-
-function normalizeKnowledge(raw: unknown): ComponentKnowledgeBase {
-  if (!raw || typeof raw !== 'object') {
-    return { components: [], pages: [], lastUpdated: Date.now() };
-  }
-  const o = raw as Record<string, unknown>;
-  const components = Array.isArray(o.components) ? o.components : [];
-  const pages = Array.isArray(o.pages) ? o.pages : [];
-  const lastUpdated = typeof o.lastUpdated === 'number' ? o.lastUpdated : Date.now();
-  return { components, pages, lastUpdated } as ComponentKnowledgeBase;
-}
+// Moved STORAGE_KEY_KNOWLEDGE and normalizeKnowledge to KnowledgeController
 
 // Improved Polyfill for TextDecoder as it's missing in Figma sandbox
 if (typeof (globalThis as any).TextDecoder === "undefined") {
@@ -105,14 +102,49 @@ if (typeof (globalThis as any).TextDecoder === "undefined") {
   };
 }
 
-// Show the plugin UI
+// Show the plugin UI (size restored from clientStorage below)
 figma.showUI(__html__, {
-  width: 400,
-  height: 600,
+  width: PLUGIN_UI_DEFAULT.width,
+  height: PLUGIN_UI_DEFAULT.height,
   themeColors: true,
 });
 
+void (async () => {
+  try {
+    const raw = await figma.clientStorage.getAsync(PLUGIN_UI_STORAGE_KEY);
+    const parsed = parseStoredPluginUiSize(raw);
+    if (parsed) {
+      figma.ui.resize(parsed.width, parsed.height);
+    }
+  } catch {
+    /* ignore corrupt / missing storage */
+  }
+})();
+
 // Handle selection changes
+figma.on('run', (event: { command?: string }) => {
+  if (event.command !== 'msqdx-show-section-concept') return;
+  const sel = figma.currentPage.selection;
+  if (sel.length !== 1) {
+    figma.notify(
+      sel.length === 0
+        ? 'Select one frame to read section concept'
+        : 'Select only one frame'
+    );
+    return;
+  }
+  const node = sel[0];
+  if (node.type !== 'FRAME') {
+    figma.notify('Select a FRAME layer');
+    return;
+  }
+  const raw = node.getPluginData(MSQDX_SECTION_CONCEPT_PLUGIN_DATA_KEY);
+  figma.ui.postMessage({
+    type: 'msqdx-show-section-concept',
+    payload: raw && raw.trim().length > 0 ? raw : null,
+  });
+});
+
 figma.on('selectionchange', () => {
   const selection = getSelectedNodes();
   const isValid = validateSelection(selection);
@@ -174,45 +206,35 @@ function base64DecodeToUint8Array(base64: string): Uint8Array {
 figma.ui.onmessage = async (msg) => {
   try {
     switch (msg.type) {
-      case 'get-settings': {
-        try {
-          const settings = await figma.clientStorage.getAsync('audion-settings');
-          const defaultSettings = {
-            audionApiUrl: URL_CONFIG.AUDION_API_BASE,
-            ragApiUrl: URL_CONFIG.RAG_API_BASE,
-            htmlToFigmaImageDebug: false,
-            opalDiscoveryUrl: URL_CONFIG.OPAL_DISCOVERY_URL || undefined,
-          };
-          figma.ui.postMessage({
-            type: 'settings-loaded',
-            settings: settings ? { ...defaultSettings, ...settings } : defaultSettings,
-          });
-        } catch (error) {
-          figma.ui.postMessage({
-            type: 'settings-loaded',
-            settings: {
-              audionApiUrl: URL_CONFIG.AUDION_API_BASE,
-              ragApiUrl: URL_CONFIG.RAG_API_BASE,
-              htmlToFigmaImageDebug: false,
-              opalDiscoveryUrl: URL_CONFIG.OPAL_DISCOVERY_URL || undefined,
-            },
-          });
+      case 'select-scene-node': {
+        const nodeId = typeof msg.nodeId === 'string' ? msg.nodeId.trim() : '';
+        if (nodeId) {
+          try {
+            const n = await figma.getNodeByIdAsync(nodeId);
+            if (
+              n &&
+              (n.type === 'FRAME' ||
+                n.type === 'GROUP' ||
+                n.type === 'COMPONENT' ||
+                n.type === 'INSTANCE')
+            ) {
+              figma.currentPage.selection = [n as SceneNode];
+              figma.viewport.scrollAndZoomIntoView([n as SceneNode]);
+            }
+          } catch (e) {
+            console.warn('[select-scene-node]', e);
+          }
         }
         break;
       }
 
+      case 'get-settings': {
+        await SettingsController.getSettings();
+        break;
+      }
+
       case 'save-settings': {
-        try {
-          await figma.clientStorage.setAsync('audion-settings', msg.settings);
-          figma.ui.postMessage({
-            type: 'settings-saved',
-          });
-        } catch (error) {
-          figma.ui.postMessage({
-            type: 'settings-error',
-            error: error instanceof Error ? error.message : 'Unknown error',
-          });
-        }
+        await SettingsController.saveSettings(msg);
         break;
       }
 
@@ -282,143 +304,22 @@ figma.ui.onmessage = async (msg) => {
       }
 
       case 'get-knowledge': {
-        try {
-          const raw = await figma.clientStorage.getAsync(STORAGE_KEY_KNOWLEDGE);
-          const knowledge = normalizeKnowledge(raw);
-          figma.ui.postMessage({
-            type: 'knowledge-loaded',
-            knowledge,
-          });
-        } catch (error) {
-          figma.ui.postMessage({
-            type: 'knowledge-loaded',
-            knowledge: { components: [], pages: [], lastUpdated: Date.now() },
-          });
-        }
+        await KnowledgeController.getKnowledge();
         break;
       }
 
       case 'save-knowledge': {
-        try {
-          await figma.clientStorage.setAsync(STORAGE_KEY_KNOWLEDGE, msg.knowledge);
-          figma.ui.postMessage({
-            type: 'knowledge-saved',
-          });
-        } catch (error) {
-          console.error('Failed to save knowledge:', error);
-        }
+        await KnowledgeController.saveKnowledge(msg);
         break;
       }
 
       case 'scan-components': {
-        try {
-          const newComponents = scanSelectedComponents();
-          if (newComponents.length === 0) {
-            figma.notify('Keine Komponenten in der Auswahl gefunden.');
-            break;
-          }
-          
-          figma.notify('Scannen abgeschlossen. Nutze KI für Deep Analysis...', { timeout: 1000 });
-          
-          // Get API Key for enrichment
-          const settings = await figma.clientStorage.getAsync('audion-settings');
-          const apiKey = settings?.openAiApiKey;
-          
-          if (apiKey) {
-            // Enrich with AI
-            for (let i = 0; i < newComponents.length; i++) {
-              const comp = newComponents[i];
-              try {
-                const response = await figmaFetch("https://api.openai.com/v1/chat/completions", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${apiKey}`
-                  },
-                  body: JSON.stringify({
-                    model: "gpt-4o-mini", // Use mini for fast enrichment
-                    messages: [
-                      { role: "system", content: KNOWLEDGE_ENRICHMENT_SYSTEM_PROMPT },
-                      { role: "user", content: buildEnrichmentPrompt(comp) }
-                    ],
-                    response_format: { type: "json_object" }
-                  })
-                });
-                
-                if (response.ok) {
-                  const data = await response.json();
-                  const enrichment = JSON.parse(data.choices[0].message.content);
-                  comp.tags = enrichment.tags;
-                  comp.styleCategory = enrichment.styleCategory;
-                  comp.usageNotes = enrichment.usageNotes;
-                }
-              } catch (e) {
-                console.error(`AI Enrichment failed for ${comp.name}:`, e);
-              }
-            }
-          }
-          
-          // Load existing (ensure pages for extended type)
-          const current = normalizeKnowledge(await figma.clientStorage.getAsync(STORAGE_KEY_KNOWLEDGE));
-          
-          // Merge
-          const merged = [...current.components];
-          for (const nc of newComponents) {
-            const idx = merged.findIndex(c => c.id === nc.id);
-            if (idx !== -1) {
-              merged[idx] = nc;
-            } else {
-              merged.push(nc);
-            }
-          }
-          
-          const updated: ComponentKnowledgeBase = {
-            components: merged,
-            pages: current.pages,
-            lastUpdated: Date.now()
-          };
-          
-          await figma.clientStorage.setAsync(STORAGE_KEY_KNOWLEDGE, updated);
-          figma.notify(`${newComponents.length} Komponente(n) mit KI analysiert.`);
-          
-          figma.ui.postMessage({
-            type: 'knowledge-loaded',
-            knowledge: updated,
-          });
-        } catch (error) {
-          console.error('Scanning error:', error);
-          figma.notify('Fehler beim Scannen der Komponenten.');
-        }
+        await KnowledgeController.scanComponents(figmaFetch);
         break;
       }
 
       case 'scan-page': {
-        try {
-          const scannedPage = scanSelectedPage();
-          if (!scannedPage) {
-            figma.notify('Select a single frame or group that represents a full page.');
-            break;
-          }
-          const current = normalizeKnowledge(await figma.clientStorage.getAsync(STORAGE_KEY_KNOWLEDGE));
-          const pages = [...(current.pages ?? [])];
-          const existingIdx = pages.findIndex(p => p.id === scannedPage.id);
-          if (existingIdx >= 0) {
-            pages[existingIdx] = scannedPage;
-          } else {
-            pages.push(scannedPage);
-          }
-          const updated: ComponentKnowledgeBase = {
-            components: current.components,
-            pages,
-            lastUpdated: Date.now(),
-          };
-          await figma.clientStorage.setAsync(STORAGE_KEY_KNOWLEDGE, updated);
-          figma.notify(`Page "${scannedPage.name}" added to knowledge.`);
-          figma.ui.postMessage({ type: 'knowledge-loaded', knowledge: updated });
-        } catch (error) {
-          console.error('Page scan error:', error);
-          figma.notify('Fehler beim Scannen der Seite.');
-        }
+        await KnowledgeController.scanPage();
         break;
       }
 
@@ -629,7 +530,8 @@ figma.ui.onmessage = async (msg) => {
           console.info('[html-figma:image-debug:plugin:before-addLayers]', beforeStats);
           figma.ui.postMessage({ type: 'html-to-figma-image-debug', stage: 'plugin-before', payload: beforeStats });
           let frameRoot: SceneNode | null = null;
-          await addLayersToFrame(rootLayers as Parameters<typeof addLayersToFrame>[0], baseFrame, ({ node, parent }) => {
+          await addLayersToFrame(rootLayers as Parameters<typeof addLayersToFrame>[0], baseFrame, ({ node, parent, layer }) => {
+            applyMsqdxSectionConceptPluginData(node, layer as Record<string, unknown>);
             if (!parent) {
               frameRoot = node;
               node.name = 'HTML-to-Figma';
@@ -656,16 +558,20 @@ figma.ui.onmessage = async (msg) => {
       }
 
       case 'prompt-site-to-figma': {
-        const prompt =
-          typeof (msg as { prompt?: string }).prompt === 'string'
-            ? (msg as { prompt: string }).prompt.trim()
-            : '';
-        const viewportRaw = (msg as { viewport?: string }).viewport;
+        const pm = msg as {
+          prompt?: string;
+          sectionConcepts?: unknown;
+          viewport?: string;
+          componentLibrary?: string;
+          renderMode?: string;
+        };
+        const prompt = typeof pm.prompt === 'string' ? pm.prompt.trim() : '';
+        const viewportRaw = pm.viewport;
         const viewport =
           viewportRaw === 'tablet' || viewportRaw === 'mobile' ? viewportRaw : 'desktop';
-        const componentLibraryRaw = (msg as { componentLibrary?: string }).componentLibrary;
+        const componentLibraryRaw = pm.componentLibrary;
         const componentLibrary = componentLibraryRaw === 'porsche' ? 'porsche' : 'default';
-        const renderModeRaw = (msg as { renderMode?: string }).renderMode;
+        const renderModeRaw = pm.renderMode;
         const renderMode =
           renderModeRaw === 'experimental' || renderModeRaw === 'free'
             ? renderModeRaw
@@ -708,7 +614,15 @@ figma.ui.onmessage = async (msg) => {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${pluginSecret}`,
               },
-              body: JSON.stringify({ prompt, viewport, componentLibrary, renderMode }),
+              body: JSON.stringify({
+                prompt,
+                viewport,
+                componentLibrary,
+                renderMode,
+                ...(Array.isArray(pm.sectionConcepts) && pm.sectionConcepts.length > 0
+                  ? { sectionConcepts: pm.sectionConcepts }
+                  : {}),
+              }),
             }),
             120_000,
             'Generate site timeout'
@@ -777,8 +691,13 @@ figma.ui.onmessage = async (msg) => {
             stage: 'plugin-before',
             payload: beforeStats,
           });
+          const importedSections: JourneyImportedSectionRow[] = [];
           let frameRoot: SceneNode | null = null;
-          await addLayersToFrame(rootLayers as Parameters<typeof addLayersToFrame>[0], baseFrame, ({ node, parent }) => {
+          await addLayersToFrame(rootLayers as Parameters<typeof addLayersToFrame>[0], baseFrame, ({ node, parent, layer }) => {
+            const layerRec = layer as Record<string, unknown>;
+            applyMsqdxSectionConceptPluginData(node, layerRec);
+            const row = buildImportedSectionRow(node.id, layerRec);
+            if (row) importedSections.push(row);
             if (!parent) {
               frameRoot = node;
               node.name = 'Prompt → Site';
@@ -806,6 +725,7 @@ figma.ui.onmessage = async (msg) => {
                 ? data.meta.previewUrl
                 : fallbackPreviewUrl,
             renderMeta: data?.meta,
+            importedSections,
           });
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
@@ -878,6 +798,7 @@ figma.ui.onmessage = async (msg) => {
           const data = (await res.json()) as {
             pageSpecUserPrompt?: string;
             screenBrief?: unknown;
+            sectionConcepts?: unknown;
             tokensUsed?: number;
           };
           const prompt = typeof data.pageSpecUserPrompt === 'string' ? data.pageSpecUserPrompt.trim() : '';
@@ -888,6 +809,7 @@ figma.ui.onmessage = async (msg) => {
             type: 'journey-screen-brief-success',
             pageSpecUserPrompt: prompt,
             screenBrief: data.screenBrief,
+            sectionConcepts: Array.isArray(data.sectionConcepts) ? data.sectionConcepts : [],
             tokensUsed: data.tokensUsed,
             chainGenerate: m.chainGenerate === true,
             viewport: m.viewport,
@@ -1034,94 +956,7 @@ figma.ui.onmessage = async (msg) => {
         break;
       }
 
-      case 'generate-wireframe': {
-        const { prompt, viewport, model, apiKey } = msg;
-        console.log("[Wireframe] generate-wireframe start", { viewport, promptLen: prompt?.length });
-
-        figma.ui.postMessage({ type: 'generation-progress', message: 'Starte…' });
-
-        if (!apiKey || typeof apiKey !== 'string') {
-          console.error("[Wireframe] Missing API key");
-          figma.notify('OpenAI API-Key fehlt. Bitte in Einstellungen eintragen.');
-          figma.ui.postMessage({ type: 'wireframe-error', error: 'Missing API key' });
-          break;
-        }
-
-        try {
-          figma.notify('Wireframe: Starte…');
-          const knowledge = normalizeKnowledge(await figma.clientStorage.getAsync(STORAGE_KEY_KNOWLEDGE));
-          console.log("[Wireframe] knowledge loaded", { components: knowledge.components?.length ?? 0, pages: knowledge.pages?.length ?? 0 });
-          const selection = figma.currentPage.selection;
-          const contextNode: (BaseNode & ChildrenMixin) | null = selection.length > 0 ? selection[0] as BaseNode & ChildrenMixin : null;
-
-          const reportProgress = (message: string) => {
-            figma.ui.postMessage({ type: 'generation-progress', message });
-          };
-
-          console.log("[Wireframe] TOOLS MODE: start");
-          const nodeMap = new Map<string, SceneNode>();
-          const stageWidth = viewport === 'mobile' ? 390 : 1440;
-          const stageHeight = 1024;
-          const variableMap = await getOrCreateWireframeVariables();
-          const stageResult = createStage(
-            { nodeMap },
-            { width: stageWidth, height: stageHeight, name: 'Wireframe', id: 'stage' }
-          );
-          if (!stageResult.success) {
-            figma.notify(`Bühne: ${stageResult.error.substring(0, 50)}…`, { timeout: 5000 });
-            figma.ui.postMessage({ type: 'wireframe-error', error: stageResult.error });
-            break;
-          }
-          reportProgress('Agent (Tools) startet…');
-          try {
-            const result = await runWireframeToolAgent({
-              fetch: figmaFetch,
-              apiKey,
-              model,
-              userPrompt: prompt,
-              viewport,
-              stageWidth,
-              stageHeight,
-              nodeMap,
-              variableMap: variableMap ?? undefined,
-              variablesApi: typeof figma !== 'undefined' ? (figma.variables as { setBoundVariableForPaint: (paint: unknown, field: string, variable: unknown) => unknown }) : undefined,
-              maxSteps: 15,
-              requestTimeoutMs: 90000,
-              onProgress: reportProgress,
-            });
-            if (result.success) {
-              figma.notify('Wireframe (Tools) fertig');
-              const stageNode = nodeMap.get('stage');
-              if (stageNode) {
-                try {
-                  figma.viewport.scrollAndZoomIntoView([stageNode]);
-                } catch (_) {}
-              }
-              figma.ui.postMessage({ type: 'wireframe-generated' });
-            } else {
-              const err = result.error;
-              figma.notify(`Fehler: ${err.substring(0, 50)}…`, { timeout: 5000 });
-              figma.ui.postMessage({ type: 'wireframe-error', error: err });
-            }
-          } catch (err: unknown) {
-            const errMsg = err instanceof Error ? err.message : String(err);
-            figma.notify(`Agent Fehler: ${errMsg.substring(0, 50)}…`, { timeout: 5000 });
-            figma.ui.postMessage({ type: 'wireframe-error', error: errMsg });
-          }
-        } catch (error: unknown) {
-          const isAbort = typeof error === 'object' && error != null && (error as Error).name === 'AbortError';
-          const errMsg = isAbort
-            ? 'OpenAI-Anfrage Timeout (90s). Bitte erneut versuchen oder kürzeren Prompt nutzen.'
-            : (error instanceof Error ? error.message : String(error));
-          console.error("[Wireframe] generate-wireframe catch:", errMsg, error);
-          figma.notify(`Fehler: ${errMsg.substring(0, 60)}${errMsg.length > 60 ? '…' : ''}`);
-          figma.ui.postMessage({
-            type: 'wireframe-error',
-            error: errMsg,
-          });
-        }
-        break;
-      }
+      // removed generate-wireframe
 
       case 'dsl-render': {
         const { dslJson, tokenOverrides } = msg as {
@@ -1319,8 +1154,22 @@ figma.ui.onmessage = async (msg) => {
       }
 
       case 'resize': {
-        const { width, height } = msg;
-        figma.ui.resize(width, height);
+        const width = typeof msg.width === 'number' ? msg.width : PLUGIN_UI_DEFAULT.width;
+        const height = typeof msg.height === 'number' ? msg.height : PLUGIN_UI_DEFAULT.height;
+        const { width: w, height: h } = clampPluginUiSize(width, height);
+        figma.ui.resize(w, h);
+        break;
+      }
+
+      case 'resize-commit': {
+        const width = typeof msg.width === 'number' ? msg.width : PLUGIN_UI_DEFAULT.width;
+        const height = typeof msg.height === 'number' ? msg.height : PLUGIN_UI_DEFAULT.height;
+        const next = clampPluginUiSize(width, height);
+        try {
+          await figma.clientStorage.setAsync(PLUGIN_UI_STORAGE_KEY, next);
+        } catch {
+          /* ignore quota / storage errors */
+        }
         break;
       }
 

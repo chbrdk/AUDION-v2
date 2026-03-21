@@ -30,14 +30,26 @@ Color: hex "#RRGGBB" or token "$primary", "$text.primary", etc.
 Alignment: start|center|end|stretch. Justification: start|center|end|space-between.
 `;
 
-export function buildDSLSystemPrompt(widthPx: number = 1440): string {
-  return `You are a UI design generator. You respond ONLY with valid JSON conforming to the Figma DSL specification below. No markdown, no explanation, no code fences. Only raw JSON.
+import type { ComponentKnowledgeBase } from '../types';
+
+export function buildDSLSystemPrompt(widthPx: number = 1440, knowledgeBase?: ComponentKnowledgeBase | null): string {
+  let prompt = `You are a UI design generator. You respond ONLY with valid JSON conforming to the Figma DSL specification below. No markdown, no explanation, no code fences. Only raw JSON.
 
 ## DSL Specification
 
 ${DSL_SPEC_SUMMARY}
+`;
 
-## Rules
+  if (knowledgeBase && knowledgeBase.components.length > 0) {
+    prompt += `\n## Scanned Design System Components
+You have access to the following custom components from the user's Figma file. You CAN use these by creating a node with "type": "component" or "component_set" and specifying "name": "<component-name>".
+`;
+    knowledgeBase.components.forEach(comp => {
+      prompt += `- ${comp.name} (ID: ${comp.id}): ${comp.usageNotes || comp.description || ''}\n`;
+    });
+  }
+
+  prompt += `\n## Rules
 
 1. Respond with a single JSON object with "page" (string), "children" (array of DSL nodes). Optionally "width" (number) and "tokens" (object).
 2. Use semantic section names (e.g. "Hero", "Features", "Testimonials", "CTA", "Footer").
@@ -53,4 +65,6 @@ ${DSL_SPEC_SUMMARY}
 11. Every text node must have actual realistic placeholder content, not "Lorem ipsum".
 12. Ensure accessibility: sufficient color contrast, logical reading order.
 13. If a brand or company is mentioned, adapt content to match that brand.`;
+
+  return prompt;
 }

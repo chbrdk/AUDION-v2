@@ -9,8 +9,9 @@ All API and discovery URLs are defined in **`src/config/urls.ts`**. Do not hardc
 - **`URL_CONFIG.OPAL_DISCOVERY_URL`** – Optional other Opal discovery (e.g. Opal hub); overridable in settings as `opalDiscoveryUrl`.
 - **`URL_CONFIG.RAG_API_BASE`** – CREATION (RAG / compose / capture). Overridable in settings as `ragApiUrl`.
 - **`HTML_FIGMA_CSS_REGRESSION_FIXTURE_PATH`** + **`getHtmlFigmaCssRegressionFixtureUrl(base)`** – CREATION serves the CSS regression HTML at `{base}/fixtures/html-figma-css-regression.html`. Used by **HTML TO FIGMA → CSS regression (test page)**; the CREATION host must match this base.
-- **`CREATION_GENERATE_SITE_TO_LAYERS_PATH`** – Prompt → PageSpec → layers (`POST`, Bearer `creationPluginApiSecret`).
-- **`CREATION_JOURNEY_SCREEN_BRIEF_PATH`** – Journey phase + persona → screen brief + PageSpec user prompt (`POST`, same secret). See `knowledge/journey-screen-brief-plugin.md`.
+- **`CREATION_GENERATE_SITE_TO_LAYERS_PATH`** – Prompt → PageSpec → layers (`POST`, Bearer `creationPluginApiSecret`). Optional JSON body field **`sectionConcepts`** (same shape as journey-screen-brief) attaches MSQDX metadata to section FRAMEs for Figma `setPluginData`.
+- **`CREATION_JOURNEY_SCREEN_BRIEF_PATH`** – Journey phase + persona → screen brief + **`sectionConcepts`** + PageSpec user prompt (`POST`, same secret). See `knowledge/journey-screen-brief-plugin.md`.
+- **Plugin menu** – `manifest.json` → **Section concept (MSQDX)** reads `getPluginData('msqdx/sectionConcept/v1')` on the selected FRAME (see `src/config/msqdx-section-metadata.ts`). Full contract: CREATION `knowledge/section-concept-figma-metadata.md`.
 
 ## Bearer token
 

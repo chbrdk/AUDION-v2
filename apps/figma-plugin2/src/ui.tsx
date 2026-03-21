@@ -17,13 +17,14 @@ import type {
 import { generateConversationId } from './services/conversation-service';
 import { LoginPanel } from './components/LoginPanel';
 import { setAuthToken, setApiBaseUrl } from './api/audion-client';
+import { generateDSLFromPrompt } from './api/dsl-llm';
 import { URL_CONFIG, getHtmlFigmaCssRegressionFixtureUrl } from './config/urls';
 import {
   JOURNEY_PROMPT_SITE_COMPONENT_LIBRARY,
   JOURNEY_PROMPT_SITE_RENDER_MODE,
 } from './config/journey-prompt-site';
 import { convertToBase64 } from './services/screenshot-service';
-import { MsqdxLogo } from './components/MsqdxLogo';
+import { MsqdxPluginAppShell } from './components/MsqdxPluginAppShell';
 import { t, Language } from './translations';
 import { JourneysPanel } from './components/JourneysPanel';
 import { AgentPanel } from './components/AgentPanel';
@@ -31,6 +32,11 @@ import { DSLDesignerPanel } from './components/DSLDesignerPanel';
 import { RAGDesignPanel } from './components/RAGDesignPanel';
 import { HtmlToFigmaPanel } from './components/HtmlToFigmaPanel';
 import { PromptSiteToFigmaPanel } from './components/PromptSiteToFigmaPanel';
+import { JourneySectionsPanel } from './components/JourneySectionsPanel';
+import {
+  parseImportedSectionsPayload,
+  type JourneyImportedSectionRow,
+} from './services/journey-imported-section';
 import type { PromptSiteRenderMeta } from './prompt-site-render-meta';
 import type { RAGComponentPayload } from './services/rag-selection-service';
 import { validateLayout } from './api/rag-compose-client';
@@ -59,10 +65,11 @@ const globalStyles =
   "  margin: 0;" +
   "  padding: 0;" +
   "  font-family: 'Noto Sans JP', sans-serif;" +
-  "  background-color: var(--msqdx-bg-main);" +
+  "  background-color: var(--msqdx-primary);" +
   "  color: var(--msqdx-text-primary);" +
   "  overflow: hidden;" +
-  "  height: 100vh;" +
+  "  height: 100%;" +
+  "  min-height: 100%;" +
   "  transition: background-color 0.3s ease, color 0.3s ease;" +
   "}" +
   "* {" +
@@ -138,22 +145,71 @@ const globalStyles =
 type View = 'chat' | 'settings' | 'login' | 'journeys' | 'experimental';
 type ExperimentalSubPage = null | 'llmdesigner' | 'dsldesigner' | 'ragdesign' | 'htmltofigma';
 
+import { usePluginStore } from './ui/store';
+import { usePluginBridge } from './ui/hooks/usePluginBridge';
+
 function App() {
-  const [view, setView] = useState<View>('chat');
-  const [experimentalSubPage, setExperimentalSubPage] = useState<ExperimentalSubPage>(null);
-  const [selection, setSelection] = useState<SelectionMetadata | null>(null);
-  const [selectedPersona, setSelectedPersona] = useState<Persona | null>(null);
-  const [conversation, setConversation] = useState<ConversationHistory | null>(null);
-  const [screenshot, setScreenshot] = useState<string | null>(null);
-  const [settings, setSettings] = useState<PluginSettings | null>(null);
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const store = usePluginStore();
+  usePluginBridge();
+  const view = usePluginStore(s => s.view);
+  const setView = usePluginStore(s => s.setView);
+  const experimentalSubPage = usePluginStore(s => s.experimentalSubPage);
+  const setExperimentalSubPage = usePluginStore(s => s.setExperimentalSubPage);
+  const selection = usePluginStore(s => s.selection);
+  const setSelection = usePluginStore(s => s.setSelection);
+  const selectedPersona = usePluginStore(s => s.selectedPersona);
+  const setSelectedPersona = usePluginStore(s => s.setSelectedPersona);
+  const conversation = usePluginStore(s => s.conversation);
+  const setConversation = usePluginStore(s => s.setConversation);
+  const screenshot = usePluginStore(s => s.screenshot);
+  const setScreenshot = usePluginStore(s => s.setScreenshot);
+  const settings = usePluginStore(s => s.settings);
+  const setSettings = usePluginStore(s => s.setSettings);
+  const isLoggingIn = usePluginStore(s => s.isLoggingIn);
+  const setIsLoggingIn = usePluginStore(s => s.setIsLoggingIn);
+  const loginError = usePluginStore(s => s.loginError);
+  const setLoginError = usePluginStore(s => s.setLoginError);
+  const isGeneratingWireframe = usePluginStore(s => s.isGeneratingWireframe);
+  const setIsGeneratingWireframe = usePluginStore(s => s.setIsGeneratingWireframe);
+  const generationProgress = usePluginStore(s => s.generationProgress);
+  const setGenerationProgress = usePluginStore(s => s.setGenerationProgress);
+  const isScanningComponents = usePluginStore(s => s.isScanningComponents);
+  const setIsScanningComponents = usePluginStore(s => s.setIsScanningComponents);
+  const isScanningPage = usePluginStore(s => s.isScanningPage);
+  const setIsScanningPage = usePluginStore(s => s.setIsScanningPage);
+  const htmlToFigmaLoading = usePluginStore(s => s.htmlToFigmaLoading);
+  const setHtmlToFigmaLoading = usePluginStore(s => s.setHtmlToFigmaLoading);
+  const htmlToFigmaError = usePluginStore(s => s.htmlToFigmaError);
+  const setHtmlToFigmaError = usePluginStore(s => s.setHtmlToFigmaError);
+  const htmlToFigmaSuccess = usePluginStore(s => s.htmlToFigmaSuccess);
+  const setHtmlToFigmaSuccess = usePluginStore(s => s.setHtmlToFigmaSuccess);
+  const ragComponents = usePluginStore(s => s.ragComponents);
+  const setRagComponents = usePluginStore(s => s.setRagComponents);
+  const ragFileKey = usePluginStore(s => s.ragFileKey);
+  const setRagFileKey = usePluginStore(s => s.setRagFileKey);
+  const promptSiteLoading = usePluginStore(s => s.promptSiteLoading);
+  const setPromptSiteLoading = usePluginStore(s => s.setPromptSiteLoading);
+  const promptSiteError = usePluginStore(s => s.promptSiteError);
+  const setPromptSiteError = usePluginStore(s => s.setPromptSiteError);
+  const promptSiteSuccess = usePluginStore(s => s.promptSiteSuccess);
+  const setPromptSiteSuccess = usePluginStore(s => s.setPromptSiteSuccess);
+  const promptSitePreviewUrl = usePluginStore(s => s.promptSitePreviewUrl);
+  const setPromptSitePreviewUrl = usePluginStore(s => s.setPromptSitePreviewUrl);
+  const promptSiteRenderMeta = usePluginStore(s => s.promptSiteRenderMeta);
+  const setPromptSiteRenderMeta = usePluginStore(s => s.setPromptSiteRenderMeta);
+  const journeyBriefLoading = usePluginStore(s => s.journeyBriefLoading);
+  const setJourneyBriefLoading = usePluginStore(s => s.setJourneyBriefLoading);
+  const journeyBriefViewport = usePluginStore(s => s.journeyBriefViewport);
+  const setJourneyBriefViewport = usePluginStore(s => s.setJourneyBriefViewport);
+  const journeyPromptPrefill = usePluginStore(s => s.journeyPromptPrefill);
+  const setJourneyPromptPrefill = usePluginStore(s => s.setJourneyPromptPrefill);
+  const journeySectionConcepts = usePluginStore(s => s.journeySectionConcepts);
+  const setJourneySectionConcepts = usePluginStore(s => s.setJourneySectionConcepts);
+  const journeyImportedSections = usePluginStore(s => s.journeyImportedSections);
+  const setJourneyImportedSections = usePluginStore(s => s.setJourneyImportedSections);
+
   const [isCapturingScreenshot, setIsCapturingScreenshot] = useState(false);
-  const [isGeneratingWireframe, setIsGeneratingWireframe] = useState(false);
-  const [generationProgress, setGenerationProgress] = useState<string | null>(null);
-  const [loginError, setLoginError] = useState<string | null>(null);
   const [knowledgeBase, setKnowledgeBase] = useState<ComponentKnowledgeBase>({ components: [], pages: [], lastUpdated: 0 });
-  const [isScanningComponents, setIsScanningComponents] = useState(false);
-  const [isScanningPage, setIsScanningPage] = useState(false);
   const [dslJsonText, setDslJsonText] = useState('');
   const [isRenderingDSL, setIsRenderingDSL] = useState(false);
   const [dslRenderError, setDslRenderError] = useState<string | null>(null);
@@ -164,8 +220,6 @@ function App() {
   const [isRefining, setIsRefining] = useState(false);
   const [refineProgress, setRefineProgress] = useState<string | null>(null);
   const [refineError, setRefineError] = useState<string | null>(null);
-  const [ragComponents, setRagComponents] = useState<RAGComponentPayload[] | null>(null);
-  const [ragFileKey, setRagFileKey] = useState<string>('plugin-selection');
   const [ragInferredMetadata, setRagInferredMetadata] = useState<{
     aestheticStyle?: string;
     commonContexts?: string[];
@@ -174,17 +228,11 @@ function App() {
   const [layoutFeedback, setLayoutFeedback] = useState<string | null>(null);
   const [layoutCheckInProgress, setLayoutCheckInProgress] = useState(false);
   const [layoutCheckError, setLayoutCheckError] = useState<string | null>(null);
-  const [htmlToFigmaLoading, setHtmlToFigmaLoading] = useState(false);
-  const [htmlToFigmaError, setHtmlToFigmaError] = useState<string | null>(null);
-  const [htmlToFigmaSuccess, setHtmlToFigmaSuccess] = useState(false);
-  const [promptSiteLoading, setPromptSiteLoading] = useState(false);
-  const [promptSiteError, setPromptSiteError] = useState<string | null>(null);
-  const [promptSiteSuccess, setPromptSiteSuccess] = useState(false);
-  const [promptSitePreviewUrl, setPromptSitePreviewUrl] = useState<string | null>(null);
-  const [promptSiteRenderMeta, setPromptSiteRenderMeta] = useState<PromptSiteRenderMeta | null>(null);
-  const [journeyBriefLoading, setJourneyBriefLoading] = useState(false);
-  const [journeyPromptPrefill, setJourneyPromptPrefill] = useState<string | null>(null);
   const [journeyPromptPrefillToken, setJourneyPromptPrefillToken] = useState(0);
+  const [journeySectionSelectedId, setJourneySectionSelectedId] = useState<string | null>(null);
+
+  const [sectionConceptModalOpen, setSectionConceptModalOpen] = useState(false);
+  const [sectionConceptModalText, setSectionConceptModalText] = useState<string>('');
   const fileKeyResolveRef = useRef<((key: string | null) => void) | null>(null);
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
@@ -195,283 +243,7 @@ function App() {
     setView('experimental');
   };
 
-  useEffect(() => {
-    // Add global styles
-    const styleTag = document.createElement('style');
-    styleTag.innerHTML = globalStyles;
-    document.head.appendChild(styleTag);
 
-    // Listen for messages from plugin code
-    const messageHandler = (event: MessageEvent) => {
-      const msg = event.data.pluginMessage;
-
-      switch (msg.type) {
-        case 'settings-loaded': {
-          const loadedSettings = msg.settings as PluginSettings;
-          setSettings(loadedSettings);
-          if (loadedSettings.audionApiUrl) {
-            setApiBaseUrl(loadedSettings.audionApiUrl);
-          }
-          if (!loadedSettings.authToken) {
-            setView('login');
-          } else if (view !== 'settings') {
-            setAuthToken(loadedSettings.authToken);
-            setView('chat');
-          }
-          if (loadedSettings.brandColor) {
-            document.documentElement.style.setProperty('--msqdx-primary', loadedSettings.brandColor);
-          }
-          break;
-        }
-
-        case 'selection-data':
-        case 'selection-changed':
-          setSelection(msg.selection);
-          break;
-
-        case 'selection-cleared':
-        case 'no-selection':
-          setSelection(null);
-          setScreenshot(null);
-          break;
-
-        case 'screenshot-captured':
-          if (msg.screenshotBytes) {
-            const base64 = convertToBase64(msg.screenshotBytes);
-            setScreenshot(base64);
-          }
-          setIsCapturingScreenshot(false);
-          break;
-        
-        case 'screenshot-error':
-          console.error('Screenshot capture error:', msg.error);
-          setIsCapturingScreenshot(false);
-          break;
-
-        case 'conversation-loaded':
-          setConversation(msg.conversation);
-          break;
-
-        case 'wireframe-generated':
-        case 'wireframe-error':
-          setIsGeneratingWireframe(false);
-          setGenerationProgress(null);
-          if (msg.type === 'wireframe-error') {
-            console.error('Wireframe generation error:', msg.error);
-            alert(t('generationError', lang) + ': ' + msg.error);
-          }
-          break;
-
-        case 'generation-progress':
-          setGenerationProgress(msg.message);
-          break;
-
-        case 'dsl-render-success':
-          setIsRenderingDSL(false);
-          setDslRenderError(null);
-          setDslRenderSuccess(true);
-          break;
-
-        case 'dsl-render-error':
-          setIsRenderingDSL(false);
-          setDslRenderError((msg as { error?: string }).error ?? 'Unknown error');
-          break;
-
-        case 'rag-compose-render-success':
-          setIsRenderingCompose(false);
-          setComposeRenderError(null);
-          setComposeRenderSuccess(true);
-          setLayoutFeedback(null);
-          setLayoutCheckError(null);
-          break;
-
-        case 'rag-compose-render-error':
-          setIsRenderingCompose(false);
-          setComposeRenderError((msg as { error?: string }).error ?? 'Unknown error');
-          break;
-
-        case 'rag-refine-progress':
-          setRefineProgress((msg as { message?: string }).message ?? null);
-          break;
-
-        case 'rag-refine-success':
-          setIsRefining(false);
-          setRefineProgress(null);
-          setRefineError(null);
-          break;
-
-        case 'rag-refine-error':
-          setIsRefining(false);
-          setRefineProgress(null);
-          setRefineError((msg as { error?: string }).error ?? 'Unknown error');
-          break;
-
-        case 'html-to-figma-success':
-          setHtmlToFigmaLoading(false);
-          setHtmlToFigmaError(null);
-          setHtmlToFigmaSuccess(true);
-          break;
-
-        case 'html-to-figma-error':
-          setHtmlToFigmaLoading(false);
-          setHtmlToFigmaError((msg as { error?: string }).error ?? 'Unknown error');
-          setHtmlToFigmaSuccess(false);
-          break;
-
-        case 'prompt-site-to-figma-success':
-          setPromptSiteLoading(false);
-          setPromptSiteError(null);
-          setPromptSiteSuccess(true);
-          setPromptSitePreviewUrl(
-            typeof (msg as { previewUrl?: string }).previewUrl === 'string'
-              ? (msg as { previewUrl: string }).previewUrl
-              : null
-          );
-          setPromptSiteRenderMeta(
-            ((msg as { renderMeta?: unknown }).renderMeta as PromptSiteRenderMeta | undefined) ?? null
-          );
-          break;
-
-        case 'prompt-site-to-figma-error':
-          setPromptSiteLoading(false);
-          setPromptSiteError((msg as { error?: string }).error ?? 'Unknown error');
-          setPromptSiteSuccess(false);
-          setPromptSitePreviewUrl(null);
-          setPromptSiteRenderMeta(null);
-          break;
-
-        case 'journey-screen-brief-success': {
-          setJourneyBriefLoading(false);
-          const jp =
-            typeof (msg as { pageSpecUserPrompt?: string }).pageSpecUserPrompt === 'string'
-              ? (msg as { pageSpecUserPrompt: string }).pageSpecUserPrompt.trim()
-              : '';
-          if (jp) {
-            setJourneyPromptPrefill(jp);
-            setJourneyPromptPrefillToken((t) => t + 1);
-          }
-          const jm = msg as { chainGenerate?: boolean; viewport?: string };
-          if (jm.chainGenerate && jp) {
-            setPromptSiteLoading(true);
-            setPromptSiteError(null);
-            setPromptSiteSuccess(false);
-            setPromptSitePreviewUrl(null);
-            setPromptSiteRenderMeta(null);
-            const viewport =
-              jm.viewport === 'tablet' || jm.viewport === 'mobile' ? jm.viewport : 'desktop';
-            parent.postMessage(
-              {
-                pluginMessage: {
-                  type: 'prompt-site-to-figma',
-                  prompt: jp,
-                  viewport,
-                  componentLibrary: 'default',
-                  renderMode: 'free',
-                },
-              },
-              '*'
-            );
-          }
-          break;
-        }
-
-        case 'journey-screen-brief-error':
-          setJourneyBriefLoading(false);
-          console.error(
-            'journey-screen-brief-error',
-            (msg as { error?: string }).error ?? 'unknown'
-          );
-          break;
-
-        case 'rag-refine-debug': {
-          const d = msg as { tool?: string; args?: unknown; result?: unknown };
-          if (d.tool != null) {
-            console.log('[RAG Refine]', d.tool, d.args, d.result);
-          }
-          break;
-        }
-
-        case 'rag-screenshot-exported': {
-          const base64 = (msg as { base64?: string }).base64;
-          if (base64) {
-            setLayoutCheckInProgress(true);
-            setLayoutCheckError(null);
-            const ragUrl = settingsRef.current?.ragApiUrl || URL_CONFIG.RAG_API_BASE;
-            validateLayout(ragUrl, base64)
-              .then((r) => {
-                setLayoutFeedback(r.feedback);
-                setLayoutCheckInProgress(false);
-              })
-              .catch((err) => {
-                setLayoutCheckError(err instanceof Error ? err.message : 'Validation failed');
-                setLayoutFeedback(null);
-                setLayoutCheckInProgress(false);
-              });
-          }
-          break;
-        }
-
-        case 'rag-screenshot-error': {
-          setLayoutCheckInProgress(false);
-          setLayoutCheckError((msg as { error?: string }).error ?? 'Export failed');
-          setLayoutFeedback(null);
-          break;
-        }
-
-        case 'file-key': {
-          const resolver = fileKeyResolveRef.current;
-          if (resolver) {
-            fileKeyResolveRef.current = null;
-            resolver((msg as { fileKey?: string | null }).fileKey ?? null);
-          }
-          break;
-        }
-
-        case 'rag-components-loaded': {
-          const m = msg as {
-            components: RAGComponentPayload[];
-            fileKey?: string;
-            inferred?: { aestheticStyle?: string; commonContexts?: string[]; usageHint?: string };
-          };
-          setRagComponents(m.components);
-          setRagFileKey(m.fileKey ?? 'plugin-selection');
-          setRagInferredMetadata(m.inferred ?? null);
-          break;
-        }
-
-        case 'selection-dsl':
-          setDslJsonText(JSON.stringify((msg as { dsl: unknown }).dsl, null, 2));
-          break;
-
-        case 'selection-empty-dsl':
-          setDslRenderError('No selection. Select a frame or group first.');
-          break;
-
-        case 'knowledge-loaded': {
-          const kb = msg.knowledge as ComponentKnowledgeBase;
-          setKnowledgeBase({ ...kb, pages: kb.pages ?? [] });
-          setIsScanningComponents(false);
-          setIsScanningPage(false);
-          break;
-        }
-
-        case 'error':
-          console.error('Plugin error:', msg.error);
-          break;
-      }
-    };
-
-    window.addEventListener('message', messageHandler);
-
-    // Request initial selection, settings, and knowledge
-    parent.postMessage({ pluginMessage: { type: 'get-selection' } }, '*');
-    parent.postMessage({ pluginMessage: { type: 'get-settings' } }, '*');
-    parent.postMessage({ pluginMessage: { type: 'get-knowledge' } }, '*');
-
-    return () => {
-      window.removeEventListener('message', messageHandler);
-    };
-  }, []);
 
   useEffect(() => {
     if (settings?.brandColor) {
@@ -601,20 +373,35 @@ function App() {
 
   const handleGenerateWireframe = async (userInput: string, viewport: ViewportType, model: AIModelType) => {
     if (!settings?.openAiApiKey) {
-      figma.notify('OpenAI API-Key fehlt. Bitte in Einstellungen eintragen.');
+      console.warn('OpenAI API-Key fehlt.');
       return;
     }
+    
     setIsGeneratingWireframe(true);
-    setGenerationProgress("Initialisiere...");
-    parent.postMessage({
-      pluginMessage: {
-        type: 'generate-wireframe',
-        prompt: userInput,
-        viewport,
-        model,
-        apiKey: settings.openAiApiKey,
-      },
-    }, '*');
+    setGenerationProgress(lang === 'de' ? "Generiere DSL (LLM)..." : "Generating DSL...");
+    
+    try {
+      const widthPx = viewport === 'mobile' ? 390 : 1440;
+      const dslJson = await generateDSLFromPrompt(
+        settings.openAiApiKey, 
+        userInput, 
+        widthPx, 
+        knowledgeBase
+      );
+      
+      setGenerationProgress(lang === 'de' ? "Rendere in Figma..." : "Rendering in Figma...");
+      
+      parent.postMessage({
+        pluginMessage: {
+          type: 'dsl-render',
+          dslJson,
+        },
+      }, '*');
+    } catch (err: any) {
+      console.error(err);
+      setGenerationProgress(null);
+      setIsGeneratingWireframe(false);
+    }
   };
 
   const handleExportKnowledge = () => {
@@ -669,149 +456,111 @@ function App() {
 
   if (view === 'login') {
     return (
-      <div 
-        style={{ 
-          height: '100vh', 
-          display: 'flex', 
-          flexDirection: 'column',
-          backgroundColor: 'var(--msqdx-bg-main)',
-          padding: '24px'
-        }}
-      >
+      <>
         <style>{globalStyles}</style>
-        <LoginPanel 
-          onLoginData={handleLoginData} 
-          isLoading={isLoggingIn} 
-          error={loginError} 
-          lang={lang}
-        />
-      </div>
+        <MsqdxPluginAppShell>
+          <div
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              width: '100%',
+              minHeight: 0,
+            }}
+          >
+            <LoginPanel
+              onLoginData={handleLoginData}
+              isLoading={isLoggingIn}
+              error={loginError}
+              lang={lang}
+            />
+          </div>
+        </MsqdxPluginAppShell>
+      </>
     );
   }
 
-  return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100vh',
-        backgroundColor: 'var(--msqdx-bg-main)',
-        overflow: 'hidden'
-      }}
-    >
-      <style>{globalStyles}</style>
-      
-      {/* MSQ DX Header */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        padding: '16px 20px',
-        backgroundColor: 'var(--msqdx-bg-card)',
-        borderBottom: '1px solid var(--msqdx-border-color)',
-        boxShadow: '0 2px 8px rgba(15, 23, 42, 0.03)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <MsqdxLogo height={18} />
-        </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button 
-            onClick={() => setView('chat')}
-            className={'msqdx-button secondary' + (view === 'chat' ? ' active' : '')}
-            style={{ 
-              padding: '6px 12px', 
-              height: '28px',
-              borderColor: view === 'chat' ? 'var(--msqdx-primary)' : 'var(--msqdx-border-color)',
-              background: view === 'chat' ? 'rgba(15,23,42,0.03)' : 'transparent',
-              color: view === 'chat' ? 'var(--msqdx-primary)' : 'var(--msqdx-text-main)'
-            }}
-          >
-            <span className="msqdx-mono" style={{ fontSize: '9px', fontWeight: '700' }}>{t('chat', lang)}</span>
-          </button>
-          <button 
-            onClick={() => setView('journeys')}
-            className={'msqdx-button secondary' + (view === 'journeys' ? ' active' : '')}
-            style={{ 
-              padding: '6px 12px', 
-              height: '28px',
-              borderColor: view === 'journeys' ? 'var(--msqdx-primary)' : 'var(--msqdx-border-color)',
-              background: view === 'journeys' ? 'rgba(15,23,42,0.03)' : 'transparent',
-              color: view === 'journeys' ? 'var(--msqdx-primary)' : 'var(--msqdx-text-main)'
-            }}
-          >
-            <span className="msqdx-mono" style={{ fontSize: '9px', fontWeight: '700' }}>{t('journeys', lang)}</span>
-          </button>
-          <button 
-            onClick={goToExperimental}
-            className={'msqdx-button secondary' + (view === 'experimental' ? ' active' : '')}
-            style={{ 
-              padding: '6px 12px', 
-              height: '28px',
-              borderColor: view === 'experimental' ? 'var(--msqdx-primary)' : 'var(--msqdx-border-color)',
-              background: view === 'experimental' ? 'rgba(15,23,42,0.03)' : 'transparent',
-              color: view === 'experimental' ? 'var(--msqdx-primary)' : 'var(--msqdx-text-main)'
-            }}
-          >
-            <span className="msqdx-mono" style={{ fontSize: '9px', fontWeight: '700' }}>{t('experimental', lang)}</span>
-          </button>
-          <button 
-            onClick={() => setView('settings')}
-            className={'msqdx-button secondary' + (view === 'settings' ? ' active' : '')}
-            title={t('setup', lang)}
-            style={{ 
-              padding: '0 8px', 
-              height: '28px',
-              width: '28px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderColor: view === 'settings' ? 'var(--msqdx-primary)' : 'var(--msqdx-border-color)',
-              background: view === 'settings' ? 'rgba(15,23,42,0.03)' : 'transparent',
-              color: view === 'settings' ? 'var(--msqdx-primary)' : 'var(--msqdx-text-main)'
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z" />
-            </svg>
-          </button>
-          <button 
-            onClick={handleLogout}
-            className="msqdx-button secondary"
-            style={{ 
-              padding: '0 10px', 
-              height: '28px',
-              color: '#ff6a3b',
-              borderColor: '#ff6a3b',
-              background: 'transparent'
-            }}
-          >
-            <span className="msqdx-mono" style={{ fontSize: '14px' }}>×</span>
-          </button>
-        </div>
-      </div>
+  const navButtonStyle = (active: boolean): React.CSSProperties => ({
+    padding: '6px 12px',
+    height: '28px',
+    borderColor: active ? 'var(--msqdx-primary)' : 'var(--msqdx-border-color)',
+    background: active ? 'rgba(15,23,42,0.06)' : 'rgba(255,255,255,0.85)',
+    color: active ? 'var(--msqdx-primary)' : 'var(--msqdx-text-primary)',
+    backdropFilter: 'blur(8px)',
+  });
 
-      <div 
-        className="scroll-container"
-        style={{ 
-          flex: 1,
-          /* Critical for Figma iframe: allows this flex child to shrink so overflow-y scroll works (avoids clipped / dead-click UI). */
-          minHeight: 0,
-          display: 'flex', 
-          flexDirection: 'column', 
-          gap: '16px',
-          padding: '16px',
-        }}
+  return (
+    <>
+      <style>{globalStyles}</style>
+      <MsqdxPluginAppShell
+        topBarRight={
+          <>
+            <button
+              type="button"
+              onClick={() => setView('chat')}
+              className={'msqdx-button secondary' + (view === 'chat' ? ' active' : '')}
+              style={navButtonStyle(view === 'chat')}
+            >
+              <span className="msqdx-mono" style={{ fontSize: '9px', fontWeight: '700' }}>
+                {t('chat', lang)}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setView('journeys')}
+              className={'msqdx-button secondary' + (view === 'journeys' ? ' active' : '')}
+              style={navButtonStyle(view === 'journeys')}
+            >
+              <span className="msqdx-mono" style={{ fontSize: '9px', fontWeight: '700' }}>
+                {t('journeys', lang)}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={goToExperimental}
+              className={'msqdx-button secondary' + (view === 'experimental' ? ' active' : '')}
+              style={navButtonStyle(view === 'experimental')}
+            >
+              <span className="msqdx-mono" style={{ fontSize: '9px', fontWeight: '700' }}>
+                {t('experimental', lang)}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setView('settings')}
+              className={'msqdx-button secondary' + (view === 'settings' ? ' active' : '')}
+              title={t('setup', lang)}
+              style={{
+                ...navButtonStyle(view === 'settings'),
+                padding: '0 8px',
+                width: '28px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z" />
+              </svg>
+            </button>
+          </>
+        }
       >
         {view === 'chat' && (
           <>
-            <SelectionInfo 
-              selection={selection} 
-              screenshot={screenshot} 
-              isCapturing={isCapturingScreenshot}
-              onCaptureScreenshot={handleCaptureScreenshot}
-              lang={lang}
-            />
+            <SelectionInfo />
             
             <div className="msqdx-card" style={{ padding: '12px' }}>
               <div className="msqdx-mono" style={{ fontSize: '9px', fontWeight: '600', color: 'var(--msqdx-text-secondary)', marginBottom: '8px' }}>
@@ -827,14 +576,7 @@ function App() {
 
             {selectedPersona && (
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '300px' }}>
-                <ChatPanel
-                  persona={selectedPersona}
-                  conversationId={conversation?.conversationId || null}
-                  selectionMetadata={selection}
-                  screenshot={screenshot}
-                  onMessageSent={handleMessageSent}
-                  lang={lang}
-                />
+                <ChatPanel />
               </div>
             )}
           </>
@@ -843,7 +585,13 @@ function App() {
         {view === 'settings' && (
           <div className="msqdx-card" style={{ padding: '16px' }}>
             <div className="msqdx-mono" style={{ fontSize: '11px', fontWeight: '700', marginBottom: '20px', color: 'var(--msqdx-primary)' }}>{t('pluginSetup', lang)}</div>
-            {settings && <SettingsPanel initialSettings={settings} onSettingsChange={handleSettingsChange} />}
+            {settings && (
+              <SettingsPanel
+                initialSettings={settings}
+                onSettingsChange={handleSettingsChange}
+                onLogout={handleLogout}
+              />
+            )}
             <button 
               onClick={() => setView('chat')}
               className="msqdx-button"
@@ -874,19 +622,28 @@ function App() {
                   (settings?.ragApiUrl || URL_CONFIG.RAG_API_BASE)
               )}
               journeyBriefLoading={journeyBriefLoading}
-              onJourneyBriefStart={() => setJourneyBriefLoading(true)}
+              onJourneyBriefStart={() => {
+                setJourneyBriefLoading(true);
+                setJourneyImportedSections([]);
+                setJourneySectionSelectedId(null);
+              }}
             />
-            <PromptSiteToFigmaPanel
+            <JourneySectionsPanel
               lang={lang}
+              sections={journeyImportedSections}
+              selectedNodeId={journeySectionSelectedId}
+              onSelectSection={(id) => setJourneySectionSelectedId(id)}
               loading={promptSiteLoading}
               error={promptSiteError}
               success={promptSiteSuccess}
               previewUrl={promptSitePreviewUrl}
               renderMeta={promptSiteRenderMeta}
-              prefillPrompt={journeyPromptPrefill}
-              prefillToken={journeyPromptPrefillToken}
-              journeyPipeline
-              onGenerate={(prompt, viewport, _componentLibrary, _renderMode) => {
+              promptText={journeyPromptPrefill}
+              sectionConcepts={journeySectionConcepts}
+              viewport={journeyBriefViewport}
+              onGenerate={({ prompt, viewport, sectionConcepts }) => {
+                setJourneyImportedSections([]);
+                setJourneySectionSelectedId(null);
                 setPromptSiteLoading(true);
                 setPromptSiteError(null);
                 setPromptSiteSuccess(false);
@@ -900,6 +657,9 @@ function App() {
                       viewport,
                       componentLibrary: JOURNEY_PROMPT_SITE_COMPONENT_LIBRARY,
                       renderMode: JOURNEY_PROMPT_SITE_RENDER_MODE,
+                      ...(Array.isArray(sectionConcepts) && sectionConcepts.length > 0
+                        ? { sectionConcepts }
+                        : {}),
                     },
                   },
                   '*'
@@ -1237,8 +997,69 @@ function App() {
             />
           </div>
         )}
-      </div>
-    </div>
+      </MsqdxPluginAppShell>
+      {sectionConceptModalOpen ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 99999,
+            background: 'rgba(15,23,42,0.55)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+          }}
+          onClick={() => setSectionConceptModalOpen(false)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setSectionConceptModalOpen(false);
+          }}
+        >
+          <div
+            style={{
+              maxWidth: 'min(520px, 100%)',
+              maxHeight: 'min(70vh, 480px)',
+              overflow: 'auto',
+              background: 'var(--msqdx-bg-elevated, #fff)',
+              borderRadius: '12px',
+              padding: '16px',
+              boxShadow: '0 12px 40px rgba(0,0,0,0.2)',
+              border: '1px solid var(--msqdx-border-color)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p
+              className="msqdx-mono"
+              style={{ fontSize: '12px', fontWeight: 700, margin: '0 0 10px 0', color: 'var(--msqdx-text-primary)' }}
+            >
+              {lang === 'de' ? 'Sektions-Konzept (MSQDX)' : 'Section concept (MSQDX)'}
+            </p>
+            <pre
+              style={{
+                margin: 0,
+                fontSize: '11px',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                color: 'var(--msqdx-text-main)',
+                fontFamily: 'ui-monospace, monospace',
+              }}
+            >
+              {sectionConceptModalText}
+            </pre>
+            <button
+              type="button"
+              className="msqdx-button"
+              style={{ marginTop: '12px', width: '100%' }}
+              onClick={() => setSectionConceptModalOpen(false)}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }
 

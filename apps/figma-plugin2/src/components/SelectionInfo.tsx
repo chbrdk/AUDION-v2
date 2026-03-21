@@ -2,23 +2,24 @@ import React from 'react';
 import type { SelectionMetadata } from '../types';
 import { t, Language } from '../translations';
 
-interface SelectionInfoProps {
-  selection: SelectionMetadata | null;
-  screenshot?: string | null;
-  isCapturing?: boolean;
-  onCaptureScreenshot: () => void;
-  onClearSelection?: () => void;
-  lang: Language;
-}
+import { usePluginStore } from '../ui/store';
 
-export function SelectionInfo({
-  selection,
-  screenshot,
-  isCapturing,
-  onCaptureScreenshot,
-  onClearSelection,
-  lang,
-}: SelectionInfoProps) {
+export function SelectionInfo() {
+  const store = usePluginStore();
+  const selection = store.selection;
+  const screenshot = store.screenshot;
+  const isCapturing = false; // We can add this to the store later if needed, mostly fast anyway
+  const lang = store.settings?.language || 'de';
+
+  const onCaptureScreenshot = () => {
+    parent.postMessage({ pluginMessage: { type: 'capture-screenshot' } }, '*');
+  };
+
+  const onClearSelection = () => {
+    store.setSelection(null);
+    store.setScreenshot(null);
+    parent.postMessage({ pluginMessage: { type: 'clear-selection-overlay' } }, '*');
+  };
   if (!selection) {
     return (
       <div

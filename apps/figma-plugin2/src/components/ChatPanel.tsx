@@ -4,23 +4,15 @@ import { sendMessage, uploadImage } from '../api/audion-client';
 import type { ChatRequest } from '../types';
 import { t, Language } from '../translations';
 
-interface ChatPanelProps {
-  persona: Persona | null;
-  conversationId: string | null;
-  selectionMetadata: any;
-  screenshot?: string | null;
-  onMessageSent?: () => void;
-  lang: Language;
-}
+import { usePluginStore } from '../ui/store';
 
-export function ChatPanel({
-  persona,
-  conversationId,
-  selectionMetadata,
-  screenshot,
-  onMessageSent,
-  lang,
-}: ChatPanelProps) {
+export function ChatPanel() {
+  const store = usePluginStore();
+  const persona = store.selectedPersona;
+  const conversationId = store.conversation?.conversationId ?? null;
+  const selectionMetadata = store.selection;
+  const screenshot = store.screenshot;
+  const lang = store.settings?.language || 'de';
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -95,7 +87,15 @@ export function ChatPanel({
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
-      onMessageSent?.();
+      if (selectionMetadata && persona) {
+        parent.postMessage({
+          pluginMessage: {
+            type: 'get-conversation',
+            selectionId: selectionMetadata.nodeId,
+            personaId: persona.id,
+          },
+        }, '*');
+      }
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'Failed to send message';
