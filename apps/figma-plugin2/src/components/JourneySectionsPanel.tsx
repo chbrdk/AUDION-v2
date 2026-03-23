@@ -28,6 +28,7 @@ export interface JourneySectionsPanelProps {
     sectionConcepts?: unknown[];
   }) => void;
   onClearFeedback?: () => void;
+  progressMessage?: string | null;
 }
 
 export function JourneySectionsPanel({
@@ -45,6 +46,7 @@ export function JourneySectionsPanel({
   viewport,
   onGenerate,
   onClearFeedback,
+  progressMessage,
 }: JourneySectionsPanelProps) {
   const trimmedPrompt = typeof promptText === 'string' ? promptText.trim() : '';
   const canGenerate = trimmedPrompt.length > 0 && !loading;
@@ -90,6 +92,13 @@ export function JourneySectionsPanel({
           {loading ? t('journeyGenerateFigmaLoading', lang) : t('journeyGenerateFigmaPage', lang)}
         </span>
       </button>
+
+      {loading && progressMessage && (
+        <div className="loading-pulse" style={{ fontSize: '10px', color: 'var(--msqdx-primary)', textAlign: 'center', marginTop: '-4px', fontWeight: '600' }}>
+          ✨ {progressMessage}
+        </div>
+      )}
+
       {!trimmedPrompt && (
         <div className="msqdx-mono" style={{ fontSize: '10px', color: 'var(--msqdx-text-secondary)' }}>
           {t('journeyGenerateFigmaNeedsPrompt', lang)}
@@ -116,13 +125,47 @@ export function JourneySectionsPanel({
           {previewUrl ? (
             <>
               {' '}
-              <a href={previewUrl} target="_blank" rel="noreferrer">
-                Preview
+              <a
+                href={previewUrl}
+                target="_blank"
+                rel="noreferrer"
+                style={{ color: 'var(--msqdx-blue)', textDecoration: 'underline' }}
+              >
+                {t('promptSiteOpenOriginalPage', lang)}
               </a>
             </>
           ) : null}
         </div>
       )}
+      {previewUrl ? (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px',
+            paddingTop: '8px',
+            borderTop: '1px solid var(--msqdx-border-color)',
+          }}
+        >
+          <p className="msqdx-mono" style={{ fontSize: '10px', color: 'var(--msqdx-text-secondary)', margin: 0 }}>
+            {t('promptSiteLastPreviewUrl', lang)}
+          </p>
+          <a
+            href={previewUrl}
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              fontSize: '10px',
+              color: 'var(--msqdx-blue)',
+              textDecoration: 'underline',
+              wordBreak: 'break-all',
+              lineHeight: 1.35,
+            }}
+          >
+            {previewUrl}
+          </a>
+        </div>
+      ) : null}
       {metaLines.length > 0 && (
         <div className="msqdx-mono" style={{ fontSize: '9px', color: 'var(--msqdx-text-secondary)', lineHeight: 1.4 }}>
           {metaLines.map((line, i) => (

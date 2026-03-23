@@ -4,7 +4,7 @@
 
 - **Journeys** view: after selecting a journey, choose **phase**, **persona**, optional **target group**, then:
   - **Build screen prompt only** — calls CREATION `POST /api/v1/journey-screen-brief` and stores the screen prompt for **Seite in Figma generieren** (no separate Prompt→Site card).
-  - **Build prompt + generate page** — same brief, then chains `prompt-site-to-figma`.
+  - **Build prompt + generate page** — same brief, then chains `prompt-site-to-figma` (UI: `journey-screen-brief-success` with `chainGenerate: true` → store `triggerChainGenerate` → `useEffect` posts `prompt-site-to-figma` via `buildJourneyChainPromptSitePluginMessage`; must **not** call the experimental wireframe generator). CREATION step 4 returns **`handoffPack`** (`conceptDocument`, `figmaMakePrompt`); the store passes it into `prompt-site-to-figma` so the plugin can insert frame **`MSQDX · Konzept & Figma Make`** beside the wireframe (`journey-handoff-frame.ts`).
 - After a successful Figma insert, **`prompt-site-to-figma-success`** includes **`importedSections`**: rows built in `code.ts` via `buildImportedSectionRow` (from layer `msqdxSectionConceptPayload`). **`JourneySectionsPanel`** lists them and shows JSON metadata; clicking a row posts **`select-scene-node`** so the main thread selects and zooms to that frame.
 - **Fixed pipeline (no UI choice):** `componentLibrary: "default"` and `renderMode: "free"` (native LLM) only — see `src/config/journey-prompt-site.ts`. Viewport (desktop/tablet/mobile) remains selectable for capture size.
 - API path is **`CREATION_JOURNEY_SCREEN_BRIEF_PATH`** in `src/config/urls.ts` (not hardcoded in `code.ts` beyond that import).

@@ -32,7 +32,7 @@ from ..schemas.journey import (
     ValidationRequest,
 )
 from ..services.ai_assist import AiAssistService
-from ..services.journey_serializer import to_journey_response
+from ..services.journey_serializer import phase_to_response, to_journey_response
 from ..services.persona_store import PersonaService
 from ..services.target_group_store import TargetGroupService
 from ..services.auth import get_current_user
@@ -521,7 +521,7 @@ def create_phase(
         session.add(phase)
         session.commit()
         session.refresh(phase)
-        return _phase_to_response(phase)
+        return phase_to_response(phase)
     except Exception as exc:
         session.rollback()
         logger.error("phase.create.failed", error=str(exc), exc_info=True)
@@ -555,7 +555,7 @@ def update_phase(
         phase.event_names = payload.event_names
         session.commit()
         session.refresh(phase)
-        return _phase_to_response(phase)
+        return phase_to_response(phase)
     except Exception as exc:
         session.rollback()
         logger.error("phase.update.failed", error=str(exc), exc_info=True)

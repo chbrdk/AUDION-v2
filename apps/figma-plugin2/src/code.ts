@@ -44,6 +44,7 @@ import { figmaNodeToDSL } from './dsl/reverse/nodeReader';
 import { renderComposition } from './composition/renderer';
 import { runRagRefinementAgent } from './agent/rag-refinement-agent';
 import { addLayersToFrame, defaultFont } from './html-figma/figma';
+import { createJourneyHandoffFrameBesideWireframe } from './html-figma/figma/journey-handoff-frame';
 import { applyMsqdxSectionConceptPluginData } from './services/apply-msqdx-section-plugin-data';
 import {
   buildImportedSectionRow,
@@ -206,6 +207,12 @@ function base64DecodeToUint8Array(base64: string): Uint8Array {
 figma.ui.onmessage = async (msg) => {
   try {
     switch (msg.type) {
+      case 'notify': {
+        if (typeof msg.message === 'string') {
+          figma.notify(msg.message);
+        }
+        break;
+      }
       case 'select-scene-node': {
         const nodeId = typeof msg.nodeId === 'string' ? msg.nodeId.trim() : '';
         if (nodeId) {
@@ -564,6 +571,10 @@ figma.ui.onmessage = async (msg) => {
           viewport?: string;
           componentLibrary?: string;
           renderMode?: string;
+          handoffPack?: {
+            conceptDocument?: string;
+            figmaMakePrompt?: string;
+          };
         };
         const prompt = typeof pm.prompt === 'string' ? pm.prompt.trim() : '';
         const viewportRaw = pm.viewport;
@@ -709,9 +720,28 @@ figma.ui.onmessage = async (msg) => {
             stage: 'plugin-after',
             payload: afterStats,
           });
+          let handoffFrame: FrameNode | null = null;
           if (frameRoot) {
-            figma.currentPage.selection = [frameRoot];
-            figma.viewport.scrollAndZoomIntoView([frameRoot]);
+            const hp = pm.handoffPack;
+            if (
+              hp &&
+              typeof hp.conceptDocument === 'string' &&
+              hp.conceptDocument.trim().length > 0 &&
+              typeof hp.figmaMakePrompt === 'string' &&
+              hp.figmaMakePrompt.trim().length > 0
+            ) {
+              try {
+                handoffFrame = await createJourneyHandoffFrameBesideWireframe(frameRoot, {
+                  conceptDocument: hp.conceptDocument.trim(),
+                  figmaMakePrompt: hp.figmaMakePrompt.trim(),
+                });
+              } catch (e) {
+                console.warn('[prompt-site-to-figma] handoff frame', e);
+              }
+            }
+            const zoomNodes: SceneNode[] = handoffFrame ? [frameRoot, handoffFrame] : [frameRoot];
+            figma.currentPage.selection = zoomNodes;
+            figma.viewport.scrollAndZoomIntoView(zoomNodes);
           }
           figma.notify('Landingpage eingefügt');
           const fallbackPreviewUrl =
@@ -799,12 +829,26 @@ figma.ui.onmessage = async (msg) => {
             pageSpecUserPrompt?: string;
             screenBrief?: unknown;
             sectionConcepts?: unknown;
+            handoffPack?: { conceptDocument?: unknown; figmaMakePrompt?: unknown };
             tokensUsed?: number;
           };
           const prompt = typeof data.pageSpecUserPrompt === 'string' ? data.pageSpecUserPrompt.trim() : '';
           if (!prompt) {
             throw new Error('CREATION response missing pageSpecUserPrompt');
           }
+          const rawHp = data.handoffPack;
+          const handoffPack =
+            rawHp &&
+            typeof rawHp === 'object' &&
+            typeof rawHp.conceptDocument === 'string' &&
+            rawHp.conceptDocument.trim().length > 0 &&
+            typeof rawHp.figmaMakePrompt === 'string' &&
+            rawHp.figmaMakePrompt.trim().length > 0
+              ? {
+                  conceptDocument: rawHp.conceptDocument.trim(),
+                  figmaMakePrompt: rawHp.figmaMakePrompt.trim(),
+                }
+              : undefined;
           figma.ui.postMessage({
             type: 'journey-screen-brief-success',
             pageSpecUserPrompt: prompt,
@@ -815,6 +859,7 @@ figma.ui.onmessage = async (msg) => {
             viewport: m.viewport,
             componentLibrary: m.componentLibrary,
             renderMode: m.renderMode,
+            ...(handoffPack ? { handoffPack } : {}),
           });
           figma.notify('Screen-Prompt erstellt');
         } catch (err) {
@@ -959,6 +1004,7 @@ figma.ui.onmessage = async (msg) => {
       // removed generate-wireframe
 
       case 'dsl-render': {
+        figma.notify('🚀 Starte Design-Rendering...');
         const { dslJson, tokenOverrides } = msg as {
           dslJson: string;
           tokenOverrides?: unknown;

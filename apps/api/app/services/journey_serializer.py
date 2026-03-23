@@ -78,6 +78,11 @@ def _phase_to_response(phase: JourneyPhase) -> PhaseResponse:
     )
 
 
+def phase_to_response(phase: JourneyPhase) -> PhaseResponse:
+    """Serialize one phase for POST/PUT /journeys/.../phases responses."""
+    return _phase_to_response(phase)
+
+
 def to_journey_response(journey: Journey) -> JourneyResponse:
     """Build JourneyResponse from a Journey model (phases, elements, expectations must be loaded)."""
     return JourneyResponse(

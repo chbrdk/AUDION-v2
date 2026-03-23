@@ -91,6 +91,23 @@ interface PluginState {
   setJourneySectionConcepts: (concepts: unknown[] | null) => void;
   journeyImportedSections: JourneyImportedSectionRow[];
   setJourneyImportedSections: (sections: JourneyImportedSectionRow[]) => void;
+
+  /** Journey handoff: concept text + Figma Make prompt (CREATION step 4). */
+  journeyHandoffPack: { conceptDocument: string; figmaMakePrompt: string } | null;
+  setJourneyHandoffPack: (pack: { conceptDocument: string; figmaMakePrompt: string } | null) => void;
+
+  // Section Concepts Modal (Canvas Interaction)
+  sectionConceptModalOpen: boolean;
+  setSectionConceptModalOpen: (val: boolean) => void;
+  sectionConceptModalText: string;
+  setSectionConceptModalText: (val: string) => void;
+
+  // Transient triggers
+  triggerChainGenerate: { prompt: string; viewport: 'desktop' | 'tablet' | 'mobile' } | null;
+  setTriggerChainGenerate: (val: { prompt: string; viewport: 'desktop' | 'tablet' | 'mobile' } | null) => void;
+
+  selectedModel: 'gpt-4o' | 'gpt-4o-mini' | 'gpt-5-mini';
+  setSelectedModel: (val: 'gpt-4o' | 'gpt-4o-mini' | 'gpt-5-mini') => void;
 }
 
 export const usePluginStore = create<PluginState>((set) => ({
@@ -161,4 +178,18 @@ export const usePluginStore = create<PluginState>((set) => ({
   setJourneySectionConcepts: (concepts) => set({ journeySectionConcepts: concepts }),
   journeyImportedSections: [],
   setJourneyImportedSections: (sections) => set({ journeyImportedSections: sections }),
+
+  journeyHandoffPack: null,
+  setJourneyHandoffPack: (pack) => set({ journeyHandoffPack: pack }),
+
+  sectionConceptModalOpen: false,
+  setSectionConceptModalOpen: (val) => set({ sectionConceptModalOpen: val }),
+  sectionConceptModalText: '',
+  setSectionConceptModalText: (val) => set({ sectionConceptModalText: val }),
+
+  triggerChainGenerate: null,
+  setTriggerChainGenerate: (val) => set({ triggerChainGenerate: val }),
+
+  selectedModel: 'gpt-4o',
+  setSelectedModel: (val) => set({ selectedModel: val }),
 }));

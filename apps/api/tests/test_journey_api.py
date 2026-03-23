@@ -7,6 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 os.environ.setdefault("DATABASE_URL", "sqlite:///./tests_journey_api.db")
+os.environ.setdefault("AUTH_JWT_SECRET", "test-jwt-secret-for-journey-api-tests")
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")
 os.environ.setdefault("QDRANT_URL", "http://localhost:6333")
 os.environ.setdefault("NEO4J_URI", "bolt://localhost:7687")
@@ -140,6 +141,52 @@ def test_create_phase(test_target_group):
     data = response.json()
     assert data["name"] == "Phase 1"
     assert data["phase_order"] == 1
+
+
+def test_update_phase(test_target_group):
+    """PUT phase must return PhaseResponse (regression: serializer import)."""
+    create_response = client.post(
+        "/journeys",
+        json={
+            "name": "Test Journey",
+            "journey_type": "purchase",
+            "creation_mode": "manual",
+            "organization_id": str(uuid4()),
+            "target_group_id": test_target_group.id,
+        },
+    )
+    journey_id = create_response.json()["id"]
+    phase_response = client.post(
+        f"/journeys/{journey_id}/phases",
+        json={
+            "name": "Phase 1",
+            "description": "First",
+            "phase_order": 1,
+            "expected_duration_min": 5,
+            "expected_duration_max": 10,
+            "duration_unit": "minutes",
+            "expected_emotion": "neutral",
+            "emotion_intensity": 0.5,
+        },
+    )
+    phase_id = phase_response.json()["id"]
+    response = client.put(
+        f"/journeys/{journey_id}/phases/{phase_id}",
+        json={
+            "name": "Phase 1 renamed",
+            "description": "Updated",
+            "phase_order": 1,
+            "expected_duration_min": 5,
+            "expected_duration_max": 10,
+            "duration_unit": "minutes",
+            "expected_emotion": "neutral",
+            "emotion_intensity": 0.5,
+        },
+    )
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert data["name"] == "Phase 1 renamed"
+    assert data["description"] == "Updated"
 
 
 def test_create_element(test_target_group):

@@ -19,10 +19,6 @@ import { LoginPanel } from './components/LoginPanel';
 import { setAuthToken, setApiBaseUrl } from './api/audion-client';
 import { generateDSLFromPrompt } from './api/dsl-llm';
 import { URL_CONFIG, getHtmlFigmaCssRegressionFixtureUrl } from './config/urls';
-import {
-  JOURNEY_PROMPT_SITE_COMPONENT_LIBRARY,
-  JOURNEY_PROMPT_SITE_RENDER_MODE,
-} from './config/journey-prompt-site';
 import { convertToBase64 } from './services/screenshot-service';
 import { MsqdxPluginAppShell } from './components/MsqdxPluginAppShell';
 import { t, Language } from './translations';
@@ -40,6 +36,7 @@ import {
 import type { PromptSiteRenderMeta } from './prompt-site-render-meta';
 import type { RAGComponentPayload } from './services/rag-selection-service';
 import { validateLayout } from './api/rag-compose-client';
+import { buildJourneyChainPromptSitePluginMessage } from './services/journey-chain-prompt-site';
 
 const globalStyles = 
   "@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@300;400;500;700&display=swap');" +
@@ -185,6 +182,10 @@ function App() {
   const setHtmlToFigmaSuccess = usePluginStore(s => s.setHtmlToFigmaSuccess);
   const ragComponents = usePluginStore(s => s.ragComponents);
   const setRagComponents = usePluginStore(s => s.setRagComponents);
+  const triggerChainGenerate = usePluginStore(s => s.triggerChainGenerate);
+  const setTriggerChainGenerate = usePluginStore(s => s.setTriggerChainGenerate);
+  const selectedModel = usePluginStore(s => s.selectedModel);
+  const setSelectedModel = usePluginStore(s => s.setSelectedModel);
   const ragFileKey = usePluginStore(s => s.ragFileKey);
   const setRagFileKey = usePluginStore(s => s.setRagFileKey);
   const promptSiteLoading = usePluginStore(s => s.promptSiteLoading);
@@ -207,9 +208,15 @@ function App() {
   const setJourneySectionConcepts = usePluginStore(s => s.setJourneySectionConcepts);
   const journeyImportedSections = usePluginStore(s => s.journeyImportedSections);
   const setJourneyImportedSections = usePluginStore(s => s.setJourneyImportedSections);
+  const setJourneyHandoffPack = usePluginStore(s => s.setJourneyHandoffPack);
+  const knowledgeBase = usePluginStore(s => s.knowledgeBase);
+  const setKnowledgeBase = usePluginStore(s => s.setKnowledgeBase);
+  const sectionConceptModalOpen = usePluginStore(s => s.sectionConceptModalOpen);
+  const setSectionConceptModalOpen = usePluginStore(s => s.setSectionConceptModalOpen);
+  const sectionConceptModalText = usePluginStore(s => s.sectionConceptModalText);
+  const setSectionConceptModalText = usePluginStore(s => s.setSectionConceptModalText);
 
   const [isCapturingScreenshot, setIsCapturingScreenshot] = useState(false);
-  const [knowledgeBase, setKnowledgeBase] = useState<ComponentKnowledgeBase>({ components: [], pages: [], lastUpdated: 0 });
   const [dslJsonText, setDslJsonText] = useState('');
   const [isRenderingDSL, setIsRenderingDSL] = useState(false);
   const [dslRenderError, setDslRenderError] = useState<string | null>(null);
@@ -231,8 +238,7 @@ function App() {
   const [journeyPromptPrefillToken, setJourneyPromptPrefillToken] = useState(0);
   const [journeySectionSelectedId, setJourneySectionSelectedId] = useState<string | null>(null);
 
-  const [sectionConceptModalOpen, setSectionConceptModalOpen] = useState(false);
-  const [sectionConceptModalText, setSectionConceptModalText] = useState<string>('');
+
   const fileKeyResolveRef = useRef<((key: string | null) => void) | null>(null);
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
@@ -250,6 +256,33 @@ function App() {
       document.documentElement.style.setProperty('--msqdx-primary', settings.brandColor);
     }
   }, [settings?.brandColor]);
+
+  useEffect(() => {
+    if (!triggerChainGenerate) return;
+    const { prompt, viewport } = triggerChainGenerate;
+    const st = usePluginStore.getState();
+    const concepts = st.journeySectionConcepts;
+    const handoffPack = st.journeyHandoffPack;
+    setPromptSiteLoading(true);
+    setPromptSiteError(null);
+    setPromptSiteSuccess(false);
+    setPromptSitePreviewUrl(null);
+    setPromptSiteRenderMeta(null);
+    setJourneyImportedSections([]);
+    setJourneySectionSelectedId(null);
+    parent.postMessage(
+      {
+        pluginMessage: buildJourneyChainPromptSitePluginMessage({
+          prompt,
+          viewport,
+          sectionConcepts: concepts,
+          handoffPack,
+        }),
+      },
+      '*'
+    );
+    setTriggerChainGenerate(null);
+  }, [triggerChainGenerate, setTriggerChainGenerate]);
 
   useEffect(() => {
     // Load conversation when selection and persona are present
@@ -371,9 +404,11 @@ function App() {
     setView('login');
   };
 
-  const handleGenerateWireframe = async (userInput: string, viewport: ViewportType, model: AIModelType) => {
+  async function handleGenerateWireframe(userInput: string, viewport: ViewportType, model: AIModelType) {
     if (!settings?.openAiApiKey) {
-      console.warn('OpenAI API-Key fehlt.');
+      const errorMsg = 'OpenAI API-Key fehlt in den SETUP Einstellungen.';
+      console.warn(errorMsg);
+      parent.postMessage({ pluginMessage: { type: 'notify', message: errorMsg } }, '*');
       return;
     }
     
@@ -626,6 +661,7 @@ function App() {
                 setJourneyBriefLoading(true);
                 setJourneyImportedSections([]);
                 setJourneySectionSelectedId(null);
+                setJourneyHandoffPack(null);
               }}
             />
             <JourneySectionsPanel
@@ -641,7 +677,7 @@ function App() {
               promptText={journeyPromptPrefill}
               sectionConcepts={journeySectionConcepts}
               viewport={journeyBriefViewport}
-              onGenerate={({ prompt, viewport, sectionConcepts }) => {
+              onGenerate={({ prompt: p, viewport: v, sectionConcepts: sc }) => {
                 setJourneyImportedSections([]);
                 setJourneySectionSelectedId(null);
                 setPromptSiteLoading(true);
@@ -651,16 +687,12 @@ function App() {
                 setPromptSiteRenderMeta(null);
                 parent.postMessage(
                   {
-                    pluginMessage: {
-                      type: 'prompt-site-to-figma',
-                      prompt,
-                      viewport,
-                      componentLibrary: JOURNEY_PROMPT_SITE_COMPONENT_LIBRARY,
-                      renderMode: JOURNEY_PROMPT_SITE_RENDER_MODE,
-                      ...(Array.isArray(sectionConcepts) && sectionConcepts.length > 0
-                        ? { sectionConcepts }
-                        : {}),
-                    },
+                    pluginMessage: buildJourneyChainPromptSitePluginMessage({
+                      prompt: p,
+                      viewport: v,
+                      sectionConcepts: sc,
+                      handoffPack: usePluginStore.getState().journeyHandoffPack,
+                    }),
                   },
                   '*'
                 );
@@ -669,6 +701,7 @@ function App() {
                 setPromptSiteError(null);
                 setPromptSiteSuccess(false);
               }}
+              progressMessage={generationProgress}
             />
           </div>
         )}

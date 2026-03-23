@@ -89,7 +89,7 @@ export function usePluginBridge() {
           store.setPromptSiteSuccess(true);
           store.setPromptSitePreviewUrl(msg.previewUrl ?? null);
           store.setPromptSiteRenderMeta(msg.renderMeta ?? null);
-          
+
           const nextSections = parseImportedSectionsPayload(msg.importedSections);
           store.setJourneyImportedSections(nextSections);
           break;
@@ -109,6 +109,68 @@ export function usePluginBridge() {
           store.setIsScanningPage(false);
           break;
         }
+
+        case 'journey-screen-brief-success': {
+          store.setJourneyBriefLoading(false);
+          const vpRaw = msg.viewport as string | undefined;
+          store.setJourneyBriefViewport(
+            vpRaw === 'tablet' || vpRaw === 'mobile' ? vpRaw : 'desktop'
+          );
+          store.setJourneyPromptPrefill(msg.pageSpecUserPrompt);
+          store.setJourneySectionConcepts(
+            Array.isArray(msg.sectionConcepts) ? msg.sectionConcepts : null
+          );
+          const hp = msg as {
+            handoffPack?: { conceptDocument: string; figmaMakePrompt: string };
+          };
+          if (
+            hp.handoffPack &&
+            typeof hp.handoffPack.conceptDocument === 'string' &&
+            typeof hp.handoffPack.figmaMakePrompt === 'string'
+          ) {
+            store.setJourneyHandoffPack(hp.handoffPack);
+          } else {
+            store.setJourneyHandoffPack(null);
+          }
+          if (msg.chainGenerate && msg.pageSpecUserPrompt) {
+            store.setTriggerChainGenerate({
+              prompt: String(msg.pageSpecUserPrompt).trim(),
+              viewport:
+                vpRaw === 'tablet' || vpRaw === 'mobile' ? vpRaw : 'desktop',
+            });
+          }
+          break;
+        }
+
+        case 'journey-screen-brief-error':
+          store.setJourneyBriefLoading(false);
+          store.setJourneyHandoffPack(null);
+          console.error('Journey brief error:', msg.error);
+          break;
+
+        case 'journey-visualized':
+          // Optional: handle visualization success
+          break;
+
+        case 'dsl-render-success':
+          store.setIsGeneratingWireframe(false);
+          store.setGenerationProgress(null);
+          break;
+
+        case 'dsl-render-error':
+          store.setIsGeneratingWireframe(false);
+          store.setGenerationProgress(null);
+          console.error('DSL Render error:', msg.error);
+          break;
+
+        case 'rag-components-loaded':
+          store.setRagComponents(msg.components);
+          break;
+
+        case 'msqdx-show-section-concept':
+          store.setSectionConceptModalText(msg.text ?? '');
+          store.setSectionConceptModalOpen(true);
+          break;
 
         case 'error':
           console.error('Plugin error:', msg.error);

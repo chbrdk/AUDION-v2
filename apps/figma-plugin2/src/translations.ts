@@ -112,6 +112,9 @@ export const translations = {
     promptSiteToFigmaGenerate: 'Seite erzeugen & einfügen',
     promptSiteToFigmaLoading: 'Erzeuge & erfasse…',
     promptSiteToFigmaSuccess: 'Landingpage eingefügt.',
+    promptSiteLastPreviewUrl:
+      'Preview-URL (temporär, HTML wie vom Server an html-to-figma übergeben)',
+    promptSiteOpenOriginalPage: 'Originalseite öffnen',
     promptSiteToFigmaRendererMeta: 'Renderer-Meta',
     promptSiteToFigmaPdsRegistry: 'PDS-Registry:',
     promptSiteToFigmaEmitter: 'Emitter:',
@@ -287,6 +290,9 @@ export const translations = {
     promptSiteToFigmaGenerate: 'Generate page & insert',
     promptSiteToFigmaLoading: 'Generating & capturing…',
     promptSiteToFigmaSuccess: 'Landing page inserted.',
+    promptSiteLastPreviewUrl:
+      'Preview URL (temporary — same HTML passed to html-to-figma capture)',
+    promptSiteOpenOriginalPage: 'Open original page',
     promptSiteToFigmaRendererMeta: 'Renderer meta',
     promptSiteToFigmaPdsRegistry: 'PDS registry:',
     promptSiteToFigmaEmitter: 'Emitter:',
