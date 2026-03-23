@@ -228,6 +228,46 @@ def test_create_element(test_target_group):
     assert data["content"] == "User clicks button"
 
 
+def test_update_element(test_target_group):
+    """PUT element must return ElementResponse (regression: serializer import)."""
+    journey_response = client.post(
+        "/journeys",
+        json={
+            "name": "Test Journey",
+            "journey_type": "purchase",
+            "creation_mode": "manual",
+            "organization_id": str(uuid4()),
+            "target_group_id": test_target_group.id,
+        },
+    )
+    journey_id = journey_response.json()["id"]
+    phase_response = client.post(
+        f"/journeys/{journey_id}/phases",
+        json={"name": "Phase 1", "phase_order": 1},
+    )
+    phase_id = phase_response.json()["id"]
+    create = client.post(
+        f"/journeys/{journey_id}/phases/{phase_id}/elements",
+        json={
+            "element_type": "action",
+            "content": "Original",
+            "element_order": 1,
+        },
+    )
+    element_id = create.json()["id"]
+    response = client.put(
+        f"/journeys/{journey_id}/phases/{phase_id}/elements/{element_id}",
+        json={
+            "element_type": "thought",
+            "content": "Updated",
+            "element_order": 1,
+        },
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["content"] == "Updated"
+    assert response.json()["element_type"] == "thought"
+
+
 def test_create_expectation(test_target_group):
     """Test creating an expectation."""
     # Create journey and phase
@@ -268,4 +308,40 @@ def test_create_expectation(test_target_group):
     data = response.json()
     assert data["metric_type"] == "conversion_rate"
     assert data["expected_value"] == 0.4
+
+
+def test_list_expectations(test_target_group):
+    """GET expectations uses expectation_to_response per row."""
+    journey_response = client.post(
+        "/journeys",
+        json={
+            "name": "Test Journey",
+            "journey_type": "purchase",
+            "creation_mode": "manual",
+            "organization_id": str(uuid4()),
+            "target_group_id": test_target_group.id,
+        },
+    )
+    journey_id = journey_response.json()["id"]
+    phase_response = client.post(
+        f"/journeys/{journey_id}/phases",
+        json={"name": "Phase 1", "phase_order": 1},
+    )
+    phase_id = phase_response.json()["id"]
+    client.post(
+        f"/journeys/{journey_id}/phases/{phase_id}/expectations",
+        json={
+            "metric_type": "conversion_rate",
+            "metric_name": "M",
+            "expected_value": 0.1,
+            "unit": "percent",
+            "comparison": "greater_than",
+            "data_source": "ga4",
+        },
+    )
+    response = client.get(f"/journeys/{journey_id}/phases/{phase_id}/expectations")
+    assert response.status_code == 200, response.text
+    items = response.json()
+    assert len(items) == 1
+    assert items[0]["metric_name"] == "M"
 

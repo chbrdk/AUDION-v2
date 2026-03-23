@@ -57,6 +57,16 @@ def _expectation_to_response(expectation: JourneyExpectation) -> ExpectationResp
     )
 
 
+def element_to_response(element: JourneyPhaseElement) -> ElementResponse:
+    """Serialize one phase element for POST/PUT /journeys/.../elements responses."""
+    return _element_to_response(element)
+
+
+def expectation_to_response(expectation: JourneyExpectation) -> ExpectationResponse:
+    """Serialize one expectation for POST/GET /journeys/.../expectations responses."""
+    return _expectation_to_response(expectation)
+
+
 def _phase_to_response(phase: JourneyPhase) -> PhaseResponse:
     return PhaseResponse(
         id=str(phase.id),

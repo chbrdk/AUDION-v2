@@ -32,7 +32,12 @@ from ..schemas.journey import (
     ValidationRequest,
 )
 from ..services.ai_assist import AiAssistService
-from ..services.journey_serializer import phase_to_response, to_journey_response
+from ..services.journey_serializer import (
+    element_to_response,
+    expectation_to_response,
+    phase_to_response,
+    to_journey_response,
+)
 from ..services.persona_store import PersonaService
 from ..services.target_group_store import TargetGroupService
 from ..services.auth import get_current_user
@@ -634,7 +639,7 @@ def create_element(
         session.add(element)
         session.commit()
         session.refresh(element)
-        return _element_to_response(element)
+        return element_to_response(element)
     except Exception as exc:
         session.rollback()
         logger.error("element.create.failed", error=str(exc), exc_info=True)
@@ -672,7 +677,7 @@ def update_element(
         element.confidence = payload.confidence
         session.commit()
         session.refresh(element)
-        return _element_to_response(element)
+        return element_to_response(element)
     except Exception as exc:
         session.rollback()
         logger.error("element.update.failed", error=str(exc), exc_info=True)
@@ -742,7 +747,7 @@ def create_expectation(
         session.add(expectation)
         session.commit()
         session.refresh(expectation)
-        return _expectation_to_response(expectation)
+        return expectation_to_response(expectation)
     except Exception as exc:
         session.rollback()
         logger.error("expectation.create.failed", error=str(exc), exc_info=True)
@@ -764,7 +769,7 @@ def list_expectations(
     expectations = session.scalars(
         select(JourneyExpectation).where(JourneyExpectation.phase_id == phase.id)
     ).all()
-    return [_expectation_to_response(e) for e in expectations]
+    return [expectation_to_response(e) for e in expectations]
 
 
 # Validation
