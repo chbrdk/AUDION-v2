@@ -11,14 +11,9 @@ import {
 } from "@msqdx/react";
 import type { AdminNavItem } from "@msqdx/react";
 import { 
-  Dialog, 
-  DialogTitle, 
-  DialogContent, 
-  DialogActions, 
-  TextField, 
-  Button,
   Box
 } from "@mui/material";
+import { BugReportModal } from "../bug-report/BugReportModal";
 import { useThemeMode } from "../theme-registry";
 import { THEME_ACCENT_WITH_FALLBACK } from "../../lib/theme-accent";
 import "../../styles/admin.css";
@@ -41,7 +36,6 @@ export type AppLayoutProps = {
 export function AppLayout({ children }: AppLayoutProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [bugModalOpen, setBugModalOpen] = useState(false);
-  const [bugDescription, setBugDescription] = useState("");
   const pathname = usePathname();
   const { themeMode, toggleTheme } = useThemeMode();
 
@@ -51,9 +45,9 @@ export function AppLayout({ children }: AppLayoutProps) {
     setBugDescription("");
   };
 
-  const handleSubmitBug = () => {
+  const handleSubmitBug = (description: string) => {
     // TODO: Send bug report to API
-    console.log("Bug Report Submitted:", bugDescription);
+    console.log("Bug Report Submitted:", description);
     handleCloseBugModal();
     // Maybe show a success toast here
   };
@@ -102,72 +96,11 @@ export function AppLayout({ children }: AppLayoutProps) {
       { }
       {children as any}
 
-      <Dialog 
+      <BugReportModal 
         open={bugModalOpen} 
-        onClose={handleCloseBugModal}
-        fullWidth
-        maxWidth="sm"
-        PaperProps={{
-          sx: {
-            borderRadius: "16px",
-            backgroundColor: THEME_ACCENT_WITH_FALLBACK.backgroundColor,
-            border: `1px solid ${THEME_ACCENT_WITH_FALLBACK.borderColor}`,
-            backgroundImage: "none",
-          }
-        }}
-      >
-        <DialogTitle sx={{ color: "white" }}>
-          Report a Bug
-        </DialogTitle>
-        <DialogContent>
-          <MsqdxTypography variant="body2" sx={{ color: "rgba(255, 255, 255, 0.7)", mb: 2 }}>
-            Describe the issue you encountered. Please include steps to reproduce if possible.
-          </MsqdxTypography>
-          <TextField
-            autoFocus
-            multiline
-            rows={4}
-            fullWidth
-            placeholder="Type your bug description here..."
-            variant="outlined"
-            value={bugDescription}
-            onChange={(e) => setBugDescription(e.target.value)}
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                color: "white",
-                "& fieldset": {
-                  borderColor: "rgba(255, 255, 255, 0.2)",
-                },
-                "&:hover fieldset": {
-                  borderColor: "rgba(255, 255, 255, 0.3)",
-                },
-                "&.Mui-focused fieldset": {
-                  borderColor: THEME_ACCENT_WITH_FALLBACK.borderColor,
-                },
-              },
-            }}
-          />
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={handleCloseBugModal} sx={{ color: "rgba(255, 255, 255, 0.5)" }}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleSubmitBug} 
-            disabled={!bugDescription.trim()}
-            variant="contained"
-            sx={{ 
-                backgroundColor: THEME_ACCENT_WITH_FALLBACK.borderColor,
-                "&:hover": {
-                    backgroundColor: THEME_ACCENT_WITH_FALLBACK.borderColor,
-                    opacity: 0.8
-                }
-            }}
-          >
-            Submit Report
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onClose={handleCloseBugModal} 
+        onSubmit={handleSubmitBug} 
+      />
     </MsqdxAppLayout>
   );
 }

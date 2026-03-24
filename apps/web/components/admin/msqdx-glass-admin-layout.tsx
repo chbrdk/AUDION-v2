@@ -12,6 +12,7 @@ import { THEME_ACCENT_WITH_FALLBACK } from "../../lib/theme-accent";
 import { AdminTopControls } from "./admin-top-controls";
 import { BrandColorInitializer } from "../settings/brand-color-initializer";
 import { useI18n } from "../i18n/i18n-provider";
+import { BugReportModal } from "../bug-report/BugReportModal";
 
 // Re-export for consumers that import from this file
 export { useAdminHeader, useAdminPanel } from "./admin-layout-providers";
@@ -39,6 +40,7 @@ export type MsqdxGlassAdminLayoutClientProps = {
 
 export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: MsqdxGlassAdminLayoutClientProps) => {
   const [drawerOpen, setDrawerOpen] = useState(false); // Default open on desktop
+  const [bugModalOpen, setBugModalOpen] = useState(false);
   const pathname = usePathname();
   const theme = useTheme();
   const { t } = useI18n();
@@ -55,6 +57,15 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
     setDrawerOpen(false);
   };
 
+  const handleOpenBugModal = () => setBugModalOpen(true);
+  const handleCloseBugModal = () => setBugModalOpen(false);
+
+  const handleSubmitBug = (description: string) => {
+    // TODO: Send bug report to API
+    console.log("Bug Report Submitted:", description);
+    handleCloseBugModal();
+  };
+
   const handlePanelClose = () => {
     setPanelOpen(false);
   };
@@ -64,10 +75,17 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
     label: t(item.labelKey),
   })) as AdminNavItem[];
 
-  const navExternalItems = ADMIN_NAV_EXTERNAL_ITEMS.map((item) => ({
-    ...item,
-    label: t(item.labelKey),
-  })) as AdminNavItem[];
+  const navExternalItems = [
+    ...ADMIN_NAV_EXTERNAL_ITEMS.map((item) => ({
+      ...item,
+      label: t(item.labelKey),
+    })),
+    { 
+      label: "Bug Report", 
+      icon: "bug_report", 
+      onClick: handleOpenBugModal 
+    },
+  ] as AdminNavItem[];
 
   // Get page title from pathname
   const getPageTitle = () => {
@@ -353,6 +371,11 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
       )}
     </MsqdxAppLayout>
       </Box>
+      <BugReportModal
+        open={bugModalOpen}
+        onClose={handleCloseBugModal}
+        onSubmit={handleSubmitBug}
+      />
     </>
   );
 };
