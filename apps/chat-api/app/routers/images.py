@@ -8,8 +8,11 @@ import structlog
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
+from ..core.config import get_settings
+
 router = APIRouter(prefix="/chat/images", tags=["images"])
 logger = structlog.get_logger(__name__)
+settings = get_settings()
 
 # In-Memory Storage für temporäre Bilder
 # Format: {image_id: {"data_url": str, "uploaded_at": datetime}}
@@ -23,8 +26,8 @@ def cleanup_old_images():
     """Entfernt Bilder, die älter als CLEANUP_INTERVAL sind"""
     now = datetime.now()
     to_remove = [
-        image_id for image_id, data in _image_storage.items()
-        if now - data["uploaded_at"] > CLEANUP_INTERVAL
+        image_id for image_id, data in list(_image_storage.items())
+        if now - data.get("uploaded_at", now) > CLEANUP_INTERVAL
     ]
     for image_id in to_remove:
         del _image_storage[image_id]
@@ -53,48 +56,73 @@ async def upload_image(request: ImageUploadRequest):
     Lädt ein Bild hoch und gibt eine temporäre ID zurück.
     Das Bild wird für 1 Stunde im Memory gespeichert.
     """
-    # Cleanup alte Bilder
-    cleanup_old_images()
-    
-    # Validiere Data URL Format
-    image_data_url = request.image
-    if not image_data_url.startswith("data:image/"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid image format. Expected data URL starting with 'data:image/'"
-        )
-    
-    # Extrahiere Media Type
     try:
-        header = image_data_url.split(",", 1)[0]
-        media_type = header.split(";")[0].split(":")[1]
-        if not media_type.startswith("image/"):
-            raise ValueError("Invalid media type")
-    except (ValueError, IndexError):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid data URL format"
+        # Cleanup alte Bilder
+        cleanup_old_images()
+        
+        # Validiere Data URL Format
+        image_data_url = request.image
+        
+        # Prüfe Größe (vorher um OOM zu vermeiden)
+        # Base64 ist ca. 33% größer als Binärdaten, aber wir prüfen die String-Länge
+        if len(image_data_url) > settings.upload_max_image_bytes * 1.4: # Grobe Schätzung für Base64
+            logger.warning("images.upload.too_large", 
+                          data_length=len(image_data_url), 
+                          limit=settings.upload_max_image_bytes)
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"Image too large. Max size: {settings.upload_max_image_bytes / 1024 / 1024:.1f}MB"
+            )
+
+        if not image_data_url.startswith("data:image/"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid image format. Expected data URL starting with 'data:image/'"
+            )
+        
+        # Extrahiere Media Type
+        try:
+            parts = image_data_url.split(",", 1)
+            if len(parts) < 2:
+                 raise ValueError("Missing comma in data URL")
+            header = parts[0]
+            media_type = header.split(";")[0].split(":")[1]
+            if not media_type.startswith("image/"):
+                raise ValueError("Invalid media type")
+        except (ValueError, IndexError) as e:
+            logger.warning("images.upload.invalid_format", error=str(e))
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid data URL format"
+            )
+        
+        # Generiere eindeutige ID
+        image_id = str(uuid4())
+        
+        # Speichere Bild
+        _image_storage[image_id] = {
+            "data_url": image_data_url,
+            "uploaded_at": datetime.now(),
+            "media_type": media_type
+        }
+        
+        logger.info("images.upload.success",
+                    image_id=image_id,
+                    media_type=media_type,
+                    data_length=len(image_data_url))
+        
+        return ImageUploadResponse(
+            image_id=image_id,
+            expires_in_seconds=3600
         )
-    
-    # Generiere eindeutige ID
-    image_id = str(uuid4())
-    
-    # Speichere Bild
-    _image_storage[image_id] = {
-        "data_url": image_data_url,
-        "uploaded_at": datetime.now(),
-        "media_type": media_type
-    }
-    
-    logger.info("images.upload.success",
-                image_id=image_id,
-                media_type=media_type,
-                data_length=len(image_data_url))
-    
-    return ImageUploadResponse(
-        image_id=image_id,
-        expires_in_seconds=3600
-    )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("images.upload.unexpected_error", error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error during image upload"
+        )
 
 
 @router.post("/upload-batch", response_model=Dict[str, str])
