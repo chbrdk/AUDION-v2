@@ -42,7 +42,6 @@ export function AppLayout({ children }: AppLayoutProps) {
   const handleOpenBugModal = () => setBugModalOpen(true);
   const handleCloseBugModal = () => {
     setBugModalOpen(false);
-    setBugDescription("");
   };
 
   const handleSubmitBug = (description: string) => {
