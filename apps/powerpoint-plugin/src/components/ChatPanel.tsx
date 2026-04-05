@@ -1,23 +1,22 @@
-import React, { useState, useEffect, useRef } from 'react';
-import type { ChatMessage, Persona } from '../types';
-import { sendMessage, uploadImage } from '../api/audion-client';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import type { ChatMessage, Persona, PluginSettings, SelectionMetadata } from '../types';
+import { sendMessage } from '../api/audion-client';
 import type { ChatRequest } from '../types';
 import { t, Language } from '../translations';
+import { generateConversationId } from '../services/conversation-service';
 
 interface ChatPanelProps {
-  persona: Persona | null;
-  conversationId: string | null;
-  selectionMetadata: any;
-  screenshot?: string | null;
+  selection: SelectionMetadata | null;
+  selectedPersona: Persona | null;
+  settings: PluginSettings | null;
   onMessageSent?: () => void;
   lang: Language;
 }
 
 export function ChatPanel({
-  persona,
-  conversationId,
-  selectionMetadata,
-  screenshot,
+  selection,
+  selectedPersona,
+  settings,
   onMessageSent,
   lang,
 }: ChatPanelProps) {
@@ -26,6 +25,14 @@ export function ChatPanel({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const conversationId = useMemo(() => {
+    if (!selectedPersona) return null;
+    const sid = selection?.nodeId ?? 'presentation';
+    return generateConversationId(sid, selectedPersona.id);
+  }, [selection?.nodeId, selectedPersona]);
+
+  const usageUserId = settings?.usageUserId;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -36,7 +43,7 @@ export function ChatPanel({
   }, [messages]);
 
   const handleSend = async () => {
-    if (!inputValue.trim() || !persona || !conversationId) {
+    if (!inputValue.trim() || !selectedPersona || !conversationId) {
       return;
     }
 
@@ -52,19 +59,8 @@ export function ChatPanel({
     setError(null);
 
     try {
-      // Upload screenshot if available
-      let imageIds: string[] | undefined;
-      if (screenshot) {
-        try {
-          const imageId = await uploadImage(screenshot);
-          imageIds = [imageId];
-        } catch (error) {
-          console.warn('Failed to upload screenshot, continuing without image:', error);
-        }
-      }
-
       const request: ChatRequest = {
-        persona_id: persona.id,
+        persona_id: selectedPersona.id,
         messages: [
           ...messages.map((m) => ({
             role: m.role as 'user' | 'assistant' | 'system',
@@ -78,11 +74,11 @@ export function ChatPanel({
           },
         ],
         conversation_id: conversationId,
-        metadata: selectionMetadata
+        ...(usageUserId ? { user_id: usageUserId } : {}),
+        metadata: selection
           ? {
-              selection: selectionMetadata,
-              // Fallback to nodeId or placeholder if no fileId (Figma) or presentationId (PowerPoint)
-              file_id: selectionMetadata.fileId || selectionMetadata.presentationId || selectionMetadata.nodeId,
+              selection,
+              file_id: selection.fileId || selection.presentationId || selection.nodeId,
             }
           : undefined,
       };
@@ -107,16 +103,8 @@ export function ChatPanel({
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-      {/* Messages Scroll Area */}
       <div
         className="scroll-container"
         style={{
@@ -125,7 +113,7 @@ export function ChatPanel({
           display: 'flex',
           flexDirection: 'column',
           gap: '20px',
-          marginBottom: '12px'
+          marginBottom: '12px',
         }}
       >
         {messages.length === 0 && (
@@ -138,14 +126,18 @@ export function ChatPanel({
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: '12px'
+              gap: '12px',
             }}
           >
             <div style={{ fontSize: '32px', opacity: 0.5 }}>✨</div>
             <div className="msqdx-mono" style={{ fontSize: '11px', fontWeight: '500' }}>
-              {persona
-                ? (lang === 'de' ? `CHATTE JETZT MIT ${persona.name.toUpperCase()}` : `CHAT NOW WITH ${persona.name.toUpperCase()}`)
-                : (lang === 'de' ? 'WÄHLE EINE PERSONA AUS' : 'SELECT A PERSONA')}
+              {selectedPersona
+                ? lang === 'de'
+                  ? `CHATTE JETZT MIT ${selectedPersona.name.toUpperCase()}`
+                  : `CHAT NOW WITH ${selectedPersona.name.toUpperCase()}`
+                : lang === 'de'
+                  ? 'WÄHLE EINE PERSONA AUS'
+                  : 'SELECT A PERSONA'}
             </div>
           </div>
         )}
@@ -153,8 +145,12 @@ export function ChatPanel({
         {messages.map((message, index) => {
           const isUser = message.role === 'user';
           const labelColor = isUser ? 'var(--msqdx-orange, #ff6a3b)' : 'var(--msqdx-primary, #3b82f6)';
-          const label = isUser ? (lang === 'de' ? 'DU' : 'YOU') : (persona?.name.toUpperCase() || 'PERSONA');
-          
+          const label = isUser
+            ? lang === 'de'
+              ? 'DU'
+              : 'YOU'
+            : selectedPersona?.name.toUpperCase() || 'PERSONA';
+
           return (
             <div
               key={index}
@@ -180,7 +176,7 @@ export function ChatPanel({
                   lineHeight: '1.5',
                   wordWrap: 'break-word',
                   border: `1px solid var(--msqdx-border-color)`,
-                  boxShadow: '0 2px 8px -2px rgba(15, 23, 42, 0.04)'
+                  boxShadow: '0 2px 8px -2px rgba(15, 23, 42, 0.04)',
                 }}
               >
                 {message.content}
@@ -196,13 +192,15 @@ export function ChatPanel({
               alignSelf: 'flex-start',
               padding: '12px 20px',
               borderRadius: '12px 32px 32px 32px',
-            backgroundColor: 'var(--msqdx-bg-card)',
-            border: '1px solid var(--msqdx-border-color)',
-            fontSize: '13px',
-            color: 'var(--msqdx-text-secondary)',
-          }}
-        >
-          <span className="msqdx-mono" style={{ fontSize: '10px' }}>{lang === 'de' ? 'DENKT NACH...' : 'THINKING...'}</span>
+              backgroundColor: 'var(--msqdx-bg-card)',
+              border: '1px solid var(--msqdx-border-color)',
+              fontSize: '13px',
+              color: 'var(--msqdx-text-secondary)',
+            }}
+          >
+            <span className="msqdx-mono" style={{ fontSize: '10px' }}>
+              {lang === 'de' ? 'DENKT NACH...' : 'THINKING...'}
+            </span>
           </div>
         )}
 
@@ -216,7 +214,7 @@ export function ChatPanel({
               border: '1px solid rgba(220, 38, 38, 0.15)',
               color: '#dc2626',
               fontSize: '10px',
-              textAlign: 'center'
+              textAlign: 'center',
             }}
           >
             ERROR: {error}
@@ -226,13 +224,12 @@ export function ChatPanel({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area */}
       <div
         style={{
           display: 'flex',
           gap: '8px',
           alignItems: 'flex-end',
-          padding: '4px'
+          padding: '4px',
         }}
       >
         <textarea
@@ -241,13 +238,19 @@ export function ChatPanel({
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
-              handleSend();
+              void handleSend();
             }
           }}
           placeholder={
-            persona ? (lang === 'de' ? `NACHRICHT AN ${persona.name.toUpperCase()}...` : `MESSAGE ${persona.name.toUpperCase()}...`) : (lang === 'de' ? 'PERSONA WÄHLEN...' : 'SELECT PERSONA...')
+            selectedPersona
+              ? lang === 'de'
+                ? `NACHRICHT AN ${selectedPersona.name.toUpperCase()}...`
+                : `MESSAGE ${selectedPersona.name.toUpperCase()}...`
+              : lang === 'de'
+                ? 'PERSONA WÄHLEN...'
+                : 'SELECT PERSONA...'
           }
-          disabled={!persona || isLoading}
+          disabled={!selectedPersona || isLoading}
           rows={1}
           style={{
             flex: 1,
@@ -260,29 +263,36 @@ export function ChatPanel({
             outline: 'none',
             resize: 'none',
             maxHeight: '120px',
-            fontFamily: 'inherit'
+            fontFamily: 'inherit',
           }}
         />
         <button
-          onClick={handleSend}
-          disabled={!persona || !inputValue.trim() || isLoading}
+          type="button"
+          onClick={() => void handleSend()}
+          disabled={!selectedPersona || !inputValue.trim() || isLoading}
           className="msqdx-button"
           style={{
             height: '42px',
             padding: '0 16px',
             borderRadius: '16px',
             flexShrink: 0,
-            background: persona && inputValue.trim() ? 'var(--msqdx-primary)' : 'rgba(15, 23, 42, 0.05)',
-            color: persona && inputValue.trim() ? 'white' : 'var(--msqdx-text-secondary)'
+            background:
+              selectedPersona && inputValue.trim() ? 'var(--msqdx-primary)' : 'rgba(15, 23, 42, 0.05)',
+            color: selectedPersona && inputValue.trim() ? 'white' : 'var(--msqdx-text-secondary)',
           }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+              d="M22 2L15 22L11 13L2 9L22 2Z"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         </button>
       </div>
     </div>
   );
 }
-

@@ -18,7 +18,7 @@ from ..core.config import get_settings
 from ..core.http_exceptions import exception_to_http
 from ..db import get_session
 from ..models import Persona, PersonaPrompt
-from ..services.usage_report import report_usage
+from ..services.usage_report import report_retrieval_query_usage, report_usage
 from ..services.voice import ElevenLabsVoiceError, get_voice_client
 from ..deps import verify_request_token
 from ..services.whisper import WhisperTranscriptionService
@@ -261,6 +261,7 @@ async def voice_chat_stream(request: VoiceChatRequest, _: None = Depends(verify_
                     for hit in hits[:5]
                     if hit.payload
                 ]
+                report_retrieval_query_usage(request.user_id, queries=1)
                 yield f"data: {json.dumps({'type': 'sources', 'sources': sources})}\n\n"
             except asyncio.TimeoutError:
                 logger.warning("voice.stream.retrieval.timeout", persona_id=request.persona_id)

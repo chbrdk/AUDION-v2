@@ -4,11 +4,13 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
+from typing import Any
 
 import structlog
 from openai import OpenAI
 
 from ..core.config import get_settings
+from .openai_llm_usage import raw_units_from_openai_chat_completion
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
@@ -24,11 +26,11 @@ class TargetGroupSuggestion:
 def suggest_target_groups(
     context_text: str,
     max_suggestions: int = 5,
-) -> list[TargetGroupSuggestion]:
+) -> tuple[list[TargetGroupSuggestion], dict[str, Any]]:
     """
     Call AI to suggest target groups from company/project context.
     Uses OpenAI (GPT-5 / ai_openai_model) only.
-    Returns a list of TargetGroupSuggestion (name, segment, description).
+    Returns suggestions and OpenAI usage fields for PLEXON (may be empty).
     """
     if not context_text or not context_text.strip():
         raise ValueError("Company context is empty. Please add a project description or company context first.")
@@ -61,6 +63,7 @@ Company/project context:
             max_completion_tokens=settings.ai_default_max_tokens or 2048,
         )
         response_text = (chat.choices[0].message.content or "").strip()
+        usage_raw = raw_units_from_openai_chat_completion(chat)
     except Exception as e:
         logger.error("suggest_target_groups.openai_error", error=str(e))
         raise ValueError(f"OpenAI API error: {e}") from e
@@ -104,4 +107,4 @@ Company/project context:
             segment = segment.strip() or f"segment-{i + 1}"
             result.append(TargetGroupSuggestion(name=name, segment=segment, description=description.strip()))
 
-    return result[:max_suggestions]
+    return result[:max_suggestions], usage_raw

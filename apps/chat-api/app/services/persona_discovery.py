@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
-from typing import List
+from typing import Any, List
 
 import structlog
 from anthropic import Anthropic
 from qdrant_client import QdrantClient
 
 from ..core.config import get_settings
+from .anthropic_usage_raw import raw_units_from_anthropic_message
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
@@ -33,17 +35,18 @@ class PersonaDiscoveryService:
         )
         self._collection = "research_chunks"
 
-    def discover(self, *, query_embedding: list[float]) -> List[PersonaCandidate]:
-        """Discover personas from research data based on query embedding."""
-        # Use query_points instead of search (new API in qdrant-client 1.16+)
-        response = self._qdrant.query_points(
+    def discover(
+        self, *, query_embedding: list[float]
+    ) -> tuple[list[PersonaCandidate], dict[str, Any], bool]:
+        """Discover personas; returns (candidates, anthropic_usage_for_plexon, llm_was_called)."""
+        qres = self._qdrant.query_points(
             collection_name=self._collection,
-            query=query_embedding,  # Dense vector for nearest search
+            query=query_embedding,
             limit=20,
             with_payload=True,
             with_vectors=False,
         )
-        search = response.points if hasattr(response, 'points') else []
+        search = qres.points if hasattr(qres, "points") else []
 
         excerpts = [
             f"[{hit.payload.get('chunk_id', '')}] {hit.payload.get('content', '')}"
@@ -59,7 +62,7 @@ class PersonaDiscoveryService:
 
         logger.info("persona.discovery.prompt_tokens", length=len(prompt))
         try:
-            response = self._anthropic.messages.create(
+            msg = self._anthropic.messages.create(
                 model="claude-3-5-haiku-20241022",
                 max_tokens=800,
                 temperature=0.1,
@@ -72,35 +75,34 @@ class PersonaDiscoveryService:
             )
         except Exception as e:
             logger.error("persona.discovery.api_error", error=str(e), exc_info=True)
-            return []
+            return [], {}, False
 
-        if not response.content or len(response.content) == 0:
-            logger.warning("persona.discovery.empty_response")
-            return []
-        
-        # Extract text content from response
-        text_content = response.content[0].text if hasattr(response.content[0], 'text') else str(response.content[0])
+        usage_raw = raw_units_from_anthropic_message(msg)
+        text_blocks = [b for b in msg.content if getattr(b, "type", None) == "text"]
+        text_content = text_blocks[0].text if text_blocks else ""
         logger.info("persona.discovery.response_received", length=len(text_content), preview=text_content[:200])
-        
-        # Remove markdown code blocks if present (```json ... ```)
-        import re
-        json_match = re.search(r'```(?:json)?\s*(\[.*?\])\s*```', text_content, re.DOTALL)
+
+        json_match = re.search(r"```(?:json)?\s*(\[.*?\])\s*```", text_content, re.DOTALL)
         if json_match:
             text_content = json_match.group(1)
         else:
-            # Try to find JSON array directly
-            json_match = re.search(r'\[.*\]', text_content, re.DOTALL)
+            json_match = re.search(r"\[.*\]", text_content, re.DOTALL)
             if json_match:
                 text_content = json_match.group(0)
-        
+
         try:
             parsed = json.loads(text_content)
         except Exception as exc:  # noqa: BLE001
             logger.warning("persona.discovery.parse_failed", error=str(exc), content_preview=text_content[:500])
-            return []
+            return [], usage_raw, True
+
+        if not isinstance(parsed, list):
+            return [], usage_raw, True
 
         candidates = []
         for persona in parsed[:3]:
+            if not isinstance(persona, dict):
+                continue
             candidates.append(
                 PersonaCandidate(
                     name=persona.get("name", "Unknown"),
@@ -109,5 +111,5 @@ class PersonaDiscoveryService:
                     chunk_ids=[str(chunk) for chunk in persona.get("chunk_ids", [])],
                 )
             )
-        return candidates
+        return candidates, usage_raw, True
 

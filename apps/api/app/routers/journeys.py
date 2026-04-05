@@ -203,11 +203,12 @@ async def generate_journey(
         
         # If async mode, start Celery task
         if payload.use_async:
+            usage_uid = _user_id_for_usage(current_user) or str(current_user.id)
             task = generate_journey_task.delay(
                 target_group_id=payload.target_group_id,
                 journey_type=payload.journey_type,
                 organization_id=payload.organization_id,
-                user_id=payload.created_by or "system",
+                user_id=usage_uid,
                 project_id=payload.project_id,
             )
             # Return a placeholder journey with task_id in metadata
@@ -221,10 +222,11 @@ async def generate_journey(
         service = JourneyGenerationService()
         
         # Generate journey draft
-        journey_draft = await service.generate_journey_from_knowledge(
+        journey_draft, ai_usage = await service.generate_journey_from_knowledge(
             target_group_id=target_group_uuid,
             journey_type=payload.journey_type,
             organization_id=organization_uuid,
+            retrieval_usage_user_id=_user_id_for_usage(current_user),
         )
         
         # Save journey
@@ -244,12 +246,23 @@ async def generate_journey(
 
         uid = _user_id_for_usage(current_user)
         if uid:
-            report_usage(
-                user_id=uid,
-                event_type="journey_generate",
-                raw_units={"runs": 1},
-                idempotency_key=f"journey_generate:{journey_id}",
-            )
+            inp = (ai_usage or {}).get("input_tokens") or (ai_usage or {}).get("prompt_tokens")
+            out = (ai_usage or {}).get("output_tokens") or (ai_usage or {}).get("completion_tokens")
+            key = f"journey_generate:{journey_id}"
+            if inp is not None or out is not None:
+                report_usage(
+                    user_id=uid,
+                    event_type="llm_request",
+                    raw_units={"input_tokens": inp, "output_tokens": out},
+                    idempotency_key=key,
+                )
+            else:
+                report_usage(
+                    user_id=uid,
+                    event_type="journey_generate",
+                    raw_units={"runs": 1},
+                    idempotency_key=key,
+                )
 
         return to_journey_response(journey)
         
@@ -463,9 +476,9 @@ async def generate_journey_ai_content(
             prompt_variables=payload.prompt_variables or {},
             max_suggestions=payload.max_suggestions,
         )
-        ai_assist_service = AiAssistService(session=session)
-        ai_response = await ai_assist_service.generate(ai_request)
         uid = _user_id_for_usage(current_user)
+        ai_assist_service = AiAssistService(session=session, retrieval_usage_user_id=uid)
+        ai_response = await ai_assist_service.generate(ai_request)
         if uid and ai_response.usage:
             report_usage(
                 user_id=uid,
@@ -782,6 +795,7 @@ async def validate_journey(
     journey_id: str,
     payload: ValidationRequest,
     session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> JourneyValidationReport:
     from ..services.journey_validation import JourneyValidationService
     
@@ -800,6 +814,13 @@ async def validate_journey(
             persona_id=persona_id,
             mode=payload.mode,
         )
+        uid = _user_id_for_usage(current_user)
+        if uid:
+            report_usage(
+                user_id=uid,
+                event_type="journey_validate",
+                raw_units={"personas": 1},
+            )
         return report
     except ValueError:
         raise HTTPException(status_code=404, detail="Resource not found")
@@ -817,6 +838,7 @@ async def get_validation_report(
     journey_id: str,
     persona_id: str | None = Query(None),
     session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> JourneyValidationReport:
     from ..services.journey_validation import JourneyValidationService
     
@@ -832,6 +854,13 @@ async def get_validation_report(
             journey_id=journey_uuid,
             persona_id=persona_uuid,
         )
+        uid = _user_id_for_usage(current_user)
+        if uid:
+            report_usage(
+                user_id=uid,
+                event_type="journey_validate",
+                raw_units={"personas": 1},
+            )
         return report
     except ValueError:
         raise HTTPException(status_code=404, detail="Resource not found")

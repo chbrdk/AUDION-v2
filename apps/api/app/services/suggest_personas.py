@@ -4,11 +4,13 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
+from typing import Any
 
 import structlog
 from openai import OpenAI
 
 from ..core.config import get_settings
+from .openai_llm_usage import raw_units_from_openai_chat_completion
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
@@ -30,11 +32,11 @@ def suggest_personas(
     target_group_segment: str,
     target_group_description: str,
     max_suggestions: int = 5,
-) -> list[PersonaSuggestion]:
+) -> tuple[list[PersonaSuggestion], dict[str, Any]]:
     """
     Call AI to suggest personas for a target group using company/project context.
     Uses OpenAI (GPT-5 / ai_openai_model) only.
-    Returns list of PersonaSuggestion (name, age, headline, bio, location, gender).
+    Returns suggestions and OpenAI usage fields for PLEXON (may be empty).
     """
     if not context_text or not context_text.strip():
         raise ValueError(
@@ -87,6 +89,7 @@ Company/project context:
             max_completion_tokens=settings.ai_default_max_tokens or 2048,
         )
         response_text = (chat.choices[0].message.content or "").strip()
+        usage_raw = raw_units_from_openai_chat_completion(chat)
     except Exception as e:
         logger.error("suggest_personas.openai_error", error=str(e))
         raise ValueError(f"OpenAI API error: {e}") from e
@@ -143,4 +146,4 @@ Company/project context:
             )
         )
 
-    return result[:max_suggestions]
+    return result[:max_suggestions], usage_raw

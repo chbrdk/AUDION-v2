@@ -263,9 +263,9 @@ async def generate_persona_pain_points(
         max_suggestions=max_items,
     )
     try:
-        ai_assist = AiAssistService(session=session)
-        response = await ai_assist.generate(ai_request)
         uid = _user_id_for_usage(current_user)
+        ai_assist = AiAssistService(session=session, retrieval_usage_user_id=uid)
+        response = await ai_assist.generate(ai_request)
         if uid and response.usage:
             report_usage(
                 user_id=uid,
@@ -301,9 +301,9 @@ async def generate_persona_interests(
         max_suggestions=max_items,
     )
     try:
-        ai_assist = AiAssistService(session=session)
-        response = await ai_assist.generate(ai_request)
         uid = _user_id_for_usage(current_user)
+        ai_assist = AiAssistService(session=session, retrieval_usage_user_id=uid)
+        response = await ai_assist.generate(ai_request)
         if uid and response.usage:
             report_usage(
                 user_id=uid,
@@ -339,9 +339,9 @@ async def generate_persona_values(
         max_suggestions=max_items,
     )
     try:
-        ai_assist = AiAssistService(session=session)
-        response = await ai_assist.generate(ai_request)
         uid = _user_id_for_usage(current_user)
+        ai_assist = AiAssistService(session=session, retrieval_usage_user_id=uid)
+        response = await ai_assist.generate(ai_request)
         if uid and response.usage:
             report_usage(
                 user_id=uid,
@@ -383,9 +383,9 @@ async def generate_persona_goals(
         max_suggestions=max_items,
     )
     try:
-        ai_assist = AiAssistService(session=session)
-        response = await ai_assist.generate(ai_request)
         uid = _user_id_for_usage(current_user)
+        ai_assist = AiAssistService(session=session, retrieval_usage_user_id=uid)
+        response = await ai_assist.generate(ai_request)
         if uid and response.usage:
             report_usage(
                 user_id=uid,
@@ -414,8 +414,8 @@ async def enrich_persona(
 ) -> PersonaResponse:
     persona = _get_persona_or_404(session, persona_id)
     max_items = 5
-    ai_assist = AiAssistService(session=session)
     uid = _user_id_for_usage(current_user)
+    ai_assist = AiAssistService(session=session, retrieval_usage_user_id=uid)
 
     def _report(r):
         if uid and r.usage:

@@ -10,6 +10,7 @@ from msqdx_glass_proto import PersonasDiscoveredEvent, ThinkingEvent
 from ..agents.persona import PersonaAgent
 from ..agents.retrieval import RetrievalAgent
 from ..services.persona_discovery import PersonaDiscoveryService
+from ..services.usage_report import report_retrieval_query_usage, report_usage
 
 router = APIRouter()
 retrieval_agent = RetrievalAgent()
@@ -45,9 +46,25 @@ async def chat_ws(websocket: WebSocket, conversation_id: str) -> None:
             payload = json.loads(raw)
             if payload.get("type") == "message":
                 query = payload["content"]
+                user_id = (payload.get("user_id") or "").strip() or None
                 await manager.send_event(websocket, ThinkingEvent(status="Analyzing research…"))
                 embedding, hits = retrieval_agent.run(query=query, persona_segment=None)
-                candidates = persona_discovery.discover(query_embedding=embedding)
+                if user_id:
+                    report_retrieval_query_usage(user_id, queries=1)
+                candidates, usage_raw, llm_ok = persona_discovery.discover(query_embedding=embedding)
+                if user_id and llm_ok:
+                    if usage_raw:
+                        report_usage(
+                            user_id=user_id,
+                            event_type="llm_request",
+                            raw_units=usage_raw,
+                        )
+                    else:
+                        report_usage(
+                            user_id=user_id,
+                            event_type="persona_discover",
+                            raw_units={"runs": 1},
+                        )
                 await manager.send_event(
                     websocket,
                     PersonasDiscoveredEvent(

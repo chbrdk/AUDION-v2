@@ -69,3 +69,12 @@ def report_usage(
         daemon=True,
     )
     thread.start()
+
+
+def report_retrieval_query_usage(user_id: str | None, *, queries: int = 1) -> None:
+    """BGE encode + Qdrant search (local embedder, bill as fixed tokens in PLEXON)."""
+    uid = (user_id or "").strip()
+    if not uid:
+        return
+    q = max(1, int(queries))
+    report_usage(uid, "retrieval_query", {"queries": q})

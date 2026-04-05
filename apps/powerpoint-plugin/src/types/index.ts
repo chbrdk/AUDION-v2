@@ -62,6 +62,8 @@ export interface PluginSettings {
   defaultPersonaId?: string;
   projectId?: string;
   authToken?: string;
+  /** PLEXON billing: `user.plexon_user_id ?? user.id` from login; sent as `user_id` on chat requests. */
+  usageUserId?: string;
   brandColor?: string;
   language?: 'de' | 'en';
   openAiApiKey?: string;
@@ -92,7 +94,8 @@ export interface ChatRequest {
   conversation_id?: string;
   metadata?: {
     selection: SelectionMetadata;
-    figma_file_id: string;
+    figma_file_id?: string;
+    file_id?: string;
   };
 }
 

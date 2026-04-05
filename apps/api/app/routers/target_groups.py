@@ -1110,7 +1110,7 @@ def suggest_personas_endpoint(
         return SuggestPersonasResponse(suggestions=[])
 
     try:
-        suggestions = run_suggest_personas(
+        suggestions, usage_raw = run_suggest_personas(
             context_text=context_text,
             target_group_name=tg.name or "",
             target_group_segment=tg.segment or "",
@@ -1119,6 +1119,10 @@ def suggest_personas_endpoint(
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    uid = _user_id_for_usage(current_user)
+    if uid and usage_raw:
+        report_usage(user_id=uid, event_type="llm_request", raw_units=usage_raw)
 
     return SuggestPersonasResponse(
         suggestions=[

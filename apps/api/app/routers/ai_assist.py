@@ -155,11 +155,15 @@ async def execute_ai_assist(
             max_suggestions=payload.max_suggestions,
             metadata=payload.metadata,
         )
-        
-        service = AiAssistService(registry=registry, project_id=project_id)
+
+        user_id = (getattr(current_user, "plexon_user_id", None) or str(current_user.id)) if current_user else None
+        service = AiAssistService(
+            registry=registry,
+            project_id=project_id,
+            retrieval_usage_user_id=user_id,
+        )
         service.session = session
         response = await service.generate(enriched_request)
-        user_id = (getattr(current_user, "plexon_user_id", None) or str(current_user.id)) if current_user else None
         if user_id and response.usage:
             report_usage(
                 user_id=user_id,
@@ -219,7 +223,8 @@ async def test_prompt(
         
         log_context(enriched_context, "enriched_context")
 
-        service = AiAssistService(registry=registry)
+        user_id = (getattr(current_user, "plexon_user_id", None) or str(current_user.id)) if current_user else None
+        service = AiAssistService(registry=registry, retrieval_usage_user_id=user_id)
         service.session = session
         response = await service.test_prompt(
             prompt=payload.prompt,
@@ -229,7 +234,6 @@ async def test_prompt(
             temperature=payload.temperature,
             max_tokens=payload.max_tokens,
         )
-        user_id = (getattr(current_user, "plexon_user_id", None) or str(current_user.id)) if current_user else None
         if user_id and response.usage:
             report_usage(
                 user_id=user_id,

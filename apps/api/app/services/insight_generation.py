@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List
+from typing import Any, List
 from uuid import UUID
 
 import structlog
@@ -11,6 +11,8 @@ from sqlalchemy import select
 from ..core.config import get_settings
 from ..db import get_session
 from ..models import Journey, JourneyInsight, JourneyMeasurement
+from .anthropic_usage_raw import raw_units_from_anthropic_message
+from .usage_report import report_usage
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
@@ -22,7 +24,9 @@ class InsightGenerationService:
     def __init__(self) -> None:
         self._anthropic = Anthropic(api_key=settings.claude_api_key)
 
-    async def analyze_measurements(self, journey_id: UUID) -> List[JourneyInsight]:
+    async def analyze_measurements(
+        self, journey_id: UUID, *, idempotency_key: str | None = None
+    ) -> List[JourneyInsight]:
         """
         Analyze measurements and generate insights.
         
@@ -54,7 +58,7 @@ class InsightGenerationService:
                 return []
 
             # Generate insights using LLM
-            insights = await self._generate_insights_with_llm(journey, measurements)
+            insights, usage_raw = await self._generate_insights_with_llm(journey, measurements)
 
             # Save insights to database
             saved_insights = []
@@ -76,11 +80,21 @@ class InsightGenerationService:
                 saved_insights.append(insight)
 
             session.commit()
+
+            uid = journey.created_by
+            if uid and uid != "system" and usage_raw and idempotency_key:
+                report_usage(
+                    user_id=uid,
+                    event_type="llm_request",
+                    raw_units=usage_raw,
+                    idempotency_key=idempotency_key,
+                )
+
             return saved_insights
 
     async def _generate_insights_with_llm(
         self, journey: Journey, measurements: List[JourneyMeasurement]
-    ) -> List[dict]:
+    ) -> tuple[List[dict], dict[str, Any]]:
         """Generate insights using Claude API."""
         
         # Build context from measurements
@@ -133,22 +147,24 @@ Return as JSON array of insights.
                     }
                 ],
             )
+            usage_raw = raw_units_from_anthropic_message(message)
 
             # Parse response
             import json
-            content = message.content[0].text
+
+            text_blocks = [b for b in message.content if getattr(b, "type", None) == "text"]
+            content = text_blocks[0].text if text_blocks else ""
             json_start = content.find("[")
             json_end = content.rfind("]") + 1
             if json_start >= 0 and json_end > json_start:
                 json_str = content[json_start:json_end]
                 insights = json.loads(json_str)
-                return insights
-            else:
-                logger.warning("insights.invalid_json", content=content[:200])
-                return []
+                return insights, usage_raw
+            logger.warning("insights.invalid_json", content=content[:200])
+            return [], usage_raw
         except Exception as exc:
             logger.error("insights.llm_failed", error=str(exc), exc_info=True)
-            return []
+            return [], {}
 
     def _format_measurements(self, measurements: List[dict]) -> str:
         """Format measurements for prompt."""

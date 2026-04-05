@@ -206,13 +206,18 @@ export function App() {
         throw new Error('Invalid email or password');
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as {
+        access_token: string;
+        user?: { id?: string; plexon_user_id?: string | null };
+      };
       const token = data.access_token;
+      const usageUserId = data.user?.plexon_user_id ?? data.user?.id;
 
-      const newSettings: PluginSettings = { 
-        ...settings, 
-        authToken: token, 
-        audionApiUrl: settings?.audionApiUrl || URL_CONFIG.AUDION_API_BASE 
+      const newSettings: PluginSettings = {
+        ...settings,
+        authToken: token,
+        audionApiUrl: settings?.audionApiUrl || URL_CONFIG.AUDION_API_BASE,
+        ...(usageUserId ? { usageUserId } : {}),
       } as PluginSettings;
       
       handleSettingsChange(newSettings);
@@ -288,13 +293,19 @@ export function App() {
     >
       {view === 'chat' && (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '16px', overflow: 'hidden' }}>
-          <PersonaSelector onSelect={handlePersonaSelect} selectedId={selectedPersona?.id} settings={settings} />
+          <PersonaSelector
+            selectedPersonaId={selectedPersona?.id ?? null}
+            defaultPersonaId={settings?.defaultPersonaId}
+            onPersonaSelect={handlePersonaSelect}
+            lang={lang}
+          />
           <SelectionInfo selection={selection} lang={lang} />
           <ChatPanel
             selection={selection}
             selectedPersona={selectedPersona}
             settings={settings}
-            onMessageSent={() => {}} // Could reload conversation if we had persistence
+            lang={lang}
+            onMessageSent={() => {}}
           />
         </div>
       )}

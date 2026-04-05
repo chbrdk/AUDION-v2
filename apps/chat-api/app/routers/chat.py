@@ -17,7 +17,7 @@ from ..db import get_session
 from ..models import Persona, PersonaPrompt
 from ..utils.text import clean_response_text
 from ..ws.chat import get_persona_agent, get_persona_prompt, get_retrieval_agent
-from ..services.usage_report import report_usage
+from ..services.usage_report import report_retrieval_query_usage, report_usage
 from ..deps import verify_request_token
 from .images import get_image_data_url
 from msqdx_glass_proto import ContentDeltaEvent, SourcesEvent, CompleteEvent, ThinkingEvent
@@ -314,6 +314,7 @@ async def _send_message_impl(request: ChatMessageRequest) -> ChatMessageResponse
             lambda: get_retrieval_agent().run(query=retrieval_query, persona_segment=None)
         )
         logger.info("chat.retrieval.complete", hits_count=len(hits))
+        report_retrieval_query_usage(request.user_id, queries=1)
     except Exception as e:
         logger.warning(
             "chat.retrieval.failed",
@@ -618,6 +619,7 @@ async def send_message_stream(request: ChatMessageRequest, _: None = Depends(ver
                             tools=tools,
                             persona_segment=persona_segment,
                             use_tools=True,
+                            usage_user_id=request.user_id,
                         )
                     except Exception as e:
                         logger.error("chat.stream.persona_agent_failed", error=str(e), exc_info=True)
@@ -855,7 +857,8 @@ async def send_message_stream(request: ChatMessageRequest, _: None = Depends(ver
                     if retrieval_task.done():
                         embedding, hits = retrieval_task.result()
                         logger.info("chat.stream.retrieval.complete", hits_count=len(hits))
-                        
+                        report_retrieval_query_usage(request.user_id, queries=1)
+
                         # Convert hits to source format
                         sources = [
                             {

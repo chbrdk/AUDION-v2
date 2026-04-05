@@ -30,6 +30,7 @@ class PersonaAgent:
         tools: Optional[List[Dict[str, Any]]] = None,
         persona_segment: Optional[str] = None,
         use_tools: bool = False,
+        usage_user_id: Optional[str] = None,
     ) -> None:
         """
         Stream a persona response using OpenAI.
@@ -44,6 +45,7 @@ class PersonaAgent:
             tools: Optional list of tool definitions for OpenAI
             persona_segment: Optional persona segment for tool filtering
             use_tools: Whether to use tools instead of pre-retrieved sources
+            usage_user_id: Optional PLEXON/internal user id for retrieval tool usage (PLEXON)
         """
         import structlog
         logger = structlog.get_logger(__name__)
@@ -317,7 +319,12 @@ class PersonaAgent:
                         # Execute tool
                         try:
                             tool_result = asyncio.run(
-                                self._tool_executor.execute_tool(tool_name, tool_arguments, persona_segment)
+                                self._tool_executor.execute_tool(
+                                    tool_name,
+                                    tool_arguments,
+                                    persona_segment,
+                                    usage_user_id=usage_user_id,
+                                )
                             )
                         except RuntimeError as e:
                             logger.warning("persona.agent.tool_execution_event_loop_error", error=str(e))
@@ -325,7 +332,12 @@ class PersonaAgent:
                             with concurrent.futures.ThreadPoolExecutor() as executor:
                                 future = executor.submit(
                                     lambda: asyncio.run(
-                                        self._tool_executor.execute_tool(tool_name, tool_arguments, persona_segment)
+                                        self._tool_executor.execute_tool(
+                                            tool_name,
+                                            tool_arguments,
+                                            persona_segment,
+                                            usage_user_id=usage_user_id,
+                                        )
                                     )
                                 )
                                 tool_result = future.result(timeout=30)

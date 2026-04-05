@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 from uuid import UUID
 
 import json
@@ -13,6 +13,7 @@ from ..db import get_session
 from ..models import Journey, JourneyPhase, JourneyPhaseElement, JourneyElementType, Project
 from ..schemas import AiAssistRequest
 from ..services.ai_assist import AiAssistService, PromptTemplateRegistry
+from ..services.usage_report import report_retrieval_query_usage
 from ..services.persona_store import PersonaService
 from ..services.target_group_store import TargetGroupService
 
@@ -51,10 +52,13 @@ class JourneyGenerationService:
         target_group_id: UUID,
         journey_type: str,
         organization_id: UUID,
-    ) -> JourneyDraft:
+        *,
+        retrieval_usage_user_id: str | None = None,
+    ) -> Tuple[JourneyDraft, Dict[str, Any]]:
         """
         Generate a journey from Target Group knowledge and personas.
-        
+        Returns draft and AiAssist usage dict (for PLEXON), same shape as generate_journey_from_project.
+
         Uses:
         - TargetGroupService to get target group with knowledge entries
         - PersonaService to get personas of the target group
@@ -86,6 +90,8 @@ class JourneyGenerationService:
                 query=f"Customer journey for {journey_type}",
                 target_group_id=str(target_group_id),
             )
+            if retrieval_usage_user_id and retrieval_usage_user_id != "system":
+                report_retrieval_query_usage(retrieval_usage_user_id, queries=1)
             
             # 4. Build context for LLM
             knowledge_context = []
@@ -97,14 +103,15 @@ class JourneyGenerationService:
                     })
             
             # 5. Generate journey with Claude
-            journey_draft = await self._generate_with_claude(
+            journey_draft, usage_out = await self._generate_with_claude(
                 target_group=target_group_response,
                 personas=persona_profiles,
                 knowledge_chunks=knowledge_context,
                 journey_type=journey_type,
+                retrieval_usage_user_id=retrieval_usage_user_id,
             )
-            
-            return journey_draft
+
+            return journey_draft, usage_out
 
     async def generate_journey_from_project(
         self,
@@ -113,7 +120,9 @@ class JourneyGenerationService:
         target_group_id: UUID | None,
         journey_type: str,
         organization_id: UUID,
-    ) -> JourneyDraft:
+        *,
+        retrieval_usage_user_id: str | None = None,
+    ) -> Tuple[JourneyDraft, Dict[str, Any]]:
         """
         Generate a full journey from project knowledge: project description + company_context,
         and optionally target group + personas + TG knowledge chunks.
@@ -140,6 +149,7 @@ class JourneyGenerationService:
                 persona_summaries=persona_summaries,
                 knowledge_context=knowledge_context,
                 company_context=company_context,
+                retrieval_usage_user_id=retrieval_usage_user_id,
             )
 
         target_group_response = self.target_group_service.get_target_group(session, str(target_group_id))
@@ -187,6 +197,7 @@ class JourneyGenerationService:
             persona_summaries=persona_summaries,
             knowledge_context=knowledge_context,
             company_context=company_context,
+            retrieval_usage_user_id=retrieval_usage_user_id,
         )
 
     async def _generate_with_context(
@@ -198,7 +209,8 @@ class JourneyGenerationService:
         persona_summaries: str,
         knowledge_context: str,
         company_context: str = "",
-    ) -> JourneyDraft:
+        retrieval_usage_user_id: str | None = None,
+    ) -> Tuple[JourneyDraft, Dict[str, Any]]:
         """Generate journey using template with pre-built context."""
         context = {
             "target_group_name": target_group_name,
@@ -213,24 +225,34 @@ class JourneyGenerationService:
                 template_id="journey.full_generation",
                 context=context,
             )
-            response = await self.ai_assist.generate(ai_request)
+            response = await self.ai_assist.generate(
+                ai_request,
+                retrieval_usage_user_id=retrieval_usage_user_id,
+            )
+            usage_out: Dict[str, Any] = dict(response.usage or {})
             json_str = response.raw_output
             json_start = json_str.find("{")
             json_end = json_str.rfind("}") + 1
             if json_start >= 0 and json_end > json_start:
                 journey_data = json.loads(json_str[json_start:json_end])
-                return JourneyDraft(
-                    name=journey_data.get("name", f"{journey_type} Journey"),
-                    description=journey_data.get("description", ""),
-                    journey_type=journey_type,
-                    phases=journey_data.get("phases", []),
+                return (
+                    JourneyDraft(
+                        name=journey_data.get("name", f"{journey_type} Journey"),
+                        description=journey_data.get("description", ""),
+                        journey_type=journey_type,
+                        phases=journey_data.get("phases", []),
+                    ),
+                    usage_out,
                 )
             logger.warning("journey.generate.invalid_json", content=json_str[:200])
-            return JourneyDraft(
-                name=f"{journey_type} Journey",
-                description=f"Generated journey for {journey_type}",
-                journey_type=journey_type,
-                phases=[],
+            return (
+                JourneyDraft(
+                    name=f"{journey_type} Journey",
+                    description=f"Generated journey for {journey_type}",
+                    journey_type=journey_type,
+                    phases=[],
+                ),
+                usage_out,
             )
         except Exception as exc:
             logger.error("journey.generate.failed", error=str(exc), exc_info=True)
@@ -243,7 +265,9 @@ class JourneyGenerationService:
         knowledge_chunks: List[Dict[str, Any]],
         journey_type: str,
         company_context: str = "",
-    ) -> JourneyDraft:
+        *,
+        retrieval_usage_user_id: str | None = None,
+    ) -> Tuple[JourneyDraft, Dict[str, Any]]:
         """Generate journey using centralized AI assist service with templates."""
         persona_summaries = []
         for persona in personas:
@@ -264,6 +288,7 @@ class JourneyGenerationService:
             persona_summaries="\n".join(persona_summaries),
             knowledge_context=knowledge_text,
             company_context=company_context,
+            retrieval_usage_user_id=retrieval_usage_user_id,
         )
 
     def save_journey_draft(

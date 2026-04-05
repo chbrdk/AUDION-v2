@@ -11,7 +11,10 @@ from ..celery_app import celery_app
 from ..services.analytics_integration import AnalyticsIntegrationService
 from ..services.insight_generation import InsightGenerationService
 from ..services.journey_generation import JourneyGenerationService
+from ..db import get_session
+from ..models import Journey
 from ..services.journey_validation import JourneyValidationService
+from ..services.usage_report import report_usage
 
 logger = structlog.get_logger(__name__)
 
@@ -40,11 +43,12 @@ def generate_journey_task(
         service = JourneyGenerationService()
         
         # Run async function in sync context
-        journey_draft = asyncio.run(
+        journey_draft, ai_usage = asyncio.run(
             service.generate_journey_from_knowledge(
                 target_group_id=UUID(target_group_id),
                 journey_type=journey_type,
                 organization_id=UUID(organization_id),
+                retrieval_usage_user_id=user_id if user_id and user_id != "system" else None,
             )
         )
         
@@ -62,6 +66,24 @@ def generate_journey_task(
             journey_id=str(journey.id),
             task_id=self.request.id,
         )
+        if user_id and user_id != "system":
+            inp = (ai_usage or {}).get("input_tokens") or (ai_usage or {}).get("prompt_tokens")
+            out = (ai_usage or {}).get("output_tokens") or (ai_usage or {}).get("completion_tokens")
+            key = f"journey_generate_async:{journey.id}"
+            if inp is not None or out is not None:
+                report_usage(
+                    user_id=user_id,
+                    event_type="llm_request",
+                    raw_units={"input_tokens": inp, "output_tokens": out},
+                    idempotency_key=key,
+                )
+            else:
+                report_usage(
+                    user_id=user_id,
+                    event_type="journey_generate",
+                    raw_units={"runs": 1},
+                    idempotency_key=key,
+                )
         return str(journey.id)
     except Exception as exc:
         logger.error(
@@ -78,6 +100,7 @@ def validate_journey_task(
     self,
     journey_id: str,
     persona_ids: List[str],
+    user_id: str | None = None,
 ) -> dict:
     """
     Async Validation against multiple Personas.
@@ -112,7 +135,20 @@ def validate_journey_task(
             ]
         
         results = asyncio.run(validate_all_personas())
-        
+
+        usage_uid = user_id
+        if not usage_uid:
+            with get_session() as session:
+                j = session.get(Journey, UUID(journey_id))
+                usage_uid = j.created_by if j else None
+        if usage_uid and usage_uid != "system" and persona_ids:
+            report_usage(
+                user_id=usage_uid,
+                event_type="journey_validate",
+                raw_units={"personas": len(persona_ids)},
+                idempotency_key=f"journey_validate:{journey_id}:{self.request.id}",
+            )
+
         logger.info(
             "journey.validate.task.completed",
             journey_id=journey_id,
@@ -205,7 +241,12 @@ def analyze_insights_task(
     )
     try:
         service = InsightGenerationService()
-        insights = service.analyze_measurements(journey_id=UUID(journey_id))
+        insights = asyncio.run(
+            service.analyze_measurements(
+                UUID(journey_id),
+                idempotency_key=f"journey_analyze_insights:{journey_id}:{self.request.id}",
+            )
+        )
         
         logger.info(
             "journey.analyze_insights.task.completed",

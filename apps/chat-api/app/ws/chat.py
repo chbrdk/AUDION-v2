@@ -15,6 +15,7 @@ from ..db import get_session
 from ..models import Persona, PersonaPrompt
 from ..deps import verify_websocket_token
 from ..services.persona_discovery import PersonaDiscoveryService
+from ..services.usage_report import report_retrieval_query_usage, report_usage
 
 router = APIRouter()
 # Lazy initialization - agents will be created on first use to avoid blocking server startup
@@ -218,6 +219,7 @@ async def chat_ws(websocket: WebSocket, conversation_id: str) -> None:
             
             if message_type == "message":
                 query = payload["content"]
+                user_id = (payload.get("user_id") or "").strip() or None
                 active_persona_id = manager.active_personas.get(websocket)
                 
                 logger.info("ws.message.processing", has_active_persona=bool(active_persona_id), persona_id=active_persona_id)
@@ -242,7 +244,8 @@ async def chat_ws(websocket: WebSocket, conversation_id: str) -> None:
                         lambda: get_retrieval_agent().run(query=query, persona_segment=None)
                     )
                     logger.info("ws.retrieval.complete", hits_count=len(hits))
-                    
+                    report_retrieval_query_usage(user_id, queries=1)
+
                     # Convert hits to source format
                     sources = [
                         {
@@ -275,6 +278,7 @@ async def chat_ws(websocket: WebSocket, conversation_id: str) -> None:
                                 sources=sources,
                                 persona_id=active_persona_id,
                                 send_event=send_event,
+                                usage_user_id=user_id,
                             )
                         )
                         # Signal completion
@@ -303,13 +307,28 @@ async def chat_ws(websocket: WebSocket, conversation_id: str) -> None:
                             lambda: get_retrieval_agent().run(query=query, persona_segment=None)
                         )
                         logger.info("ws.retrieval.complete", hits_count=len(hits))
-                        
+                        report_retrieval_query_usage(user_id, queries=1)
+
                         logger.info("ws.persona_discovery.starting")
-                        # Run persona discovery in executor as well
-                        candidates = await loop.run_in_executor(
-                            None,
-                            lambda: get_persona_discovery().discover(query_embedding=embedding)
-                        )
+                        emb_local = embedding
+
+                        def _run_discover():
+                            return get_persona_discovery().discover(query_embedding=emb_local)
+
+                        candidates, usage_raw, llm_ok = await loop.run_in_executor(None, _run_discover)
+                        if user_id and llm_ok:
+                            if usage_raw:
+                                report_usage(
+                                    user_id=user_id,
+                                    event_type="llm_request",
+                                    raw_units=usage_raw,
+                                )
+                            else:
+                                report_usage(
+                                    user_id=user_id,
+                                    event_type="persona_discover",
+                                    raw_units={"runs": 1},
+                                )
                         logger.info("ws.persona_discovery.complete", candidates_count=len(candidates))
                         
                         if candidates:

@@ -29,8 +29,15 @@ from ..services.auth import get_current_user
 from ..services.journey_generation import JourneyGenerationService
 from ..services.journey_serializer import to_journey_response
 from ..services.suggest_target_groups import suggest_target_groups as run_suggest_target_groups
+from ..services.usage_report import report_usage
 
 router = APIRouter(prefix="/projects", tags=["projects"])
+
+
+def _user_id_for_usage(current_user: User | None) -> str | None:
+    if not current_user:
+        return None
+    return getattr(current_user, "plexon_user_id", None) or str(current_user.id)
 
 
 def _get_project(session: Session, project_id: str) -> Project:
@@ -219,9 +226,13 @@ def suggest_target_groups_endpoint(
         return SuggestTargetGroupsResponse(suggestions=[])
 
     try:
-        suggestions = run_suggest_target_groups(context_text=context_text, max_suggestions=max_suggestions)
+        suggestions, usage_raw = run_suggest_target_groups(context_text=context_text, max_suggestions=max_suggestions)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    uid = _user_id_for_usage(current_user)
+    if uid and usage_raw:
+        report_usage(user_id=uid, event_type="llm_request", raw_units=usage_raw)
 
     return SuggestTargetGroupsResponse(
         suggestions=[TargetGroupSuggestionItem(name=s.name, segment=s.segment, description=s.description) for s in suggestions],
@@ -264,14 +275,16 @@ async def generate_journey_from_project_endpoint(
         except ValueError:
             pass
 
+    usage_uid = _user_id_for_usage(current_user)
     service = JourneyGenerationService()
     try:
-        draft = await service.generate_journey_from_project(
+        draft, ai_usage = await service.generate_journey_from_project(
             session=session,
             project_id=project.id,
             target_group_id=target_group_id,
             journey_type=payload.journey_type or "customer_journey",
             organization_id=organization_id,
+            retrieval_usage_user_id=usage_uid,
         )
     except ValueError as exc:
         if "project_not_found" in str(exc):
@@ -301,6 +314,24 @@ async def generate_journey_from_project_endpoint(
         project_id=project.id,
         created_by=getattr(current_user, "plexon_user_id", None) or str(current_user.id),
     )
+
+    if usage_uid:
+        inp = (ai_usage or {}).get("input_tokens") or (ai_usage or {}).get("prompt_tokens")
+        out = (ai_usage or {}).get("output_tokens") or (ai_usage or {}).get("completion_tokens")
+        if inp is not None or out is not None:
+            report_usage(
+                user_id=usage_uid,
+                event_type="llm_request",
+                raw_units={"input_tokens": inp, "output_tokens": out},
+                idempotency_key=f"journey_from_project:{created.id}",
+            )
+        else:
+            report_usage(
+                user_id=usage_uid,
+                event_type="journey_generate",
+                raw_units={"runs": 1},
+                idempotency_key=f"journey_from_project:{created.id}",
+            )
 
     with get_session() as resp_session:
         journey = resp_session.get(

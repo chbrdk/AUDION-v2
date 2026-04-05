@@ -17,6 +17,7 @@ from ..agents.retrieval import RetrievalAgent
 from ..core.config import get_settings
 from ..db import get_session
 from ..models import DocumentChunk
+from ..services.usage_report import report_retrieval_query_usage
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
@@ -32,7 +33,8 @@ class ToolExecutor:
         self,
         tool_name: str,
         arguments: Dict[str, Any],
-        persona_segment: str | None = None
+        persona_segment: str | None = None,
+        usage_user_id: str | None = None,
     ) -> Dict[str, Any]:
         """
         Execute a tool call and return results.
@@ -48,9 +50,9 @@ class ToolExecutor:
         logger.info("tool_executor.execute", tool_name=tool_name, arguments_keys=list(arguments.keys()))
         
         if tool_name == "search_knowledge":
-            return await self._search_knowledge(arguments, persona_segment)
+            return await self._search_knowledge(arguments, persona_segment, usage_user_id)
         elif tool_name == "get_target_group_knowledge":
-            return await self._get_target_group_knowledge(arguments)
+            return await self._get_target_group_knowledge(arguments, usage_user_id)
         elif tool_name == "get_document_content":
             return await self._get_document_content(arguments)
         else:
@@ -63,7 +65,8 @@ class ToolExecutor:
     async def _search_knowledge(
         self,
         arguments: Dict[str, Any],
-        persona_segment: str | None = None
+        persona_segment: str | None = None,
+        usage_user_id: str | None = None,
     ) -> Dict[str, Any]:
         """Execute search_knowledge tool."""
         query = arguments.get("query", "")
@@ -105,7 +108,8 @@ class ToolExecutor:
                 query=query[:100],
                 results_count=len(results)
             )
-            
+            report_retrieval_query_usage(usage_user_id, queries=1)
+
             return {
                 "results": results,
                 "count": len(results)
@@ -118,7 +122,9 @@ class ToolExecutor:
                 "count": 0
             }
     
-    async def _get_target_group_knowledge(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+    async def _get_target_group_knowledge(
+        self, arguments: Dict[str, Any], usage_user_id: str | None = None
+    ) -> Dict[str, Any]:
         """Execute get_target_group_knowledge tool."""
         target_group_id = arguments.get("target_group_id", "")
         limit = min(arguments.get("limit", 10), 50)
@@ -151,7 +157,8 @@ class ToolExecutor:
             # This is a simplified approach - ideally we'd use KnowledgeExplorerService
             query = "target group knowledge"
             _, hits = self.retrieval_agent.run(query=query, persona_segment=None)
-            
+            report_retrieval_query_usage(usage_user_id, queries=1)
+
             # Filter by target_group_id if available in payload
             filtered_results = []
             for hit in hits:

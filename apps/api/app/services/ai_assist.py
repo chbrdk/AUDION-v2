@@ -29,6 +29,7 @@ from ..schemas import (
 )
 from ..services.persona_store import PersonaService
 from ..services.target_group_store import TargetGroupService
+from ..services.usage_report import report_retrieval_query_usage
 
 logger = structlog.get_logger(__name__)
 
@@ -252,8 +253,13 @@ def _apply_template_override(template: AiTemplateDefinition, override: Dict[str,
 class _ExtendedVariableResolver:
     """Resolves extended variable syntax like ${persona:${persona_id}.name} to actual values."""
 
-    def __init__(self, session: Session | None = None) -> None:
+    def __init__(
+        self,
+        session: Session | None = None,
+        retrieval_query_acc: list[int] | None = None,
+    ) -> None:
         self.session = session
+        self._retrieval_query_acc = retrieval_query_acc
         self.persona_service = PersonaService()
         self.target_group_service = TargetGroupService()
 
@@ -459,7 +465,9 @@ class _ExtendedVariableResolver:
                 target_group_id=target_group_id,
                 persona_segment=persona_segment
             )
-            
+            if self._retrieval_query_acc is not None:
+                self._retrieval_query_acc.append(1)
+
             # Format results based on path
             if path == ".content" or path == "":
                 # Return content of top results (newline-separated)
@@ -635,13 +643,24 @@ class AiAssistService:
         registry: PromptTemplateRegistry | None = None,
         session: Session | None = None,
         project_id: str | None = None,
+        retrieval_usage_user_id: str | None = None,
     ) -> None:
         self.settings = get_settings()
         self.registry = registry or PromptTemplateRegistry()
         self.session = session
         self.project_id = project_id
+        self.retrieval_usage_user_id = retrieval_usage_user_id
         self._anthropic: Anthropic | None = None
         self._openai: OpenAI | None = None
+        self._retrieval_query_acc: list[int] | None = None
+
+    def _flush_retrieval_query_usage(self, user_id: str | None, acc: list[int]) -> None:
+        if not acc:
+            return
+        uid = (user_id or "").strip()
+        if not uid or uid == "system":
+            return
+        report_retrieval_query_usage(uid, queries=len(acc))
 
     def _load_override(self, *, session: Session, project_id: str, template_id: str) -> dict | None:
         try:
@@ -779,96 +798,113 @@ class AiAssistService:
         session.commit()
         return self.get_template_for_project(session=session, project_id=project_id, template_id=template_id)
 
-    async def generate(self, request: AiAssistRequest) -> AiAssistResponse:
-        template = self.registry.get(request.template_id)
-        if self.project_id and self.session:
-            try:
-                override = self._load_override(
-                    session=self.session, project_id=self.project_id, template_id=request.template_id
-                )
-                if override:
-                    template = _apply_template_override(template, override)
-            except ValueError:
-                # If project_id is invalid, ignore overrides and use base template
-                pass
-        provider = request.provider or template.default_provider or AiProvider(self.settings.ai_default_provider)
-        model = request.model or template.default_model or self._default_model(provider)
-        temperature = template.temperature or self.settings.ai_default_temperature
-        # Journey full generation: no token limit so all phases/elements can be generated
-        if request.template_id == "journey.full_generation":
-            max_tokens = 16384
-        else:
-            max_tokens = template.max_tokens or self.settings.ai_default_max_tokens
-
-        prompt_context = self._build_context(request.context, request.prompt_variables)
-        cache_last_var = getattr(template, "cache_prefix_last_variable", None) or TEMPLATE_CACHE_PREFIX_LAST_VAR.get(
-            request.template_id
+    async def generate(
+        self,
+        request: AiAssistRequest,
+        *,
+        retrieval_usage_user_id: str | None = None,
+    ) -> AiAssistResponse:
+        acc: list[int] = []
+        prev_acc = self._retrieval_query_acc
+        self._retrieval_query_acc = acc
+        effective_retrieval_uid = (
+            retrieval_usage_user_id
+            if retrieval_usage_user_id is not None
+            else self.retrieval_usage_user_id
         )
-        prompt_prefix: str | None = None
-        prompt_suffix: str | None = None
-        if cache_last_var:
-            prompt_prefix, prompt_suffix = self._render_prompt_prefix_suffix(
-                template.prompt, prompt_context, cache_last_var
+        try:
+            template = self.registry.get(request.template_id)
+            if self.project_id and self.session:
+                try:
+                    override = self._load_override(
+                        session=self.session, project_id=self.project_id, template_id=request.template_id
+                    )
+                    if override:
+                        template = _apply_template_override(template, override)
+                except ValueError:
+                    # If project_id is invalid, ignore overrides and use base template
+                    pass
+            provider = request.provider or template.default_provider or AiProvider(self.settings.ai_default_provider)
+            model = request.model or template.default_model or self._default_model(provider)
+            temperature = template.temperature or self.settings.ai_default_temperature
+            # Journey full generation: no token limit so all phases/elements can be generated
+            if request.template_id == "journey.full_generation":
+                max_tokens = 16384
+            else:
+                max_tokens = template.max_tokens or self.settings.ai_default_max_tokens
+
+            prompt_context = self._build_context(request.context, request.prompt_variables)
+            cache_last_var = getattr(template, "cache_prefix_last_variable", None) or TEMPLATE_CACHE_PREFIX_LAST_VAR.get(
+                request.template_id
             )
-        rendered_prompt = (
-            (prompt_prefix + "\n\n" + prompt_suffix)
-            if (prompt_prefix is not None and prompt_suffix is not None)
-            else self._render_prompt(template.prompt, prompt_context)
-        )
+            prompt_prefix: str | None = None
+            prompt_suffix: str | None = None
+            if cache_last_var:
+                prompt_prefix, prompt_suffix = self._render_prompt_prefix_suffix(
+                    template.prompt, prompt_context, cache_last_var
+                )
+            rendered_prompt = (
+                (prompt_prefix + "\n\n" + prompt_suffix)
+                if (prompt_prefix is not None and prompt_suffix is not None)
+                else self._render_prompt(template.prompt, prompt_context)
+            )
 
-        logger.info(
-            "ai.assist.dispatch",
-            template_id=request.template_id,
-            provider=provider.value,
-            model=model,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            cache_split=bool(cache_last_var),
-        )
-        
-        # Log the full rendered prompt for debugging
-        logger.info(
-            "ai.assist.prompt_full",
-            template_id=request.template_id,
-            prompt=rendered_prompt,
-            context=prompt_context,
-        )
-        
-        # Union logging removed - Audion is now autonomous
+            logger.info(
+                "ai.assist.dispatch",
+                template_id=request.template_id,
+                provider=provider.value,
+                model=model,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                cache_split=bool(cache_last_var),
+            )
 
-        raw_output, usage = await self._execute_prompt(
-            provider=provider,
-            model=model,
-            prompt=rendered_prompt,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            prompt_prefix=prompt_prefix if cache_last_var else None,
-            prompt_suffix=prompt_suffix if cache_last_var else None,
-        )
+            # Log the full rendered prompt for debugging
+            logger.info(
+                "ai.assist.prompt_full",
+                template_id=request.template_id,
+                prompt=rendered_prompt,
+                context=prompt_context,
+            )
 
-        logger.info(
-            "ai.assist.raw_output_received",
-            template_id=template.template_id,
-            raw_output_length=len(raw_output) if raw_output else 0,
-            raw_output_preview=raw_output[:500] if raw_output else "",
-        )
+            # Union logging removed - Audion is now autonomous
 
-        suggestions = self._parse_output(template, raw_output, request.max_suggestions)
-        
-        logger.info(
-            "ai.assist.parsing_complete",
-            template_id=template.template_id,
-            suggestions_count=len(suggestions),
-            raw_output_length=len(raw_output) if raw_output else 0,
-        )
-        return AiAssistResponse(
-            template_id=request.template_id,
-            provider=provider,
-            model=model,
-            suggestions=suggestions,
-            raw_output=raw_output,
-            usage=usage,
-        )
+            raw_output, usage = await self._execute_prompt(
+                provider=provider,
+                model=model,
+                prompt=rendered_prompt,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                prompt_prefix=prompt_prefix if cache_last_var else None,
+                prompt_suffix=prompt_suffix if cache_last_var else None,
+            )
+
+            logger.info(
+                "ai.assist.raw_output_received",
+                template_id=template.template_id,
+                raw_output_length=len(raw_output) if raw_output else 0,
+                raw_output_preview=raw_output[:500] if raw_output else "",
+            )
+
+            suggestions = self._parse_output(template, raw_output, request.max_suggestions)
+
+            logger.info(
+                "ai.assist.parsing_complete",
+                template_id=template.template_id,
+                suggestions_count=len(suggestions),
+                raw_output_length=len(raw_output) if raw_output else 0,
+            )
+            return AiAssistResponse(
+                template_id=request.template_id,
+                provider=provider,
+                model=model,
+                suggestions=suggestions,
+                raw_output=raw_output,
+                usage=usage,
+            )
+        finally:
+            self._flush_retrieval_query_usage(effective_retrieval_uid, acc)
+            self._retrieval_query_acc = prev_acc
 
     def _default_model(self, provider: AiProvider) -> str:
         if provider == AiProvider.ANTHROPIC:
@@ -921,7 +957,7 @@ class AiAssistService:
         # Pattern matches: ${resolver_type:${id_var}.property.path}
         # We need to handle nested ${} properly, so we match from the outer ${ to the matching }
         if self.session:
-            resolver = _ExtendedVariableResolver(self.session)
+            resolver = _ExtendedVariableResolver(self.session, self._retrieval_query_acc)
             processed_prompt = prompt
             replacements = {}
             
@@ -1136,44 +1172,58 @@ class AiAssistService:
         model: str | None = None,
         temperature: float = 0.6,
         max_tokens: int = 1024,
+        *,
+        retrieval_usage_user_id: str | None = None,
     ) -> AiAssistResponse:
         """Test a custom prompt directly without requiring a template."""
-        provider = provider or AiProvider(self.settings.ai_default_provider)
-        model = model or self._default_model(provider)
-
-        # Render the prompt with context (including extended variables)
-        prompt_context = self._build_context(context, {})
-        rendered_prompt = self._render_prompt(prompt, prompt_context)
-
-        logger.info(
-            "ai.assist.test_prompt",
-            provider=provider.value,
-            model=model,
-            temperature=temperature,
-            max_tokens=max_tokens,
+        acc: list[int] = []
+        prev_acc = self._retrieval_query_acc
+        self._retrieval_query_acc = acc
+        effective_retrieval_uid = (
+            retrieval_usage_user_id
+            if retrieval_usage_user_id is not None
+            else self.retrieval_usage_user_id
         )
+        try:
+            provider = provider or AiProvider(self.settings.ai_default_provider)
+            model = model or self._default_model(provider)
 
-        raw_output, usage = await self._execute_prompt(
-            provider=provider,
-            model=model,
-            prompt=rendered_prompt,
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
+            # Render the prompt with context (including extended variables)
+            prompt_context = self._build_context(context, {})
+            rendered_prompt = self._render_prompt(prompt, prompt_context)
 
-        # For test prompts, return the raw output as a single suggestion
-        suggestions = [
-            AiAssistSuggestion(
-                content=raw_output,
-                metadata={"mode": "test", "raw": True},
+            logger.info(
+                "ai.assist.test_prompt",
+                provider=provider.value,
+                model=model,
+                temperature=temperature,
+                max_tokens=max_tokens,
             )
-        ]
 
-        return AiAssistResponse(
-            template_id="test",
-            provider=provider,
-            model=model,
-            suggestions=suggestions,
-            raw_output=raw_output,
-            usage=usage,
-        )
+            raw_output, usage = await self._execute_prompt(
+                provider=provider,
+                model=model,
+                prompt=rendered_prompt,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+
+            # For test prompts, return the raw output as a single suggestion
+            suggestions = [
+                AiAssistSuggestion(
+                    content=raw_output,
+                    metadata={"mode": "test", "raw": True},
+                )
+            ]
+
+            return AiAssistResponse(
+                template_id="test",
+                provider=provider,
+                model=model,
+                suggestions=suggestions,
+                raw_output=raw_output,
+                usage=usage,
+            )
+        finally:
+            self._flush_retrieval_query_usage(effective_retrieval_uid, acc)
+            self._retrieval_query_acc = prev_acc
