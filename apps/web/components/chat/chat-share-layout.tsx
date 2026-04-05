@@ -73,7 +73,7 @@ export function ChatShareLayout({ children }: { children: ReactNode }) {
         brandColor="green"
         logo={{ color: "white" }}
         appName="Audion"
-        innerBackground="grid"
+        innerBackground="offwhite"
         borderWidth="thick"
         sidebar={null}
         sx={{

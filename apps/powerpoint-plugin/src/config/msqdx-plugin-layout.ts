@@ -20,25 +20,17 @@ export const MSQDX_PLUGIN_LAYOUT = {
   cornerBoxRadiusPx: 32,
   /** MSQDX_SPACING.padding.md */
   paddingMdPx: 16,
-  /** MSQDX_NEUTRAL.neutral – innerBackground "grid" / "offwhite" */
+  /** MSQDX_NEUTRAL.neutral – aligned with MsqdxAppLayout offwhite (solid, no pattern) */
   innerBackgroundColor: '#f8f6f0',
-  /**
-   * Grid lines: alpha(MSQDX_NEUTRAL[900], 0.03) — same idea as MsqdxAppLayout GRID_LINE.
-   * Single central definition; do not duplicate in components.
-   */
-  gridLineColor: 'rgba(23, 23, 23, 0.03)',
-  gridSizePx: 20,
   /** Space for absolute top bar (Audion web glass header minHeight md) */
   topBarMinHeightPx: 56,
 } as const;
 
-/** CSS for .msqdx-plugin-inner (grid + border + radii without sidebar + corner header). */
+/** CSS for .msqdx-plugin-inner (solid offwhite + border + radii without sidebar + corner header). */
 export function getMsqdxPluginInnerStyle(brandBorder: string): CSSProperties {
   const w = MSQDX_PLUGIN_LAYOUT.borderWidthPx;
   const rBtn = MSQDX_PLUGIN_LAYOUT.radiusButtonPx;
   const r15 = MSQDX_PLUGIN_LAYOUT.radius1_5xlPx;
-  const line = MSQDX_PLUGIN_LAYOUT.gridLineColor;
-  const sz = MSQDX_PLUGIN_LAYOUT.gridSizePx;
   const bg = MSQDX_PLUGIN_LAYOUT.innerBackgroundColor;
   return {
     flex: 1,
@@ -55,9 +47,6 @@ export function getMsqdxPluginInnerStyle(brandBorder: string): CSSProperties {
     borderBottomLeftRadius: r15,
     borderBottomRightRadius: r15,
     backgroundColor: bg,
-    backgroundImage: `linear-gradient(${line} 1px, transparent 1px), linear-gradient(90deg, ${line} 1px, transparent 1px)`,
-    backgroundSize: `${sz}px ${sz}px`,
-    backgroundAttachment: 'fixed',
   };
 }
 

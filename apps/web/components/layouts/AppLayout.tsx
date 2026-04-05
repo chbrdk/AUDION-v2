@@ -90,7 +90,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           borderColor: `${THEME_ACCENT_WITH_FALLBACK.borderColor} !important`,
         },
       }}
-      innerBackground="grid"
+      innerBackground="offwhite"
     >
       { }
       {children as any}

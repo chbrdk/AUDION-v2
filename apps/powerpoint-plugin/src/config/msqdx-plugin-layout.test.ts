@@ -14,13 +14,14 @@ describe('msqdx-plugin-layout', () => {
     expect(MSQDX_PLUGIN_LAYOUT.innerBackgroundColor.toLowerCase()).toBe('#f8f6f0');
   });
 
-  it('getMsqdxPluginInnerStyle sets asymmetric radii and grid', () => {
+  it('getMsqdxPluginInnerStyle sets asymmetric radii and solid background', () => {
     const s = getMsqdxPluginInnerStyle(MSQDX_PLUGIN_BRAND_CSS_VAR);
     expect(s.borderTopLeftRadius).toBe(0);
     expect(s.borderTopRightRadius).toBe(32);
     expect(s.borderBottomLeftRadius).toBe(56);
     expect(s.borderBottomRightRadius).toBe(56);
     expect(s.border).toContain('10px solid');
-    expect(String(s.backgroundImage)).toContain('linear-gradient');
+    expect(s.backgroundColor).toBe('#f8f6f0');
+    expect(s.backgroundImage).toBeUndefined();
   });
 });

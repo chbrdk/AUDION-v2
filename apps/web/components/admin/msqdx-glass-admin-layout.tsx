@@ -172,7 +172,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
         }
         logo
         appName="Audion"
-        innerBackground="grid"
+        innerBackground="offwhite"
         borderWidth="thick"
         sx={{
           "& > div:last-of-type": {
