@@ -338,7 +338,7 @@ export function MsqdxGlassPersonasOverview({ initialList }: MsqdxGlassPersonasOv
             titleVariant="h6"
             subtitle={(
               <Stack spacing={0.75} sx={{ mt: 0.25 }}>
-                <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" alignItems="center">
+                <Stack direction="row" flexWrap="wrap" alignItems="center" sx={{ gap: 0.75 }}>
                   {!personaTgId ? (
                     <MsqdxChip
                       variant="outlined"
@@ -352,11 +352,11 @@ export function MsqdxGlassPersonasOverview({ initialList }: MsqdxGlassPersonasOv
                       }}
                     />
                   ) : null}
-                  {showProjectChip ? (
+                  {showProjectChip && personaProjectId ? (
                     <MsqdxChip
                       variant="outlined"
                       size="small"
-                      label={formatProjectLabel(personaProjectId!)}
+                      label={formatProjectLabel(personaProjectId)}
                       sx={{
                         borderColor: accent,
                         color: accent,
