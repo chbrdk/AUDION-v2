@@ -46,6 +46,9 @@ TypeScript-Definitionen für Feld-Konfigurationen:
 
 - `MsqdxGlassFieldEditor`: Edit-Komponente für einzelne Felder
 - `MsqdxGlassEntityEditor`: Editor für komplette Entitäten (gruppiert Felder)
+- `MsqdxGlassInlineEditControls`: Snackbar mit Save/Discard bei ungespeicherten Inline-Änderungen
+
+**Snackbar / Slider:** `MsqdxGlassInlineEditControls` darf **keinen** Discard bei MUI-Snackbar-`reason === "clickaway"` auslösen — Slider-Drag endet oft mit einem „Click outside“ relativ zur Snackbar und würde sonst `onDiscard` triggern (Feld springt zurück, Bearbeitung endet). Discard nur per **Escape** oder über die Buttons; siehe `shouldDiscardInlineEditOnSnackbarClose` in `apps/web/components/msqdx-glass-inline-edit-controls.tsx` und `apps/web/lib/inline-edit-snackbar-close.test.ts`.
 
 ## Verwendung
 

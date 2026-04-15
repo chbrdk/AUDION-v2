@@ -13,6 +13,14 @@ export type MsqdxGlassInlineEditControlsProps = {
   position?: "top" | "bottom" | "left" | "right";
 };
 
+/** Snackbar close reasons where we should discard inline edits (MUI / types). */
+export function shouldDiscardInlineEditOnSnackbarClose(reason: string): boolean {
+  // Never treat "clickaway" as discard: dragging MUI Slider (and similar controls) often ends
+  // with a pointerup outside the snackbar or triggers the click-away listener incorrectly,
+  // which would reset the field and exit edit mode while the user is still adjusting the value.
+  return reason === "escapeKeyDown";
+}
+
 export const MsqdxGlassInlineEditControls = ({
   hasChanges,
   saving = false,
@@ -35,7 +43,7 @@ export const MsqdxGlassInlineEditControls = ({
   };
 
   const handleClose = (_event: React.SyntheticEvent | Event, reason: string) => {
-    if (reason === "clickaway" || reason === "escapeKeyDown") {
+    if (shouldDiscardInlineEditOnSnackbarClose(reason)) {
       onDiscard();
     }
   };
