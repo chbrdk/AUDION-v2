@@ -30,8 +30,8 @@ from ..schemas import (
     ClusterResult,
     SimilarChunk,
 )
-from ..services.persona_generation import PersonaGenerationService
 from ..services.knowledge_ingestion import KnowledgeIngestionService
+from ..services.persona_bootstrap import generate_persona_for_target_group
 from ..services.persona_store import PersonaService
 from ..services.suggest_personas import suggest_personas as run_suggest_personas
 from ..core.config import get_settings
@@ -45,7 +45,6 @@ from ..services.usage_report import report_usage
 logger = structlog.get_logger(__name__)
 storage = StorageService()
 persona_service = PersonaService()
-persona_generator = PersonaGenerationService()
 
 router = APIRouter(prefix="/target-groups", tags=["target-groups"])
 service = TargetGroupService()
@@ -1233,71 +1232,47 @@ def generate_target_group_persona(
                     )
         
         logger.info("persona.generate.creating_persona", target_group_id=target_group_id, segment=payload.segment)
-        # Create persona entity (headline truncated for DBs still on VARCHAR(256) before migration 20260309)
-        from ..services.persona_store import _truncate_headline
-        _headline = payload.description or f"Auto-generated persona for {tg.name}"
-        persona = Persona(
-            project_id=tg.project_id,
-            name="Pending Persona",
-            segment=payload.segment,
-            headline=_truncate_headline(_headline) or _headline,
-            profile={},
-            confidence=0.7,
-            version="1.0.0",
-            target_group_id=tg.id,
-        )
-        session.add(persona)
-        session.commit()
-        session.refresh(persona)
-        logger.info("persona.generate.persona_created", target_group_id=target_group_id, persona_id=str(persona.id))
-        
-        # Prepare parameters for generation
+
         document_ids_uuid = None
         chunk_ids_uuid = None
         chunk_weights_dict = None
-        
+
         if payload.filter_mode == "documents" and payload.document_ids:
             try:
                 document_ids_uuid = [UUID(doc_id) for doc_id in payload.document_ids]
             except ValueError as exc:
                 raise HTTPException(status_code=400, detail=f"Invalid document_id: {exc}") from exc
-        
+
         if payload.filter_mode == "chunks_manual" and payload.chunk_ids:
             try:
                 chunk_ids_uuid = [UUID(chunk_id) for chunk_id in payload.chunk_ids]
             except ValueError as exc:
                 raise HTTPException(status_code=400, detail=f"Invalid chunk_id: {exc}") from exc
-        
+
         if payload.chunk_weights:
             chunk_weights_dict = payload.chunk_weights
-        
-        # Generate persona
-        logger.info("persona.generate.starting_generation", target_group_id=target_group_id, persona_id=str(persona.id))
+
+        logger.info("persona.generate.starting_generation", target_group_id=target_group_id, filter_mode=payload.filter_mode)
         try:
-            # Only pass chunk_ids if filter_mode is chunks_manual
-            # Otherwise pass None so service uses target_group logic
-            final_chunk_ids = chunk_ids_uuid if payload.filter_mode == "chunks_manual" else None
-            final_document_ids = document_ids_uuid if payload.filter_mode == "documents" else None
-            
-            logger.info("persona.generate.calling_service", target_group_id=target_group_id, persona_id=str(persona.id), 
-                       filter_mode=payload.filter_mode, has_document_ids=bool(final_document_ids), has_chunk_ids=bool(final_chunk_ids))
-            
-            persona_generator.generate(
-                persona=persona,
-                target_group_id=tg.id,
-                document_ids=final_document_ids,
-                chunk_ids=final_chunk_ids,
+            persona_response = generate_persona_for_target_group(
+                session,
+                target_group=tg,
+                segment=payload.segment,
+                description=payload.description,
+                filter_mode=payload.filter_mode,
+                document_ids=document_ids_uuid,
+                chunk_ids=chunk_ids_uuid,
                 chunk_weights=chunk_weights_dict,
                 limit_chunks=payload.limit_chunks if payload.filter_mode != "chunks_manual" else None,
                 variation_params=payload.variation_params,
             )
-            logger.info("persona.generate.generation_complete", target_group_id=target_group_id, persona_id=str(persona.id))
         except Exception as exc:
-            logger.error("persona.generate.generation_failed", target_group_id=target_group_id, persona_id=str(persona.id), 
-                        error=str(exc), exc_info=True)
-            # Rollback persona creation if generation fails
-            session.delete(persona)
-            session.commit()
+            logger.error(
+                "persona.generate.generation_failed",
+                target_group_id=target_group_id,
+                error=str(exc),
+                exc_info=True,
+            )
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
         uid = _user_id_for_usage(current_user)
@@ -1306,12 +1281,11 @@ def generate_target_group_persona(
                 user_id=uid,
                 event_type="persona_generate",
                 raw_units={"runs": 1},
-                idempotency_key=f"persona_generate:{persona.id}",
+                idempotency_key=f"persona_generate:{persona_response.metadata.personaId}",
             )
 
-        session.refresh(persona)
-        logger.info("persona.generate.returning_response", target_group_id=target_group_id, persona_id=str(persona.id))
-        return persona_service.get_persona(session, str(persona.id), use_cache=False)
+        logger.info("persona.generate.returning_response", target_group_id=target_group_id, persona_id=persona_response.metadata.personaId)
+        return persona_response
     except HTTPException:
         raise
     except Exception as exc:

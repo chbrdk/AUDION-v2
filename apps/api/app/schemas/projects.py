@@ -64,3 +64,46 @@ class TargetGroupSuggestionItem(BaseModel):
 
 class SuggestTargetGroupsResponse(BaseModel):
     suggestions: list[TargetGroupSuggestionItem]
+
+
+class ProjectEasySetupRequest(BaseModel):
+    customer_name: str = Field(..., min_length=1, max_length=256, description="Brand or customer name for this project.")
+    about: str = Field(
+        ...,
+        min_length=1,
+        max_length=32_000,
+        description="What the project is about; combined with optional website text for AI context.",
+    )
+    website_url: str | None = Field(
+        default=None,
+        max_length=2048,
+        description="Optional public website URL; server fetches and extracts plain text when possible.",
+    )
+    project_name: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=128,
+        description="Override display name for the project; defaults to customer_name.",
+    )
+
+
+class ProjectEasySetupTargetGroupSummary(BaseModel):
+    id: str
+    name: str
+    segment: str
+
+
+class ProjectEasySetupPersonaSummary(BaseModel):
+    id: str
+    name: str
+    segment: str
+
+
+class ProjectEasySetupResponse(BaseModel):
+    project: ProjectResponse
+    target_group: ProjectEasySetupTargetGroupSummary
+    persona: ProjectEasySetupPersonaSummary
+    website_excerpt_included: bool = Field(
+        default=False,
+        description="True when optional website fetch succeeded and text was merged into context.",
+    )

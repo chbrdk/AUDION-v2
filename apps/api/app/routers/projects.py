@@ -13,6 +13,10 @@ from ..models import Journey, JourneyPhase, Project, ProjectMember, ProjectMembe
 from ..schemas import (
     ProjectCreateRequest,
     ProjectDetailResponse,
+    ProjectEasySetupPersonaSummary,
+    ProjectEasySetupRequest,
+    ProjectEasySetupResponse,
+    ProjectEasySetupTargetGroupSummary,
     ProjectListResponse,
     ProjectMemberAddRequest,
     ProjectMemberResponse,
@@ -21,6 +25,7 @@ from ..schemas import (
     ProjectUpdateRequest,
     SuggestTargetGroupsRequest,
     SuggestTargetGroupsResponse,
+    TargetGroupCreateRequest,
     TargetGroupSuggestionItem,
 )
 from ..schemas.journey import JourneyResponse
@@ -28,7 +33,10 @@ from ..services.ai_assist import seed_default_templates_for_project
 from ..services.auth import get_current_user
 from ..services.journey_generation import JourneyGenerationService
 from ..services.journey_serializer import to_journey_response
+from ..services.easy_setup_url import fetch_website_plain_text, normalize_public_http_url
+from ..services.persona_bootstrap import generate_persona_for_target_group
 from ..services.suggest_target_groups import suggest_target_groups as run_suggest_target_groups
+from ..services.target_group_store import TargetGroupService
 from ..services.usage_report import report_usage
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -144,6 +152,151 @@ def create_project(
     session.commit()
 
     return _project_response(project)
+
+
+@router.post(
+    "/bootstrap",
+    response_model=ProjectEasySetupResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Easy setup: project, first target group, and persona",
+    description=(
+        "Creates a project with description and company context from the customer brief, "
+        "optionally merges plain text from a public website, suggests a first target group via AI, "
+        "creates it, and generates the first persona for that group."
+    ),
+)
+def project_easy_setup(
+    payload: ProjectEasySetupRequest,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> ProjectEasySetupResponse:
+    website_excerpt_included = False
+    website_appendix = ""
+    if payload.website_url and payload.website_url.strip():
+        normalized, url_err = normalize_public_http_url(payload.website_url.strip())
+        if url_err:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=url_err)
+        if normalized:
+            excerpt, _fetch_err = fetch_website_plain_text(normalized)
+            if excerpt:
+                website_appendix = f"\n\n---\nSource (public page text): {normalized}\n{excerpt}"
+                website_excerpt_included = True
+
+    customer = payload.customer_name.strip()
+    about = payload.about.strip()
+    project_name = (payload.project_name.strip() if payload.project_name else customer) or customer
+    if not project_name:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Project name is required.")
+
+    description = f"Customer / brand: {customer}\n\n{about}".strip()
+    company_context = f"{about}{website_appendix}".strip()
+
+    project = Project(
+        id=uuid4(),
+        name=project_name,
+        owner_user_id=current_user.id,
+        description=description,
+        company_context=company_context,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
+    )
+    session.add(project)
+    session.flush()
+
+    membership = ProjectMember(
+        id=uuid4(),
+        project_id=project.id,
+        user_id=current_user.id,
+        role=ProjectRole.owner,
+        status=ProjectMemberStatus.active,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
+    )
+    session.add(membership)
+    session.flush()
+
+    seed_default_templates_for_project(session, str(project.id))
+    session.commit()
+    session.refresh(project)
+
+    context_parts = [description]
+    if company_context:
+        context_parts.append(company_context)
+    context_text = "\n\n".join(context_parts)
+
+    try:
+        suggestions, usage_raw = run_suggest_target_groups(context_text=context_text, max_suggestions=3)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    uid = _user_id_for_usage(current_user)
+    if uid and usage_raw:
+        report_usage(user_id=uid, event_type="llm_request", raw_units=usage_raw)
+
+    if not suggestions:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="AI did not return target group suggestions. Add more context or check OpenAI configuration.",
+        )
+
+    first = suggestions[0]
+    tg_service = TargetGroupService()
+    try:
+        tg_response = tg_service.create_target_group(
+            session,
+            TargetGroupCreateRequest(
+                project_id=str(project.id),
+                name=first.name,
+                segment=first.segment,
+                description=first.description,
+            ),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    tg = session.get(TargetGroup, UUID(tg_response.id))
+    if not tg:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Target group was created but could not be loaded.",
+        )
+
+    try:
+        persona_response = generate_persona_for_target_group(
+            session,
+            target_group=tg,
+            segment=first.segment,
+            description=first.description,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Persona generation failed: {exc}",
+        ) from exc
+
+    if uid:
+        report_usage(
+            user_id=uid,
+            event_type="persona_generate",
+            raw_units={"runs": 1},
+            idempotency_key=f"persona_generate:{persona_response.metadata.personaId}",
+        )
+
+    session.refresh(project)
+    return ProjectEasySetupResponse(
+        project=_project_response(project),
+        target_group=ProjectEasySetupTargetGroupSummary(
+            id=tg_response.id,
+            name=tg_response.name,
+            segment=tg_response.segment,
+        ),
+        persona=ProjectEasySetupPersonaSummary(
+            id=persona_response.metadata.personaId,
+            name=persona_response.profile.name,
+            segment=persona_response.profile.segment,
+        ),
+        website_excerpt_included=website_excerpt_included,
+    )
 
 
 @router.get("/{project_id}", response_model=ProjectDetailResponse)

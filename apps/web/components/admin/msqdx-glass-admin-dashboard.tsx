@@ -62,6 +62,40 @@ export const MsqdxGlassAdminDashboard = ({
         }}
       />
 
+      {projects.length === 0 ? (
+        <MsqdxMoleculeCard
+          variant="flat"
+          borderRadius="button"
+          title={t("adminDashboard.easySetupCardTitle")}
+          titleVariant="h6"
+          subtitle={t("adminDashboard.easySetupCardSubtitle")}
+          headerActions={<MsqdxIcon name="auto_awesome" customSize={20} style={{ color: accent }} />}
+          actions={(
+            <Link href={ADMIN_ROUTES.setup} style={{ textDecoration: "none" }}>
+              <MsqdxButton
+                variant="contained"
+                size="small"
+                endIcon={<MsqdxIcon name="arrow_forward" customSize={16} />}
+                sx={{
+                  backgroundColor: accent,
+                  color: "white",
+                  "&:hover": { backgroundColor: accent, filter: "brightness(1.05)" },
+                }}
+              >
+                {t("adminDashboard.easySetupCta")}
+              </MsqdxButton>
+            </Link>
+          )}
+          sx={{
+            mb: 3,
+            border: "1px solid",
+            borderColor: accent,
+            "&:hover": { borderColor: accent },
+            "& .MuiTypography-h6": { color: accent },
+          }}
+        />
+      ) : null}
+
       {/* Three main cards: Projects, Personas & Target Groups */}
       <Box
         sx={{
@@ -346,7 +380,21 @@ export const MsqdxGlassAdminDashboard = ({
         titleVariant="h6"
         sx={{ mt: 3, minWidth: 0, maxWidth: "100%", borderColor: accent, "&:hover": { borderColor: accent } }}
       >
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} flexWrap="wrap">
+          <Link href={ADMIN_ROUTES.setup} style={{ textDecoration: "none" }}>
+            <MsqdxButton
+              variant="outlined"
+              size="medium"
+              startIcon={<MsqdxIcon name="auto_awesome" customSize={18} />}
+              sx={{
+                borderColor: accent,
+                color: accent,
+                "&:hover": { borderColor: accent, backgroundColor: "transparent" },
+              }}
+            >
+              {t("adminDashboard.easySetupCta")}
+            </MsqdxButton>
+          </Link>
           <Link href={ADMIN_ROUTES.personas} style={{ textDecoration: "none" }}>
             <MsqdxButton
               variant="contained"
