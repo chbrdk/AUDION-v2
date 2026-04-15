@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, List
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 import structlog
@@ -17,6 +17,31 @@ from ..models import DocumentChunk, Document, TargetGroupSource
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
+
+
+def _normalize_embedding_vector(raw: Any) -> Optional[np.ndarray]:
+    """
+    Qdrant may return a plain list or a dict of named vectors.
+    Returns a 1-D float64 array or None if unusable.
+    """
+    if raw is None:
+        return None
+    if isinstance(raw, dict):
+        picked: Any = None
+        for v in raw.values():
+            if v is not None:
+                picked = v
+                break
+        if picked is None:
+            return None
+        raw = picked
+    try:
+        arr = np.asarray(raw, dtype=np.float64).reshape(-1)
+        if arr.size == 0:
+            return None
+        return arr
+    except (TypeError, ValueError):
+        return None
 
 
 class KnowledgeExplorerService:
@@ -320,8 +345,19 @@ class KnowledgeExplorerService:
                 "method": method,
             }
 
+        # Drop unusable embeddings (wrong shape, named-vector dict without values, etc.)
+        for chunk in chunks:
+            emb = chunk.get("embedding")
+            if emb is None:
+                continue
+            nv = _normalize_embedding_vector(emb)
+            if nv is None:
+                chunk["embedding"] = None
+            else:
+                chunk["embedding"] = nv.tolist()
+
         # Filter chunks with embeddings
-        chunks_with_embeddings = [chunk for chunk in chunks if chunk.get("embedding")]
+        chunks_with_embeddings = [chunk for chunk in chunks if chunk.get("embedding") is not None]
 
         if not chunks_with_embeddings:
             logger.warning("knowledge_explorer.cluster_no_embeddings")
@@ -332,25 +368,49 @@ class KnowledgeExplorerService:
                 "method": method,
             }
 
-        # Extract embeddings
-        embeddings = np.array([chunk["embedding"] for chunk in chunks_with_embeddings])
+        # Extract embeddings (same dimension per row)
+        emb_list = [chunk["embedding"] for chunk in chunks_with_embeddings]
+        try:
+            embeddings = np.stack([np.asarray(e, dtype=np.float64) for e in emb_list], axis=0)
+        except ValueError as exc:
+            logger.error(
+                "knowledge_explorer.embedding_stack_failed",
+                error=str(exc),
+                shapes=[getattr(e, "shape", len(e) if hasattr(e, "__len__") else None) for e in emb_list[:5]],
+            )
+            raise ValueError("inconsistent_embedding_dimensions") from exc
+
+        n_samples = embeddings.shape[0]
+        dim = embeddings.shape[1]
+        if dim < 1:
+            logger.warning("knowledge_explorer.cluster_zero_dim_embeddings", n_samples=n_samples)
+            return {
+                "clusters": [],
+                "coordinates_2d": [],
+                "cluster_labels": [-1] * len(chunks),
+                "method": method,
+            }
 
         logger.info(
             "knowledge_explorer.clustering_start",
             method=method,
-            n_chunks=len(embeddings),
+            n_chunks=n_samples,
             n_clusters=n_clusters if method == "kmeans" else None,
+            embedding_dim=dim,
         )
 
         # Perform clustering
         if method == "kmeans":
-            if n_clusters > len(embeddings):
-                n_clusters = max(2, len(embeddings) // 2)
+            # sklearn requires 1 <= n_clusters <= n_samples (never use max(2, n//2) when n_samples==1).
+            if n_clusters > n_samples:
+                adjusted = min(n_samples, max(2, n_samples // 2))
+                n_clusters = max(1, adjusted)
                 logger.warning(
                     "knowledge_explorer.adjusted_clusters",
                     adjusted_n_clusters=n_clusters,
-                    n_chunks=len(embeddings),
+                    n_chunks=n_samples,
                 )
+            n_clusters = min(max(1, n_clusters), n_samples)
             clusterer = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
             cluster_labels = clusterer.fit_predict(embeddings)
         elif method == "dbscan":
