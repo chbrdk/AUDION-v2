@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { alpha, Box, Stack, Typography, useTheme, IconButton, Tooltip } from "@mui/material";
 import { keyframes } from "@emotion/react";
 import { MsqdxIcon } from "@msqdx/react";
+import { ChatMessageMarkdown } from "./chat/chat-message-markdown";
 
 type Message = {
   id: string;
@@ -178,19 +179,16 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                   transition: "transform 200ms ease"
                 }}
               >
-                <Typography
+                <Box
                   key={message.id}
-                  variant="body1"
-                  whiteSpace="pre-wrap"
-                  sx={{ 
+                  sx={{
                     color: theme.palette.text.primary,
                     animation: `${textFade} 220ms ease`,
-                    // Ensure text is always readable during typing
-                    opacity: 1
+                    opacity: 1,
                   }}
                 >
-                  {message.content}
-                </Typography>
+                  <ChatMessageMarkdown content={message.content} />
+                </Box>
                 
                 {/* Display images if available */}
                 {message.images && message.images.length > 0 && (

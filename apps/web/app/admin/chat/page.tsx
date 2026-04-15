@@ -41,6 +41,7 @@ import {
   Badge
 } from "@mui/material";
 import { MsqdxGlassChatPanel } from "../../../components/msqdx-glass-chat-panel";
+import { ChatMessageMarkdown } from "../../../components/chat/chat-message-markdown";
 import { TavusVideoPanel, type TavusSessionConfig } from "../../../components/tavus-video-panel";
 import { MsqdxIcon, MsqdxInput } from "@msqdx/react";
 import { INPUT_ACCENT_SX } from "../../../lib/theme-accent";
@@ -2274,9 +2275,7 @@ function AdminChatPageContent() {
                               <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
                                 {r.personaName}
                               </Typography>
-                              <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
-                                {r.content}
-                              </Typography>
+                              <ChatMessageMarkdown content={r.content} dense />
                             </Box>
                           </Paper>
                         ))}
@@ -2356,9 +2355,7 @@ function AdminChatPageContent() {
                                 </Typography>
                               ) : (
                                 <>
-                                  <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
-                                    {slot.content}
-                                  </Typography>
+                                  <ChatMessageMarkdown content={slot.content} dense />
                                   {!slot.done && (
                                     <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.5, mt: 0.5 }}>
                                       <CircularProgress size={14} />
