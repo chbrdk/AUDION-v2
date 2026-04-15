@@ -336,54 +336,49 @@ export function MsqdxGlassPersonasOverview({ initialList }: MsqdxGlassPersonasOv
             )}
             title={persona.name}
             titleVariant="h6"
-            subtitle={(
-              <Stack spacing={0.75} sx={{ mt: 0.25 }}>
-                <Stack direction="row" flexWrap="wrap" alignItems="center" sx={{ gap: 0.75 }}>
-                  {!personaTgId ? (
+            chips={(
+              <Stack direction="row" flexWrap="wrap" alignItems="center" sx={{ gap: 0.75 }}>
+                {!personaTgId ? (
+                  <MsqdxChip
+                    variant="outlined"
+                    size="small"
+                    label={t("personaAdmin.noTargetGroupBanner")}
+                    sx={{
+                      borderColor: "warning.main",
+                      color: "warning.main",
+                      height: 24,
+                      "& .MuiChip-label": { color: "warning.main", fontSize: "0.7rem" },
+                    }}
+                  />
+                ) : null}
+                {showProjectChip && personaProjectId ? (
+                  <MsqdxChip
+                    variant="outlined"
+                    size="small"
+                    label={formatProjectLabel(personaProjectId)}
+                    sx={{
+                      borderColor: accent,
+                      color: accent,
+                      "& .MuiChip-label": { color: accent },
+                    }}
+                  />
+                ) : null}
+                <Tooltip title={t("personaAdmin.confidenceHint")}>
+                  <Box component="span" sx={{ display: "inline-flex" }}>
                     <MsqdxChip
                       variant="outlined"
                       size="small"
-                      label={t("personaAdmin.noTargetGroupBanner")}
+                      label={t("personaAdmin.confidencePercent", {
+                        value: Math.round(Math.min(1, Math.max(0, persona.confidence)) * 100),
+                      })}
                       sx={{
-                        borderColor: "warning.main",
-                        color: "warning.main",
+                        borderColor: "divider",
                         height: 24,
-                        "& .MuiChip-label": { color: "warning.main", fontSize: "0.7rem" },
+                        "& .MuiChip-label": { fontSize: "0.7rem" },
                       }}
                     />
-                  ) : null}
-                  {showProjectChip && personaProjectId ? (
-                    <MsqdxChip
-                      variant="outlined"
-                      size="small"
-                      label={formatProjectLabel(personaProjectId)}
-                      sx={{
-                        borderColor: accent,
-                        color: accent,
-                        "& .MuiChip-label": { color: accent },
-                      }}
-                    />
-                  ) : null}
-                  <Tooltip title={t("personaAdmin.confidenceHint")}>
-                    <Box component="span" sx={{ display: "inline-flex" }}>
-                      <MsqdxChip
-                        variant="outlined"
-                        size="small"
-                        label={t("personaAdmin.confidencePercent", {
-                          value: Math.round(Math.min(1, Math.max(0, persona.confidence)) * 100),
-                        })}
-                        sx={{
-                          borderColor: "divider",
-                          height: 24,
-                          "& .MuiChip-label": { fontSize: "0.7rem" },
-                        }}
-                      />
-                    </Box>
-                  </Tooltip>
-                </Stack>
-                <MsqdxTypography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-                  {persona.segment || "—"}
-                </MsqdxTypography>
+                  </Box>
+                </Tooltip>
               </Stack>
             )}
             sx={{
@@ -393,7 +388,11 @@ export function MsqdxGlassPersonasOverview({ initialList }: MsqdxGlassPersonasOv
               "&:hover": { borderColor: accent },
               "& .MuiTypography-h6": { color: accent },
             }}
-          />
+          >
+            <MsqdxTypography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.25 }}>
+              {persona.segment || "—"}
+            </MsqdxTypography>
+          </MsqdxMoleculeCard>
         );})}
       </Box>
 

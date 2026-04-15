@@ -29,6 +29,7 @@ Example:
 - Overview UIs are MSQDX design-system based and implemented as:
   - `apps/web/components/personas/msqdx-glass-personas-overview.tsx`
   - `apps/web/components/target-groups/msqdx-glass-target-groups-overview.tsx`
+- **`MsqdxMoleculeCard` (`MsqdxCard`) slots:** `subtitle` is **`string` only** (rendered as `MsqdxTypography` body2). Chip rows, tooltips, and other rich UI must use **`chips?: ReactNode`** and/or **`children`**. See `apps/web/lib/msqdx-molecule-card-props.test.ts` for the typed contract.
 - Detail pages reuse the existing admin panels in **detail mode**:
   - `MsqdxGlassPersonaAdminPanel` supports `mode="detail"` + `activePersonaId`
   - `MsqdxGlassTargetGroupAdminPanel` supports `mode="detail"` + `activeTargetGroupId`
