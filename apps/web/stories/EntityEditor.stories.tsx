@@ -23,6 +23,7 @@ export const PersonaDemographics: Story = {
   args: {
     entityType: "persona",
     entity: mockPersonaProfile,
+    entitySyncKey: "storybook-persona-demographics",
     onSave: async (updates) => console.log("Save:", updates),
     inline: true,
     fieldOverrides: {

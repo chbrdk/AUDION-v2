@@ -90,6 +90,8 @@ export type PersonaInsight = {
 export type PersonaListItem = {
   id: string;
   projectId?: string;
+  /** When present (from API), used for list warnings and links */
+  targetGroupId?: string | null;
   name: string;
   segment: string;
   headline: string;

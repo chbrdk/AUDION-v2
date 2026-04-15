@@ -1,14 +1,22 @@
 "use client";
 
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import { Box, Typography, Stack, Divider } from "@mui/material";
 import type { FieldDefinition, getFieldDefinitions, groupFields } from "@msqdx-glass/types";
 import { getFieldDefinitions as getFieldDefs, groupFields as groupFieldsHelper } from "@msqdx-glass/types";
 import { MsqdxGlassFieldEditor } from "./msqdx-glass-field-editor";
+import { useI18n } from "../i18n/i18n-provider";
+import { entityFieldGroupTitleKey } from "../../lib/entity-field-i18n";
 
 export type MsqdxGlassEntityEditorProps<T extends Record<string, any>> = {
   entityType: "persona" | "targetGroup" | "document" | "knowledge";
   entity: T;
+  /**
+   * When this value stays stable, in-memory field edits are preserved across parent re-renders
+   * (e.g. background detail refresh with a new object reference). Use the selected entity id
+   * (`selectedId`); avoid tying to `updatedAt` or every save would reset other unsaved fields.
+   */
+  entitySyncKey?: string;
   onSave: (updates: Partial<T>) => Promise<void>;
   fieldOverrides?: Partial<Record<string, FieldDefinition>>; // Für Entity-spezifische Overrides
   inline?: boolean;
@@ -23,15 +31,19 @@ export type MsqdxGlassEntityEditorProps<T extends Record<string, any>> = {
 export const MsqdxGlassEntityEditor = <T extends Record<string, any>>({
   entityType,
   entity,
+  entitySyncKey = "",
   onSave,
   fieldOverrides = {},
   inline = true,
   disabled = false,
   showGroups = true,
 }: MsqdxGlassEntityEditorProps<T>) => {
+  const { t } = useI18n();
   const [localEntity, setLocalEntity] = useState<T>(entity);
   const [pendingUpdates, setPendingUpdates] = useState<Partial<T>>({});
   const [saving, setSaving] = useState(false);
+  const entityRef = useRef(entity);
+  entityRef.current = entity;
 
   // Load field definitions
   const fieldDefinitions = getFieldDefs(entityType);
@@ -54,11 +66,12 @@ export const MsqdxGlassEntityEditor = <T extends Record<string, any>>({
   // Group fields
   const groupedFields = showGroups ? groupFieldsHelper(fields) : { all: fields };
 
-  // Sync local entity when external entity changes
+  // Sync only when the server revision changes — not when `entity` is a new object with the same data
+  // (otherwise background detail polling wipes sliders and other unsaved edits).
   useEffect(() => {
-    setLocalEntity(entity);
+    setLocalEntity(entityRef.current);
     setPendingUpdates({});
-  }, [entity]);
+  }, [entitySyncKey]);
 
   const handleFieldChange = useCallback(
     (key: string, value: any) => {
@@ -104,6 +117,12 @@ export const MsqdxGlassEntityEditor = <T extends Record<string, any>>({
   }, [pendingUpdates, onSave]);
 
   // Render grouped fields
+  const resolveGroupHeading = (groupName: string) => {
+    const path = entityFieldGroupTitleKey(groupName);
+    const label = t(path);
+    return label === path ? groupName : label;
+  };
+
   const renderGroupedFields = () => {
     return Object.entries(groupedFields).map(([groupName, groupFields]) => (
       <Box key={groupName} sx={{ mb: 3 }}>
@@ -120,13 +139,19 @@ export const MsqdxGlassEntityEditor = <T extends Record<string, any>>({
                 color: "text.secondary",
               }}
             >
-              {groupName}
+              {resolveGroupHeading(groupName)}
             </Typography>
             <Divider sx={{ mb: 2 }} />
           </>
         )}
         <Stack spacing={2}>
-          {groupFields.map((field) => (
+          {groupFields.map((field) => {
+            const path = field.labelKey;
+            const columnLabel = path ? (() => {
+              const v = t(path);
+              return v === path ? field.label : v;
+            })() : field.label;
+            return (
             <Box key={field.key}>
               {inline ? (
                 <Box sx={{ display: "flex", alignItems: "flex-start", gap: 2 }}>
@@ -138,7 +163,7 @@ export const MsqdxGlassEntityEditor = <T extends Record<string, any>>({
                       pt: 1,
                     }}
                   >
-                    {field.label}
+                    {columnLabel}
                   </Typography>
                   <Box sx={{ flex: 1 }}>
                     <MsqdxGlassFieldEditor
@@ -148,6 +173,7 @@ export const MsqdxGlassEntityEditor = <T extends Record<string, any>>({
                       onSave={handleFieldSave}
                       inline={inline}
                       disabled={disabled}
+                      valueSyncKey={entitySyncKey || undefined}
                     />
                   </Box>
                 </Box>
@@ -159,10 +185,12 @@ export const MsqdxGlassEntityEditor = <T extends Record<string, any>>({
                   onSave={handleFieldSave}
                   inline={false}
                   disabled={disabled}
+                  valueSyncKey={entitySyncKey || undefined}
                 />
               )}
             </Box>
-          ))}
+            );
+          })}
         </Stack>
       </Box>
     ));
@@ -181,7 +209,7 @@ export const MsqdxGlassEntityEditor = <T extends Record<string, any>>({
             disabled={saving}
             style={{ padding: "0.375rem 0.75rem", fontSize: "0.8125rem" }}
           >
-            Save All Changes ({Object.keys(pendingUpdates).length})
+            {t("entityEditor.saveAllChanges", { count: Object.keys(pendingUpdates).length })}
           </button>
         </Box>
       )}

@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { Box, Stack } from "@mui/material";
 import { MsqdxButton, MsqdxChip, MsqdxFormField, MsqdxIcon, MsqdxMoleculeCard, MsqdxSelect, MsqdxTextareaField, MsqdxTypography } from "@msqdx/react";
 import type { JourneyResponse } from "../../app/api/_lib/journeys";
+import type { PersonaListResponse } from "@msqdx-glass/types";
 import { journeysApi } from "../../app/api/_lib/journeys";
+import { buildApiUrl } from "../../app/api/_lib/backend";
 import { ADMIN_ROUTES } from "../../lib/routes";
 import { useProject } from "../projects/project-provider";
 import { useI18n } from "../i18n/i18n-provider";
@@ -49,6 +51,7 @@ export function MsqdxGlassJourneysOverview({ initialJourneys }: MsqdxGlassJourne
   const [createDescription, setCreateDescription] = useState("");
   const [createJourneyType, setCreateJourneyType] = useState<JourneyType>("customer_acquisition");
   const [createOrgId, setCreateOrgId] = useState<string>(() => generateUUID());
+  const [previewPersonas, setPreviewPersonas] = useState<{ id: string; name: string }[]>([]);
 
   const refresh = async (projectId: string | null) => {
     setLoading(true);
@@ -71,6 +74,21 @@ export function MsqdxGlassJourneysOverview({ initialJourneys }: MsqdxGlassJourne
   useEffect(() => {
     void refresh(activeProjectId ?? null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeProjectId]);
+
+  useEffect(() => {
+    if (!activeProjectId) {
+      setPreviewPersonas([]);
+      return;
+    }
+    const params = new URLSearchParams({ page: "1", page_size: "6", project_id: activeProjectId });
+    void fetch(buildApiUrl(`/api/persona-admin?${params.toString()}`), { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: PersonaListResponse | null) => {
+        const list = data?.items ?? [];
+        setPreviewPersonas(list.map((p) => ({ id: p.id, name: p.name })));
+      })
+      .catch(() => setPreviewPersonas([]));
   }, [activeProjectId]);
 
   const items = useMemo(() => journeys ?? [], [journeys]);
@@ -280,7 +298,6 @@ export function MsqdxGlassJourneysOverview({ initialJourneys }: MsqdxGlassJourne
             title={journey.name}
             titleVariant="h6"
             subtitle={journey.description || t("journeys.type", { type: journey.journey_type })}
-            headerActions={<MsqdxIcon name="chevron_right" customSize={20} style={{ color: accent }} />}
             chips={(
               <>
                 <MsqdxChip
@@ -296,25 +313,6 @@ export function MsqdxGlassJourneysOverview({ initialJourneys }: MsqdxGlassJourne
                   sx={{ borderColor: accent, color: accent, "& .MuiChip-label": { color: accent } }}
                 />
               </>
-            )}
-            actions={(
-              <MsqdxButton
-                variant="outlined"
-                size="small"
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  router.push(ADMIN_ROUTES.journeyDetail(journey.id));
-                }}
-                sx={{
-                  borderColor: accent,
-                  color: accent,
-                  "&:hover": { borderColor: accent, backgroundColor: "transparent" },
-                }}
-              >
-                {t("adminDashboard.view")}
-              </MsqdxButton>
             )}
             sx={{
               minHeight: 140,
@@ -350,6 +348,27 @@ export function MsqdxGlassJourneysOverview({ initialJourneys }: MsqdxGlassJourne
               <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
                 {t("journeys.empty")}
               </MsqdxTypography>
+              {previewPersonas.length > 0 && (
+                <>
+                  <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 1 }}>
+                    {t("journeys.emptyPersonasIntro")}
+                  </MsqdxTypography>
+                  <Stack direction="row" flexWrap="wrap" gap={1}>
+                    {previewPersonas.map((p) => (
+                      <MsqdxButton
+                        key={p.id}
+                        variant="outlined"
+                        size="small"
+                        type="button"
+                        onClick={() => router.push(ADMIN_ROUTES.personaDetail(p.id))}
+                        sx={{ borderColor: accent, color: accent }}
+                      >
+                        {p.name || t("journeys.openPersona")}
+                      </MsqdxButton>
+                    ))}
+                  </Stack>
+                </>
+              )}
             </Stack>
           )}
         </Box>

@@ -1096,6 +1096,7 @@ class PersonaService:
         return PersonaListItem(
             id=str(persona.id),
             projectId=str(persona.project_id),
+            targetGroupId=str(persona.target_group_id) if persona.target_group_id else None,
             name=persona.name,
             segment=persona.segment,
             headline=persona.headline,

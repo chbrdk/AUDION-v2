@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Box, Stack } from "@mui/material";
+import { Box, Stack, Tooltip } from "@mui/material";
 import type { PersonaListResponse, PersonaResponse } from "@msqdx-glass/types";
 import { MsqdxAvatar, MsqdxButton, MsqdxChip, MsqdxFormField, MsqdxIcon, MsqdxMoleculeCard, MsqdxTypography } from "@msqdx/react";
 import { buildApiUrl } from "../../app/api/_lib/backend";
 import { ADMIN_ROUTES } from "../../lib/routes";
+import { normalizePersonaListResponse } from "../../lib/persona-list-normalize";
 import { safePersonaAvatarSrc } from "../../lib/persona-avatar";
 import { useProject } from "../projects/project-provider";
 import { useI18n } from "../i18n/i18n-provider";
@@ -44,7 +45,7 @@ export function MsqdxGlassPersonasOverview({ initialList }: MsqdxGlassPersonasOv
   const { activeProjectId, activeProject, projects } = useProject();
   const accent = "var(--color-theme-accent)";
 
-  const [list, setList] = useState<PersonaListResponse>(initialList);
+  const [list, setList] = useState<PersonaListResponse>(() => normalizePersonaListResponse(initialList));
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -85,7 +86,7 @@ export function MsqdxGlassPersonasOverview({ initialList }: MsqdxGlassPersonasOv
         const detail = await response.text().catch(() => "");
         throw new Error(detail ? `${response.status}: ${detail}` : `Backend responded with ${response.status}`);
       }
-      const payload = (await response.json()) as PersonaListResponse;
+      const payload = normalizePersonaListResponse(await response.json());
       setList(payload);
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : t("personaAdmin.loadListFailed"));
@@ -296,6 +297,10 @@ export function MsqdxGlassPersonasOverview({ initialList }: MsqdxGlassPersonasOv
         {/* Persona cards */}
         {items.map((persona) => {
           const personaProjectId = persona.projectId;
+          const personaTgId = persona.targetGroupId ?? null;
+          const showProjectChip =
+            Boolean(personaProjectId) &&
+            (!activeProjectId || String(personaProjectId) !== String(activeProjectId));
           const avatarSrc = safePersonaAvatarSrc(persona.avatarUrl ?? persona.imageUrl, persona.id);
           return (
           <MsqdxMoleculeCard
@@ -331,42 +336,55 @@ export function MsqdxGlassPersonasOverview({ initialList }: MsqdxGlassPersonasOv
             )}
             title={persona.name}
             titleVariant="h6"
-            subtitle={`${persona.segment}${persona.status ? ` · ${persona.status}` : ""}`}
-            headerActions={(
-              <Stack direction="row" spacing={1} alignItems="center">
-                {personaProjectId && (
-                  <MsqdxChip
-                    variant="outlined"
-                    size="small"
-                    label={formatProjectLabel(personaProjectId)}
-                    sx={{
-                      borderColor: accent,
-                      color: accent,
-                      "& .MuiChip-label": { color: accent },
-                    }}
-                  />
-                )}
-                <MsqdxIcon name="chevron_right" customSize={20} style={{ color: accent }} />
+            subtitle={(
+              <Stack spacing={0.75} sx={{ mt: 0.25 }}>
+                <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" alignItems="center">
+                  {!personaTgId ? (
+                    <MsqdxChip
+                      variant="outlined"
+                      size="small"
+                      label={t("personaAdmin.noTargetGroupBanner")}
+                      sx={{
+                        borderColor: "warning.main",
+                        color: "warning.main",
+                        height: 24,
+                        "& .MuiChip-label": { color: "warning.main", fontSize: "0.7rem" },
+                      }}
+                    />
+                  ) : null}
+                  {showProjectChip ? (
+                    <MsqdxChip
+                      variant="outlined"
+                      size="small"
+                      label={formatProjectLabel(personaProjectId!)}
+                      sx={{
+                        borderColor: accent,
+                        color: accent,
+                        "& .MuiChip-label": { color: accent },
+                      }}
+                    />
+                  ) : null}
+                  <Tooltip title={t("personaAdmin.confidenceHint")}>
+                    <Box component="span" sx={{ display: "inline-flex" }}>
+                      <MsqdxChip
+                        variant="outlined"
+                        size="small"
+                        label={t("personaAdmin.confidencePercent", {
+                          value: Math.round(Math.min(1, Math.max(0, persona.confidence)) * 100),
+                        })}
+                        sx={{
+                          borderColor: "divider",
+                          height: 24,
+                          "& .MuiChip-label": { fontSize: "0.7rem" },
+                        }}
+                      />
+                    </Box>
+                  </Tooltip>
+                </Stack>
+                <MsqdxTypography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                  {persona.segment || "—"}
+                </MsqdxTypography>
               </Stack>
-            )}
-            actions={(
-              <MsqdxButton
-                variant="outlined"
-                size="small"
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  router.push(ADMIN_ROUTES.personaDetail(persona.id));
-                }}
-                sx={{
-                  borderColor: accent,
-                  color: accent,
-                  "&:hover": { borderColor: accent, backgroundColor: "transparent" },
-                }}
-              >
-                {t("common.view")}
-              </MsqdxButton>
             )}
             sx={{
               minHeight: 140,

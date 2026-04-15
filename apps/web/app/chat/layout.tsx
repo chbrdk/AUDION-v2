@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import dynamic from "next/dynamic";
 import "../../styles/admin.css";
 import { AuthProvider } from "../../components/auth/auth-provider";
+import { AuthLocaleSync } from "../../components/i18n/auth-locale-sync";
 import { ProjectProvider } from "../../components/projects/project-provider";
 import { ThemeRegistryNoSSR } from "../../components/theme-registry-no-ssr";
 import { useI18n } from "../../components/i18n/i18n-provider";
@@ -30,6 +31,7 @@ export default function ChatLayout({ children }: { children: ReactNode }) {
   return (
     <ThemeRegistryNoSSR>
       <AuthProvider>
+        <AuthLocaleSync />
         <ProjectProvider>
           <Suspense fallback={<ChatLayoutLoadingFallback />}>
             <ChatLayoutClient>{children}</ChatLayoutClient>

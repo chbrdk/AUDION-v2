@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import type { PersonaListResponse, TargetGroupListResponse } from "@msqdx-glass/types";
 import { MsqdxGlassAdminDashboard } from "../../components/admin/msqdx-glass-admin-dashboard";
+import { normalizePersonaListResponse } from "../../lib/persona-list-normalize";
 import { getPersonaBackendBase } from "../api/_lib/backend";
 import { buildAuthHeaders, getServerAuthToken, getServerProjectId } from "../api/_lib/auth";
 
@@ -29,7 +30,7 @@ async function fetchPersonaList(projectId: string | null, headers: HeadersInit):
       throw new Error(`Persona backend unavailable (${response.status}): ${detail}`);
     }
 
-    return (await response.json()) as PersonaListResponse;
+    return normalizePersonaListResponse(await response.json());
   } catch (error) {
     clearTimeout(timeoutId);
     if (error instanceof Error && error.name === "AbortError") {

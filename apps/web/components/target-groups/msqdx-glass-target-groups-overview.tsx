@@ -260,26 +260,6 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
             title={tg.name}
             titleVariant="h6"
             subtitle={tg.segment}
-            headerActions={<MsqdxIcon name="chevron_right" customSize={20} style={{ color: accent }} />}
-            actions={(
-              <MsqdxButton
-                variant="outlined"
-                size="small"
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  router.push(ADMIN_ROUTES.targetGroupDetail(tg.id));
-                }}
-                sx={{
-                  borderColor: accent,
-                  color: accent,
-                  "&:hover": { borderColor: accent, backgroundColor: "transparent" },
-                }}
-              >
-                {t("common.view")}
-              </MsqdxButton>
-            )}
             sx={{
               minHeight: 140,
               border: "1px solid",

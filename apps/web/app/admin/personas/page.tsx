@@ -5,6 +5,7 @@ import type { PersonaListResponse } from "@msqdx-glass/types";
 import { getPersonaBackendBase } from "../../api/_lib/backend";
 import { buildAuthHeaders, getServerAuthToken, getServerProjectId } from "../../api/_lib/auth";
 import { MsqdxGlassPersonasOverview } from "../../../components/personas/msqdx-glass-personas-overview";
+import { normalizePersonaListResponse } from "../../../lib/persona-list-normalize";
 import { getServerT } from "../../../lib/i18n/server";
 
 async function fetchPersonaList(projectId: string | null, headers: HeadersInit): Promise<PersonaListResponse> {
@@ -31,7 +32,7 @@ async function fetchPersonaList(projectId: string | null, headers: HeadersInit):
       throw new Error(`Persona backend unavailable (${response.status}): ${detail}`);
     }
 
-    return (await response.json()) as PersonaListResponse;
+    return normalizePersonaListResponse(await response.json());
   } catch (error) {
     clearTimeout(timeoutId);
     if (error instanceof Error && error.name === "AbortError") {

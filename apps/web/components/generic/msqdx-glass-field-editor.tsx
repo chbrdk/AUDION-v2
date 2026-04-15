@@ -2,12 +2,13 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import type { FieldDefinition } from "@msqdx-glass/types";
-import { Typography, Box, Checkbox } from "@mui/material";
+import { Typography, Box, Checkbox, Tooltip } from "@mui/material";
 import { MsqdxIcon, MsqdxSelect, MsqdxFormField, MsqdxTextareaField, MsqdxSlider } from "@msqdx/react";
 import { MsqdxGlassEditButton } from "./msqdx-glass-edit-button";
 import { useInlineEdit } from "../hooks/use-inline-edit";
 import { MsqdxGlassInlineEditControls } from "../msqdx-glass-inline-edit-controls";
 import { FORM_FIELD_ACCENT_SX, THEME_ACCENT } from "../../lib/theme-accent";
+import { useI18n } from "../i18n/i18n-provider";
 
 export type MsqdxGlassFieldEditorProps = {
   field: FieldDefinition;
@@ -19,6 +20,11 @@ export type MsqdxGlassFieldEditorProps = {
   onEditStart?: () => void;
   onEditEnd?: () => void;
   forceEditMode?: boolean;
+  /**
+   * Pass stable entity/selection id (e.g. `selectedId` or `profile.id`) so background detail refreshes
+   * do not reset the inline value while the user is editing.
+   */
+  valueSyncKey?: string;
 };
 
 /**
@@ -35,8 +41,21 @@ export const MsqdxGlassFieldEditor = ({
   onEditStart,
   onEditEnd,
   forceEditMode = false,
+  valueSyncKey,
 }: MsqdxGlassFieldEditorProps) => {
+  const { t } = useI18n();
   const [editing, setEditing] = useState(forceEditMode);
+
+  const resolveLabel = (key: string | undefined, fallback: string) => {
+    if (!key) return fallback;
+    const v = t(key);
+    return v === key ? fallback : v;
+  };
+
+  const fieldLabel = resolveLabel(field.labelKey, field.label);
+
+  const resolveOptionLabel = (opt: { label: string; labelKey?: string }) =>
+    resolveLabel(opt.labelKey, opt.label);
 
   // Update editing state when forceEditMode changes
   useEffect(() => {
@@ -50,6 +69,7 @@ export const MsqdxGlassFieldEditor = ({
   const inlineEdit = useInlineEdit({
     initialValue: value ?? (field.type === "boolean" ? false : null),
     currentValue: value ?? (field.type === "boolean" ? false : null),
+    baselineKey: valueSyncKey,
     isEqual: (a, b) => {
       // Handle null/undefined equality
       if (a === null || a === undefined) {
@@ -94,7 +114,7 @@ export const MsqdxGlassFieldEditor = ({
       case "text":
         return (
           <MsqdxFormField
-            label={inline ? "" : field.label}
+            label={inline ? "" : fieldLabel}
             value={currentValue ?? ""}
             onChange={(e) => inlineEdit.setValue(e.target.value || null)}
             inputRef={inlineEdit.elementRef as React.RefObject<HTMLInputElement>}
@@ -110,7 +130,7 @@ export const MsqdxGlassFieldEditor = ({
       case "textarea":
         return (
           <MsqdxTextareaField
-            label={inline ? "" : field.label}
+            label={inline ? "" : fieldLabel}
             value={currentValue ?? ""}
             onChange={(e) => inlineEdit.setValue(e.target.value || null)}
             inputRef={inlineEdit.elementRef as React.RefObject<HTMLInputElement>}
@@ -128,7 +148,7 @@ export const MsqdxGlassFieldEditor = ({
       case "number":
         return (
           <MsqdxFormField
-            label={inline ? "" : field.label}
+            label={inline ? "" : fieldLabel}
             type="number"
             value={currentValue ?? ""}
             onChange={(e) => {
@@ -147,7 +167,7 @@ export const MsqdxGlassFieldEditor = ({
 
       case "slider": {
         const sliderValue = typeof currentValue === "number" ? currentValue : (field.config?.min ?? 0);
-        return (
+        const sliderInner = (
           <Box>
             {/* @ts-expect-error MsqdxSlider ForwardRef type conflicts with React 19 inference */}
             <MsqdxSlider
@@ -163,17 +183,25 @@ export const MsqdxGlassFieldEditor = ({
             />
           </Box>
         );
+        if (field.key === "media_affinity") {
+          return (
+            <Tooltip title={t("entityEditor.mediaAffinityHint")} arrow>
+              <Box>{sliderInner}</Box>
+            </Tooltip>
+          );
+        }
+        return sliderInner;
       }
 
       case "select": {
         const options = field.config?.options ?? [];
         const selectOptions = [
-          { value: "" as const, label: "—" },
-          ...options.map((opt) => ({ value: opt.value, label: opt.label })),
+          { value: "" as const, label: t("common.notSpecified") },
+          ...options.map((opt) => ({ value: opt.value, label: resolveOptionLabel(opt) })),
         ];
         return (
           <MsqdxSelect
-            label={inline ? "" : field.label}
+            label={inline ? "" : fieldLabel}
             options={selectOptions}
             value={currentValue ?? ""}
             onChange={(e) => inlineEdit.setValue(e.target.value || null)}
@@ -202,7 +230,7 @@ export const MsqdxGlassFieldEditor = ({
       case "date":
         return (
           <MsqdxFormField
-            label={inline ? "" : field.label}
+            label={inline ? "" : fieldLabel}
             type="date"
             value={currentValue ? new Date(currentValue).toISOString().split("T")[0] : ""}
             onChange={(e) => {
@@ -255,11 +283,14 @@ export const MsqdxGlassFieldEditor = ({
       // Format display value based on type
       if (field.type === "select" && value) {
         const option = field.config?.options?.find(opt => opt.value === value);
-        displayValue = option ? option.label : value;
+        displayValue = option ? resolveOptionLabel(option) : value;
       } else if (field.type === "boolean") {
-        displayValue = value ? "Yes" : "No";
+        displayValue = value ? t("common.yes") : t("common.no");
       } else if (field.type === "slider" && typeof value === "number") {
-        displayValue = value;
+        displayValue =
+          field.key === "media_affinity" || (field.config?.max === 100 && field.config?.min === 0)
+            ? `${value}%`
+            : value;
       } else if (field.type === "date" && value) {
         displayValue = new Date(value).toLocaleDateString();
       }
@@ -271,7 +302,7 @@ export const MsqdxGlassFieldEditor = ({
               <Typography variant="body2">{String(displayValue)}</Typography>
             ) : (
               <Typography variant="body2" color="text.secondary" sx={{ fontStyle: "italic" }}>
-                —
+                {t("common.notSpecified")}
               </Typography>
             )}
           </Box>
@@ -282,7 +313,7 @@ export const MsqdxGlassFieldEditor = ({
                 setEditing(true);
                 onEditStart?.();
               }}
-              aria-label={`Edit ${field.label}`}
+              aria-label={`${t("common.edit")} ${fieldLabel}`}
               size="small"
               fontSize={16}
             />
@@ -296,7 +327,7 @@ export const MsqdxGlassFieldEditor = ({
   return (
     <Box>
       <Typography variant="caption" sx={{ mb: 0.5, display: "block" }}>
-        {field.label}
+        {fieldLabel}
         {field.config?.required && (
           <Typography component="span" color="error.main" sx={{ ml: 0.5 }}>
             *

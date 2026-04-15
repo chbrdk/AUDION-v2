@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Box } from "@mui/material";
-import { MsqdxTypography, MsqdxChip, MsqdxButton, MsqdxIcon, MsqdxCard } from "@msqdx/react";
+import { Box, Tooltip } from "@mui/material";
+import { MsqdxTypography, MsqdxButton, MsqdxIcon, MsqdxCard, MsqdxChip } from "@msqdx/react";
 import type { PersonaListItem } from "@msqdx-glass/types";
 import { useI18n } from "./i18n/i18n-provider";
 
@@ -31,24 +31,32 @@ export const MsqdxGlassPersonaList = ({
     );
   }
 
-  const statusChipConfig: Record<string, { label: string; brandColor: "orange" | "green" | "purple" }> = {
-    draft: { label: t("personaAdmin.statuses.draft"), brandColor: "orange" },
-    published: { label: t("personaAdmin.statuses.published"), brandColor: "green" },
-    archived: { label: t("personaAdmin.statuses.archived"), brandColor: "purple" },
-  };
-
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
       {personas.map((persona) => {
-        const config = statusChipConfig[persona.status] ?? statusChipConfig.draft;
         return (
           <MsqdxCard key={persona.id} variant="flat" sx={{ p: 1.5 }}>
             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1, flexWrap: "wrap" }}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1, flex: 1, minWidth: 0 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, flex: 1, minWidth: 0, flexWrap: "wrap" }}>
                 <MsqdxTypography variant="subtitle1" weight="semibold">
                   {persona.name}
                 </MsqdxTypography>
-                <MsqdxChip variant="filled" brandColor={config.brandColor} label={config.label} size="small" />
+                <Tooltip title={t("personaAdmin.confidenceHint")}>
+                  <Box component="span">
+                    <MsqdxChip
+                      variant="outlined"
+                      size="small"
+                      label={t("personaAdmin.confidencePercent", {
+                        value: Math.round(Math.min(1, Math.max(0, persona.confidence)) * 100),
+                      })}
+                      sx={{
+                        height: 22,
+                        borderColor: "divider",
+                        "& .MuiChip-label": { fontSize: "0.7rem" },
+                      }}
+                    />
+                  </Box>
+                </Tooltip>
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", gap: 0.25 }}>
                 <Link

@@ -17,7 +17,29 @@
     "add": "Hinzufügen",
     "remove": "Entfernen",
     "toggleNavigation": "Navigation umschalten",
-    "togglePanel": "Panel umschalten"
+    "togglePanel": "Panel umschalten",
+    "yes": "Ja",
+    "no": "Nein",
+    "notSpecified": "Nicht angegeben",
+    "apiDocumentation": "API-Dokumentation"
+  },
+  "entityFieldGroups": {
+    "basic": "Stammdaten",
+    "other": "Sonstiges"
+  },
+  "entityFields": {
+    "document": {
+      "filename": "Dateiname",
+      "insightSummary": "Insight-Zusammenfassung"
+    },
+    "knowledge": {
+      "title": "Titel",
+      "content": "Inhalt"
+    }
+  },
+  "entityEditor": {
+    "saveAllChanges": "Alle Änderungen speichern ({count})",
+    "mediaAffinityHint": "Skala 0–100: wie stark die Persona digitale/Medien-Inhalte nutzt oder bevorzugt."
   },
   "promptBuilder": {
     "collapsePanel": "Panel einklappen",
@@ -241,6 +263,7 @@
     "cta": "Erneut versuchen"
   },
   "adminDashboard": {
+    "greetingHello": "Hallo",
     "greetingMorning": "Guten Morgen",
     "greetingAfternoon": "Guten Tag",
     "greetingEvening": "Guten Abend",
@@ -458,6 +481,15 @@
     "archive": "Archivieren",
     "delete": "Löschen",
     "deleteConfirm": "Bist du sicher, dass du \"{name}\" löschen möchtest?\n\nDiese Aktion kann nicht rückgängig gemacht werden. Die Persona wird dauerhaft entfernt.",
+    "deleteDialogTitle": "Persona endgültig löschen?",
+    "deleteDialogDescription": "„{name}“ wird dauerhaft entfernt. Diese Aktion kann nicht rückgängig gemacht werden.",
+    "deleteDialogConfirm": "Endgültig löschen",
+    "integrations": "Integrationen (Tavus)",
+    "confidenceHint": "Geschätzte Datenqualität dieser Persona (Score aus Pflege oder Modell).",
+    "confidencePercent": "{value} %",
+    "noTargetGroupBanner": "Keine Zielgruppe",
+    "noTargetGroupDetailHint": "Weise im Bereich „Metadaten“ eine Zielgruppe zu – das verbessert Vorschläge und Ausrichtung.",
+    "ensureChatPromptTooltip": "Baut den Chat-Prompt aus Profil und Metadaten neu auf, damit die Konversation zur Persona passt.",
     "thisPersona": "diese Persona",
     "statuses": {
       "draft": "Entwurf",
@@ -521,7 +553,13 @@
   "settings": {
     "eyebrow": "Kontrollzentrum",
     "title": "Einstellungen",
-    "subtitle": "Zentralisiere die KI‑Konfiguration. Prüfe Provider‑Status, Prompt‑Templates und Rollout‑Status neuer Funktionen.",
+    "subtitle": "Konto, Darstellung, Projektzugriff und KI‑Konfiguration an einem Ort. Nicht alles ist projektspezifisch – die Gruppen unten zeigen, was global gilt und was zum Workspace gehört.",
+    "groups": {
+      "account": "Konto & Darstellung",
+      "workspace": "Projekt & Zugriff",
+      "ai": "KI & Prompts",
+      "developers": "Entwicklung"
+    },
     "cards": {
       "profile": {
         "title": "Profil",
@@ -547,7 +585,8 @@
         "title": "API‑Dokumentation",
         "description": "Interaktive API‑Referenz für das Persona‑Backend. Endpoints testen und Schemas ansehen."
       }
-    }
+    },
+    "apiDocsLink": "API‑Referenz separat öffnen"
   },
   "settingsProjects": {
     "eyebrow": "Workspace",
@@ -613,6 +652,7 @@
       "descriptionPlaceholder": "Kurze Beschreibung des Projekts oder Unternehmens…",
       "contextLabel": "Unternehmenskontext",
       "contextPlaceholder": "Branche, Produkte, Zielmärkte, Tonfall usw. Dieser Kontext wird genutzt, um Zielgruppen und Personas vorzuschlagen.",
+      "emptyAiHint": "Ohne Beschreibung und Unternehmenskontext liefern KI-Vorschläge für Zielgruppen und Personas schlechtere Ergebnisse. Fülle die Felder unten aus und speichere.",
       "saved": "Unternehmenskontext gespeichert",
       "suggestTitle": "Zielgruppen aus Kontext vorschlagen",
       "suggestCta": "Vorschläge generieren",
@@ -908,6 +948,8 @@
     "title": "Journeys",
     "create": "Journey erstellen",
     "empty": "Noch keine Journeys. Erstelle deine erste Journey, um zu starten.",
+    "emptyPersonasIntro": "Personas aus diesem Projekt – gut als Einstieg, um eine Journey zu füllen:",
+    "openPersona": "Persona öffnen",
     "loading": "Journeys laden…",
     "loadFailed": "Journeys konnten nicht geladen werden",
     "selectProject": "Wähle ein Projekt, um Journeys anzuzeigen.",

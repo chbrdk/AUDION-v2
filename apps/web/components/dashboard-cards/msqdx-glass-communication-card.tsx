@@ -70,6 +70,7 @@ export const MsqdxGlassCommunicationCard = ({
             }
           }}
           value={profile.communication_style.sentence_structure || ""}
+          valueSyncKey={profile.id}
           onChange={() => {}}
           onSave={
             onSaveSentenceStructure
@@ -109,6 +110,7 @@ export const MsqdxGlassCommunicationCard = ({
                   config: { min: 0, max: 5, step: 1 }
                 }}
                 value={profile.communication_style.skepticism_level || 0}
+                valueSyncKey={profile.id}
                 onChange={() => {}}
                 onSave={async (_key, value) =>
                   onSaveSkepticismLevel(

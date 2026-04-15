@@ -20,7 +20,6 @@ function Demo() {
         name="Alex Researcher"
         headline="B2B research lead"
         segment="B2B SaaS"
-        status="draft"
         expanded={expanded}
         onToggle={() => setExpanded(!expanded)}
       />

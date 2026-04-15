@@ -19,6 +19,11 @@ export type UseInlineEditOptions<T> = {
    * Callback when value changes
    */
   onChange?: (value: T) => void;
+  /**
+   * When set, prop-driven updates only reset local state when this key changes (e.g. selected entity id).
+   * Same key + new `initialValue` from a background refresh does not overwrite in-progress edits.
+   */
+  baselineKey?: string;
 };
 
 export type UseInlineEditReturn<T> = {
@@ -65,13 +70,25 @@ export function useInlineEdit<T>({
   initialValue,
   currentValue,
   isEqual = defaultIsEqual,
-  onChange
+  onChange,
+  baselineKey,
 }: UseInlineEditOptions<T>): UseInlineEditReturn<T> {
   const [value, setValue] = useState<T>(initialValue);
   const elementRef = useRef<HTMLElement>(null);
+  const lastBaselineKeyRef = useRef<string | null>(null);
+
+  // Baseline mode: only adopt server props when the logical entity/selection changes
+  useEffect(() => {
+    if (baselineKey === undefined) return;
+    if (lastBaselineKeyRef.current === baselineKey) return;
+    lastBaselineKeyRef.current = baselineKey;
+    const next = currentValue !== undefined ? currentValue : initialValue;
+    setValue(next);
+  }, [baselineKey, initialValue, currentValue]);
 
   // Sync with currentValue when it changes externally
   useEffect(() => {
+    if (baselineKey !== undefined) return;
     if (currentValue !== undefined && !isEqual(value, currentValue)) {
       // Only sync if we don't have local changes
       // This prevents overwriting user edits
@@ -80,10 +97,11 @@ export function useInlineEdit<T>({
         setValue(currentValue);
       }
     }
-  }, [currentValue, initialValue, isEqual, value]);
+  }, [baselineKey, currentValue, initialValue, isEqual, value]);
 
   // Update local value when initialValue changes (but not when user is editing)
   useEffect(() => {
+    if (baselineKey !== undefined) return;
     if (!isEqual(value, initialValue) && currentValue === undefined) {
       // User has changes, don't override
       return;
@@ -93,7 +111,7 @@ export function useInlineEdit<T>({
       return;
     }
     setValue(initialValue);
-  }, [initialValue, isEqual, value, currentValue]);
+  }, [baselineKey, initialValue, isEqual, value, currentValue]);
 
   const handleChange = useCallback((newValue: T) => {
     setValue(newValue);

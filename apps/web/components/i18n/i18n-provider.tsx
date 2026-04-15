@@ -3,6 +3,11 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 import { createTranslator, DEFAULT_LOCALE, normalizeLocale, type Locale } from "../../lib/i18n";
+import {
+  LOCALE_COOKIE,
+  LOCALE_COOKIE_MAX_AGE_SEC,
+  LOCALE_STORAGE_KEY,
+} from "../../lib/i18n/locale-storage";
 
 type I18nContextValue = {
   locale: Locale;
@@ -11,10 +16,6 @@ type I18nContextValue = {
 };
 
 const I18nContext = createContext<I18nContextValue | undefined>(undefined);
-
-const LOCALE_STORAGE_KEY = "audion_locale";
-const LOCALE_COOKIE = "audion_locale";
-const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
 export const I18nProvider = ({
   children,
@@ -41,7 +42,7 @@ export const I18nProvider = ({
     } catch {
       // ignore storage failures
     }
-    document.cookie = `${LOCALE_COOKIE}=${locale}; path=/; max-age=${LOCALE_COOKIE_MAX_AGE}; samesite=lax`;
+    document.cookie = `${LOCALE_COOKIE}=${locale}; path=/; max-age=${LOCALE_COOKIE_MAX_AGE_SEC}; samesite=lax`;
   }, [locale]);
 
   const setLocale = (value: Locale | string) => {

@@ -59,23 +59,32 @@ export const MsqdxGlassBioCardEdit = ({
     isEqual: (a, b) => a === b
   });
 
-  // Sync all hooks when profile changes (after save)
+  // Sync from server when profile fields change — never while that field has local unsaved edits
+  // (otherwise any refreshed profile field resets sliders/inputs the user is still adjusting).
   useEffect(() => {
-    // Only sync if values are different to avoid unnecessary updates
-    if (ageEdit.value !== (profile.age ?? null)) {
+    if (!ageEdit.hasChanges && ageEdit.value !== (profile.age ?? null)) {
       ageEdit.sync();
     }
-    if (locationEdit.value !== (profile.location ?? "")) {
+    if (!locationEdit.hasChanges && locationEdit.value !== (profile.location ?? "")) {
       locationEdit.sync();
     }
-    if (genderEdit.value !== (profile.gender ?? "")) {
+    if (!genderEdit.hasChanges && genderEdit.value !== (profile.gender ?? "")) {
       genderEdit.sync();
     }
-    if (mediaAffinityEdit.value !== (profile.media_affinity ?? null)) {
+    if (!mediaAffinityEdit.hasChanges && mediaAffinityEdit.value !== (profile.media_affinity ?? null)) {
       mediaAffinityEdit.sync();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile.age, profile.location, profile.gender, profile.media_affinity]);
+  }, [
+    profile.age,
+    profile.location,
+    profile.gender,
+    profile.media_affinity,
+    ageEdit.hasChanges,
+    locationEdit.hasChanges,
+    genderEdit.hasChanges,
+    mediaAffinityEdit.hasChanges,
+  ]);
 
   // Element refs for positioning
   const ageRef = useRef<HTMLDivElement>(null);

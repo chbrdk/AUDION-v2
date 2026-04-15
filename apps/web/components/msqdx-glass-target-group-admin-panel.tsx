@@ -642,6 +642,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                   <MsqdxGlassEntityEditor
                     entityType="targetGroup"
                     entity={detail}
+                    entitySyncKey={selectedId ?? ""}
                     onSave={handleFieldSave}
                     inline={true}
                     disabled={savePending}

@@ -2,13 +2,14 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Box, Stack } from "@mui/material";
+import { Alert, Box, Stack } from "@mui/material";
 import Link from "next/link";
 import { MsqdxButton, MsqdxCard, MsqdxFormField, MsqdxTypography, MsqdxIcon, MsqdxDashboardCard, MsqdxChip, MsqdxSelect } from "@msqdx/react";
 import { MsqdxGlassCollapsiblePanel } from "./admin/msqdx-glass-collapsible-panel";
 import { buildApiUrl, fetchWithTimeout } from "../app/api/_lib/backend";
 import { journeysApi, type JourneyResponse } from "../app/api/_lib/journeys";
 import { ADMIN_ROUTES } from "../lib/routes";
+import { isProjectAiContextEmpty } from "../lib/project-context";
 import { aiAssistApi, type AiTemplateSummary } from "../app/api/_lib/ai-assist";
 import { useProject, type ProjectSummary, type ProjectMember } from "./projects/project-provider";
 import { useI18n } from "./i18n/i18n-provider";
@@ -1134,6 +1135,11 @@ export function MsqdxGlassProjectAdminPanel({
                                     onToggle={toggleSection}
                                 >
                                     <Stack spacing={2}>
+                                        {isProjectAiContextEmpty(companyDescription, companyContext) && (
+                                            <Alert severity="info" sx={{ alignItems: "flex-start" }}>
+                                                {t("settingsProjects.companyContext.emptyAiHint")}
+                                            </Alert>
+                                        )}
                                         <MsqdxFormField
                                             label={t("settingsProjects.companyContext.description") ?? "Project / company description"}
                                             value={companyDescription}

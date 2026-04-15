@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import type { PersonaListItem, TargetGroupListItem } from "@msqdx-glass/types";
-import { Box, Stack } from "@mui/material";
-import { MsqdxAvatar, MsqdxMoleculeCard, MsqdxButton, MsqdxTypography, MsqdxIcon } from "@msqdx/react";
+import { Box, Stack, Tooltip } from "@mui/material";
+import { MsqdxAvatar, MsqdxChip, MsqdxMoleculeCard, MsqdxButton, MsqdxTypography, MsqdxIcon } from "@msqdx/react";
 import { useAuth } from "../auth/auth-provider";
 import { useI18n } from "../i18n/i18n-provider";
 import { ADMIN_ROUTES } from "../../lib/routes";
@@ -34,11 +34,11 @@ export const MsqdxGlassAdminDashboard = ({
   const { user } = useAuth();
   const { projects } = useProject();
   const accent = "var(--color-theme-accent)";
-  const [hour, setHour] = useState(12);
+  const [hour, setHour] = useState<number | null>(null);
   useEffect(() => {
     setHour(new Date().getHours());
   }, []);
-  const greetingKey = getGreetingKey(hour);
+  const greetingKey = hour === null ? "greetingHello" : getGreetingKey(hour);
   const displayName = user?.name?.trim() || user?.email?.trim() || "";
   const greetingTitle = `${t(`adminDashboard.${greetingKey}`)}${displayName ? `, ${displayName}` : ""}`;
 
@@ -235,7 +235,7 @@ export const MsqdxGlassAdminDashboard = ({
               {personaItems.slice(0, 5).map((persona) => (
                 <Link
                   key={persona.id}
-                  href={ADMIN_ROUTES.personas}
+                  href={ADMIN_ROUTES.personaDetail(persona.id)}
                   style={{ textDecoration: "none", color: "inherit" }}
                   className="msqdx-admin-dashboard-persona-row"
                 >
@@ -274,6 +274,22 @@ export const MsqdxGlassAdminDashboard = ({
                         {persona.headline || persona.segment || "—"}
                       </MsqdxTypography>
                     </Box>
+                    <Tooltip title={t("personaAdmin.confidenceHint")}>
+                      <Box component="span" sx={{ flexShrink: 0 }}>
+                        <MsqdxChip
+                          variant="outlined"
+                          size="small"
+                          label={t("personaAdmin.confidencePercent", {
+                            value: Math.round(Math.min(1, Math.max(0, persona.confidence)) * 100),
+                          })}
+                          sx={{
+                            height: 22,
+                            borderColor: "divider",
+                            "& .MuiChip-label": { fontSize: "0.7rem" },
+                          }}
+                        />
+                      </Box>
+                    </Tooltip>
                     <MsqdxIcon name="chevron_right" customSize={18} style={{ color: accent, flexShrink: 0 }} />
                   </Box>
                 </Link>

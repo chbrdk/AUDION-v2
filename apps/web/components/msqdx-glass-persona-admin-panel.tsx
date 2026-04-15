@@ -5,7 +5,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "rea
 
 import type { PersonaListItem, PersonaListResponse, PersonaProfile, PersonaResponse } from "@msqdx-glass/types";
 
-import { MsqdxIcon, MsqdxButton, MsqdxChip, MsqdxTypography, MsqdxCard, MsqdxFormField, MsqdxDashboardCard } from "@msqdx/react";
+import { MsqdxIcon, MsqdxButton, MsqdxTypography, MsqdxCard, MsqdxFormField, MsqdxDashboardCard } from "@msqdx/react";
 import { MsqdxGlassAiButtonIcon } from "./generic/msqdx-glass-ai-button-icon";
 import {
   MsqdxGlassBioCard,
@@ -20,8 +20,18 @@ import { MsqdxGlassEntityEditor, MsqdxGlassFieldEditor, MsqdxGlassEditButton } f
 import { getFieldDefinitions } from "@msqdx-glass/types";
 import { useAiAssist } from "../hooks/use-ai-assist";
 import { MsqdxGlassCollapsiblePanel } from "./admin/msqdx-glass-collapsible-panel";
-import { Box } from "@mui/material";
+import {
+  Alert,
+  Box,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  LinearProgress,
+  Tooltip,
+} from "@mui/material";
 import { buildApiUrl } from "../app/api/_lib/backend";
+import { normalizePersonaListResponse } from "../lib/persona-list-normalize";
 import { THEME_ACCENT } from "../lib/theme-accent";
 import { useProject } from "./projects/project-provider";
 import { useI18n } from "./i18n/i18n-provider";
@@ -144,12 +154,6 @@ const notify = (message: string) => {
   }, 5000);
 };
 
-const statusChipConfig: Record<string, { brandColor: "orange" | "green" | "purple" }> = {
-  draft: { brandColor: "orange" },
-  published: { brandColor: "green" },
-  archived: { brandColor: "purple" },
-};
-
 export const MsqdxGlassPersonaAdminPanel = ({
   initialList,
   docsUrl,
@@ -160,11 +164,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
   const { t } = useI18n();
   const accent = "var(--color-theme-accent)";
 
-  const getStatusLabel = (status: string) => {
-    const key = status === "draft" ? "personaAdmin.statuses.draft" : status === "published" ? "personaAdmin.statuses.published" : "personaAdmin.statuses.archived";
-    return t(key);
-  };
-  const [list, setList] = useState<PersonaListResponse>(initialList);
+  const [list, setList] = useState<PersonaListResponse>(() => normalizePersonaListResponse(initialList));
   const [selectedId, setSelectedId] = useState<string | null>(activePersonaId ?? initialList.items[0]?.id ?? null);
   const [detail, setDetail] = useState<PersonaResponse | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
@@ -196,16 +196,20 @@ export const MsqdxGlassPersonaAdminPanel = ({
       "pain-points-goals",
       "communication",
       "knowledge-sources",
-      "advanced"
+      "advanced",
+      "integrations"
     ])
   );
   const [targetGroupsForMetadata, setTargetGroupsForMetadata] = useState<TargetGroupResponse[]>([]);
   const [metadataAssignPending, setMetadataAssignPending] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const documentInputRef = useRef<HTMLInputElement | null>(null);
   const lastTargetGroupsProjectIdRef = useRef<string | null>(null);
   const loadDetailInFlightRef = useRef(false);
   const loadDetailRef = useRef<(id: string) => Promise<void>>(async () => {});
   const lastLoadedPersonaIdRef = useRef<string | null>(null);
+  /** When true, do not overwrite metadata/editForm from background `detail` refreshes (polling, list sync). */
+  const metadataFormDirtyRef = useRef(false);
 
   const selectedListItem: PersonaListItem | undefined = useMemo(
     () => list.items.find((item) => item.id === selectedId),
@@ -263,7 +267,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
       if (!response.ok) {
         throw new Error(`Backend responded with ${response.status}`);
       }
-      const payload = (await response.json()) as PersonaListResponse;
+      const payload = normalizePersonaListResponse(await response.json());
       setList(payload);
       const currentInList = payload.items.find((item) => item.id === selectedId);
       // On detail page with URL-driven persona, never overwrite selectedId (prevents refreshList ↔ sync effect loop).
@@ -347,8 +351,19 @@ export const MsqdxGlassPersonaAdminPanel = ({
   }, [hasActiveIngestion, selectedId]);
 
   useEffect(() => {
+    metadataFormDirtyRef.current = false;
+  }, [selectedId]);
+
+  useEffect(() => {
     if (!detail) {
       setEditForm(defaultEditFormState);
+      metadataFormDirtyRef.current = false;
+      return;
+    }
+    if (detail.metadata.personaId !== selectedId) {
+      return;
+    }
+    if (metadataFormDirtyRef.current) {
       return;
     }
     setEditForm({
@@ -358,7 +373,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
       status: detail.metadata.status,
       updatedBy: detail.metadata.updatedBy ?? "persona-admin-ui",
     });
-  }, [detail]);
+  }, [detail, selectedId]);
 
   useEffect(() => {
     const projectId = detail?.metadata?.projectId ?? null;
@@ -384,6 +399,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
   }, [detail?.metadata?.projectId]);
 
   const handleEditField = (field: keyof EditFormState, value: string) => {
+    metadataFormDirtyRef.current = true;
     setEditForm((prev) => ({
       ...prev,
       [field]: value,
@@ -660,6 +676,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
         location: updated.profile?.location,
         media_affinity: updated.profile?.media_affinity,
       });
+      metadataFormDirtyRef.current = false;
       setDetail(updated);
       setList((prev) => ({
         ...prev,
@@ -1227,17 +1244,14 @@ export const MsqdxGlassPersonaAdminPanel = ({
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
+    if (!selectedId || !detail) return;
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
     if (!selectedId || !detail) {
-      return;
-    }
-
-    const personaName = detail.profile.name || t("personaAdmin.thisPersona");
-    const confirmed = window.confirm(
-      t("personaAdmin.deleteConfirm", { name: personaName })
-    );
-
-    if (!confirmed) {
+      setDeleteDialogOpen(false);
       return;
     }
 
@@ -1252,6 +1266,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
       await refreshList();
       setSelectedId(null);
       setDetail(null);
+      setDeleteDialogOpen(false);
       notify(t("personaAdmin.toasts.personaDeleted"));
     } catch (error) {
       console.error("Persona delete failed", error);
@@ -1487,8 +1502,6 @@ export const MsqdxGlassPersonaAdminPanel = ({
               </MsqdxTypography>
             )}
             {list.items.map((item) => {
-              const config = statusChipConfig[item.status] ?? statusChipConfig.draft;
-              const statusLabel = getStatusLabel(item.status);
               return (
                 <MsqdxCard
                   key={item.id}
@@ -1514,12 +1527,9 @@ export const MsqdxGlassPersonaAdminPanel = ({
                   }}
                 >
                   <Box sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}>
-                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
-                      <MsqdxTypography variant="subtitle1" weight="semibold">
-                        {item.name}
-                      </MsqdxTypography>
-                      <MsqdxChip variant="filled" brandColor={config.brandColor} label={statusLabel} size="small" />
-                    </Box>
+                    <MsqdxTypography variant="subtitle1" weight="semibold">
+                      {item.name}
+                    </MsqdxTypography>
                     <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
                       {item.segment} · {t("personaAdmin.versionLabel", { version: item.version })}
                     </MsqdxTypography>
@@ -1640,6 +1650,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
                                     <MsqdxGlassFieldEditor
                                       field={nameField}
                                       value={detail.profile.name}
+                                      valueSyncKey={selectedId || undefined}
                                       onChange={handleFieldChange}
                                       onSave={(k, v) => handleFieldSave(k, v)}
                                       inline={true}
@@ -1666,6 +1677,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
                                       <MsqdxGlassFieldEditor
                                         field={headlineField}
                                         value={detail.profile.headline}
+                                        valueSyncKey={selectedId || undefined}
                                         onChange={handleFieldChange}
                                         onSave={(k, v) => handleFieldSave(k, v)}
                                         inline={true}
@@ -1689,6 +1701,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
                                       <MsqdxGlassFieldEditor
                                         field={segmentField}
                                         value={detail.profile.segment}
+                                        valueSyncKey={selectedId || undefined}
                                         onChange={handleFieldChange}
                                         onSave={(k, v) => handleFieldSave(k, v)}
                                         inline={true}
@@ -1706,22 +1719,30 @@ export const MsqdxGlassPersonaAdminPanel = ({
                                 </div>
                               )}
                             </div>
-                            <Box sx={{ display: "flex", gap: 0.5, alignItems: "center", mt: 1, flexWrap: "wrap" }}>
-                              <MsqdxButton variant="outlined" size="small" onClick={handleEnrichWithAi} disabled={enrichPending || savePending} startIcon={<MsqdxIcon name="auto_awesome" customSize={16} />}>
-                                {enrichPending ? t("personaAdmin.enrichingWithAi") : t("personaAdmin.enrichWithAi")}
-                              </MsqdxButton>
-                              <MsqdxButton variant="text" size="small" onClick={handleEnsureChatPrompt} disabled={ensureChatPromptPending || savePending} startIcon={<MsqdxIcon name="chat" customSize={16} />}>
-                                {ensureChatPromptPending ? t("personaAdmin.ensuringChatPrompt") : t("personaAdmin.ensureChatPrompt")}
-                              </MsqdxButton>
-                              <MsqdxButton variant="text" size="small" onClick={handleGenerateAvatar} disabled={avatarGeneratePending} startIcon={<MsqdxIcon name="photo_camera" customSize={16} />}>
-                                {avatarGeneratePending ? t("personaAdmin.generatingAvatar") : t("personaAdmin.generateAvatar")}
-                              </MsqdxButton>
-                              <MsqdxButton variant="text" size="small" onClick={handleArchive} disabled={savePending} startIcon={<MsqdxIcon name="archive" customSize={16} />}>
-                                {t("personaAdmin.archive")}
-                              </MsqdxButton>
-                              <MsqdxButton variant="text" size="small" onClick={handleDelete} disabled={savePending} brandColor="pink" startIcon={<MsqdxIcon name="delete" customSize={16} />}>
-                                {t("personaAdmin.delete")}
-                              </MsqdxButton>
+                            <Box sx={{ mt: 1, display: "flex", flexDirection: "column", gap: 1 }}>
+                              <Box sx={{ display: "flex", gap: 0.5, alignItems: "center", flexWrap: "wrap" }}>
+                                <MsqdxButton variant="outlined" size="small" onClick={handleEnrichWithAi} disabled={enrichPending || savePending} startIcon={<MsqdxIcon name="auto_awesome" customSize={16} />}>
+                                  {enrichPending ? t("personaAdmin.enrichingWithAi") : t("personaAdmin.enrichWithAi")}
+                                </MsqdxButton>
+                                <Tooltip title={t("personaAdmin.ensureChatPromptTooltip")}>
+                                  <span>
+                                    <MsqdxButton variant="text" size="small" onClick={handleEnsureChatPrompt} disabled={ensureChatPromptPending || savePending} startIcon={<MsqdxIcon name="chat" customSize={16} />}>
+                                      {ensureChatPromptPending ? t("personaAdmin.ensuringChatPrompt") : t("personaAdmin.ensureChatPrompt")}
+                                    </MsqdxButton>
+                                  </span>
+                                </Tooltip>
+                                <MsqdxButton variant="text" size="small" onClick={handleGenerateAvatar} disabled={avatarGeneratePending} startIcon={<MsqdxIcon name="photo_camera" customSize={16} />}>
+                                  {avatarGeneratePending ? t("personaAdmin.generatingAvatar") : t("personaAdmin.generateAvatar")}
+                                </MsqdxButton>
+                              </Box>
+                              <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end", flexWrap: "wrap", pt: 0.5, borderTop: "1px solid", borderColor: "divider" }}>
+                                <MsqdxButton variant="text" size="small" onClick={handleArchive} disabled={savePending} startIcon={<MsqdxIcon name="archive" customSize={16} />}>
+                                  {t("personaAdmin.archive")}
+                                </MsqdxButton>
+                                <MsqdxButton variant="text" size="small" onClick={handleDelete} disabled={savePending} brandColor="pink" startIcon={<MsqdxIcon name="delete" customSize={16} />}>
+                                  {t("personaAdmin.delete")}
+                                </MsqdxButton>
+                              </Box>
                             </Box>
                           </div>
                         );
@@ -1739,6 +1760,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
                     <MsqdxGlassEntityEditor
                       entityType="persona"
                       entity={detail.profile}
+                      entitySyncKey={selectedId ?? ""}
                       onSave={async (updates) => {
                         await handleDemographicSave(updates as Partial<PersonaProfile>);
                       }}
@@ -1760,6 +1782,11 @@ export const MsqdxGlassPersonaAdminPanel = ({
                   onToggle={toggleAccordion}
                 >
                   <Box sx={{ pt: 1 }}>
+                    {!(detail.metadata.targetGroupId ?? (detail.profile as { targetGroupId?: string }).targetGroupId) && (
+                      <Alert severity="warning" sx={{ mb: 2 }}>
+                        {t("personaAdmin.noTargetGroupDetailHint")}
+                      </Alert>
+                    )}
                     <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 2 }}>
                       <Box sx={{ minWidth: 200 }}>
                         <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.5 }}>
@@ -1818,66 +1845,6 @@ export const MsqdxGlassPersonaAdminPanel = ({
                           ))}
                         </Box>
                       </Box>
-                      <Box sx={{ minWidth: 200 }}>
-                        <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.5 }}>
-                          {t("personaAdmin.tavusReplicaId")}
-                        </MsqdxTypography>
-                        <Box
-                          component="input"
-                          type="text"
-                          key={`${selectedId}-tavus-replica`}
-                          defaultValue={detail.metadata.tavusReplicaId ?? ""}
-                          onBlur={(e) => {
-                            const v = e.target.value.trim() || null;
-                            if (v !== (detail.metadata.tavusReplicaId ?? null)) {
-                              handleSaveMetadataAssignment({ tavus_replica_id: v });
-                            }
-                          }}
-                          disabled={metadataAssignPending || savePending}
-                          placeholder={t("personaAdmin.tavusReplicaIdPlaceholder")}
-                          sx={{
-                            width: "100%",
-                            py: 0.75,
-                            px: 1,
-                            fontSize: "0.875rem",
-                            border: "1px solid",
-                            borderColor: "divider",
-                            borderRadius: 1,
-                            bgcolor: "background.paper",
-                            color: "text.primary",
-                          }}
-                        />
-                      </Box>
-                      <Box sx={{ minWidth: 200 }}>
-                        <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.5 }}>
-                          {t("personaAdmin.tavusPersonaId")}
-                        </MsqdxTypography>
-                        <Box
-                          component="input"
-                          type="text"
-                          key={`${selectedId}-tavus-persona`}
-                          defaultValue={detail.metadata.tavusPersonaId ?? ""}
-                          onBlur={(e) => {
-                            const v = e.target.value.trim() || null;
-                            if (v !== (detail.metadata.tavusPersonaId ?? null)) {
-                              handleSaveMetadataAssignment({ tavus_persona_id: v });
-                            }
-                          }}
-                          disabled={metadataAssignPending || savePending}
-                          placeholder={t("personaAdmin.tavusPersonaIdPlaceholder")}
-                          sx={{
-                            width: "100%",
-                            py: 0.75,
-                            px: 1,
-                            fontSize: "0.875rem",
-                            border: "1px solid",
-                            borderColor: "divider",
-                            borderRadius: 1,
-                            bgcolor: "background.paper",
-                            color: "text.primary",
-                          }}
-                        />
-                      </Box>
                     </Box>
                   </Box>
                   <Box
@@ -1888,17 +1855,24 @@ export const MsqdxGlassPersonaAdminPanel = ({
                       pt: 1,
                     }}
                   >
-                    <Box>
-                      <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
-                        {t("personaAdmin.status")}
-                      </MsqdxTypography>
-                      <MsqdxTypography variant="body2" weight="medium">{detail.metadata.status}</MsqdxTypography>
-                    </Box>
-                    <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
-                      <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
-                        {t("personaAdmin.confidence")}
-                      </MsqdxTypography>
-                      <MsqdxTypography variant="body2" weight="medium">{detail.metadata.confidence.toFixed(2)}</MsqdxTypography>
+                    <Box sx={{ minWidth: 140 }}>
+                      <Tooltip title={t("personaAdmin.confidenceHint")}>
+                        <Box>
+                          <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
+                            {t("personaAdmin.confidence")}
+                          </MsqdxTypography>
+                          <MsqdxTypography variant="body2" weight="medium" sx={{ mb: 0.5 }}>
+                            {t("personaAdmin.confidencePercent", {
+                              value: Math.round(Math.min(1, Math.max(0, detail.metadata.confidence)) * 100),
+                            })}
+                          </MsqdxTypography>
+                          <LinearProgress
+                            variant="determinate"
+                            value={Math.min(100, Math.max(0, detail.metadata.confidence * 100))}
+                            sx={{ height: 6, borderRadius: 1 }}
+                          />
+                        </Box>
+                      </Tooltip>
                     </Box>
                     <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
                       <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
@@ -1949,6 +1923,80 @@ export const MsqdxGlassPersonaAdminPanel = ({
                         </MsqdxButton>
                       </Box>
                     )}
+                  </Box>
+                </MsqdxDashboardCard>
+              </Box>
+
+              <Box sx={{ gridColumn: "1 / -1" }}>
+                <MsqdxDashboardCard
+                  id="integrations"
+                  title={t("personaAdmin.integrations")}
+                  icon="link"
+                  iconColor={{ color: THEME_ACCENT.color }}
+                  expanded={isAccordionExpanded("integrations")}
+                  onToggle={toggleAccordion}
+                >
+                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, pt: 1 }}>
+                    <Box sx={{ minWidth: 200, flex: "1 1 200px" }}>
+                      <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.5 }}>
+                        {t("personaAdmin.tavusReplicaId")}
+                      </MsqdxTypography>
+                      <Box
+                        component="input"
+                        type="text"
+                        key={`${selectedId}-tavus-replica`}
+                        defaultValue={detail.metadata.tavusReplicaId ?? ""}
+                        onBlur={(e) => {
+                          const v = e.target.value.trim() || null;
+                          if (v !== (detail.metadata.tavusReplicaId ?? null)) {
+                            handleSaveMetadataAssignment({ tavus_replica_id: v });
+                          }
+                        }}
+                        disabled={metadataAssignPending || savePending}
+                        placeholder={t("personaAdmin.tavusReplicaIdPlaceholder")}
+                        sx={{
+                          width: "100%",
+                          py: 0.75,
+                          px: 1,
+                          fontSize: "0.875rem",
+                          border: "1px solid",
+                          borderColor: "divider",
+                          borderRadius: 1,
+                          bgcolor: "background.paper",
+                          color: "text.primary",
+                        }}
+                      />
+                    </Box>
+                    <Box sx={{ minWidth: 200, flex: "1 1 200px" }}>
+                      <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.5 }}>
+                        {t("personaAdmin.tavusPersonaId")}
+                      </MsqdxTypography>
+                      <Box
+                        component="input"
+                        type="text"
+                        key={`${selectedId}-tavus-persona`}
+                        defaultValue={detail.metadata.tavusPersonaId ?? ""}
+                        onBlur={(e) => {
+                          const v = e.target.value.trim() || null;
+                          if (v !== (detail.metadata.tavusPersonaId ?? null)) {
+                            handleSaveMetadataAssignment({ tavus_persona_id: v });
+                          }
+                        }}
+                        disabled={metadataAssignPending || savePending}
+                        placeholder={t("personaAdmin.tavusPersonaIdPlaceholder")}
+                        sx={{
+                          width: "100%",
+                          py: 0.75,
+                          px: 1,
+                          fontSize: "0.875rem",
+                          border: "1px solid",
+                          borderColor: "divider",
+                          borderRadius: 1,
+                          bgcolor: "background.paper",
+                          color: "text.primary",
+                        }}
+                      />
+                    </Box>
                   </Box>
                 </MsqdxDashboardCard>
               </Box>
@@ -2035,6 +2083,25 @@ export const MsqdxGlassPersonaAdminPanel = ({
           </div>
         )}
       </section>
+
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>{t("personaAdmin.deleteDialogTitle")}</DialogTitle>
+        <DialogContent>
+          <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+            {t("personaAdmin.deleteDialogDescription", {
+              name: detail?.profile.name || t("personaAdmin.thisPersona"),
+            })}
+          </MsqdxTypography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+          <MsqdxButton variant="outlined" size="small" onClick={() => setDeleteDialogOpen(false)} disabled={savePending}>
+            {t("common.cancel")}
+          </MsqdxButton>
+          <MsqdxButton variant="contained" size="small" brandColor="pink" onClick={() => void handleDeleteConfirm()} disabled={savePending}>
+            {t("personaAdmin.deleteDialogConfirm")}
+          </MsqdxButton>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 };

@@ -17,7 +17,29 @@
     "add": "Add",
     "remove": "Remove",
     "toggleNavigation": "Toggle navigation",
-    "togglePanel": "Toggle panel"
+    "togglePanel": "Toggle panel",
+    "yes": "Yes",
+    "no": "No",
+    "notSpecified": "Not specified",
+    "apiDocumentation": "API documentation"
+  },
+  "entityFieldGroups": {
+    "basic": "Basics",
+    "other": "Other"
+  },
+  "entityFields": {
+    "document": {
+      "filename": "Filename",
+      "insightSummary": "Insight summary"
+    },
+    "knowledge": {
+      "title": "Title",
+      "content": "Content"
+    }
+  },
+  "entityEditor": {
+    "saveAllChanges": "Save all changes ({count})",
+    "mediaAffinityHint": "Scale 0–100: how strongly this persona uses or prefers digital/media content."
   },
   "promptBuilder": {
     "collapsePanel": "Collapse panel",
@@ -241,6 +263,7 @@
     "cta": "Try again"
   },
   "adminDashboard": {
+    "greetingHello": "Hello",
     "greetingMorning": "Good morning",
     "greetingAfternoon": "Good afternoon",
     "greetingEvening": "Good evening",
@@ -458,6 +481,15 @@
     "archive": "Archive",
     "delete": "Delete",
     "deleteConfirm": "Are you sure you want to delete \"{name}\"?\n\nThis action cannot be undone. The persona will be permanently removed.",
+    "deleteDialogTitle": "Delete persona permanently?",
+    "deleteDialogDescription": "\"{name}\" will be removed permanently. This cannot be undone.",
+    "deleteDialogConfirm": "Delete permanently",
+    "integrations": "Integrations (Tavus)",
+    "confidenceHint": "Estimated data quality score for this persona (from curation or model).",
+    "confidencePercent": "{value}%",
+    "noTargetGroupBanner": "No target group",
+    "noTargetGroupDetailHint": "Assign a target group in the Metadata section to improve suggestions and alignment.",
+    "ensureChatPromptTooltip": "Rebuilds the chat prompt from profile and metadata so conversations match this persona.",
     "thisPersona": "this persona",
     "statuses": {
       "draft": "Draft",
@@ -521,7 +553,13 @@
   "settings": {
     "eyebrow": "Control Center",
     "title": "Settings",
-    "subtitle": "Centralize AI assistance configuration. Review provider health, prompt templates, and rollout status for new capabilities.",
+    "subtitle": "Account, appearance, project access, and AI configuration in one place. Not everything is project-specific—the sections below separate global preferences from workspace settings.",
+    "groups": {
+      "account": "Account & appearance",
+      "workspace": "Project & access",
+      "ai": "AI & prompts",
+      "developers": "Developers"
+    },
     "cards": {
       "profile": {
         "title": "Profile",
@@ -547,7 +585,8 @@
         "title": "API Documentation",
         "description": "Interactive API reference for the Persona Backend. Explore endpoints, test requests, and view schemas."
       }
-    }
+    },
+    "apiDocsLink": "Open API reference"
   },
   "settingsProjects": {
     "eyebrow": "Workspace",
@@ -613,6 +652,7 @@
       "descriptionPlaceholder": "Short description of the project or company…",
       "contextLabel": "Company context",
       "contextPlaceholder": "Industry, products, target markets, tone of voice, etc. This context is used to suggest target groups and personas.",
+      "emptyAiHint": "Without a description and company context, AI suggestions for target groups and personas will be weaker. Fill in the fields below and save.",
       "saved": "Company context saved",
       "suggestTitle": "Suggest target groups from context",
       "suggestCta": "Generate suggestions",
@@ -908,6 +948,8 @@
     "title": "Journeys",
     "create": "Create Journey",
     "empty": "No journeys yet. Create your first journey to get started.",
+    "emptyPersonasIntro": "Personas in this project—a good starting point when shaping a journey:",
+    "openPersona": "Open persona",
     "loading": "Loading journeys…",
     "loadFailed": "Failed to load journeys",
     "selectProject": "Select a project to view journeys.",

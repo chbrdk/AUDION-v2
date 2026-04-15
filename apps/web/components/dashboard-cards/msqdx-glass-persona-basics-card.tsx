@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import type { PersonaResponse } from "@msqdx-glass/types";
-import { MsqdxIcon, MsqdxDashboardCard, MsqdxButton, MsqdxSelect, MsqdxFormField } from "@msqdx/react";
+import { MsqdxIcon, MsqdxDashboardCard, MsqdxButton, MsqdxFormField } from "@msqdx/react";
 import { MsqdxGlassDashboardCardSection } from "./msqdx-glass-dashboard-card-section";
 import { MsqdxGlassInlineEditControls } from "../msqdx-glass-inline-edit-controls";
 import { useInlineEdit } from "../hooks/use-inline-edit";
@@ -63,12 +63,6 @@ export const MsqdxGlassPersonaBasicsCard = ({
     isEqual: (a, b) => a === b
   });
 
-  const statusEdit = useInlineEdit({
-    initialValue: detail.metadata.status,
-    currentValue: detail.metadata.status,
-    isEqual: (a, b) => a === b
-  });
-
   const updatedByEdit = useInlineEdit({
     initialValue: detail.metadata.updatedBy ?? "persona-admin-ui",
     currentValue: detail.metadata.updatedBy ?? "persona-admin-ui",
@@ -79,7 +73,6 @@ export const MsqdxGlassPersonaBasicsCard = ({
   const nameRef = useRef<HTMLDivElement>(null);
   const segmentRef = useRef<HTMLDivElement>(null);
   const headlineRef = useRef<HTMLDivElement>(null);
-  const statusRef = useRef<HTMLDivElement>(null);
   const updatedByRef = useRef<HTMLDivElement>(null);
 
   const handleSaveName = async () => {
@@ -106,14 +99,6 @@ export const MsqdxGlassPersonaBasicsCard = ({
     }, 100);
   };
 
-  const handleSaveStatus = async () => {
-    await onSave({ status: statusEdit.getValue() });
-    onEditField("status", statusEdit.getValue());
-    setTimeout(() => {
-      statusEdit.sync();
-    }, 100);
-  };
-
   const handleSaveUpdatedBy = async () => {
     await onSave({ updatedBy: updatedByEdit.getValue() });
     onEditField("updatedBy", updatedByEdit.getValue());
@@ -137,10 +122,6 @@ export const MsqdxGlassPersonaBasicsCard = ({
           <h3 style={{ fontSize: "1.5rem", fontWeight: 100, marginBottom: "2rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>{t("personaAdmin.metadata").toUpperCase()}</h3>
           <dl className="msqdx-glass-meta-grid">
             <div>
-              <dt>{t("personaAdmin.status")}</dt>
-              <dd>{detail.metadata.status}</dd>
-            </div>
-            <div style={{ borderLeft: "1px solid var(--color-theme-accent)", paddingLeft: "0.75rem" }}>
               <dt>{t("personaAdmin.confidence")}</dt>
               <dd>{detail.metadata.confidence.toFixed(2)}</dd>
             </div>
@@ -237,30 +218,6 @@ export const MsqdxGlassPersonaBasicsCard = ({
               onSave={handleSaveHeadline}
               onDiscard={() => headlineEdit.reset()}
               anchorElement={headlineRef.current}
-              position="top"
-            />
-          </Box>
-
-          <Box ref={statusRef} sx={{ position: "relative" }}>
-            <MsqdxSelect
-              label={t("personaAdmin.status")}
-              value={statusEdit.value}
-              onChange={(e) => statusEdit.setValue(String(e.target.value ?? ""))}
-              options={[
-                { value: "draft", label: t("personaAdmin.statuses.draft") },
-                { value: "published", label: t("personaAdmin.statuses.published") },
-                { value: "archived", label: t("personaAdmin.statuses.archived") }
-              ]}
-              fullWidth
-              size="small"
-              sx={FORM_FIELD_ACCENT_SX}
-            />
-            <MsqdxGlassInlineEditControls
-              hasChanges={statusEdit.hasChanges}
-              saving={savePending}
-              onSave={handleSaveStatus}
-              onDiscard={() => statusEdit.reset()}
-              anchorElement={statusRef.current}
               position="top"
             />
           </Box>

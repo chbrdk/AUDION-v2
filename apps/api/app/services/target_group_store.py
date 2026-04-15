@@ -122,6 +122,7 @@ class TargetGroupService:
             PersonaListItem(
                 id=str(p.id),
                 projectId=str(p.project_id),
+                targetGroupId=str(tg.id),
                 name=p.name,
                 segment=p.segment,
                 headline=p.headline,

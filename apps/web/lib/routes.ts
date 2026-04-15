@@ -15,5 +15,7 @@ export const ADMIN_ROUTES = {
   targetGroups: "/admin/target-groups",
   targetGroupDetail: (targetGroupId: string) =>
     `/admin/target-groups/${encodeURIComponent(targetGroupId)}`,
+
+  settingsApiDocs: "/admin/settings/api-docs",
 } as const;
 

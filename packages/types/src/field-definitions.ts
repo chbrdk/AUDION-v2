@@ -7,6 +7,13 @@
 /**
  * Definiert ein editierbares Feld für eine Entität.
  */
+export type FieldSelectOption = {
+  value: string | number;
+  label: string;
+  /** i18n key (e.g. personaAdmin.genderMale); falls back to label */
+  labelKey?: string;
+};
+
 export type FieldDefinition = {
   /**
    * Feld-Key (z.B. "gender", "name")
@@ -17,6 +24,9 @@ export type FieldDefinition = {
    * Anzeige-Label
    */
   label: string;
+
+  /** Optional i18n dictionary key for the label (e.g. personaAdmin.gender) */
+  labelKey?: string;
   
   /**
    * Feld-Typ bestimmt, welches UI-Element verwendet wird
@@ -28,7 +38,7 @@ export type FieldDefinition = {
    */
   config?: {
     // Für select
-    options?: Array<{ value: string | number; label: string }>;
+    options?: FieldSelectOption[];
     
     // Für slider
     min?: number;
@@ -71,6 +81,7 @@ export const ENTITY_FIELD_DEFINITIONS: Record<string, FieldDefinition[]> = {
     {
       key: 'name',
       label: 'Name',
+      labelKey: 'personaAdmin.name',
       type: 'text',
       group: 'basic',
       order: 1,
@@ -79,6 +90,7 @@ export const ENTITY_FIELD_DEFINITIONS: Record<string, FieldDefinition[]> = {
     {
       key: 'headline',
       label: 'Headline',
+      labelKey: 'personaAdmin.headline',
       type: 'text',
       group: 'basic',
       order: 2,
@@ -86,6 +98,7 @@ export const ENTITY_FIELD_DEFINITIONS: Record<string, FieldDefinition[]> = {
     {
       key: 'segment',
       label: 'Segment',
+      labelKey: 'personaAdmin.segment',
       type: 'text',
       group: 'basic',
       order: 3,
@@ -95,20 +108,22 @@ export const ENTITY_FIELD_DEFINITIONS: Record<string, FieldDefinition[]> = {
     {
       key: 'gender',
       label: 'Gender',
+      labelKey: 'personaAdmin.gender',
       type: 'select',
       group: 'demographics',
       order: 1,
       config: {
         options: [
-          { value: 'male', label: 'Male' },
-          { value: 'female', label: 'Female' },
-          { value: 'diverse', label: 'Diverse' }
+          { value: 'male', label: 'Male', labelKey: 'personaAdmin.genderMale' },
+          { value: 'female', label: 'Female', labelKey: 'personaAdmin.genderFemale' },
+          { value: 'diverse', label: 'Diverse', labelKey: 'personaAdmin.genderDiverse' }
         ]
       }
     },
     {
       key: 'age',
       label: 'Age',
+      labelKey: 'personaAdmin.age',
       type: 'slider',
       group: 'demographics',
       order: 2,
@@ -117,6 +132,7 @@ export const ENTITY_FIELD_DEFINITIONS: Record<string, FieldDefinition[]> = {
     {
       key: 'location',
       label: 'Location',
+      labelKey: 'personaAdmin.location',
       type: 'text',
       group: 'demographics',
       order: 3,
@@ -124,6 +140,7 @@ export const ENTITY_FIELD_DEFINITIONS: Record<string, FieldDefinition[]> = {
     {
       key: 'media_affinity',
       label: 'Media Affinity',
+      labelKey: 'personaAdmin.mediaAffinity',
       type: 'slider',
       group: 'demographics',
       order: 4,
@@ -132,6 +149,7 @@ export const ENTITY_FIELD_DEFINITIONS: Record<string, FieldDefinition[]> = {
     {
       key: 'full_name',
       label: 'Full Name',
+      labelKey: 'personaAdmin.fullName',
       type: 'text',
       group: 'demographics',
       order: 5,
@@ -142,6 +160,7 @@ export const ENTITY_FIELD_DEFINITIONS: Record<string, FieldDefinition[]> = {
     {
       key: 'name',
       label: 'Name',
+      labelKey: 'targetGroupsAdmin.name',
       type: 'text',
       group: 'basic',
       order: 1,
@@ -150,6 +169,7 @@ export const ENTITY_FIELD_DEFINITIONS: Record<string, FieldDefinition[]> = {
     {
       key: 'segment',
       label: 'Segment',
+      labelKey: 'targetGroupsAdmin.segment',
       type: 'text',
       group: 'basic',
       order: 2,
@@ -158,6 +178,7 @@ export const ENTITY_FIELD_DEFINITIONS: Record<string, FieldDefinition[]> = {
     {
       key: 'description',
       label: 'Description',
+      labelKey: 'targetGroupsAdmin.description',
       type: 'textarea',
       group: 'basic',
       order: 3,
@@ -169,6 +190,7 @@ export const ENTITY_FIELD_DEFINITIONS: Record<string, FieldDefinition[]> = {
     {
       key: 'filename',
       label: 'Filename',
+      labelKey: 'entityFields.document.filename',
       type: 'text',
       group: 'basic',
       order: 1,
@@ -176,6 +198,7 @@ export const ENTITY_FIELD_DEFINITIONS: Record<string, FieldDefinition[]> = {
     {
       key: 'insight_summary',
       label: 'Insight Summary',
+      labelKey: 'entityFields.document.insightSummary',
       type: 'textarea',
       group: 'metadata',
       order: 1,
@@ -186,6 +209,7 @@ export const ENTITY_FIELD_DEFINITIONS: Record<string, FieldDefinition[]> = {
     {
       key: 'title',
       label: 'Title',
+      labelKey: 'entityFields.knowledge.title',
       type: 'text',
       group: 'basic',
       order: 1,
@@ -194,6 +218,7 @@ export const ENTITY_FIELD_DEFINITIONS: Record<string, FieldDefinition[]> = {
     {
       key: 'content',
       label: 'Content',
+      labelKey: 'entityFields.knowledge.content',
       type: 'textarea',
       group: 'basic',
       order: 2,

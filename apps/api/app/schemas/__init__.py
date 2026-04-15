@@ -259,6 +259,10 @@ class PersonaInsight(BaseModel):
 class PersonaListItem(BaseModel):
     id: str = Field(..., description="Persona identifier (UUID).")
     projectId: str = Field(..., description="Project identifier the persona belongs to.")
+    targetGroupId: str | None = Field(
+        default=None,
+        description="Target group identifier when the persona is assigned to one.",
+    )
     name: str = Field(..., description="Human-readable persona name.")
     segment: str = Field(..., description="High-level customer segment the persona represents.")
     headline: str = Field(..., description="Short role/title tagline for the persona.")
