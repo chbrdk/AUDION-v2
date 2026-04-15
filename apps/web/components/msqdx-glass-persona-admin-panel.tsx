@@ -187,7 +187,6 @@ export const MsqdxGlassPersonaAdminPanel = ({
   const [editingField, setEditingField] = useState<string | null>(null);
   const [expandedAccordions, setExpandedAccordions] = useState<Set<string>>(
     new Set([
-      "metadata",
       "persona-basics",
       "bio-demographics",
       "personality-traits",
@@ -195,9 +194,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
       "personality-values",
       "pain-points-goals",
       "communication",
-      "knowledge-sources",
       "advanced",
-      "integrations"
     ])
   );
   const [targetGroupsForMetadata, setTargetGroupsForMetadata] = useState<TargetGroupResponse[]>([]);

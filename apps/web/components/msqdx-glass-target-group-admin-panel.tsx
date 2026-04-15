@@ -185,7 +185,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
   const [personaFormExpanded, setPersonaFormExpanded] = useState(false);
   const [personaForm, setPersonaForm] = useState<PersonaFormState>(defaultPersonaForm);
   const [expandedAccordions, setExpandedAccordions] = useState<Set<string>>(
-    () => new Set(["basic", "metadata", "personas", "knowledge", "documents", "knowledge-explorer"])
+    () => new Set(["basic", "personas", "documents"])
   );
 
   const isAccordionExpanded = (id: string) => expandedAccordions.has(id);

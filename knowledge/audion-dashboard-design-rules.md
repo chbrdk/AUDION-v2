@@ -284,7 +284,17 @@ Varianten mit **border-top 3px** zur Kategorisierung:
 
 ---
 
-## 12. Zentrale Referenz (Pfade)
+## 12. Dashboard-Accordions (Standard: zugeklappt)
+
+Für weniger visuelle Last starten **Metadaten-, Wissens- und Integrations-Karten** eingeklappt:
+
+- **Persona-Detail** (`msqdx-glass-persona-admin-panel.tsx`): `metadata`, `knowledge-sources`, `integrations` sind nicht in der initialen `expandedAccordions`-Menge.
+- **Zielgruppe-Detail** (`msqdx-glass-target-group-admin-panel.tsx`): `metadata`, `knowledge`, `knowledge-explorer` standardmäßig zu.
+- **Projekt-Einstellungen** (`msqdx-glass-project-admin-panel.tsx`): Karte **Journey aus Projektwissen** (`generate-journey`) standardmäßig zu; übrige Sektionen unverändert.
+
+---
+
+## 13. Zentrale Referenz (Pfade)
 
 - **Tokens/Globals:** `apps/web/styles/globals.css`
 - **Dashboard-Karten:** `apps/web/styles/dashboard-cards.css`

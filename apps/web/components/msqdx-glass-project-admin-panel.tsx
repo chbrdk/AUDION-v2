@@ -113,7 +113,7 @@ export function MsqdxGlassProjectAdminPanel({
 
     // Accordion state for collapsible sections
     const [expandedSections, setExpandedSections] = useState<Set<string>>(
-        new Set(["overview", "company-context", "project-journeys", "suggest-target-groups", "suggest-personas", "generate-journey", "members", "prompt-templates"])
+        new Set(["overview", "company-context", "project-journeys", "suggest-target-groups", "suggest-personas", "members", "prompt-templates"])
     );
 
     // Company context form state (synced from detail on load)
