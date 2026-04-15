@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import List
+from typing import List, Optional
 
 DOC_PATTERN = re.compile(r"\[\s*(?:doc|chunk|source)_[^\]]*\]", flags=re.IGNORECASE)
 NUM_PATTERN = re.compile(r"\[\s*\d+\s*\]")
@@ -21,8 +21,12 @@ def _dedupe_sentences(paragraph: str) -> str:
     return " ".join(deduped)
 
 
-def clean_response_text(text: str, max_paragraphs: int = 2) -> str:
-    """Remove doc references, confidence blocks, duplicates, and limit paragraphs (default 2 for brevity)."""
+def clean_response_text(text: str, max_paragraphs: Optional[int] = 2) -> str:
+    """Remove doc references, confidence blocks, duplicates, and optionally cap paragraph count.
+
+    For SSE/streaming, pass ``max_paragraphs=None`` so the full answer is kept; the default
+    ``2`` is only for short non-streaming replies where brevity is intentional.
+    """
     without_refs = DOC_PATTERN.sub("", text)
     without_refs = NUM_PATTERN.sub("", without_refs)
     without_confidence = CONFIDENCE_PATTERN.sub("", without_refs)
@@ -36,7 +40,7 @@ def clean_response_text(text: str, max_paragraphs: int = 2) -> str:
         if cleaned and deduped.lower() == cleaned[-1].lower():
             continue
         cleaned.append(deduped)
-        if len(cleaned) >= max_paragraphs:
+        if max_paragraphs is not None and len(cleaned) >= max_paragraphs:
             break
 
     return "\n\n".join(cleaned).strip()

@@ -320,7 +320,7 @@ async def voice_chat_stream(request: VoiceChatRequest, _: None = Depends(verify_
             def append_new_text(delta_text: str) -> str:
                 nonlocal response_buffer, sanitized_sent
                 response_buffer += delta_text
-                sanitized = clean_response_text(response_buffer)
+                sanitized = clean_response_text(response_buffer, max_paragraphs=None)
                 max_len = min(len(sanitized), len(sanitized_sent))
                 prefix_len = 0
                 while prefix_len < max_len and sanitized[prefix_len] == sanitized_sent[prefix_len]:

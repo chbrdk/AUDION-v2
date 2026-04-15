@@ -1,6 +1,80 @@
 import type { Persona, TargetGroup, ChatRequest, ChatMessage, JourneyResponse, Project } from '../types';
 import { URL_CONFIG } from '../config/urls';
 
+type SseSourcePayload = {
+  chunk_id?: string;
+  document_id?: string;
+  title?: string;
+  confidence?: number;
+  content?: string;
+  excerpt?: string;
+};
+
+/**
+ * Reads a chat-api SSE response until the connection closes; returns the same shape as the legacy JSON endpoint.
+ */
+async function readChatMessageStream(
+  response: Response,
+  personaId: string
+): Promise<ChatMessageResponse> {
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`API Error: ${response.status} - ${errorText}`);
+  }
+  if (!response.body) {
+    throw new Error('No response body');
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let rawBuffer = '';
+  let fullText = '';
+  let latestSources: ChatMessageResponse['sources'] = [];
+  let streamError: string | null = null;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    rawBuffer += decoder.decode(value, { stream: true });
+    const events = rawBuffer.split('\n\n');
+    rawBuffer = events.pop() ?? '';
+
+    for (const block of events) {
+      if (!block.trim() || !block.startsWith('data: ')) continue;
+      let parsed: Record<string, unknown>;
+      try {
+        parsed = JSON.parse(block.slice(6)) as Record<string, unknown>;
+      } catch {
+        continue;
+      }
+      const ev = parsed.type;
+      if (ev === 'delta' && typeof parsed.delta === 'string') {
+        fullText += parsed.delta;
+      } else if (ev === 'sources' && Array.isArray(parsed.sources)) {
+        latestSources = (parsed.sources as SseSourcePayload[]).map((s, i) => ({
+          chunk_id: s.chunk_id ?? `chunk-${i}`,
+          document_id: s.document_id ?? 'Unknown',
+          content: (s.excerpt ?? s.content ?? '') as string,
+          confidence: typeof s.confidence === 'number' ? s.confidence : 0.8,
+        }));
+      } else if (ev === 'error') {
+        streamError =
+          typeof parsed.error === 'string' ? parsed.error : 'Stream error';
+      }
+    }
+  }
+
+  if (streamError) {
+    throw new Error(streamError);
+  }
+
+  return {
+    response: fullText,
+    sources: latestSources,
+    persona_id: personaId,
+  };
+}
+
 const DEFAULT_API_URL: string = URL_CONFIG.AUDION_API_BASE;
 
 let apiBaseUrl: string = DEFAULT_API_URL;
@@ -120,11 +194,19 @@ export async function getJourney(id: string): Promise<JourneyResponse> {
 export async function sendMessage(
   request: ChatRequest
 ): Promise<ChatMessageResponse> {
-  const url = `${apiBaseUrl}/api/chat/message`;
-  return fetchWithErrorHandling<ChatMessageResponse>(url, {
+  const url = `${apiBaseUrl}${URL_CONFIG.AUDION_CHAT_MESSAGE_STREAM_PATH}`;
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (currentAuthToken) {
+    headers['Authorization'] = `Bearer ${currentAuthToken}`;
+  }
+  const response = await fetch(url, {
     method: 'POST',
+    headers,
     body: JSON.stringify(request),
   });
+  return readChatMessageStream(response, request.persona_id);
 }
 
 export interface WebSocketMessage {

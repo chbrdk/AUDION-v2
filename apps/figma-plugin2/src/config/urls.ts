@@ -20,6 +20,11 @@ export const URL_CONFIG = {
   AUDION_DISCOVERY_URL: `${AUDION_API_BASE}/api/discovery`,
   AUDION_DISCOVERY_URL_PERSONA_BACKEND: `${AUDION_API_BASE}/api/persona-backend/discovery`,
 
+  /** Chat-API (chat-api): SSE stream; same JSON body as AUDION_CHAT_MESSAGE_PATH. */
+  AUDION_CHAT_MESSAGE_STREAM_PATH: "/api/chat/message/stream",
+  /** Chat-API: one-shot JSON response (legacy; plugins use the stream path). */
+  AUDION_CHAT_MESSAGE_PATH: "/api/chat/message",
+
   /** Optional: Other Opal discovery URL (e.g. Opal hub). When set, tools from that discovery can be used. */
   OPAL_DISCOVERY_URL: '', // Set via settings or env; empty = disabled
 
