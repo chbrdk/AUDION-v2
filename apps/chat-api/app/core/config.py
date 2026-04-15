@@ -47,7 +47,9 @@ class Settings(BaseSettings):
     auth_api_key: str = ""
     chat_use_tools: bool = True  # Enable tools/functions for chat (default: True)
     # Model used for persona chat (non-streaming /message, stream, voice)
-    chat_model: str = "gpt-5-nano"
+    chat_model: str = "gpt-5.4-nano"
+    # Max completion tokens per assistant reply (OpenAI: max_completion_tokens)
+    chat_max_completion_tokens: int = 16384
     # Upload size limit for images (bytes). Reject with 413 if exceeded.
     upload_max_image_bytes: int = 10 * 1024 * 1024  # 10 MB for images
 

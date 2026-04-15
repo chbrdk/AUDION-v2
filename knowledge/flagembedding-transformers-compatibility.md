@@ -4,8 +4,8 @@
 
 The persona chat (non-streaming `POST /chat/message` and voice stream) uses **OpenAI**. The model is configured in chat-api:
 
-- **Config**: `apps/chat-api/app/core/config.py` → `chat_model` (default: `gpt-5-nano`).
-- **Env**: Set `CHAT_MODEL` to override (e.g. `gpt-5-mini`, `gpt-4o-mini`).
+- **Config**: `apps/chat-api/app/core/config.py` → `chat_model` (default: `gpt-5.4-nano`), `chat_max_completion_tokens` (default: `16384`).
+- **Env**: Set `CHAT_MODEL` / `CHAT_MAX_COMPLETION_TOKENS` to override.
 - **Usage**: `apps/chat-api/app/routers/chat.py` and `apps/chat-api/app/routers/voice.py` use `settings.chat_model`.
 
 ---

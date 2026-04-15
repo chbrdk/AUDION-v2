@@ -97,6 +97,7 @@ class PersonaAgent:
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_content}
                     ],
+                    max_completion_tokens=settings.chat_max_completion_tokens,
                     stream=True,
                 )
                 
@@ -243,6 +244,7 @@ class PersonaAgent:
                         model=settings.chat_model,
                         messages=messages,
                         tools=functions if functions else None,
+                        max_completion_tokens=settings.chat_max_completion_tokens,
                         stream=True,
                     )
                     logger.info("persona.agent.openai_stream_created")

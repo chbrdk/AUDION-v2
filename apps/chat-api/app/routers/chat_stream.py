@@ -205,6 +205,7 @@ async def iter_chat_sse(ctx: ChatStreamContext) -> AsyncIterator[str]:
                     stream = persona_agent._openai.chat.completions.create(
                         model=settings.chat_model,
                         messages=openai_messages,
+                        max_completion_tokens=settings.chat_max_completion_tokens,
                         stream=True,
                     )
 
