@@ -27,6 +27,46 @@ from ..models import (
 logger = structlog.get_logger(__name__)
 settings = get_settings()
 
+import json
+import re
+
+
+def _strip_code_fences(text: str) -> str:
+    cleaned = (text or "").strip()
+    if cleaned.startswith("```"):
+        cleaned = re.sub(r"^```(?:json)?\s*\n", "", cleaned)
+        cleaned = re.sub(r"\n```\s*$", "", cleaned)
+        cleaned = cleaned.strip()
+    return cleaned
+
+
+def _extract_first_json_object(text: str) -> dict:
+    """
+    Parse a JSON object from model output that may include extra text.
+    Tries strict parse, then incremental raw_decode scan.
+    """
+    cleaned = _strip_code_fences(text)
+    try:
+        payload = json.loads(cleaned)
+        if isinstance(payload, dict):
+            return payload
+    except json.JSONDecodeError:
+        pass
+
+    decoder = json.JSONDecoder()
+    s = cleaned
+    # Scan forward until we can raw_decode a dict.
+    for start in range(len(s)):
+        if s[start] != "{":
+            continue
+        try:
+            obj, _end = decoder.raw_decode(s[start:])
+            if isinstance(obj, dict):
+                return obj
+        except json.JSONDecodeError:
+            continue
+    raise json.JSONDecodeError("No valid JSON object found", cleaned, 0)
+
 
 @dataclass
 class PersonaGenerationResult:
@@ -336,9 +376,6 @@ class PersonaGenerationService:
             )
             response_text = identity.content[0].text if identity.content else ""
 
-        import json
-        import re
-
         # Log the response for debugging
         if not response_text:
             logger.error("persona.generate.empty_response", persona_id=str(persona.id))
@@ -350,40 +387,17 @@ class PersonaGenerationService:
             logger.error("persona.generate.empty_response_text", persona_id=str(persona.id))
             raise ValueError("Empty response text from AI Provider")
         
-        # Remove markdown code blocks if present (```json ... ```)
-        cleaned_text = response_text.strip()
-        if cleaned_text.startswith("```"):
-            # Remove opening ```json or ```
-            cleaned_text = re.sub(r'^```(?:json)?\s*\n', '', cleaned_text)
-            # Remove closing ```
-            cleaned_text = re.sub(r'\n```\s*$', '', cleaned_text)
-            cleaned_text = cleaned_text.strip()
-        
         try:
-            payload = json.loads(cleaned_text)
+            payload = _extract_first_json_object(response_text)
         except json.JSONDecodeError as exc:
-            # Fallback: try to extract the first JSON object from the text
-            import re as _re
-            fallback_payload = None
-            match = _re.search(r"\{.*\}", cleaned_text, _re.DOTALL)
-            if match:
-                try:
-                    # Use raw_decode to ignore trailing data after a valid object
-                    decoder = json.JSONDecoder()
-                    obj, _ = decoder.raw_decode(match.group())
-                    fallback_payload = obj
-                except Exception:
-                    fallback_payload = None
-            if fallback_payload is None:
-                logger.error(
-                    "persona.generate.json_parse_error",
-                    persona_id=str(persona.id),
-                    response_text=response_text[:500],
-                    cleaned_text=cleaned_text[:500],
-                    error=str(exc),
-                )
-                raise ValueError(f"Failed to parse JSON response from AI Provider: {str(exc)}") from exc
-            payload = fallback_payload
+            logger.error(
+                "persona.generate.json_parse_error",
+                persona_id=str(persona.id),
+                response_text=(response_text or "")[:500],
+                cleaned_text=_strip_code_fences(response_text)[:500],
+                error=str(exc),
+            )
+            raise ValueError(f"Failed to parse JSON response from AI Provider: {str(exc)}") from exc
         
         # Helper function to safely convert confidence to float
         def parse_confidence(value):
