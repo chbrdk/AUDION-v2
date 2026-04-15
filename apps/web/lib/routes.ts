@@ -1,5 +1,6 @@
 export const ADMIN_ROUTES = {
   dashboard: "/admin",
+  setup: "/admin/setup",
 
   projects: "/admin/projects",
   projectDetail: (projectId: string) => `/admin/projects/${encodeURIComponent(projectId)}`,

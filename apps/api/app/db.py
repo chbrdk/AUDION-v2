@@ -12,6 +12,17 @@ import logging
 
 from .core.config import get_settings
 
+# SQLite compatibility for unit tests:
+# - our models use Postgres JSONB and schema-qualified table names (audion.*)
+# - sqlite doesn't support JSONB or schemas; provide fallbacks so tests can import the app.
+from sqlalchemy.dialects.postgresql import JSONB  # noqa: E402
+from sqlalchemy.ext.compiler import compiles  # noqa: E402
+
+
+@compiles(JSONB, "sqlite")
+def _compile_jsonb_sqlite(element, compiler, **kw):  # type: ignore[no-untyped-def]
+    return "JSON"
+
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
@@ -166,39 +177,65 @@ logger.info(f"FINAL: About to call create_engine with URL starting with: {final_
 
 # Pool sizing: avoid TimeoutError when many concurrent requests need a connection.
 # Reset connections on return so they are reused quickly (avoids idle-in-transaction holding the slot).
-engine = create_engine(
-    final_url,
-    pool_pre_ping=True,
-    pool_size=settings.database_pool_size,
-    max_overflow=settings.database_pool_max_overflow,
-    pool_recycle=settings.database_pool_recycle_seconds,
-    pool_timeout=settings.database_pool_timeout_seconds,
-    pool_reset_on_return="rollback",
-    echo=settings.app_env == "development",
-    future=True,
-    connect_args={
-        "options": "-c search_path=audion,public"
-    },
-)
+_engine_kwargs = {
+    "pool_pre_ping": True,
+    "pool_recycle": settings.database_pool_recycle_seconds,
+    "pool_reset_on_return": "rollback",
+    "echo": settings.app_env == "development",
+    "future": True,
+}
+
+# SQLite does not support SQLAlchemy's QueuePool sizing args; keep it minimal for tests.
+if not final_url.startswith("sqlite"):
+    _engine_kwargs.update(
+        {
+            "pool_size": settings.database_pool_size,
+            "max_overflow": settings.database_pool_max_overflow,
+            "pool_timeout": settings.database_pool_timeout_seconds,
+            "connect_args": {"options": "-c search_path=audion,public"},
+        }
+    )
+else:
+    # SQLite does not support schemas; ensure models create tables without an 'audion.' prefix.
+    _engine_kwargs.update({"execution_options": {"schema_translate_map": {"audion": None}}})
+
+engine = create_engine(final_url, **_engine_kwargs)
 
 # Set PostgreSQL connection parameters and search_path to audion schema
 @event.listens_for(engine, "connect")
 def set_postgres_params(dbapi_conn, connection_record):
     """Set PostgreSQL connection parameters and search_path to audion schema."""
-    with dbapi_conn.cursor() as cursor:
+    # SQLite (unit tests) doesn't support these PostgreSQL-specific settings.
+    if engine.dialect.name == "sqlite":
+        return
+    cursor = dbapi_conn.cursor()
+    try:
         cursor.execute("SET statement_timeout = '30s'")
         cursor.execute("SET idle_in_transaction_session_timeout = '60s'")
         # Set search_path to audion schema so all queries use audion.* tables
         # This must be done BEFORE any queries are executed
         cursor.execute("SET search_path = audion, public")
         logger.info("Set search_path to audion schema")
+    finally:
+        try:
+            cursor.close()
+        except Exception:
+            pass
     
 # Also set search_path on checkout to ensure it's always set
 @event.listens_for(engine, "checkout")
 def set_search_path_on_checkout(dbapi_conn, connection_record, connection_proxy):
     """Set search_path when connection is checked out from pool."""
-    with dbapi_conn.cursor() as cursor:
+    if engine.dialect.name == "sqlite":
+        return
+    cursor = dbapi_conn.cursor()
+    try:
         cursor.execute("SET search_path = audion, public")
+    finally:
+        try:
+            cursor.close()
+        except Exception:
+            pass
 
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
 Base = declarative_base()
@@ -209,10 +246,11 @@ def get_session() -> Session:
     """Context manager for database sessions."""
     session: Session = SessionLocal()
     try:
-        # Ensure search_path is set to audion schema for this session
-        # This is a safety measure in case connect_args didn't work
-        from sqlalchemy import text
-        session.execute(text("SET search_path = audion, public"))
+        # Ensure search_path is set to audion schema for this session (PostgreSQL only).
+        # SQLite (unit tests) does not support schemas.
+        if engine.dialect.name != "sqlite":
+            from sqlalchemy import text
+            session.execute(text("SET search_path = audion, public"))
         yield session
     finally:
         session.close()

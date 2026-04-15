@@ -37,12 +37,13 @@ class Settings(BaseSettings):
 
     redis_url: str
     data_dir: str = "/app/data/uploads"
-    qdrant_url: str
+    # Default to local/dev services so unit tests can import without env noise.
+    qdrant_url: str = "http://localhost:6333"
     qdrant_api_key: str | None = None
     qdrant_verify_ssl: bool = True
-    neo4j_uri: str
-    neo4j_user: str
-    neo4j_password: str
+    neo4j_uri: str = "bolt://localhost:7687"
+    neo4j_user: str = "neo4j"
+    neo4j_password: str = "test"
     neo4j_browser_url: str | None = None
     neo4j_bloom_url: str | None = None
 
@@ -89,6 +90,11 @@ class Settings(BaseSettings):
     # Upload size limits (bytes). Reject with 413 if exceeded.
     upload_max_document_bytes: int = 10 * 1024 * 1024  # 10 MB for documents
     upload_max_avatar_bytes: int = 5 * 1024 * 1024  # 5 MB for avatar images
+
+    # Easy-setup: optional fetch of a public website for extra project context (best-effort HTML→text).
+    easy_setup_url_fetch_timeout_seconds: float = 20.0
+    easy_setup_url_max_response_bytes: int = 2 * 1024 * 1024  # 2 MB raw response cap
+    easy_setup_url_max_text_chars: int = 16_000  # appended to company_context after strip
 
     # Feature Flags
     use_storion_proxy: bool = False

@@ -48,6 +48,22 @@ export function MsqdxGlassProjectsOverview({ initialProjects }: MsqdxGlassProjec
 
   return (
     <Box sx={{ width: "100%" }}>
+      <Box sx={{ mb: 2 }}>
+        <Link href={ADMIN_ROUTES.setup} style={{ textDecoration: "none" }}>
+          <MsqdxButton
+            variant="outlined"
+            size="small"
+            endIcon={<MsqdxIcon name="auto_awesome" customSize={16} />}
+            sx={{
+              borderColor: accent,
+              color: accent,
+              "&:hover": { borderColor: accent, backgroundColor: "transparent" },
+            }}
+          >
+            {t("adminDashboard.easySetupCta")}
+          </MsqdxButton>
+        </Link>
+      </Box>
       <Box
         sx={{
           display: "grid",
