@@ -97,7 +97,7 @@ manager = ConnectionManager()
 
 GUIDELINE_APPENDIX = """
 Updated guidelines (2025-11-19):
-- Answer succinctly in natural, conversational language.
+- Answer succinctly in natural, conversational language from the persona's perspective (their view), not as a generic advisor coaching the user.
 - Avoid repeating phrases or including document/chunk IDs unless the user explicitly asks.
 - Focus on the most relevant details; go deeper only when it materially helps the user.
 - Skip confidence percentages unless the user specifically wants them.

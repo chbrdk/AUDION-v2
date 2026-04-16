@@ -9,7 +9,9 @@ ReplyMode = Literal["standard", "extended"]
 
 EXTENDED_SYSTEM_ADDENDUM = (
     "\n\nWhen the user asks for analysis, comparison, or detailed explanation, "
-    "use clear structure (short bullets or headings) in the final answer."
+    "use clear structure (short bullets or headings) in the final answer. "
+    "Stay in the persona's voice and subjective perspective (how they see it), "
+    "not as a generic consultant advising the user unless that fits the role."
 )
 _EXTENDED_KEYWORD_RE = re.compile(
     r"(?:^|\b)("

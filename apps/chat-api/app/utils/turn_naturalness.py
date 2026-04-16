@@ -145,6 +145,17 @@ def _resolve_formality(
     return "neutral", "Keine eindeutige Du/Sie-Präferenz erkennbar — neutral und sachlich bleiben oder die Nutzerform wählen, die zur Persona passt."
 
 
+def _persona_perspective_de() -> str:
+    """Discourage generic advisor/coach tone; answers should be the persona's view, not counseling the user."""
+    return (
+        "Perspektive: Der Nutzer fragt nach deiner Sicht als diese Persona (Erfahrung, Haltung, subjektiver Blick) — "
+        "nicht nach neutraler Expertise von außen oder allgemeiner „Beratung“. "
+        "Vermeide typischen Coach- oder Ratgeber-Stil („du solltest“, „mein Tipp an dich“, „ich empfehle dir“), "
+        "wenn das nicht zur Rolle passt. "
+        "Lieber in Ich-/Wir-Form aus der Rolle sprechen als als distanzierte Beraterin oder Berater."
+    )
+
+
 def _length_guidance_de(
     *,
     reply_mode: ReplyMode,
@@ -154,7 +165,7 @@ def _length_guidance_de(
     if is_compact:
         return (
             "Dieser Turn ist sehr kurz (Bestätigung, Dank, „weiter“). "
-            "Antworte mit maximal ein bis zwei kurzen Sätzen, kein Vortrag."
+            "Antworte mit maximal ein bis zwei kurzen Sätzen aus deiner Persona-Sicht, kein Vortrag."
         )
     if reply_mode == "extended" and length_only_extended:
         return (
@@ -205,12 +216,16 @@ def build_turn_naturalness_spec(
 
     lines: list[str] = [
         "\n\n[Antwort-Stil — automatisch, bitte befolgen]",
+    ]
+    if not is_compact:
+        lines.append(_persona_perspective_de())
+    lines.append(
         _length_guidance_de(
             reply_mode=effective_mode,
             is_compact=is_compact,
             length_only_extended=length_only_extended,
-        ),
-    ]
+        )
+    )
     if (
         not is_compact
         and effective_mode == "standard"

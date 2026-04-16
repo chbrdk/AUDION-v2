@@ -6,6 +6,8 @@
 
 Zentrale Zusammenführung des System-Prompts: **`compose_persona_system_prompt`** (Basis → optional engl. Extended-Hinweis → deutsch Naturalness).
 
+**Perspektive:** Das Addendum betont Antworten **aus der Persona-Sicht** (subjektiv, Ich/Wir), nicht im distanzierten Berater-/Coach-Ton — siehe `_persona_perspective_de` in `turn_naturalness.py`. Kurze Ack-Turns erhalten nur einen Kurzverweis („aus deiner Persona-Sicht“), keinen langen Absatz.
+
 ## Konfiguration (Settings)
 
 | Feld | Bedeutung |

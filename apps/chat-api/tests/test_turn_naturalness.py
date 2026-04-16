@@ -62,6 +62,13 @@ def test_analytical_extended() -> None:
     )
     assert spec.reply_mode == "extended"
     assert "anspruchsvoll" in spec.system_addendum_de or "ungefähr" in spec.system_addendum_de
+    assert "Perspektive" in spec.system_addendum_de or "Persona" in spec.system_addendum_de
+
+
+def test_persona_perspective_not_in_compact_ack() -> None:
+    spec = build_turn_naturalness_spec(last_user_text="danke", prev_user_text=None, session=None)
+    assert "Perspektive:" not in spec.system_addendum_de
+    assert "Persona-Sicht" in spec.system_addendum_de or "persona" in spec.system_addendum_de.lower()
 
 
 def test_du_instruction() -> None:
