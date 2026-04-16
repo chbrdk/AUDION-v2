@@ -658,12 +658,25 @@ function ChatSharePageContent() {
     try {
       const apiBase = getChatApiBase();
       const userId = user?.plexon_user_id ?? user?.id ?? undefined;
+      const shareSessionId =
+        typeof window !== "undefined"
+          ? (() => {
+              const key = `audion-share-chat-session-${personaIdParam}`;
+              let sid = sessionStorage.getItem(key);
+              if (!sid) {
+                sid = crypto.randomUUID();
+                sessionStorage.setItem(key, sid);
+              }
+              return sid;
+            })()
+          : "";
       const res = await fetch(`${apiBase}/message/stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           persona_id: personaIdParam,
           messages: apiMessages,
+          ...(shareSessionId && { session_id: shareSessionId }),
           ...(userId && { user_id: userId }),
         }),
       });

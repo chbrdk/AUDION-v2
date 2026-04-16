@@ -64,6 +64,7 @@ Legende: **Persistiert** = wird in DB, Dateisystem oder Vektorstore geschrieben 
 | Bereich | Datei | LLM | Persistenz |
 |--------|--------|------|-------------|
 | Chat-Stream | `app/agents/persona.py`, `app/routers/chat_stream.py`, `app/routers/chat.py`, `app/routers/voice.py` | OpenAI (Stream) | Messages / Sessions je nach Persistenzlayer des Chat-API (separat von Persona-Profil in API-DB) |
+| Turn naturalness (Stil-Addendum, Session) | `app/utils/turn_naturalness.py`, `app/utils/turn_session_store.py` | — (Heuristik + ggf. Zufall) | **In-Memory** pro `session_id` (HTTP) / WebSocket-Verbindung; kein DB-Write; siehe `knowledge/turn-naturalness.md` |
 | Persona-Generierung (Duplikat/älterer Pfad?) | `app/services/persona_generation.py` | Anthropic | prüfen, ob noch produktiv oder Legacy |
 | Persona-Discovery | `app/services/persona_discovery.py` | Anthropic | wie api |
 | Persona-Avatar / Bild | `app/services/persona_image.py` | OpenAI | Bild-URL oder Binary — keine zweisprachigen „Texte“, außer Metadaten |

@@ -874,6 +874,11 @@ function AdminChatPageContent() {
     const question = input.trim();
     if (!activeTargetGroupId || !question || targetGroupPersonas.length === 0 || sendingTargetGroup) return;
     const personasToAsk = targetGroupPersonas.slice(0, MAX_PERSONAS_PER_TARGET_GROUP_ROUND);
+    let tgTurnSessionId = currentConversationId;
+    if (!tgTurnSessionId) {
+      tgTurnSessionId = generateConversationId();
+      setCurrentConversationId(tgTurnSessionId);
+    }
     setSendingTargetGroup(true);
     setInput("");
 
@@ -952,6 +957,7 @@ function AdminChatPageContent() {
           body: JSON.stringify({
             persona_id: persona.id,
             messages: apiMessages,
+            session_id: `${tgTurnSessionId}::tg::${persona.id}`,
             ...(userId && { user_id: userId }),
           }),
         });
@@ -1133,6 +1139,7 @@ function AdminChatPageContent() {
     sendingTargetGroup,
     user,
     t,
+    currentConversationId,
   ]);
 
   const handleSend = useCallback(async (messageText?: string) => {
@@ -1147,6 +1154,12 @@ function AdminChatPageContent() {
       speechSessionActiveRef.current = false;
     }
     stopAudioQueue();
+
+    let turnSessionId = currentConversationId;
+    if (!turnSessionId) {
+      turnSessionId = generateConversationId();
+      setCurrentConversationId(turnSessionId);
+    }
 
     // Ersetze Variablen in der User-Nachricht BEVOR sie gesendet wird
     const contentToSend = (replaceMessageVariablesRef.current ?? ((m: string) => m))(rawContent);
@@ -1311,6 +1324,7 @@ function AdminChatPageContent() {
       const requestBody = {
         persona_id: activePersonaId,
         messages: apiMessages,
+        session_id: turnSessionId,
         ...(userId && { user_id: userId }),
       };
 
@@ -1501,6 +1515,7 @@ function AdminChatPageContent() {
     user,
     pendingImageIds,
     pendingImages,
+    currentConversationId,
   ]);
 
   useEffect(() => {
