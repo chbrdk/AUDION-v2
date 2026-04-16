@@ -27,7 +27,7 @@ DEFAULT_CATEGORIES: list[str] = [
 
 
 _PARENS_RE = re.compile(r"\([^)]*\)")
-_SPLIT_RE = re.compile(r"[·•\n\r]+|(?:\s[-–—]\s)|[.;]+")
+_SPLIT_RE = re.compile(r"[·•\n\r]+|(?:\s[-–—]\s)|[.;,:]+")
 
 
 def _compact_phrase(text: str, *, max_words: int = 6, max_chars: int = 56) -> str:
@@ -102,15 +102,45 @@ def derive_style_keywords(persona: Persona) -> list[str]:
 
 
 def build_queries(*, keywords: list[str], categories: Iterable[str]) -> dict[str, str]:
+    """Build one Openverse query per category.
+
+    Important: Openverse image search behaves much better with **short** queries.
+    Long German narrative strings often return **zero** normalized image results.
+    """
     compacted: list[str] = []
-    for k in keywords[:8]:
-        ck = _compact_phrase(k, max_words=4, max_chars=32)
+    for k in keywords[:12]:
+        ck = _compact_phrase(k, max_words=3, max_chars=24)
         if ck:
             compacted.append(ck)
-        if len(compacted) >= 6:
+        if len(compacted) >= 4:
             break
-    base = " ".join(compacted).strip() or "persona"
-    return {cat: f"{base} {cat}".strip() for cat in categories}
+
+    # Prefer a single strong anchor term (first compact phrase), not a mega-concatenation.
+    anchor = compacted[0] if compacted else "lifestyle"
+
+    # Category-specific English anchors improve recall vs. appending abstract tokens like "ui".
+    category_hints: dict[str, str] = {
+        "lifestyle": "lifestyle photography",
+        "colors": "color palette interior",
+        "textures": "texture material macro",
+        "people": "portrait candid",
+        "ui": "product design ui",
+        "typography": "typography poster",
+    }
+
+    return {cat: f"{anchor} {category_hints.get(cat, cat)}".strip() for cat in categories}
+
+
+def _fallback_category_query(category: str) -> str:
+    """Last-resort broad queries when persona-derived anchors return nothing."""
+    return {
+        "lifestyle": "luxury lifestyle photography",
+        "colors": "minimal color palette",
+        "textures": "natural textures macro",
+        "people": "street style portrait",
+        "ui": "modern product ui",
+        "typography": "editorial typography",
+    }.get(category, "open licensed photography")
 
 
 @dataclass
@@ -181,6 +211,16 @@ class MoodboardService:
         seen_urls: set[str] = set()
         for category, q in queries.items():
             results = self.openverse.search_images(q=q, page_size=12, mature=False)  # type: ignore[union-attr]
+            if not results:
+                q2 = _fallback_category_query(category)
+                logger.info(
+                    "moodboard.build.openverse.retry",
+                    moodboard_id=str(moodboard_id),
+                    category=category,
+                    q=q,
+                    q2=q2,
+                )
+                results = self.openverse.search_images(q=q2, page_size=12, mature=False)  # type: ignore[union-attr]
             # pick up to 4 per category, unique urls
             picked = 0
             for img in results:

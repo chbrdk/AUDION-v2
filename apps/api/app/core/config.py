@@ -77,8 +77,7 @@ class Settings(BaseSettings):
     persona_cache_ttl_seconds: int = 300
     persona_backend_public_url: str = "http://localhost:8000"
     persona_backend_docs_url: str = "http://localhost:8000/docs"
-    persona_backend_docs_url: str = "http://localhost:8000/docs"
-    root_path: str = ""  # For reverse proxy support
+    root_path: str = ""  # for reverse proxy support
 
     # CORS: comma-separated origins (e.g. https://app.example.com,https://admin.example.com). Empty = allow all (dev).
     cors_origins: str = ""
@@ -88,7 +87,8 @@ class Settings(BaseSettings):
     tavus_api_base: str = "https://tavusapi.com"
 
     # Openverse (moodboards)
-    openverse_api_base_url: str = "https://api.openverse.engineering"
+    # Canonical host redirects from api.openverse.engineering → api.openverse.org (301).
+    openverse_api_base_url: str = "https://api.openverse.org"
     openverse_request_timeout_seconds: float = 20.0
     openverse_user_agent: str = "audion-api (persona moodboards)"
 

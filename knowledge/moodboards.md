@@ -11,11 +11,24 @@ MVP:
 ## URLs & settings (centralized)
 
 Backend settings live in `apps/api/app/core/config.py`:
-- `openverse_api_base_url` (default `https://api.openverse.engineering`)
+- `openverse_api_base_url` (default `https://api.openverse.org`; older `https://api.openverse.engineering` redirects with **301**)
 - `openverse_request_timeout_seconds`
 - `openverse_user_agent`
 
 Do not hardcode Openverse URLs outside settings.
+
+### Openverse auth / limits (operational note)
+
+Openverse supports **anonymous** access, but requests are **rate limited**. For higher limits you register an OAuth application and send `Authorization: Bearer …` (see Openverse docs: `https://api.openverse.org/v1/#section/Register-and-Authenticate`).
+
+### Query quality (why builds can “fail” with HTTP 200)
+
+Openverse can return `200` with `results=[]` (or results that do not normalize into usable `image_url`s) when the query is too long / too “narrative”.
+
+The moodboard builder mitigates this by:
+- splitting persona text on commas/colons/bullets into shorter phrases
+- keeping per-category queries short
+- retrying each category with a broad English fallback query if the first attempt returns no images
 
 ## Data model
 
