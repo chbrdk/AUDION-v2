@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Box, IconButton, Tooltip, useTheme } from "@mui/material";
-import { MsqdxIcon, MsqdxAdminNav, MsqdxAppLayout, MsqdxTypography } from "@msqdx/react";
+import { MsqdxButton, MsqdxIcon, MsqdxAdminNav, MsqdxAppLayout, MsqdxTypography } from "@msqdx/react";
 import type { AdminNavItem } from "@msqdx/react";
 import { useAdminHeader, useAdminPanel } from "./admin-layout-providers";
 import { THEME_ACCENT_WITH_FALLBACK } from "../../lib/theme-accent";
@@ -258,6 +258,28 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
             </Box>
           ) : getPageTitle() ? (
             <Box sx={{ display: { xs: "none", md: "flex" }, alignItems: "center", gap: 1 }}>
+              {directChatHref ? (
+                <Tooltip title={t("nav.chat")} placement="bottom">
+                  <MsqdxButton
+                    component={Link as any}
+                    href={directChatHref}
+                    variant="outlined"
+                    size="small"
+                    brandColor="purple"
+                    aria-label={t("nav.chat")}
+                    sx={{
+                      minWidth: 32,
+                      minHeight: 32,
+                      width: 32,
+                      height: 32,
+                      p: 0,
+                      borderRadius: "rounded",
+                    }}
+                  >
+                    <MsqdxIcon name="forum" customSize={18} />
+                  </MsqdxButton>
+                </Tooltip>
+              ) : null}
               <MsqdxTypography
                 variant="h4"
                 sx={{
@@ -271,22 +293,6 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
               >
                 {getPageTitle()}
               </MsqdxTypography>
-              {directChatHref ? (
-                <Tooltip title={t("nav.chat")} placement="bottom">
-                  <IconButton
-                    component={Link}
-                    href={directChatHref}
-                    size="small"
-                    sx={{
-                      border: "1px solid var(--color-neutral)",
-                      backgroundColor: theme.palette.background.paper,
-                    }}
-                    aria-label={t("nav.chat")}
-                  >
-                    <MsqdxIcon name="forum" customSize={18} />
-                  </IconButton>
-                </Tooltip>
-              ) : null}
             </Box>
           ) : null}
         </Box>
