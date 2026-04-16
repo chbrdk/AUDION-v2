@@ -103,7 +103,8 @@ class Settings(BaseSettings):
     # Moodboards: sourcing strategy
     # - openverse: stock search (default)
     # - openai: generate images via OpenAI Images API (stores PNGs in DATA_DIR)
-    moodboard_image_source: Literal["openverse", "openai"] = "openverse"
+    # - auto: use openai when OPENAI_API_KEY is present, otherwise openverse
+    moodboard_image_source: Literal["openverse", "openai", "auto"] = "auto"
     moodboard_openai_model: str = "gpt-image-1-mini"
     moodboard_openai_quality: str = "low"
     moodboard_openai_size: str = "1024x1024"

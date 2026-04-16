@@ -296,7 +296,19 @@ class MoodboardService:
         session.add(moodboard)
         session.commit()
 
-        if settings.moodboard_image_source == "openai":
+        image_source = settings.moodboard_image_source
+        if image_source == "auto":
+            image_source = "openai" if self.openai_images.enabled() else "openverse"
+
+        logger.info(
+            "moodboard.build.image_source",
+            moodboard_id=str(moodboard_id),
+            persona_id=str(persona.id),
+            configured=settings.moodboard_image_source,
+            effective=image_source,
+        )
+
+        if image_source == "openai":
             if not self.openai_images.enabled():
                 moodboard.status = MoodboardStatus.failed
                 moodboard.updated_at = datetime.utcnow()

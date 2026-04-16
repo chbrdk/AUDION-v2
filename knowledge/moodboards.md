@@ -7,7 +7,7 @@ MVP:
 - **Sources**:
   - **Openverse** (default stock search; hotlink)
   - optional **Pexels** fallback (requires `PEXELS_API_KEY`)
-  - optional **OpenAI Images** generation (stores PNGs in `DATA_DIR`; controlled by `MOODBOARD_IMAGE_SOURCE=openai`)
+  - optional **OpenAI Images** generation (stores PNGs in `DATA_DIR`; controlled by `MOODBOARD_IMAGE_SOURCE`)
 - **Assets**:
   - Openverse/Pexels: **hotlink** remote URLs (MVP)
   - OpenAI: store PNGs on disk under `DATA_DIR` and serve via same-origin proxy routes
@@ -23,7 +23,8 @@ Backend settings live in `apps/api/app/core/config.py`:
 - `pexels_request_timeout_seconds`
 - `pexels_user_agent`
 - `pexels_api_key` (**optional**; enables Pexels fallback when Openverse returns no usable images)
-- `moodboard_image_source` (`openverse` | `openai`)
+- `moodboard_image_source` (`openverse` | `openai` | `auto`, default **`auto`**)
+  - In `auto`, the worker uses **OpenAI** when `OPENAI_API_KEY` is set, otherwise **Openverse**
 - `moodboard_openai_model` (default `gpt-image-1-mini`)
 - `moodboard_openai_quality` (default `low`)
 - `moodboard_openai_size` (default `1024x1024`)
