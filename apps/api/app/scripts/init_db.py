@@ -312,14 +312,14 @@ def init_db():
                 # Only stamp if we have app tables BUT no alembic version (legacy/unmanaged state)
                 logger.info("No alembic_version table found. Stamping to head to capture current state...")
                 command.stamp(alembic_cfg, "head")
+                # IMPORTANT: Stamping is an explicit declaration that the current schema matches head.
+                # Do not immediately run upgrade again in the same bootstrap run, or we risk re-applying
+                # operations in partially-managed databases (and triggering enum/type conflicts).
+                logger.info("Stamped to head; skipping upgrade in this bootstrap run.")
             else:
                 logger.info("Alembic version table found. Proceeding with standard upgrade...")
-            
-            # Always try to upgrade to catch any missing migrations that weren't covered by emergency fixes
-            # Since we made migrations idempotent, this is safe to run even if stamped to head (it'll just be no-op)
-            # But if we are behind (and have version table), this will apply updates.
-            logger.info("Running upgrade head...")
-            command.upgrade(alembic_cfg, "head")
+                logger.info("Running upgrade head...")
+                command.upgrade(alembic_cfg, "head")
 
         # Ensure project company-context columns exist (same engine the app uses at runtime)
         try:
