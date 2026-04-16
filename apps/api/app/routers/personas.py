@@ -1838,6 +1838,9 @@ def create_moodboard_admin(
     body: dict = Body(default_factory=dict),
     session: Session = Depends(get_db),
 ) -> MoodboardCreateResponse:
+    import structlog
+
+    logger = structlog.get_logger(__name__)
     persona = _get_persona_or_404(session, persona_id)
     title = body.get("title") if isinstance(body, dict) else None
     updated_by = body.get("updated_by") if isinstance(body, dict) else None
@@ -1849,11 +1852,18 @@ def create_moodboard_admin(
         title=title if isinstance(title, str) else None,
         updated_by=updated_by if isinstance(updated_by, str) else None,
     )
-    celery_app.send_task(
+    result = celery_app.send_task(
         "moodboard.build",
         kwargs={"moodboard_id": str(mb.id)},
         queue="moodboards",
         routing_key="moodboards",
+    )
+    logger.info(
+        "moodboard.build.enqueued",
+        moodboard_id=str(mb.id),
+        persona_id=str(persona.id),
+        celery_task_id=getattr(result, "id", None),
+        queue="moodboards",
     )
     return MoodboardCreateResponse(moodboard=_serialize_moodboard(session, mb))
 
@@ -1864,6 +1874,9 @@ def create_moodboard_admin(
     summary="Rebuild moodboard tiles (admin)",
 )
 def rebuild_moodboard_admin(moodboard_id: str, session: Session = Depends(get_db)) -> MoodboardCreateResponse:
+    import structlog
+
+    logger = structlog.get_logger(__name__)
     try:
         mb_uuid = UUID(moodboard_id)
     except ValueError as exc:
@@ -1876,11 +1889,18 @@ def rebuild_moodboard_admin(moodboard_id: str, session: Session = Depends(get_db
     mb.status = MoodboardStatus.draft
     session.add(mb)
     session.commit()
-    celery_app.send_task(
+    result = celery_app.send_task(
         "moodboard.build",
         kwargs={"moodboard_id": str(mb.id)},
         queue="moodboards",
         routing_key="moodboards",
+    )
+    logger.info(
+        "moodboard.build.enqueued",
+        moodboard_id=str(mb.id),
+        persona_id=str(mb.persona_id),
+        celery_task_id=getattr(result, "id", None),
+        queue="moodboards",
     )
     session.refresh(mb)
     return MoodboardCreateResponse(moodboard=_serialize_moodboard(session, mb))
