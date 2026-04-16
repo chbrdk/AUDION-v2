@@ -139,6 +139,30 @@ def parse_persona_generation_json(response_text: str) -> dict:
     raise ValueError("Failed to parse JSON response from AI Provider")
 
 
+def anthropic_complete_text(
+    client: Any,
+    *,
+    model: str,
+    max_tokens: int,
+    temperature: float,
+    system: str,
+    messages: List[Dict[str, Any]],
+) -> str:
+    """Complete assistant text via the Messages API using streaming.
+
+    The Anthropic Python SDK rejects some non-streaming requests when the implied
+    completion budget can exceed ~10 minutes; streaming satisfies that contract.
+    """
+    with client.messages.stream(
+        model=model,
+        max_tokens=max_tokens,
+        temperature=temperature,
+        system=system,
+        messages=messages,
+    ) as stream:
+        return stream.get_final_text()
+
+
 @dataclass
 class PersonaGenerationResult:
     profile: Any
@@ -177,7 +201,10 @@ class PersonaGenerationService:
                 try:
                     from anthropic import Anthropic  # type: ignore
 
-                    self._anthropic = Anthropic(api_key=settings.claude_api_key)
+                    self._anthropic = Anthropic(
+                        api_key=settings.claude_api_key,
+                        timeout=settings.ai_request_timeout_seconds,
+                    )
                 except Exception as exc:
                     logger.warning("persona.generate.anthropic_import_failed", error=str(exc))
                     self._anthropic = None
@@ -237,7 +264,8 @@ class PersonaGenerationService:
             return ""
         logger.info("persona.generate.json_repair_anthropic", persona_id=str(persona_id))
         max_out = settings.ai_persona_json_repair_max_tokens
-        msg = self._anthropic.messages.create(
+        return anthropic_complete_text(
+            self._anthropic,
             model=settings.ai_persona_identity_anthropic_model,
             max_tokens=max_out,
             temperature=0.0,
@@ -258,7 +286,6 @@ class PersonaGenerationService:
                 }
             ],
         )
-        return msg.content[0].text if msg.content else ""
 
     def _sample_chunks_weighted(
         self,
@@ -538,7 +565,8 @@ class PersonaGenerationService:
             if not self._anthropic:
                  raise ValueError("Anthropic client not initialized and OpenAI not selected/available.")
 
-            identity = self._anthropic.messages.create(
+            response_text = anthropic_complete_text(
+                self._anthropic,
                 model=settings.ai_persona_identity_anthropic_model,
                 max_tokens=settings.ai_persona_identity_max_tokens,
                 temperature=temperature,
@@ -548,7 +576,6 @@ class PersonaGenerationService:
                 ),
                 messages=[{"role": "user", "content": identity_prompt}],
             )
-            response_text = identity.content[0].text if identity.content else ""
 
         # Log the response for debugging
         if not response_text:
