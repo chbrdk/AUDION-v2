@@ -30,7 +30,12 @@ import { buildAdaptiveSystemPrompt } from "../../lib/adaptive-prompt";
 import { loadLearningsFromLocalStorage } from "../../lib/conversation-learnings";
 import { useShareChatHeader } from "../../components/chat/share-chat-header-context";
 import { sortMoodboardTiles } from "../../lib/moodboard";
-import { moodboardCategoryMoodLine, moodboardTileCardRadius, moodboardTileGridSx } from "../../lib/moodboard-tile-ui";
+import {
+  moodboardCategoryMoodLine,
+  moodboardGridContainerSx,
+  moodboardTileCardRadius,
+  moodboardTileGridSx,
+} from "../../lib/moodboard-tile-ui";
 
 /** Compatible with admin chat persona profile card (drawer details). */
 type PersonaProfileCard = {
@@ -471,14 +476,7 @@ function ChatSharePageContent() {
         ) : null}
 
         {hasTiles ? (
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: { xs: "repeat(2, 1fr)", md: "repeat(12, 1fr)" },
-              gridAutoRows: "minmax(72px, auto)",
-              gap: 1,
-            }}
-          >
+          <Box sx={moodboardGridContainerSx({ compact: true })}>
             {(() => {
               const slice = sortMoodboardTiles(tiles).slice(0, 12);
               const n = slice.length;

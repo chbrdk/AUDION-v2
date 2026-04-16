@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { moodboardCategoryMoodLine, moodboardTileCardRadius, moodboardTileGridSx } from "./moodboard-tile-ui";
+import {
+  moodboardCategoryMoodLine,
+  moodboardGridContainerSx,
+  moodboardTileCardRadius,
+  moodboardTileGridSx,
+} from "./moodboard-tile-ui";
 
 describe("moodboardCategoryMoodLine", () => {
   it("returns German category hints for known categories", () => {
@@ -19,19 +24,28 @@ describe("moodboardCategoryMoodLine", () => {
 });
 
 describe("moodboardTileGridSx", () => {
-  it("uses bento placements for 8 tiles", () => {
-    const a = moodboardTileGridSx(0, 8) as { md?: { gridColumn?: string } };
-    const b = moodboardTileGridSx(7, 8) as { md?: { gridColumn?: string } };
-    expect(a.md?.gridColumn).toBe("1 / 8");
-    expect(b.md?.gridColumn).toBe("9 / 13");
+  it("uses 3-column bento placements for 8 tiles from sm", () => {
+    const a = moodboardTileGridSx(0, 8) as { sm?: { gridColumn?: string; gridRow?: string } };
+    const b = moodboardTileGridSx(7, 8) as { sm?: { gridColumn?: string } };
+    expect(a.sm?.gridColumn).toBe("1 / 3");
+    expect(a.sm?.gridRow).toBe("1 / 3");
+    expect(b.sm?.gridColumn).toBe("2 / 3");
   });
 
-  it("uses hero fallback when total is not 8", () => {
-    const hero = moodboardTileGridSx(0, 12) as { md?: { gridColumn?: string; gridRow?: string } };
-    const rest = moodboardTileGridSx(1, 12) as { md?: { gridColumn?: string } };
-    expect(hero.md?.gridColumn).toBe("span 6");
-    expect(hero.md?.gridRow).toBe("span 2");
-    expect(rest.md?.gridColumn).toBe("span 3");
+  it("uses hero fallback when total is not 8 (3-col max)", () => {
+    const hero = moodboardTileGridSx(0, 12) as { sm?: { gridColumn?: string; gridRow?: string } };
+    const rest = moodboardTileGridSx(1, 12) as { sm?: { gridColumn?: string } };
+    expect(hero.sm?.gridColumn).toBe("1 / 3");
+    expect(hero.sm?.gridRow).toBe("span 2");
+    expect(rest.sm?.gridColumn).toBe("span 1");
+  });
+});
+
+describe("moodboardGridContainerSx", () => {
+  it("caps at 3 columns from sm", () => {
+    const sx = moodboardGridContainerSx() as { gridTemplateColumns?: { xs?: string; sm?: string } };
+    expect(sx.gridTemplateColumns?.xs).toContain("repeat(2");
+    expect(sx.gridTemplateColumns?.sm).toBe("repeat(3, 1fr)");
   });
 });
 

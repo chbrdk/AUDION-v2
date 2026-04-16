@@ -110,7 +110,7 @@ Implementation:
 ### Tile overlay copy & layout (centralized)
 - File: `apps/web/lib/moodboard-tile-ui.ts`
 - Image overlay **primary line** is **category-specific** (locale `de` / `en`), not the persona headline (headline stays in persona context).
-- **8-tile** boards (typical OpenAI) use a **12-column bento** grid; other counts use a **hero + span-3 mosaic** on `md+`.
+- Grid is **max 3 columns** from `sm` up (`repeat(3, 1fr)`), **2 columns** on `xs`, so tiles stay large enough to read. **8-tile** boards use a **3-column bento** (hero + sidebar + rows); other counts use a **2×2 hero** in the first cell + single-column tiles.
 
 ## Attribution requirements
 

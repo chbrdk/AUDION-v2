@@ -36,7 +36,12 @@ import { buildApiUrl } from "../app/api/_lib/backend";
 import { normalizePersonaListResponse } from "../lib/persona-list-normalize";
 import { THEME_ACCENT } from "../lib/theme-accent";
 import { sortMoodboardTiles } from "../lib/moodboard";
-import { moodboardCategoryMoodLine, moodboardTileCardRadius, moodboardTileGridSx } from "../lib/moodboard-tile-ui";
+import {
+  moodboardCategoryMoodLine,
+  moodboardGridContainerSx,
+  moodboardTileCardRadius,
+  moodboardTileGridSx,
+} from "../lib/moodboard-tile-ui";
 import { useProject } from "./projects/project-provider";
 import { useI18n } from "./i18n/i18n-provider";
 import { targetGroupsApi, type TargetGroupResponse } from "../app/api/_lib/target-groups";
@@ -2323,14 +2328,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
                     </Box>
 
                     {moodboard?.tiles?.length ? (
-                      <Box
-                        sx={{
-                          display: "grid",
-                          gridTemplateColumns: { xs: "repeat(2, 1fr)", md: "repeat(12, 1fr)" },
-                          gridAutoRows: "minmax(88px, auto)",
-                          gap: 1.5,
-                        }}
-                      >
+                      <Box sx={moodboardGridContainerSx()}>
                         {(() => {
                           const sortedTiles = sortMoodboardTiles(moodboard.tiles);
                           const tileCount = sortedTiles.length;
