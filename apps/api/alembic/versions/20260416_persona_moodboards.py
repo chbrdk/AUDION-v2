@@ -21,6 +21,25 @@ depends_on = None
 
 def upgrade() -> None:
     # audion schema is on search_path in env.py
+    # Idempotency: some environments may pre-create enum types during bootstrap.
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'moodboard_status') THEN
+                CREATE TYPE moodboard_status AS ENUM ('draft', 'building', 'ready', 'failed');
+            END IF;
+        END$$;
+        """
+    )
+    moodboard_status_enum = sa.Enum(
+        "draft",
+        "building",
+        "ready",
+        "failed",
+        name="moodboard_status",
+        create_type=False,
+    )
     op.create_table(
         "persona_moodboards",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
@@ -34,7 +53,7 @@ def upgrade() -> None:
         sa.Column("title", sa.String(length=256), nullable=False, server_default="Moodboard"),
         sa.Column(
             "status",
-            sa.Enum("draft", "building", "ready", "failed", name="moodboard_status"),
+            moodboard_status_enum,
             nullable=False,
             server_default="draft",
         ),
@@ -91,5 +110,6 @@ def downgrade() -> None:
     op.drop_index("uq_persona_moodboards_active_per_persona", table_name="persona_moodboards")
     op.drop_index("ix_persona_moodboards_persona_id", table_name="persona_moodboards")
     op.drop_table("persona_moodboards")
+    # Only drop the type if nothing else depends on it.
     op.execute("DROP TYPE IF EXISTS moodboard_status")
 
