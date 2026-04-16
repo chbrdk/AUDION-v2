@@ -88,10 +88,10 @@ def parse_persona_generation_json(response_text: str) -> dict:
     if not text:
         raise ValueError("Empty response text from AI Provider")
 
-    # Remove markdown code blocks if present (```json ... ```).
+    # Remove markdown code blocks if present (```json ... ```), including missing final newline before ```.
     if text.startswith("```"):
-        text = re.sub(r"^```(?:json)?\s*\n", "", text)
-        text = re.sub(r"\n```\s*$", "", text)
+        text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.IGNORECASE)
+        text = re.sub(r"\s*```\s*$", "", text)
         text = text.strip()
 
     def _attempt(value: str) -> dict | None:
@@ -151,6 +151,7 @@ class PersonaGenerationService:
         self.provider = settings.ai_default_provider
         self._anthropic = None
         self._openai = None
+        self._openai_repair_lazy_failed = False
 
         # Smart provider detection:
         # If default is anthropic but no key is present, and we have an OpenAI key, switch to OpenAI.
@@ -183,6 +184,81 @@ class PersonaGenerationService:
             elif not settings.openai_api_key:
                 # If neither key is present, we can't do much.
                 pass
+
+    def _openai_for_json_repair(self):
+        """OpenAI client for a salvage pass when the primary model returns invalid JSON."""
+        if self._openai is not None:
+            return self._openai
+        if self._openai_repair_lazy_failed or not settings.openai_api_key:
+            return None
+        try:
+            from openai import OpenAI  # type: ignore
+
+            self._openai = OpenAI(api_key=settings.openai_api_key)
+            return self._openai
+        except Exception as exc:
+            self._openai_repair_lazy_failed = True
+            logger.warning("persona.generate.openai_repair_client_failed", error=str(exc))
+            return None
+
+    def _repair_json_via_openai(self, *, persona_id: UUID, broken_text: str) -> str:
+        client = self._openai_for_json_repair()
+        if client is None:
+            return ""
+        logger.info("persona.generate.json_repair_openai", persona_id=str(persona_id))
+        max_out = settings.ai_persona_json_repair_max_tokens
+        repair = client.chat.completions.create(
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You fix invalid JSON. Return ONLY a single valid JSON object. "
+                        "Do not add any prose. Ensure all strings are properly escaped."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": (
+                        "The following content is supposed to be a JSON object but is invalid.\n\n"
+                        f"{broken_text}\n\n"
+                        "Return the corrected JSON object only."
+                    ),
+                },
+            ],
+            model=settings.ai_openai_model or "gpt-5-mini",
+            temperature=0.0,
+            response_format={"type": "json_object"},
+            max_tokens=max_out,
+        )
+        return repair.choices[0].message.content or ""
+
+    def _repair_json_via_anthropic(self, *, persona_id: UUID, broken_text: str) -> str:
+        if not self._anthropic:
+            return ""
+        logger.info("persona.generate.json_repair_anthropic", persona_id=str(persona_id))
+        max_out = settings.ai_persona_json_repair_max_tokens
+        msg = self._anthropic.messages.create(
+            model=settings.ai_persona_identity_anthropic_model,
+            max_tokens=max_out,
+            temperature=0.0,
+            system=(
+                "You fix invalid or truncated JSON. Output a single valid JSON object only. "
+                "No markdown, no code fences, no commentary. Properly escape double quotes inside strings."
+            ),
+            messages=[
+                {
+                    "role": "user",
+                    "content": (
+                        "Repair the following so it is one complete valid JSON object matching the intended "
+                        "persona schema (name, age, job_title, headline, bio, pain_points, goals, traits, "
+                        "communication_style, confidence). Fill in reasonable short values if truncation "
+                        "removed closing parts.\n\n"
+                        f"{broken_text[:120_000]}"
+                    ),
+                }
+            ],
+        )
+        return msg.content[0].text if msg.content else ""
 
     def _sample_chunks_weighted(
         self,
@@ -451,7 +527,7 @@ class PersonaGenerationService:
                     model=settings.ai_openai_model or "gpt-5-mini",
                     temperature=temperature,
                     response_format={"type": "json_object"},
-                    max_tokens=2000,
+                    max_tokens=settings.ai_persona_openai_identity_max_tokens,
                 )
                 response_text = chat_completion.choices[0].message.content or ""
             except Exception as e:
@@ -461,11 +537,15 @@ class PersonaGenerationService:
             # Use Anthropic (Fallback or Default)
             if not self._anthropic:
                  raise ValueError("Anthropic client not initialized and OpenAI not selected/available.")
-            
+
             identity = self._anthropic.messages.create(
-                model="claude-haiku-4-5-20251001",
-                max_tokens=1000,
+                model=settings.ai_persona_identity_anthropic_model,
+                max_tokens=settings.ai_persona_identity_max_tokens,
                 temperature=temperature,
+                system=(
+                    "You output a single JSON object only. Do not wrap it in markdown or code fences. "
+                    "Do not add commentary before or after the JSON. Escape any double quotes inside string values."
+                ),
                 messages=[{"role": "user", "content": identity_prompt}],
             )
             response_text = identity.content[0].text if identity.content else ""
@@ -486,55 +566,48 @@ class PersonaGenerationService:
         try:
             payload = parse_persona_generation_json(response_text)
         except ValueError as exc:
-            # If OpenAI is available, do a second "JSON repair" pass to salvage bad outputs.
-            if self._openai:
-                try:
-                    logger.warning(
-                        "persona.generate.json_repair_attempt",
-                        persona_id=str(persona.id),
-                        provider=self.provider,
-                        error=str(exc),
-                    )
-                    repair = self._openai.chat.completions.create(
-                        messages=[
-                            {
-                                "role": "system",
-                                "content": (
-                                    "You fix invalid JSON. Return ONLY a single valid JSON object. "
-                                    "Do not add any prose. Ensure all strings are properly escaped."
-                                ),
-                            },
-                            {
-                                "role": "user",
-                                "content": (
-                                    "The following content is supposed to be a JSON object but is invalid.\n\n"
-                                    f"{response_text}\n\n"
-                                    "Return the corrected JSON object only."
-                                ),
-                            },
-                        ],
-                        model=settings.ai_openai_model or "gpt-5-mini",
-                        temperature=0.0,
-                        response_format={"type": "json_object"},
-                        max_tokens=2200,
-                    )
-                    repaired_text = repair.choices[0].message.content or ""
+            logger.warning(
+                "persona.generate.json_repair_attempt",
+                persona_id=str(persona.id),
+                provider=self.provider,
+                error=str(exc),
+            )
+            payload = None
+            last_repair_error: str | None = None
+            try:
+                repaired_text = self._repair_json_via_openai(persona_id=persona.id, broken_text=response_text)
+                if repaired_text.strip():
                     payload = parse_persona_generation_json(repaired_text)
-                except Exception as repair_exc:
-                    logger.error(
-                        "persona.generate.json_repair_failed",
-                        persona_id=str(persona.id),
-                        error=str(repair_exc),
+            except Exception as repair_exc:
+                last_repair_error = str(repair_exc)
+                logger.warning(
+                    "persona.generate.json_repair_openai_failed",
+                    persona_id=str(persona.id),
+                    error=last_repair_error,
+                )
+            if payload is None:
+                try:
+                    repaired_text = self._repair_json_via_anthropic(
+                        persona_id=persona.id, broken_text=response_text
                     )
-                    raise ValueError(f"Failed to parse JSON response from AI Provider: {str(exc)}") from exc
-            else:
+                    if repaired_text.strip():
+                        payload = parse_persona_generation_json(repaired_text)
+                except Exception as repair_exc:
+                    last_repair_error = str(repair_exc)
+                    logger.warning(
+                        "persona.generate.json_repair_anthropic_failed",
+                        persona_id=str(persona.id),
+                        error=last_repair_error,
+                    )
+            if payload is None:
                 logger.error(
                     "persona.generate.json_parse_error",
                     persona_id=str(persona.id),
                     response_preview=response_text[:500],
                     error=str(exc),
+                    repair_error=last_repair_error,
                 )
-                raise ValueError(f"Failed to parse JSON response from AI Provider: {str(exc)}") from exc
+                raise ValueError("Failed to parse JSON response from AI Provider") from exc
         
         # Helper function to safely convert confidence to float
         def parse_confidence(value):

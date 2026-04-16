@@ -36,3 +36,30 @@ def test_parse_persona_generation_json_errors_on_empty() -> None:
     with pytest.raises(ValueError):
         parse_persona_generation_json("")
 
+
+def test_persona_ai_max_token_settings_defaults() -> None:
+    from app.core.config import Settings
+
+    s = Settings(
+        database_url="sqlite:///:memory:",
+        redis_url="redis://localhost:6379/0",
+        auth_jwt_secret="test-persona-token-defaults",
+    )
+    assert s.ai_persona_identity_max_tokens == 32768
+    assert s.ai_persona_json_repair_max_tokens == 32768
+    assert s.ai_persona_openai_identity_max_tokens == 32768
+
+
+def test_parse_persona_generation_json_strips_fence_without_leading_newline() -> None:
+    from app.services.persona_generation import parse_persona_generation_json
+
+    raw = (
+        '```json{"name": "Pat", "age": 40, "job_title": "x", "headline": "h", '
+        '"bio": "b", "pain_points": [], "goals": [], '
+        '"traits": {}, "communication_style": {"vocabulary": [], '
+        '"sentence_structure": "short", "skepticism_level": 1}, "confidence": 0.5}```'
+    )
+    obj = parse_persona_generation_json(raw)
+    assert obj["name"] == "Pat"
+    assert obj["age"] == 40
+

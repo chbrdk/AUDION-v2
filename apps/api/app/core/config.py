@@ -53,6 +53,12 @@ class Settings(BaseSettings):
     openai_api_base_url: str = "https://api.openai.com"
     openai_image_docs_url: str = "https://platform.openai.com/docs/guides/images"
     ai_anthropic_model: str = "claude-3-5-sonnet-20241022"
+    # Persona identity JSON generation: defaults to fast/cheap Haiku; override via env if needed.
+    ai_persona_identity_anthropic_model: str = "claude-haiku-4-5-20251001"
+    # Persona JSON can be long (bio, arrays). Haiku 4.5 supports large outputs; tune down via env if needed.
+    ai_persona_identity_max_tokens: int = 32768
+    ai_persona_json_repair_max_tokens: int = 32768
+    ai_persona_openai_identity_max_tokens: int = 32768
     ai_openai_model: str = "gpt-5-mini"
     ai_default_provider: str = "anthropic"
     ai_default_temperature: float = 0.7
