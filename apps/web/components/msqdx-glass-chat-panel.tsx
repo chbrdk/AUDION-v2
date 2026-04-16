@@ -104,8 +104,8 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
   }, [messages]);
 
   return (
-    <Box sx={{ height: "100%", overflow: "hidden" }}>
-      <Stack spacing={3} sx={{ height: "100%", overflowY: "auto", p: { xs: 1, md: 2.5 } }}>
+    <Box sx={{ width: "100%" }}>
+      <Stack spacing={3} sx={{ p: { xs: 1, md: 2.5 } }}>
         {messages.map((message) => {
           const bubbleStyles = getBubbleStyles(message.role);
           const label =

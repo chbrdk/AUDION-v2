@@ -2267,14 +2267,24 @@ function AdminChatPageContent() {
             </Box>
           )}
 
-          {/* Chat Messages - Persona thread, or Target group rounds (side-by-side), or Tavus Video */}
+          {/* Scroll area fills remaining height; composer overlays bottom (see form below) */}
           <Box
             sx={{
               flex: 1,
               minHeight: 0,
+              position: "relative",
+              width: "100%",
+            }}
+          >
+          {/* Chat Messages - Persona thread, or Target group rounds (side-by-side), or Tavus Video */}
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
               overflowY: "auto",
+              overflowX: "hidden",
               padding: "1rem",
-              marginBottom: "1rem",
+              paddingBottom: { xs: "148px", sm: "128px" },
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
@@ -2581,13 +2591,13 @@ function AdminChatPageContent() {
                 </Typography>
               </Box>
             ) : (
-              <Box sx={{ width: "100%", minHeight: 0, flex: 1 }}>
+              <Box sx={{ width: "100%", minHeight: 0, flex: 1, alignSelf: "stretch", display: "flex", flexDirection: "column" }}>
                 <MsqdxGlassChatPanel messages={messages} systemPrompt={currentSystemPrompt} />
               </Box>
             )}
           </Box>
 
-          {/* Input Area - Fixed at Bottom (hidden in video mode) */}
+          {/* Input bar overlays message area (does not shrink scroll height) */}
           {!videoEnabled && (
           <Box
             component="form"
@@ -2602,12 +2612,17 @@ function AdminChatPageContent() {
             sx={{
               padding: "1rem",
               borderTop: "1px solid var(--color-neutral)",
-              backgroundColor: "var(--color-neutral)",
-              borderRadius: "8px",
-              flexShrink: 0,
-              position: "sticky",
+              backgroundColor: alpha(theme.palette.background.paper, 0.94),
+              backdropFilter: "saturate(180%) blur(12px)",
+              borderRadius: "12px 12px 0 0",
+              position: "absolute",
+              left: 0,
+              right: 0,
               bottom: 0,
-              zIndex: 10
+              zIndex: 20,
+              boxShadow: theme.palette.mode === "dark"
+                ? "0 -12px 32px rgba(0,0,0,0.45)"
+                : "0 -12px 32px rgba(0,0,0,0.08)",
             }}
           >
             <Box
@@ -2757,6 +2772,7 @@ function AdminChatPageContent() {
             )}
           </Box>
           )}
+          </Box>
         </Box>
       )}
 
