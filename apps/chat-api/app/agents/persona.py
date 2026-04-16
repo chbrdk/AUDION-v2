@@ -8,7 +8,8 @@ from msqdx_glass_proto import CompleteEvent, ContentDeltaEvent, ReasoningDeltaEv
 
 from ..core.config import get_settings
 from ..utils.openai_chat_stream import iter_chat_completion_stream_parts, reasoning_text_from_openai_delta
-from ..utils.reply_mode import EXTENDED_SYSTEM_ADDENDUM, ReplyMode, build_persona_user_content
+from ..utils.reply_mode import ReplyMode, build_persona_user_content
+from ..utils.turn_naturalness import compose_persona_system_prompt
 
 settings = get_settings()
 
@@ -34,6 +35,7 @@ class PersonaAgent:
         use_tools: bool = False,
         usage_user_id: Optional[str] = None,
         reply_mode: str = "standard",
+        turn_naturalness_addendum: str = "",
     ) -> None:
         """
         Stream a persona response using OpenAI.
@@ -68,6 +70,7 @@ class PersonaAgent:
                 persona_segment=persona_segment,
                 usage_user_id=usage_user_id,
                 reply_mode=reply_mode,
+                turn_naturalness_addendum=turn_naturalness_addendum,
             )
         else:
             logger.info("persona.agent.streaming_start", persona_id=persona_id, question_length=len(question), sources_count=len(sources))
@@ -84,6 +87,11 @@ class PersonaAgent:
                     ])
                 
                 mode: ReplyMode = "extended" if reply_mode == "extended" else "standard"
+                system_effective = compose_persona_system_prompt(
+                    system_prompt,
+                    reply_mode=mode,
+                    turn_naturalness_addendum=turn_naturalness_addendum,
+                )
                 user_content = build_persona_user_content(
                     question=question or "",
                     sources_text=sources_text,
@@ -100,7 +108,7 @@ class PersonaAgent:
                     reasoning_effort=effort,
                     model=settings.chat_model,
                     messages=[
-                        {"role": "system", "content": system_prompt},
+                        {"role": "system", "content": system_effective},
                         {"role": "user", "content": user_content},
                     ],
                     max_completion_tokens=settings.chat_max_completion_tokens,
@@ -170,6 +178,7 @@ class PersonaAgent:
         persona_segment: Optional[str] = None,
         usage_user_id: Optional[str] = None,
         reply_mode: str = "standard",
+        turn_naturalness_addendum: str = "",
     ) -> None:
         """Stream response with tool support."""
         import structlog
@@ -189,8 +198,11 @@ class PersonaAgent:
             if mode == "extended"
             else settings.chat_reasoning_effort_standard
         )
-        if mode == "extended":
-            system_prompt = system_prompt + EXTENDED_SYSTEM_ADDENDUM
+        system_prompt = compose_persona_system_prompt(
+            system_prompt,
+            reply_mode=mode,
+            turn_naturalness_addendum=turn_naturalness_addendum,
+        )
 
         try:
             # Convert Anthropic tools to OpenAI functions

@@ -16,7 +16,7 @@ from ..db import get_session
 from ..models import Persona, PersonaPrompt
 from ..ws.chat import get_persona_prompt
 from ..deps import verify_request_token
-from ..utils.reply_mode import infer_reply_mode
+from ..utils.turn_naturalness import build_turn_naturalness_spec, extract_last_two_user_texts
 from .images import get_image_data_url
 from .chat_stream import ChatStreamContext, iter_chat_sse
 
@@ -232,12 +232,7 @@ def build_chat_stream_context(request: ChatMessageRequest) -> ChatStreamContext:
         anthropic_messages = [
             {
                 "role": "user",
-                "content": (
-                    "Antworte knapp und natürlich (max. 1–2 kurze Absätze, ca. 50–80 Wörter). "
-                    "Keine Doc-IDs, Chunk-IDs, Klammern, 'doc', keine Confidence-Scores oder Meta-Kommentare. "
-                    "Kein Markdown (fett, Aufzählungen) außer auf Nachfrage. Nur bei ausdrücklicher Nachfrage länger antworten. "
-                    f"User message: {request.message}"
-                ),
+                "content": request.message,
             }
         ]
         user_message_for_logging = request.message[:100]
@@ -257,7 +252,16 @@ def build_chat_stream_context(request: ChatMessageRequest) -> ChatStreamContext:
         message_length=len(user_message_for_logging),
     )
 
-    reply_mode = infer_reply_mode(retrieval_query)
+    if request.messages:
+        last_u, prev_u = extract_last_two_user_texts(anthropic_messages)
+    else:
+        last_u, prev_u = (retrieval_query or "").strip(), None
+
+    naturalness = build_turn_naturalness_spec(
+        last_user_text=last_u,
+        prev_user_text=prev_u,
+        session=None,
+    )
 
     return ChatStreamContext(
         persona_id=request.persona_id,
@@ -269,7 +273,8 @@ def build_chat_stream_context(request: ChatMessageRequest) -> ChatStreamContext:
         persona_segment=persona_segment,
         use_tools=use_tools,
         tools=tools,
-        reply_mode=reply_mode,
+        reply_mode=naturalness.reply_mode,
+        turn_naturalness_addendum=naturalness.system_addendum_de,
     )
 
 

@@ -7,9 +7,6 @@ from typing import Literal
 
 ReplyMode = Literal["standard", "extended"]
 
-# Tunable thresholds (tests assert behaviour; env overrides live in Settings if added later).
-_EXTENDED_MIN_CHARS = 200
-
 EXTENDED_SYSTEM_ADDENDUM = (
     "\n\nWhen the user asks for analysis, comparison, or detailed explanation, "
     "use clear structure (short bullets or headings) in the final answer."
@@ -27,22 +24,32 @@ _EXTENDED_KEYWORD_RE = re.compile(
 )
 
 
+def has_extended_analytical_signals(user_message: str) -> bool:
+    """True when the user asks for analysis, comparison, or multi-part explanation (not length-only)."""
+    text = (user_message or "").strip()
+    if not text:
+        return False
+    if text.count("?") >= 2:
+        return True
+    if _EXTENDED_KEYWORD_RE.search(text):
+        return True
+    return False
+
+
 def infer_reply_mode(user_message: str) -> ReplyMode:
     """Return extended when a longer or analytical answer is likely to help."""
+    from ..core.config import get_settings
+
     text = (user_message or "").strip()
     if not text:
         return "standard"
 
-    if len(text) >= _EXTENDED_MIN_CHARS:
+    min_chars = get_settings().chat_extended_min_chars
+
+    if len(text) >= min_chars:
         return "extended"
 
-    if text.count("?") >= 2:
-        return "extended"
-
-    if _EXTENDED_KEYWORD_RE.search(text):
-        return "extended"
-
-    return "standard"
+    return "extended" if has_extended_analytical_signals(text) else "standard"
 
 
 def build_persona_user_content(
@@ -51,27 +58,13 @@ def build_persona_user_content(
     sources_text: str,
     mode: ReplyMode,
 ) -> str:
-    """User message body for non-tool streaming (retrieval context already embedded)."""
-    if mode == "extended":
-        base = (
-            "Give a clear, helpful answer. You may use light markdown (short headings ##, bullets) "
-            "when it improves structure. Prefer concise sections over a wall of text. "
-            "Do not repeat words or phrases, do not include document IDs, chunk IDs, brackets, or the word 'doc'. "
-            "Do not mention confidence scores, percentages, or meta commentary about the retrieval system. "
-            "Aim for thoroughness appropriate to the question (roughly up to ~350 words) unless the user asks for brevity. "
-            f"\n\nUser message: {question}"
-        )
-    else:
-        base = (
-            "Answer succinctly in natural, conversational language. "
-            "Avoid repeating words or phrases, do not include document IDs, chunk IDs, brackets, or the word 'doc'. "
-            "Keep the reply under 90 words and at most three short paragraphs unless the user explicitly asks for more detail. "
-            "Do not mention confidence scores, percentages, or meta commentary. "
-            "Avoid markdown formatting (no bold, bullets) unless the user requests it. "
-            "Share only the most relevant details, and go deeper only when it truly adds value. "
-            f"\n\nUser message: {question}"
-        )
-
+    """User message body for non-tool streaming (length and tone live in system prompt addenda)."""
+    _ = mode  # retained for API compatibility
+    base = (
+        "Beantworte die Nutzerfrage unten. "
+        "Keine Doc-IDs, Chunk-IDs, Klammern, das Wort 'doc', keine Confidence-Scores oder Meta-Kommentare zum Retrieval.\n\n"
+        f"Nutzerfrage:\n{question}"
+    )
     if sources_text:
         base += f"\n\nRelevant context:\n{sources_text}"
     return base

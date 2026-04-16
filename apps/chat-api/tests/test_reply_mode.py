@@ -28,5 +28,6 @@ def test_build_persona_user_content_modes_differ() -> None:
 
     short = build_persona_user_content(question="Hi", sources_text="", mode="standard")
     long = build_persona_user_content(question="Hi", sources_text="", mode="extended")
-    assert "90 words" in short
-    assert "markdown" in long.lower() or "Markdown" in long
+    assert "Nutzerfrage" in short
+    assert "Nutzerfrage" in long
+    assert "Relevant context" not in short

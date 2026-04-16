@@ -16,7 +16,12 @@ from ..models import Persona, PersonaPrompt
 from ..deps import verify_websocket_token
 from ..services.persona_discovery import PersonaDiscoveryService
 from ..services.usage_report import report_retrieval_query_usage, report_usage
-from ..utils.reply_mode import infer_reply_mode
+from ..utils.turn_naturalness import (
+    TurnSessionState,
+    build_turn_naturalness_spec,
+    extract_last_two_user_texts,
+    finalize_turn_session_after_assistant,
+)
 
 router = APIRouter()
 # Lazy initialization - agents will be created on first use to avoid blocking server startup
@@ -54,6 +59,8 @@ class ConnectionManager:
         self.active: List[WebSocket] = []
         # Store active persona per connection
         self.active_personas: dict[WebSocket, str | None] = {}
+        # Turn naturalness (Du/Sie, imperfection budget) per WebSocket connection
+        self.turn_sessions: dict[WebSocket, TurnSessionState] = {}
 
     async def connect(self, websocket: WebSocket) -> None:
         await websocket.accept()
@@ -65,6 +72,8 @@ class ConnectionManager:
             self.active.remove(websocket)
         if websocket in self.active_personas:
             del self.active_personas[websocket]
+        if websocket in self.turn_sessions:
+            del self.turn_sessions[websocket]
 
     async def send_event(self, websocket: WebSocket, event) -> None:
         """Send an event to the WebSocket, handling connection state."""
@@ -219,9 +228,22 @@ async def chat_ws(websocket: WebSocket, conversation_id: str) -> None:
                 continue
             
             if message_type == "message":
-                query = payload["content"]
                 user_id = (payload.get("user_id") or "").strip() or None
                 active_persona_id = manager.active_personas.get(websocket)
+
+                raw_history = payload.get("messages")
+                if isinstance(raw_history, list) and len(raw_history) > 0:
+                    msgs_for_spec: list[dict] = []
+                    for m in raw_history:
+                        if isinstance(m, dict) and m.get("role") in ("user", "assistant"):
+                            msgs_for_spec.append(
+                                {"role": m["role"], "content": m.get("content") or ""}
+                            )
+                    last_u, prev_u = extract_last_two_user_texts(msgs_for_spec)
+                    query = (last_u or payload.get("content") or "").strip()
+                else:
+                    query = (payload.get("content") or "").strip()
+                    last_u, prev_u = query, None
                 
                 logger.info("ws.message.processing", has_active_persona=bool(active_persona_id), persona_id=active_persona_id)
                 
@@ -268,10 +290,18 @@ async def chat_ws(websocket: WebSocket, conversation_id: str) -> None:
                         """Helper to queue events from synchronous stream."""
                         event_queue.put_nowait(event)
                     
+                    if websocket not in manager.turn_sessions:
+                        manager.turn_sessions[websocket] = TurnSessionState()
+                    turn_session = manager.turn_sessions[websocket]
+                    naturalness = build_turn_naturalness_spec(
+                        last_user_text=last_u or query,
+                        prev_user_text=prev_u,
+                        session=turn_session,
+                    )
+
                     # Run streaming in executor (it's synchronous)
                     async def stream_response():
                         loop = asyncio.get_event_loop()
-                        reply_mode = infer_reply_mode(query)
                         await loop.run_in_executor(
                             None,
                             lambda: get_persona_agent().stream_response(
@@ -281,7 +311,8 @@ async def chat_ws(websocket: WebSocket, conversation_id: str) -> None:
                                 persona_id=active_persona_id,
                                 send_event=send_event,
                                 usage_user_id=user_id,
-                                reply_mode=reply_mode,
+                                reply_mode=naturalness.reply_mode,
+                                turn_naturalness_addendum=naturalness.system_addendum_de,
                             )
                         )
                         # Signal completion
@@ -298,6 +329,7 @@ async def chat_ws(websocket: WebSocket, conversation_id: str) -> None:
                         await manager.send_event(websocket, event)
                     
                     await stream_task
+                    finalize_turn_session_after_assistant(manager.turn_sessions.get(websocket))
                 else:
                     # No persona selected - discover personas
                     await manager.send_event(websocket, ThinkingEvent(status="Analyzing research…"))

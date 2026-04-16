@@ -15,7 +15,7 @@ from msqdx_glass_proto import CompleteEvent, ContentDeltaEvent, ReasoningDeltaEv
 from ..core.config import get_settings
 from ..services.usage_report import report_retrieval_query_usage, report_usage
 from ..utils.openai_chat_stream import iter_chat_completion_stream_parts
-from ..utils.reply_mode import EXTENDED_SYSTEM_ADDENDUM
+from ..utils.turn_naturalness import compose_persona_system_prompt
 from ..utils.text import clean_response_text
 from ..ws.chat import get_persona_agent, get_retrieval_agent
 
@@ -37,6 +37,7 @@ class ChatStreamContext:
     use_tools: bool
     tools: Any
     reply_mode: str = "standard"
+    turn_naturalness_addendum: str = ""
 
 
 async def iter_chat_sse(ctx: ChatStreamContext) -> AsyncIterator[str]:
@@ -78,6 +79,7 @@ async def iter_chat_sse(ctx: ChatStreamContext) -> AsyncIterator[str]:
                         use_tools=True,
                         usage_user_id=ctx.user_id,
                         reply_mode=ctx.reply_mode,
+                        turn_naturalness_addendum=ctx.turn_naturalness_addendum,
                     )
                 except Exception as e:
                     logger.error("chat.stream.persona_agent_failed", error=str(e), exc_info=True)
@@ -201,9 +203,11 @@ async def iter_chat_sse(ctx: ChatStreamContext) -> AsyncIterator[str]:
             def collect_stream_deltas() -> None:
                 stream_queue = queue_container["queue"]
                 try:
-                    system_content = ctx.system_prompt
-                    if ctx.reply_mode == "extended":
-                        system_content = ctx.system_prompt + EXTENDED_SYSTEM_ADDENDUM
+                    system_content = compose_persona_system_prompt(
+                        ctx.system_prompt,
+                        reply_mode="extended" if ctx.reply_mode == "extended" else "standard",
+                        turn_naturalness_addendum=ctx.turn_naturalness_addendum,
+                    )
                     openai_messages = [{"role": "system", "content": system_content}]
                     for msg in ctx.anthropic_messages:
                         openai_messages.append(

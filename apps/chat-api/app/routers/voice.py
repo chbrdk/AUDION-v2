@@ -23,6 +23,7 @@ from ..services.voice import ElevenLabsVoiceError, get_voice_client
 from ..deps import verify_request_token
 from ..services.whisper import WhisperTranscriptionService
 from ..utils.text import clean_response_text
+from ..utils.turn_naturalness import build_turn_naturalness_spec, compose_persona_system_prompt, extract_last_two_user_texts
 from ..ws.chat import get_persona_agent, get_persona_prompt, get_retrieval_agent
 
 router = APIRouter(prefix="/voice", tags=["voice"])
@@ -210,24 +211,24 @@ async def voice_chat_stream(request: VoiceChatRequest, _: None = Depends(verify_
         system_prompt = "\n\n".join(system_parts)
         retrieval_query = next((m.content for m in request.messages if m.role == "user"), "")
     elif request.message:
-        # Legacy format: single message string
+        # Legacy format: single message string (Stil über turn_naturalness im System-Prompt)
         system_prompt = base_system_prompt
-        anthropic_messages = [{
-            "role": "user",
-            "content": (
-                "Answer succinctly in natural, conversational language. "
-                "Avoid repeating words or phrases, and do not include document IDs or brackets. "
-                "Keep the reply under 90 words and limit to short paragraphs. "
-                "Avoid meta commentary and markdown unless explicitly requested. "
-                f"User message: {request.message}"
-            ),
-        }]
+        anthropic_messages = [
+            {"role": "user", "content": request.message},
+        ]
         retrieval_query = request.message
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Either 'message' or 'messages' must be provided"
         )
+
+    last_u, prev_u = extract_last_two_user_texts(anthropic_messages)
+    naturalness = build_turn_naturalness_spec(
+        last_user_text=last_u or retrieval_query or "",
+        prev_user_text=prev_u,
+        session=None,
+    )
 
     try:
         voice_client = get_voice_client()
@@ -284,9 +285,13 @@ async def voice_chat_stream(request: VoiceChatRequest, _: None = Depends(verify_
 
             def collect_stream_deltas() -> None:
                 try:
-                    # Convert messages to OpenAI format
+                    system_effective = compose_persona_system_prompt(
+                        system_prompt,
+                        reply_mode=naturalness.reply_mode,
+                        turn_naturalness_addendum=naturalness.system_addendum_de,
+                    )
                     openai_messages = [
-                        {"role": "system", "content": system_prompt}
+                        {"role": "system", "content": system_effective}
                     ]
                     for msg in anthropic_messages:
                         openai_messages.append({

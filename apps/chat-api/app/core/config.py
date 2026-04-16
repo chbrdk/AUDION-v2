@@ -55,6 +55,10 @@ class Settings(BaseSettings):
     chat_reasoning_effort_extended: str = "low"
     # Upload size limit for images (bytes). Reject with 413 if exceeded.
     upload_max_image_bytes: int = 10 * 1024 * 1024  # 10 MB for images
+    # Reply mode: minimum user message length (chars) to treat as "extended" (see reply_mode.infer_reply_mode).
+    chat_extended_min_chars: int = 200
+    # Turn naturalness: max imperfection hints per WebSocket session (0 = disable).
+    turn_naturalness_max_imperfections_per_session: int = 3
 
 
 @lru_cache
