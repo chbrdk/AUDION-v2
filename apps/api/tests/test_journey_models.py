@@ -13,6 +13,7 @@ os.environ.setdefault("NEO4J_URI", "bolt://localhost:7687")
 os.environ.setdefault("NEO4J_USER", "neo4j")
 os.environ.setdefault("NEO4J_PASSWORD", "test")
 os.environ.setdefault("CLAUDE_API_KEY", "test-key")
+os.environ.setdefault("AUTH_JWT_SECRET", "test-jwt-secret-journey-models")
 
 from app.models import (
     Base,
@@ -203,6 +204,14 @@ def test_journey_expectation_persona_relationship():
     
     assert expectation.based_on_persona_id == persona.id
     assert expectation.persona.name == "Test Persona"
+
+
+def test_journey_phase_expected_emotion_column_is_unbounded_text():
+    """AI-generated phases use prose; ORM must map expected_emotion to Text (not VARCHAR(64))."""
+    from sqlalchemy import Text
+
+    col = JourneyPhase.__table__.c.expected_emotion
+    assert isinstance(col.type, Text), "expected_emotion should be Text so long AI strings persist on PostgreSQL"
 
 
 def test_journey_cascade_delete():

@@ -481,7 +481,7 @@ class JourneyPhase(Base):
     expected_duration_min = Column(Integer, nullable=True)
     expected_duration_max = Column(Integer, nullable=True)
     duration_unit = Column(String(32), nullable=True, default="minutes")
-    expected_emotion = Column(String(64), nullable=True)
+    expected_emotion = Column(Text, nullable=True)
     emotion_intensity = Column(Float, nullable=True)
     url_pattern = Column(JSONB, nullable=True)
     form_id = Column(JSONB, nullable=True)
