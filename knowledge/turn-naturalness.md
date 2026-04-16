@@ -12,8 +12,13 @@ Zentrale Zusammenführung des System-Prompts: **`compose_persona_system_prompt`*
 |------|-----------|
 | `chat_extended_min_chars` | Mindestlänge der Nutzernachricht (Zeichen) für „extended“ (wie `infer_reply_mode`). Default: 200. |
 | `turn_naturalness_max_imperfections_per_session` | Max. Anzahl Imperfection-Hinweise pro Session (WS oder HTTP mit `session_id`). Default: 3. |
+| `turn_naturalness_imperfection_probability` | Wenn Budget und Turn-Bedingung passen: mit dieser Wahrscheinlichkeit (0–1) wird der Imperfection-Hinweis injiziert und das Budget verbraucht. `0` = nie, `1` = immer (wie früher deterministisch). Default: 0.35. |
 | `turn_naturalness_http_session_ttl_seconds` | In-Memory-HTTP-Sessions ohne Zugriff verwerfen (Default 24h). |
 | `turn_naturalness_http_session_max_entries` | Obergrenze Einträge im HTTP-Session-Store (LRU). Default: 50_000. |
+
+## WebSocket: optionale `messages`
+
+Clients können neben `content` ein Array **`messages`** (`{ role, content }[]`) senden — siehe [`ws/chat.py`](../apps/chat-api/app/ws/chat.py). TypeScript-Typen: [`figma-plugin2`](../apps/figma-plugin2/src/api/audion-client.ts) / [`powerpoint-plugin`](../apps/powerpoint-plugin/src/api/audion-client.ts) (`WebSocketMessage.messages`).
 
 ## HTTP: `session_id` + Store
 

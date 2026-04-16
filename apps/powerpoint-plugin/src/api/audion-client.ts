@@ -211,9 +211,16 @@ export async function sendMessage(
 
 export interface WebSocketMessage {
   type: 'message' | 'persona_select';
+  /** Latest user text when not using `messages` (chat-api ws/chat). */
   content?: string;
   persona_id?: string;
   image_ids?: string[];
+  user_id?: string;
+  /**
+   * Optional conversation history for turn naturalness (Du/Sie, last user for retrieval).
+   * When set, last user message is used as the main query; previous user turns inform style.
+   */
+  messages?: Array<{ role: 'user' | 'assistant'; content: string }>;
 }
 
 export interface WebSocketEvent {

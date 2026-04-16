@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import random
 import re
 from dataclasses import dataclass
 from typing import Any, Literal
@@ -232,19 +233,23 @@ def build_turn_naturalness_spec(
         )
 
     if not is_compact and session is not None:
-        if (
+        p = float(settings.turn_naturalness_imperfection_probability)
+        eligible = (
             max_imp > 0
             and used_start < max_imp
             and session.assistant_turns > 0
-        ):
-            allow_imperfection = True
-            session.imperfections_used += 1
-            imperfection_instruction = (
-                "Optional: ein kurzer, natürlicher Einstieg oder eine kleine Denkpause ist erlaubt "
-                "(nicht in jeder Antwort, keine Füllwörter-Schleifen, kein „als KI“). "
-                "Keine künstlichen Stockungen wiederholen."
-            )
-            lines.append(imperfection_instruction)
+        )
+        if eligible and p > 0:
+            roll = 0.0 if p >= 1.0 else random.random()
+            if p >= 1.0 or roll < p:
+                allow_imperfection = True
+                session.imperfections_used += 1
+                imperfection_instruction = (
+                    "Optional: ein kurzer, natürlicher Einstieg oder eine kleine Denkpause ist erlaubt "
+                    "(nicht in jeder Antwort, keine Füllwörter-Schleifen, kein „als KI“). "
+                    "Keine künstlichen Stockungen wiederholen."
+                )
+                lines.append(imperfection_instruction)
     elif not is_compact and session is None:
         lines.append(
             "Keine künstlichen Stockungen, keine übertriebene Unsicherheit, keine Meta-Kommentare zur KI."

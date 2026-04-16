@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from app.utils.turn_naturalness import (
     TurnSessionState,
     build_turn_naturalness_spec,
@@ -71,7 +73,8 @@ def test_du_instruction() -> None:
     assert "Du" in spec.system_addendum_de
 
 
-def test_imperfection_budget_ws_session() -> None:
+def test_imperfection_budget_ws_session(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("app.utils.turn_naturalness.random.random", lambda: 0.0)
     session = TurnSessionState(imperfections_used=0, assistant_turns=1)
     spec = build_turn_naturalness_spec(
         last_user_text="Erzähl mir mehr über das Thema.",
@@ -80,6 +83,18 @@ def test_imperfection_budget_ws_session() -> None:
     )
     assert spec.allow_imperfection is True
     assert session.imperfections_used >= 1
+
+
+def test_imperfection_skipped_when_roll_above_probability(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("app.utils.turn_naturalness.random.random", lambda: 0.99)
+    session = TurnSessionState(imperfections_used=0, assistant_turns=1)
+    spec = build_turn_naturalness_spec(
+        last_user_text="Erzähl mir mehr über das Thema.",
+        prev_user_text=None,
+        session=session,
+    )
+    assert spec.allow_imperfection is False
+    assert session.imperfections_used == 0
 
 
 def test_compose_persona_system_prompt_extended() -> None:
