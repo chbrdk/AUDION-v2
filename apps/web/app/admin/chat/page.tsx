@@ -50,7 +50,7 @@ import { MsqdxIcon, MsqdxInput } from "@msqdx/react";
 import { INPUT_ACCENT_SX } from "../../../lib/theme-accent";
 import { VariablePalette } from "../../../components/prompt-builder/VariablePalette";
 import { type VariableDefinition } from "../../../components/prompt-builder/variableDefinitions";
-import { getChatApiBase, getVoiceApiBase, buildApiUrl, fetchWithTimeout } from "../../api/_lib/backend";
+import { getChatApiBase, getVoiceApiBase, buildApiUrl, fetchWithTimeout, buildChatDocumentsUploadUrl } from "../../api/_lib/backend";
 import { useAuth } from "../../../components/auth/auth-provider";
 import { useSpeechToText } from "../../../hooks/use-speech-to-text";
 import { useWhisperTranscription } from "../../../hooks/use-whisper-transcription";
@@ -234,6 +234,8 @@ type Message = {
   personaName?: string;
   image_ids?: string[]; // Image IDs from upload endpoint (for backend)
   images?: string[]; // Base64 data URLs for display (thumbnails)
+  document_ids?: string[];
+  document_attachment_meta?: Array<{ id: string; filename: string }>;
   reasoning?: string;
 };
 
@@ -357,8 +359,11 @@ function AdminChatPageContent() {
   const [selectedJourney, setSelectedJourney] = useState<JourneyResponse | null>(null);
   const [activeDialogTab, setActiveDialogTab] = useState<"phases" | "variables" | "attachments">("phases");
   const [attachedImages, setAttachedImages] = useState<string[]>([]); // Base64 data URLs (für Preview)
+  const [attachedDocxFiles, setAttachedDocxFiles] = useState<File[]>([]); // Staged until "Add to chat"
   const [pendingImageIds, setPendingImageIds] = useState<string[]>([]); // Image IDs, die mit der nächsten Nachricht gesendet werden sollen
   const [pendingImages, setPendingImages] = useState<string[]>([]); // Base64 data URLs für Anzeige (Thumbnails)
+  const [pendingDocumentIds, setPendingDocumentIds] = useState<string[]>([]);
+  const [pendingDocumentMeta, setPendingDocumentMeta] = useState<Array<{ id: string; filename: string }>>([]);
   const [sending, setSending] = useState(false);
   const [personaMenuAnchor, setPersonaMenuAnchor] = useState<null | HTMLElement>(null);
   const [personaDrawerOpen, setPersonaDrawerOpen] = useState(false);
@@ -1242,7 +1247,12 @@ function AdminChatPageContent() {
 
     // Build messages array for API
     // Type allows image_ids for user messages
-    const apiMessages: Array<{ role: string; content: string; image_ids?: string[] }> = [];
+    const apiMessages: Array<{
+      role: string;
+      content: string;
+      image_ids?: string[];
+      document_ids?: string[];
+    }> = [];
 
     // Add adaptive system prompt as first system message
     if (systemPrompt) {
@@ -1270,11 +1280,12 @@ function AdminChatPageContent() {
           content: msg.content,
           // Preserve image_ids from conversation history if they exist
           image_ids: msg.image_ids,
+          document_ids: msg.document_ids,
         });
       });
 
     // Add current user message with image_ids if available
-    const userMessage: { role: string; content: string; image_ids?: string[] } = {
+    const userMessage: { role: string; content: string; image_ids?: string[]; document_ids?: string[] } = {
       role: "user",
       content: contentToSend,
     };
@@ -1282,6 +1293,9 @@ function AdminChatPageContent() {
     // Füge Image-IDs hinzu, wenn vorhanden
     if (pendingImageIds.length > 0) {
       userMessage.image_ids = [...pendingImageIds];
+    }
+    if (pendingDocumentIds.length > 0) {
+      userMessage.document_ids = [...pendingDocumentIds];
     }
 
     apiMessages.push(userMessage);
@@ -1297,12 +1311,17 @@ function AdminChatPageContent() {
         role: "user",
         content: contentToSend,
         image_ids: pendingImageIds.length > 0 ? [...pendingImageIds] : undefined,
-        images: pendingImages.length > 0 ? [...pendingImages] : undefined // Base64 für Thumbnails
+        images: pendingImages.length > 0 ? [...pendingImages] : undefined, // Base64 für Thumbnails
+        document_ids: pendingDocumentIds.length > 0 ? [...pendingDocumentIds] : undefined,
+        document_attachment_meta:
+          pendingDocumentMeta.length > 0 ? [...pendingDocumentMeta] : undefined,
       }
     ]);
     setInput("");
     setPendingImageIds([]); // Reset pending image IDs after sending
     setPendingImages([]); // Reset pending images after sending
+    setPendingDocumentIds([]);
+    setPendingDocumentMeta([]);
     setSending(true);
     setThinkingLabel(voiceStreaming ? "Sending voice message..." : "Sending message...");
 
@@ -1515,6 +1534,8 @@ function AdminChatPageContent() {
     user,
     pendingImageIds,
     pendingImages,
+    pendingDocumentIds,
+    pendingDocumentMeta,
     currentConversationId,
   ]);
 
@@ -1850,57 +1871,89 @@ function AdminChatPageContent() {
     }
   };
 
+  const handleDocxFileInput = (files: FileList | null) => {
+    if (!files?.length) return;
+    const picked = Array.from(files);
+    const docx = picked.filter((f) => f.name.toLowerCase().endsWith(".docx"));
+    if (docx.length < picked.length) {
+      notify("Only .docx files are supported. Save as .docx if you have an older .doc file.");
+    }
+    if (docx.length === 0) return;
+    setAttachedDocxFiles((prev) => [...prev, ...docx]);
+  };
+
   const handleAddAttachmentsToChat = async () => {
-    if (attachedImages.length === 0) {
+    if (attachedImages.length === 0 && attachedDocxFiles.length === 0) {
       return;
     }
 
-    // Lade Bilder hoch und erhalte Image-IDs
     try {
       const apiBase = getChatApiBase();
-      // Check if apiBase already contains /chat (might be configured that way)
-      // The images router is registered with prefix /chat/images
-      // If apiBase already ends with /chat, we use /images/upload, otherwise /chat/images/upload
-      const uploadUrl = apiBase.endsWith('/chat')
+      const uploadUrl = apiBase.endsWith("/chat")
         ? `${apiBase}/images/upload`
         : `${apiBase}/chat/images/upload`;
 
-      const uploadPromises = attachedImages.map(async (imageDataUrl) => {
-        const response = await fetch(uploadUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ image: imageDataUrl }),
+      if (attachedImages.length > 0) {
+        const uploadPromises = attachedImages.map(async (imageDataUrl) => {
+          const response = await fetch(uploadUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ image: imageDataUrl }),
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text().catch(() => response.statusText || "Unknown error");
+            throw new Error(`Failed to upload image: ${response.status} ${errorText}`);
+          }
+
+          const data = await response.json();
+          return data.image_id as string;
         });
 
-        if (!response.ok) {
-          const errorText = await response.text().catch(() => response.statusText || "Unknown error");
-          throw new Error(`Failed to upload image: ${response.status} ${errorText}`);
+        const imageIds = await Promise.all(uploadPromises);
+        setPendingImageIds((prev) => [...prev, ...imageIds]);
+        setPendingImages((prev) => [...prev, ...attachedImages]);
+        setAttachedImages([]);
+      }
+
+      if (attachedDocxFiles.length > 0) {
+        const docUrl = buildChatDocumentsUploadUrl(apiBase);
+        for (const file of attachedDocxFiles) {
+          const fd = new FormData();
+          fd.append("file", file, file.name);
+          const response = await fetch(docUrl, {
+            method: "POST",
+            body: fd,
+          });
+          if (!response.ok) {
+            const errorText = await response.text().catch(() => response.statusText || "Unknown error");
+            throw new Error(`Failed to upload document: ${response.status} ${errorText}`);
+          }
+          const data = (await response.json()) as {
+            document_id: string;
+            filename: string;
+            char_count: number;
+            truncated?: boolean;
+          };
+          setPendingDocumentIds((prev) => [...prev, data.document_id]);
+          setPendingDocumentMeta((prev) => [...prev, { id: data.document_id, filename: data.filename }]);
         }
+        setAttachedDocxFiles([]);
+      }
 
-        const data = await response.json();
-        return data.image_id;
-      });
-
-      const imageIds = await Promise.all(uploadPromises);
-
-      // Speichere Image-IDs für Backend und Base64-Daten für Anzeige
-      setPendingImageIds((prev) => [...prev, ...imageIds]);
-      setPendingImages((prev) => [...prev, ...attachedImages]);
-
-      // Schließe Dialog und setze zurück
       setJourneyDialogOpen(false);
-      setAttachedImages([]);
       setActiveDialogTab("phases");
 
-      // Optional: Fokussiere den Input, damit User direkt tippen kann
       setTimeout(() => {
-        const inputElement = document.querySelector('input[placeholder*="Ask"], textarea[placeholder*="Ask"]') as HTMLInputElement | HTMLTextAreaElement;
+        const inputElement = document.querySelector(
+          'input[placeholder*="Ask"], textarea[placeholder*="Ask"]'
+        ) as HTMLInputElement | HTMLTextAreaElement;
         inputElement?.focus();
       }, 100);
     } catch (error) {
-      console.error("Failed to upload images:", error);
+      console.error("Failed to upload attachments:", error);
       const msg = error instanceof Error ? error.message : t("adminChat.imageUploadFailed");
       notify(msg);
     }
@@ -2630,7 +2683,7 @@ function AdminChatPageContent() {
                 mx: "auto",
                 padding: "0.75rem 1rem",
                 border: "1px solid var(--color-neutral)",
-                borderRadius: "var(--msqdx-radius-3xl, 24px)",
+                borderRadius: "9999px",
                 backgroundColor: alpha(theme.palette.background.paper, 0.94),
                 backdropFilter: "saturate(180%) blur(12px)",
                 boxShadow: theme.palette.mode === "dark"
@@ -2648,7 +2701,17 @@ function AdminChatPageContent() {
             >
               <Tooltip title={t("adminChat.addJourneyPhases")}>
                 <Badge
-                  badgeContent={pendingImages.length > 0 ? pendingImages.length : 0}
+                  badgeContent={
+                    pendingImageIds.length +
+                    pendingDocumentIds.length +
+                    attachedImages.length +
+                    attachedDocxFiles.length > 0
+                      ? pendingImageIds.length +
+                        pendingDocumentIds.length +
+                        attachedImages.length +
+                        attachedDocxFiles.length
+                      : 0
+                  }
                   color="primary"
                   overlap="circular"
                   sx={{
@@ -3176,6 +3239,41 @@ function AdminChatPageContent() {
                 </Typography>
               </Box>
 
+              <Box
+                sx={{
+                  border: "2px dashed var(--audion-light-border-color, #0f172a)",
+                  borderRadius: "12px",
+                  p: 3,
+                  textAlign: "center",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                  "&:hover": {
+                    borderColor: theme.palette.primary.main,
+                    backgroundColor: alpha(theme.palette.primary.main, 0.05),
+                  },
+                }}
+                onClick={() => {
+                  const input = document.createElement("input");
+                  input.type = "file";
+                  input.accept =
+                    ".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+                  input.multiple = true;
+                  input.onchange = (e) => {
+                    const target = e.target as HTMLInputElement;
+                    handleDocxFileInput(target.files);
+                  };
+                  input.click();
+                }}
+              >
+                <MsqdxIcon name="description" customSize={32} style={{ opacity: 0.6, marginBottom: "0.5rem" }} />
+                <Typography variant="caption" sx={{ display: "block", fontSize: "0.75rem", fontWeight: 500 }}>
+                  Upload Word (.docx)
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.6875rem" }}>
+                  Text is extracted on the server and attached to your next message
+                </Typography>
+              </Box>
+
               {/* Uploaded Images Preview */}
               {attachedImages.length > 0 && (
                 <Box>
@@ -3222,6 +3320,42 @@ function AdminChatPageContent() {
                   </Stack>
                 </Box>
               )}
+
+              {attachedDocxFiles.length > 0 && (
+                <Box>
+                  <Typography variant="caption" sx={{ mb: 1, fontWeight: 600, display: "block", fontSize: "0.6875rem" }}>
+                    Documents ({attachedDocxFiles.length}):
+                  </Typography>
+                  <Stack spacing={1}>
+                    {attachedDocxFiles.map((file, index) => (
+                      <Paper
+                        key={`${file.name}-${index}`}
+                        variant="outlined"
+                        sx={{
+                          p: 1,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 1,
+                        }}
+                      >
+                        <MsqdxIcon name="description" customSize={22} />
+                        <Typography variant="caption" sx={{ flex: 1, fontSize: "0.75rem" }}>
+                          {file.name}
+                        </Typography>
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            setAttachedDocxFiles((prev) => prev.filter((_, i) => i !== index));
+                          }}
+                          sx={{ p: 0.5 }}
+                        >
+                          <MsqdxIcon name="close" customSize={16} />
+                        </IconButton>
+                      </Paper>
+                    ))}
+                  </Stack>
+                </Box>
+              )}
             </Stack>
           )}
         </DialogContent>
@@ -3237,6 +3371,7 @@ function AdminChatPageContent() {
               setSelectedJourney(null);
               setActiveDialogTab("phases");
               setAttachedImages([]);
+              setAttachedDocxFiles([]);
             }}
           >
             Cancel
@@ -3256,11 +3391,12 @@ function AdminChatPageContent() {
             <button
               type="button"
               className="msqdx-glass-button"
-              onClick={handleAddAttachmentsToChat}
-              disabled={attachedImages.length === 0}
+              onClick={() => void handleAddAttachmentsToChat()}
+              disabled={attachedImages.length === 0 && attachedDocxFiles.length === 0}
             >
               <MsqdxIcon name="add" customSize={14} />
-              Add {attachedImages.length} image{attachedImages.length !== 1 ? "s" : ""}
+              Add {attachedImages.length + attachedDocxFiles.length} file
+              {attachedImages.length + attachedDocxFiles.length !== 1 ? "s" : ""}
             </button>
           )}
         </DialogActions>

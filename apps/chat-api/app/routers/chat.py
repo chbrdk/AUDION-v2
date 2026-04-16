@@ -16,6 +16,7 @@ from ..db import get_session
 from ..models import Persona, PersonaPrompt
 from ..ws.chat import get_persona_prompt
 from ..deps import verify_request_token
+from ..utils.chat_attachments import merge_user_message_content_with_documents
 from ..utils.turn_naturalness import TurnSessionState, build_turn_naturalness_spec, extract_last_two_user_texts
 from ..utils.turn_session_store import get_or_create_turn_session
 from .images import get_image_data_url
@@ -29,21 +30,24 @@ settings = get_settings()
 def convert_message_with_images(msg: ChatMessage) -> Dict[str, Any]:
     """
     Konvertiert eine Message mit Bildern (via Image-IDs) in OpenAI Vision Format.
+    DOCX-Anhänge (document_ids) werden vorab als Text in den User-Content gemerged.
     """
+    effective_text = merge_user_message_content_with_documents(msg.content, msg.document_ids)
+
     if not msg.image_ids or len(msg.image_ids) == 0:
         return {
             "role": msg.role,
-            "content": msg.content,
+            "content": effective_text,
         }
 
     logger.info("chat.image.processing", role=msg.role, image_count=len(msg.image_ids))
 
     content_blocks = []
 
-    if msg.content and msg.content.strip():
+    if effective_text and effective_text.strip():
         content_blocks.append({
             "type": "text",
-            "text": msg.content,
+            "text": effective_text,
         })
 
     for idx, image_id in enumerate(msg.image_ids):
@@ -73,7 +77,7 @@ def convert_message_with_images(msg: ChatMessage) -> Dict[str, Any]:
     if not content_blocks or all(block.get("type") == "image_url" for block in content_blocks):
         content_blocks.insert(0, {
             "type": "text",
-            "text": msg.content if msg.content else "",
+            "text": effective_text if effective_text else "",
         })
 
     logger.info(
@@ -94,6 +98,10 @@ class ChatMessage(BaseModel):
     role: str  # "system", "user", "assistant"
     content: str
     image_ids: List[str] | None = Field(default=None, description="IDs von hochgeladenen Bildern (via /images/upload)")
+    document_ids: List[str] | None = Field(
+        default=None,
+        description="IDs von temporär hochgeladenen DOCX (via /chat/documents/upload)",
+    )
 
 
 class ChatMessageRequest(BaseModel):
@@ -199,15 +207,19 @@ def build_chat_stream_context(request: ChatMessageRequest) -> ChatStreamContext:
             has_image_ids=any(msg.image_ids and len(msg.image_ids) > 0 for msg in request.messages),
         )
 
+        turn_spec_messages: List[Dict[str, Any]] = []
         for msg in request.messages:
             if msg.role == "system":
                 system_parts.append(msg.content)
             elif msg.role in ["user", "assistant"]:
+                turn_spec_messages.append({"role": msg.role, "content": msg.content or ""})
                 logger.info(
                     "chat.message.raw",
                     role=msg.role,
                     has_image_ids=bool(msg.image_ids and len(msg.image_ids) > 0),
                     image_id_count=len(msg.image_ids) if msg.image_ids else 0,
+                    has_document_ids=bool(msg.document_ids and len(msg.document_ids) > 0),
+                    document_id_count=len(msg.document_ids) if msg.document_ids else 0,
                     content_length=len(msg.content) if msg.content else 0,
                 )
                 anthropic_message = convert_message_with_images(msg)
@@ -258,7 +270,7 @@ def build_chat_stream_context(request: ChatMessageRequest) -> ChatStreamContext:
     )
 
     if request.messages:
-        last_u, prev_u = extract_last_two_user_texts(anthropic_messages)
+        last_u, prev_u = extract_last_two_user_texts(turn_spec_messages)
     else:
         last_u, prev_u = (retrieval_query or "").strip(), None
 

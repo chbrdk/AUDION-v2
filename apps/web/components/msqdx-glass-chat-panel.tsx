@@ -24,6 +24,8 @@ type Message = {
   content: string;
   personaName?: string;
   images?: string[]; // Base64 data URLs for images
+  /** Filenames for DOCX attached to this message (text lives on server until TTL). */
+  document_attachment_meta?: Array<{ id: string; filename: string }>;
   /** Optional model reasoning stream (collapsible in UI). */
   reasoning?: string;
 };
@@ -241,6 +243,20 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                   <ChatMessageMarkdown content={message.content} />
                 </Box>
                 
+                {message.document_attachment_meta && message.document_attachment_meta.length > 0 && (
+                  <Box sx={{ mt: 1, display: "flex", flexDirection: "column", gap: 0.5 }}>
+                    {message.document_attachment_meta.map((d) => (
+                      <Typography
+                        key={d.id}
+                        variant="caption"
+                        sx={{ color: theme.palette.text.secondary, display: "flex", alignItems: "center", gap: 0.5 }}
+                      >
+                        <MsqdxIcon name="description" customSize={14} />
+                        {d.filename}
+                      </Typography>
+                    ))}
+                  </Box>
+                )}
                 {/* Display images if available */}
                 {message.images && message.images.length > 0 && (
                   <Box sx={{ mt: 1.5, display: "flex", flexDirection: "column", gap: 1 }}>

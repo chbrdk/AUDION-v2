@@ -56,6 +56,11 @@ class Settings(BaseSettings):
     chat_reasoning_effort_extended: str = "low"
     # Upload size limit for images (bytes). Reject with 413 if exceeded.
     upload_max_image_bytes: int = 10 * 1024 * 1024  # 10 MB for images
+    # Temporary chat document uploads (.docx): raw file size and extracted text cap.
+    upload_max_document_bytes: int = 15 * 1024 * 1024  # 15 MB
+    upload_max_document_chars: int = 200_000
+    # TTL for in-memory image/document attachment IDs (seconds).
+    upload_attachment_ttl_seconds: int = 3600
     # Reply mode: minimum user message length (chars) to treat as "extended" (see reply_mode.infer_reply_mode).
     chat_extended_min_chars: int = 200
     # Turn naturalness: max imperfection hints per WebSocket session (0 = disable).

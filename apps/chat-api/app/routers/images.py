@@ -18,16 +18,17 @@ settings = get_settings()
 # Format: {image_id: {"data_url": str, "uploaded_at": datetime}}
 _image_storage: Dict[str, Dict[str, any]] = {}
 
-# Cleanup: Entferne Bilder älter als 1 Stunde
-CLEANUP_INTERVAL = timedelta(hours=1)
+def _image_cleanup_interval() -> timedelta:
+    return timedelta(seconds=get_settings().upload_attachment_ttl_seconds)
 
 
 def cleanup_old_images():
-    """Entfernt Bilder, die älter als CLEANUP_INTERVAL sind"""
+    """Entfernt Bilder, die älter als upload_attachment_ttl_seconds sind"""
     now = datetime.now()
+    interval = _image_cleanup_interval()
     to_remove = [
         image_id for image_id, data in list(_image_storage.items())
-        if now - data.get("uploaded_at", now) > CLEANUP_INTERVAL
+        if now - data.get("uploaded_at", now) > interval
     ]
     for image_id in to_remove:
         del _image_storage[image_id]
@@ -180,7 +181,7 @@ async def get_image(image_id: str):
     image_data = _image_storage[image_id]
     
     # Prüfe ob abgelaufen
-    if datetime.now() - image_data["uploaded_at"] > CLEANUP_INTERVAL:
+    if datetime.now() - image_data["uploaded_at"] > _image_cleanup_interval():
         del _image_storage[image_id]
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -201,7 +202,7 @@ def get_image_data_url(image_id: str) -> str | None:
     image_data = _image_storage[image_id]
     
     # Prüfe ob abgelaufen
-    if datetime.now() - image_data["uploaded_at"] > CLEANUP_INTERVAL:
+    if datetime.now() - image_data["uploaded_at"] > _image_cleanup_interval():
         del _image_storage[image_id]
         return None
     

@@ -23,6 +23,7 @@ from ..services.voice import ElevenLabsVoiceError, get_voice_client
 from ..deps import verify_request_token
 from ..services.whisper import WhisperTranscriptionService
 from ..utils.text import clean_response_text
+from ..utils.chat_attachments import merge_user_message_content_with_documents
 from ..utils.turn_naturalness import (
     build_turn_naturalness_spec,
     compose_persona_system_prompt,
@@ -80,20 +81,22 @@ def select_model_for_messages(messages: List[Dict[str, Any]]) -> str:
 def convert_message_with_images(msg: VoiceChatMessage) -> Dict[str, Any]:
     """
     Konvertiert eine Message mit Bildern in OpenAI Vision Format.
-    Siehe chat.py für Details.
+    Siehe chat.py für Details. DOCX-Anhänge über document_ids werden wie in chat.py gemerged.
     """
+    effective_text = merge_user_message_content_with_documents(msg.content, msg.document_ids)
+
     if not msg.images or len(msg.images) == 0:
         return {
             "role": msg.role,
-            "content": msg.content
+            "content": effective_text,
         }
-    
+
     content_blocks = []
-    
-    if msg.content and msg.content.strip():
+
+    if effective_text and effective_text.strip():
         content_blocks.append({
             "type": "text",
-            "text": msg.content
+            "text": effective_text,
         })
     
     for image_data_url in msg.images:
@@ -109,7 +112,7 @@ def convert_message_with_images(msg: VoiceChatMessage) -> Dict[str, Any]:
     if not content_blocks or all(block.get("type") == "image_url" for block in content_blocks):
         content_blocks.insert(0, {
             "type": "text",
-            "text": msg.content if msg.content else ""
+            "text": effective_text if effective_text else "",
         })
     
     return {
@@ -137,6 +140,10 @@ class VoiceChatMessage(BaseModel):
     role: str  # "system", "user", "assistant"
     content: str
     images: List[str] | None = Field(default=None)  # Base64 data URLs for images
+    document_ids: List[str] | None = Field(
+        default=None,
+        description="Temporary DOCX upload ids (same as REST /chat/documents/upload)",
+    )
 
 
 class VoiceChatRequest(BaseModel):
@@ -210,10 +217,12 @@ async def voice_chat_stream(request: VoiceChatRequest, _: None = Depends(verify_
         anthropic_messages = []
         system_parts = [base_system_prompt]
         
+        turn_spec_messages: List[Dict[str, Any]] = []
         for msg in request.messages:
             if msg.role == "system":
                 system_parts.append(msg.content)
             elif msg.role in ["user", "assistant"]:
+                turn_spec_messages.append({"role": msg.role, "content": msg.content or ""})
                 # Konvertiere Message mit Bildern in OpenAI Vision Format
                 anthropic_message = convert_message_with_images(msg)
                 anthropic_messages.append(anthropic_message)
@@ -233,7 +242,10 @@ async def voice_chat_stream(request: VoiceChatRequest, _: None = Depends(verify_
             detail="Either 'message' or 'messages' must be provided"
         )
 
-    last_u, prev_u = extract_last_two_user_texts(anthropic_messages)
+    if request.messages:
+        last_u, prev_u = extract_last_two_user_texts(turn_spec_messages)
+    else:
+        last_u, prev_u = extract_last_two_user_texts(anthropic_messages)
     voice_turn_session = None
     vsid = (request.session_id or "").strip()
     if vsid:

@@ -56,6 +56,11 @@ export function getPersonaBackendDocsUrl(options?: { preferPublic?: boolean }): 
  * Get the chat API base URL
  * @returns The base URL for the chat API
  */
+/** Upload URL for temporary DOCX files (same rules as image upload vs chat base path). */
+export function buildChatDocumentsUploadUrl(apiBase: string): string {
+  return apiBase.endsWith('/chat') ? `${apiBase}/documents/upload` : `${apiBase}/chat/documents/upload`;
+}
+
 export function getChatApiBase(): string {
   // Client-side: always use the Next.js API proxy to avoid Mixed Content / CORS issues
   if (typeof window !== "undefined") {

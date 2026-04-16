@@ -25,6 +25,7 @@ dependencies = [
     "opentelemetry-exporter-otlp==1.38.0",
     "faster-whisper==1.1.0",
     "python-multipart==0.0.12",
+    "python-docx==1.2.0",
     "openai>=1.0.0",
     "msqdx-glass-proto @ file:///app/packages/proto"
 ]

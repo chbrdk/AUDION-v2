@@ -5,6 +5,11 @@ export type Message = {
   role: "user" | "persona" | "system";
   content: string;
   personaName?: string;
+  image_ids?: string[];
+  images?: string[];
+  document_ids?: string[];
+  /** Filenames for UI when document_ids are present (server text is not stored locally). */
+  document_attachment_meta?: Array<{ id: string; filename: string }>;
 };
 
 // PersonaProfile type - matches the structure used in chat page

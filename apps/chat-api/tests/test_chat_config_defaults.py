@@ -15,3 +15,6 @@ def test_chat_model_and_max_completion_defaults() -> None:
     assert Settings.model_fields["turn_naturalness_http_session_ttl_seconds"].default == 86400
     assert Settings.model_fields["turn_naturalness_http_session_max_entries"].default == 50_000
     assert Settings.model_fields["turn_naturalness_imperfection_probability"].default == 0.35
+    assert Settings.model_fields["upload_max_document_bytes"].default == 15 * 1024 * 1024
+    assert Settings.model_fields["upload_max_document_chars"].default == 200_000
+    assert Settings.model_fields["upload_attachment_ttl_seconds"].default == 3600
