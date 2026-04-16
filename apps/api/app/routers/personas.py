@@ -10,15 +10,32 @@ from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
 from fastapi.responses import RedirectResponse, Response, StreamingResponse
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from ..db import get_session
-from ..models import Document, DocumentChunk, Persona, PersonaKnowledgeEntry, PersonaPrompt as PersonaPromptModel, ProcessingJob, TargetGroup, User
+from ..models import (
+    Document,
+    DocumentChunk,
+    MoodboardStatus,
+    Persona,
+    PersonaKnowledgeEntry,
+    PersonaMoodboard,
+    PersonaMoodboardTile,
+    PersonaPrompt as PersonaPromptModel,
+    ProcessingJob,
+    TargetGroup,
+    User,
+)
 from worker.ingest import enqueue_ingestion
 from ..schemas import (
     AiAssistRequest,
     AiAssistResponse,
+    Moodboard,
+    MoodboardCreateResponse,
+    MoodboardPatchRequest,
+    MoodboardTile,
+    MoodboardTilePatchRequest,
     PersonaCreateRequest,
     PersonaDocument,
     PersonaGenerateRequest,
@@ -54,6 +71,8 @@ from ..services.usage_report import report_usage
 from ..core.config import get_settings
 from ..core.upload_limits import read_upload_with_limit
 from msqdx_glass_proto import PersonaPrompt as PersonaPromptProto
+from ..celery_app import celery_app
+from ..services.moodboard_service import MoodboardService
 
 router = APIRouter(prefix="/personas", tags=["personas"])
 # Same avatar under /api/persona-admin for reverse proxies that route /api/* to this service
@@ -65,6 +84,54 @@ generator = PersonaGenerationService()
 persona_service = PersonaService()
 storage = StorageService()
 target_group_service = TargetGroupService()
+moodboard_service = MoodboardService()
+
+
+def _serialize_moodboard_tile(tile: PersonaMoodboardTile) -> MoodboardTile:
+    tags = tile.tags if isinstance(tile.tags, list) else []
+    return MoodboardTile(
+        id=str(tile.id),
+        moodboardId=str(tile.moodboard_id),
+        category=tile.category,
+        imageUrl=tile.image_url,
+        thumbUrl=tile.thumb_url,
+        sourceType=tile.source_type,
+        sourceUrl=tile.source_url,
+        author=tile.author,
+        license=tile.license,
+        attributionText=tile.attribution_text,
+        caption=tile.caption,
+        rationale=tile.rationale,
+        tags=[t for t in tags if isinstance(t, str)],
+        order=int(tile.tile_order or 0),
+        locked=bool(tile.locked),
+        createdAt=tile.created_at,
+        updatedAt=tile.updated_at,
+    )
+
+
+def _serialize_moodboard(session: Session, moodboard: PersonaMoodboard) -> Moodboard:
+    tiles = (
+        session.scalars(
+            select(PersonaMoodboardTile)
+            .where(PersonaMoodboardTile.moodboard_id == moodboard.id)
+            .order_by(PersonaMoodboardTile.tile_order.asc(), PersonaMoodboardTile.created_at.asc())
+        )
+        .all()
+    )
+    style = moodboard.style_keywords if isinstance(moodboard.style_keywords, list) else []
+    return Moodboard(
+        id=str(moodboard.id),
+        personaId=str(moodboard.persona_id),
+        projectId=str(moodboard.project_id) if moodboard.project_id else None,
+        title=moodboard.title,
+        status=moodboard.status.value if hasattr(moodboard.status, "value") else str(moodboard.status),
+        active=bool(moodboard.active),
+        styleKeywords=[s for s in style if isinstance(s, str)],
+        tiles=[_serialize_moodboard_tile(t) for t in tiles],
+        createdAt=moodboard.created_at,
+        updatedAt=moodboard.updated_at,
+    )
 
 
 def get_db(current_user: User = Depends(get_current_user)):
@@ -888,6 +955,37 @@ def get_persona_public(
         return persona_service.get_persona(session, persona_id)
 
 
+@router.get(
+    "/{persona_id}/moodboards/public",
+    response_model=Moodboard,
+    summary="Get active moodboard (public share link)",
+    description="Public endpoint for shared chat links. No auth required. Validates project_id as share token.",
+)
+def get_moodboard_public(
+    persona_id: str,
+    project_id: str = Query(..., description="Project ID - acts as share token"),
+) -> Moodboard:
+    try:
+        persona_uuid = UUID(persona_id)
+        project_uuid = UUID(project_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid persona or project ID") from exc
+    with get_session() as session:
+        persona = session.get(Persona, persona_uuid)
+        if not persona or persona.project_id != project_uuid:
+            raise HTTPException(status_code=404, detail="Persona not found")
+        mb = session.scalar(
+            select(PersonaMoodboard)
+            .where(PersonaMoodboard.persona_id == persona_uuid)
+            .where(PersonaMoodboard.active.is_(True))
+            .order_by(PersonaMoodboard.updated_at.desc())
+            .limit(1)
+        )
+        if not mb:
+            raise HTTPException(status_code=404, detail="Moodboard not found")
+        return _serialize_moodboard(session, mb)
+
+
 @router.patch(
     "/{persona_id}",
     response_model=PersonaResponse,
@@ -1709,3 +1807,181 @@ def create_tavus_session(
             detail="Failed to create Tavus session. Please try again later.",
         ) from e
     return data
+
+
+@persona_admin_router.get(
+    "/{persona_id}/moodboards/active",
+    response_model=Moodboard,
+    summary="Get active moodboard for persona (admin)",
+)
+def get_active_moodboard_admin(persona_id: str, session: Session = Depends(get_db)) -> Moodboard:
+    persona = _get_persona_or_404(session, persona_id)
+    mb = session.scalar(
+        select(PersonaMoodboard)
+        .where(PersonaMoodboard.persona_id == persona.id)
+        .where(PersonaMoodboard.active.is_(True))
+        .order_by(PersonaMoodboard.updated_at.desc())
+        .limit(1)
+    )
+    if not mb:
+        raise HTTPException(status_code=404, detail="Moodboard not found")
+    return _serialize_moodboard(session, mb)
+
+
+@persona_admin_router.post(
+    "/{persona_id}/moodboards",
+    response_model=MoodboardCreateResponse,
+    summary="Create moodboard and enqueue build (admin)",
+)
+def create_moodboard_admin(
+    persona_id: str,
+    body: dict = Body(default_factory=dict),
+    session: Session = Depends(get_db),
+) -> MoodboardCreateResponse:
+    persona = _get_persona_or_404(session, persona_id)
+    title = body.get("title") if isinstance(body, dict) else None
+    updated_by = body.get("updated_by") if isinstance(body, dict) else None
+    project_id = persona.project_id
+    mb = moodboard_service.create_or_activate_moodboard(
+        session,
+        persona_id=persona.id,
+        project_id=project_id,
+        title=title if isinstance(title, str) else None,
+        updated_by=updated_by if isinstance(updated_by, str) else None,
+    )
+    celery_app.send_task(
+        "moodboard.build",
+        kwargs={"moodboard_id": str(mb.id)},
+        queue="moodboards",
+        routing_key="moodboards",
+    )
+    return MoodboardCreateResponse(moodboard=_serialize_moodboard(session, mb))
+
+
+@persona_admin_router.post(
+    "/moodboards/{moodboard_id}/rebuild",
+    response_model=MoodboardCreateResponse,
+    summary="Rebuild moodboard tiles (admin)",
+)
+def rebuild_moodboard_admin(moodboard_id: str, session: Session = Depends(get_db)) -> MoodboardCreateResponse:
+    try:
+        mb_uuid = UUID(moodboard_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid moodboard id") from exc
+    mb = session.get(PersonaMoodboard, mb_uuid)
+    if not mb:
+        raise HTTPException(status_code=404, detail="Moodboard not found")
+    # Ensure access via persona project permissions:
+    _get_persona_or_404(session, str(mb.persona_id))
+    mb.status = MoodboardStatus.draft
+    session.add(mb)
+    session.commit()
+    celery_app.send_task(
+        "moodboard.build",
+        kwargs={"moodboard_id": str(mb.id)},
+        queue="moodboards",
+        routing_key="moodboards",
+    )
+    session.refresh(mb)
+    return MoodboardCreateResponse(moodboard=_serialize_moodboard(session, mb))
+
+
+@persona_admin_router.patch(
+    "/moodboards/{moodboard_id}",
+    response_model=Moodboard,
+    summary="Patch moodboard metadata (admin)",
+)
+def patch_moodboard_admin(
+    moodboard_id: str,
+    payload: MoodboardPatchRequest,
+    session: Session = Depends(get_db),
+) -> Moodboard:
+    try:
+        mb_uuid = UUID(moodboard_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid moodboard id") from exc
+    mb = session.get(PersonaMoodboard, mb_uuid)
+    if not mb:
+        raise HTTPException(status_code=404, detail="Moodboard not found")
+    _get_persona_or_404(session, str(mb.persona_id))
+    if payload.title is not None:
+        mb.title = payload.title.strip() or mb.title
+    if payload.active is not None and payload.active:
+        # deactivate others
+        session.execute(
+            update(PersonaMoodboard)
+            .where(PersonaMoodboard.persona_id == mb.persona_id)
+            .where(PersonaMoodboard.id != mb.id)
+            .values(active=False, updated_at=datetime.utcnow(), updated_by=payload.updated_by)
+        )
+        mb.active = True
+    if payload.status is not None:
+        try:
+            mb.status = MoodboardStatus(payload.status)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid status") from None
+    if payload.updated_by is not None:
+        mb.updated_by = payload.updated_by
+    session.add(mb)
+    session.commit()
+    session.refresh(mb)
+    return _serialize_moodboard(session, mb)
+
+
+@persona_admin_router.patch(
+    "/moodboard-tiles/{tile_id}",
+    response_model=MoodboardTile,
+    summary="Patch moodboard tile (admin)",
+)
+def patch_moodboard_tile_admin(
+    tile_id: str,
+    payload: MoodboardTilePatchRequest,
+    session: Session = Depends(get_db),
+) -> MoodboardTile:
+    try:
+        tile_uuid = UUID(tile_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid tile id") from exc
+    tile = session.get(PersonaMoodboardTile, tile_uuid)
+    if not tile:
+        raise HTTPException(status_code=404, detail="Tile not found")
+    mb = session.get(PersonaMoodboard, tile.moodboard_id)
+    if not mb:
+        raise HTTPException(status_code=404, detail="Moodboard not found")
+    _get_persona_or_404(session, str(mb.persona_id))
+
+    if payload.caption is not None:
+        tile.caption = payload.caption
+    if payload.rationale is not None:
+        tile.rationale = payload.rationale
+    if payload.tags is not None:
+        tile.tags = payload.tags
+    if payload.order is not None:
+        tile.tile_order = int(payload.order)
+    if payload.locked is not None:
+        tile.locked = bool(payload.locked)
+    session.add(tile)
+    session.commit()
+    session.refresh(tile)
+    return _serialize_moodboard_tile(tile)
+
+
+@persona_admin_router.delete(
+    "/moodboard-tiles/{tile_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete moodboard tile (admin)",
+)
+def delete_moodboard_tile_admin(tile_id: str, session: Session = Depends(get_db)) -> None:
+    try:
+        tile_uuid = UUID(tile_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid tile id") from exc
+    tile = session.get(PersonaMoodboardTile, tile_uuid)
+    if not tile:
+        raise HTTPException(status_code=404, detail="Tile not found")
+    mb = session.get(PersonaMoodboard, tile.moodboard_id)
+    if not mb:
+        raise HTTPException(status_code=404, detail="Moodboard not found")
+    _get_persona_or_404(session, str(mb.persona_id))
+    session.execute(delete(PersonaMoodboardTile).where(PersonaMoodboardTile.id == tile_uuid))
+    session.commit()

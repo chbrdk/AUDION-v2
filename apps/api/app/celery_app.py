@@ -22,9 +22,10 @@ celery_app.conf.update(
         "journey.analyze_insights": {"queue": "analytics"},
         "journey.sync_all_active": {"queue": "analytics"},
         "journey.analyze_all_insights": {"queue": "analytics"},
+        "moodboard.build": {"queue": "moodboards"},
     },
     task_track_started=True,
-    include=["worker.ingest", "app.tasks.journey_tasks"],  # Auto-import tasks
+    include=["worker.ingest", "app.tasks.journey_tasks", "app.tasks.moodboard_tasks"],  # Auto-import tasks
     beat_schedule=beat_schedule,  # Celery Beat schedule
 )
 

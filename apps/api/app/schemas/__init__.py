@@ -191,6 +191,58 @@ class PersonaKnowledgeEntry(BaseModel):
     createdAt: datetime = Field(..., description="Timestamp of creation (UTC).")
 
 
+class MoodboardTile(BaseModel):
+    id: str = Field(..., description="Unique moodboard tile identifier (UUID).")
+    moodboardId: str = Field(..., description="Moodboard identifier this tile belongs to.")
+    category: str = Field(..., description="Tile category (e.g. lifestyle, colors, textures).")
+    imageUrl: str = Field(..., description="Primary image URL (hotlink in MVP).")
+    thumbUrl: str | None = Field(default=None, description="Optional thumbnail URL.")
+    sourceType: str = Field(default="openverse", description="Source identifier (openverse/upload/generated).")
+    sourceUrl: str | None = Field(default=None, description="Canonical source page URL for attribution.")
+    author: str | None = Field(default=None, description="Image author/creator.")
+    license: str | None = Field(default=None, description="License identifier or URL.")
+    attributionText: str | None = Field(default=None, description="Human-readable attribution string.")
+    caption: str | None = Field(default=None, description="Editable caption shown on the tile.")
+    rationale: str | None = Field(default=None, description="Why this tile fits the persona.")
+    tags: list[str] = Field(default_factory=list, description="Search tags / descriptors for this tile.")
+    order: int = Field(default=0, description="Ordering index used for display and drag&drop.")
+    locked: bool = Field(default=False, description="When true, tile is not replaced on rebuild.")
+    createdAt: datetime | None = None
+    updatedAt: datetime | None = None
+
+
+class Moodboard(BaseModel):
+    id: str = Field(..., description="Unique moodboard identifier (UUID).")
+    personaId: str = Field(..., description="Persona identifier the moodboard belongs to.")
+    projectId: str | None = Field(default=None, description="Optional project identifier scope.")
+    title: str = Field(default="Moodboard", description="Moodboard title.")
+    status: str = Field(default="draft", description="draft|building|ready|failed")
+    active: bool = Field(default=True, description="Whether this moodboard is the active board for the persona.")
+    styleKeywords: list[str] = Field(default_factory=list, description="Optional style keywords used for sourcing.")
+    tiles: list[MoodboardTile] = Field(default_factory=list, description="Tiles in display order.")
+    createdAt: datetime | None = None
+    updatedAt: datetime | None = None
+
+
+class MoodboardCreateResponse(BaseModel):
+    moodboard: Moodboard
+
+
+class MoodboardPatchRequest(BaseModel):
+    title: str | None = None
+    active: bool | None = None
+    status: str | None = None
+    updated_by: str | None = Field(default=None, description="Actor identifier for audit/debugging.")
+
+
+class MoodboardTilePatchRequest(BaseModel):
+    caption: str | None = None
+    rationale: str | None = None
+    tags: list[str] | None = None
+    order: int | None = None
+    locked: bool | None = None
+
+
 class PersonaMetadata(BaseModel):
     personaId: str = Field(..., description="Unique persona identifier (UUID).")
     projectId: str = Field(..., description="Project identifier the persona belongs to.")

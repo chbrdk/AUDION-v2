@@ -101,6 +101,13 @@ class JourneyInsightStatus(PyEnum):
     dismissed = "dismissed"
 
 
+class MoodboardStatus(PyEnum):
+    draft = "draft"
+    building = "building"
+    ready = "ready"
+    failed = "failed"
+
+
 class ProjectRole(PyEnum):
     owner = "owner"
     admin = "admin"
@@ -307,6 +314,51 @@ class Persona(Base):
     sources = relationship("PersonaSource", back_populates="persona")
     audit_logs = relationship("PersonaAuditLog", back_populates="persona", cascade="all, delete-orphan")
     documents = relationship("Document", back_populates="persona")
+    moodboards = relationship("PersonaMoodboard", back_populates="persona", cascade="all, delete-orphan")
+
+
+class PersonaMoodboard(Base):
+    __tablename__ = "persona_moodboards"
+    __table_args__ = {"schema": "audion"}
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    persona_id = Column(UUID(as_uuid=True), ForeignKey("audion.personas.id", ondelete="CASCADE"), nullable=False)
+    project_id = Column(UUID(as_uuid=True), nullable=True)
+    title = Column(String(256), nullable=False, default="Moodboard")
+    status = Column(Enum(MoodboardStatus, name="moodboard_status"), nullable=False, default=MoodboardStatus.draft)
+    active = Column(Boolean, nullable=False, default=True)
+    style_keywords = Column(JSONB, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_by = Column(String(128), nullable=True)
+
+    persona = relationship("Persona", back_populates="moodboards")
+    tiles = relationship("PersonaMoodboardTile", back_populates="moodboard", cascade="all, delete-orphan")
+
+
+class PersonaMoodboardTile(Base):
+    __tablename__ = "persona_moodboard_tiles"
+    __table_args__ = {"schema": "audion"}
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    moodboard_id = Column(UUID(as_uuid=True), ForeignKey("audion.persona_moodboards.id", ondelete="CASCADE"), nullable=False)
+    category = Column(String(64), nullable=False)
+    image_url = Column(Text, nullable=False)
+    thumb_url = Column(Text, nullable=True)
+    source_type = Column(String(64), nullable=False, default="openverse")
+    source_url = Column(Text, nullable=True)
+    author = Column(String(256), nullable=True)
+    license = Column(String(256), nullable=True)
+    attribution_text = Column(Text, nullable=True)
+    caption = Column(Text, nullable=True)
+    rationale = Column(Text, nullable=True)
+    tags = Column(JSONB, nullable=True)
+    tile_order = Column(Integer, nullable=False, default=0)
+    locked = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    moodboard = relationship("PersonaMoodboard", back_populates="tiles")
 
 
 class PersonaPrompt(Base):

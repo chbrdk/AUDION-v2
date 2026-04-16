@@ -87,6 +87,11 @@ class Settings(BaseSettings):
     tavus_api_key: str | None = None
     tavus_api_base: str = "https://tavusapi.com"
 
+    # Openverse (moodboards)
+    openverse_api_base_url: str = "https://api.openverse.engineering"
+    openverse_request_timeout_seconds: float = 20.0
+    openverse_user_agent: str = "audion-api (persona moodboards)"
+
     # Upload size limits (bytes). Reject with 413 if exceeded.
     upload_max_document_bytes: int = 10 * 1024 * 1024  # 10 MB for documents
     upload_max_avatar_bytes: int = 5 * 1024 * 1024  # 5 MB for avatar images

@@ -23,16 +23,19 @@ import { MsqdxGlassCollapsiblePanel } from "./admin/msqdx-glass-collapsible-pane
 import {
   Alert,
   Box,
+  Checkbox,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControlLabel,
   LinearProgress,
   Tooltip,
 } from "@mui/material";
 import { buildApiUrl } from "../app/api/_lib/backend";
 import { normalizePersonaListResponse } from "../lib/persona-list-normalize";
 import { THEME_ACCENT } from "../lib/theme-accent";
+import { sortMoodboardTiles } from "../lib/moodboard";
 import { useProject } from "./projects/project-provider";
 import { useI18n } from "./i18n/i18n-provider";
 import { targetGroupsApi, type TargetGroupResponse } from "../app/api/_lib/target-groups";
@@ -61,6 +64,34 @@ type CreateFormState = {
 type KnowledgeFormState = {
   title: string;
   content: string;
+};
+
+type MoodboardTile = {
+  id: string;
+  moodboardId: string;
+  category: string;
+  imageUrl: string;
+  thumbUrl?: string | null;
+  sourceType?: string;
+  sourceUrl?: string | null;
+  author?: string | null;
+  license?: string | null;
+  attributionText?: string | null;
+  caption?: string | null;
+  rationale?: string | null;
+  tags?: string[];
+  order: number;
+  locked: boolean;
+};
+
+type Moodboard = {
+  id: string;
+  personaId: string;
+  title: string;
+  status: string;
+  active: boolean;
+  styleKeywords?: string[];
+  tiles: MoodboardTile[];
 };
 
 type PersonaSaveUpdates = Partial<EditFormState> | Partial<PersonaProfile> | { project_id?: string; target_group_id?: string | null };
@@ -200,6 +231,16 @@ export const MsqdxGlassPersonaAdminPanel = ({
   const [targetGroupsForMetadata, setTargetGroupsForMetadata] = useState<TargetGroupResponse[]>([]);
   const [metadataAssignPending, setMetadataAssignPending] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [moodboard, setMoodboard] = useState<Moodboard | null>(null);
+  const [moodboardLoading, setMoodboardLoading] = useState(false);
+  const [moodboardPending, setMoodboardPending] = useState(false);
+  const [moodboardError, setMoodboardError] = useState<string | null>(null);
+  const [tileDialogOpen, setTileDialogOpen] = useState(false);
+  const [activeTile, setActiveTile] = useState<MoodboardTile | null>(null);
+  const [tileEditCaption, setTileEditCaption] = useState("");
+  const [tileEditRationale, setTileEditRationale] = useState("");
+  const [tileEditLocked, setTileEditLocked] = useState(false);
+  const [tileSavePending, setTileSavePending] = useState(false);
   const documentInputRef = useRef<HTMLInputElement | null>(null);
   const lastTargetGroupsProjectIdRef = useRef<string | null>(null);
   const loadDetailInFlightRef = useRef(false);
@@ -354,6 +395,156 @@ export const MsqdxGlassPersonaAdminPanel = ({
   useEffect(() => {
     metadataFormDirtyRef.current = false;
   }, [selectedId]);
+
+  const loadMoodboard = useCallback(
+    async (personaId: string) => {
+      if (!personaId) return;
+      setMoodboardLoading(true);
+      setMoodboardError(null);
+      try {
+        const res = await fetch(buildApiUrl(`/api/persona-admin/${personaId}/moodboards/active`), {
+          cache: "no-store",
+          credentials: "include",
+        });
+        if (res.status === 404) {
+          setMoodboard(null);
+          return;
+        }
+        if (!res.ok) {
+          const txt = await res.text().catch(() => "");
+          throw new Error(txt || `HTTP ${res.status}`);
+        }
+        const data = (await res.json()) as Moodboard;
+        setMoodboard(data);
+      } catch (e) {
+        setMoodboardError(e instanceof Error ? e.message : "Failed to load moodboard");
+        setMoodboard(null);
+      } finally {
+        setMoodboardLoading(false);
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (!selectedId) return;
+    void loadMoodboard(selectedId);
+  }, [selectedId, loadMoodboard]);
+
+  const pollMoodboardUntilReady = useCallback(
+    (personaId: string) => {
+      let tries = 0;
+      const maxTries = 30;
+      const interval = setInterval(async () => {
+        tries += 1;
+        await loadMoodboard(personaId);
+        if (tries >= maxTries) {
+          clearInterval(interval);
+        }
+      }, 2000);
+      return () => clearInterval(interval);
+    },
+    [loadMoodboard]
+  );
+
+  const handleGenerateMoodboard = async () => {
+    if (!selectedId) return;
+    setMoodboardPending(true);
+    setMoodboardError(null);
+    try {
+      const res = await fetch(buildApiUrl(`/api/persona-admin/${selectedId}/moodboards`), {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "Moodboard", updated_by: "persona-admin-ui" }),
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(payload?.detail || payload?.error || `HTTP ${res.status}`);
+      }
+      const mb = (payload?.moodboard ?? payload) as Moodboard;
+      setMoodboard(mb);
+      pollMoodboardUntilReady(selectedId);
+    } catch (e) {
+      setMoodboardError(e instanceof Error ? e.message : "Failed to generate moodboard");
+    } finally {
+      setMoodboardPending(false);
+    }
+  };
+
+  const handleRebuildMoodboard = async () => {
+    if (!moodboard?.id) return;
+    setMoodboardPending(true);
+    setMoodboardError(null);
+    try {
+      const res = await fetch(buildApiUrl(`/api/persona-admin/moodboards/${moodboard.id}/rebuild`), {
+        method: "POST",
+        credentials: "include",
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(payload?.detail || payload?.error || `HTTP ${res.status}`);
+      }
+      const mb = (payload?.moodboard ?? payload) as Moodboard;
+      setMoodboard(mb);
+      if (selectedId) pollMoodboardUntilReady(selectedId);
+    } catch (e) {
+      setMoodboardError(e instanceof Error ? e.message : "Failed to rebuild moodboard");
+    } finally {
+      setMoodboardPending(false);
+    }
+  };
+
+  const openTileDialog = (tile: MoodboardTile) => {
+    setActiveTile(tile);
+    setTileEditCaption(tile.caption ?? "");
+    setTileEditRationale(tile.rationale ?? "");
+    setTileEditLocked(Boolean(tile.locked));
+    setTileDialogOpen(true);
+  };
+
+  const handleSaveTile = async () => {
+    if (!activeTile) return;
+    setTileSavePending(true);
+    try {
+      const res = await fetch(buildApiUrl(`/api/persona-admin/moodboard-tiles/${activeTile.id}`), {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          caption: tileEditCaption,
+          rationale: tileEditRationale,
+          locked: tileEditLocked,
+        }),
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.detail || payload?.error || `HTTP ${res.status}`);
+      // Refresh the whole board for consistency.
+      if (selectedId) await loadMoodboard(selectedId);
+      setTileDialogOpen(false);
+    } catch (e) {
+      notify(e instanceof Error ? e.message : "Failed to save tile");
+    } finally {
+      setTileSavePending(false);
+    }
+  };
+
+  const handleDeleteTile = async (tile: MoodboardTile) => {
+    if (!tile?.id) return;
+    try {
+      const res = await fetch(buildApiUrl(`/api/persona-admin/moodboard-tiles/${tile.id}`), {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        throw new Error(txt || `HTTP ${res.status}`);
+      }
+      if (selectedId) await loadMoodboard(selectedId);
+    } catch (e) {
+      notify(e instanceof Error ? e.message : "Failed to delete tile");
+    }
+  };
 
   useEffect(() => {
     if (!detail) {
@@ -2074,6 +2265,138 @@ export const MsqdxGlassPersonaAdminPanel = ({
                 notify={notify}
               />
 
+              {/* Card: Moodboard - Full Width */}
+              <Box sx={{ gridColumn: "1 / -1" }}>
+                <MsqdxDashboardCard
+                  id="moodboard"
+                  title="Moodboard"
+                  icon="image"
+                  iconColor={{ color: THEME_ACCENT.color }}
+                  expanded={isAccordionExpanded("moodboard")}
+                  onToggle={toggleAccordion}
+                >
+                  <Box sx={{ pt: 1 }}>
+                    {moodboardError && (
+                      <Alert severity="warning" sx={{ mb: 2 }}>
+                        {moodboardError}
+                      </Alert>
+                    )}
+                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1, flexWrap: "wrap", mb: 1.5 }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                        <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                          Status
+                        </MsqdxTypography>
+                        <MsqdxTypography variant="body2" weight="medium">
+                          {moodboardLoading ? "Loading…" : moodboard?.status ?? "—"}
+                        </MsqdxTypography>
+                        {moodboard?.styleKeywords?.length ? (
+                          <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
+                            {moodboard.styleKeywords.slice(0, 6).join(" · ")}
+                          </MsqdxTypography>
+                        ) : null}
+                      </Box>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                        {!moodboard ? (
+                          <MsqdxButton
+                            variant="contained"
+                            size="small"
+                            brandColor="green"
+                            onClick={() => void handleGenerateMoodboard()}
+                            disabled={moodboardPending || !selectedId}
+                            startIcon={<MsqdxIcon name="auto_awesome" customSize={16} />}
+                          >
+                            {moodboardPending ? "Generating…" : "Generate"}
+                          </MsqdxButton>
+                        ) : (
+                          <MsqdxButton
+                            variant="outlined"
+                            size="small"
+                            onClick={() => void handleRebuildMoodboard()}
+                            disabled={moodboardPending}
+                            startIcon={<MsqdxIcon name="refresh" customSize={16} />}
+                          >
+                            {moodboardPending ? "Rebuilding…" : "Regenerate"}
+                          </MsqdxButton>
+                        )}
+                      </Box>
+                    </Box>
+
+                    {moodboard?.tiles?.length ? (
+                      <Box
+                        sx={{
+                          display: "grid",
+                          gridTemplateColumns: { xs: "repeat(2, 1fr)", sm: "repeat(3, 1fr)", md: "repeat(4, 1fr)" },
+                          gap: 1.5,
+                        }}
+                      >
+                        {sortMoodboardTiles(moodboard.tiles).map((tile) => (
+                            <Box
+                              key={tile.id}
+                              sx={{
+                                border: "1px solid",
+                                borderColor: "divider",
+                                borderRadius: 2,
+                                overflow: "hidden",
+                                backgroundColor: "background.paper",
+                              }}
+                            >
+                              <Box
+                                component="img"
+                                src={tile.thumbUrl || tile.imageUrl}
+                                alt={tile.caption ?? tile.category}
+                                sx={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", display: "block" }}
+                              />
+                              <Box sx={{ p: 1 }}>
+                                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
+                                  <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                                    {tile.category}
+                                  </MsqdxTypography>
+                                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                                    <Tooltip title="Edit tile">
+                                      <span>
+                                        <MsqdxGlassEditButton onClick={() => openTileDialog(tile)} size="small" fontSize={14} />
+                                      </span>
+                                    </Tooltip>
+                                    <Tooltip title="Delete tile">
+                                      <span>
+                                        <MsqdxButton
+                                          variant="text"
+                                          size="small"
+                                          brandColor="pink"
+                                          onClick={() => void handleDeleteTile(tile)}
+                                          sx={{ minWidth: 28, width: 28, height: 28, p: 0, borderRadius: "rounded" }}
+                                        >
+                                          <MsqdxIcon name="delete" customSize={16} />
+                                        </MsqdxButton>
+                                      </span>
+                                    </Tooltip>
+                                  </Box>
+                                </Box>
+                                <MsqdxTypography variant="body2" sx={{ mt: 0.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                  {tile.caption?.trim() ? tile.caption : "—"}
+                                </MsqdxTypography>
+                                {tile.locked ? (
+                                  <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
+                                    Locked
+                                  </MsqdxTypography>
+                                ) : null}
+                              </Box>
+                            </Box>
+                          ))}
+                      </Box>
+                    ) : moodboard ? (
+                      <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+                        No tiles yet.
+                      </MsqdxTypography>
+                    ) : (
+                      <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+                        Generate a moodboard to visualize this persona.
+                      </MsqdxTypography>
+                    )}
+                  </Box>
+                </MsqdxDashboardCard>
+              </Box>
+
               {/* Card: Erweitert */}
               <MsqdxGlassAdvancedCard
                 profile={detail.profile}
@@ -2084,6 +2407,63 @@ export const MsqdxGlassPersonaAdminPanel = ({
           </div>
         )}
       </section>
+
+      <Dialog open={tileDialogOpen} onClose={() => setTileDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Moodboard tile</DialogTitle>
+        <DialogContent sx={{ pt: 1 }}>
+          {activeTile ? (
+            <Box sx={{ display: "grid", gridTemplateColumns: "1fr", gap: 1.5 }}>
+              <Box
+                component="img"
+                src={activeTile.imageUrl}
+                alt={activeTile.caption ?? activeTile.category}
+                sx={{ width: "100%", borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}
+              />
+              <Box>
+                <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.5 }}>
+                  Caption
+                </MsqdxTypography>
+                <MsqdxFormField
+                  label="Caption"
+                  value={tileEditCaption}
+                  placeholder="Short label"
+                  onChange={(e) => setTileEditCaption((e.target as HTMLInputElement).value)}
+                />
+              </Box>
+              <Box>
+                <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.5 }}>
+                  Rationale
+                </MsqdxTypography>
+                <MsqdxFormField
+                  label="Rationale"
+                  value={tileEditRationale}
+                  placeholder="Why this fits the persona"
+                  onChange={(e) => setTileEditRationale((e.target as HTMLInputElement).value)}
+                />
+              </Box>
+              <FormControlLabel
+                control={<Checkbox checked={tileEditLocked} onChange={(e) => setTileEditLocked(e.target.checked)} />}
+                label="Locked (keep on regenerate)"
+              />
+              {(activeTile.attributionText || activeTile.sourceUrl) && (
+                <Box sx={{ p: 1, border: "1px dashed", borderColor: "divider", borderRadius: 1.5 }}>
+                  <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
+                    {activeTile.attributionText ?? activeTile.sourceUrl}
+                  </MsqdxTypography>
+                </Box>
+              )}
+            </Box>
+          ) : null}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+          <MsqdxButton variant="outlined" size="small" onClick={() => setTileDialogOpen(false)} disabled={tileSavePending}>
+            {t("common.cancel")}
+          </MsqdxButton>
+          <MsqdxButton variant="contained" size="small" onClick={() => void handleSaveTile()} disabled={tileSavePending}>
+            {tileSavePending ? "Saving…" : "Save"}
+          </MsqdxButton>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>{t("personaAdmin.deleteDialogTitle")}</DialogTitle>

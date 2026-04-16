@@ -29,6 +29,7 @@ import { useI18n } from "../../components/i18n/i18n-provider";
 import { buildAdaptiveSystemPrompt } from "../../lib/adaptive-prompt";
 import { loadLearningsFromLocalStorage } from "../../lib/conversation-learnings";
 import { useShareChatHeader } from "../../components/chat/share-chat-header-context";
+import { sortMoodboardTiles } from "../../lib/moodboard";
 
 /** Compatible with admin chat persona profile card (drawer details). */
 type PersonaProfileCard = {
@@ -69,6 +70,34 @@ type PersonaSummary = {
   profile?: PersonaProfile | Record<string, unknown> | null;
   profileCard?: PersonaProfileCard | { display_name?: string } | null;
   systemPrompt?: string | null;
+};
+
+type MoodboardTile = {
+  id: string;
+  moodboardId: string;
+  category: string;
+  imageUrl: string;
+  thumbUrl?: string | null;
+  sourceType?: string;
+  sourceUrl?: string | null;
+  author?: string | null;
+  license?: string | null;
+  attributionText?: string | null;
+  caption?: string | null;
+  rationale?: string | null;
+  tags?: string[];
+  order: number;
+  locked: boolean;
+};
+
+type Moodboard = {
+  id: string;
+  personaId: string;
+  title: string;
+  status: string;
+  active: boolean;
+  styleKeywords?: string[];
+  tiles: MoodboardTile[];
 };
 
 type Message = {
@@ -182,6 +211,8 @@ function ChatSharePageContent() {
   const [persona, setPersona] = useState<PersonaSummary | null>(null);
   const [loadingPersona, setLoadingPersona] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [moodboard, setMoodboard] = useState<Moodboard | null>(null);
+  const [moodboardError, setMoodboardError] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -334,6 +365,45 @@ function ChatSharePageContent() {
       }
     };
     fetchPersona();
+    return () => {
+      cancelled = true;
+    };
+  }, [personaIdParam, projectIdParam]);
+
+  // Fetch moodboard (public share endpoint) when personaId/projectId is present
+  useEffect(() => {
+    if (!personaIdParam || !projectIdParam) {
+      setMoodboard(null);
+      setMoodboardError(null);
+      return;
+    }
+    let cancelled = false;
+    const fetchMoodboard = async () => {
+      setMoodboardError(null);
+      try {
+        const url = buildApiUrl(`/api/share/persona/${personaIdParam}/moodboard?projectId=${encodeURIComponent(projectIdParam)}`);
+        const res = await fetch(url, { cache: "no-store" });
+        if (cancelled) return;
+        if (res.status === 404) {
+          setMoodboard(null);
+          return;
+        }
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          setMoodboardError(err.error || `Moodboard (${res.status})`);
+          setMoodboard(null);
+          return;
+        }
+        const data = (await res.json()) as Moodboard;
+        setMoodboard(data);
+      } catch (e) {
+        if (!cancelled) {
+          setMoodboardError(e instanceof Error ? e.message : "Failed to load moodboard");
+          setMoodboard(null);
+        }
+      }
+    };
+    fetchMoodboard();
     return () => {
       cancelled = true;
     };
@@ -606,6 +676,58 @@ function ChatSharePageContent() {
           />
         ) : (
           <Box sx={{ width: "100%", minHeight: 0, flex: 1 }}>
+            {moodboard?.tiles?.length ? (
+              <Box
+                sx={{
+                  mb: 2,
+                  p: 1.5,
+                  borderRadius: 2,
+                  border: "1px solid var(--color-neutral)",
+                  backgroundColor: alpha(theme.palette.background.paper, 0.85),
+                }}
+              >
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                  <MsqdxIcon name="image" customSize={18} />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                    Moodboard
+                  </Typography>
+                  {moodboardError ? (
+                    <Typography variant="caption" sx={{ color: "error.main" }}>
+                      {moodboardError}
+                    </Typography>
+                  ) : null}
+                </Stack>
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: { xs: "repeat(2, 1fr)", sm: "repeat(4, 1fr)", md: "repeat(6, 1fr)" },
+                    gap: 1,
+                  }}
+                >
+                  {sortMoodboardTiles(moodboard.tiles)
+                    .slice(0, 12)
+                    .map((tile) => (
+                      <Box
+                        key={tile.id}
+                        sx={{
+                          borderRadius: 1.5,
+                          overflow: "hidden",
+                          border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+                          backgroundColor: theme.palette.background.paper,
+                        }}
+                      >
+                        <Box
+                          component="img"
+                          src={tile.thumbUrl || tile.imageUrl}
+                          alt={tile.caption ?? tile.category}
+                          sx={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", display: "block" }}
+                          title={tile.attributionText ?? tile.sourceUrl ?? tile.category}
+                        />
+                      </Box>
+                    ))}
+                </Box>
+              </Box>
+            ) : null}
             <MsqdxGlassChatPanel messages={messages} />
           </Box>
         )}
