@@ -2340,12 +2340,58 @@ export const MsqdxGlassPersonaAdminPanel = ({
                                 backgroundColor: "background.paper",
                               }}
                             >
-                              <Box
-                                component="img"
-                                src={tile.thumbUrl || tile.imageUrl}
-                                alt={tile.caption ?? tile.category}
-                                sx={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", display: "block" }}
-                              />
+                              <Box sx={{ position: "relative" }}>
+                                <Box
+                                  component="img"
+                                  src={tile.thumbUrl || tile.imageUrl}
+                                  alt={tile.caption ?? tile.category}
+                                  sx={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", display: "block" }}
+                                />
+                                <Box
+                                  sx={{
+                                    position: "absolute",
+                                    inset: 0,
+                                    pointerEvents: "none",
+                                    background: "linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.55) 100%)",
+                                  }}
+                                />
+                                <Box
+                                  sx={{
+                                    position: "absolute",
+                                    left: 10,
+                                    right: 10,
+                                    bottom: 10,
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 0.25,
+                                  }}
+                                >
+                                  <MsqdxTypography
+                                    variant="caption"
+                                    sx={{
+                                      color: "common.white",
+                                      fontWeight: 800,
+                                      letterSpacing: "0.08em",
+                                      textTransform: "uppercase",
+                                      textShadow: "0 1px 2px rgba(0,0,0,0.55)",
+                                    }}
+                                  >
+                                    {(detail.profile.headline || detail.profile.segment || "Persona").slice(0, 42)}
+                                  </MsqdxTypography>
+                                  <MsqdxTypography
+                                    variant="caption"
+                                    sx={{
+                                      color: "rgba(255,255,255,0.92)",
+                                      fontWeight: 600,
+                                      textTransform: "uppercase",
+                                      letterSpacing: "0.06em",
+                                      textShadow: "0 1px 2px rgba(0,0,0,0.55)",
+                                    }}
+                                  >
+                                    {tile.category}
+                                  </MsqdxTypography>
+                                </Box>
+                              </Box>
                               <Box sx={{ p: 1 }}>
                                 <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
                                   <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em" }}>

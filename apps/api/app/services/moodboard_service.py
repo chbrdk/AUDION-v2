@@ -4,16 +4,21 @@ from dataclasses import dataclass
 from datetime import datetime
 import re
 from typing import Any, Iterable
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import structlog
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
+from ..core.config import get_settings
 from ..models import MoodboardStatus, Persona, PersonaMoodboard, PersonaMoodboardTile
+from .openai_images_client import OpenAIImagesClient
 from .openverse_client import OpenverseClient
+from .pexels_client import PexelsClient, PexelsImage
+from .storage import StorageService
 
 logger = structlog.get_logger(__name__)
+settings = get_settings()
 
 
 DEFAULT_CATEGORIES: list[str] = [
@@ -78,6 +83,13 @@ def derive_style_keywords(persona: Persona) -> list[str]:
     """MVP heuristic keyword extraction from persona profile/headline/segment."""
     profile = persona.profile or {}
     keywords: list[str] = []
+    # Lightweight demographic hints improve image relevance (esp. "people" tiles).
+    gender = profile.get("gender")
+    if isinstance(gender, str) and gender.strip():
+        keywords.append(gender.strip())
+    media_affinity = profile.get("media_affinity")
+    if isinstance(media_affinity, str) and media_affinity.strip():
+        keywords.append(media_affinity.strip())
     keywords.extend(_coerce_keywords(profile.get("interests")))
     keywords.extend(_coerce_keywords(profile.get("values")))
     keywords.extend(_coerce_keywords(profile.get("goals")))
@@ -101,7 +113,7 @@ def derive_style_keywords(persona: Persona) -> list[str]:
     return deduped[:12]
 
 
-def build_queries(*, keywords: list[str], categories: Iterable[str]) -> dict[str, str]:
+def build_queries(*, persona: Persona, keywords: list[str], categories: Iterable[str]) -> dict[str, str]:
     """Build one Openverse query per category.
 
     Important: Openverse image search behaves much better with **short** queries.
@@ -119,11 +131,12 @@ def build_queries(*, keywords: list[str], categories: Iterable[str]) -> dict[str
     anchor = compacted[0] if compacted else "lifestyle"
 
     # Category-specific English anchors improve recall vs. appending abstract tokens like "ui".
+    people_bias = _people_query_bias(persona)
     category_hints: dict[str, str] = {
         "lifestyle": "lifestyle photography",
         "colors": "color palette interior",
         "textures": "texture material macro",
-        "people": "portrait candid",
+        "people": people_bias,
         "ui": "product design ui",
         "typography": "typography poster",
     }
@@ -143,13 +156,91 @@ def _fallback_category_query(category: str) -> str:
     }.get(category, "open licensed photography")
 
 
+def _people_query_bias(persona: Persona) -> str:
+    profile = persona.profile or {}
+    gender = profile.get("gender")
+    if isinstance(gender, str):
+        g = gender.strip().lower()
+        if g in {"male", "m", "man", "masculine", "männlich", "mann"}:
+            return "man portrait confident"
+        if g in {"female", "f", "woman", "feminine", "weiblich", "frau"}:
+            return "woman portrait confident"
+    # Very small heuristic fallback from German copy (best-effort).
+    blob = f"{persona.headline} {persona.segment}".lower()
+    if "männ" in blob or " mann" in blob or " male" in blob:
+        return "man portrait confident"
+    if "weib" in blob or " frau" in blob or " female" in blob:
+        return "woman portrait confident"
+    return "portrait confident"
+
+
+def _persona_context_blob(persona: Persona, keywords: list[str]) -> str:
+    profile = persona.profile or {}
+    interests = profile.get("interests")
+    values = profile.get("values")
+    parts: list[str] = []
+    parts.append(f"Name: {persona.name}")
+    parts.append(f"Segment: {persona.segment}")
+    parts.append(f"Headline: {persona.headline}")
+    if isinstance(interests, list):
+        parts.append("Interests: " + "; ".join([str(x) for x in interests if isinstance(x, str)][:6]))
+    if isinstance(values, list):
+        parts.append("Values: " + "; ".join([str(x) for x in values if isinstance(x, str)][:6]))
+    if keywords:
+        parts.append("Keywords: " + "; ".join(keywords[:8]))
+    return "\n".join(parts)
+
+
+def _openai_prompts_for_moodboard(*, persona: Persona, keywords: list[str]) -> list[tuple[str, str]]:
+    """Return (category, prompt) pairs for deterministic moodboard coverage."""
+    ctx = _persona_context_blob(persona, keywords)
+    people = _people_query_bias(persona)
+    return [
+        (
+            "lifestyle",
+            f"{ctx}\n\nCreate a premium editorial lifestyle photograph inspired by the persona. "
+            f"Cinematic lighting, shallow depth of field, tasteful luxury cues, no text, no logos, no watermark.",
+        ),
+        (
+            "colors",
+            f"{ctx}\n\nCreate an abstract color study / gradient artwork inspired by the persona mood. "
+            f"Clean composition, no text, no logos, no watermark.",
+        ),
+        (
+            "textures",
+            f"{ctx}\n\nCreate a macro texture photograph (materials, fabric, metal, leather) matching the persona vibe. "
+            f"No text, no logos, no watermark.",
+        ),
+        ("people", f"{ctx}\n\nCreate a realistic portrait photo: {people}. Confident expression, professional wardrobe, neutral background, no text, no logos, no watermark."),
+        (
+            "ui",
+            f"{ctx}\n\nCreate a sleek UI mockup still (device frame optional) matching the persona’s taste. "
+            f"Minimal, modern, no readable text, no logos, no watermark.",
+        ),
+        (
+            "typography",
+            f"{ctx}\n\nCreate an editorial typography-led poster design using abstract shapes; avoid readable words. "
+            f"No logos, no watermark.",
+        ),
+    ]
+
+
 @dataclass
 class MoodboardService:
     openverse: OpenverseClient | None = None
+    pexels: PexelsClient | None = None
+    openai_images: OpenAIImagesClient | None = None
+    storage: StorageService | None = None
 
     def __post_init__(self) -> None:
         if self.openverse is None:
             self.openverse = OpenverseClient()
+        if self.pexels is None:
+            self.pexels = PexelsClient()
+        if self.openai_images is None:
+            self.openai_images = OpenAIImagesClient()
+        if self.storage is None:
+            self.storage = StorageService()
 
     def create_or_activate_moodboard(
         self,
@@ -205,7 +296,61 @@ class MoodboardService:
         session.add(moodboard)
         session.commit()
 
-        queries = build_queries(keywords=keywords, categories=DEFAULT_CATEGORIES)
+        if settings.moodboard_image_source == "openai":
+            if not self.openai_images.enabled():
+                moodboard.status = MoodboardStatus.failed
+                moodboard.updated_at = datetime.utcnow()
+                session.add(moodboard)
+                session.commit()
+                logger.error("moodboard.build.openai.disabled", moodboard_id=str(moodboard_id), persona_id=str(persona.id))
+                return
+
+            prompts = _openai_prompts_for_moodboard(persona=persona, keywords=keywords)
+            target = max(1, min(int(settings.moodboard_openai_image_count or 8), 10))
+
+            order = 0
+            # Cycle categories if we want >6 images.
+            expanded: list[tuple[str, str]] = []
+            i = 0
+            while len(expanded) < target:
+                cat, pr = prompts[i % len(prompts)]
+                expanded.append((cat, pr))
+                i += 1
+
+            for idx, (category, prompt) in enumerate(expanded):
+                gen = self.openai_images.generate_png(prompt=prompt)
+                key = f"personas/{persona.id}/moodboards/{moodboard_id}/generated/{uuid4()}.png"
+                self.storage.upload(key=key, data=gen.png_bytes, content_type="image/png")
+
+                caption = gen.revised_prompt[:180] + "…" if gen.revised_prompt and len(gen.revised_prompt) > 180 else gen.revised_prompt
+                tile = PersonaMoodboardTile(
+                    moodboard_id=moodboard_id,
+                    category=category,
+                    image_url=key,
+                    thumb_url=None,
+                    source_type="openai",
+                    source_url=settings.openai_image_docs_url,
+                    author="OpenAI",
+                    license="OpenAI Terms",
+                    attribution_text=f"Generated image · OpenAI · {settings.openai_image_docs_url}",
+                    caption=caption,
+                    rationale="Generated for persona moodboard (OpenAI Images API).",
+                    tags=[category, "openai", f"idx:{idx}"],
+                    tile_order=order,
+                    locked=False,
+                )
+                session.add(tile)
+                order += 1
+                session.commit()
+
+            moodboard.status = MoodboardStatus.ready
+            moodboard.updated_at = datetime.utcnow()
+            session.add(moodboard)
+            session.commit()
+            logger.info("moodboard.build.ready.openai", moodboard_id=str(moodboard_id), tiles=order)
+            return
+
+        queries = build_queries(persona=persona, keywords=keywords, categories=DEFAULT_CATEGORIES)
 
         order = 0
         seen_urls: set[str] = set()
@@ -221,6 +366,18 @@ class MoodboardService:
                     q2=q2,
                 )
                 results = self.openverse.search_images(q=q2, page_size=12, mature=False)  # type: ignore[union-attr]
+
+            pexels_results: list[PexelsImage] = []
+            if not results and self.pexels is not None and self.pexels.enabled():
+                pq = _compact_phrase(q, max_words=6, max_chars=72) or _fallback_category_query(category)
+                logger.info(
+                    "moodboard.build.pexels.fallback",
+                    moodboard_id=str(moodboard_id),
+                    category=category,
+                    q=pq,
+                )
+                pexels_results = self.pexels.search_photos(query=pq, per_page=20, page=1)
+
             # pick up to 4 per category, unique urls
             picked = 0
             for img in results:
@@ -238,6 +395,30 @@ class MoodboardService:
                     license=img.license,
                     attribution_text=img.attribution_text,
                     tags=[category] + keywords[:3],
+                    tile_order=order,
+                    locked=False,
+                )
+                session.add(tile)
+                order += 1
+                picked += 1
+                if picked >= 4:
+                    break
+
+            for img in pexels_results:
+                if img.image_url in seen_urls:
+                    continue
+                seen_urls.add(img.image_url)
+                tile = PersonaMoodboardTile(
+                    moodboard_id=moodboard_id,
+                    category=category,
+                    image_url=img.image_url,
+                    thumb_url=img.thumb_url,
+                    source_type="pexels",
+                    source_url=img.source_url,
+                    author=img.author,
+                    license=img.license,
+                    attribution_text=img.attribution_text,
+                    tags=[category, "pexels"] + keywords[:3],
                     tile_order=order,
                     locked=False,
                 )

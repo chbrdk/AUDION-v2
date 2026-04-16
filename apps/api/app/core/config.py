@@ -50,6 +50,8 @@ class Settings(BaseSettings):
     # AI Providers
     claude_api_key: str | None = Field(default=None, validation_alias=AliasChoices("claude_api_key", "ANTHROPIC_API_KEY"))  # Optional, can use OpenAI instead
     openai_api_key: str | None = None
+    openai_api_base_url: str = "https://api.openai.com"
+    openai_image_docs_url: str = "https://platform.openai.com/docs/guides/images"
     ai_anthropic_model: str = "claude-3-5-sonnet-20241022"
     ai_openai_model: str = "gpt-5-mini"
     ai_default_provider: str = "anthropic"
@@ -91,6 +93,22 @@ class Settings(BaseSettings):
     openverse_api_base_url: str = "https://api.openverse.org"
     openverse_request_timeout_seconds: float = 20.0
     openverse_user_agent: str = "audion-api (persona moodboards)"
+
+    # Pexels (optional moodboard provider; requires API key)
+    pexels_api_base_url: str = "https://api.pexels.com"
+    pexels_request_timeout_seconds: float = 20.0
+    pexels_user_agent: str = "audion-api (persona moodboards)"
+    pexels_api_key: str | None = None
+
+    # Moodboards: sourcing strategy
+    # - openverse: stock search (default)
+    # - openai: generate images via OpenAI Images API (stores PNGs in DATA_DIR)
+    moodboard_image_source: Literal["openverse", "openai"] = "openverse"
+    moodboard_openai_model: str = "gpt-image-1-mini"
+    moodboard_openai_quality: str = "low"
+    moodboard_openai_size: str = "1024x1024"
+    moodboard_openai_image_count: int = 8
+    moodboard_openai_request_timeout_seconds: float = 120.0
 
     # Upload size limits (bytes). Reject with 413 if exceeded.
     upload_max_document_bytes: int = 10 * 1024 * 1024  # 10 MB for documents

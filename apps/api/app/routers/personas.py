@@ -85,16 +85,33 @@ persona_service = PersonaService()
 storage = StorageService()
 target_group_service = TargetGroupService()
 moodboard_service = MoodboardService()
+settings = get_settings()
 
 
-def _serialize_moodboard_tile(tile: PersonaMoodboardTile) -> MoodboardTile:
+def _public_tile_image_url(*, persona_id: UUID, tile_id: UUID, project_id: UUID) -> str:
+    # Same-origin Next.js proxy (avoids coupling browser image tags to raw API hostnames).
+    return f"/api/share/persona/{persona_id}/moodboard-tile/{tile_id}?projectId={project_id}"
+
+
+def _serialize_moodboard_tile(tile: PersonaMoodboardTile, *, persona_id: UUID, project_id: UUID | None) -> MoodboardTile:
     tags = tile.tags if isinstance(tile.tags, list) else []
+    image_url = tile.image_url
+    thumb_url = tile.thumb_url
+    # Persisted tiles may store a storage key; expose a stable HTTPS URL for browsers.
+    if isinstance(image_url, str) and image_url and not image_url.startswith(("http://", "https://", "data:")):
+        if project_id is None:
+            # Admin clients should use the authenticated proxy route (cookie/JWT), not public share URLs.
+            image_url = f"/api/persona-admin/moodboard-tiles/{tile.id}/image"
+        else:
+            image_url = _public_tile_image_url(persona_id=persona_id, tile_id=tile.id, project_id=project_id)
+        thumb_url = image_url
+
     return MoodboardTile(
         id=str(tile.id),
         moodboardId=str(tile.moodboard_id),
         category=tile.category,
-        imageUrl=tile.image_url,
-        thumbUrl=tile.thumb_url,
+        imageUrl=image_url,
+        thumbUrl=thumb_url,
         sourceType=tile.source_type,
         sourceUrl=tile.source_url,
         author=tile.author,
@@ -120,15 +137,22 @@ def _serialize_moodboard(session: Session, moodboard: PersonaMoodboard) -> Moodb
         .all()
     )
     style = moodboard.style_keywords if isinstance(moodboard.style_keywords, list) else []
+    project_uuid = moodboard.project_id
+    if project_uuid is None:
+        persona_obj = session.get(Persona, moodboard.persona_id)
+        project_uuid = persona_obj.project_id if persona_obj else None
     return Moodboard(
         id=str(moodboard.id),
         personaId=str(moodboard.persona_id),
-        projectId=str(moodboard.project_id) if moodboard.project_id else None,
+        projectId=str(project_uuid) if project_uuid else None,
         title=moodboard.title,
         status=moodboard.status.value if hasattr(moodboard.status, "value") else str(moodboard.status),
         active=bool(moodboard.active),
         styleKeywords=[s for s in style if isinstance(s, str)],
-        tiles=[_serialize_moodboard_tile(t) for t in tiles],
+        tiles=[
+            _serialize_moodboard_tile(t, persona_id=moodboard.persona_id, project_id=project_uuid)
+            for t in tiles
+        ],
         createdAt=moodboard.created_at,
         updatedAt=moodboard.updated_at,
     )
@@ -984,6 +1008,43 @@ def get_moodboard_public(
         if not mb:
             raise HTTPException(status_code=404, detail="Moodboard not found")
         return _serialize_moodboard(session, mb)
+
+
+@router.get(
+    "/{persona_id}/moodboard-tiles/{tile_id}/image",
+    summary="Serve moodboard tile image bytes (public share link)",
+    description="No auth required. Validates project_id as share token.",
+)
+def get_moodboard_tile_image_public(
+    persona_id: str,
+    tile_id: str,
+    project_id: str = Query(..., description="Project ID - acts as share token"),
+) -> StreamingResponse:
+    try:
+        persona_uuid = UUID(persona_id)
+        tile_uuid = UUID(tile_id)
+        project_uuid = UUID(project_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid persona, tile, or project ID") from exc
+
+    with get_session() as session:
+        persona = session.get(Persona, persona_uuid)
+        if not persona or persona.project_id != project_uuid:
+            raise HTTPException(status_code=404, detail="Persona not found")
+
+        tile = session.get(PersonaMoodboardTile, tile_uuid)
+        if not tile:
+            raise HTTPException(status_code=404, detail="Tile not found")
+
+        mb = session.get(PersonaMoodboard, tile.moodboard_id)
+        if not mb or mb.persona_id != persona_uuid:
+            raise HTTPException(status_code=404, detail="Tile not found")
+
+        if isinstance(tile.image_url, str) and tile.image_url.startswith(("http://", "https://")):
+            return RedirectResponse(tile.image_url)
+
+        fp, content_type = storage.stream(key=tile.image_url)
+        return StreamingResponse(fp, media_type=content_type)
 
 
 @router.patch(
@@ -1983,7 +2044,35 @@ def patch_moodboard_tile_admin(
     session.add(tile)
     session.commit()
     session.refresh(tile)
-    return _serialize_moodboard_tile(tile)
+    project_uuid = mb.project_id
+    if project_uuid is None:
+        persona_obj = session.get(Persona, mb.persona_id)
+        project_uuid = persona_obj.project_id if persona_obj else None
+    return _serialize_moodboard_tile(tile, persona_id=mb.persona_id, project_id=project_uuid)
+
+
+@persona_admin_router.get(
+    "/moodboard-tiles/{tile_id}/image",
+    summary="Serve moodboard tile image bytes (admin)",
+)
+def get_moodboard_tile_image_admin(tile_id: str, session: Session = Depends(get_db)) -> StreamingResponse:
+    try:
+        tile_uuid = UUID(tile_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid tile id") from exc
+    tile = session.get(PersonaMoodboardTile, tile_uuid)
+    if not tile:
+        raise HTTPException(status_code=404, detail="Tile not found")
+    mb = session.get(PersonaMoodboard, tile.moodboard_id)
+    if not mb:
+        raise HTTPException(status_code=404, detail="Moodboard not found")
+    _get_persona_or_404(session, str(mb.persona_id))
+
+    if isinstance(tile.image_url, str) and tile.image_url.startswith(("http://", "https://")):
+        return RedirectResponse(tile.image_url)
+
+    fp, content_type = storage.stream(key=tile.image_url)
+    return StreamingResponse(fp, media_type=content_type)
 
 
 @persona_admin_router.delete(

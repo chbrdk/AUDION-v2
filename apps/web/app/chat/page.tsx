@@ -489,13 +489,49 @@ function ChatSharePageContent() {
                     backgroundColor: theme.palette.background.paper,
                   }}
                 >
-                  <Box
-                    component="img"
-                    src={tile.thumbUrl || tile.imageUrl}
-                    alt={tile.caption ?? tile.category}
-                    sx={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", display: "block" }}
-                    title={tile.attributionText ?? tile.sourceUrl ?? tile.category}
-                  />
+                  <Box sx={{ position: "relative" }}>
+                    <Box
+                      component="img"
+                      src={tile.thumbUrl || tile.imageUrl}
+                      alt={tile.caption ?? tile.category}
+                      sx={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", display: "block" }}
+                      title={tile.attributionText ?? tile.sourceUrl ?? tile.category}
+                    />
+                    <Box
+                      sx={{
+                        position: "absolute",
+                        inset: 0,
+                        pointerEvents: "none",
+                        background: "linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.55) 100%)",
+                      }}
+                    />
+                    <Box sx={{ position: "absolute", left: 8, right: 8, bottom: 8, display: "flex", flexDirection: "column", gap: 0.25 }}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: "common.white",
+                          fontWeight: 800,
+                          letterSpacing: "0.08em",
+                          textTransform: "uppercase",
+                          textShadow: "0 1px 2px rgba(0,0,0,0.55)",
+                        }}
+                      >
+                        {(persona?.headline || persona?.segment || persona?.name || "Persona").slice(0, 42)}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: "rgba(255,255,255,0.92)",
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.06em",
+                          textShadow: "0 1px 2px rgba(0,0,0,0.55)",
+                        }}
+                      >
+                        {tile.category}
+                      </Typography>
+                    </Box>
+                  </Box>
                 </Box>
               ))}
           </Box>
@@ -506,7 +542,7 @@ function ChatSharePageContent() {
         )}
       </Box>
     );
-  }, [moodboard, moodboardError, theme]);
+  }, [moodboard, moodboardError, persona, theme]);
 
   const clearTypingState = (id: string) => {
     if (typingTimersRef.current[id]) {
