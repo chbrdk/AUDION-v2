@@ -1,8 +1,8 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-import { getPersonaBackendBase } from "../../../_lib/backend";
-import { buildAuthHeaders, getAuthTokenFromRequest } from "../../../_lib/auth";
+import { getPersonaBackendBase } from "../../../../_lib/backend";
+import { buildAuthHeaders, getAuthTokenFromRequest } from "../../../../_lib/auth";
 
 type Context = { params: { tileId?: string } } | { params: Promise<{ tileId?: string }> };
 
