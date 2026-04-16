@@ -57,6 +57,9 @@ When tiles store a filesystem **storage key** (not `https://...`), the API retur
 
 OpenAI’s GPT Image models may require **organization verification** depending on account status (see OpenAI docs: `https://developers.openai.com/api/docs/guides/image-generation?api=image`).
 
+Implementation note (API request shape):
+- `response_format` is for **DALL·E** models. **GPT Image models ignore/reject it**; they return `data[].b64_json` by default (see OpenAI API reference for image generation).
+
 ## Data model
 
 DB tables (schema `audion`):
