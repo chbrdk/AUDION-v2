@@ -265,7 +265,6 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
                     href={directChatHref}
                     variant="outlined"
                     size="small"
-                    brandColor="purple"
                     aria-label={t("nav.chat")}
                     sx={{
                       minWidth: 32,
@@ -274,6 +273,18 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
                       height: 32,
                       p: 0,
                       borderRadius: "rounded",
+                      // Align perfectly with the headline baseline/line-height.
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      lineHeight: 1,
+                      // Use the same brand accent token as the rest of the admin chrome.
+                      color: "var(--color-theme-accent)",
+                      borderColor: "var(--color-theme-accent)",
+                      "&:hover": {
+                        borderColor: "var(--color-theme-accent)",
+                        backgroundColor: "transparent",
+                      },
                     }}
                   >
                     <MsqdxIcon name="forum" customSize={18} />
