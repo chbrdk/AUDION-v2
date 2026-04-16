@@ -41,3 +41,14 @@ def test_optional_str() -> None:
     assert _optional_str(None) is None
     assert _optional_str("  x  ") == "x"
     assert _optional_str("") is None
+
+
+def test_parse_goal_priority() -> None:
+    from app.services.persona_generation import _parse_goal_priority
+
+    assert _parse_goal_priority(3, 0) == 3
+    assert _parse_goal_priority("12", 0) == 12
+    assert _parse_goal_priority("high", 0) == 10
+    assert _parse_goal_priority("high", 1) == 11
+    assert _parse_goal_priority("medium", 2) == 22
+    assert _parse_goal_priority("nonsense", 4) == 5

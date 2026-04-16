@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Dict, List
 from uuid import UUID
@@ -40,7 +41,7 @@ PERSONA_LLM_JSON_SCHEMA_INSTRUCTION = (
     "values (array of 4-10 concise value statements for this persona), "
     "headline (string), bio (string), job_title (string|null, contextual only), "
     "pain_points (array of strings or {label, evidence_count} objects), "
-    "goals (array of strings or {label, priority} objects), "
+    "goals (array of strings or {label, priority} objects where priority MUST be an integer 1..n, not words like high/medium), "
     "traits (object: trait name -> number 0-1 or qualitative level), "
     "communication_style: { vocabulary (string array), sentence_structure (string), skepticism_level (number 1-5) }, "
     "confidence (number 0-1). "
@@ -92,8 +93,6 @@ def _parse_age_optional(val: Any) -> int | None:
         i = int(val)
         return i if 0 < i < 130 else None
     if isinstance(val, str):
-        import re
-
         m = re.search(r"\b(\d{1,3})\b", val)
         if m:
             i = int(m.group(1))
@@ -111,12 +110,39 @@ def _parse_media_affinity_optional(val: Any) -> int | None:
         x = int(round(float(val)))
         return max(0, min(100, x))
     if isinstance(val, str):
-        import re
-
         m = re.search(r"\d+", val)
         if m:
             return _parse_media_affinity_optional(int(m.group(0)))
     return None
+
+
+def _parse_goal_priority(raw: Any, idx: int) -> int:
+    """Coerce LLM goal priority to int (models often return 'high' / 'medium' / MoSCoW)."""
+    if raw is None:
+        return idx + 1
+    if isinstance(raw, bool):
+        return idx + 1
+    if isinstance(raw, int):
+        return max(1, min(999, raw))
+    if isinstance(raw, float):
+        return max(1, min(999, int(round(raw))))
+    if isinstance(raw, str):
+        s = raw.strip().lower()
+        if s.isdigit():
+            return max(1, min(999, int(s)))
+        m = re.search(r"\b(\d+)\b", s)
+        if m:
+            return max(1, min(999, int(m.group(1))))
+        # Qualitative importance → ordered bands; idx keeps duplicates within a band distinct
+        if any(k in s for k in ("critical", "must", "p0", "highest", "urgent")):
+            return 1 + idx
+        if any(k in s for k in ("high", "should", "important", "p1")):
+            return 10 + idx
+        if any(k in s for k in ("medium", "could", "moderate", "p2", "mid")):
+            return 20 + idx
+        if any(k in s for k in ("low", "wont", "nice", "p3", "lower", "lowest")):
+            return 30 + idx
+    return idx + 1
 
 
 def _compose_identity_context_block(*, persona: Persona, target_group_id: UUID | None) -> str:
@@ -172,7 +198,6 @@ def parse_persona_generation_json(response_text: str) -> dict:
     repairs and surfaces a clear error when it can't recover.
     """
     import json
-    import re
 
     text = (response_text or "").strip()
     if not text:
@@ -791,7 +816,7 @@ class PersonaGenerationService:
                 elif isinstance(goal, dict):
                     goals.append({
                         "label": goal.get("label", str(goal)),
-                        "priority": goal.get("priority", idx + 1)
+                        "priority": _parse_goal_priority(goal.get("priority", idx + 1), idx),
                     })
         
         # Convert communication_style to PersonaCommunicationStyle format
