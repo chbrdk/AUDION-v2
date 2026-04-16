@@ -305,6 +305,7 @@ export async function generateTargetGroupPersona(
   // Use the Next.js API route instead of calling backend directly
   const response = await fetch(buildApiUrl(`/api/target-groups/${targetGroupId}/personas/generate`), {
     method: "POST",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
     },

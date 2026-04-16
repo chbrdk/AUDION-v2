@@ -20,12 +20,58 @@ from ..models import (
     Persona,
     PersonaPrompt as PersonaPromptModel,
     PersonaSource,
+    Project,
     TargetGroupSource,
     TargetGroup,
 )
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
+
+
+def _compose_identity_context_block(*, persona: Persona, target_group_id: UUID | None) -> str:
+    """Project company context, target group summary, and user segment/brief for the LLM (traits, pain points, etc.)."""
+    blocks: list[str] = []
+    with get_session() as session:
+        if persona.project_id is not None:
+            project = session.get(Project, persona.project_id)
+            if project is not None:
+                cc = (project.company_context or "").strip()
+                if cc:
+                    blocks.append(
+                        "COMPANY / PROJECT CONTEXT (ground truth; align facts, industry, and tone with this):\n" + cc
+                    )
+                else:
+                    desc = (project.description or "").strip()
+                    if desc:
+                        blocks.append("PROJECT DESCRIPTION:\n" + desc)
+        if target_group_id is not None:
+            tg = session.get(TargetGroup, target_group_id)
+            if tg is not None:
+                blocks.append(
+                    "TARGET GROUP (segmentation context):\n"
+                    f"- Name: {tg.name}\n"
+                    f"- Segment: {tg.segment or '—'}\n"
+                    f"- Description: {tg.description or '—'}"
+                )
+    user_lines: list[str] = []
+    seg = (persona.segment or "").strip()
+    if seg and seg.lower() not in {"unspecified", "pending"}:
+        user_lines.append(f"Persona segment label to align with: {seg}")
+    hl = (persona.headline or "").strip()
+    if hl:
+        user_lines.append(
+            "AUTHOR / PRODUCT BRIEF — reflect this in traits, pain_points, goals, communication_style, and bio "
+            f"(not only as a tagline): {hl}"
+        )
+    parts: list[str] = []
+    if blocks:
+        parts.append("\n\n".join(blocks))
+    if user_lines:
+        parts.append("USER / PRODUCT FOCUS:\n" + "\n".join(f"- {line}" for line in user_lines))
+    if not parts:
+        return ""
+    return "\n\n" + "\n\n".join(parts) + "\n"
 
 
 @dataclass
@@ -270,7 +316,13 @@ class PersonaGenerationService:
             # Default to vivid if randomize_prompt is False and no prompt_style specified
             prompt_style = "vivid"
 
-        identity_prompt = prompt_templates.get(prompt_style, prompt_templates["vivid"]) + f"{excerpts}"
+        context_block = _compose_identity_context_block(persona=persona, target_group_id=target_group_id)
+        excerpt_block = f"{excerpts}" if excerpts else ""
+        if excerpt_block.strip():
+            excerpt_block = "\nRESEARCH EXCERPTS:\n" + excerpt_block
+        identity_prompt = (
+            prompt_templates.get(prompt_style, prompt_templates["vivid"]) + context_block + excerpt_block
+        )
 
         # Log prompt style
         logger.info(

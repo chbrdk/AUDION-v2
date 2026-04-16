@@ -36,7 +36,7 @@ export async function POST(request: NextRequest, context: RouteParams) {
       method: "POST",
       headers,
       body: bodyText,
-      signal: AbortSignal.timeout(30000), // 30 second timeout
+      signal: AbortSignal.timeout(120000), // persona generation can exceed 30s
     };
     
     console.log("Sending request:", { url: target, bodyLength: bodyBytes.length, bodyText });

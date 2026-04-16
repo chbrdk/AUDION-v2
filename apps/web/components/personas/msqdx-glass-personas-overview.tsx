@@ -2,7 +2,21 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Box, Stack, Tooltip } from "@mui/material";
+import {
+  Box,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Select,
+  Stack,
+  TextField,
+  Tooltip,
+} from "@mui/material";
 import type { PersonaListResponse, PersonaResponse } from "@msqdx-glass/types";
 import { MsqdxAvatar, MsqdxButton, MsqdxChip, MsqdxFormField, MsqdxIcon, MsqdxMoleculeCard, MsqdxTypography } from "@msqdx/react";
 import { buildApiUrl } from "../../app/api/_lib/backend";
@@ -11,6 +25,7 @@ import { normalizePersonaListResponse } from "../../lib/persona-list-normalize";
 import { safePersonaAvatarSrc } from "../../lib/persona-avatar";
 import { useProject } from "../projects/project-provider";
 import { useI18n } from "../i18n/i18n-provider";
+import { fetchTargetGroupList, generateTargetGroupPersona } from "../../app/api/_lib/target-group";
 
 export type MsqdxGlassPersonasOverviewProps = {
   initialList: PersonaListResponse;
@@ -53,6 +68,15 @@ export function MsqdxGlassPersonasOverview({ initialList }: MsqdxGlassPersonasOv
   const [createForm, setCreateForm] = useState<CreateFormState>(defaultCreateFormState);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+
+  const [aiDialogOpen, setAiDialogOpen] = useState(false);
+  const [aiTargetGroups, setAiTargetGroups] = useState<Array<{ id: string; name: string; segment: string }>>([]);
+  const [aiTargetGroupId, setAiTargetGroupId] = useState("");
+  const [aiSegment, setAiSegment] = useState("");
+  const [aiUserBrief, setAiUserBrief] = useState("");
+  const [aiLoadingList, setAiLoadingList] = useState(false);
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   const items = useMemo(() => list.items ?? [], [list.items]);
 
@@ -100,6 +124,79 @@ export function MsqdxGlassPersonasOverview({ initialList }: MsqdxGlassPersonasOv
     void refresh(activeProjectId ?? null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeProjectId]);
+
+  const openAiDialog = async () => {
+    setAiError(null);
+    setAiDialogOpen(true);
+    if (!activeProjectId) return;
+    setAiLoadingList(true);
+    try {
+      const res = await fetchTargetGroupList(activeProjectId, 1, 100);
+      const raw = res.items ?? [];
+      setAiTargetGroups(
+        raw.map((tg) => ({
+          id: tg.id,
+          name: tg.name,
+          segment: tg.segment ?? "",
+        }))
+      );
+      if (raw.length === 1) {
+        setAiTargetGroupId(raw[0]!.id);
+        setAiSegment((raw[0]!.segment ?? "").trim());
+      } else {
+        setAiTargetGroupId("");
+        setAiSegment("");
+      }
+      setAiUserBrief("");
+    } catch {
+      setAiTargetGroups([]);
+      setAiError(t("personaAdmin.loadListFailed"));
+    } finally {
+      setAiLoadingList(false);
+    }
+  };
+
+  const handleAiGenerate = async () => {
+    if (!activeProjectId) {
+      setAiError(t("personaAdmin.selectProject"));
+      return;
+    }
+    if (!aiTargetGroupId) {
+      setAiError(t("personaAdmin.generateWithAiTargetGroupRequired"));
+      return;
+    }
+    setAiGenerating(true);
+    setAiError(null);
+    try {
+      const segmentLabel = (aiSegment.trim() || aiTargetGroups.find((g) => g.id === aiTargetGroupId)?.segment || "Persona").trim();
+      const descriptionParts: string[] = [];
+      if (aiUserBrief.trim()) {
+        descriptionParts.push(aiUserBrief.trim());
+      }
+      if (aiSegment.trim()) {
+        descriptionParts.push(`Segment / archetype label: ${aiSegment.trim()}`);
+      }
+      const description = descriptionParts.length > 0 ? descriptionParts.join("\n\n") : undefined;
+
+      const created = await generateTargetGroupPersona(aiTargetGroupId, {
+        segment: segmentLabel || "Generated persona",
+        description,
+        filterMode: "auto",
+        limitChunks: 50,
+      });
+      const newId = extractPersonaId(created);
+      setAiDialogOpen(false);
+      setAiUserBrief("");
+      await refresh(activeProjectId);
+      if (newId) {
+        router.push(ADMIN_ROUTES.personaDetail(newId));
+      }
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : t("personaAdmin.generateWithAiFailed"));
+    } finally {
+      setAiGenerating(false);
+    }
+  };
 
   const handleCreate = async () => {
     const name = createForm.name.trim();
@@ -195,7 +292,25 @@ export function MsqdxGlassPersonasOverview({ initialList }: MsqdxGlassPersonasOv
             title={t("personaAdmin.newPersona")}
             titleVariant="h6"
             subtitle={t("personaAdmin.namePlaceholder")}
-            headerActions={<MsqdxIcon name="add" customSize={22} style={{ color: accent }} />}
+            headerActions={
+              <Stack direction="row" alignItems="center" spacing={0.5}>
+                <Tooltip title={t("personaAdmin.generateWithAi")}>
+                  <IconButton
+                    size="small"
+                    aria-label={t("personaAdmin.generateWithAi")}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void openAiDialog();
+                    }}
+                    disabled={!activeProjectId}
+                    sx={{ color: accent }}
+                  >
+                    <MsqdxIcon name="auto_awesome" customSize={22} />
+                  </IconButton>
+                </Tooltip>
+                <MsqdxIcon name="add" customSize={22} style={{ color: accent }} />
+              </Stack>
+            }
             sx={{
               minHeight: 140,
               border: "2px dashed",
@@ -395,6 +510,86 @@ export function MsqdxGlassPersonasOverview({ initialList }: MsqdxGlassPersonasOv
           </MsqdxMoleculeCard>
         );})}
       </Box>
+
+      <Dialog open={aiDialogOpen} onClose={() => !aiGenerating && setAiDialogOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>{t("personaAdmin.generateWithAiTitle")}</DialogTitle>
+        <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
+          <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+            {t("personaAdmin.generateWithAiIntro")}
+          </MsqdxTypography>
+          {aiLoadingList ? (
+            <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+              {t("personaAdmin.loading")}
+            </MsqdxTypography>
+          ) : aiTargetGroups.length === 0 ? (
+            <MsqdxTypography variant="body2" sx={{ color: "warning.main" }}>
+              {t("personaAdmin.generateWithAiNoTargetGroups")}
+            </MsqdxTypography>
+          ) : (
+            <FormControl fullWidth size="small" required>
+              <InputLabel id="ai-tg-label">{t("personaAdmin.generateWithAiTargetGroup")}</InputLabel>
+              <Select
+                labelId="ai-tg-label"
+                label={t("personaAdmin.generateWithAiTargetGroup")}
+                value={aiTargetGroupId}
+                onChange={(e) => {
+                  const id = String(e.target.value);
+                  setAiTargetGroupId(id);
+                  const tg = aiTargetGroups.find((g) => g.id === id);
+                  if (tg?.segment) {
+                    setAiSegment(tg.segment);
+                  }
+                }}
+              >
+                {aiTargetGroups.map((tg) => (
+                  <MenuItem key={tg.id} value={tg.id}>
+                    {tg.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+          <TextField
+            label={t("personaAdmin.generateWithAiSegment")}
+            helperText={t("personaAdmin.generateWithAiSegmentHint")}
+            value={aiSegment}
+            onChange={(e) => setAiSegment(e.target.value)}
+            fullWidth
+            size="small"
+            disabled={aiGenerating}
+          />
+          <TextField
+            label={t("personaAdmin.generateWithAiUserBrief")}
+            placeholder={t("personaAdmin.generateWithAiUserBriefPlaceholder")}
+            value={aiUserBrief}
+            onChange={(e) => setAiUserBrief(e.target.value)}
+            fullWidth
+            multiline
+            minRows={3}
+            disabled={aiGenerating}
+          />
+          {aiError ? (
+            <MsqdxTypography variant="caption" sx={{ color: "error.main" }}>
+              {aiError}
+            </MsqdxTypography>
+          ) : null}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <MsqdxButton variant="outlined" size="small" onClick={() => setAiDialogOpen(false)} disabled={aiGenerating}>
+            {t("common.cancel")}
+          </MsqdxButton>
+          <MsqdxButton
+            variant="contained"
+            size="small"
+            brandColor="green"
+            onClick={() => void handleAiGenerate()}
+            disabled={aiGenerating || !aiTargetGroupId || aiTargetGroups.length === 0}
+            startIcon={<MsqdxIcon name="auto_awesome" customSize={16} />}
+          >
+            {aiGenerating ? t("personaAdmin.generateWithAiGenerating") : t("personaAdmin.generateWithAiSubmit")}
+          </MsqdxButton>
+        </DialogActions>
+      </Dialog>
 
       {(loading || loadError || (!activeProjectId && !items.length)) && (
         <Box sx={{ mt: 2 }}>
