@@ -36,6 +36,14 @@ class StubOpenverse(OpenverseClient):
         ]
 
 
+class StubOpenverseEmpty(OpenverseClient):
+    def __init__(self) -> None:
+        pass
+
+    def search_images(self, *, q: str, page_size: int = 20, license_type: str | None = None, mature: bool = False):
+        return []
+
+
 def test_build_moodboard_creates_tiles_and_sets_ready() -> None:
     session = build_session()
     persona_id = uuid4()
@@ -69,4 +77,33 @@ def test_build_moodboard_creates_tiles_and_sets_ready() -> None:
 
     tiles = session.query(PersonaMoodboardTile).filter_by(moodboard_id=mb.id).count()
     assert tiles > 0
+
+
+def test_build_moodboard_marks_failed_when_no_results() -> None:
+    session = build_session()
+    persona_id = uuid4()
+    project_id = uuid4()
+    persona = Persona(
+        id=persona_id,
+        project_id=project_id,
+        name="P",
+        segment="Segment",
+        headline="Headline",
+        profile={"interests": ["coffee", "cycling"], "values": ["clarity"]},
+        confidence=0.9,
+        version="1.0.0",
+    )
+    session.add(persona)
+    session.commit()
+
+    mb = PersonaMoodboard(persona_id=persona_id, project_id=project_id, title="Moodboard", active=True)
+    session.add(mb)
+    session.commit()
+    session.refresh(mb)
+
+    service = MoodboardService(openverse=StubOpenverseEmpty())
+    service.build_moodboard(session, moodboard_id=mb.id)
+
+    session.refresh(mb)
+    assert mb.status.value == "failed"
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+import re
 from typing import Any, Iterable
 from uuid import UUID
 
@@ -25,20 +26,51 @@ DEFAULT_CATEGORIES: list[str] = [
 ]
 
 
+_PARENS_RE = re.compile(r"\([^)]*\)")
+_SPLIT_RE = re.compile(r"[·•\n\r]+|(?:\s[-–—]\s)|[.;]+")
+
+
+def _compact_phrase(text: str, *, max_words: int = 6, max_chars: int = 56) -> str:
+    cleaned = _PARENS_RE.sub("", text)
+    cleaned = cleaned.replace("—", " ").replace("–", " ").replace("‑", "-")
+    cleaned = " ".join(cleaned.split()).strip(" -\t")
+    if not cleaned:
+        return ""
+    words = cleaned.split()
+    trimmed = " ".join(words[:max_words]).strip()
+    if len(trimmed) > max_chars:
+        trimmed = trimmed[:max_chars].rstrip()
+    return trimmed
+
+
 def _coerce_keywords(values: Any, *, limit: int = 6) -> list[str]:
     if not values:
         return []
     out: list[str] = []
     if isinstance(values, str):
-        out = [values]
+        text = values.strip()
+        parts = [p.strip() for p in _SPLIT_RE.split(text) if p and p.strip()]
+        if parts:
+            for p in parts:
+                compact = _compact_phrase(p)
+                if compact:
+                    out.append(compact)
+        else:
+            compact = _compact_phrase(text)
+            if compact:
+                out.append(compact)
     elif isinstance(values, list):
         for v in values:
             if isinstance(v, str) and v.strip():
-                out.append(v.strip())
+                compact = _compact_phrase(v.strip())
+                if compact:
+                    out.append(compact)
             elif isinstance(v, dict):
                 label = v.get("label")
                 if isinstance(label, str) and label.strip():
-                    out.append(label.strip())
+                    compact = _compact_phrase(label.strip())
+                    if compact:
+                        out.append(compact)
     return out[:limit]
 
 
@@ -70,7 +102,14 @@ def derive_style_keywords(persona: Persona) -> list[str]:
 
 
 def build_queries(*, keywords: list[str], categories: Iterable[str]) -> dict[str, str]:
-    base = " ".join(keywords[:5]).strip() or "persona"
+    compacted: list[str] = []
+    for k in keywords[:8]:
+        ck = _compact_phrase(k, max_words=4, max_chars=32)
+        if ck:
+            compacted.append(ck)
+        if len(compacted) >= 6:
+            break
+    base = " ".join(compacted).strip() or "persona"
     return {cat: f"{base} {cat}".strip() for cat in categories}
 
 
@@ -168,6 +207,19 @@ class MoodboardService:
                 if picked >= 4:
                     break
             session.commit()
+
+        if order <= 0:
+            moodboard.status = MoodboardStatus.failed
+            moodboard.updated_at = datetime.utcnow()
+            session.add(moodboard)
+            session.commit()
+            logger.warning(
+                "moodboard.build.no_results",
+                moodboard_id=str(moodboard_id),
+                persona_id=str(persona.id),
+                keywords=keywords[:8],
+            )
+            return
 
         moodboard.status = MoodboardStatus.ready
         moodboard.updated_at = datetime.utcnow()
