@@ -30,6 +30,7 @@ import { buildAdaptiveSystemPrompt } from "../../lib/adaptive-prompt";
 import { loadLearningsFromLocalStorage } from "../../lib/conversation-learnings";
 import { useShareChatHeader } from "../../components/chat/share-chat-header-context";
 import { sortMoodboardTiles } from "../../lib/moodboard";
+import { moodboardCategoryMoodLine, moodboardTileCardRadius, moodboardTileGridSx } from "../../lib/moodboard-tile-ui";
 
 /** Compatible with admin chat persona profile card (drawer details). */
 type PersonaProfileCard = {
@@ -201,7 +202,7 @@ function ShareChatWelcomeMessage({ personaDisplayName, avatarUrl, personaId }: S
 function ChatSharePageContent() {
   const theme = useTheme();
   const searchParams = useSearchParams();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { user } = useAuth();
   const { activeProjectId, selectProject } = useProject();
   const { setHeaderContent } = useShareChatHeader();
@@ -473,28 +474,42 @@ function ChatSharePageContent() {
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: { xs: "repeat(2, 1fr)", sm: "repeat(4, 1fr)", md: "repeat(6, 1fr)" },
+              gridTemplateColumns: { xs: "repeat(2, 1fr)", md: "repeat(12, 1fr)" },
+              gridAutoRows: "minmax(72px, auto)",
               gap: 1,
             }}
           >
-            {sortMoodboardTiles(tiles)
-              .slice(0, 12)
-              .map((tile) => (
+            {(() => {
+              const slice = sortMoodboardTiles(tiles).slice(0, 12);
+              const n = slice.length;
+              return slice.map((tile, index) => (
                 <Box
                   key={tile.id}
                   sx={{
-                    borderRadius: 1.5,
+                    ...moodboardTileGridSx(index, n, { compact: true }),
+                    display: "flex",
+                    flexDirection: "column",
+                    minHeight: 0,
+                    height: "100%",
+                    borderRadius: `${moodboardTileCardRadius(index)}px`,
                     overflow: "hidden",
                     border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
                     backgroundColor: theme.palette.background.paper,
+                    boxShadow: `0 10px 26px ${alpha(theme.palette.common.black, 0.07)}`,
                   }}
                 >
-                  <Box sx={{ position: "relative" }}>
+                  <Box sx={{ position: "relative", flex: "1 1 auto", minHeight: { xs: 100, md: 0 } }}>
                     <Box
                       component="img"
                       src={tile.thumbUrl || tile.imageUrl}
                       alt={tile.caption ?? tile.category}
-                      sx={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", display: "block" }}
+                      sx={{
+                        width: "100%",
+                        height: "100%",
+                        minHeight: { xs: 120, md: "100%" },
+                        objectFit: "cover",
+                        display: "block",
+                      }}
                       title={tile.attributionText ?? tile.sourceUrl ?? tile.category}
                     />
                     <Box
@@ -502,7 +517,8 @@ function ChatSharePageContent() {
                         position: "absolute",
                         inset: 0,
                         pointerEvents: "none",
-                        background: "linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.55) 100%)",
+                        background:
+                          "linear-gradient(165deg, rgba(0,0,0,0.18) 0%, transparent 40%, rgba(0,0,0,0.58) 100%)",
                       }}
                     />
                     <Box sx={{ position: "absolute", left: 8, right: 8, bottom: 8, display: "flex", flexDirection: "column", gap: 0.25 }}>
@@ -510,21 +526,21 @@ function ChatSharePageContent() {
                         variant="caption"
                         sx={{
                           color: "common.white",
-                          fontWeight: 800,
-                          letterSpacing: "0.08em",
-                          textTransform: "uppercase",
-                          textShadow: "0 1px 2px rgba(0,0,0,0.55)",
+                          fontWeight: 700,
+                          letterSpacing: "0.04em",
+                          lineHeight: 1.25,
+                          textShadow: "0 1px 3px rgba(0,0,0,0.55)",
                         }}
                       >
-                        {(persona?.headline || persona?.segment || persona?.name || "Persona").slice(0, 42)}
+                        {moodboardCategoryMoodLine(tile.category, locale)}
                       </Typography>
                       <Typography
                         variant="caption"
                         sx={{
                           color: "rgba(255,255,255,0.92)",
-                          fontWeight: 600,
+                          fontWeight: 800,
                           textTransform: "uppercase",
-                          letterSpacing: "0.06em",
+                          letterSpacing: "0.08em",
                           textShadow: "0 1px 2px rgba(0,0,0,0.55)",
                         }}
                       >
@@ -533,7 +549,8 @@ function ChatSharePageContent() {
                     </Box>
                   </Box>
                 </Box>
-              ))}
+              ));
+            })()}
           </Box>
         ) : (
           <Typography variant="body2" sx={{ color: alpha(theme.palette.text.primary, 0.75) }}>
@@ -542,7 +559,7 @@ function ChatSharePageContent() {
         )}
       </Box>
     );
-  }, [moodboard, moodboardError, persona, theme]);
+  }, [moodboard, moodboardError, persona, theme, locale]);
 
   const clearTypingState = (id: string) => {
     if (typingTimersRef.current[id]) {

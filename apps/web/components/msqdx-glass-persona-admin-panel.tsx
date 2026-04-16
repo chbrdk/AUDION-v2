@@ -36,6 +36,7 @@ import { buildApiUrl } from "../app/api/_lib/backend";
 import { normalizePersonaListResponse } from "../lib/persona-list-normalize";
 import { THEME_ACCENT } from "../lib/theme-accent";
 import { sortMoodboardTiles } from "../lib/moodboard";
+import { moodboardCategoryMoodLine, moodboardTileCardRadius, moodboardTileGridSx } from "../lib/moodboard-tile-ui";
 import { useProject } from "./projects/project-provider";
 import { useI18n } from "./i18n/i18n-provider";
 import { targetGroupsApi, type TargetGroupResponse } from "../app/api/_lib/target-groups";
@@ -192,7 +193,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
   activePersonaId = null,
 }: MsqdxGlassPersonaAdminPanelProps) => {
   const { activeProjectId, activeProject, projects } = useProject();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const accent = "var(--color-theme-accent)";
 
   const [list, setList] = useState<PersonaListResponse>(() => normalizePersonaListResponse(initialList));
@@ -2325,34 +2326,45 @@ export const MsqdxGlassPersonaAdminPanel = ({
                       <Box
                         sx={{
                           display: "grid",
-                          gridTemplateColumns: { xs: "repeat(2, 1fr)", sm: "repeat(3, 1fr)", md: "repeat(4, 1fr)" },
+                          gridTemplateColumns: { xs: "repeat(2, 1fr)", md: "repeat(12, 1fr)" },
+                          gridAutoRows: "minmax(88px, auto)",
                           gap: 1.5,
                         }}
                       >
-                        {sortMoodboardTiles(moodboard.tiles).map((tile) => (
+                        {(() => {
+                          const sortedTiles = sortMoodboardTiles(moodboard.tiles);
+                          const tileCount = sortedTiles.length;
+                          return sortedTiles.map((tile, index) => (
                             <Box
                               key={tile.id}
                               sx={{
+                                ...moodboardTileGridSx(index, tileCount),
+                                display: "flex",
+                                flexDirection: "column",
+                                minHeight: 0,
+                                height: "100%",
                                 border: "1px solid",
                                 borderColor: "divider",
-                                borderRadius: 2,
+                                borderRadius: `${moodboardTileCardRadius(index)}px`,
                                 overflow: "hidden",
                                 backgroundColor: "background.paper",
+                                boxShadow: "0 14px 36px rgba(0,0,0,0.08)",
                               }}
                             >
-                              <Box sx={{ position: "relative" }}>
+                              <Box sx={{ position: "relative", flex: "1 1 auto", minHeight: { xs: 120, md: 0 } }}>
                                 <Box
                                   component="img"
                                   src={tile.thumbUrl || tile.imageUrl}
                                   alt={tile.caption ?? tile.category}
-                                  sx={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", display: "block" }}
+                                  sx={{ width: "100%", height: "100%", minHeight: { xs: 140, md: "100%" }, objectFit: "cover", display: "block" }}
                                 />
                                 <Box
                                   sx={{
                                     position: "absolute",
                                     inset: 0,
                                     pointerEvents: "none",
-                                    background: "linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.55) 100%)",
+                                    background:
+                                      "linear-gradient(165deg, rgba(0,0,0,0.2) 0%, transparent 38%, rgba(0,0,0,0.62) 100%)",
                                   }}
                                 />
                                 <Box
@@ -2363,28 +2375,28 @@ export const MsqdxGlassPersonaAdminPanel = ({
                                     bottom: 10,
                                     display: "flex",
                                     flexDirection: "column",
-                                    gap: 0.25,
+                                    gap: 0.35,
                                   }}
                                 >
                                   <MsqdxTypography
                                     variant="caption"
                                     sx={{
                                       color: "common.white",
-                                      fontWeight: 800,
-                                      letterSpacing: "0.08em",
-                                      textTransform: "uppercase",
-                                      textShadow: "0 1px 2px rgba(0,0,0,0.55)",
+                                      fontWeight: 700,
+                                      letterSpacing: "0.04em",
+                                      lineHeight: 1.25,
+                                      textShadow: "0 1px 3px rgba(0,0,0,0.55)",
                                     }}
                                   >
-                                    {(detail.profile.headline || detail.profile.segment || "Persona").slice(0, 42)}
+                                    {moodboardCategoryMoodLine(tile.category, locale)}
                                   </MsqdxTypography>
                                   <MsqdxTypography
                                     variant="caption"
                                     sx={{
                                       color: "rgba(255,255,255,0.92)",
-                                      fontWeight: 600,
+                                      fontWeight: 800,
                                       textTransform: "uppercase",
-                                      letterSpacing: "0.06em",
+                                      letterSpacing: "0.08em",
                                       textShadow: "0 1px 2px rgba(0,0,0,0.55)",
                                     }}
                                   >
@@ -2392,7 +2404,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
                                   </MsqdxTypography>
                                 </Box>
                               </Box>
-                              <Box sx={{ p: 1 }}>
+                              <Box sx={{ p: 1, flexShrink: 0 }}>
                                 <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
                                   <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                                     {tile.category}
@@ -2428,7 +2440,8 @@ export const MsqdxGlassPersonaAdminPanel = ({
                                 ) : null}
                               </Box>
                             </Box>
-                          ))}
+                          ));
+                        })()}
                       </Box>
                     ) : moodboard ? (
                       <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>

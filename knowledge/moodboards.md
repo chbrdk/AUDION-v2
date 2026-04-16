@@ -107,6 +107,11 @@ Implementation:
 - Displays a compact moodboard grid above the chat (if available)
 - Loads via `GET /api/share/persona/{personaId}/moodboard?projectId=...`
 
+### Tile overlay copy & layout (centralized)
+- File: `apps/web/lib/moodboard-tile-ui.ts`
+- Image overlay **primary line** is **category-specific** (locale `de` / `en`), not the persona headline (headline stays in persona context).
+- **8-tile** boards (typical OpenAI) use a **12-column bento** grid; other counts use a **hero + span-3 mosaic** on `md+`.
+
 ## Attribution requirements
 
 Each tile should keep:
