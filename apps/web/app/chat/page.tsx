@@ -372,7 +372,7 @@ function ChatSharePageContent() {
 
   // Fetch moodboard (public share endpoint) when personaId/projectId is present
   useEffect(() => {
-    if (!personaIdParam || !projectIdParam) {
+    if (!personaIdParam) {
       setMoodboard(null);
       setMoodboardError(null);
       return;
@@ -381,8 +381,12 @@ function ChatSharePageContent() {
     const fetchMoodboard = async () => {
       setMoodboardError(null);
       try {
-        const url = buildApiUrl(`/api/share/persona/${personaIdParam}/moodboard?projectId=${encodeURIComponent(projectIdParam)}`);
-        const res = await fetch(url, { cache: "no-store" });
+        // Public share links require a projectId token; when absent but the user is authenticated
+        // (e.g. internal use), fall back to the authenticated admin endpoint.
+        const url = projectIdParam
+          ? buildApiUrl(`/api/share/persona/${personaIdParam}/moodboard?projectId=${encodeURIComponent(projectIdParam)}`)
+          : buildApiUrl(`/api/persona-admin/${personaIdParam}/moodboards/active`);
+        const res = await fetch(url, { cache: "no-store", credentials: projectIdParam ? "omit" : "include" });
         if (cancelled) return;
         if (res.status === 404) {
           setMoodboard(null);
@@ -408,6 +412,101 @@ function ChatSharePageContent() {
       cancelled = true;
     };
   }, [personaIdParam, projectIdParam]);
+
+  const moodboardPreview = useMemo(() => {
+    if (!moodboard) return null;
+    const tiles = moodboard.tiles ?? [];
+    const hasTiles = tiles.length > 0;
+    const status = (moodboard.status ?? "").toLowerCase();
+    const isBuilding = status === "building";
+    const isDraft = status === "draft";
+    const isFailed = status === "failed";
+
+    // Show preview when there are tiles, or when generation is in progress/failed
+    // so users understand what's happening.
+    if (!hasTiles && !(isBuilding || isDraft || isFailed)) return null;
+
+    return (
+      <Box
+        sx={{
+          mb: 2,
+          p: 1.5,
+          borderRadius: 2,
+          border: "1px solid var(--color-neutral)",
+          backgroundColor: alpha(theme.palette.background.paper, 0.85),
+          width: "100%",
+          maxWidth: 720,
+        }}
+      >
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+          <MsqdxIcon name="image" customSize={18} />
+          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+            Moodboard
+          </Typography>
+          {isBuilding || isDraft ? (
+            <Stack direction="row" spacing={1} alignItems="center">
+              <CircularProgress size={14} />
+              <Typography variant="caption" sx={{ color: alpha(theme.palette.text.primary, 0.75) }}>
+                {isBuilding ? "Building…" : "Preparing…"}
+              </Typography>
+            </Stack>
+          ) : null}
+          {isFailed ? (
+            <Typography variant="caption" sx={{ color: "error.main" }}>
+              Failed
+            </Typography>
+          ) : null}
+          {moodboardError ? (
+            <Typography variant="caption" sx={{ color: "error.main" }}>
+              {moodboardError}
+            </Typography>
+          ) : null}
+        </Stack>
+
+        {moodboard?.styleKeywords?.length ? (
+          <Typography variant="caption" sx={{ display: "block", mb: 1, color: alpha(theme.palette.text.primary, 0.75) }}>
+            {moodboard.styleKeywords.slice(0, 10).join(" · ")}
+          </Typography>
+        ) : null}
+
+        {hasTiles ? (
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "repeat(2, 1fr)", sm: "repeat(4, 1fr)", md: "repeat(6, 1fr)" },
+              gap: 1,
+            }}
+          >
+            {sortMoodboardTiles(tiles)
+              .slice(0, 12)
+              .map((tile) => (
+                <Box
+                  key={tile.id}
+                  sx={{
+                    borderRadius: 1.5,
+                    overflow: "hidden",
+                    border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+                    backgroundColor: theme.palette.background.paper,
+                  }}
+                >
+                  <Box
+                    component="img"
+                    src={tile.thumbUrl || tile.imageUrl}
+                    alt={tile.caption ?? tile.category}
+                    sx={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", display: "block" }}
+                    title={tile.attributionText ?? tile.sourceUrl ?? tile.category}
+                  />
+                </Box>
+              ))}
+          </Box>
+        ) : (
+          <Typography variant="body2" sx={{ color: alpha(theme.palette.text.primary, 0.75) }}>
+            No tiles yet.
+          </Typography>
+        )}
+      </Box>
+    );
+  }, [moodboard, moodboardError, theme]);
 
   const clearTypingState = (id: string) => {
     if (typingTimersRef.current[id]) {
@@ -669,65 +768,17 @@ function ChatSharePageContent() {
         }}
       >
         {messages.length === 0 ? (
-          <ShareChatWelcomeMessage
-            personaDisplayName={personaDisplayName}
-            avatarUrl={persona?.image_url}
-            personaId={personaIdParam ?? undefined}
-          />
+          <Stack spacing={2} sx={{ width: "100%", maxWidth: 720, alignItems: "center" }}>
+            <ShareChatWelcomeMessage
+              personaDisplayName={personaDisplayName}
+              avatarUrl={persona?.image_url}
+              personaId={personaIdParam ?? undefined}
+            />
+            {moodboardPreview}
+          </Stack>
         ) : (
           <Box sx={{ width: "100%", minHeight: 0, flex: 1 }}>
-            {moodboard?.tiles?.length ? (
-              <Box
-                sx={{
-                  mb: 2,
-                  p: 1.5,
-                  borderRadius: 2,
-                  border: "1px solid var(--color-neutral)",
-                  backgroundColor: alpha(theme.palette.background.paper, 0.85),
-                }}
-              >
-                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                  <MsqdxIcon name="image" customSize={18} />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                    Moodboard
-                  </Typography>
-                  {moodboardError ? (
-                    <Typography variant="caption" sx={{ color: "error.main" }}>
-                      {moodboardError}
-                    </Typography>
-                  ) : null}
-                </Stack>
-                <Box
-                  sx={{
-                    display: "grid",
-                    gridTemplateColumns: { xs: "repeat(2, 1fr)", sm: "repeat(4, 1fr)", md: "repeat(6, 1fr)" },
-                    gap: 1,
-                  }}
-                >
-                  {sortMoodboardTiles(moodboard.tiles)
-                    .slice(0, 12)
-                    .map((tile) => (
-                      <Box
-                        key={tile.id}
-                        sx={{
-                          borderRadius: 1.5,
-                          overflow: "hidden",
-                          border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-                          backgroundColor: theme.palette.background.paper,
-                        }}
-                      >
-                        <Box
-                          component="img"
-                          src={tile.thumbUrl || tile.imageUrl}
-                          alt={tile.caption ?? tile.category}
-                          sx={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", display: "block" }}
-                          title={tile.attributionText ?? tile.sourceUrl ?? tile.category}
-                        />
-                      </Box>
-                    ))}
-                </Box>
-              </Box>
-            ) : null}
+            {moodboardPreview}
             <MsqdxGlassChatPanel messages={messages} />
           </Box>
         )}
