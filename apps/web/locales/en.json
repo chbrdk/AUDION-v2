@@ -239,7 +239,13 @@
     "loading": "Loading…",
     "unknownError": "Unknown error",
     "sendFailed": "Failed to send",
-    "reasoningSection": "Brief reasoning"
+    "reasoningSection": "Brief reasoning",
+    "moodboardTitle": "Moodboard",
+    "moodboardDrawerHint": "Preview — the full moodboard appears above the chat.",
+    "moodboardBuilding": "Building…",
+    "moodboardPreparing": "Preparing…",
+    "moodboardFailed": "Moodboard failed",
+    "moodboardNoTiles": "No tiles yet."
   },
   "landing": {
     "headline": "Audion",

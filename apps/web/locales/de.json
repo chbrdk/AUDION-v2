@@ -239,7 +239,13 @@
     "loading": "Laden…",
     "unknownError": "Unbekannter Fehler",
     "sendFailed": "Senden fehlgeschlagen",
-    "reasoningSection": "Kurzüberlegung"
+    "reasoningSection": "Kurzüberlegung",
+    "moodboardTitle": "Moodboard",
+    "moodboardDrawerHint": "Kurzauswahl — das vollständige Moodboard siehst du über dem Chat.",
+    "moodboardBuilding": "Wird erstellt…",
+    "moodboardPreparing": "Wird vorbereitet…",
+    "moodboardFailed": "Moodboard fehlgeschlagen",
+    "moodboardNoTiles": "Noch keine Kacheln."
   },
   "landing": {
     "headline": "Audion",

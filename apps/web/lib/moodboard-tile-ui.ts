@@ -111,3 +111,11 @@ export function moodboardTileCardRadius(index: number): number {
   const r = [18, 14, 22, 16, 20, 14, 18, 16];
   return r[index % r.length] ?? 16;
 }
+
+/** Same visibility rule as the main chat moodboard preview (tiles or in-progress / error states). */
+export function shouldShowMoodboardStrip(moodboard: { status?: string; tiles?: readonly unknown[] } | null): boolean {
+  if (!moodboard) return false;
+  const status = (moodboard.status ?? "").toLowerCase();
+  const hasTiles = (moodboard.tiles?.length ?? 0) > 0;
+  return hasTiles || status === "building" || status === "draft" || status === "failed";
+}

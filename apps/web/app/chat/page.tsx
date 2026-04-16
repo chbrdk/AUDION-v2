@@ -19,6 +19,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
+import { MoodboardPersonaDrawerStrip } from "../../components/moodboard-persona-drawer-strip";
 import { MsqdxGlassChatPanel } from "../../components/msqdx-glass-chat-panel";
 import { MsqdxIcon, MsqdxInput } from "@msqdx/react";
 import { INPUT_ACCENT_SX_WITH_FALLBACK } from "../../lib/theme-accent";
@@ -962,6 +963,7 @@ function ChatSharePageContent() {
           </Stack>
           <Divider />
           <Stack spacing={2.5} sx={{ flex: 1, overflowY: "auto", pr: 0.5 }}>
+            <MoodboardPersonaDrawerStrip moodboard={moodboard} moodboardError={moodboardError} locale={locale} t={t} />
             <Stack spacing={1}>
               <Typography variant="subtitle2" sx={{ textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: 1 }}>
                 {t("chat.demographics")}

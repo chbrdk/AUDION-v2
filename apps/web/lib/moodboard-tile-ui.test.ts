@@ -5,6 +5,7 @@ import {
   moodboardGridContainerSx,
   moodboardTileCardRadius,
   moodboardTileGridSx,
+  shouldShowMoodboardStrip,
 } from "./moodboard-tile-ui";
 
 describe("moodboardCategoryMoodLine", () => {
@@ -53,5 +54,25 @@ describe("moodboardTileCardRadius", () => {
   it("returns stable radii", () => {
     expect(moodboardTileCardRadius(0)).toBe(18);
     expect(moodboardTileCardRadius(2)).toBe(22);
+  });
+});
+
+describe("shouldShowMoodboardStrip", () => {
+  it("is false when moodboard is null", () => {
+    expect(shouldShowMoodboardStrip(null)).toBe(false);
+  });
+
+  it("is true when there are tiles", () => {
+    expect(shouldShowMoodboardStrip({ status: "ready", tiles: [{}] })).toBe(true);
+  });
+
+  it("is true for building or draft without tiles", () => {
+    expect(shouldShowMoodboardStrip({ status: "building", tiles: [] })).toBe(true);
+    expect(shouldShowMoodboardStrip({ status: "draft", tiles: [] })).toBe(true);
+    expect(shouldShowMoodboardStrip({ status: "failed", tiles: [] })).toBe(true);
+  });
+
+  it("is false for ready with no tiles", () => {
+    expect(shouldShowMoodboardStrip({ status: "ready", tiles: [] })).toBe(false);
   });
 });
