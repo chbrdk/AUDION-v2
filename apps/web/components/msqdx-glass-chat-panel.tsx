@@ -16,7 +16,7 @@ import {
 import { keyframes } from "@emotion/react";
 import { MsqdxIcon } from "@msqdx/react";
 import { ChatMessageMarkdown } from "./chat/chat-message-markdown";
-import { useI18n } from "../i18n/i18n-provider";
+import { useI18n } from "./i18n/i18n-provider";
 
 type Message = {
   id: string;
