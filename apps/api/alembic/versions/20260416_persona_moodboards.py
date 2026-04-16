@@ -22,13 +22,16 @@ depends_on = None
 def upgrade() -> None:
     # audion schema is on search_path in env.py
     # Idempotency: some environments may pre-create enum types during bootstrap.
+    # Race-safe enum creation: some bootstraps run migrations concurrently.
+    # Postgres does not support CREATE TYPE IF NOT EXISTS for enums; handle duplicate_object.
     op.execute(
         """
         DO $$
         BEGIN
-            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'moodboard_status') THEN
-                CREATE TYPE moodboard_status AS ENUM ('draft', 'building', 'ready', 'failed');
-            END IF;
+            CREATE TYPE moodboard_status AS ENUM ('draft', 'building', 'ready', 'failed');
+        EXCEPTION
+            WHEN duplicate_object THEN
+                NULL;
         END$$;
         """
     )
