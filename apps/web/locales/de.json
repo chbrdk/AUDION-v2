@@ -242,6 +242,7 @@
     "reasoningSection": "Kurzüberlegung",
     "moodboardTitle": "Moodboard",
     "moodboardDrawerHint": "Kurzauswahl — das vollständige Moodboard siehst du über dem Chat.",
+    "moodboardDrawerHintAdmin": "Kurzauswahl — vollständiges Moodboard bearbeitest du in der Persona-Detailansicht (Admin).",
     "moodboardBuilding": "Wird erstellt…",
     "moodboardPreparing": "Wird vorbereitet…",
     "moodboardFailed": "Moodboard fehlgeschlagen",

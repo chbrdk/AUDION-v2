@@ -242,6 +242,7 @@
     "reasoningSection": "Brief reasoning",
     "moodboardTitle": "Moodboard",
     "moodboardDrawerHint": "Preview — the full moodboard appears above the chat.",
+    "moodboardDrawerHintAdmin": "Preview — edit the full moodboard in the persona admin detail view.",
     "moodboardBuilding": "Building…",
     "moodboardPreparing": "Preparing…",
     "moodboardFailed": "Moodboard failed",

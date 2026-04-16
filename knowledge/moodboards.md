@@ -106,7 +106,7 @@ Implementation:
 - File: `apps/web/app/chat/page.tsx`
 - Displays a compact moodboard grid above the chat (if available)
 - Loads via `GET /api/share/persona/{personaId}/moodboard?projectId=...`
-- Persona drawer (“Persona overview”) includes a **strip** (`apps/web/components/moodboard-persona-drawer-strip.tsx`): up to **4** thumbnails + hint text; strings under `chat.moodboard*` in `apps/web/locales/*.json`.
+- Persona drawer (“Persona overview”) includes a **strip** (`apps/web/components/moodboard-persona-drawer-strip.tsx`): up to **4** thumbnails + hint text; strings under `chat.moodboard*` in `apps/web/locales/*.json`. Wired in **share chat** (`apps/web/app/chat/page.tsx`) and **admin chat** (`apps/web/app/admin/chat/page.tsx`); admin uses `hintVariant="admin"` and loads via `GET /api/persona-admin/{personaId}/moodboards/active`.
 
 ### Tile overlay copy & layout (centralized)
 - File: `apps/web/lib/moodboard-tile-ui.ts`

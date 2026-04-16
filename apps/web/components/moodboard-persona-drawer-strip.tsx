@@ -31,11 +31,13 @@ type Props = {
   moodboardError?: string | null;
   locale: Locale;
   t: (key: string, params?: Record<string, string | number>) => string;
+  /** Share chat shows moodboard above the thread; admin drawer points to persona admin. */
+  hintVariant?: "share" | "admin";
 };
 
 const STRIP_MAX = 4;
 
-export function MoodboardPersonaDrawerStrip({ moodboard, moodboardError, locale, t }: Props) {
+export function MoodboardPersonaDrawerStrip({ moodboard, moodboardError, locale, t, hintVariant = "share" }: Props) {
   const theme = useTheme();
 
   if (moodboardError && !moodboard) {
@@ -176,7 +178,7 @@ export function MoodboardPersonaDrawerStrip({ moodboard, moodboardError, locale,
 
       {hasTiles ? (
         <Typography variant="caption" sx={{ color: alpha(theme.palette.text.primary, 0.65) }}>
-          {t("chat.moodboardDrawerHint")}
+          {hintVariant === "admin" ? t("chat.moodboardDrawerHintAdmin") : t("chat.moodboardDrawerHint")}
         </Typography>
       ) : null}
     </Stack>

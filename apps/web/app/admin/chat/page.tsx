@@ -71,6 +71,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useProject } from "../../../components/projects/project-provider";
 import { useI18n } from "../../../components/i18n/i18n-provider";
 import { buildShareChatUrl } from "../../../lib/share-chat";
+import {
+  MoodboardPersonaDrawerStrip,
+  type MoodboardDrawerStripModel,
+} from "../../../components/moodboard-persona-drawer-strip";
 
 type PersonaProfileCard = {
   display_name?: string | null;
@@ -317,7 +321,7 @@ function AdminChatPageContent() {
   const theme = useTheme();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { user } = useAuth();
   const { setHeaderContent } = useAdminHeader();
   const { activeProjectId } = useProject();
@@ -358,6 +362,8 @@ function AdminChatPageContent() {
   const [sending, setSending] = useState(false);
   const [personaMenuAnchor, setPersonaMenuAnchor] = useState<null | HTMLElement>(null);
   const [personaDrawerOpen, setPersonaDrawerOpen] = useState(false);
+  const [drawerMoodboard, setDrawerMoodboard] = useState<MoodboardDrawerStripModel | null>(null);
+  const [drawerMoodboardError, setDrawerMoodboardError] = useState<string | null>(null);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [videoEnabled, setVideoEnabled] = useState(false);
   const [tavusSessionConfig, setTavusSessionConfig] = useState<TavusSessionConfig | null>(null);
@@ -488,6 +494,46 @@ function AdminChatPageContent() {
   const personaSocialUsage = personaProfile?.socialMediaUsage ?? [];
   const personaAttentionSpan = personaProfile?.attentionSpan;
   const personaBio = personaProfile?.bio;
+
+  useEffect(() => {
+    if (!activePersonaId) {
+      setDrawerMoodboard(null);
+      setDrawerMoodboardError(null);
+      return;
+    }
+    let cancelled = false;
+    const run = async () => {
+      setDrawerMoodboardError(null);
+      try {
+        const res = await fetch(
+          buildApiUrl(`/api/persona-admin/${encodeURIComponent(activePersonaId)}/moodboards/active`),
+          { cache: "no-store", credentials: "include" }
+        );
+        if (cancelled) return;
+        if (res.status === 404) {
+          setDrawerMoodboard(null);
+          return;
+        }
+        if (!res.ok) {
+          const err = (await res.json().catch(() => ({}))) as { error?: string };
+          setDrawerMoodboardError(err.error || `Moodboard (${res.status})`);
+          setDrawerMoodboard(null);
+          return;
+        }
+        const raw = (await res.json()) as MoodboardDrawerStripModel & { tiles?: MoodboardDrawerStripModel["tiles"] };
+        setDrawerMoodboard({ ...raw, tiles: raw.tiles ?? [] });
+      } catch (e) {
+        if (!cancelled) {
+          setDrawerMoodboardError(e instanceof Error ? e.message : "Failed to load moodboard");
+          setDrawerMoodboard(null);
+        }
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [activePersonaId]);
 
   const ensureChatPromptForPersona = useCallback((personaId: string) => {
     const url = buildApiUrl(`/api/personas/${encodeURIComponent(personaId)}/ensure-chat-prompt`);
@@ -3323,6 +3369,13 @@ function AdminChatPageContent() {
           </Stack>
           <Divider />
           <Stack spacing={2.5} sx={{ flex: 1, overflowY: "auto", pr: 0.5 }}>
+            <MoodboardPersonaDrawerStrip
+              moodboard={drawerMoodboard}
+              moodboardError={drawerMoodboardError}
+              locale={locale}
+              t={t}
+              hintVariant="admin"
+            />
             <Stack spacing={1}>
               <Typography variant="subtitle2" sx={{ textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: 1 }}>
                 Demographics
