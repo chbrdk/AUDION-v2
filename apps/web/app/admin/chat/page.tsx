@@ -2610,28 +2610,40 @@ function AdminChatPageContent() {
               }
             }}
             sx={{
-              padding: "1rem",
-              borderTop: "1px solid var(--color-neutral)",
-              backgroundColor: alpha(theme.palette.background.paper, 0.94),
-              backdropFilter: "saturate(180%) blur(12px)",
-              borderRadius: "12px 12px 0 0",
               position: "absolute",
               left: 0,
               right: 0,
               bottom: 0,
               zIndex: 20,
-              boxShadow: theme.palette.mode === "dark"
-                ? "0 -12px 32px rgba(0,0,0,0.45)"
-                : "0 -12px 32px rgba(0,0,0,0.08)",
+              padding: "1rem",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              pointerEvents: "none",
+              "& > *": { pointerEvents: "auto" },
             }}
           >
+            <Box
+              sx={{
+                width: "100%",
+                maxWidth: "720px",
+                mx: "auto",
+                padding: "0.75rem 1rem",
+                border: "1px solid var(--color-neutral)",
+                borderRadius: "var(--msqdx-radius-3xl, 24px)",
+                backgroundColor: alpha(theme.palette.background.paper, 0.94),
+                backdropFilter: "saturate(180%) blur(12px)",
+                boxShadow: theme.palette.mode === "dark"
+                  ? "0 8px 32px rgba(0,0,0,0.45)"
+                  : "0 8px 32px rgba(0,0,0,0.08)",
+              }}
+            >
             <Box
               sx={{
                 display: "flex",
                 gap: 1,
                 alignItems: "center",
-                maxWidth: "720px",
-                mx: "auto"
+                width: "100%",
               }}
             >
               <Tooltip title={t("adminChat.addJourneyPhases")}>
@@ -2770,6 +2782,7 @@ function AdminChatPageContent() {
                 </Typography>
               </Box>
             )}
+            </Box>
           </Box>
           )}
           </Box>
