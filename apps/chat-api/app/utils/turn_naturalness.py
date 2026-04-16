@@ -200,7 +200,7 @@ def build_turn_naturalness_spec(
         and len(last) >= settings.chat_extended_min_chars
     )
 
-    formality_hint, formality_line = _resolve_formality(last, prev_user_text, session)
+    _formality_hint, formality_line = _resolve_formality(last, prev_user_text, session)
 
     lines: list[str] = [
         "\n\n[Antwort-Stil — automatisch, bitte befolgen]",
@@ -209,8 +209,17 @@ def build_turn_naturalness_spec(
             is_compact=is_compact,
             length_only_extended=length_only_extended,
         ),
-        formality_line,
     ]
+    if (
+        not is_compact
+        and effective_mode == "standard"
+        and len(last) >= 4
+        and len(last) < 90
+    ):
+        lines.append(
+            "Der Nutzerturn ist kurz — antworte ungefähr in ähnlicher Kürze (kein unnötiger Essay)."
+        )
+    lines.append(formality_line)
 
     allow_imperfection = False
     imperfection_instruction: str | None = None

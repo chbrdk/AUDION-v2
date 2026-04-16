@@ -11,16 +11,29 @@ Zentrale Zusammenführung des System-Prompts: **`compose_persona_system_prompt`*
 | Feld | Bedeutung |
 |------|-----------|
 | `chat_extended_min_chars` | Mindestlänge der Nutzernachricht (Zeichen) für „extended“ (wie `infer_reply_mode`). Default: 200. |
-| `turn_naturalness_max_imperfections_per_session` | Max. Anzahl Imperfection-Hinweise pro **WebSocket**-Session. Default: 3. HTTP ohne Session: keine Imperfection-Zuteilung (nur Negativhinweis). |
+| `turn_naturalness_max_imperfections_per_session` | Max. Anzahl Imperfection-Hinweise pro Session (WS oder HTTP mit `session_id`). Default: 3. |
+| `turn_naturalness_http_session_ttl_seconds` | In-Memory-HTTP-Sessions ohne Zugriff verwerfen (Default 24h). |
+| `turn_naturalness_http_session_max_entries` | Obergrenze Einträge im HTTP-Session-Store (LRU). Default: 50_000. |
+
+## HTTP: `session_id` + Store
+
+[`turn_session_store.py`](../apps/chat-api/app/utils/turn_session_store.py): stabiler **`TurnSessionState`** pro logischer Konversation, wenn der Client **`session_id`** (und optional **`user_id`**) mitschickt — Schlüssel `"{user_id or anon}::{session_id}"`.
+
+- **Chat** [`chat.py`](../apps/chat-api/app/routers/chat.py): Feld `session_id` auf `ChatMessageRequest`.
+- **Voice** [`voice.py`](../apps/chat-api/app/routers/voice.py): Feld `session_id` auf `VoiceChatRequest`.
+
+Am Ende eines **erfolgreichen** SSE-Streams ruft [`chat_stream.py`](../apps/chat-api/app/routers/chat_stream.py) `finalize_turn_session_after_assistant` auf (Assistant-Turn-Zähler). Voice analog nach `complete`.
+
+Ohne `session_id`: zustandslose Heuristik (Du/Sie aus Text), kein Imperfection-Budget (nur allgemeiner Negativhinweis).
 
 ## Einstiegspunkte
 
-- **HTTP** [`chat.py`](../apps/chat-api/app/routers/chat.py): `build_chat_stream_context` setzt `reply_mode` und `turn_naturalness_addendum` aus `build_turn_naturalness_spec` (letzte/vorletzte User-Nachricht aus `messages`).
-- **SSE** [`chat_stream.py`](../apps/chat-api/app/routers/chat_stream.py): Tools → `PersonaAgent.stream_response` mit Addendum; Legacy → `compose_persona_system_prompt` wie Persona.
-- **WebSocket** [`ws/chat.py`](../apps/chat-api/app/ws/chat.py): `ConnectionManager.turn_sessions` hält `TurnSessionState`; optional Payload-Feld **`messages`**: Liste `{role, content}` für Kontext (letzte User-Nachricht für Retrieval/Spec, vorherige für Du/Sie). Ohne `messages` nur `content` wie bisher.
-- **Voice** [`voice.py`](../apps/chat-api/app/routers/voice.py): gleiche Spec wie HTTP, System-Prompt über `compose_persona_system_prompt`.
+- **HTTP** `build_chat_stream_context`: letzte/vorletzte User-Nachricht aus `messages`; optional `TurnSessionState` aus Store.
+- **SSE** `iter_chat_sse`: Tools + Legacy mit Addendum; Finalize bei erfolgreichem Abschluss.
+- **WebSocket** [`ws/chat.py`](../apps/chat-api/app/ws/chat.py): `ConnectionManager.turn_sessions`; optional Payload **`messages`**.
+- **Voice**: wie HTTP; `compose_persona_system_prompt` + Finalize.
 
 ## Tests
 
-- `apps/chat-api/tests/test_turn_naturalness.py`, `tests/test_reply_mode.py`
-- `tests/conftest.py` setzt minimale Umgebungsvariablen, damit `Settings` in Unit-Tests lädt.
+- `tests/test_turn_naturalness.py`, `test_reply_mode.py`, `test_turn_session_store.py`
+- `tests/conftest.py` setzt minimale Umgebungsvariablen für `Settings`.

@@ -23,7 +23,13 @@ from ..services.voice import ElevenLabsVoiceError, get_voice_client
 from ..deps import verify_request_token
 from ..services.whisper import WhisperTranscriptionService
 from ..utils.text import clean_response_text
-from ..utils.turn_naturalness import build_turn_naturalness_spec, compose_persona_system_prompt, extract_last_two_user_texts
+from ..utils.turn_naturalness import (
+    build_turn_naturalness_spec,
+    compose_persona_system_prompt,
+    extract_last_two_user_texts,
+    finalize_turn_session_after_assistant,
+)
+from ..utils.turn_session_store import get_or_create_turn_session
 from ..ws.chat import get_persona_agent, get_persona_prompt, get_retrieval_agent
 
 router = APIRouter(prefix="/voice", tags=["voice"])
@@ -139,6 +145,10 @@ class VoiceChatRequest(BaseModel):
     messages: List[VoiceChatMessage] | None = Field(default=None)  # New: messages array with conversation history
     voice_id: str | None = Field(default=None)
     user_id: str | None = Field(default=None, description="PLEXON user id for usage tracking")
+    session_id: str | None = Field(
+        default=None,
+        description="Stable id for turn naturalness (Du/Sie, imperfection budget) across voice requests",
+    )
     
     @model_validator(mode='after')
     def validate_message_or_messages(self):
@@ -224,10 +234,14 @@ async def voice_chat_stream(request: VoiceChatRequest, _: None = Depends(verify_
         )
 
     last_u, prev_u = extract_last_two_user_texts(anthropic_messages)
+    voice_turn_session = None
+    vsid = (request.session_id or "").strip()
+    if vsid:
+        voice_turn_session = get_or_create_turn_session(request.user_id, vsid)
     naturalness = build_turn_naturalness_spec(
         last_user_text=last_u or retrieval_query or "",
         prev_user_text=prev_u,
-        session=None,
+        session=voice_turn_session,
     )
 
     try:
@@ -387,6 +401,7 @@ async def voice_chat_stream(request: VoiceChatRequest, _: None = Depends(verify_
                 yield chunk_event
 
             yield f"data: {json.dumps({'type': 'complete'})}\n\n"
+            finalize_turn_session_after_assistant(voice_turn_session)
             if request.user_id:
                 report_usage(
                     user_id=request.user_id,

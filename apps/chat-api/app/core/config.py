@@ -59,6 +59,9 @@ class Settings(BaseSettings):
     chat_extended_min_chars: int = 200
     # Turn naturalness: max imperfection hints per WebSocket session (0 = disable).
     turn_naturalness_max_imperfections_per_session: int = 3
+    # HTTP/Voice: in-memory turn session store (session_id + optional user_id).
+    turn_naturalness_http_session_ttl_seconds: int = 86400  # drop idle sessions after 24h
+    turn_naturalness_http_session_max_entries: int = 50_000
 
 
 @lru_cache

@@ -16,7 +16,8 @@ from ..db import get_session
 from ..models import Persona, PersonaPrompt
 from ..ws.chat import get_persona_prompt
 from ..deps import verify_request_token
-from ..utils.turn_naturalness import build_turn_naturalness_spec, extract_last_two_user_texts
+from ..utils.turn_naturalness import TurnSessionState, build_turn_naturalness_spec, extract_last_two_user_texts
+from ..utils.turn_session_store import get_or_create_turn_session
 from .images import get_image_data_url
 from .chat_stream import ChatStreamContext, iter_chat_sse
 
@@ -100,6 +101,10 @@ class ChatMessageRequest(BaseModel):
     message: str | None = Field(default=None)  # Legacy: single message string
     messages: List[ChatMessage] | None = Field(default=None)  # New: messages array with conversation history
     user_id: str | None = Field(default=None, description="PLEXON user id (or internal id) for usage tracking")
+    session_id: str | None = Field(
+        default=None,
+        description="Stable id for turn naturalness (Du/Sie lock, imperfection budget) across HTTP requests",
+    )
 
     @model_validator(mode="after")
     def validate_message_or_messages(self):
@@ -257,10 +262,15 @@ def build_chat_stream_context(request: ChatMessageRequest) -> ChatStreamContext:
     else:
         last_u, prev_u = (retrieval_query or "").strip(), None
 
+    turn_session_state: TurnSessionState | None = None
+    sid = (request.session_id or "").strip()
+    if sid:
+        turn_session_state = get_or_create_turn_session(request.user_id, sid)
+
     naturalness = build_turn_naturalness_spec(
         last_user_text=last_u,
         prev_user_text=prev_u,
-        session=None,
+        session=turn_session_state,
     )
 
     return ChatStreamContext(
@@ -275,6 +285,7 @@ def build_chat_stream_context(request: ChatMessageRequest) -> ChatStreamContext:
         tools=tools,
         reply_mode=naturalness.reply_mode,
         turn_naturalness_addendum=naturalness.system_addendum_de,
+        turn_session_state=turn_session_state,
     )
 
 

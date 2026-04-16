@@ -12,3 +12,5 @@ def test_chat_model_and_max_completion_defaults() -> None:
     assert Settings.model_fields["chat_reasoning_effort_extended"].default == "low"
     assert Settings.model_fields["chat_extended_min_chars"].default == 200
     assert Settings.model_fields["turn_naturalness_max_imperfections_per_session"].default == 3
+    assert Settings.model_fields["turn_naturalness_http_session_ttl_seconds"].default == 86400
+    assert Settings.model_fields["turn_naturalness_http_session_max_entries"].default == 50_000

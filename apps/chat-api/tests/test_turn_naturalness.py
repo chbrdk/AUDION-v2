@@ -36,6 +36,16 @@ def test_extract_last_two_user_texts() -> None:
     assert prev == "first"
 
 
+def test_short_user_proportional_brevity() -> None:
+    spec = build_turn_naturalness_spec(
+        last_user_text="Was kostet das?",
+        prev_user_text=None,
+        session=None,
+    )
+    assert spec.reply_mode == "standard"
+    assert "ähnlicher Kürze" in spec.system_addendum_de or "kurz" in spec.system_addendum_de.lower()
+
+
 def test_compact_ack_standard_mode() -> None:
     spec = build_turn_naturalness_spec(last_user_text="danke", prev_user_text=None, session=None)
     assert spec.reply_mode == "standard"

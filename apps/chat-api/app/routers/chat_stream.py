@@ -7,7 +7,7 @@ import json
 import queue
 import threading
 from dataclasses import dataclass
-from typing import Any, AsyncIterator, Dict, List
+from typing import Any, AsyncIterator, Dict, List, Optional
 
 import structlog
 from msqdx_glass_proto import CompleteEvent, ContentDeltaEvent, ReasoningDeltaEvent, SourcesEvent, ThinkingEvent
@@ -15,7 +15,7 @@ from msqdx_glass_proto import CompleteEvent, ContentDeltaEvent, ReasoningDeltaEv
 from ..core.config import get_settings
 from ..services.usage_report import report_retrieval_query_usage, report_usage
 from ..utils.openai_chat_stream import iter_chat_completion_stream_parts
-from ..utils.turn_naturalness import compose_persona_system_prompt
+from ..utils.turn_naturalness import TurnSessionState, compose_persona_system_prompt, finalize_turn_session_after_assistant
 from ..utils.text import clean_response_text
 from ..ws.chat import get_persona_agent, get_retrieval_agent
 
@@ -38,6 +38,7 @@ class ChatStreamContext:
     tools: Any
     reply_mode: str = "standard"
     turn_naturalness_addendum: str = ""
+    turn_session_state: Optional[TurnSessionState] = None
 
 
 async def iter_chat_sse(ctx: ChatStreamContext) -> AsyncIterator[str]:
@@ -180,6 +181,8 @@ async def iter_chat_sse(ctx: ChatStreamContext) -> AsyncIterator[str]:
 
             stream_thread.join(timeout=2)
             logger.info("chat.stream.tools_complete", persona_id=ctx.persona_id)
+            if stream_error[0] is None:
+                finalize_turn_session_after_assistant(ctx.turn_session_state)
 
         else:
             logger.info("chat.stream.legacy_mode", persona_id=ctx.persona_id)
@@ -351,6 +354,7 @@ async def iter_chat_sse(ctx: ChatStreamContext) -> AsyncIterator[str]:
 
             yield f"data: {json.dumps({'type': 'complete'})}\n\n"
             logger.info("chat.stream.persona_agent.complete")
+            finalize_turn_session_after_assistant(ctx.turn_session_state)
             if ctx.user_id and not usage_reported[0]:
                 usage_reported[0] = True
                 report_usage(
