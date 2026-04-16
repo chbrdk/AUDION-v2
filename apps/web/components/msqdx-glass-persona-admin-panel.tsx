@@ -251,8 +251,12 @@ export const MsqdxGlassPersonaAdminPanel = ({
   const refreshList = useCallback(async () => {
     if (!activeProjectId) {
       setList({ items: [], total: 0, page: 1, page_size: 50 });
-      setSelectedId(null);
-      setDetail(null);
+      // Detail mode can be deep-linked without a selected project. Do not clear the route-driven selection,
+      // otherwise `selectedId` (route) ↔ `refreshList` (clears when no project) will ping-pong forever.
+      if (!(mode === "detail" && activePersonaId)) {
+        setSelectedId(null);
+        setDetail(null);
+      }
       return;
     }
     setListRefreshing(true);
