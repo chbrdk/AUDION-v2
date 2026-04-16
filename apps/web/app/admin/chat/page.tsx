@@ -1850,6 +1850,7 @@ function AdminChatPageContent() {
     if (typeof window === "undefined") return;
 
     const conversationIdParam = searchParams.get("conversationId");
+    const personaIdParam = searchParams.get("personaId");
     if (conversationIdParam) {
       const conversation = loadConversationFromLocalStorage(conversationIdParam);
       if (conversation) {
@@ -1875,6 +1876,9 @@ function AdminChatPageContent() {
           setSelectedPhases(conversation.metadata.selectedPhases);
         }
       }
+    } else if (personaIdParam) {
+      setActivePersonaId(personaIdParam);
+      ensureChatPromptForPersona(personaIdParam);
     }
   }, [searchParams, ensureChatPromptForPersona]);
 

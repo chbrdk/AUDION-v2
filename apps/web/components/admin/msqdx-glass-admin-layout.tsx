@@ -1,10 +1,10 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Box, IconButton, useTheme } from "@mui/material";
+import { Box, IconButton, Tooltip, useTheme } from "@mui/material";
 import { MsqdxIcon, MsqdxAdminNav, MsqdxAppLayout, MsqdxTypography } from "@msqdx/react";
 import type { AdminNavItem } from "@msqdx/react";
 import { useAdminHeader, useAdminPanel } from "./admin-layout-providers";
@@ -13,6 +13,7 @@ import { AdminTopControls } from "./admin-top-controls";
 import { BrandColorInitializer } from "../settings/brand-color-initializer";
 import { useI18n } from "../i18n/i18n-provider";
 import { BugReportModal } from "../bug-report/BugReportModal";
+import { useProject } from "../projects/project-provider";
 
 // Re-export for consumers that import from this file
 export { useAdminHeader, useAdminPanel } from "./admin-layout-providers";
@@ -44,10 +45,25 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
   const pathname = usePathname();
   const theme = useTheme();
   const { t } = useI18n();
+  const { activeProjectId } = useProject();
   // Get headerContent from context - safe for SSR with default value
   const { headerContent } = useAdminHeader();
   // Get panel state from context
   const { panelOpen, togglePanel, setPanelOpen } = useAdminPanel();
+
+  const personaIdFromPath = useMemo(() => {
+    if (!pathname) return null;
+    const m = pathname.match(/^\/admin\/personas\/([^/]+)$/);
+    return m?.[1] ?? null;
+  }, [pathname]);
+
+  const directChatHref = useMemo(() => {
+    if (!personaIdFromPath) return null;
+    const params = new URLSearchParams();
+    params.set("personaId", personaIdFromPath);
+    if (activeProjectId) params.set("projectId", activeProjectId);
+    return `/admin/chat?${params.toString()}`;
+  }, [personaIdFromPath, activeProjectId]);
 
   const handleDrawerToggle = () => {
     setDrawerOpen((prev) => !prev);
@@ -241,19 +257,37 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
               {headerContent}
             </Box>
           ) : getPageTitle() ? (
-            <MsqdxTypography
-              variant="h4"
-              sx={{
-                fontSize: { xs: "1.5rem", md: "36px" },
-                textTransform: "lowercase",
-                fontWeight: 800,
-                letterSpacing: "-2px",
-                color: "text.primary",
-                display: { xs: "none", md: "block" }
-              }}
-            >
-              {getPageTitle()}
-            </MsqdxTypography>
+            <Box sx={{ display: { xs: "none", md: "flex" }, alignItems: "center", gap: 1 }}>
+              <MsqdxTypography
+                variant="h4"
+                sx={{
+                  fontSize: { xs: "1.5rem", md: "36px" },
+                  textTransform: "lowercase",
+                  fontWeight: 800,
+                  letterSpacing: "-2px",
+                  color: "text.primary",
+                  display: { xs: "none", md: "block" },
+                }}
+              >
+                {getPageTitle()}
+              </MsqdxTypography>
+              {directChatHref ? (
+                <Tooltip title={t("nav.chat")} placement="bottom">
+                  <IconButton
+                    component={Link}
+                    href={directChatHref}
+                    size="small"
+                    sx={{
+                      border: "1px solid var(--color-neutral)",
+                      backgroundColor: theme.palette.background.paper,
+                    }}
+                    aria-label={t("nav.chat")}
+                  >
+                    <MsqdxIcon name="forum" customSize={18} />
+                  </IconButton>
+                </Tooltip>
+              ) : null}
+            </Box>
           ) : null}
         </Box>
         {/* Hamburger button - mobile only */}
