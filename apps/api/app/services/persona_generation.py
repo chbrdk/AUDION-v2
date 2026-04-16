@@ -2,15 +2,15 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List
 from uuid import UUID
 
 import numpy as np
 import structlog
-from anthropic import Anthropic
-from openai import OpenAI
 from sqlalchemy import select, func
-from msqdx_glass_proto import PersonaProfile, PersonaPrompt
+
+if TYPE_CHECKING:
+    from msqdx_glass_proto import PersonaProfile, PersonaPrompt  # pragma: no cover
 
 from ..core.config import get_settings
 from ..db import get_session
@@ -74,10 +74,75 @@ def _compose_identity_context_block(*, persona: Persona, target_group_id: UUID |
     return "\n\n" + "\n\n".join(parts) + "\n"
 
 
+def parse_persona_generation_json(response_text: str) -> dict:
+    """Parse LLM output into a JSON object with lightweight repairs.
+
+    We occasionally see invalid JSON due to unescaped quotes/newlines in string values,
+    even when the model is instructed to output JSON. This function makes best-effort
+    repairs and surfaces a clear error when it can't recover.
+    """
+    import json
+    import re
+
+    text = (response_text or "").strip()
+    if not text:
+        raise ValueError("Empty response text from AI Provider")
+
+    # Remove markdown code blocks if present (```json ... ```).
+    if text.startswith("```"):
+        text = re.sub(r"^```(?:json)?\s*\n", "", text)
+        text = re.sub(r"\n```\s*$", "", text)
+        text = text.strip()
+
+    def _attempt(value: str) -> dict | None:
+        try:
+            obj = json.loads(value)
+        except json.JSONDecodeError:
+            return None
+        return obj if isinstance(obj, dict) else None
+
+    # 1) direct parse
+    parsed = _attempt(text)
+    if parsed is not None:
+        return parsed
+
+    # 2) normalize smart quotes / weird whitespace + retry
+    repaired = (
+        text.replace("\u201c", '"')
+        .replace("\u201d", '"')
+        .replace("\u201e", '"')
+        .replace("\u2033", '"')
+        .replace("\u2018", "'")
+        .replace("\u2019", "'")
+        .replace("\u00a0", " ")
+    )
+    parsed = _attempt(repaired)
+    if parsed is not None:
+        return parsed
+
+    # 3) extract the first {...} and retry
+    match = re.search(r"\{.*\}", repaired, re.DOTALL)
+    if match:
+        parsed = _attempt(match.group())
+        if parsed is not None:
+            return parsed
+        # raw_decode can sometimes handle trailing garbage after a valid object
+        try:
+            decoder = json.JSONDecoder()
+            obj, _ = decoder.raw_decode(match.group())
+            if isinstance(obj, dict):
+                return obj
+        except Exception:
+            pass
+
+    # 4) last resort: surface context for debugging
+    raise ValueError("Failed to parse JSON response from AI Provider")
+
+
 @dataclass
 class PersonaGenerationResult:
-    profile: PersonaProfile
-    prompt: PersonaPrompt
+    profile: Any
+    prompt: Any
     sources: List[Dict]
 
 
@@ -97,17 +162,26 @@ class PersonaGenerationService:
         if self.provider == "openai":
             if not settings.openai_api_key:
                 logger.warning("persona.generate.missing_openai_key")
-            # Only init OpenAI if we have a key (or let it fail later with a clear error)
-            # But the client might be needed even if key is late-bound? OpenAI client usually requires api_key.
             if settings.openai_api_key:
-                self._openai = OpenAI(api_key=settings.openai_api_key)
+                try:
+                    from openai import OpenAI  # type: ignore
+
+                    self._openai = OpenAI(api_key=settings.openai_api_key)
+                except Exception as exc:
+                    logger.warning("persona.generate.openai_import_failed", error=str(exc))
+                    self._openai = None
         else:
             # Default to Anthropic
             if settings.claude_api_key:
-                self._anthropic = Anthropic(api_key=settings.claude_api_key)
+                try:
+                    from anthropic import Anthropic  # type: ignore
+
+                    self._anthropic = Anthropic(api_key=settings.claude_api_key)
+                except Exception as exc:
+                    logger.warning("persona.generate.anthropic_import_failed", error=str(exc))
+                    self._anthropic = None
             elif not settings.openai_api_key:
-                # If neither key is present, we can't do much. 
-                # But we shouldn't crash yet, maybe the user isn't generating personas.
+                # If neither key is present, we can't do much.
                 pass
 
     def _sample_chunks_weighted(
@@ -363,7 +437,15 @@ class PersonaGenerationService:
             try:
                 chat_completion = self._openai.chat.completions.create(
                     messages=[
-                        {"role": "system", "content": "You are a helpful persona generation assistant. You always output valid JSON."},
+                        {
+                            "role": "system",
+                            "content": (
+                                "You are a helpful persona generation assistant.\n"
+                                "Output MUST be a single valid JSON object.\n"
+                                "Do NOT wrap JSON in markdown fences. Do NOT add any commentary.\n"
+                                "Avoid using unescaped double-quotes inside string values (e.g. don’t quote phrases like “...”)."
+                            ),
+                        },
                         {"role": "user", "content": identity_prompt}
                     ],
                     model=settings.ai_openai_model or "gpt-5-mini",
@@ -388,54 +470,71 @@ class PersonaGenerationService:
             )
             response_text = identity.content[0].text if identity.content else ""
 
-        import json
-        import re
-
         # Log the response for debugging
         if not response_text:
             logger.error("persona.generate.empty_response", persona_id=str(persona.id))
             raise ValueError("Empty response from AI Provider")
-        
-        logger.info("persona.generate.response", persona_id=str(persona.id), provider=self.provider, response_length=len(response_text), response_preview=response_text[:200])
-        
-        if not response_text or not response_text.strip():
-            logger.error("persona.generate.empty_response_text", persona_id=str(persona.id))
-            raise ValueError("Empty response text from AI Provider")
-        
-        # Remove markdown code blocks if present (```json ... ```)
-        cleaned_text = response_text.strip()
-        if cleaned_text.startswith("```"):
-            # Remove opening ```json or ```
-            cleaned_text = re.sub(r'^```(?:json)?\s*\n', '', cleaned_text)
-            # Remove closing ```
-            cleaned_text = re.sub(r'\n```\s*$', '', cleaned_text)
-            cleaned_text = cleaned_text.strip()
-        
+
+        logger.info(
+            "persona.generate.response",
+            persona_id=str(persona.id),
+            provider=self.provider,
+            response_length=len(response_text),
+            response_preview=response_text[:200],
+        )
+
         try:
-            payload = json.loads(cleaned_text)
-        except json.JSONDecodeError as exc:
-            # Fallback: try to extract the first JSON object from the text
-            import re as _re
-            fallback_payload = None
-            match = _re.search(r"\{.*\}", cleaned_text, _re.DOTALL)
-            if match:
+            payload = parse_persona_generation_json(response_text)
+        except ValueError as exc:
+            # If OpenAI is available, do a second "JSON repair" pass to salvage bad outputs.
+            if self._openai:
                 try:
-                    # Use raw_decode to ignore trailing data after a valid object
-                    decoder = json.JSONDecoder()
-                    obj, _ = decoder.raw_decode(match.group())
-                    fallback_payload = obj
-                except Exception:
-                    fallback_payload = None
-            if fallback_payload is None:
+                    logger.warning(
+                        "persona.generate.json_repair_attempt",
+                        persona_id=str(persona.id),
+                        provider=self.provider,
+                        error=str(exc),
+                    )
+                    repair = self._openai.chat.completions.create(
+                        messages=[
+                            {
+                                "role": "system",
+                                "content": (
+                                    "You fix invalid JSON. Return ONLY a single valid JSON object. "
+                                    "Do not add any prose. Ensure all strings are properly escaped."
+                                ),
+                            },
+                            {
+                                "role": "user",
+                                "content": (
+                                    "The following content is supposed to be a JSON object but is invalid.\n\n"
+                                    f"{response_text}\n\n"
+                                    "Return the corrected JSON object only."
+                                ),
+                            },
+                        ],
+                        model=settings.ai_openai_model or "gpt-5-mini",
+                        temperature=0.0,
+                        response_format={"type": "json_object"},
+                        max_tokens=2200,
+                    )
+                    repaired_text = repair.choices[0].message.content or ""
+                    payload = parse_persona_generation_json(repaired_text)
+                except Exception as repair_exc:
+                    logger.error(
+                        "persona.generate.json_repair_failed",
+                        persona_id=str(persona.id),
+                        error=str(repair_exc),
+                    )
+                    raise ValueError(f"Failed to parse JSON response from AI Provider: {str(exc)}") from exc
+            else:
                 logger.error(
                     "persona.generate.json_parse_error",
                     persona_id=str(persona.id),
-                    response_text=response_text[:500],
-                    cleaned_text=cleaned_text[:500],
+                    response_preview=response_text[:500],
                     error=str(exc),
                 )
                 raise ValueError(f"Failed to parse JSON response from AI Provider: {str(exc)}") from exc
-            payload = fallback_payload
         
         # Helper function to safely convert confidence to float
         def parse_confidence(value):
@@ -624,6 +723,9 @@ class PersonaGenerationService:
                 safe_traits[k] = _to_score(v)
         profile_dict["traits"] = safe_traits
         
+        # Import proto types lazily so module import works in lightweight test envs.
+        from msqdx_glass_proto import PersonaProfile, PersonaPrompt  # type: ignore
+
         profile = PersonaProfile(**profile_dict)
 
         prompt_template = f"""
