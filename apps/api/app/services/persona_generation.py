@@ -14,6 +14,7 @@ if TYPE_CHECKING:
 
 from ..core.config import get_settings
 from ..db import get_session
+from .persona_headline import truncate_headline as _truncate_headline_for_db
 from ..models import (
     Document,
     DocumentChunk,
@@ -27,6 +28,95 @@ from ..models import (
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
+
+# LLM instruction: must match PersonaProfile (proto) + extras the UI expects in profile JSON.
+PERSONA_LLM_JSON_SCHEMA_INSTRUCTION = (
+    "Return ONE JSON object with these keys: "
+    "name (string, short display name), full_name (string|null), age (integer|null), "
+    "gender (string|null, e.g. female/male/non-binary/prefer not to say), "
+    "location (string|null, city/region/country one line), "
+    "media_affinity (integer 0-100|null, digital/news/media consumption intensity), "
+    "interests (array of 4-10 concise interest tags), "
+    "values (array of 4-10 concise value statements for this persona), "
+    "headline (string), bio (string), job_title (string|null, contextual only), "
+    "pain_points (array of strings or {label, evidence_count} objects), "
+    "goals (array of strings or {label, priority} objects), "
+    "traits (object: trait name -> number 0-1 or qualitative level), "
+    "communication_style: { vocabulary (string array), sentence_structure (string), skepticism_level (number 1-5) }, "
+    "confidence (number 0-1). "
+    "Optionally: social_media_usage (string array), attention_span (string), color_palette (string array). "
+    "Do not omit interests or values; infer plausible items from the research when not explicit. "
+    "Use the same language as the excerpts when possible."
+)
+
+
+def _optional_str(val: Any) -> str | None:
+    if val is None:
+        return None
+    s = str(val).strip()
+    return s if s else None
+
+
+def _coerce_str_list(val: Any) -> list[str]:
+    if val is None:
+        return []
+    if isinstance(val, list):
+        out: list[str] = []
+        for x in val:
+            if x is None:
+                continue
+            if isinstance(x, str) and x.strip():
+                out.append(x.strip())
+            elif isinstance(x, dict):
+                label = x.get("label") or x.get("name") or x.get("title")
+                if label:
+                    out.append(str(label).strip())
+            else:
+                s = str(x).strip()
+                if s:
+                    out.append(s)
+        return out
+    if isinstance(val, str) and val.strip():
+        return [val.strip()]
+    return []
+
+
+def _parse_age_optional(val: Any) -> int | None:
+    if val is None:
+        return None
+    if isinstance(val, bool):
+        return None
+    if isinstance(val, int):
+        return val if 0 < val < 130 else None
+    if isinstance(val, float):
+        i = int(val)
+        return i if 0 < i < 130 else None
+    if isinstance(val, str):
+        import re
+
+        m = re.search(r"\b(\d{1,3})\b", val)
+        if m:
+            i = int(m.group(1))
+            if 0 < i < 130:
+                return i
+    return None
+
+
+def _parse_media_affinity_optional(val: Any) -> int | None:
+    if val is None:
+        return None
+    if isinstance(val, bool):
+        return None
+    if isinstance(val, (int, float)):
+        x = int(round(float(val)))
+        return max(0, min(100, x))
+    if isinstance(val, str):
+        import re
+
+        m = re.search(r"\d+", val)
+        if m:
+            return _parse_media_affinity_optional(int(m.group(0)))
+    return None
 
 
 def _compose_identity_context_block(*, persona: Persona, target_group_id: UUID | None) -> str:
@@ -240,7 +330,9 @@ class PersonaGenerationService:
                     "role": "system",
                     "content": (
                         "You fix invalid JSON. Return ONLY a single valid JSON object. "
-                        "Do not add any prose. Ensure all strings are properly escaped."
+                        "Do not add any prose. Ensure all strings are properly escaped. "
+                        "Preserve and include interests, values, demographics (full_name, gender, location, age, media_affinity), "
+                        "traits, pain_points, goals, communication_style, confidence when inferring missing parts."
                     ),
                 },
                 {
@@ -248,7 +340,8 @@ class PersonaGenerationService:
                     "content": (
                         "The following content is supposed to be a JSON object but is invalid.\n\n"
                         f"{broken_text}\n\n"
-                        "Return the corrected JSON object only."
+                        "Return the corrected JSON object only. Schema: "
+                        + PERSONA_LLM_JSON_SCHEMA_INSTRUCTION
                     ),
                 },
             ],
@@ -271,16 +364,16 @@ class PersonaGenerationService:
             temperature=0.0,
             system=(
                 "You fix invalid or truncated JSON. Output a single valid JSON object only. "
-                "No markdown, no code fences, no commentary. Properly escape double quotes inside strings."
+                "No markdown, no code fences, no commentary. Properly escape double quotes inside strings. "
+                "Include interests, values, full_name, gender, location, age, media_affinity when repairing."
             ),
             messages=[
                 {
                     "role": "user",
                     "content": (
-                        "Repair the following so it is one complete valid JSON object matching the intended "
-                        "persona schema (name, age, job_title, headline, bio, pain_points, goals, traits, "
-                        "communication_style, confidence). Fill in reasonable short values if truncation "
-                        "removed closing parts.\n\n"
+                        "Repair the following so it is one complete valid JSON object. Schema: "
+                        + PERSONA_LLM_JSON_SCHEMA_INSTRUCTION
+                        + " Fill in reasonable interests, values, and demographics if truncation removed parts.\n\n"
                         f"{broken_text[:120_000]}"
                     ),
                 }
@@ -455,32 +548,32 @@ class PersonaGenerationService:
         else:
             excerpts = "\n".join(f"- {chunk.content}" for chunk in chunks)
         
-        # Define prompt variations
+        # Define prompt variations (schema shared with PERSONA_LLM_JSON_SCHEMA_INSTRUCTION)
         prompt_templates = {
             "vivid": (
-                "Craft a vivid, detailed persona profile with demographics, goals, pain points, comms style. "
-                "Make it memorable and distinctive. Return JSON with keys name, age, job_title, headline, bio, "
-                "pain_points, goals, traits (dict), communication_style (vocabulary[], sentence_structure, skepticism), "
-                "confidence. Base everything strictly on:\n"
+                "Craft a vivid, detailed persona profile with demographics, interests, values, goals, pain points, "
+                "and communication style. Make it memorable and distinctive. "
+                + PERSONA_LLM_JSON_SCHEMA_INSTRUCTION
+                + " Base everything strictly on:\n"
             ),
             "analytical": (
                 "Analyze the provided research data and extract a systematic persona profile with demographics, "
-                "goals, pain points, and communication patterns. Return JSON with keys name, age, job_title, "
-                "headline, bio, pain_points, goals, traits (dict), communication_style (vocabulary[], sentence_structure, skepticism), "
-                "confidence. Base everything strictly on:\n"
+                "interests, values, goals, pain points, and communication patterns. "
+                + PERSONA_LLM_JSON_SCHEMA_INSTRUCTION
+                + " Base everything strictly on:\n"
             ),
             "personality-focused": (
-                "Focus on personality traits and communication style. Create a persona profile emphasizing unique "
-                "characteristics, vocabulary, and behavior patterns. Return JSON with keys name, age, job_title, "
-                "headline, bio, pain_points, goals, traits (dict), communication_style (vocabulary[], sentence_structure, skepticism), "
-                "confidence. Base everything strictly on:\n"
+                "Focus on personality traits, interests, values, and communication style. Create a persona profile "
+                "emphasizing unique characteristics, vocabulary, and behavior patterns. "
+                + PERSONA_LLM_JSON_SCHEMA_INSTRUCTION
+                + " Base everything strictly on:\n"
             ),
             "goal-oriented": (
-                "Emphasize goals, pain points, and motivations. Create a persona profile that highlights what drives "
-                "this person and what they struggle with. Return JSON with keys name, age, job_title, headline, bio, "
-                "pain_points, goals, traits (dict), communication_style (vocabulary[], sentence_structure, skepticism), "
-                "confidence. Base everything strictly on:\n"
-            )
+                "Emphasize goals, pain points, values, and motivations. Create a persona profile that highlights what "
+                "drives this person and what they struggle with. "
+                + PERSONA_LLM_JSON_SCHEMA_INSTRUCTION
+                + " Base everything strictly on:\n"
+            ),
         }
 
         # Select prompt style
@@ -546,6 +639,7 @@ class PersonaGenerationService:
                                 "You are a helpful persona generation assistant.\n"
                                 "Output MUST be a single valid JSON object.\n"
                                 "Do NOT wrap JSON in markdown fences. Do NOT add any commentary.\n"
+                                "Include interests, values, full_name, gender, location, age, media_affinity as in the user schema.\n"
                                 "Avoid using unescaped double-quotes inside string values (e.g. don’t quote phrases like “...”)."
                             ),
                         },
@@ -572,7 +666,10 @@ class PersonaGenerationService:
                 temperature=temperature,
                 system=(
                     "You output a single JSON object only. Do not wrap it in markdown or code fences. "
-                    "Do not add commentary before or after the JSON. Escape any double quotes inside string values."
+                    "Do not add commentary before or after the JSON. Escape any double quotes inside string values. "
+                    "The object must include interests (array), values (array), demographics "
+                    "(full_name, gender, location, age, media_affinity 0-100) plus headline, bio, traits, pain_points, goals, "
+                    "communication_style, confidence."
                 ),
                 messages=[{"role": "user", "content": identity_prompt}],
             )
@@ -770,8 +867,8 @@ class PersonaGenerationService:
                 if nums:
                     try:
                         return float(nums[0])
-                    except Exception:
-                        logger.debug("persona.scoring.trait_parse_failed", value=v, error=str(e))
+                    except Exception as exc:
+                        logger.debug("persona.scoring.trait_parse_failed", value=v, error=str(exc))
                 # Fallback qualitative defaults
                 if any(word in v for word in ["low", "minimal", "cautious"]):
                     return 0.3
@@ -790,13 +887,36 @@ class PersonaGenerationService:
             for k, v in raw_traits.items():
                 normalized_traits[k] = _to_score(v)
         # Merge variation_params into traits (already handled below), but keep normalization
-        
+
+        full_name = _optional_str(payload.get("full_name") or payload.get("fullName"))
+        age_val = _parse_age_optional(payload.get("age"))
+        gender_val = _optional_str(payload.get("gender"))
+        location_val = _optional_str(payload.get("location"))
+        media_aff = _parse_media_affinity_optional(
+            payload.get("media_affinity") if payload.get("media_affinity") is not None else payload.get("mediaAffinity")
+        )
+        interests = _coerce_str_list(payload.get("interests"))
+        values_list = _coerce_str_list(payload.get("values"))
+        color_palette = _coerce_str_list(payload.get("color_palette") or payload.get("colorPalette"))
+        social_media_usage = _coerce_str_list(payload.get("social_media_usage") or payload.get("socialMediaUsage"))
+        attention_span = _optional_str(payload.get("attention_span") or payload.get("attentionSpan"))
+
         profile_dict = {
             "id": str(persona.id),
             "name": payload.get("name", persona.name),
             "segment": persona.segment,
             "headline": payload.get("headline", persona.headline),
             "bio": payload.get("bio", ""),
+            "full_name": full_name,
+            "age": age_val,
+            "gender": gender_val,
+            "location": location_val,
+            "media_affinity": media_aff,
+            "interests": interests,
+            "values": values_list,
+            "color_palette": color_palette,
+            "attention_span": attention_span,
+            "social_media_usage": social_media_usage,
             "traits": normalized_traits,
             "pain_points": pain_points,
             "goals": goals,
@@ -862,6 +982,8 @@ class PersonaGenerationService:
             if persona_model:
                 persona_model.profile = profile.model_dump()
                 persona_model.confidence = profile.confidence
+                persona_model.name = profile.name
+                persona_model.headline = _truncate_headline_for_db(profile.headline) or profile.headline
                 # Set target_group_id if provided
                 if target_group_id:
                     persona_model.target_group_id = target_group_id

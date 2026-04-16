@@ -38,22 +38,11 @@ from ..schemas import (
     PersonaPatchRequest,
     PersonaResponse,
 )
+from .persona_headline import truncate_headline as _truncate_headline
 from .storage import StorageService
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
-
-# Backward compatibility: DB may still have headline VARCHAR(256) until migration 20260309 is applied.
-# Truncate so PATCH/create succeed; after migration, increase or set to 0 to disable.
-HEADLINE_MAX_LENGTH = 256
-
-
-def _truncate_headline(value: str | None) -> str | None:
-    if value is None:
-        return None
-    if HEADLINE_MAX_LENGTH <= 0 or len(value) <= HEADLINE_MAX_LENGTH:
-        return value
-    return value[: HEADLINE_MAX_LENGTH - 3] + "..."
 
 
 class PersonaInsightsBuilder(Protocol):
