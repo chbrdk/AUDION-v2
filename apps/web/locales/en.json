@@ -238,7 +238,8 @@
     "values": "Values",
     "loading": "Loading…",
     "unknownError": "Unknown error",
-    "sendFailed": "Failed to send"
+    "sendFailed": "Failed to send",
+    "reasoningSection": "Brief reasoning"
   },
   "landing": {
     "headline": "Audion",

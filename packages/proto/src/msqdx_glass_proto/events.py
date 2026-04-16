@@ -28,6 +28,14 @@ class ContentDeltaEvent(BaseModel):
     persona_id: str
 
 
+class ReasoningDeltaEvent(BaseModel):
+    """Streamed model reasoning / thinking tokens (when supported by the model)."""
+
+    type: str = Field("reasoning_delta", frozen=True)
+    delta: str
+    persona_id: str
+
+
 class SourceEntry(BaseModel):
     chunk_id: str
     document_id: str
@@ -58,6 +66,7 @@ ChatEvent = (
     ThinkingEvent
     | PersonasDiscoveredEvent
     | ContentDeltaEvent
+    | ReasoningDeltaEvent
     | SourcesEvent
     | CompleteEvent
     | PersonaSwitchEvent

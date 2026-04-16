@@ -22,9 +22,10 @@ def _minimal_ctx() -> ChatStreamContext:
     )
 
 
-def test_collect_merges_deltas_and_sources():
+def test_collect_merges_deltas_reasoning_and_sources():
     async def fake_iter(_ctx: ChatStreamContext):
         yield 'data: {"type": "delta", "delta": "Hello"}\n\n'
+        yield 'data: {"type": "reasoning_delta", "delta": "think"}\n\n'
         yield 'data: {"type": "delta", "delta": " world"}\n\n'
         yield (
             'data: {"type": "sources", "sources": ['
@@ -38,6 +39,7 @@ def test_collect_merges_deltas_and_sources():
 
     out = asyncio.run(run())
     assert out.response == "Hello world"
+    assert out.reasoning == "think"
     assert out.persona_id == _minimal_ctx().persona_id
     assert len(out.sources) == 1
     assert out.sources[0].chunk_id == "c1"

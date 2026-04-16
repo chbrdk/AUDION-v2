@@ -4,9 +4,11 @@ import json
 from typing import Callable, List, Dict, Any, Optional
 
 from openai import OpenAI
-from msqdx_glass_proto import CompleteEvent, ContentDeltaEvent, SourcesEvent, ThinkingEvent
+from msqdx_glass_proto import CompleteEvent, ContentDeltaEvent, ReasoningDeltaEvent, SourcesEvent, ThinkingEvent
 
 from ..core.config import get_settings
+from ..utils.openai_chat_stream import iter_chat_completion_stream_parts, reasoning_text_from_openai_delta
+from ..utils.reply_mode import EXTENDED_SYSTEM_ADDENDUM, ReplyMode, build_persona_user_content
 
 settings = get_settings()
 
@@ -31,6 +33,7 @@ class PersonaAgent:
         persona_segment: Optional[str] = None,
         use_tools: bool = False,
         usage_user_id: Optional[str] = None,
+        reply_mode: str = "standard",
     ) -> None:
         """
         Stream a persona response using OpenAI.
@@ -63,6 +66,8 @@ class PersonaAgent:
                 send_event=send_event,
                 tools=tools,
                 persona_segment=persona_segment,
+                usage_user_id=usage_user_id,
+                reply_mode=reply_mode,
             )
         else:
             logger.info("persona.agent.streaming_start", persona_id=persona_id, question_length=len(question), sources_count=len(sources))
@@ -78,40 +83,44 @@ class PersonaAgent:
                         for i, source in enumerate(sources[:5])
                     ])
                 
-                user_content = (
-                    "Answer succinctly in natural, conversational language. "
-                    "Avoid repeating words or phrases, do not include document IDs, chunk IDs, brackets, or the word 'doc'. "
-                    "Keep the reply under 90 words and at most three short paragraphs unless the user explicitly asks for more detail. "
-                    "Do not mention confidence scores, percentages, or meta commentary. "
-                    "Avoid markdown formatting (no bold, bullets) unless the user requests it. "
-                    "Share only the most relevant details, and go deeper only when it truly adds value. "
-                    f"\n\nUser message: {question}"
+                mode: ReplyMode = "extended" if reply_mode == "extended" else "standard"
+                user_content = build_persona_user_content(
+                    question=question or "",
+                    sources_text=sources_text,
+                    mode=mode,
                 )
-                
-                if sources_text:
-                    user_content += f"\n\nRelevant context:\n{sources_text}"
-                
-                stream = self._openai.chat.completions.create(
+                effort = (
+                    settings.chat_reasoning_effort_extended
+                    if mode == "extended"
+                    else settings.chat_reasoning_effort_standard
+                )
+
+                for content, reasoning in iter_chat_completion_stream_parts(
+                    self._openai,
+                    reasoning_effort=effort,
                     model=settings.chat_model,
                     messages=[
                         {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_content}
+                        {"role": "user", "content": user_content},
                     ],
                     max_completion_tokens=settings.chat_max_completion_tokens,
                     stream=True,
-                )
-                
-                for chunk in stream:
-                    if chunk.choices and len(chunk.choices) > 0:
-                        delta = chunk.choices[0].delta
-                        if delta and delta.content:
-                            aggregated += delta.content
-                            send_event(
-                                ContentDeltaEvent(
-                                    persona_id=persona_id,
-                                    delta=delta.content,
-                                )
+                ):
+                    if reasoning:
+                        send_event(
+                            ReasoningDeltaEvent(
+                                persona_id=persona_id,
+                                delta=reasoning,
                             )
+                        )
+                    if content:
+                        aggregated += content
+                        send_event(
+                            ContentDeltaEvent(
+                                persona_id=persona_id,
+                                delta=content,
+                            )
+                        )
             except Exception as e:
                 logger.error("persona.agent.stream_failed", error=str(e), exc_info=True)
                 send_event(ThinkingEvent(status=f"Error generating response: {str(e)}"))
@@ -159,6 +168,8 @@ class PersonaAgent:
         send_event: Callable = None,
         tools: List[Dict[str, Any]] = None,
         persona_segment: Optional[str] = None,
+        usage_user_id: Optional[str] = None,
+        reply_mode: str = "standard",
     ) -> None:
         """Stream response with tool support."""
         import structlog
@@ -171,7 +182,16 @@ class PersonaAgent:
             self._tool_executor = ToolExecutor()
         
         send_event(ThinkingEvent(status="Thinking…"))
-        
+
+        mode: ReplyMode = "extended" if reply_mode == "extended" else "standard"
+        effort = (
+            settings.chat_reasoning_effort_extended
+            if mode == "extended"
+            else settings.chat_reasoning_effort_standard
+        )
+        if mode == "extended":
+            system_prompt = system_prompt + EXTENDED_SYSTEM_ADDENDUM
+
         try:
             # Convert Anthropic tools to OpenAI functions
             functions = self._convert_anthropic_tools_to_openai_functions(tools)
@@ -239,21 +259,38 @@ class PersonaAgent:
                                    content_preview=str(content)[:100] if content else "")
                 
                 logger.info("persona.agent.openai_call_starting", model=settings.chat_model, has_tools=bool(functions), messages_count=len(messages))
+                base_kw: Dict[str, Any] = {
+                    "model": settings.chat_model,
+                    "messages": messages,
+                    "tools": functions if functions else None,
+                    "max_completion_tokens": settings.chat_max_completion_tokens,
+                    "stream": True,
+                }
                 try:
-                    stream = self._openai.chat.completions.create(
-                        model=settings.chat_model,
-                        messages=messages,
-                        tools=functions if functions else None,
-                        max_completion_tokens=settings.chat_max_completion_tokens,
-                        stream=True,
-                    )
+                    if effort and str(effort).lower() != "none":
+                        stream = self._openai.chat.completions.create(
+                            **base_kw,
+                            reasoning_effort=effort,
+                        )
+                    else:
+                        stream = self._openai.chat.completions.create(**base_kw)
                     logger.info("persona.agent.openai_stream_created")
+                except (TypeError, ValueError):
+                    stream = self._openai.chat.completions.create(**base_kw)
+                    logger.info("persona.agent.openai_stream_created_no_reasoning_param")
                 except Exception as e:
-                    logger.error("persona.agent.openai_call_failed", error=str(e), error_type=type(e).__name__, exc_info=True)
-                    raise
-                
+                    if effort and str(effort).lower() != "none":
+                        logger.warning(
+                            "persona.agent.openai_reasoning_retry",
+                            error=str(e),
+                            error_type=type(e).__name__,
+                        )
+                        stream = self._openai.chat.completions.create(**base_kw)
+                        logger.info("persona.agent.openai_stream_created_retry_without_reasoning")
+                    else:
+                        logger.error("persona.agent.openai_call_failed", error=str(e), error_type=type(e).__name__, exc_info=True)
+                        raise
 
-                
                 for chunk in stream:
                     if not chunk.choices or len(chunk.choices) == 0:
                         continue
@@ -262,6 +299,15 @@ class PersonaAgent:
                     delta = choice.delta
                     finish_reason = choice.finish_reason
                     
+                    if delta:
+                        rtxt = reasoning_text_from_openai_delta(delta)
+                        if rtxt:
+                            send_event(
+                                ReasoningDeltaEvent(
+                                    persona_id=persona_id,
+                                    delta=rtxt,
+                                )
+                            )
                     if delta and delta.content:
                         aggregated_text += delta.content
                         send_event(

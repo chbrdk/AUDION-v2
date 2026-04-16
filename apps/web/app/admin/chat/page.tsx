@@ -5,6 +5,9 @@ export const dynamic = 'force-dynamic';
 
 import { useCallback, useEffect, useMemo, useState, useRef, Suspense, type ReactNode } from "react";
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   alpha,
   Avatar,
   Box,
@@ -227,6 +230,7 @@ type Message = {
   personaName?: string;
   image_ids?: string[]; // Image IDs from upload endpoint (for backend)
   images?: string[]; // Base64 data URLs for display (thumbnails)
+  reasoning?: string;
 };
 
 type TargetGroupListItem = { id: string; name: string; segment?: string };
@@ -237,6 +241,7 @@ type TargetGroupRoundResponse = {
   content: string;
   image_url?: string | null;
   sources?: Array<{ chunk_id: string; document_id: string; title: string; confidence: number; excerpt: string }>;
+  reasoning?: string;
 };
 
 type TargetGroupRound = {
@@ -252,6 +257,7 @@ type StreamingResponseSlot = {
   image_url?: string | null;
   sources?: TargetGroupRoundResponse["sources"];
   error?: string;
+  reasoning?: string;
 };
 
 /** Avoid Mixed Content: use same-origin proxy when avatar URL is http/localhost on HTTPS. */
@@ -523,6 +529,14 @@ function AdminChatPageContent() {
     if (!typingTimersRef.current[messageId]) {
       flushBuffer(messageId);
     }
+  };
+
+  const appendReasoningDelta = (messageId: string, delta: string) => {
+    setMessages((prev) =>
+      prev.map((message) =>
+        message.id === messageId ? { ...message, reasoning: (message.reasoning ?? "") + delta } : message
+      )
+    );
   };
 
 
@@ -939,9 +953,19 @@ function AdminChatPageContent() {
 
           for (const line of lines) {
             if (!line.trim() || !line.startsWith("data: ")) continue;
-            let parsed: { type?: string; delta?: string; sources?: unknown[]; error?: string } | null = null;
+            let parsed: {
+              type?: string;
+              delta?: string;
+              sources?: unknown[];
+              error?: string;
+            } | null = null;
             try {
-              parsed = JSON.parse(line.slice(6)) as { type?: string; delta?: string; sources?: unknown[]; error?: string };
+              parsed = JSON.parse(line.slice(6)) as {
+                type?: string;
+                delta?: string;
+                sources?: unknown[];
+                error?: string;
+              };
             } catch {
               continue;
             }
@@ -954,6 +978,18 @@ function AdminChatPageContent() {
                   ...prev,
                   responses: prev.responses.map((r) =>
                     r.personaId === personaId ? { ...r, content: r.content + parsed!.delta } : r
+                  ),
+                };
+                targetGroupStreamingRoundRef.current = next;
+                return next;
+              });
+            } else if (parsed.type === "reasoning_delta" && parsed.delta) {
+              setTargetGroupStreamingRound((prev) => {
+                if (!prev) return prev;
+                const next = {
+                  ...prev,
+                  responses: prev.responses.map((r) =>
+                    r.personaId === personaId ? { ...r, reasoning: (r.reasoning ?? "") + parsed!.delta } : r
                   ),
                 };
                 targetGroupStreamingRoundRef.current = next;
@@ -1035,6 +1071,7 @@ function AdminChatPageContent() {
           content: r.error ? (r.content || r.error) : r.content,
           image_url: r.image_url ?? null,
           sources: r.sources ?? [],
+          ...(r.reasoning?.trim() ? { reasoning: r.reasoning.trim() } : {}),
         })),
       };
       setTargetGroupRounds((r) => r.concat(round));
@@ -1298,6 +1335,8 @@ function AdminChatPageContent() {
             if (voiceStreaming && parsedData.audio) {
               enqueueAudioChunk(parsedData.audio, parsedData.mime_type ?? "audio/mpeg");
             }
+          } else if (parsedData.type === "reasoning_delta" && parsedData.delta) {
+            appendReasoningDelta(personaMessageId, parsedData.delta);
           } else if (parsedData.type === "sources") {
             const normalizedSources = (parsedData.sources || []).map((source: any, index: number) => ({
               chunk_id: source.chunk_id ?? `chunk-${index}`,
@@ -2275,6 +2314,31 @@ function AdminChatPageContent() {
                               <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
                                 {r.personaName}
                               </Typography>
+                              {r.reasoning?.trim() ? (
+                                <Accordion
+                                  disableGutters
+                                  elevation={0}
+                                  sx={{
+                                    mb: 1,
+                                    bgcolor: "transparent",
+                                    "&:before": { display: "none" },
+                                  }}
+                                >
+                                  <AccordionSummary
+                                    expandIcon={<MsqdxIcon name="expand_more" customSize={14} />}
+                                    sx={{ px: 0, minHeight: 36, "& .MuiAccordionSummary-content": { my: 0 } }}
+                                  >
+                                    <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                                      {t("chat.reasoningSection")}
+                                    </Typography>
+                                  </AccordionSummary>
+                                  <AccordionDetails sx={{ px: 0, pt: 0 }}>
+                                    <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", opacity: 0.88, color: "text.secondary" }}>
+                                      {r.reasoning}
+                                    </Typography>
+                                  </AccordionDetails>
+                                </Accordion>
+                              ) : null}
                               <ChatMessageMarkdown content={r.content} dense />
                             </Box>
                           </Paper>
@@ -2355,6 +2419,31 @@ function AdminChatPageContent() {
                                 </Typography>
                               ) : (
                                 <>
+                                  {slot.reasoning?.trim() ? (
+                                    <Accordion
+                                      disableGutters
+                                      elevation={0}
+                                      sx={{
+                                        mb: 1,
+                                        bgcolor: "transparent",
+                                        "&:before": { display: "none" },
+                                      }}
+                                    >
+                                      <AccordionSummary
+                                        expandIcon={<MsqdxIcon name="expand_more" customSize={14} />}
+                                        sx={{ px: 0, minHeight: 36, "& .MuiAccordionSummary-content": { my: 0 } }}
+                                      >
+                                        <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                                          {t("chat.reasoningSection")}
+                                        </Typography>
+                                      </AccordionSummary>
+                                      <AccordionDetails sx={{ px: 0, pt: 0 }}>
+                                        <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", opacity: 0.88, color: "text.secondary" }}>
+                                          {slot.reasoning}
+                                        </Typography>
+                                      </AccordionDetails>
+                                    </Accordion>
+                                  ) : null}
                                   <ChatMessageMarkdown content={slot.content} dense />
                                   {!slot.done && (
                                     <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.5, mt: 0.5 }}>

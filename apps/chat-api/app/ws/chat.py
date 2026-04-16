@@ -16,6 +16,7 @@ from ..models import Persona, PersonaPrompt
 from ..deps import verify_websocket_token
 from ..services.persona_discovery import PersonaDiscoveryService
 from ..services.usage_report import report_retrieval_query_usage, report_usage
+from ..utils.reply_mode import infer_reply_mode
 
 router = APIRouter()
 # Lazy initialization - agents will be created on first use to avoid blocking server startup
@@ -270,6 +271,7 @@ async def chat_ws(websocket: WebSocket, conversation_id: str) -> None:
                     # Run streaming in executor (it's synchronous)
                     async def stream_response():
                         loop = asyncio.get_event_loop()
+                        reply_mode = infer_reply_mode(query)
                         await loop.run_in_executor(
                             None,
                             lambda: get_persona_agent().stream_response(
@@ -279,6 +281,7 @@ async def chat_ws(websocket: WebSocket, conversation_id: str) -> None:
                                 persona_id=active_persona_id,
                                 send_event=send_event,
                                 usage_user_id=user_id,
+                                reply_mode=reply_mode,
                             )
                         )
                         # Signal completion

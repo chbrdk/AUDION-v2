@@ -1,10 +1,22 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { alpha, Box, Stack, Typography, useTheme, IconButton, Tooltip } from "@mui/material";
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  alpha,
+  Box,
+  IconButton,
+  Stack,
+  Tooltip,
+  Typography,
+  useTheme,
+} from "@mui/material";
 import { keyframes } from "@emotion/react";
 import { MsqdxIcon } from "@msqdx/react";
 import { ChatMessageMarkdown } from "./chat/chat-message-markdown";
+import { useI18n } from "../i18n/i18n-provider";
 
 type Message = {
   id: string;
@@ -12,6 +24,8 @@ type Message = {
   content: string;
   personaName?: string;
   images?: string[]; // Base64 data URLs for images
+  /** Optional model reasoning stream (collapsible in UI). */
+  reasoning?: string;
 };
 
 type MsqdxGlassChatPanelProps = {
@@ -22,6 +36,7 @@ type MsqdxGlassChatPanelProps = {
 export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPanelProps) => {
   const bottomRef = useRef<HTMLDivElement>(null);
   const theme = useTheme();
+  const { t } = useI18n();
 
   const USER_BORDER = "var(--color-secondary-dx-orange)";
   const PERSONA_BORDER = "var(--color-secondary-dx-pink)";
@@ -187,6 +202,42 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                     opacity: 1,
                   }}
                 >
+                  {message.role === "persona" && message.reasoning?.trim() ? (
+                    <Accordion
+                      disableGutters
+                      elevation={0}
+                      sx={{
+                        mb: 1.5,
+                        bgcolor: "transparent",
+                        "&:before": { display: "none" },
+                      }}
+                    >
+                      <AccordionSummary
+                        expandIcon={<MsqdxIcon name="expand_more" customSize={16} />}
+                        sx={{ px: 0, minHeight: 40, "& .MuiAccordionSummary-content": { my: 0.5 } }}
+                      >
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            letterSpacing: 1,
+                            textTransform: "uppercase",
+                            color: theme.palette.text.secondary,
+                          }}
+                        >
+                          {t("chat.reasoningSection")}
+                        </Typography>
+                      </AccordionSummary>
+                      <AccordionDetails sx={{ px: 0, pt: 0 }}>
+                        <Typography
+                          variant="body2"
+                          component="div"
+                          sx={{ whiteSpace: "pre-wrap", opacity: 0.88, color: theme.palette.text.secondary }}
+                        >
+                          {message.reasoning}
+                        </Typography>
+                      </AccordionDetails>
+                    </Accordion>
+                  ) : null}
                   <ChatMessageMarkdown content={message.content} />
                 </Box>
                 

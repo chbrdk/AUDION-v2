@@ -76,6 +76,7 @@ type Message = {
   role: "user" | "persona" | "system";
   content: string;
   personaName?: string;
+  reasoning?: string;
 };
 
 const welcomeFadeIn = keyframes`
@@ -366,6 +367,12 @@ function ChatSharePageContent() {
     if (!typingTimersRef.current[messageId]) flushBuffer(messageId);
   };
 
+  const appendReasoningDelta = (messageId: string, delta: string) => {
+    setMessages((prev) =>
+      prev.map((m) => (m.id === messageId ? { ...m, reasoning: (m.reasoning ?? "") + delta } : m))
+    );
+  };
+
   const handleSend = async () => {
     const text = input.trim();
     if (!personaIdParam || !persona || sending || !text) return;
@@ -456,9 +463,15 @@ function ChatSharePageContent() {
         for (const line of lines) {
           if (!line.trim() || !line.startsWith("data: ")) continue;
           try {
-            const parsed = JSON.parse(line.slice(6));
+            const parsed = JSON.parse(line.slice(6)) as {
+              type?: string;
+              delta?: string;
+              error?: string;
+            };
             if (parsed.type === "delta" && parsed.delta) {
               enqueueDelta(personaMsgId, parsed.delta);
+            } else if (parsed.type === "reasoning_delta" && parsed.delta) {
+              appendReasoningDelta(personaMsgId, parsed.delta);
             } else if (parsed.type === "error") {
               streamErr = parsed.error ?? t("chat.unknownError");
             }

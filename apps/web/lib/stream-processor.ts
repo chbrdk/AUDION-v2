@@ -2,6 +2,7 @@
 
 export interface StreamCallbacks {
   onDelta: (delta: string) => void;
+  onReasoningDelta?: (delta: string) => void;
   onSources: (sources: Array<{
     chunk_id: string;
     document_id: string;
@@ -66,6 +67,8 @@ export async function processStream(
         if (callbacks.onAudioChunk && parsedData.audio) {
           callbacks.onAudioChunk(parsedData.audio, parsedData.mime_type ?? "audio/mpeg");
         }
+      } else if (parsedData.type === "reasoning_delta" && parsedData.delta) {
+        callbacks.onReasoningDelta?.(parsedData.delta);
       } else if (parsedData.type === "sources") {
         const normalizedSources = (parsedData.sources || []).map((source: any, index: number) => ({
           chunk_id: source.chunk_id ?? `chunk-${index}`,

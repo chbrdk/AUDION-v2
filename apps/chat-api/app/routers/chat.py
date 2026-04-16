@@ -16,6 +16,7 @@ from ..db import get_session
 from ..models import Persona, PersonaPrompt
 from ..ws.chat import get_persona_prompt
 from ..deps import verify_request_token
+from ..utils.reply_mode import infer_reply_mode
 from .images import get_image_data_url
 from .chat_stream import ChatStreamContext, iter_chat_sse
 
@@ -120,6 +121,7 @@ class ChatMessageResponse(BaseModel):
     response: str
     sources: List[ChatSource]
     persona_id: str
+    reasoning: str | None = Field(default=None, description="Optional model reasoning stream when supported.")
 
 
 def build_chat_stream_context(request: ChatMessageRequest) -> ChatStreamContext:
@@ -255,6 +257,8 @@ def build_chat_stream_context(request: ChatMessageRequest) -> ChatStreamContext:
         message_length=len(user_message_for_logging),
     )
 
+    reply_mode = infer_reply_mode(retrieval_query)
+
     return ChatStreamContext(
         persona_id=request.persona_id,
         user_id=request.user_id,
@@ -265,12 +269,14 @@ def build_chat_stream_context(request: ChatMessageRequest) -> ChatStreamContext:
         persona_segment=persona_segment,
         use_tools=use_tools,
         tools=tools,
+        reply_mode=reply_mode,
     )
 
 
 async def collect_chat_message_response(ctx: ChatStreamContext) -> ChatMessageResponse:
     """Consume the SSE pipeline and return a single JSON payload (same text and sources as streaming clients)."""
     full_text = ""
+    full_reasoning = ""
     latest_sources: List[Dict[str, Any]] = []
     stream_err: str | None = None
 
@@ -286,6 +292,8 @@ async def collect_chat_message_response(ctx: ChatStreamContext) -> ChatMessageRe
             t = payload.get("type")
             if t == "delta" and payload.get("delta"):
                 full_text += payload["delta"]
+            elif t == "reasoning_delta" and payload.get("delta"):
+                full_reasoning += payload["delta"]
             elif t == "sources":
                 latest_sources = payload.get("sources") or []
             elif t == "error":
@@ -313,6 +321,7 @@ async def collect_chat_message_response(ctx: ChatStreamContext) -> ChatMessageRe
         response=full_text,
         sources=chat_sources,
         persona_id=ctx.persona_id,
+        reasoning=full_reasoning.strip() or None,
     )
 
 

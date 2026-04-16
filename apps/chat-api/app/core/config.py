@@ -50,6 +50,9 @@ class Settings(BaseSettings):
     chat_model: str = "gpt-5.4-nano"
     # Max completion tokens per assistant reply (OpenAI: max_completion_tokens)
     chat_max_completion_tokens: int = 16384
+    # Reasoning effort for chat models that support it (e.g. GPT-5 family). "none" = fastest default.
+    chat_reasoning_effort_standard: str = "none"
+    chat_reasoning_effort_extended: str = "low"
     # Upload size limit for images (bytes). Reject with 413 if exceeded.
     upload_max_image_bytes: int = 10 * 1024 * 1024  # 10 MB for images
 

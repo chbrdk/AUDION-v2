@@ -10,10 +10,12 @@ from dataclasses import dataclass
 from typing import Any, AsyncIterator, Dict, List
 
 import structlog
-from msqdx_glass_proto import CompleteEvent, ContentDeltaEvent, SourcesEvent, ThinkingEvent
+from msqdx_glass_proto import CompleteEvent, ContentDeltaEvent, ReasoningDeltaEvent, SourcesEvent, ThinkingEvent
 
 from ..core.config import get_settings
 from ..services.usage_report import report_retrieval_query_usage, report_usage
+from ..utils.openai_chat_stream import iter_chat_completion_stream_parts
+from ..utils.reply_mode import EXTENDED_SYSTEM_ADDENDUM
 from ..utils.text import clean_response_text
 from ..ws.chat import get_persona_agent, get_retrieval_agent
 
@@ -34,6 +36,7 @@ class ChatStreamContext:
     persona_segment: str | None
     use_tools: bool
     tools: Any
+    reply_mode: str = "standard"
 
 
 async def iter_chat_sse(ctx: ChatStreamContext) -> AsyncIterator[str]:
@@ -74,6 +77,7 @@ async def iter_chat_sse(ctx: ChatStreamContext) -> AsyncIterator[str]:
                         persona_segment=ctx.persona_segment,
                         use_tools=True,
                         usage_user_id=ctx.user_id,
+                        reply_mode=ctx.reply_mode,
                     )
                 except Exception as e:
                     logger.error("chat.stream.persona_agent_failed", error=str(e), exc_info=True)
@@ -118,6 +122,8 @@ async def iter_chat_sse(ctx: ChatStreamContext) -> AsyncIterator[str]:
                                     delta_payload = emit_sanitized_delta(event.delta)
                                     if delta_payload:
                                         yield f"data: {json.dumps({'type': 'delta', 'delta': delta_payload})}\n\n"
+                                elif isinstance(event, ReasoningDeltaEvent) and event.delta:
+                                    yield f"data: {json.dumps({'type': 'reasoning_delta', 'delta': event.delta})}\n\n"
                                 elif isinstance(event, SourcesEvent):
                                     yield f"data: {json.dumps({'type': 'sources', 'sources': event.sources})}\n\n"
                                 elif isinstance(event, CompleteEvent):
@@ -152,6 +158,8 @@ async def iter_chat_sse(ctx: ChatStreamContext) -> AsyncIterator[str]:
                     delta_payload = emit_sanitized_delta(event.delta)
                     if delta_payload:
                         yield f"data: {json.dumps({'type': 'delta', 'delta': delta_payload})}\n\n"
+                elif isinstance(event, ReasoningDeltaEvent) and event.delta:
+                    yield f"data: {json.dumps({'type': 'reasoning_delta', 'delta': event.delta})}\n\n"
                 elif isinstance(event, SourcesEvent):
                     yield f"data: {json.dumps({'type': 'sources', 'sources': event.sources})}\n\n"
                 elif isinstance(event, CompleteEvent):
@@ -193,7 +201,10 @@ async def iter_chat_sse(ctx: ChatStreamContext) -> AsyncIterator[str]:
             def collect_stream_deltas() -> None:
                 stream_queue = queue_container["queue"]
                 try:
-                    openai_messages = [{"role": "system", "content": ctx.system_prompt}]
+                    system_content = ctx.system_prompt
+                    if ctx.reply_mode == "extended":
+                        system_content = ctx.system_prompt + EXTENDED_SYSTEM_ADDENDUM
+                    openai_messages = [{"role": "system", "content": system_content}]
                     for msg in ctx.anthropic_messages:
                         openai_messages.append(
                             {
@@ -202,18 +213,23 @@ async def iter_chat_sse(ctx: ChatStreamContext) -> AsyncIterator[str]:
                             }
                         )
 
-                    stream = persona_agent._openai.chat.completions.create(
+                    effort = (
+                        settings.chat_reasoning_effort_extended
+                        if ctx.reply_mode == "extended"
+                        else settings.chat_reasoning_effort_standard
+                    )
+                    for content, reasoning in iter_chat_completion_stream_parts(
+                        persona_agent._openai,
+                        reasoning_effort=effort,
                         model=settings.chat_model,
                         messages=openai_messages,
                         max_completion_tokens=settings.chat_max_completion_tokens,
                         stream=True,
-                    )
-
-                    for chunk in stream:
-                        if chunk.choices and len(chunk.choices) > 0:
-                            delta = chunk.choices[0].delta
-                            if delta and delta.content:
-                                stream_queue.put(delta.content)
+                    ):
+                        if reasoning:
+                            stream_queue.put(("reasoning", reasoning))
+                        if content:
+                            stream_queue.put(("content", content))
                 except Exception as e:
                     logger.error("chat.stream.collect_failed", error=str(e), exc_info=True)
                     stream_error[0] = e
@@ -256,9 +272,23 @@ async def iter_chat_sse(ctx: ChatStreamContext) -> AsyncIterator[str]:
                                 item = stream_data_queue.get_nowait()
                                 if item is sentinel:
                                     break
-                                delta_payload = emit_sanitized_delta(item)
-                                if delta_payload:
-                                    yield f"data: {json.dumps({'type': 'delta', 'delta': delta_payload})}\n\n"
+                                if (
+                                    isinstance(item, tuple)
+                                    and len(item) == 2
+                                    and item[0] == "reasoning"
+                                    and isinstance(item[1], str)
+                                    and item[1]
+                                ):
+                                    yield f"data: {json.dumps({'type': 'reasoning_delta', 'delta': item[1]})}\n\n"
+                                elif (
+                                    isinstance(item, tuple)
+                                    and len(item) == 2
+                                    and item[0] == "content"
+                                    and isinstance(item[1], str)
+                                ):
+                                    delta_payload = emit_sanitized_delta(item[1])
+                                    if delta_payload:
+                                        yield f"data: {json.dumps({'type': 'delta', 'delta': delta_payload})}\n\n"
                         except queue.Empty:
                             pass
                         if stream_error[0]:
@@ -272,9 +302,23 @@ async def iter_chat_sse(ctx: ChatStreamContext) -> AsyncIterator[str]:
                         raise stream_error[0]
                     break
 
-                delta_payload = emit_sanitized_delta(item)
-                if delta_payload:
-                    yield f"data: {json.dumps({'type': 'delta', 'delta': delta_payload})}\n\n"
+                if (
+                    isinstance(item, tuple)
+                    and len(item) == 2
+                    and item[0] == "reasoning"
+                    and isinstance(item[1], str)
+                    and item[1]
+                ):
+                    yield f"data: {json.dumps({'type': 'reasoning_delta', 'delta': item[1]})}\n\n"
+                elif (
+                    isinstance(item, tuple)
+                    and len(item) == 2
+                    and item[0] == "content"
+                    and isinstance(item[1], str)
+                ):
+                    delta_payload = emit_sanitized_delta(item[1])
+                    if delta_payload:
+                        yield f"data: {json.dumps({'type': 'delta', 'delta': delta_payload})}\n\n"
 
             thread.join(timeout=1)
 
