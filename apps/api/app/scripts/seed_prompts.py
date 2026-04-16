@@ -21,10 +21,43 @@ def seed_prompts():
         prompts = [
             {
                 "name": "persona_avatar",
-                "version": "1.0",
-                "description": "Prompt for generating realistic persona portraits using DALL-E",
-                "input_variables": ["name", "profession", "traits_desc"],
-                "template": """Create a photorealistic professional headshot of {{ name }}, who works as {{ profession }}.{{ traits_desc }} The portrait should feature: warm and inviting lighting, subtle depth of field with a softly blurred background, contemporary professional attire, confident yet approachable expression, high-resolution detail, magazine-quality photography."""
+                "version": "2.0",
+                "description": "Persona-specific photorealistic portrait (avoid generic stock business headshots)",
+                "input_variables": [
+                    "name",
+                    "profession",
+                    "traits_desc",
+                    "persona_profile",
+                    "visual_brief",
+                    "bio",
+                    "headline",
+                ],
+                "template": """Photorealistic single-person portrait for a UX persona card.
+
+CRITICAL: Avoid generic stock "business headshot" (plain gray seamless, blazer, catalog smile). The environment, wardrobe, props, lighting, and mood MUST follow the persona brief below.
+
+Representing display name: {{ name }}.
+
+PERSONA BRIEF (primary source — translate into concrete visuals)
+---------------------------------------------------------------
+{{ persona_profile }}
+
+ADDITIONAL PERSONALITY HINTS
+----------------------------
+{{ traits_desc }}
+
+COMPOSITION & STYLE
+- One adult; natural skin texture; eyes sharp; respectful depiction; no caricature.
+- Prefer ENVIRONMENTAL or LIFESTYLE context (workspace, home office, café, lab, workshop, street, hobby space, kitchen table…) that plausibly matches profession, interests, and bio — NOT a default lobby or passport booth unless the brief clearly implies it.
+- Wardrobe and grooming match the role and values described (creative, technical, trade, care, executive, student, etc.).
+- Lighting: natural window light, soft cinematic, or motivated practicals — avoid flat flash unless it fits the story.
+- Framing: waist-up or three-quarter; contextual background with gentle bokeh; candid or semi-candid pose; expression aligned with dominant traits and pain points.
+
+HARD CONSTRAINTS
+- No text, logos, watermarks, UI, subtitles, extra faces, crowd as subject.
+- High detail, believable materials, photographic (not illustration).
+
+Output: one high-quality photographic image.""",
             }
         ]
 

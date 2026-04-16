@@ -13,6 +13,34 @@ from ..core.config import get_settings
 logger = structlog.get_logger(__name__)
 settings = get_settings()
 
+# Default when DB has no `persona_avatar` template. Keep in sync with apps/api seed_prompts / update_avatar_template.
+DEFAULT_PERSONA_AVATAR_IMAGE_TEMPLATE = """Photorealistic single-person portrait for a UX persona card.
+
+CRITICAL: Avoid generic stock "business headshot" (plain gray seamless, blazer, catalog smile). The environment, wardrobe, props, lighting, and mood MUST follow the persona brief below.
+
+Representing display name: {{ name }}.
+
+PERSONA BRIEF (primary source — translate into concrete visuals)
+---------------------------------------------------------------
+{{ persona_profile }}
+
+ADDITIONAL PERSONALITY HINTS
+----------------------------
+{{ traits_desc }}
+
+COMPOSITION & STYLE
+- One adult; natural skin texture; eyes sharp; respectful depiction; no caricature.
+- Prefer ENVIRONMENTAL or LIFESTYLE context (workspace, home office, café, lab, workshop, street, hobby space, kitchen table…) that plausibly matches profession, interests, and bio — NOT a default lobby or passport booth unless the brief clearly implies it.
+- Wardrobe and grooming match the role and values described (creative, technical, trade, care, executive, student, etc.).
+- Lighting: natural window light, soft cinematic, or motivated practicals — avoid flat flash unless it fits the story.
+- Framing: waist-up or three-quarter; contextual background with gentle bokeh; candid or semi-candid pose; expression aligned with dominant traits and pain points.
+
+HARD CONSTRAINTS
+- No text, logos, watermarks, UI, subtitles, extra faces, crowd as subject.
+- High detail, believable materials, photographic (not illustration).
+
+Output: one high-quality photographic image."""
+
 
 class PersonaImageService:
     """Service for generating persona portrait images using OpenAI image-1."""
@@ -21,97 +49,149 @@ class PersonaImageService:
         self._client = OpenAI(api_key=settings.openai_api_key) if settings.openai_api_key else None
         if not self._client:
             logger.warning("persona_image.openai_api_key_not_set")
+
+    @staticmethod
+    def _visual_story_for_image(profile: PersonaProfile, profile_dict: dict | None, traits_desc: str) -> str:
+        """Short directive the image model can follow to avoid generic corporate portraits."""
+        parts: list[str] = []
+        parts.append(
+            "IMAGE GOAL: A single believable person in a setting and outfit that match their real-life role, "
+            "hobbies, and biography — not a stock-photo executive on gray seamless."
+        )
+        if profile.segment:
+            parts.append(f"Role / segment anchor: {profile.segment}.")
+        if profile.headline:
+            parts.append(f"Public angle: {profile.headline}.")
+        if profile.bio:
+            excerpt = (profile.bio[:500] + "…") if len(profile.bio) > 500 else profile.bio
+            parts.append(f"Lifestyle & context to echo (from bio): {excerpt}")
+        pd = profile_dict or {}
+        interests = pd.get("interests") or getattr(profile, "interests", None) or []
+        if isinstance(interests, list) and interests:
+            parts.append(f"Possible props / background cues from interests: {', '.join(str(i) for i in interests[:10])}.")
+        values = pd.get("values") or getattr(profile, "values", None) or []
+        if isinstance(values, list) and values:
+            parts.append(f"Mood implied by values: {', '.join(str(v) for v in values[:6])}.")
+        if profile.pain_points:
+            pp = ", ".join(pp.label for pp in profile.pain_points[:4])
+            parts.append(f"Subtle tension in expression or posture (pain points): {pp}.")
+        if profile.goals:
+            gg = ", ".join(g.label for g in profile.goals[:4])
+            parts.append(f"Aspirational cues (goals): {gg}.")
+        if profile.communication_style:
+            if profile.communication_style.sentence_structure:
+                parts.append(f"Speaking / writing rhythm: {profile.communication_style.sentence_structure[:220]}")
+            if profile.communication_style.vocabulary:
+                vw = ", ".join(profile.communication_style.vocabulary[:12])
+                parts.append(f"Typical vocabulary flavor: {vw}.")
+        traits = profile.traits or {}
+        if traits:
+            top = sorted(traits.items(), key=lambda x: -float(x[1]))[:8]
+            parts.append(
+                "Dominant traits (show in face, posture, styling): "
+                + ", ".join(f"{k} ({float(v):.2f})" for k, v in top)
+            )
+        elif traits_desc.strip():
+            parts.append(traits_desc.strip())
+        parts.append(
+            "SETTING PICK: Choose one coherent environment (indoor or outdoor) that a person with this bio would "
+            "plausibly inhabit during a typical week — vary from office-only defaults."
+        )
+        return "\n".join(parts)
+
     def _render_template(
-        self, 
-        template: str, 
-        profile: PersonaProfile, 
-        name: str, 
-        segment: str, 
+        self,
+        template: str,
+        profile: PersonaProfile,
+        name: str,
+        segment: str,
         traits_desc: str,
-        profile_dict: dict | None = None
+        profile_dict: dict | None = None,
     ) -> str:
         """
         Render template by replacing variables in both {{ }} and ${} formats.
-        
+
         Supports variables:
-        - name: Persona name
-        - profession: Persona segment/profession
-        - traits_desc: Personality traits description
-        - persona_profile: Full profile as readable text
-        - bio: Persona biography
-        - headline: Persona headline
+        - name, profession, traits_desc, persona_profile, bio, headline
         """
-        import json
-        
-        # Debug: Log what we received
-        logger.info("persona_image.render_template_debug",
-                   has_profile_dict=profile_dict is not None,
-                   profile_dict_keys=list(profile_dict.keys()) if profile_dict else None,
-                   interests=profile_dict.get("interests") if profile_dict else None,
-                   values=profile_dict.get("values") if profile_dict else None)
-        
-        # Build persona_profile as readable text description (matching Prompt Builder format)
-        # Use profile_dict if available for complete data, otherwise build from profile
-        profile_lines = []
-        
-        # Basic info
-        profile_lines.append(f"Name: {profile.name}")
-        profile_lines.append(f"Profession: {profile.segment}")
+        pd = profile_dict if isinstance(profile_dict, dict) else None
+
+        logger.info(
+            "persona_image.render_template_debug",
+            has_profile_dict=pd is not None,
+            profile_dict_keys=list(pd.keys()) if pd else None,
+            interests=pd.get("interests") if pd else None,
+            values=pd.get("values") if pd else None,
+        )
+
+        profile_lines: list[str] = []
+
+        fn = getattr(profile, "full_name", None) or (pd.get("full_name") if pd else None)
+        profile_lines.append(f"Display name: {profile.name}")
+        if fn and str(fn).strip():
+            profile_lines.append(f"Full name: {fn}")
+
+        profile_lines.append(f"Profession / segment: {profile.segment}")
         if profile.headline:
             profile_lines.append(f"Headline: {profile.headline}")
         if profile.bio:
             profile_lines.append(f"Bio: {profile.bio}")
-        
-        # Traits
+
         if profile.traits:
-            trait_names = [k for k, v in profile.traits.items() if v > 0.6]
-            if trait_names:
-                profile_lines.append(f"Traits: {', '.join(trait_names)}")
-        
-        # Interests (from profile_dict)
-        if profile_dict and profile_dict.get("interests"):
-            interests = profile_dict.get("interests", [])
-            if interests:
-                profile_lines.append(f"Interests: {', '.join(interests[:5])}")
-        
-        # Values (from profile_dict)
-        if profile_dict and profile_dict.get("values"):
-            values = profile_dict.get("values", [])
-            if values:
-                profile_lines.append(f"Values: {', '.join(values[:5])}")
-        
-        # Goals
+            trait_bits = [f"{k} ({float(v):.2f})" for k, v in sorted(profile.traits.items(), key=lambda x: -x[1])[:12]]
+            if trait_bits:
+                profile_lines.append(f"Traits (scored): {', '.join(trait_bits)}")
+
+        interests = (pd.get("interests") if pd else None) or getattr(profile, "interests", None) or []
+        if isinstance(interests, list) and interests:
+            profile_lines.append(f"Interests: {', '.join(str(x) for x in interests[:12])}")
+
+        values = (pd.get("values") if pd else None) or getattr(profile, "values", None) or []
+        if isinstance(values, list) and values:
+            profile_lines.append(f"Values: {', '.join(str(x) for x in values[:10])}")
+
         if profile.goals:
-            goals_text = ", ".join([g.label for g in profile.goals[:3]])
-            profile_lines.append(f"Goals: {goals_text}")
-        
-        # Pain points
+            profile_lines.append("Goals: " + ", ".join(g.label for g in profile.goals[:6]))
         if profile.pain_points:
-            pain_points_text = ", ".join([pp.label for pp in profile.pain_points[:3]])
-            profile_lines.append(f"Pain Points: {pain_points_text}")
-        
-        # Communication style
-        if profile.communication_style and profile.communication_style.vocabulary:
-            vocab = ", ".join(profile.communication_style.vocabulary[:5])
-            profile_lines.append(f"Communication Style: {vocab}")
-        
-        # Additional attributes from profile_dict
-        if profile_dict:
-            if profile_dict.get("age"):
-                profile_lines.append(f"Age: {profile_dict.get('age')}")
-            if profile_dict.get("location"):
-                profile_lines.append(f"Location: {profile_dict.get('location')}")
-            if profile_dict.get("gender"):
-                profile_lines.append(f"Gender: {profile_dict.get('gender')}")
-        
-        persona_profile_text = "\n".join(profile_lines)
-        
+            profile_lines.append("Pain points: " + ", ".join(pp.label for pp in profile.pain_points[:6]))
+
+        if profile.communication_style:
+            if profile.communication_style.vocabulary:
+                profile_lines.append(
+                    "Vocabulary: " + ", ".join(profile.communication_style.vocabulary[:15])
+                )
+            if profile.communication_style.sentence_structure:
+                profile_lines.append(f"Sentence style: {profile.communication_style.sentence_structure[:400]}")
+
+        if pd:
+            if pd.get("age") is not None:
+                profile_lines.append(f"Age: {pd.get('age')}")
+            if pd.get("location"):
+                profile_lines.append(f"Location: {pd.get('location')}")
+            if pd.get("gender"):
+                profile_lines.append(f"Gender presentation: {pd.get('gender')}")
+            if pd.get("media_affinity") is not None:
+                profile_lines.append(f"Media affinity (0-100): {pd.get('media_affinity')}")
+            if pd.get("attention_span"):
+                profile_lines.append(f"Attention span note: {pd.get('attention_span')}")
+            sm = pd.get("social_media_usage") or pd.get("socialMediaUsage")
+            if isinstance(sm, list) and sm:
+                profile_lines.append("Social / channels: " + ", ".join(str(x) for x in sm[:8]))
+            cp = pd.get("color_palette") or pd.get("colorPalette")
+            if isinstance(cp, list) and cp:
+                profile_lines.append("Palette hints: " + ", ".join(str(x) for x in cp[:8]))
+
+        base_profile_text = "\n".join(profile_lines)
+        visual_brief_text = self._visual_story_for_image(profile, pd, traits_desc)
+        persona_profile_text = base_profile_text + "\n\n--- VISUAL STORY (for the image model) ---\n" + visual_brief_text
+
         # Create variable mapping
         variables = {
             "name": name,
             "profession": segment,
-            "traits_desc": traits_desc,
+            "traits_desc": traits_desc if traits_desc.strip() else "See scored traits in persona brief above.",
             "persona_profile": persona_profile_text,
+            "visual_brief": visual_brief_text,
             "bio": profile.bio or "",
             "headline": profile.headline or "",
         }
@@ -129,19 +209,18 @@ class PersonaImageService:
 
     def _build_portrait_prompt(self, profile: PersonaProfile, project_id: str | None = None, profile_dict: dict | None = None) -> str:
         """Build a detailed prompt for realistic portrait generation."""
-        # Extract demographic information from bio and segment
         name = profile.name
         segment = profile.segment
-        
-        # Extract traits for personality description
+        pd = profile_dict if isinstance(profile_dict, dict) else None
+
         traits_desc = ""
         if profile.traits:
             trait_list = []
             for trait_name, score in profile.traits.items():
-                if score > 0.6:
-                    trait_list.append(trait_name)
+                if float(score) > 0.55:
+                    trait_list.append(f"{trait_name} ({float(score):.2f})")
             if trait_list:
-                traits_desc = f" They appear {', '.join(trait_list[:3])}."
+                traits_desc = " Dominant traits: " + ", ".join(trait_list[:8]) + "."
         
         # Try to fetch prompt template from DB
         # Priority: 1. Project override, 2. Global template, 3. Hardcoded fallback
@@ -179,7 +258,9 @@ class PersonaImageService:
                                        template_preview=result.template[:100])
                             
                             # Render the override template with all available variables
-                            rendered = self._render_template(result.template, profile, name, segment, traits_desc)
+                            rendered = self._render_template(
+                                result.template, profile, name, segment, traits_desc, profile_dict=pd
+                            )
                             
                             logger.info("persona_image.template_rendered", 
                                        source="project_override",
@@ -212,7 +293,9 @@ class PersonaImageService:
                                traits_desc=traits_desc)
                     
                     # Render template with all available variables
-                    rendered = self._render_template(template_record.template, profile, name, segment, traits_desc)
+                    rendered = self._render_template(
+                        template_record.template, profile, name, segment, traits_desc, profile_dict=pd
+                    )
                     
                     logger.info("persona_image.template_rendered", 
                                source="global_template",
@@ -226,19 +309,15 @@ class PersonaImageService:
             logger.warning("persona_image.template_fetch_failed", error=str(e), exc_info=True)
             # Fallback to hardcoded default
         
-        # Build comprehensive prompt (Default Fallback)
         logger.info("persona_image.using_fallback_prompt")
-        profession_hint = segment
-        prompt = (
-            f"A professional portrait photograph of {name}, "
-            f"a {profession_hint}.{traits_desc} "
-            f"Professional business portrait, studio lighting, "
-            f"neutral gray background, high quality, realistic, "
-            f"head and shoulders, looking directly at camera, natural expression, "
-            f"professional business attire."
+        return self._render_template(
+            DEFAULT_PERSONA_AVATAR_IMAGE_TEMPLATE,
+            profile,
+            name,
+            segment,
+            traits_desc,
+            profile_dict=pd,
         )
-        
-        return prompt
 
     def generate_portrait(
         self, 
