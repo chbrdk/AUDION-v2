@@ -34,7 +34,7 @@ settings = get_settings()
 PERSONA_LLM_JSON_SCHEMA_INSTRUCTION = (
     "Return ONE JSON object with these keys: "
     "name (string, short display name), full_name (string|null), age (integer|null), "
-    "gender (string|null, e.g. female/male/non-binary/prefer not to say), "
+    "gender (string|null, use German labels where applicable, e.g. weiblich, männlich, divers, keine Angabe), "
     "location (string|null, city/region/country one line), "
     "media_affinity (integer 0-100|null, digital/news/media consumption intensity), "
     "interests (array of 4-10 concise interest tags), "
@@ -47,7 +47,10 @@ PERSONA_LLM_JSON_SCHEMA_INSTRUCTION = (
     "confidence (number 0-1). "
     "Optionally: social_media_usage (string array), attention_span (string), color_palette (string array). "
     "Do not omit interests or values; infer plausible items from the research when not explicit. "
-    "Use the same language as the excerpts when possible."
+    "LANGUAGE (mandatory): All human-readable string values must be German (Deutsch) — name, full_name, headline, bio, "
+    "job_title, gender, location, interests, values, pain point labels, goal labels, trait names/keys as shown to users, "
+    "communication_style.vocabulary and sentence_structure, attention_span, social_media_usage strings. "
+    "Keep JSON keys in English as listed. Numeric fields stay numbers."
 )
 
 
@@ -187,7 +190,12 @@ def _compose_identity_context_block(*, persona: Persona, target_group_id: UUID |
         parts.append("USER / PRODUCT FOCUS:\n" + "\n".join(f"- {line}" for line in user_lines))
     if not parts:
         return ""
-    return "\n\n" + "\n\n".join(parts) + "\n"
+    out = "\n\n" + "\n\n".join(parts) + "\n"
+    out += (
+        "\nSPRACHE: Alle neu zu schreibenden Persona-Texte (für das JSON) sind auf Deutsch zu formulieren, "
+        "auch wenn die Research-Auszüge auf Englisch sind — inhaltlich korrekt übersetzen bzw. natürlich auf Deutsch ausdrücken.\n"
+    )
+    return out
 
 
 def parse_persona_generation_json(response_text: str) -> dict:
@@ -356,6 +364,7 @@ class PersonaGenerationService:
                     "content": (
                         "You fix invalid JSON. Return ONLY a single valid JSON object. "
                         "Do not add any prose. Ensure all strings are properly escaped. "
+                        "All human-readable string values must remain or become German (Deutsch). "
                         "Preserve and include interests, values, demographics (full_name, gender, location, age, media_affinity), "
                         "traits, pain_points, goals, communication_style, confidence when inferring missing parts."
                     ),
@@ -390,6 +399,7 @@ class PersonaGenerationService:
             system=(
                 "You fix invalid or truncated JSON. Output a single valid JSON object only. "
                 "No markdown, no code fences, no commentary. Properly escape double quotes inside strings. "
+                "All human-readable strings must be German (Deutsch). "
                 "Include interests, values, full_name, gender, location, age, media_affinity when repairing."
             ),
             messages=[
@@ -661,9 +671,10 @@ class PersonaGenerationService:
                         {
                             "role": "system",
                             "content": (
-                                "You are a helpful persona generation assistant.\n"
+                                "You are a helpful persona generation assistant for a German-language product.\n"
                                 "Output MUST be a single valid JSON object.\n"
                                 "Do NOT wrap JSON in markdown fences. Do NOT add any commentary.\n"
+                                "All human-readable string values in the JSON must be German (Deutsch).\n"
                                 "Include interests, values, full_name, gender, location, age, media_affinity as in the user schema.\n"
                                 "Avoid using unescaped double-quotes inside string values (e.g. don’t quote phrases like “...”)."
                             ),
@@ -692,6 +703,7 @@ class PersonaGenerationService:
                 system=(
                     "You output a single JSON object only. Do not wrap it in markdown or code fences. "
                     "Do not add commentary before or after the JSON. Escape any double quotes inside string values. "
+                    "All human-readable strings in the JSON must be German (Deutsch). "
                     "The object must include interests (array), values (array), demographics "
                     "(full_name, gender, location, age, media_affinity 0-100) plus headline, bio, traits, pain_points, goals, "
                     "communication_style, confidence."

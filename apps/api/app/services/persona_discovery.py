@@ -45,7 +45,8 @@ class PersonaDiscoveryService:
 
         prompt = (
             "You analyze UX research excerpts and infer recurring personas. "
-            "Return strict JSON as an array of {name, segment, confidence, chunk_ids[]}.\n\n"
+            "Return strict JSON as an array of {name, segment, confidence, chunk_ids[]}. "
+            "Use German (Deutsch) for name and segment strings (product language).\n\n"
             + "\n".join(excerpts)
         )
 

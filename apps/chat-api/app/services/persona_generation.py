@@ -48,6 +48,8 @@ class PersonaGenerationService:
         excerpts = "\n".join(f"- {chunk.content}" for chunk in chunks)
         identity_prompt = (
             "Craft a vivid persona profile from the research excerpts. "
+            "All human-readable string values in the JSON must be German (Deutsch), including names, bio, headline, "
+            "interests, values, labels, vocabulary, and descriptions (translate or paraphrase from excerpts if needed). "
             "Return STRICT JSON with this exact structure:\n"
             "{\n"
             '  "name": "string",\n'

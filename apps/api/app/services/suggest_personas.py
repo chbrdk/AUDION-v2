@@ -57,16 +57,18 @@ Target group:
 
     prompt = f"""Based on the company/project context and the target group below, suggest between 2 and {max_suggestions} distinct personas that fit this target group. Each persona should feel realistic and relevant to the business context.
 
+All human-readable string fields MUST be in German (Deutsch): name, headline, bio, location, gender.
+
 For each persona provide:
-- name: Full name (e.g. "Sarah Müller")
+- name: Full name in German context (e.g. "Sarah Müller")
 - age: Age number or range as string (e.g. "32" or "28-35"), or null
-- headline: One short sentence summarizing their role or focus (e.g. "Marketing Lead at mid-size SaaS")
-- bio: 2-3 sentences describing the person (background, job, situation)
-- location: City/region or country (e.g. "Berlin, Germany"), or null
-- gender: "female", "male", "diverse", or null
+- headline: One short German sentence summarizing their role or focus
+- bio: 2-3 sentences in German describing the person (background, job, situation)
+- location: City/region or country in German as appropriate (e.g. "Berlin, Deutschland"), or null
+- gender: "weiblich", "männlich", "divers", or null
 
 Respond with a JSON array only, no other text. Example:
-[{{"name": "...", "age": "32", "headline": "...", "bio": "...", "location": "...", "gender": "female"}}, ...]
+[{{"name": "...", "age": "32", "headline": "...", "bio": "...", "location": "...", "gender": "weiblich"}}, ...]
 
 Company/project context:
 ---
@@ -81,7 +83,10 @@ Company/project context:
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a helpful marketing and research assistant. Output only valid JSON arrays.",
+                    "content": (
+                        "You are a helpful marketing and research assistant for a German-language product. "
+                        "Output only valid JSON arrays; all string values in German (Deutsch)."
+                    ),
                 },
                 {"role": "user", "content": prompt},
             ],
