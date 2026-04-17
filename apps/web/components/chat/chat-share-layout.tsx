@@ -99,6 +99,7 @@ export function ChatShareLayout({ children }: { children: ReactNode }) {
             overflowX: "hidden",
             overflowY: "auto",
             padding: { xs: "1rem", md: "1.5rem" },
+            paddingTop: "100px",
             minWidth: 0,
             maxWidth: "100%",
             width: "100%",
