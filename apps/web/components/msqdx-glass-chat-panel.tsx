@@ -16,6 +16,8 @@ import {
 import { keyframes } from "@emotion/react";
 import { MsqdxIcon } from "@msqdx/react";
 import { ChatMessageMarkdown } from "./chat/chat-message-markdown";
+import { glassChatPanelMessagesStackSx } from "../lib/glass-chat-panel-layout";
+import { systemPromptTooltipContentSx } from "../lib/system-prompt-tooltip-content-sx";
 import { useI18n } from "./i18n/i18n-provider";
 
 type Message = {
@@ -107,7 +109,7 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
 
   return (
     <Box sx={{ width: "100%" }}>
-      <Stack spacing={3} sx={{ p: { xs: 1, md: 2.5 } }}>
+      <Stack spacing={3} sx={glassChatPanelMessagesStackSx}>
         {messages.map((message) => {
           const bubbleStyles = getBubbleStyles(message.role);
           const label =
@@ -137,18 +139,7 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                 {message.role === "persona" && systemPrompt && (
                   <Tooltip
                     title={
-                      <Box
-                        sx={{
-                          maxWidth: "400px",
-                          maxHeight: "300px",
-                          overflow: "auto",
-                          p: 1,
-                          whiteSpace: "pre-wrap",
-                          fontSize: "0.75rem",
-                          fontFamily: "monospace",
-                          backgroundColor: "transparent",
-                        }}
-                      >
+                      <Box sx={systemPromptTooltipContentSx}>
                         {systemPrompt}
                       </Box>
                     }

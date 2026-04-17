@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 import { MsqdxIcon, MsqdxInput } from "@msqdx/react";
 import type { ConversationSummary } from "../../lib/chat-history";
+import { systemPromptTooltipContentSx } from "../../lib/system-prompt-tooltip-content-sx";
 import { FORM_FIELD_ACCENT_SX } from "../../lib/theme-accent";
 
 type ChatItemProps = {
@@ -217,18 +218,7 @@ export function MsqdxGlassChatItem({
                 {conversation.systemPrompt && (
                   <Tooltip
                     title={
-                      <Box
-                        sx={{
-                          maxWidth: "400px",
-                          maxHeight: "300px",
-                          overflow: "auto",
-                          p: 1,
-                          whiteSpace: "pre-wrap",
-                          fontSize: "0.75rem",
-                          fontFamily: "monospace",
-                          backgroundColor: "transparent",
-                        }}
-                      >
+                      <Box sx={systemPromptTooltipContentSx}>
                         {conversation.systemPrompt}
                       </Box>
                     }
