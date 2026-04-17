@@ -299,6 +299,10 @@ def init_db():
 
         alembic_cfg = Config("alembic.ini")
         ran_create_all = False
+        # Legacy DBs had app tables but no audion.alembic_version; we stamp to head without running
+        # migrations. A following `upgrade head` would replay the full chain from base and collide with
+        # existing enums/tables — skip upgrade in that case (emergency DDL + app handle drift).
+        stamped_legacy_without_alembic = False
 
         if not personas_exists:
             logger.info("Fresh database detected (no personas table). Creating all tables from models...")
@@ -315,6 +319,7 @@ def init_db():
                 # columns missing from older images. A final `upgrade head` (after ensures) is idempotent.
                 logger.info("No alembic_version table found. Stamping to head to capture current state...")
                 command.stamp(alembic_cfg, "head")
+                stamped_legacy_without_alembic = True
             else:
                 logger.info("Alembic version table found.")
 
@@ -371,15 +376,21 @@ def init_db():
         except Exception as e:
             logger.warning(f"Publication status column ensure failed (may already exist): {e}")
 
-        # Coolify / unattended deploys: reconcile to head on existing DBs only. Fresh DBs used create_all
-        # + stamp; running upgrade would re-apply migrations and collide with existing tables.
-        if not ran_create_all:
+        # Coolify / unattended deploys: reconcile to head when alembic already tracks revisions.
+        # Skip when we only stamped a legacy DB (would replay migrations from base → duplicate types/tables).
+        # Fresh DBs used create_all + stamp; running upgrade would collide with create_all.
+        if not ran_create_all and not stamped_legacy_without_alembic:
             try:
                 logger.info("Running alembic upgrade head (idempotent)...")
                 command.upgrade(alembic_cfg, "head")
             except Exception as e:
                 logger.error(f"Alembic upgrade head failed: {e}")
                 raise
+        elif stamped_legacy_without_alembic:
+            logger.info(
+                "Skipping alembic upgrade head after legacy stamp (schema already matches production; "
+                "replay would conflict). Use scripts/coolify-migrate.sh if you intentionally reset version."
+            )
 
         logger.info("Database initialization completed successfully.")
 

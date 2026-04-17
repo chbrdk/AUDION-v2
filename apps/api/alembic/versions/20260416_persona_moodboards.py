@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import inspect, text
 from sqlalchemy.dialects import postgresql
 
 
@@ -21,28 +22,39 @@ depends_on = None
 
 def upgrade() -> None:
     # audion schema is on search_path in env.py
-    # Idempotency: some environments may pre-create enum types during bootstrap.
-    # Race-safe enum creation: some bootstraps run migrations concurrently.
-    # Postgres does not support CREATE TYPE IF NOT EXISTS for enums; handle duplicate_object.
-    op.execute(
-        """
-        DO $$
-        BEGIN
-            CREATE TYPE moodboard_status AS ENUM ('draft', 'building', 'ready', 'failed');
-        EXCEPTION
-            WHEN duplicate_object THEN
-                NULL;
-        END$$;
-        """
-    )
+    # Idempotency: legacy DBs may already have moodboard enum/tables (create_all or partial runs).
+    bind = op.get_bind()
+    insp = inspect(bind)
+    enum_exists = bind.execute(
+        text(
+            """
+            SELECT EXISTS (
+                SELECT 1
+                FROM pg_type t
+                JOIN pg_namespace n ON n.oid = t.typnamespace
+                WHERE n.nspname = 'audion' AND t.typname = 'moodboard_status'
+            )
+            """
+        )
+    ).scalar()
+    if not enum_exists:
+        op.execute(
+            "CREATE TYPE audion.moodboard_status AS ENUM ('draft', 'building', 'ready', 'failed')"
+        )
+
     moodboard_status_enum = sa.Enum(
         "draft",
         "building",
         "ready",
         "failed",
         name="moodboard_status",
+        schema="audion",
         create_type=False,
     )
+    tables = insp.get_table_names(schema="audion")
+    if "persona_moodboards" in tables:
+        return
+
     op.create_table(
         "persona_moodboards",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
@@ -56,7 +68,7 @@ def upgrade() -> None:
         sa.Column("title", sa.String(length=256), nullable=False, server_default="Moodboard"),
         sa.Column(
             "status",
-            moodboard_status_enum,
+            moodboard_status_enum,  # uses audion.moodboard_status
             nullable=False,
             server_default="draft",
         ),
@@ -114,5 +126,5 @@ def downgrade() -> None:
     op.drop_index("ix_persona_moodboards_persona_id", table_name="persona_moodboards")
     op.drop_table("persona_moodboards")
     # Only drop the type if nothing else depends on it.
-    op.execute("DROP TYPE IF EXISTS moodboard_status")
+    op.execute("DROP TYPE IF EXISTS audion.moodboard_status")
 
