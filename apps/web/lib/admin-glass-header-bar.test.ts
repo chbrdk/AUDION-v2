@@ -33,11 +33,11 @@ describe("admin glass header bar chrome", () => {
 
   it("gives main content enough top padding to clear the absolute header", () => {
     const layout = readFileSync(join(webRoot, "components/admin/msqdx-glass-admin-layout.tsx"), "utf8");
-    expect(layout).toContain("paddingTop: \"100px\"");
+    expect(layout).toContain("paddingTop: \"100px !important\"");
   });
 
   it("applies the same top padding in share-chat main across all viewports", () => {
     const shareLayout = readFileSync(join(webRoot, "components/chat/chat-share-layout.tsx"), "utf8");
-    expect(shareLayout).toContain("paddingTop: \"100px\"");
+    expect(shareLayout).toContain("paddingTop: \"100px !important\"");
   });
 });
