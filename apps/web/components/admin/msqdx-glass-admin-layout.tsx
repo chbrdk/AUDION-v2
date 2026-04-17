@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Box, IconButton, Tooltip, useTheme } from "@mui/material";
+import { alpha, Box, IconButton, Tooltip, useTheme } from "@mui/material";
 import { MsqdxButton, MsqdxIcon, MsqdxAdminNav, MsqdxAppLayout, MsqdxTypography } from "@msqdx/react";
 import type { AdminNavItem } from "@msqdx/react";
 import { useAdminHeader, useAdminPanel } from "./admin-layout-providers";
@@ -229,13 +229,16 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
           top: 0,
           left: 0,
           right: 0,
-          zIndex: 1100,
+          zIndex: 1300,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           padding: { xs: "0.75rem 1rem", md: "1rem 1.5rem" },
           minHeight: { xs: "56px", md: "64px" },
-          backgroundColor: "transparent",
+          backgroundColor: (t) => alpha(t.palette.background.default, t.palette.mode === "dark" ? 0.82 : 0.76),
+          backdropFilter: "saturate(180%) blur(16px)",
+          WebkitBackdropFilter: "saturate(180%) blur(16px)",
+          borderBottom: (t) => `1px solid ${alpha(t.palette.divider, t.palette.mode === "dark" ? 0.35 : 0.55)}`,
           overflow: "visible",
         }}
       >
@@ -371,7 +374,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
           overflowX: "hidden",
           overflowY: "auto",
           padding: { xs: "1rem", md: "1.5rem" },
-          paddingTop: { xs: "calc(56px + 1rem)", md: "calc(64px + 1.5rem)" },
+          paddingTop: 0,
           minWidth: 0,
           maxWidth: "100%",
           width: "100%"

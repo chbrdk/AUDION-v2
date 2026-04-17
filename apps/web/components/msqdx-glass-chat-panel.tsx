@@ -17,7 +17,10 @@ import { keyframes } from "@emotion/react";
 import { MsqdxIcon } from "@msqdx/react";
 import { ChatMessageMarkdown } from "./chat/chat-message-markdown";
 import { glassChatPanelMessagesStackSx } from "../lib/glass-chat-panel-layout";
-import { systemPromptTooltipContentSx } from "../lib/system-prompt-tooltip-content-sx";
+import {
+  systemPromptTooltipContentSx,
+  systemPromptTooltipSlotSx,
+} from "../lib/system-prompt-tooltip-content-sx";
 import { useI18n } from "./i18n/i18n-provider";
 
 type Message = {
@@ -145,16 +148,8 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                     }
                     arrow
                     placement="top"
-                    componentsProps={{
-                      tooltip: {
-                        sx: {
-                          backgroundColor: "var(--color-neutral)",
-                          border: "1px solid var(--audion-light-border-color, #0f172a)",
-                          borderRadius: "8px",
-                          maxWidth: "500px",
-                          padding: 0,
-                        },
-                      },
+                    slotProps={{
+                      tooltip: { sx: systemPromptTooltipSlotSx },
                     }}
                   >
                     <IconButton

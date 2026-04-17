@@ -17,7 +17,10 @@ import {
 } from "@mui/material";
 import { MsqdxIcon, MsqdxInput } from "@msqdx/react";
 import type { ConversationSummary } from "../../lib/chat-history";
-import { systemPromptTooltipContentSx } from "../../lib/system-prompt-tooltip-content-sx";
+import {
+  systemPromptTooltipContentSx,
+  systemPromptTooltipSlotSx,
+} from "../../lib/system-prompt-tooltip-content-sx";
 import { FORM_FIELD_ACCENT_SX } from "../../lib/theme-accent";
 
 type ChatItemProps = {
@@ -224,16 +227,8 @@ export function MsqdxGlassChatItem({
                     }
                     arrow
                     placement="top"
-                    componentsProps={{
-                      tooltip: {
-                        sx: {
-                          backgroundColor: "var(--color-neutral)",
-                          border: "1px solid var(--audion-light-border-color, #0f172a)",
-                          borderRadius: "8px",
-                          maxWidth: "500px",
-                          padding: 0,
-                        },
-                      },
+                    slotProps={{
+                      tooltip: { sx: systemPromptTooltipSlotSx },
                     }}
                   >
                     <IconButton

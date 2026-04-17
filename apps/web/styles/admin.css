@@ -12,7 +12,7 @@
 }
 
 .msqdx-glass-admin-header-bar {
-  background: transparent;
+  /* Frosted bar: background, blur, z-index set in MsqdxGlassAdminLayoutClient sx */
   border-bottom: 0;
   position: absolute;
   overflow: visible;
@@ -30,8 +30,6 @@
 }
 
 [data-theme="dark"] .msqdx-glass-admin-header-bar {
-  /* Keep transparent so the brand-color corner (from MsqdxAppLayout) remains visible */
-  background-color: transparent !important;
   border-bottom: none;
   color: #ffffff !important;
 }
@@ -113,7 +111,7 @@
   max-width: 100%;
   overflow-x: hidden;
   box-sizing: border-box;
-  /* Position under header (z-index 0); padding-top from layout sx clears header height */
+  /* Full-bleed under frosted header (main paddingTop: 0); scroll content uses own spacing */
   /* Custom scrollbar styling - positioned further inside */
   scrollbar-width: thin;
   scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
