@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
   alpha,
   Box,
+  Dialog,
   IconButton,
   Stack,
   Tooltip,
@@ -44,6 +45,26 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
   const bottomRef = useRef<HTMLDivElement>(null);
   const theme = useTheme();
   const { t } = useI18n();
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImages, setLightboxImages] = useState<string[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  const lightboxHasPrev = lightboxIndex > 0;
+  const lightboxHasNext = lightboxIndex < lightboxImages.length - 1;
+  const lightboxLabel = useMemo(() => {
+    if (lightboxImages.length === 2) return lightboxIndex === 0 ? "A" : "B";
+    return `${lightboxIndex + 1}`;
+  }, [lightboxImages.length, lightboxIndex]);
+
+  const openLightbox = (images: string[], index: number) => {
+    setLightboxImages(images);
+    setLightboxIndex(Math.max(0, Math.min(index, images.length - 1)));
+    setLightboxOpen(true);
+  };
+
+  const closeLightbox = () => setLightboxOpen(false);
+  const goPrev = () => setLightboxIndex((i) => Math.max(0, i - 1));
+  const goNext = () => setLightboxIndex((i) => Math.min(lightboxImages.length - 1, i + 1));
 
   const USER_BORDER = "var(--color-secondary-dx-orange)";
   const PERSONA_BORDER = "var(--color-secondary-dx-pink)";
@@ -110,8 +131,132 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeLightbox();
+      if (e.key === "ArrowLeft") goPrev();
+      if (e.key === "ArrowRight") goNext();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [lightboxOpen, lightboxImages.length]);
+
   return (
     <Box sx={{ width: "100%" }}>
+      <Dialog
+        open={lightboxOpen}
+        onClose={closeLightbox}
+        fullWidth
+        maxWidth="lg"
+        PaperProps={{
+          sx: {
+            backgroundColor: alpha(theme.palette.background.default, theme.palette.mode === "dark" ? 0.72 : 0.88),
+            backdropFilter: "saturate(180%) blur(18px)",
+            border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+            borderRadius: 3,
+            overflow: "hidden",
+          },
+        }}
+      >
+        <Box sx={{ position: "relative" }}>
+          <Box
+            sx={{
+              position: "absolute",
+              top: 10,
+              left: 10,
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              zIndex: 2,
+            }}
+          >
+            <Box
+              sx={{
+                px: 1,
+                py: 0.5,
+                borderRadius: 999,
+                border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+                backgroundColor: alpha(theme.palette.background.paper, 0.5),
+              }}
+            >
+              <Typography variant="caption" sx={{ fontWeight: 800, letterSpacing: 0.6 }}>
+                {`Image ${lightboxLabel}`}
+              </Typography>
+            </Box>
+          </Box>
+
+          <Box sx={{ position: "absolute", top: 6, right: 6, zIndex: 2, display: "flex", gap: 0.5 }}>
+            <Tooltip title="Close">
+              <IconButton
+                onClick={closeLightbox}
+                sx={{
+                  backgroundColor: alpha(theme.palette.background.paper, 0.55),
+                  border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+                }}
+              >
+                <MsqdxIcon name="close" customSize={20} />
+              </IconButton>
+            </Tooltip>
+          </Box>
+
+          {lightboxHasPrev ? (
+            <Box sx={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", zIndex: 2 }}>
+              <Tooltip title="Previous">
+                <IconButton
+                  onClick={goPrev}
+                  sx={{
+                    backgroundColor: alpha(theme.palette.background.paper, 0.55),
+                    border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+                  }}
+                >
+                  <MsqdxIcon name="chevron_left" customSize={24} />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          ) : null}
+
+          {lightboxHasNext ? (
+            <Box sx={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", zIndex: 2 }}>
+              <Tooltip title="Next">
+                <IconButton
+                  onClick={goNext}
+                  sx={{
+                    backgroundColor: alpha(theme.palette.background.paper, 0.55),
+                    border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+                  }}
+                >
+                  <MsqdxIcon name="chevron_right" customSize={24} />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          ) : null}
+
+          <Box
+            sx={{
+              width: "100%",
+              height: "min(82vh, 920px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              p: { xs: 2, sm: 3 },
+            }}
+          >
+            <Box
+              component="img"
+              src={lightboxImages[lightboxIndex] ?? ""}
+              alt={`Image ${lightboxLabel}`}
+              sx={{
+                width: "100%",
+                height: "100%",
+                objectFit: "contain",
+                borderRadius: 2,
+                backgroundColor: alpha(theme.palette.background.paper, 0.25),
+              }}
+            />
+          </Box>
+        </Box>
+      </Dialog>
       <Stack spacing={3} sx={glassChatPanelMessagesStackSx}>
         {messages.map((message) => {
           const bubbleStyles = getBubbleStyles(message.role);
@@ -240,7 +385,9 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                                   objectFit: "contain",
                                   display: "block",
                                   backgroundColor: alpha(theme.palette.background.paper, 0.35),
+                                  cursor: "zoom-in",
                                 }}
+                                onClick={() => openLightbox(message.images ?? [], imageIndex)}
                               />
                             </Box>
                           ))}
@@ -260,7 +407,9 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                                 objectFit: "contain",
                                 border: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
                                 backgroundColor: alpha(theme.palette.background.paper, 0.5),
+                                cursor: "zoom-in",
                               }}
+                              onClick={() => openLightbox(message.images ?? [], imageIndex)}
                             />
                           ))}
                         </Box>
