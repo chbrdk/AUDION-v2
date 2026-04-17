@@ -1,7 +1,8 @@
 """Add draft/published lifecycle status for projects and target groups.
 
-Revision ID: 20260418_project_tg_publication_status
+Revision ID: 20260418_proj_tg_pub_stat
 Revises: 20260418_project_tg_bilingual_de
+(Keep revision id length <= 32 chars for audion.alembic_version.version_num.)
 Create Date: 2026-04-18
 
 Existing rows default to `draft` so publish-time bilingual validation is opt-in.
@@ -13,7 +14,7 @@ import sqlalchemy as sa
 from alembic import op
 
 
-revision = "20260418_project_tg_publication_status"
+revision = "20260418_proj_tg_pub_stat"
 down_revision = "20260418_project_tg_bilingual_de"
 branch_labels = None
 depends_on = None

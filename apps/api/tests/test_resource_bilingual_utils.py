@@ -122,3 +122,12 @@ def test_migration_project_target_group_publication_status_columns() -> None:
     text = mig.read_text(encoding="utf-8")
     for needle in ('"projects"', '"target_groups"', "status", 'schema="audion"'):
         assert needle in text
+    for line in text.splitlines():
+        if line.strip().startswith("revision = "):
+            rev_id = line.split('"', 2)[1]
+            assert len(rev_id) <= 32, (
+                "revision id must fit audion.alembic_version.version_num (varchar(32))"
+            )
+            break
+    else:
+        raise AssertionError("revision = line not found in migration")
