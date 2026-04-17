@@ -115,12 +115,12 @@ def _ab_compare_system_instruction_de() -> str:
         "- You will receive two images.\n"
         "- Treat the FIRST image as Image A and the SECOND image as Image B.\n"
         "- Compare A vs B directly. Do not describe them independently without comparing.\n"
-        "- Reply with these sections and headings exactly:\n"
-        "  1) A summary\n"
-        "  2) B summary\n"
-        "  3) Key differences\n"
-        "  4) Winner & why\n"
-        "  5) Recommendations\n"
+        "- Reply in Markdown and use these headings exactly:\n"
+        "  ### A summary\n"
+        "  ### B summary\n"
+        "  ### Key differences\n"
+        "  ### Winner & why\n"
+        "  ### Recommendations\n"
         "- You MUST pick a winner (A or B) and justify it against the user's goal."
     )
 

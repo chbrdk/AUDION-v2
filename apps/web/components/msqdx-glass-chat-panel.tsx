@@ -190,6 +190,84 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                     opacity: 1,
                   }}
                 >
+                  {/* Display images (A/B side-by-side when 2 attachments) */}
+                  {message.images && message.images.length > 0 && (
+                    <Box sx={{ mt: 0.25, mb: 1.25 }}>
+                      {message.images.length === 2 ? (
+                        <Box
+                          sx={{
+                            display: "grid",
+                            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                            gap: 1,
+                            alignItems: "start",
+                          }}
+                        >
+                          {message.images.map((imageDataUrl, imageIndex) => (
+                            <Box
+                              key={imageIndex}
+                              sx={{
+                                borderRadius: "12px",
+                                overflow: "hidden",
+                                border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+                                backgroundColor: alpha(theme.palette.background.paper, 0.5),
+                              }}
+                            >
+                              <Box
+                                sx={{
+                                  px: 1,
+                                  py: 0.5,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                  borderBottom: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+                                  backgroundColor: alpha(theme.palette.background.paper, 0.35),
+                                }}
+                              >
+                                <Typography variant="caption" sx={{ fontWeight: 700, letterSpacing: 0.5 }}>
+                                  {imageIndex === 0 ? "A" : "B"}
+                                </Typography>
+                                <Typography variant="caption" sx={{ opacity: 0.75 }}>
+                                  {`Image ${imageIndex + 1}`}
+                                </Typography>
+                              </Box>
+                              <Box
+                                component="img"
+                                src={imageDataUrl}
+                                alt={`Attachment ${imageIndex + 1}`}
+                                sx={{
+                                  width: "100%",
+                                  height: { xs: 220, sm: 240 },
+                                  objectFit: "contain",
+                                  display: "block",
+                                  backgroundColor: alpha(theme.palette.background.paper, 0.35),
+                                }}
+                              />
+                            </Box>
+                          ))}
+                        </Box>
+                      ) : (
+                        <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                          {message.images.map((imageDataUrl, imageIndex) => (
+                            <Box
+                              key={imageIndex}
+                              component="img"
+                              src={imageDataUrl}
+                              alt={`Attachment ${imageIndex + 1}`}
+                              sx={{
+                                maxWidth: "100%",
+                                maxHeight: "400px",
+                                borderRadius: "8px",
+                                objectFit: "contain",
+                                border: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
+                                backgroundColor: alpha(theme.palette.background.paper, 0.5),
+                              }}
+                            />
+                          ))}
+                        </Box>
+                      )}
+                    </Box>
+                  )}
+
                   {message.role === "persona" && message.reasoning?.trim() ? (
                     <Accordion
                       disableGutters
@@ -240,27 +318,6 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                         <MsqdxIcon name="description" customSize={14} />
                         {d.filename}
                       </Typography>
-                    ))}
-                  </Box>
-                )}
-                {/* Display images if available */}
-                {message.images && message.images.length > 0 && (
-                  <Box sx={{ mt: 1.5, display: "flex", flexDirection: "column", gap: 1 }}>
-                    {message.images.map((imageDataUrl, imageIndex) => (
-                      <Box
-                        key={imageIndex}
-                        component="img"
-                        src={imageDataUrl}
-                        alt={`Attachment ${imageIndex + 1}`}
-                        sx={{
-                          maxWidth: "100%",
-                          maxHeight: "400px",
-                          borderRadius: "8px",
-                          objectFit: "contain",
-                          border: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
-                          backgroundColor: alpha(theme.palette.background.paper, 0.5)
-                        }}
-                      />
                     ))}
                   </Box>
                 )}
