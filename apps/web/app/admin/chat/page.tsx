@@ -364,6 +364,7 @@ function AdminChatPageContent() {
   const [pendingImages, setPendingImages] = useState<string[]>([]); // Base64 data URLs für Anzeige (Thumbnails)
   const [pendingDocumentIds, setPendingDocumentIds] = useState<string[]>([]);
   const [pendingDocumentMeta, setPendingDocumentMeta] = useState<Array<{ id: string; filename: string }>>([]);
+  const [abCompareNextMessage, setAbCompareNextMessage] = useState(false);
   const [sending, setSending] = useState(false);
   const [personaMenuAnchor, setPersonaMenuAnchor] = useState<null | HTMLElement>(null);
   const [personaDrawerOpen, setPersonaDrawerOpen] = useState(false);
@@ -1251,6 +1252,7 @@ function AdminChatPageContent() {
       role: string;
       content: string;
       image_ids?: string[];
+      ab_compare?: boolean;
       document_ids?: string[];
     }> = [];
 
@@ -1285,7 +1287,7 @@ function AdminChatPageContent() {
       });
 
     // Add current user message with image_ids if available
-    const userMessage: { role: string; content: string; image_ids?: string[]; document_ids?: string[] } = {
+    const userMessage: { role: string; content: string; image_ids?: string[]; ab_compare?: boolean; document_ids?: string[] } = {
       role: "user",
       content: contentToSend,
     };
@@ -1293,6 +1295,9 @@ function AdminChatPageContent() {
     // Füge Image-IDs hinzu, wenn vorhanden
     if (pendingImageIds.length > 0) {
       userMessage.image_ids = [...pendingImageIds];
+    }
+    if (abCompareNextMessage && pendingImageIds.length === 2) {
+      userMessage.ab_compare = true;
     }
     if (pendingDocumentIds.length > 0) {
       userMessage.document_ids = [...pendingDocumentIds];
@@ -1322,6 +1327,7 @@ function AdminChatPageContent() {
     setPendingImages([]); // Reset pending images after sending
     setPendingDocumentIds([]);
     setPendingDocumentMeta([]);
+    setAbCompareNextMessage(false);
     setSending(true);
     setThinkingLabel(voiceStreaming ? "Sending voice message..." : "Sending message...");
 
@@ -1958,6 +1964,13 @@ function AdminChatPageContent() {
       notify(msg);
     }
   };
+
+  useEffect(() => {
+    // A/B compare is only meaningful with exactly two pending images.
+    if (pendingImageIds.length !== 2 && abCompareNextMessage) {
+      setAbCompareNextMessage(false);
+    }
+  }, [pendingImageIds.length, abCompareNextMessage]);
 
   // Load conversation from URL on mount
   useEffect(() => {
@@ -2780,6 +2793,24 @@ function AdminChatPageContent() {
                   },
                 }}
               />
+              {chatMode === "persona" && pendingImageIds.length === 2 && (
+                <FormControlLabel
+                  sx={{ ml: 0.5, userSelect: "none" }}
+                  control={
+                    <Checkbox
+                      size="small"
+                      checked={abCompareNextMessage}
+                      onChange={(e) => setAbCompareNextMessage(e.target.checked)}
+                      disabled={sending}
+                    />
+                  }
+                  label={
+                    <Typography variant="caption" sx={{ fontSize: "0.75rem", fontWeight: 600 }}>
+                      A/B compare
+                    </Typography>
+                  }
+                />
+              )}
               <Tooltip title={t("adminChat.togglePlayback")}>
                 <IconButton
                   onClick={handleVoiceToggle}

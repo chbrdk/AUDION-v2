@@ -98,10 +98,50 @@ class ChatMessage(BaseModel):
     role: str  # "system", "user", "assistant"
     content: str
     image_ids: List[str] | None = Field(default=None, description="IDs von hochgeladenen Bildern (via /images/upload)")
+    ab_compare: bool | None = Field(
+        default=None,
+        description="If true and exactly two images are attached (image_ids), instruct persona to compare Image A vs B.",
+    )
     document_ids: List[str] | None = Field(
         default=None,
         description="IDs von temporär hochgeladenen DOCX (via /chat/documents/upload)",
     )
+
+
+def _ab_compare_system_instruction_de() -> str:
+    # Keep it short but strict: ordering, required sections, and winner requirement.
+    return (
+        "A/B Compare Mode (2 images):\n"
+        "- You will receive two images.\n"
+        "- Treat the FIRST image as Image A and the SECOND image as Image B.\n"
+        "- Compare A vs B directly. Do not describe them independently without comparing.\n"
+        "- Reply with these sections and headings exactly:\n"
+        "  1) A summary\n"
+        "  2) B summary\n"
+        "  3) Key differences\n"
+        "  4) Winner & why\n"
+        "  5) Recommendations\n"
+        "- You MUST pick a winner (A or B) and justify it against the user's goal."
+    )
+
+
+def _maybe_append_ab_compare_system_instruction(*, system_parts: list[str], msg: ChatMessage, persona_id: str) -> None:
+    if msg.role != "user" or not bool(getattr(msg, "ab_compare", False)):
+        return
+    img_count = len(msg.image_ids) if msg.image_ids else 0
+    if img_count == 2:
+        system_parts.append(_ab_compare_system_instruction_de())
+        logger.info(
+            "chat.ab_compare.enabled",
+            persona_id=persona_id,
+            image_count=img_count,
+        )
+    else:
+        logger.info(
+            "chat.ab_compare.ignored_invalid_image_count",
+            persona_id=persona_id,
+            image_count=img_count,
+        )
 
 
 class ChatMessageRequest(BaseModel):
@@ -212,6 +252,11 @@ def build_chat_stream_context(request: ChatMessageRequest) -> ChatStreamContext:
             if msg.role == "system":
                 system_parts.append(msg.content)
             elif msg.role in ["user", "assistant"]:
+                _maybe_append_ab_compare_system_instruction(
+                    system_parts=system_parts,
+                    msg=msg,
+                    persona_id=request.persona_id,
+                )
                 turn_spec_messages.append({"role": msg.role, "content": msg.content or ""})
                 logger.info(
                     "chat.message.raw",

@@ -7,6 +7,8 @@ export type Message = {
   personaName?: string;
   image_ids?: string[];
   images?: string[];
+  /** If true, the next completion should compare the first two images (A vs B). */
+  ab_compare?: boolean;
   document_ids?: string[];
   /** Filenames for UI when document_ids are present (server text is not stored locally). */
   document_attachment_meta?: Array<{ id: string; filename: string }>;
