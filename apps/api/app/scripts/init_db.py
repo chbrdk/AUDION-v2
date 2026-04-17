@@ -370,6 +370,44 @@ def init_db():
         except Exception as e:
             logger.warning(f"Projects/target_groups ORM column ensure failed: {e}")
 
+        # 2d. Persona bilingual ORM columns when 20260417_persona_bilingual_de was not applied (legacy stamp).
+        try:
+            with engine.connect() as conn:
+                per_tbl = conn.execute(
+                    text(
+                        "SELECT EXISTS (SELECT 1 FROM information_schema.tables "
+                        "WHERE table_schema = 'audion' AND table_name = 'personas')"
+                    )
+                ).scalar()
+                if per_tbl:
+                    conn.execute(
+                        text("ALTER TABLE audion.personas ADD COLUMN IF NOT EXISTS headline_de TEXT NULL")
+                    )
+                    conn.execute(
+                        text("ALTER TABLE audion.personas ADD COLUMN IF NOT EXISTS profile_de JSONB NULL")
+                    )
+                    conn.execute(
+                        text("ALTER TABLE audion.personas ADD COLUMN IF NOT EXISTS profile_card_de JSONB NULL")
+                    )
+                pp_tbl = conn.execute(
+                    text(
+                        "SELECT EXISTS (SELECT 1 FROM information_schema.tables "
+                        "WHERE table_schema = 'audion' AND table_name = 'persona_prompts')"
+                    )
+                ).scalar()
+                if pp_tbl:
+                    conn.execute(
+                        text(
+                            "ALTER TABLE audion.persona_prompts ADD COLUMN IF NOT EXISTS system_prompt_de TEXT NULL"
+                        )
+                    )
+                conn.commit()
+                logger.info(
+                    "Ensured personas/persona_prompts bilingual DE columns (headline_de, profile_de, …)."
+                )
+        except Exception as e:
+            logger.warning(f"Persona bilingual ORM column ensure failed: {e}")
+
         # 3. Migration Logic
         # Check if core tables exist. If so, we assume the schema is initialized.
         with engine.connect() as conn:

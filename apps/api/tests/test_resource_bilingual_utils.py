@@ -133,6 +133,20 @@ def test_init_db_emergency_orm_columns_for_projects_target_groups() -> None:
         assert needle in text, f"missing emergency DDL: {needle}"
 
 
+def test_init_db_emergency_persona_bilingual_columns() -> None:
+    root = Path(__file__).resolve().parents[1]
+    init_py = root / "app" / "scripts" / "init_db.py"
+    text = init_py.read_text(encoding="utf-8")
+    assert "2d. Persona bilingual ORM columns" in text
+    for needle in (
+        "audion.personas ADD COLUMN IF NOT EXISTS headline_de",
+        "audion.personas ADD COLUMN IF NOT EXISTS profile_de",
+        "audion.personas ADD COLUMN IF NOT EXISTS profile_card_de",
+        "audion.persona_prompts ADD COLUMN IF NOT EXISTS system_prompt_de",
+    ):
+        assert needle in text, f"missing persona emergency DDL: {needle}"
+
+
 def test_coolify_migrate_script_present() -> None:
     root = Path(__file__).resolve().parents[1]
     script = root / "scripts" / "coolify-migrate.sh"
