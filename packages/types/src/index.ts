@@ -35,6 +35,7 @@ export type PersonaProfile = {
 export type PersonaPrompt = {
   persona_id: string;
   system_prompt: string;
+  system_prompt_de?: string | null;
   template_version: string;
 };
 
@@ -95,6 +96,7 @@ export type PersonaListItem = {
   name: string;
   segment: string;
   headline: string;
+  headline_de?: string | null;
   status: string;
   confidence: number;
   version: string;
@@ -102,6 +104,10 @@ export type PersonaListItem = {
   updatedBy?: string | null;
   imageUrl?: string | null;
   avatarUrl?: string | null;
+  profileCard?: Record<string, any> | null;
+  profileCardDe?: Record<string, unknown> | null;
+  profile?: PersonaProfile | null;
+  prompt?: PersonaPrompt | null;
 };
 
 export type PersonaListResponse = {
@@ -113,6 +119,9 @@ export type PersonaListResponse = {
 
 export type PersonaResponse = {
   profile: PersonaProfile;
+  headline_de?: string | null;
+  profile_de?: Record<string, unknown> | null;
+  profile_card_de?: Record<string, unknown> | null;
   prompt: PersonaPrompt;
   sources: Array<{ chunk_id: string; confidence: number; rationale?: string | null }>;
   metadata: PersonaMetadata;
@@ -138,7 +147,12 @@ export type TargetGroup = {
   projectId: string;
   name: string;
   segment: string;
+  name_de?: string | null;
+  segment_de?: string | null;
   description?: string | null;
+  description_de?: string | null;
+  /** Publication lifecycle from backend (`draft` | `published`). */
+  status?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -147,7 +161,12 @@ export type TargetGroupListItem = {
   id: string;
   name: string;
   segment: string;
+  name_de?: string | null;
+  segment_de?: string | null;
   description?: string | null;
+  description_de?: string | null;
+  /** Publication lifecycle (`draft` | `published`). */
+  status?: string;
   personaCount: number;
   knowledgeEntryCount: number;
   createdAt: string;
@@ -166,7 +185,12 @@ export type TargetGroupResponse = {
   projectId: string;
   name: string;
   segment: string;
+  name_de?: string | null;
+  segment_de?: string | null;
   description?: string | null;
+  description_de?: string | null;
+  /** Publication lifecycle (`draft` | `published`). */
+  status?: string;
   personas: PersonaListItem[];
   knowledgeEntries: PersonaKnowledgeEntry[];
   sources: Array<{ chunkId: string; relevanceScore: number }>;

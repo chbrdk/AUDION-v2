@@ -30,6 +30,7 @@ import {
   DialogTitle,
   FormControlLabel,
   LinearProgress,
+  TextField,
   Tooltip,
 } from "@mui/material";
 import { buildApiUrl } from "../app/api/_lib/backend";
@@ -56,6 +57,8 @@ type MsqdxGlassPersonaAdminPanelProps = {
 type EditFormState = {
   name: string;
   headline: string;
+  headline_de: string;
+  system_prompt_de: string;
   segment: string;
   status: string;
   updatedBy: string;
@@ -65,6 +68,7 @@ type CreateFormState = {
   name: string;
   segment: string;
   headline: string;
+  headline_de: string;
 };
 
 type KnowledgeFormState = {
@@ -100,11 +104,18 @@ type Moodboard = {
   tiles: MoodboardTile[];
 };
 
-type PersonaSaveUpdates = Partial<EditFormState> | Partial<PersonaProfile> | { project_id?: string; target_group_id?: string | null };
+type PersonaSaveUpdates =
+  | Partial<EditFormState>
+  | Partial<PersonaProfile>
+  | { project_id?: string; target_group_id?: string | null }
+  | { profile_de?: Record<string, unknown> | null }
+  | { system_prompt_de?: string | null };
 
 const defaultEditFormState: EditFormState = {
   name: "",
   headline: "",
+  headline_de: "",
+  system_prompt_de: "",
   segment: "",
   status: "draft",
   updatedBy: "persona-admin-ui",
@@ -114,6 +125,7 @@ const defaultCreateFormState: CreateFormState = {
   name: "",
   segment: "",
   headline: "",
+  headline_de: "",
 };
 
 const defaultKnowledgeForm: KnowledgeFormState = {
@@ -207,6 +219,9 @@ export const MsqdxGlassPersonaAdminPanel = ({
   const [detailError, setDetailError] = useState<string | null>(null);
   const [detailLoading, setDetailLoading] = useState<boolean>(false);
   const [editForm, setEditForm] = useState<EditFormState>(defaultEditFormState);
+  const [profileDeText, setProfileDeText] = useState<string>("");
+  const profileDeDirtyRef = useRef(false);
+  const systemPromptDeDirtyRef = useRef(false);
   const [savePending, setSavePending] = useState(false);
   const [createForm, setCreateForm] = useState<CreateFormState>(defaultCreateFormState);
   const [createPending, setCreatePending] = useState(false);
@@ -555,6 +570,9 @@ export const MsqdxGlassPersonaAdminPanel = ({
   useEffect(() => {
     if (!detail) {
       setEditForm(defaultEditFormState);
+      setProfileDeText("");
+      profileDeDirtyRef.current = false;
+      systemPromptDeDirtyRef.current = false;
       metadataFormDirtyRef.current = false;
       return;
     }
@@ -564,13 +582,18 @@ export const MsqdxGlassPersonaAdminPanel = ({
     if (metadataFormDirtyRef.current) {
       return;
     }
-    setEditForm({
+    setEditForm((prev) => ({
       name: detail.profile.name,
       headline: detail.profile.headline,
+      headline_de: detail.headline_de ?? "",
+      system_prompt_de: systemPromptDeDirtyRef.current ? prev.system_prompt_de : (detail.prompt.system_prompt_de ?? ""),
       segment: detail.profile.segment,
       status: detail.metadata.status,
       updatedBy: detail.metadata.updatedBy ?? "persona-admin-ui",
-    });
+    }));
+    if (!profileDeDirtyRef.current) {
+      setProfileDeText(detail.profile_de ? JSON.stringify(detail.profile_de, null, 2) : "");
+    }
   }, [detail, selectedId]);
 
   useEffect(() => {
@@ -644,13 +667,22 @@ export const MsqdxGlassPersonaAdminPanel = ({
         'goals' in updates
       );
 
+      const hasStructuredPatchFields =
+        updates &&
+        ("profile_de" in updates ||
+          "project_id" in updates ||
+          "target_group_id" in updates ||
+          "tavus_replica_id" in updates ||
+          "tavus_persona_id" in updates ||
+          "system_prompt_de" in updates);
+
       let formUpdates: Partial<EditFormState> | undefined;
       let demographicUpdates: Partial<PersonaProfile> | undefined;
 
       if (hasDemographicFields) {
         // Updates are demographic fields
         demographicUpdates = updates as Partial<PersonaProfile>;
-      } else {
+      } else if (!hasStructuredPatchFields && updates) {
         // Updates are form fields
         formUpdates = updates as Partial<EditFormState>;
       }
@@ -658,6 +690,11 @@ export const MsqdxGlassPersonaAdminPanel = ({
       // Merge basic form updates
       const updatedName = formUpdates?.name ?? editForm.name;
       const updatedHeadline = formUpdates?.headline ?? editForm.headline;
+      const updatedHeadlineDe = formUpdates?.headline_de ?? editForm.headline_de;
+      const updatedSystemPromptDe =
+        updates && "system_prompt_de" in updates
+          ? (((updates as { system_prompt_de?: string | null }).system_prompt_de ?? "") as string)
+          : (formUpdates?.system_prompt_de ?? editForm.system_prompt_de);
       const updatedSegment = formUpdates?.segment ?? editForm.segment;
       const updatedStatus = formUpdates?.status ?? editForm.status;
       const updatedBy = formUpdates?.updatedBy ?? editForm.updatedBy ?? "persona-admin-ui";
@@ -816,14 +853,40 @@ export const MsqdxGlassPersonaAdminPanel = ({
         completeProfile: JSON.stringify(completeProfile, null, 2),
       });
 
+      let profileDe: Record<string, unknown> | null | undefined = undefined;
+      if (updates && "profile_de" in updates) {
+        profileDe = (updates as { profile_de?: Record<string, unknown> | null }).profile_de ?? null;
+      } else if (profileDeDirtyRef.current) {
+        const trimmed = profileDeText.trim();
+        if (trimmed.length > 0) {
+          try {
+            const parsed = JSON.parse(trimmed) as unknown;
+            if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+              throw new Error("profile_de must be a JSON object");
+            }
+            profileDe = parsed as Record<string, unknown>;
+          } catch (e) {
+            notify(e instanceof Error ? e.message : "Invalid profile_de JSON");
+            throw e;
+          }
+        } else {
+          // Explicitly allow clearing DE mirror
+          profileDe = null;
+        }
+      }
+
       const payload: Record<string, unknown> = {
         name: updatedName,
         headline: updatedHeadline,
+        headline_de: updatedHeadlineDe,
         segment: updatedSegment,
         status: updatedStatus,
         updated_by: updatedBy,
         profile: completeProfile,
       };
+      if (profileDe !== undefined) {
+        payload.profile_de = profileDe;
+      }
       if (detail.metadata) {
         payload.project_id = (updates as { project_id?: string })?.project_id ?? detail.metadata.projectId;
         payload.target_group_id = (updates as { target_group_id?: string | null })?.target_group_id !== undefined
@@ -839,6 +902,18 @@ export const MsqdxGlassPersonaAdminPanel = ({
             : (detail.metadata as { tavusPersonaId?: string | null }).tavusPersonaId ?? null;
       }
 
+      const shouldPatchPromptDe = Boolean(
+        systemPromptDeDirtyRef.current || (updates && "system_prompt_de" in updates)
+      );
+      if (shouldPatchPromptDe) {
+        payload.prompt = {
+          persona_id: detail.prompt.persona_id ?? detail.metadata.personaId,
+          system_prompt: detail.prompt.system_prompt ?? "",
+          system_prompt_de: updatedSystemPromptDe,
+          template_version: detail.prompt.template_version ?? "unknown",
+        };
+      }
+
       console.log('[DEBUG] Payload JSON:', JSON.stringify(payload, null, 2));
       console.log('[DEBUG] Profile keys before send:', Object.keys(completeProfile));
       console.log('[DEBUG] Gender in profile before send:', 'gender' in completeProfile, completeProfile.gender);
@@ -848,9 +923,13 @@ export const MsqdxGlassPersonaAdminPanel = ({
       if (formUpdates) {
         if (formUpdates.name !== undefined) handleEditField("name", formUpdates.name);
         if (formUpdates.headline !== undefined) handleEditField("headline", formUpdates.headline);
+        if (formUpdates.headline_de !== undefined) handleEditField("headline_de", formUpdates.headline_de);
+        if (formUpdates.system_prompt_de !== undefined) handleEditField("system_prompt_de", formUpdates.system_prompt_de);
         if (formUpdates.segment !== undefined) handleEditField("segment", formUpdates.segment);
         if (formUpdates.status !== undefined) handleEditField("status", formUpdates.status);
         if (formUpdates.updatedBy !== undefined) handleEditField("updatedBy", formUpdates.updatedBy);
+      } else if (updates && "system_prompt_de" in updates) {
+        handleEditField("system_prompt_de", ((updates as { system_prompt_de?: string | null }).system_prompt_de ?? "") as string);
       }
 
       const response = await fetch(buildApiUrl(`/api/persona-admin/${selectedId}`), {
@@ -875,6 +954,9 @@ export const MsqdxGlassPersonaAdminPanel = ({
         media_affinity: updated.profile?.media_affinity,
       });
       metadataFormDirtyRef.current = false;
+      profileDeDirtyRef.current = false;
+      systemPromptDeDirtyRef.current = false;
+      setProfileDeText(updated.profile_de ? JSON.stringify(updated.profile_de, null, 2) : "");
       setDetail(updated);
       setList((prev) => ({
         ...prev,
@@ -887,10 +969,15 @@ export const MsqdxGlassPersonaAdminPanel = ({
           ...prev,
           ...(formUpdates.name !== undefined && { name: formUpdates.name }),
           ...(formUpdates.headline !== undefined && { headline: formUpdates.headline }),
+          ...(formUpdates.headline_de !== undefined && { headline_de: formUpdates.headline_de }),
+          ...(formUpdates.system_prompt_de !== undefined && { system_prompt_de: formUpdates.system_prompt_de }),
           ...(formUpdates.segment !== undefined && { segment: formUpdates.segment }),
           ...(formUpdates.status !== undefined && { status: formUpdates.status }),
           ...(formUpdates.updatedBy !== undefined && { updatedBy: formUpdates.updatedBy }),
         }));
+      } else if (updates && "system_prompt_de" in updates) {
+        const nextDe = ((updates as { system_prompt_de?: string | null }).system_prompt_de ?? "") as string;
+        setEditForm((prev) => ({ ...prev, system_prompt_de: nextDe }));
       }
 
       notify(t("personaAdmin.toasts.personaSaved"));
@@ -1377,6 +1464,9 @@ export const MsqdxGlassPersonaAdminPanel = ({
         name: createForm.name,
         segment: createForm.segment || "unspecified",
         headline: createForm.headline || "New Persona",
+        ...(createForm.headline_de.trim()
+          ? { headline_de: createForm.headline_de.trim() }
+          : {}),
         profile: {
           id: "",
           name: createForm.name,
@@ -1557,6 +1647,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
       } else {
         notify(t("personaAdmin.toasts.chatPromptAlreadyCurrent"));
       }
+      await loadDetail(selectedId);
     } catch (error) {
       console.error("Ensure chat prompt failed", error);
       notify((error instanceof Error ? error.message : t("personaAdmin.toasts.chatPromptFailed")) ?? "Failed");
@@ -1775,6 +1866,14 @@ export const MsqdxGlassPersonaAdminPanel = ({
                 fullWidth
                 size="small"
               />
+              <MsqdxFormField
+                label={`${t("personaAdmin.headline")} (DE)`}
+                value={createForm.headline_de}
+                onChange={(e) => setCreateForm((prev) => ({ ...prev, headline_de: e.target.value }))}
+                placeholder="German headline (optional)"
+                fullWidth
+                size="small"
+              />
               <MsqdxButton
                 variant="contained"
                 size="small"
@@ -1892,6 +1991,130 @@ export const MsqdxGlassPersonaAdminPanel = ({
                                   )}
                                 </div>
                               )}
+                              <Box sx={{ mt: 1 }}>
+                                <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
+                                  Headline (DE) — optional until publish
+                                </MsqdxTypography>
+                                <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start", flexWrap: "wrap" }}>
+                                  <TextField
+                                    size="small"
+                                    fullWidth
+                                    value={editForm.headline_de}
+                                    onChange={(e) => {
+                                      metadataFormDirtyRef.current = true;
+                                      setEditForm((prev) => ({ ...prev, headline_de: e.target.value }));
+                                    }}
+                                    placeholder="German headline"
+                                    disabled={savePending}
+                                  />
+                                  <MsqdxButton
+                                    variant="outlined"
+                                    size="small"
+                                    disabled={savePending}
+                                    onClick={async () => {
+                                      await handleSave({ headline_de: editForm.headline_de });
+                                    }}
+                                  >
+                                    Save DE headline
+                                  </MsqdxButton>
+                                </Box>
+                              </Box>
+
+                              <Box sx={{ mt: 2 }}>
+                                <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
+                                  Profile JSON (DE) — must match EN profile keys/shape for publish
+                                </MsqdxTypography>
+                                <TextField
+                                  multiline
+                                  minRows={10}
+                                  fullWidth
+                                  value={profileDeText}
+                                  onChange={(e) => {
+                                    profileDeDirtyRef.current = true;
+                                    setProfileDeText(e.target.value);
+                                  }}
+                                  disabled={savePending}
+                                  sx={{ "& textarea": { fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" } }}
+                                />
+                                <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end", mt: 1, flexWrap: "wrap" }}>
+                                  <MsqdxButton
+                                    variant="outlined"
+                                    size="small"
+                                    disabled={savePending}
+                                    onClick={() => {
+                                      profileDeDirtyRef.current = false;
+                                      setProfileDeText(detail.profile_de ? JSON.stringify(detail.profile_de, null, 2) : "");
+                                    }}
+                                  >
+                                    Reset
+                                  </MsqdxButton>
+                                  <MsqdxButton
+                                    variant="contained"
+                                    size="small"
+                                    disabled={savePending}
+                                    onClick={async () => {
+                                      await handleSave();
+                                    }}
+                                  >
+                                    Save DE profile
+                                  </MsqdxButton>
+                                </Box>
+                              </Box>
+
+                              <Box sx={{ mt: 2 }}>
+                                <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
+                                  Compact chat system prompt (EN) — canonical
+                                </MsqdxTypography>
+                                <TextField
+                                  multiline
+                                  minRows={6}
+                                  fullWidth
+                                  value={detail.prompt.system_prompt ?? ""}
+                                  disabled
+                                  sx={{ "& textarea": { fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" } }}
+                                />
+                                <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 1.5, mb: 0.5 }}>
+                                  Compact chat system prompt (DE) — required for publish when EN prompt exists
+                                </MsqdxTypography>
+                                <TextField
+                                  multiline
+                                  minRows={6}
+                                  fullWidth
+                                  value={editForm.system_prompt_de}
+                                  onChange={(e) => {
+                                    systemPromptDeDirtyRef.current = true;
+                                    setEditForm((prev) => ({ ...prev, system_prompt_de: e.target.value }));
+                                  }}
+                                  disabled={savePending}
+                                  sx={{ "& textarea": { fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" } }}
+                                />
+                                <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end", mt: 1, flexWrap: "wrap" }}>
+                                  <MsqdxButton
+                                    variant="outlined"
+                                    size="small"
+                                    disabled={savePending}
+                                    onClick={() => {
+                                      systemPromptDeDirtyRef.current = false;
+                                      setEditForm((prev) => ({
+                                        ...prev,
+                                        system_prompt_de: detail.prompt.system_prompt_de ?? "",
+                                      }));
+                                    }}
+                                  >
+                                    Reset
+                                  </MsqdxButton>
+                                  <MsqdxButton
+                                    variant="contained"
+                                    size="small"
+                                    disabled={savePending}
+                                    onClick={async () => {
+                                      await handleSave({ system_prompt_de: editForm.system_prompt_de });
+                                    }}
+                                  >
+                                    Save DE prompt
+                                  </MsqdxButton>
+                                </Box>
+                              </Box>
                               {segmentField && (
                                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                                   {editingField === "segment" ? (

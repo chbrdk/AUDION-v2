@@ -26,7 +26,7 @@ import {
   updateTargetGroup,
 } from "../app/api/_lib/target-group";
 import type { PersonaListItem } from "@msqdx-glass/types";
-import { MsqdxIcon, MsqdxFormField, MsqdxTextareaField, MsqdxButton, MsqdxTypography, MsqdxCard, MsqdxChip, MsqdxDashboardCard } from "@msqdx/react";
+import { MsqdxIcon, MsqdxFormField, MsqdxTextareaField, MsqdxButton, MsqdxTypography, MsqdxCard, MsqdxChip, MsqdxDashboardCard, MsqdxSelect } from "@msqdx/react";
 import { MsqdxGlassKnowledgeExplorer } from "./msqdx-glass-knowledge-explorer";
 import { MsqdxGlassDashboardCardSection } from "./dashboard-cards/msqdx-glass-dashboard-card-section";
 import { MsqdxGlassPersonaList } from "./msqdx-glass-persona-list";
@@ -56,6 +56,10 @@ type CreateFormState = {
   name: string;
   segment: string;
   description: string;
+  name_de: string;
+  segment_de: string;
+  description_de: string;
+  status: "draft" | "published";
 };
 
 type KnowledgeFormState = {
@@ -79,6 +83,10 @@ const defaultCreateFormState: CreateFormState = {
   name: "",
   segment: "",
   description: "",
+  name_de: "",
+  segment_de: "",
+  description_de: "",
+  status: "draft",
 };
 
 const defaultKnowledgeForm: KnowledgeFormState = {
@@ -220,6 +228,10 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
           projectId: response.projectId ?? responseAny.project_id ?? "",
           createdAt: response.createdAt ?? responseAny.created_at ?? "",
           updatedAt: response.updatedAt ?? responseAny.updated_at ?? "",
+          name_de: response.name_de ?? responseAny.name_de ?? null,
+          segment_de: response.segment_de ?? responseAny.segment_de ?? null,
+          description_de: response.description_de ?? responseAny.description_de ?? null,
+          status: response.status ?? responseAny.status ?? "draft",
         };
         setDetail(normalizedResponse);
         setEditForm({
@@ -335,6 +347,10 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
         name: createForm.name,
         segment: createForm.segment,
         description: createForm.description || null,
+        name_de: createForm.name_de.trim() || null,
+        segment_de: createForm.segment_de.trim() || null,
+        description_de: createForm.description_de.trim() || null,
+        status: createForm.status,
       };
       const created = await createTargetGroup(payload);
       setCreateForm(defaultCreateFormState);
@@ -599,6 +615,49 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                 minRows={3}
                 fullWidth
                 sx={FORM_FIELD_ACCENT_SX}
+              />
+              <MsqdxFormField
+                label="Name (DE)"
+                value={createForm.name_de}
+                onChange={(e) => setCreateForm((prev) => ({ ...prev, name_de: e.target.value }))}
+                placeholder="German display name (optional)"
+                fullWidth
+                size="small"
+                sx={FORM_FIELD_ACCENT_SX}
+              />
+              <MsqdxFormField
+                label="Segment (DE)"
+                value={createForm.segment_de}
+                onChange={(e) => setCreateForm((prev) => ({ ...prev, segment_de: e.target.value }))}
+                placeholder="German segment (optional)"
+                fullWidth
+                size="small"
+                sx={FORM_FIELD_ACCENT_SX}
+              />
+              <MsqdxTextareaField
+                label="Description (DE)"
+                value={createForm.description_de}
+                onChange={(e) => setCreateForm((prev) => ({ ...prev, description_de: e.target.value }))}
+                placeholder="German description (optional)"
+                minRows={2}
+                fullWidth
+                sx={FORM_FIELD_ACCENT_SX}
+              />
+              <MsqdxSelect
+                label={t("targetGroupsAdmin.publicationStatus")}
+                value={createForm.status}
+                onChange={(e) =>
+                  setCreateForm((prev) => ({
+                    ...prev,
+                    status: e.target.value === "published" ? "published" : "draft",
+                  }))
+                }
+                options={[
+                  { value: "draft", label: t("targetGroupsAdmin.statusDraft") },
+                  { value: "published", label: t("targetGroupsAdmin.statusPublished") },
+                ]}
+                size="small"
+                sx={{ ...FORM_FIELD_ACCENT_SX, maxWidth: 360 }}
               />
               <MsqdxButton
                 variant="contained"

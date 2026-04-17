@@ -21,12 +21,20 @@ type TargetGroupCreateRequest = {
   name: string;
   segment: string;
   description?: string | null;
+  name_de?: string | null;
+  segment_de?: string | null;
+  description_de?: string | null;
+  status?: string;
 };
 
 type TargetGroupUpdateRequest = {
   name?: string;
   segment?: string;
   description?: string | null;
+  name_de?: string | null;
+  segment_de?: string | null;
+  description_de?: string | null;
+  status?: string;
   updated_by?: string;
 };
 

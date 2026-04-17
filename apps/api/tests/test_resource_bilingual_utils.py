@@ -1,0 +1,124 @@
+"""Unit tests for project / target group bilingual publish helpers (no DB)."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+
+import pytest
+
+from app.services.resource_bilingual_utils import (
+    normalize_publication_status,
+    validate_project_bilingual_publish,
+    validate_target_group_bilingual_publish,
+)
+
+
+@dataclass
+class _FakeProject:
+    name: str
+    name_de: str | None
+    description: str | None
+    description_de: str | None
+    company_context: str | None
+    company_context_de: str | None
+    status: str
+
+
+@dataclass
+class _FakeTargetGroup:
+    name: str
+    name_de: str | None
+    segment: str
+    segment_de: str | None
+    description: str | None
+    description_de: str | None
+    status: str
+
+
+def test_normalize_publication_status_defaults_and_case() -> None:
+    assert normalize_publication_status(None) == "draft"
+    assert normalize_publication_status("") == "draft"
+    assert normalize_publication_status("  Published ") == "published"
+
+
+def test_normalize_publication_status_rejects_unknown() -> None:
+    with pytest.raises(ValueError, match="publication_status_invalid"):
+        normalize_publication_status("live")
+
+
+def test_validate_project_bilingual_publish_skips_when_draft() -> None:
+    p = _FakeProject(
+        name="A",
+        name_de=None,
+        description="x",
+        description_de=None,
+        company_context="y",
+        company_context_de=None,
+        status="draft",
+    )
+    validate_project_bilingual_publish(project=p)
+
+
+def test_validate_project_bilingual_publish_published_rules() -> None:
+    p = _FakeProject(
+        name="A",
+        name_de="  ",
+        description=None,
+        description_de=None,
+        company_context=None,
+        company_context_de=None,
+        status="published",
+    )
+    with pytest.raises(ValueError, match="name_de"):
+        validate_project_bilingual_publish(project=p)
+
+    p.name_de = "DE"
+    p.description = "en"
+    p.description_de = None
+    with pytest.raises(ValueError, match="description_de"):
+        validate_project_bilingual_publish(project=p)
+
+    p.description_de = "de"
+    p.company_context = "ctx"
+    p.company_context_de = None
+    with pytest.raises(ValueError, match="company_context_de"):
+        validate_project_bilingual_publish(project=p)
+
+    p.company_context_de = "de ctx"
+    validate_project_bilingual_publish(project=p)
+
+
+def test_validate_target_group_bilingual_publish_published_rules() -> None:
+    tg = _FakeTargetGroup(
+        name="n",
+        name_de=None,
+        segment="s",
+        segment_de=None,
+        description=None,
+        description_de=None,
+        status="published",
+    )
+    with pytest.raises(ValueError, match="name_de"):
+        validate_target_group_bilingual_publish(target_group=tg)
+
+    tg.name_de = "nd"
+    with pytest.raises(ValueError, match="segment_de"):
+        validate_target_group_bilingual_publish(target_group=tg)
+
+    tg.segment_de = "sd"
+    tg.description = "d"
+    tg.description_de = None
+    with pytest.raises(ValueError, match="description_de"):
+        validate_target_group_bilingual_publish(target_group=tg)
+
+    tg.description_de = "dd"
+    validate_target_group_bilingual_publish(target_group=tg)
+
+
+def test_migration_project_target_group_publication_status_columns() -> None:
+    root = Path(__file__).resolve().parents[1]
+    mig = root / "alembic" / "versions" / "20260418_project_target_group_publication_status.py"
+    text = mig.read_text(encoding="utf-8")
+    for needle in ('"projects"', '"target_groups"', "status", 'schema="audion"'):
+        assert needle in text

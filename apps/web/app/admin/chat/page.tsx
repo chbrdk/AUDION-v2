@@ -964,6 +964,7 @@ function AdminChatPageContent() {
             persona_id: persona.id,
             messages: apiMessages,
             session_id: `${tgTurnSessionId}::tg::${persona.id}`,
+            locale,
             ...(userId && { user_id: userId }),
           }),
         });
@@ -1350,6 +1351,7 @@ function AdminChatPageContent() {
         persona_id: activePersonaId,
         messages: apiMessages,
         session_id: turnSessionId,
+        locale,
         ...(userId && { user_id: userId }),
       };
 

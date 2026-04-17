@@ -39,6 +39,7 @@ from ..schemas import (
     PersonaResponse,
 )
 from .persona_headline import truncate_headline as _truncate_headline
+from .persona_bilingual_utils import json_shape_compatible, validate_bilingual_publish
 from .storage import StorageService
 
 logger = structlog.get_logger(__name__)
@@ -235,6 +236,11 @@ class PersonaService:
                 segment=payload.segment,
                 headline=payload.headline,
             )
+
+        profile_de_payload = payload.profile_de
+        if profile_de_payload is not None and not json_shape_compatible(profile_payload, profile_de_payload):
+            raise ValueError("profile_de must be shape-compatible with profile")
+
         target_group_id = None
         if payload.target_group_id:
             try:
@@ -242,32 +248,47 @@ class PersonaService:
             except ValueError:
                 raise ValueError("invalid_target_group_id")
 
+        headline_de = (payload.headline_de or "").strip() or None
+        if headline_de:
+            headline_de = _truncate_headline(headline_de) or headline_de
+
+        profile_card_de_payload = payload.profile_card_de
+
         persona = Persona(
             project_id=UUID(payload.project_id),
             name=payload.name,
             segment=payload.segment,
             headline=_truncate_headline(payload.headline) or payload.headline,
+            headline_de=headline_de,
             profile=profile_payload,
+            profile_de=profile_de_payload,
             confidence=payload.confidence,
             version=payload.version,
             status=PersonaStatus(payload.status) if payload.status else PersonaStatus.draft,
             updated_by=payload.updated_by,
             image_url=payload.image_url,
             target_group_id=target_group_id,
+            profile_card_de=profile_card_de_payload,
         )
         session.add(persona)
         session.flush()
 
         if payload.prompt:
             sp = getattr(payload.prompt, "systemPrompt", None) or getattr(payload.prompt, "system_prompt", None) or ""
+            sp_de = getattr(payload.prompt, "systemPromptDe", None) or getattr(payload.prompt, "system_prompt_de", None)
+            sp_de_s = (sp_de or "").strip() or None
             tv = getattr(payload.prompt, "templateVersion", None) or getattr(payload.prompt, "template_version", None) or "unknown"
             session.add(
                 PersonaPromptModel(
                     persona_id=persona.id,
                     system_prompt=sp,
+                    system_prompt_de=sp_de_s,
                     template_version=tv,
                 )
             )
+
+        if persona.status == PersonaStatus.published:
+            validate_bilingual_publish(persona=persona, prompt_model=self._latest_prompt(session, persona.id))
 
         self._record_audit(
             session,
@@ -345,6 +366,9 @@ class PersonaService:
             persona.segment = payload.segment
         if payload.headline is not None:
             persona.headline = _truncate_headline(payload.headline) or payload.headline
+        if payload.headline_de is not None:
+            hl_de = (payload.headline_de or "").strip()
+            persona.headline_de = (_truncate_headline(hl_de) or hl_de) if hl_de else None
         
         # Handle profile update - use raw JSON if available, otherwise Pydantic model
         if profile_json is not None:
@@ -439,6 +463,31 @@ class PersonaService:
                 {"profile": profile_updates},
                 json_field_preserve_fields={"profile": preserve_fields}
             )
+
+        if payload.profile_de is not None:
+            from copy import deepcopy
+            from sqlalchemy.orm.attributes import flag_modified
+
+            merged_de = deepcopy(persona.profile_de or {})
+            merged_de.update(payload.profile_de or {})
+            persona.profile_de = deepcopy(merged_de)
+            flag_modified(persona, "profile_de")
+            if not json_shape_compatible(persona.profile or {}, persona.profile_de or {}):
+                raise ValueError("profile_de must be shape-compatible with profile")
+
+        if payload.profile_card_de is not None:
+            from copy import deepcopy
+            from sqlalchemy.orm.attributes import flag_modified
+
+            merged_card_de = deepcopy(persona.profile_card_de or {})
+            merged_card_de.update(payload.profile_card_de or {})
+            persona.profile_card_de = deepcopy(merged_card_de)
+            flag_modified(persona, "profile_card_de")
+            if persona.profile_card is not None and not json_shape_compatible(
+                persona.profile_card, persona.profile_card_de or {}
+            ):
+                raise ValueError("profile_card_de must be shape-compatible with profile_card")
+
         if payload.confidence is not None:
             persona.confidence = payload.confidence
         if payload.version:
@@ -462,14 +511,20 @@ class PersonaService:
 
         if payload.prompt:
             sp = getattr(payload.prompt, "systemPrompt", None) or getattr(payload.prompt, "system_prompt", None) or ""
+            sp_de = getattr(payload.prompt, "systemPromptDe", None) or getattr(payload.prompt, "system_prompt_de", None)
+            sp_de_s = (sp_de or "").strip() or None
             tv = getattr(payload.prompt, "templateVersion", None) or getattr(payload.prompt, "template_version", None) or "unknown"
             session.add(
                 PersonaPromptModel(
                     persona_id=persona.id,
                     system_prompt=sp,
+                    system_prompt_de=sp_de_s,
                     template_version=tv,
                 )
             )
+
+        if persona.status == PersonaStatus.published:
+            validate_bilingual_publish(persona=persona, prompt_model=self._latest_prompt(session, persona.id))
 
         self._record_audit(
             session,
@@ -711,10 +766,16 @@ class PersonaService:
             prompt = PersonaPrompt(
                 persona_id=str(persona.id),
                 system_prompt=prompt_model.system_prompt,
+                system_prompt_de=prompt_model.system_prompt_de,
                 template_version=prompt_model.template_version,
             )
         else:
-            prompt = PersonaPrompt(persona_id=str(persona.id), system_prompt="", template_version="unknown")
+            prompt = PersonaPrompt(
+                persona_id=str(persona.id),
+                system_prompt="",
+                system_prompt_de=None,
+                template_version="unknown",
+            )
         sources_payload = [
             {
                 "chunk_id": str(source.chunk_id),
@@ -747,6 +808,9 @@ class PersonaService:
 
         return PersonaResponse(
             profile=profile,
+            headline_de=persona.headline_de,
+            profile_de=persona.profile_de,
+            profile_card_de=persona.profile_card_de,
             prompt=prompt,
             sources=sources_payload,
             metadata=metadata,
@@ -1079,6 +1143,7 @@ class PersonaService:
                 prompt_data = PersonaPrompt(
                     persona_id=str(persona.id),
                     system_prompt=prompt_model.system_prompt,
+                    system_prompt_de=prompt_model.system_prompt_de,
                     template_version=prompt_model.template_version,
                 )
         
@@ -1089,6 +1154,7 @@ class PersonaService:
             name=persona.name,
             segment=persona.segment,
             headline=persona.headline,
+            headline_de=persona.headline_de,
             status=persona.status.value,
             confidence=persona.confidence,
             version=persona.version,
@@ -1097,6 +1163,7 @@ class PersonaService:
             imageUrl=persona.image_url if persona.image_url and persona.image_url.startswith(("http://", "https://")) else None,
             avatarUrl=self._avatar_url(persona),
             profileCard=persona.profile_card,
+            profileCardDe=persona.profile_card_de,
             profile=profile_data,
             prompt=prompt_data,
         )
@@ -1106,7 +1173,11 @@ class PersonaService:
             "name": persona.name,
             "segment": persona.segment,
             "headline": persona.headline,
+            "headline_de": persona.headline_de,
             "profile": persona.profile,
+            "profile_de": persona.profile_de,
+            "profile_card": persona.profile_card,
+            "profile_card_de": persona.profile_card_de,
             "confidence": persona.confidence,
             "version": persona.version,
             "status": persona.status.value,

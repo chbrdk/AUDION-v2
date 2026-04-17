@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 
 from ..core.config import get_settings
+from .resource_bilingual_utils import normalize_publication_status, validate_target_group_bilingual_publish
 from ..models import (
     Document,
     Persona,
@@ -29,6 +30,13 @@ from ..schemas import (
 )
 
 settings = get_settings()
+
+
+def _optional_trimmed_str(value: str | None) -> str | None:
+    if value is None:
+        return None
+    trimmed = value.strip()
+    return trimmed or None
 
 
 class TargetGroupService:
@@ -91,7 +99,11 @@ class TargetGroupService:
                     id=str(tg.id),
                     name=tg.name,
                     segment=tg.segment,
+                    name_de=getattr(tg, "name_de", None),
+                    segment_de=getattr(tg, "segment_de", None),
                     description=tg.description,
+                    description_de=getattr(tg, "description_de", None),
+                    status=getattr(tg, "status", None) or "draft",
                     persona_count=p_count or 0,
                     knowledge_entry_count=k_count or 0,
                     created_at=tg.created_at,
@@ -126,6 +138,7 @@ class TargetGroupService:
                 name=p.name,
                 segment=p.segment,
                 headline=p.headline,
+                headline_de=getattr(p, "headline_de", None),
                 status=p.status.value,
                 confidence=p.confidence,
                 version=p.version,
@@ -168,7 +181,11 @@ class TargetGroupService:
             project_id=str(tg.project_id),
             name=tg.name,
             segment=tg.segment,
+            name_de=getattr(tg, "name_de", None),
+            segment_de=getattr(tg, "segment_de", None),
             description=tg.description,
+            description_de=getattr(tg, "description_de", None),
+            status=getattr(tg, "status", None) or "draft",
             personas=persona_list,
             knowledge_entries=knowledge_list,
             sources=source_list,
@@ -189,16 +206,28 @@ class TargetGroupService:
         except ValueError as exc:
             raise ValueError(f"badly formed hexadecimal UUID string: {project_id_str}") from exc
         
+        publication_status = normalize_publication_status(getattr(payload, "status", None))
+
         tg = TargetGroup(
             project_id=project_id,
             name=payload.name,
+            name_de=_optional_trimmed_str(payload.name_de),
             segment=payload.segment,
+            segment_de=_optional_trimmed_str(payload.segment_de),
             description=payload.description,
+            description_de=_optional_trimmed_str(payload.description_de),
+            status=publication_status,
             updated_by=getattr(payload, "updated_by", None),
         )
         session.add(tg)
-        session.commit()
-        session.refresh(tg)
+        try:
+            session.flush()
+            validate_target_group_bilingual_publish(target_group=tg)
+            session.commit()
+            session.refresh(tg)
+        except ValueError:
+            session.rollback()
+            raise
         return self.get_target_group(session, str(tg.id))
 
     def update_target_group(
@@ -213,17 +242,34 @@ class TargetGroupService:
         if not tg:
             raise ValueError("target_group_not_found")
 
+        if payload.status is not None:
+            try:
+                tg.status = normalize_publication_status(payload.status)
+            except ValueError:
+                raise
+
         if payload.name is not None:
             tg.name = payload.name
         if payload.description is not None:
             tg.description = payload.description
         if payload.segment is not None:
             tg.segment = payload.segment
+        if payload.name_de is not None:
+            tg.name_de = _optional_trimmed_str(payload.name_de)
+        if payload.segment_de is not None:
+            tg.segment_de = _optional_trimmed_str(payload.segment_de)
+        if payload.description_de is not None:
+            tg.description_de = _optional_trimmed_str(payload.description_de)
         if payload.updated_by:
             tg.updated_by = payload.updated_by
 
-        session.commit()
-        session.refresh(tg)
+        try:
+            validate_target_group_bilingual_publish(target_group=tg)
+            session.commit()
+            session.refresh(tg)
+        except ValueError:
+            session.rollback()
+            raise
         return self.get_target_group(session, str(tg.id))
 
     def list_knowledge(

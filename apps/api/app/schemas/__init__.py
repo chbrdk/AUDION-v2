@@ -318,6 +318,10 @@ class PersonaListItem(BaseModel):
     name: str = Field(..., description="Human-readable persona name.")
     segment: str = Field(..., description="High-level customer segment the persona represents.")
     headline: str = Field(..., description="Short role/title tagline for the persona.")
+    headline_de: str | None = Field(
+        default=None,
+        description="German mirror headline (optional until publish-time bilingual validation).",
+    )
     status: str = Field(..., description="Current lifecycle status (draft, published, archived, etc.).")
     confidence: float = Field(..., description="Confidence score aligned with persona metadata.")
     version: str = Field(..., description="Semantic version string.")
@@ -338,6 +342,10 @@ class PersonaListItem(BaseModel):
         default=None,
         description="Lightweight profile card payload for list rendering.",
     )
+    profileCardDe: Dict[str, Any] | None = Field(
+        default=None,
+        description="German mirror of profileCard (optional).",
+    )
     profile: PersonaProfile | None = Field(
         default=None,
         description="Full PersonaProfile message from `msqdx_glass_proto` when included.",
@@ -356,12 +364,28 @@ class PersonaListResponse(BaseModel):
 
 
 class TargetGroupBase(BaseModel):
-    name: str = Field(..., description="Human-readable name for the target group.")
+    name: str = Field(..., description="Human-readable name for the target group (English, canonical).")
     description: str | None = Field(
         default=None,
-        description="Optional long-form description that explains the group’s scope.",
+        description="Optional long-form description that explains the group’s scope (English, canonical).",
     )
-    segment: str = Field(..., description="Segment identifier shared by personas in the group.")
+    segment: str = Field(..., description="Segment identifier shared by personas in the group (English, canonical).")
+    status: str = Field(
+        default="draft",
+        description="Publication lifecycle: draft or published. Published requires DE mirrors where EN text is set.",
+    )
+    name_de: str | None = Field(
+        default=None,
+        description="German mirror display name (optional).",
+    )
+    segment_de: str | None = Field(
+        default=None,
+        description="German mirror segment label (optional).",
+    )
+    description_de: str | None = Field(
+        default=None,
+        description="German mirror description (optional).",
+    )
 
 
 class TargetGroupCreateRequest(TargetGroupBase):
@@ -381,6 +405,22 @@ class TargetGroupUpdateRequest(BaseModel):
         default=None,
         description="Updated segment identifier.",
     )
+    name_de: str | None = Field(
+        default=None,
+        description="Updated German mirror name (set empty string to clear).",
+    )
+    segment_de: str | None = Field(
+        default=None,
+        description="Updated German mirror segment (set empty string to clear).",
+    )
+    description_de: str | None = Field(
+        default=None,
+        description="Updated German mirror description (set empty string to clear).",
+    )
+    status: str | None = Field(
+        default=None,
+        description="Set to draft or published. Published requires DE mirrors where EN text is set.",
+    )
     updated_by: str | None = Field(
         default=None,
         description="Identifier of the actor issuing the update (stored for audit trail).",
@@ -391,10 +431,14 @@ class TargetGroupListItem(BaseModel):
     id: str = Field(..., description="Target group identifier (UUID).")
     name: str = Field(..., description="Display name for the target group.")
     segment: str = Field(..., description="Shared segment used for personas in the group.")
+    name_de: str | None = Field(default=None, description="German mirror display name.")
+    segment_de: str | None = Field(default=None, description="German mirror segment label.")
     description: str | None = Field(
         default=None,
         description="Optional description text.",
     )
+    description_de: str | None = Field(default=None, description="German mirror description.")
+    status: str = Field(default="draft", description="Publication lifecycle: draft or published.")
     persona_count: int = Field(
         0,
         description="Number of personas currently associated with the group.",
@@ -419,10 +463,14 @@ class TargetGroupResponse(BaseModel):
     project_id: str = Field(..., description="Project identifier the group belongs to.")
     name: str = Field(..., description="Display name for the group.")
     segment: str = Field(..., description="Shared persona segment label.")
+    name_de: str | None = Field(default=None, description="German mirror display name.")
+    segment_de: str | None = Field(default=None, description="German mirror segment label.")
     description: str | None = Field(
         default=None,
         description="Optional detail describing the group.",
     )
+    description_de: str | None = Field(default=None, description="German mirror description.")
+    status: str = Field(default="draft", description="Publication lifecycle: draft or published.")
     personas: List[PersonaListItem] = Field(
         default_factory=list,
         description="Personas currently linked to the target group.",
@@ -572,6 +620,10 @@ class PersonaCreateRequest(BaseModel):
     name: str = Field(..., description="Display name assigned to the persona.")
     segment: str = Field(..., description="Customer segment or archetype label.")
     headline: str = Field(..., description="Short headline summarizing the persona’s role or focus.")
+    headline_de: str | None = Field(
+        default=None,
+        description="German mirror headline (optional until publish-time bilingual validation).",
+    )
     target_group_id: str | None = Field(
         default=None,
         description="Optional target group identifier to associate the persona with.",
@@ -579,6 +631,14 @@ class PersonaCreateRequest(BaseModel):
     profile: PersonaProfile | None = Field(
         default=None,
         description="Full persona profile payload if created externally.",
+    )
+    profile_de: Dict[str, Any] | None = Field(
+        default=None,
+        description="German mirror of `profile` JSON (same keys/shape as English profile).",
+    )
+    profile_card_de: Dict[str, Any] | None = Field(
+        default=None,
+        description="German mirror of `profile_card` JSON when profile cards are used.",
     )
     confidence: float = Field(0.7, description="Initial confidence score between 0 and 1.")
     version: str = Field("1.0.0", description="Semantic version for the persona document.")
@@ -604,9 +664,21 @@ class PersonaPatchRequest(BaseModel):
     name: Optional[str] = Field(default=None, description="New persona name.")
     segment: Optional[str] = Field(default=None, description="Updated segment label.")
     headline: Optional[str] = Field(default=None, description="Updated persona headline.")
+    headline_de: Optional[str] = Field(
+        default=None,
+        description="Updated German mirror headline (set empty string to clear).",
+    )
     profile: Optional[PersonaProfile] = Field(
         default=None,
         description="Updated persona profile payload.",
+    )
+    profile_de: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Updated German mirror profile JSON (shape-compatible with English profile).",
+    )
+    profile_card_de: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Updated German mirror profile card JSON.",
     )
     confidence: Optional[float] = Field(
         default=None,
@@ -658,6 +730,18 @@ class PersonaPatchRequest(BaseModel):
 
 class PersonaResponse(BaseModel):
     profile: PersonaProfile = Field(..., description="Complete persona profile payload.")
+    headline_de: str | None = Field(
+        default=None,
+        description="German mirror headline stored at the persona row level (optional).",
+    )
+    profile_de: Dict[str, Any] | None = Field(
+        default=None,
+        description="German mirror profile JSON (optional).",
+    )
+    profile_card_de: Dict[str, Any] | None = Field(
+        default=None,
+        description="German mirror profile card JSON (optional).",
+    )
     prompt: PersonaPrompt = Field(..., description="Prompt object describing how to render/use the persona.")
     sources: List[dict] = Field(..., description="List of knowledge sources referencing chunk IDs and metadata.")
     metadata: PersonaMetadata = Field(..., description="Operational metadata for the persona resource.")

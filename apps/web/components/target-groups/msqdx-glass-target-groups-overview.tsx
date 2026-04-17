@@ -18,12 +18,18 @@ type CreateFormState = {
   name: string;
   segment: string;
   description: string;
+  name_de: string;
+  segment_de: string;
+  description_de: string;
 };
 
 const defaultCreateFormState: CreateFormState = {
   name: "",
   segment: "",
   description: "",
+  name_de: "",
+  segment_de: "",
+  description_de: "",
 };
 
 function extractTargetGroupId(payload: unknown): string | null {
@@ -95,6 +101,9 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
         name,
         segment,
         description: createForm.description.trim() || null,
+        name_de: createForm.name_de.trim() || null,
+        segment_de: createForm.segment_de.trim() || null,
+        description_de: createForm.description_de.trim() || null,
       };
 
       const response = await fetch(buildApiUrl("/api/target-groups"), {
@@ -237,6 +246,30 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
                 onChange={(e) => setCreateForm((prev) => ({ ...prev, description: e.target.value }))}
                 placeholder={t("targetGroupsAdmin.descriptionPlaceholder")}
                 minRows={3}
+                fullWidth
+              />
+              <MsqdxFormField
+                label="Name (DE)"
+                value={createForm.name_de}
+                onChange={(e) => setCreateForm((prev) => ({ ...prev, name_de: e.target.value }))}
+                placeholder="German display name (optional)"
+                size="small"
+                fullWidth
+              />
+              <MsqdxFormField
+                label="Segment (DE)"
+                value={createForm.segment_de}
+                onChange={(e) => setCreateForm((prev) => ({ ...prev, segment_de: e.target.value }))}
+                placeholder="German segment (optional)"
+                size="small"
+                fullWidth
+              />
+              <MsqdxTextareaField
+                label="Description (DE)"
+                value={createForm.description_de}
+                onChange={(e) => setCreateForm((prev) => ({ ...prev, description_de: e.target.value }))}
+                placeholder="German description (optional)"
+                minRows={2}
                 fullWidth
               />
               {createError && (

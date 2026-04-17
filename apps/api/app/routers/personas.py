@@ -61,7 +61,8 @@ from ..services.persona_generation import PersonaGenerationService
 from ..services.persona_prompt_builder import (
     CHAT_PROMPT_TEMPLATE_VERSION,
     build_compact_chat_prompt,
-    build_compact_chat_prompt_llm,
+    build_compact_chat_prompt_de,
+    build_compact_chat_prompt_llm_bilingual,
 )
 from ..services.persona_store import PersonaService
 from ..services.tavus_client import create_conversation as tavus_create_conversation
@@ -673,7 +674,7 @@ async def enrich_persona(
         else:
             profile_json[key] = "" if key == "bio" else None
     try:
-        compact_prompt = await build_compact_chat_prompt_llm(
+        compact_prompt_en, compact_prompt_de = await build_compact_chat_prompt_llm_bilingual(
             session,
             name=persona.name or "",
             segment=persona.segment or "",
@@ -681,14 +682,27 @@ async def enrich_persona(
             profile=profile_json,
         )
     except Exception:  # noqa: BLE001
-        compact_prompt = build_compact_chat_prompt(
+        compact_prompt_en = build_compact_chat_prompt(
             name=persona.name or "",
             segment=persona.segment or "",
             headline=persona.headline or "",
             profile=profile_json,
         )
-    if not (compact_prompt or compact_prompt.strip()):
-        compact_prompt = build_compact_chat_prompt(
+        compact_prompt_de = build_compact_chat_prompt_de(
+            name=persona.name or "",
+            segment=persona.segment or "",
+            headline=persona.headline or "",
+            profile=profile_json,
+        )
+    if not (compact_prompt_en or compact_prompt_en.strip()):
+        compact_prompt_en = build_compact_chat_prompt(
+            name=persona.name or "",
+            segment=persona.segment or "",
+            headline=persona.headline or "",
+            profile=profile_json,
+        )
+    if not (compact_prompt_de or compact_prompt_de.strip()):
+        compact_prompt_de = build_compact_chat_prompt_de(
             name=persona.name or "",
             segment=persona.segment or "",
             headline=persona.headline or "",
@@ -705,7 +719,8 @@ async def enrich_persona(
         updated_by=uid or "system",
         prompt=PersonaPromptProto(
             persona_id=str(persona.id),
-            system_prompt=compact_prompt,
+            system_prompt=compact_prompt_en,
+            system_prompt_de=compact_prompt_de,
             template_version=CHAT_PROMPT_TEMPLATE_VERSION,
         ),
     )
@@ -738,7 +753,7 @@ async def ensure_chat_prompt(
         return {"ensured": False, "prompt_length": len(latest.system_prompt or "")}
     profile = (persona.profile or {}) if hasattr(persona, "profile") else {}
     try:
-        built = await build_compact_chat_prompt_llm(
+        built_en, built_de = await build_compact_chat_prompt_llm_bilingual(
             session,
             name=persona.name or "",
             segment=persona.segment or "",
@@ -746,14 +761,27 @@ async def ensure_chat_prompt(
             profile=profile,
         )
     except Exception:  # noqa: BLE001
-        built = build_compact_chat_prompt(
+        built_en = build_compact_chat_prompt(
             name=persona.name or "",
             segment=persona.segment or "",
             headline=persona.headline or "",
             profile=profile,
         )
-    if not (built or built.strip()):
-        built = build_compact_chat_prompt(
+        built_de = build_compact_chat_prompt_de(
+            name=persona.name or "",
+            segment=persona.segment or "",
+            headline=persona.headline or "",
+            profile=profile,
+        )
+    if not (built_en or built_en.strip()):
+        built_en = build_compact_chat_prompt(
+            name=persona.name or "",
+            segment=persona.segment or "",
+            headline=persona.headline or "",
+            profile=profile,
+        )
+    if not (built_de or built_de.strip()):
+        built_de = build_compact_chat_prompt_de(
             name=persona.name or "",
             segment=persona.segment or "",
             headline=persona.headline or "",
@@ -762,12 +790,13 @@ async def ensure_chat_prompt(
     session.add(
         PersonaPromptModel(
             persona_id=persona.id,
-            system_prompt=built,
+            system_prompt=built_en,
+            system_prompt_de=built_de,
             template_version=CHAT_PROMPT_TEMPLATE_VERSION,
         )
     )
     session.commit()
-    return {"ensured": True, "prompt_length": len(built)}
+    return {"ensured": True, "prompt_length": len(built_en)}
 
 
 @router.post(
@@ -1105,11 +1134,15 @@ async def update_persona(
         try:
             raw = body["prompt"]
             sp = raw.get("systemPrompt") or raw.get("system_prompt") or ""
+            sp_de = raw.get("systemPromptDe") or raw.get("system_prompt_de")
             tv = raw.get("templateVersion") or raw.get("template_version") or "1.0.0"
-            try:
-                prompt_value = PersonaPrompt(systemPrompt=sp, templateVersion=tv)
-            except TypeError:
-                prompt_value = PersonaPrompt(system_prompt=sp, template_version=tv)
+            pid = raw.get("personaId") or raw.get("persona_id") or persona_id
+            prompt_value = PersonaPrompt(
+                persona_id=str(pid),
+                system_prompt=sp,
+                system_prompt_de=sp_de,
+                template_version=str(tv),
+            )
         except Exception as prompt_exc:  # noqa: BLE001
             logger.warning("persona.update.router.prompt_parse_failed", persona_id=persona_id, error=str(prompt_exc))
             prompt_value = None
@@ -1120,7 +1153,10 @@ async def update_persona(
         name=body.get("name"),
         segment=body.get("segment"),
         headline=body.get("headline"),
+        headline_de=body.get("headline_de") or body.get("headlineDe"),
         profile=None,  # We handle profile separately as raw JSON
+        profile_de=body.get("profile_de") or body.get("profileDe"),
+        profile_card_de=body.get("profile_card_de") or body.get("profileCardDe"),
         confidence=body.get("confidence"),
         version=body.get("version"),
         status=body.get("status"),
@@ -1163,7 +1199,17 @@ async def update_persona(
         err = str(exc)
         if err == "persona_not_found":
             raise HTTPException(status_code=404, detail="Persona not found") from exc
-        if err in ("invalid_project_id", "project_access_denied", "invalid_target_group_id", "target_group_not_found", "target_group_project_access_denied"):
+        if err.startswith("bilingual_publish_incomplete:"):
+            raise HTTPException(status_code=400, detail=err) from exc
+        if err in (
+            "invalid_project_id",
+            "project_access_denied",
+            "invalid_target_group_id",
+            "target_group_not_found",
+            "target_group_project_access_denied",
+            "profile_de must be shape-compatible with profile",
+            "profile_card_de must be shape-compatible with profile_card",
+        ):
             raise HTTPException(status_code=400, detail=err) from exc
         raise HTTPException(status_code=404, detail="Persona not found") from exc
     except Exception as exc:

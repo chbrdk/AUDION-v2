@@ -156,6 +156,10 @@ class VoiceChatRequest(BaseModel):
         default=None,
         description="Stable id for turn naturalness (Du/Sie, imperfection budget) across voice requests",
     )
+    locale: str | None = Field(
+        default=None,
+        description="Locale hint for selecting DE vs EN stored persona prompt variants (single-locale UX).",
+    )
     
     @model_validator(mode='after')
     def validate_message_or_messages(self):
@@ -200,8 +204,14 @@ async def voice_chat_stream(request: VoiceChatRequest, _: None = Depends(verify_
         )
         base_system_prompt = None
         if prompt_row is not None:
-            base_system_prompt = (getattr(prompt_row, "system_prompt", None) or getattr(prompt_row, "systemPrompt", None)) or ""
-            base_system_prompt = (base_system_prompt or "").strip()
+            en_prompt = (getattr(prompt_row, "system_prompt", None) or getattr(prompt_row, "systemPrompt", None) or "").strip()
+            de_prompt = (getattr(prompt_row, "system_prompt_de", None) or getattr(prompt_row, "systemPromptDe", None) or "").strip()
+            loc = (request.locale or "").strip().lower()
+            wants_de = loc.startswith("de")
+            if wants_de and de_prompt:
+                base_system_prompt = de_prompt
+            else:
+                base_system_prompt = en_prompt or de_prompt
 
     if not base_system_prompt:
         base_system_prompt = (get_persona_prompt(request.persona_id) or "").strip()

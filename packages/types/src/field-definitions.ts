@@ -158,6 +158,20 @@ export const ENTITY_FIELD_DEFINITIONS: Record<string, FieldDefinition[]> = {
   
   targetGroup: [
     {
+      key: 'status',
+      label: 'Publication status',
+      labelKey: 'targetGroupsAdmin.publicationStatus',
+      type: 'select',
+      group: 'basic',
+      order: 0,
+      config: {
+        options: [
+          { value: 'draft', label: 'Draft', labelKey: 'targetGroupsAdmin.statusDraft' },
+          { value: 'published', label: 'Published', labelKey: 'targetGroupsAdmin.statusPublished' },
+        ],
+      },
+    },
+    {
       key: 'name',
       label: 'Name',
       labelKey: 'targetGroupsAdmin.name',
@@ -182,6 +196,27 @@ export const ENTITY_FIELD_DEFINITIONS: Record<string, FieldDefinition[]> = {
       type: 'textarea',
       group: 'basic',
       order: 3,
+    },
+    {
+      key: 'name_de',
+      label: 'Name (DE)',
+      type: 'text',
+      group: 'basic',
+      order: 4,
+    },
+    {
+      key: 'segment_de',
+      label: 'Segment (DE)',
+      type: 'text',
+      group: 'basic',
+      order: 5,
+    },
+    {
+      key: 'description_de',
+      label: 'Description (DE)',
+      type: 'textarea',
+      group: 'basic',
+      order: 6,
     },
   ],
   

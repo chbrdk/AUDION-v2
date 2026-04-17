@@ -7,23 +7,49 @@ from pydantic import BaseModel, EmailStr, Field
 
 class ProjectCreateRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=128)
+    name_de: str | None = Field(default=None, max_length=128, description="German mirror display name (optional).")
+    status: str | None = Field(
+        default=None,
+        description="Publication lifecycle: draft (default) or published. Published requires DE mirrors where EN text is set.",
+    )
 
 
 class ProjectUpdateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=128)
+    name_de: str | None = Field(
+        default=None,
+        max_length=128,
+        description="German mirror display name (set empty string to clear).",
+    )
     description: str | None = Field(default=None, description="Short project/company description.")
+    description_de: str | None = Field(
+        default=None,
+        description="German mirror of description (set empty string to clear).",
+    )
     company_context: str | None = Field(
         default=None,
         description="Company context: industry, products, target markets, tone of voice, etc.",
+    )
+    company_context_de: str | None = Field(
+        default=None,
+        description="German mirror of company_context (set empty string to clear).",
+    )
+    status: str | None = Field(
+        default=None,
+        description="Set to draft or published. Published requires DE mirrors where EN text is set.",
     )
 
 
 class ProjectResponse(BaseModel):
     id: str
     name: str
+    name_de: str | None = None
     owner_user_id: str
     description: str | None = None
+    description_de: str | None = None
     company_context: str | None = None
+    company_context_de: str | None = None
+    status: str = "draft"
     created_at: datetime
     updated_at: datetime
 

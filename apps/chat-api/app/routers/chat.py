@@ -153,6 +153,10 @@ class ChatMessageRequest(BaseModel):
         default=None,
         description="Stable id for turn naturalness (Du/Sie lock, imperfection budget) across HTTP requests",
     )
+    locale: str | None = Field(
+        default=None,
+        description="BCP-47-ish locale for persona-facing strings (e.g. 'de', 'de-DE', 'en', 'en-US'). Chat UI stays single-locale; this only selects stored persona language variants.",
+    )
 
     @model_validator(mode="after")
     def validate_message_or_messages(self):
@@ -202,13 +206,22 @@ def build_chat_stream_context(request: ChatMessageRequest) -> ChatStreamContext:
         )
         base_system_prompt = None
         if prompt_row is not None:
-            base_system_prompt = (getattr(prompt_row, "system_prompt", None) or getattr(prompt_row, "systemPrompt", None)) or ""
-            base_system_prompt = (base_system_prompt or "").strip()
+            en_prompt = (getattr(prompt_row, "system_prompt", None) or getattr(prompt_row, "systemPrompt", None) or "").strip()
+            de_prompt = (getattr(prompt_row, "system_prompt_de", None) or getattr(prompt_row, "systemPromptDe", None) or "").strip()
+
+            loc = (request.locale or "").strip().lower()
+            wants_de = loc.startswith("de")
+            if wants_de and de_prompt:
+                base_system_prompt = de_prompt
+            else:
+                base_system_prompt = en_prompt or de_prompt
             logger.info(
                 "chat.stream.prompt.loaded_from_db",
                 persona_id=request.persona_id,
                 prompt_length=len(base_system_prompt),
                 template_version=getattr(prompt_row, "template_version", None) or getattr(prompt_row, "templateVersion", None),
+                picked_locale=loc or None,
+                picked_language="de" if wants_de and bool(de_prompt) else "en",
             )
 
     if not base_system_prompt:

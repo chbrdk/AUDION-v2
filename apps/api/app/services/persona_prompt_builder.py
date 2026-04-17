@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 
 from sqlalchemy.orm import Session
 
-CHAT_PROMPT_TEMPLATE_VERSION = "2026-04-rich-chat-v1"
+CHAT_PROMPT_TEMPLATE_VERSION = "2026-04-bilingual-chat-v1"
 MAX_LABEL_LEN = 220
 MAX_PAIN_POINTS = 10
 MAX_GOALS = 10
@@ -82,7 +82,7 @@ def _top_traits(traits: Dict[str, Any], n: int = MAX_TRAITS_FOR_TONE) -> List[st
     return seen
 
 
-def build_compact_chat_prompt(
+def build_compact_chat_prompt_de(
     name: str,
     segment: str,
     headline: str,
@@ -197,6 +197,120 @@ def build_compact_chat_prompt(
     return "\n\n".join(parts).strip()
 
 
+def build_compact_chat_prompt(
+    name: str,
+    segment: str,
+    headline: str,
+    profile: Dict[str, Any],
+) -> str:
+    """
+    English (canonical) non-LLM compact chat system prompt.
+    """
+    name = (name or "").strip() or "Persona"
+    segment = (segment or "").strip() or "target segment"
+    headline = (headline or "").strip() or ""
+
+    pain_raw = _get(profile, "pain_points", "painPoints") or []
+    goals_raw = profile.get("goals") or []
+    values_raw = profile.get("values") or []
+    interests_raw = profile.get("interests") or []
+    comm = _get(profile, "communication_style", "communicationStyle") or {}
+    if not isinstance(comm, dict):
+        comm = {}
+    traits = profile.get("traits") or {}
+    bio = (profile.get("bio") or "").strip()
+    full_name = _get(profile, "full_name", "fullName")
+    age = _get(profile, "age")
+    location = _get(profile, "location")
+    gender = _get(profile, "gender")
+    media_affinity = _get(profile, "media_affinity", "mediaAffinity")
+    attention_span = _get(profile, "attention_span", "attentionSpan")
+
+    pain_lines = _label_list(list(pain_raw) if isinstance(pain_raw, list) else [], MAX_PAIN_POINTS)
+    goal_lines = _label_list(list(goals_raw) if isinstance(goals_raw, list) else [], MAX_GOALS)
+    vocab = _vocabulary(comm)
+    sentence_structure = (comm.get("sentence_structure") or comm.get("sentenceStructure") or "").strip()
+    skepticism = comm.get("skepticism_level")
+    if skepticism is None:
+        skepticism = comm.get("skepticismLevel")
+    if skepticism is not None and isinstance(skepticism, (int, float)):
+        skepticism_str = f"{int(skepticism)}/10"
+    else:
+        skepticism_str = "—"
+    top_traits = _top_traits(traits if isinstance(traits, dict) else {})
+
+    parts: List[str] = []
+
+    open_line = f"You are {name}, representing the {segment} perspective."
+    if full_name and str(full_name).strip() and str(full_name).strip() != name:
+        open_line += f" Full name: {full_name}."
+    open_line += f" Tagline: {headline or '—'}."
+    parts.append(open_line)
+
+    demo_bits: List[str] = []
+    if age is not None:
+        demo_bits.append(f"Age: {age}")
+    if location:
+        demo_bits.append(f"Location: {location}")
+    if gender:
+        demo_bits.append(f"Gender: {gender}")
+    if media_affinity is not None:
+        demo_bits.append(f"Media affinity: {media_affinity}")
+    if attention_span is not None:
+        demo_bits.append(f"Attention span: {attention_span}")
+    if demo_bits:
+        parts.append("Demographics / context: " + "; ".join(demo_bits))
+
+    parts.append("Stay in character; answer as this persona (never as an AI assistant or meta-explainer).")
+
+    if bio:
+        parts.append(f"Background: {_truncate(bio, MAX_BIO_LEN)}")
+
+    if pain_lines:
+        parts.append("Pain points:\n" + "\n".join(f"- {p}" for p in pain_lines))
+    if goal_lines:
+        parts.append("Goals:\n" + "\n".join(f"- {g}" for g in goal_lines))
+
+    if values_raw:
+        vals: List[str] = []
+        for v in values_raw[:MAX_VALUES]:
+            if isinstance(v, str):
+                vals.append(_truncate(v, 280))
+            elif isinstance(v, dict) and (v.get("label") or v.get("value") or v.get("content")):
+                vals.append(_truncate(str(v.get("label") or v.get("value") or v.get("content")), 280))
+        if vals:
+            parts.append("Values:\n" + "\n".join(f"- {x}" for x in vals))
+
+    if interests_raw and isinstance(interests_raw, list):
+        ints: List[str] = []
+        for it in interests_raw[:MAX_INTERESTS]:
+            if isinstance(it, str):
+                ints.append(_truncate(it, 200))
+            elif isinstance(it, dict):
+                t = it.get("label") or it.get("content") or it.get("title")
+                if t:
+                    ints.append(_truncate(str(t), 200))
+        if ints:
+            parts.append("Interests:\n" + "\n".join(f"- {x}" for x in ints))
+
+    tone_bits = [f"Skepticism {skepticism_str}"]
+    if vocab:
+        tone_bits.append("Vocabulary: " + ", ".join(vocab))
+    if sentence_structure:
+        tone_bits.append(_truncate(sentence_structure, 120))
+    if top_traits:
+        tone_bits.append("Traits: " + ", ".join(top_traits))
+    if tone_bits:
+        parts.append("Language / tone: " + ". ".join(tone_bits))
+
+    parts.append(
+        "Respond naturally in character (typically 1–3 short paragraphs); "
+        "go deeper only when the conversation demands it. Do not explain yourself as a persona."
+    )
+
+    return "\n\n".join(parts).strip()
+
+
 def _summary_labels_with_meta(items: Any, key: str = "label", *, evidence_key: str | None = None) -> List[str]:
     out: List[str] = []
     if not isinstance(items, list):
@@ -210,10 +324,10 @@ def _summary_labels_with_meta(items: Any, key: str = "label", *, evidence_key: s
                 continue
             extra: List[str] = []
             if evidence_key and item.get(evidence_key) is not None:
-                extra.append(f"Belege: {item.get(evidence_key)}")
+                extra.append(f"Evidence: {item.get(evidence_key)}")
             pri = item.get("priority")
             if pri is not None:
-                extra.append(f"Priorität: {pri}")
+                extra.append(f"Priority: {pri}")
             if extra:
                 out.append(_soft_cap(f"{text} ({', '.join(extra)})"))
             else:
@@ -390,30 +504,137 @@ def build_persona_profile_summary(
     return "\n".join(lines)
 
 
-async def build_compact_chat_prompt_llm(
-    session: Session,
+def build_persona_profile_summary_en(
     name: str,
     segment: str,
     headline: str,
     profile: Dict[str, Any],
 ) -> str:
     """
-    Build the chat system prompt via LLM from full persona profile.
-    Uses template persona.build_chat_prompt; returns the generated prompt text.
+    English summary block for `persona.build_chat_prompt` (EN canonical prompt generation).
     """
+    name = (name or "").strip() or "Persona"
+    segment = (segment or "").strip() or "—"
+    headline = (headline or "").strip() or "—"
+    lines: List[str] = [
+        f"Name: {name}",
+        f"Segment: {segment}",
+        f"Headline: {headline}",
+    ]
+
+    full_name = _get(profile, "full_name", "fullName")
+    if full_name:
+        lines.append(f"Full name: {full_name}")
+
+    bio = (profile.get("bio") or "").strip()
+    if bio:
+        lines.append(f"Bio: {_soft_cap(bio)}")
+
+    demo: List[str] = []
+    age = _get(profile, "age")
+    if age is not None:
+        demo.append(f"Age: {age}")
+    loc = _get(profile, "location")
+    if loc:
+        demo.append(f"Location: {loc}")
+    gender = _get(profile, "gender")
+    if gender:
+        demo.append(f"Gender: {gender}")
+    ma = _get(profile, "media_affinity", "mediaAffinity")
+    if ma is not None:
+        demo.append(f"Media affinity (0–100-ish): {ma}")
+    att = _get(profile, "attention_span", "attentionSpan")
+    if att is not None:
+        demo.append(f"Attention span: {att}")
+    if demo:
+        lines.append("Demographics & media: " + "; ".join(demo))
+
+    pain = _summary_labels_with_meta(
+        _get(profile, "pain_points", "painPoints"),
+        "label",
+        evidence_key="evidence_count",
+    )
+    if pain:
+        lines.append("Pain points (with context):\n" + "\n".join(f"- {p}" for p in pain))
+
+    goals = _summary_labels_with_meta(profile.get("goals"), "label")
+    if goals:
+        lines.append("Goals:\n" + "\n".join(f"- {g}" for g in goals))
+
+    values = _summary_values(profile.get("values"))
+    if values:
+        lines.append("Values:\n" + "\n".join(f"- {v}" for v in values))
+
+    interests = _summary_interests(profile.get("interests"))
+    if interests:
+        lines.append("Interests:\n" + "\n".join(f"- {i}" for i in interests))
+
+    sm = _summary_social_usage(_get(profile, "social_media_usage", "socialMediaUsage"))
+    if sm:
+        lines.append("Social media usage: " + "; ".join(sm))
+
+    cp = _get(profile, "color_palette", "colorPalette")
+    if isinstance(cp, list) and cp:
+        colors = [str(c) for c in cp[:20] if c]
+        if colors:
+            lines.append("Color palette (preferences): " + ", ".join(colors))
+
+    comm = _get(profile, "communication_style", "communicationStyle") or {}
+    if isinstance(comm, dict):
+        vocab = comm.get("vocabulary") or []
+        words: List[str] = []
+        for v in vocab[:25]:
+            if isinstance(v, str):
+                words.append(v)
+            elif isinstance(v, dict):
+                w = v.get("word") or v.get("label") or v.get("content")
+                if w:
+                    words.append(str(w))
+        if words:
+            lines.append("Communication — vocabulary: " + ", ".join(words))
+        sent = (comm.get("sentence_structure") or comm.get("sentenceStructure") or "").strip()
+        if sent:
+            lines.append(f"Communication — sentence structure / style: {_soft_cap(sent)}")
+        sk = comm.get("skepticism_level")
+        if sk is None:
+            sk = comm.get("skepticismLevel")
+        if sk is not None:
+            lines.append(f"Communication — skepticism (0–10): {sk}")
+
+    traits = profile.get("traits")
+    if isinstance(traits, dict) and traits:
+        top = sorted(
+            traits.items(),
+            key=lambda x: (-float(x[1]) if isinstance(x[1], (int, float)) else 0),
+        )[:12]
+        lines.append("Traits (scales): " + ", ".join(f"{k}={v}" for k, v in top))
+    elif isinstance(traits, list) and traits:
+        names: List[str] = []
+        for t in traits[:12]:
+            if isinstance(t, str):
+                names.append(t)
+            elif isinstance(t, dict):
+                n = t.get("name") or t.get("label") or t.get("content")
+                if n:
+                    names.append(str(n))
+        if names:
+            lines.append("Traits: " + ", ".join(names))
+
+    conf = profile.get("confidence")
+    if conf is not None:
+        lines.append(f"Profile confidence (metadata): {conf}")
+
+    return "\n".join(lines)
+
+
+async def translate_compact_chat_system_prompt_de(session: Session, *, en_prompt: str) -> str:
     from .ai_assist import AiAssistService
     from ..schemas import AiAssistRequest
 
-    summary = build_persona_profile_summary(
-        name=name or "",
-        segment=segment or "",
-        headline=headline or "",
-        profile=profile,
-    )
     ai_assist = AiAssistService(session=session)
     request = AiAssistRequest(
-        template_id="persona.build_chat_prompt",
-        context={"persona_profile_summary": summary},
+        template_id="persona.translate_chat_system_prompt_de",
+        context={"english_system_prompt": en_prompt},
     )
     response = await ai_assist.generate(request)
     text = (response.raw_output or "").strip()
@@ -423,3 +644,67 @@ async def build_compact_chat_prompt_llm(
         if content.strip():
             text = content.strip()
     return text or ""
+
+
+async def build_compact_chat_prompt_llm_bilingual(
+    session: Session,
+    name: str,
+    segment: str,
+    headline: str,
+    profile: Dict[str, Any],
+) -> tuple[str, str]:
+    """
+    Returns (en_prompt, de_prompt). EN is LLM-generated when possible; DE is translated.
+    """
+    from .ai_assist import AiAssistService
+    from ..schemas import AiAssistRequest
+
+    summary_en = build_persona_profile_summary_en(
+        name=name or "",
+        segment=segment or "",
+        headline=headline or "",
+        profile=profile,
+    )
+    ai_assist = AiAssistService(session=session)
+    request = AiAssistRequest(
+        template_id="persona.build_chat_prompt",
+        context={"persona_profile_summary_en": summary_en},
+    )
+    response = await ai_assist.generate(request)
+    text_en = (response.raw_output or "").strip()
+    if response.suggestions:
+        first = response.suggestions[0]
+        content = getattr(first, "content", None) or ""
+        if content.strip():
+            text_en = content.strip()
+
+    if not text_en:
+        text_en = build_compact_chat_prompt(name=name, segment=segment, headline=headline, profile=profile)
+
+    text_de = await translate_compact_chat_system_prompt_de(session, en_prompt=text_en)
+    if not text_de:
+        text_de = build_compact_chat_prompt_de(name=name, segment=segment, headline=headline, profile=profile)
+
+    return text_en, text_de
+
+
+async def build_compact_chat_prompt_llm(
+    session: Session,
+    name: str,
+    segment: str,
+    headline: str,
+    profile: Dict[str, Any],
+) -> str:
+    """
+    Build the English (canonical) chat system prompt via LLM from full persona profile.
+
+    Note: `persona.build_chat_prompt` is configured for English output; German mirrors are produced elsewhere.
+    """
+    text_en, _text_de = await build_compact_chat_prompt_llm_bilingual(
+        session,
+        name=name,
+        segment=segment,
+        headline=headline,
+        profile=profile,
+    )
+    return text_en

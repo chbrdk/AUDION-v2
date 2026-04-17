@@ -52,7 +52,10 @@ class PersonaProfile(BaseModel):
 
 
 class PersonaPrompt(BaseModel):
-    persona_id: str
-    system_prompt: str
-    template_version: str
+    # Optional for PATCH payloads; callers should set this when serializing stored prompts.
+    persona_id: str = ""
+    system_prompt: str = ""
+    template_version: str = ""
+    # German mirror of the compact chat system prompt (optional until publish validation).
+    system_prompt_de: Optional[str] = None
 

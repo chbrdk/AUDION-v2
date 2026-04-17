@@ -36,6 +36,7 @@ from ..services.journey_serializer import to_journey_response
 from ..services.easy_setup_url import fetch_website_plain_text, normalize_public_http_url
 from ..services.persona_bootstrap import generate_persona_for_target_group
 from ..services.suggest_target_groups import suggest_target_groups as run_suggest_target_groups
+from ..services.resource_bilingual_utils import normalize_publication_status, validate_project_bilingual_publish
 from ..services.target_group_store import TargetGroupService
 from ..services.usage_report import report_usage
 
@@ -84,9 +85,13 @@ def _project_response(project: Project) -> ProjectResponse:
     return ProjectResponse(
         id=str(project.id),
         name=project.name,
+        name_de=getattr(project, "name_de", None),
         owner_user_id=str(project.owner_user_id),
         description=project.description,
+        description_de=getattr(project, "description_de", None),
         company_context=project.company_context,
+        company_context_de=getattr(project, "company_context_de", None),
+        status=getattr(project, "status", None) or "draft",
         created_at=project.created_at,
         updated_at=project.updated_at,
     )
@@ -126,15 +131,27 @@ def create_project(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_db),
 ) -> ProjectResponse:
+    try:
+        publication_status = normalize_publication_status(getattr(payload, "status", None))
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
     project = Project(
         id=uuid4(),
         name=payload.name.strip(),
+        name_de=(payload.name_de.strip() if payload.name_de else None) or None,
         owner_user_id=current_user.id,
+        status=publication_status,
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow(),
     )
     session.add(project)
-    session.flush()
+    try:
+        session.flush()
+        validate_project_bilingual_publish(project=project)
+    except ValueError as exc:
+        session.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
     membership = ProjectMember(
         id=uuid4(),
@@ -337,14 +354,32 @@ def update_project(
     membership = _require_member(session, project_id=project.id, user_id=current_user.id)
     _require_admin_or_owner(membership)
 
+    if payload.status is not None:
+        try:
+            project.status = normalize_publication_status(payload.status)
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
     if payload.name is not None:
         project.name = payload.name.strip()
+    if payload.name_de is not None:
+        project.name_de = payload.name_de.strip() or None
     if payload.description is not None:
         project.description = payload.description
+    if payload.description_de is not None:
+        project.description_de = payload.description_de.strip() or None
     if payload.company_context is not None:
         project.company_context = payload.company_context
+    if payload.company_context_de is not None:
+        project.company_context_de = payload.company_context_de.strip() or None
     project.updated_at = datetime.utcnow()
-    session.commit()
+    try:
+        validate_project_bilingual_publish(project=project)
+        session.commit()
+        session.refresh(project)
+    except ValueError as exc:
+        session.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
     return _project_response(project)
 

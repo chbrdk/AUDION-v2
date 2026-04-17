@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import random
 import re
 from dataclasses import dataclass
@@ -16,6 +17,7 @@ if TYPE_CHECKING:
 from ..core.config import get_settings
 from ..db import get_session
 from .persona_headline import truncate_headline as _truncate_headline_for_db
+from .persona_bilingual_utils import json_shape_compatible
 from ..models import (
     Document,
     DocumentChunk,
@@ -30,11 +32,12 @@ from ..models import (
 logger = structlog.get_logger(__name__)
 settings = get_settings()
 
+
 # LLM instruction: must match PersonaProfile (proto) + extras the UI expects in profile JSON.
 PERSONA_LLM_JSON_SCHEMA_INSTRUCTION = (
     "Return ONE JSON object with these keys: "
     "name (string, short display name), full_name (string|null), age (integer|null), "
-    "gender (string|null, use German labels where applicable, e.g. weiblich, männlich, divers, keine Angabe), "
+    "gender (string|null, use English labels where applicable, e.g. female, male, non-binary, prefer not to say), "
     "location (string|null, city/region/country one line), "
     "media_affinity (integer 0-100|null, digital/news/media consumption intensity), "
     "interests (array of 4-10 concise interest tags), "
@@ -47,7 +50,7 @@ PERSONA_LLM_JSON_SCHEMA_INSTRUCTION = (
     "confidence (number 0-1). "
     "Optionally: social_media_usage (string array), attention_span (string), color_palette (string array). "
     "Do not omit interests or values; infer plausible items from the research when not explicit. "
-    "LANGUAGE (mandatory): All human-readable string values must be German (Deutsch) — name, full_name, headline, bio, "
+    "LANGUAGE (mandatory): All human-readable string values must be English — name, full_name, headline, bio, "
     "job_title, gender, location, interests, values, pain point labels, goal labels, trait names/keys as shown to users, "
     "communication_style.vocabulary and sentence_structure, attention_span, social_media_usage strings. "
     "Keep JSON keys in English as listed. Numeric fields stay numbers."
@@ -192,8 +195,8 @@ def _compose_identity_context_block(*, persona: Persona, target_group_id: UUID |
         return ""
     out = "\n\n" + "\n\n".join(parts) + "\n"
     out += (
-        "\nSPRACHE: Alle neu zu schreibenden Persona-Texte (für das JSON) sind auf Deutsch zu formulieren, "
-        "auch wenn die Research-Auszüge auf Englisch sind — inhaltlich korrekt übersetzen bzw. natürlich auf Deutsch ausdrücken.\n"
+        "\nLANGUAGE: All newly written persona strings in the JSON must be in English, even if research excerpts are not. "
+        "Translate faithfully when needed.\n"
     )
     return out
 
@@ -364,7 +367,7 @@ class PersonaGenerationService:
                     "content": (
                         "You fix invalid JSON. Return ONLY a single valid JSON object. "
                         "Do not add any prose. Ensure all strings are properly escaped. "
-                        "All human-readable string values must remain or become German (Deutsch). "
+                        "All human-readable string values must remain or become English. "
                         "Preserve and include interests, values, demographics (full_name, gender, location, age, media_affinity), "
                         "traits, pain_points, goals, communication_style, confidence when inferring missing parts."
                     ),
@@ -399,7 +402,7 @@ class PersonaGenerationService:
             system=(
                 "You fix invalid or truncated JSON. Output a single valid JSON object only. "
                 "No markdown, no code fences, no commentary. Properly escape double quotes inside strings. "
-                "All human-readable strings must be German (Deutsch). "
+                "All human-readable strings must be English. "
                 "Include interests, values, full_name, gender, location, age, media_affinity when repairing."
             ),
             messages=[
@@ -446,6 +449,72 @@ class PersonaGenerationService:
         weights_normalized = weights_array / weights_array.sum() if weights_array.sum() > 0 else np.ones(len(chunks)) / len(chunks)
         indices = np.random.choice(len(chunks), size=sample_size, replace=False, p=weights_normalized)
         return [chunks[i] for i in indices]
+
+    def _translate_profile_json_en_to_de(self, *, persona_id: UUID, english_profile: dict[str, Any]) -> dict[str, Any] | None:
+        """Create a German JSON mirror with identical structure to the English profile JSON."""
+
+        client = self._openai_for_json_repair()
+        if client is None:
+            logger.warning("persona.translate.profile_de.skipped_no_openai", persona_id=str(persona_id))
+            return None
+
+        try:
+            completion = client.chat.completions.create(
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You translate persona profile JSON from English to German.\n"
+                            "Return ONE JSON object with the EXACT same keys/shape as the input.\n"
+                            "Translate ONLY string leaf values to natural German.\n"
+                            "Keep numbers/booleans/nulls unchanged. Do not add/remove keys.\n"
+                            "Do not wrap JSON in markdown fences."
+                        ),
+                    },
+                    {
+                        "role": "user",
+                        "content": json.dumps(english_profile, ensure_ascii=False),
+                    },
+                ],
+                model=settings.ai_openai_model or "gpt-5-mini",
+                temperature=0.2,
+                response_format={"type": "json_object"},
+                max_tokens=min(int(settings.ai_persona_openai_identity_max_tokens or 8192), 8192),
+            )
+            text = completion.choices[0].message.content or ""
+            parsed = parse_persona_generation_json(text)
+            return parsed if isinstance(parsed, dict) else None
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("persona.translate.profile_de.failed", persona_id=str(persona_id), error=str(exc))
+            return None
+
+    def _translate_system_prompt_en_to_de(self, *, persona_id: UUID, english_prompt: str) -> str | None:
+        client = self._openai_for_json_repair()
+        if client is None:
+            logger.warning("persona.translate.system_prompt_de.skipped_no_openai", persona_id=str(persona_id))
+            return None
+        try:
+            completion = client.chat.completions.create(
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are a professional translator. Translate the following English persona system prompt "
+                            "into natural German. Preserve intent, constraints, and first-person roleplay style. "
+                            "Return only the German text (no markdown fences, no JSON)."
+                        ),
+                    },
+                    {"role": "user", "content": english_prompt},
+                ],
+                model=settings.ai_openai_model or "gpt-5-mini",
+                temperature=0.2,
+                max_tokens=min(int(settings.ai_persona_openai_identity_max_tokens or 8192), 4096),
+            )
+            out = (completion.choices[0].message.content or "").strip()
+            return out or None
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("persona.translate.system_prompt_de.failed", persona_id=str(persona_id), error=str(exc))
+            return None
 
     def generate(
         self,
@@ -671,10 +740,10 @@ class PersonaGenerationService:
                         {
                             "role": "system",
                             "content": (
-                                "You are a helpful persona generation assistant for a German-language product.\n"
+                                "You are a helpful persona generation assistant.\n"
                                 "Output MUST be a single valid JSON object.\n"
                                 "Do NOT wrap JSON in markdown fences. Do NOT add any commentary.\n"
-                                "All human-readable string values in the JSON must be German (Deutsch).\n"
+                                "All human-readable string values in the JSON must be English.\n"
                                 "Include interests, values, full_name, gender, location, age, media_affinity as in the user schema.\n"
                                 "Avoid using unescaped double-quotes inside string values (e.g. don’t quote phrases like “...”)."
                             ),
@@ -703,7 +772,7 @@ class PersonaGenerationService:
                 system=(
                     "You output a single JSON object only. Do not wrap it in markdown or code fences. "
                     "Do not add commentary before or after the JSON. Escape any double quotes inside string values. "
-                    "All human-readable strings in the JSON must be German (Deutsch). "
+                    "All human-readable strings in the JSON must be English. "
                     "The object must include interests (array), values (array), demographics "
                     "(full_name, gender, location, age, media_affinity 0-100) plus headline, bio, traits, pain_points, goals, "
                     "communication_style, confidence."
@@ -979,6 +1048,15 @@ class PersonaGenerationService:
             for k, v in traits_dict.items():
                 safe_traits[k] = _to_score(v)
         profile_dict["traits"] = safe_traits
+
+        profile_de_dict = self._translate_profile_json_en_to_de(persona_id=persona.id, english_profile=profile_dict)
+        if profile_de_dict is not None:
+            if not json_shape_compatible(profile_dict, profile_de_dict):
+                logger.warning(
+                    "persona.translate.profile_de.shape_mismatch",
+                    persona_id=str(persona.id),
+                )
+                profile_de_dict = None
         
         # Import proto types lazily so module import works in lightweight test envs.
         from msqdx_glass_proto import PersonaProfile, PersonaPrompt  # type: ignore
@@ -1014,6 +1092,8 @@ class PersonaGenerationService:
             template_version="2025-11-18",
         )
 
+        prompt_de_text = self._translate_system_prompt_en_to_de(persona_id=persona.id, english_prompt=prompt.system_prompt)
+
         with get_session() as session:
             persona_model = session.get(Persona, persona.id)
             if persona_model:
@@ -1021,11 +1101,19 @@ class PersonaGenerationService:
                 persona_model.confidence = profile.confidence
                 persona_model.name = profile.name
                 persona_model.headline = _truncate_headline_for_db(profile.headline) or profile.headline
+                if profile_de_dict is not None:
+                    persona_model.profile_de = profile_de_dict
+                    hl_de = _optional_str(profile_de_dict.get("headline"))
+                    if hl_de:
+                        persona_model.headline_de = _truncate_headline_for_db(hl_de) or hl_de
                 # Set target_group_id if provided
                 if target_group_id:
                     persona_model.target_group_id = target_group_id
             persona_prompt = PersonaPromptModel(
-                persona_id=persona.id, system_prompt=prompt.system_prompt, template_version="2025-11-18"
+                persona_id=persona.id,
+                system_prompt=prompt.system_prompt,
+                system_prompt_de=prompt_de_text,
+                template_version="2025-11-18",
             )
             session.add(persona_prompt)
             

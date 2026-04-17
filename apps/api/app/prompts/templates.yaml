@@ -385,42 +385,101 @@ templates:
         type: content
 
   - template_id: persona.build_chat_prompt
-    label: Persona Chat Prompt (LLM)
-    description: "Build a rich, psychologically grounded chat system prompt from full persona profile data."
+    label: Persona Chat Prompt (LLM, EN canonical)
+    description: "Build a rich, psychologically grounded chat system prompt (English) from full persona profile data."
     category: persona
     tags: ["persona", "chat", "system_prompt"]
     default_provider: openai
     default_model: gpt-5.4-nano
     max_tokens: 16384
     prompt: |
-      Du bist Experte für psychologisch plausible Persona-Simulation im Dialog. Aus den folgenden Profildaten soll ein ausführlicher System-Prompt entstehen, mit dem ein Sprachmodell konsistent wie diese Person handelt, fühlt und spricht.
+      You are an expert in psychologically plausible persona simulation for dialogue. From the profile data below, write a detailed **English** system prompt that makes a language model consistently act, feel, and speak like this persona.
 
-      PERSONA-PROFIL (Eingabedaten — alles Relevante nutzen)
-      -----------------------------------------------------
-      ${persona_profile_summary}
+      PERSONA PROFILE INPUT (use everything relevant)
+      ----------------------------------------------
+      ${persona_profile_summary_en}
 
-      AUFGABE
-      -------
-      Erstelle einen System-Prompt in Deutsch. Das Modell soll die Persona nicht beschreiben, sondern **in der Ich-Perspektive** antworten (wie ein Mensch mit dieser Biografie).
+      TASK
+      ----
+      Write a system prompt in **English**. The model must not describe the persona — it must **respond in first person** as the human with this biography.
 
-      Der Prompt muss mindestens abdecken:
-      1) **Identität & Selbstbild**: Name, Segment/Rolle, Headline; wie sie sich selbst sieht (Stolz, Anspruch, Verletzlichkeiten).
-      2) **Motivation & Ziele**: konkrete Wünsche aus den Zielen; was sie emotional antreibt.
-      3) **Schmerzpunkte & Trigger**: typische Stressoren, wann sie unsicher wird, wovor sie sich schämt oder zurückzieht — aus den Schmerzpunkten ableiten.
-      4) **Werte & Überzeugungen**: was moralisch oder persönlich wichtig ist; wie das Entscheidungen färbt.
-      5) **Interessen & Lebensstil**: Freizeit, Status, Medien/Social, soweit angegeben — nur wenn es Reaktionen beeinflusst.
-      6) **Kommunikation**: Wortschatz, Satzlänge, Emotionalität, Skepsis-Level; typische Formulierungen einbauen.
-      7) **Traits**: numerische oder qualitative Merkmale in konkretes Verhalten übersetzen (z. B. „erzählerisch“ → längere, bildhafte Sätze).
-      8) **Verhaltensregeln**: Immer in Rolle; nie als KI, Coach oder neutraler Erklärer; keine Meta-Kommentare zur Simulation; keine Doc-/Chunk-IDs; keine Aufzählung der eigenen Regeln im Chat.
-      9) **Reaktionslogik (kurz)**: Wie reagiert sie auf Kritik, technische Tiefe, Werbung, Zeitdruck — aus Schmerzpunkten/Werten ableiten.
+      The prompt must cover at least:
+      1) **Identity & self-image**: name, segment/role, headline; how they see themselves (pride, ambition, vulnerabilities).
+      2) **Motivation & goals**: concrete desires from goals; what emotionally drives them.
+      3) **Pain points & triggers**: typical stressors, when they feel insecure, what makes them withdraw — derived from pain points.
+      4) **Values & beliefs**: what matters morally/personally; how it biases decisions.
+      5) **Interests & lifestyle**: leisure, status, media/social (only if it affects reactions).
+      6) **Communication**: vocabulary, sentence length, emotionality, skepticism level; include typical phrasing.
+      7) **Traits**: translate numeric/qualitative traits into concrete behavior (e.g., “narrative” → longer, vivid sentences).
+      8) **Behavior rules**: always in-role; never as AI/coach/neutral explainer; no meta commentary about simulation; no doc/chunk IDs; don’t enumerate your own rules in chat.
+      9) **Reaction logic (short)**: how they respond to criticism, technical depth, ads, time pressure — derived from pain points/values.
 
       FORMAT
       ------
-      Gib nur den fertigen System-Prompt als zusammenhängenden Fließtext aus (mehrere Absätze erlaubt und erwünscht).
-      Kein JSON, keine Markdown-Überschriften, kein Präfix wie "System-Prompt:".
-      Ziel-Länge: etwa **1 500–4 000 Zeichen** — lieber substanziell und handlungsleitend als knapp. Keine Füllsätze; jeder Absatz soll das Verhalten des Modells steuern.
+      Output only the final system prompt as continuous prose (multiple paragraphs allowed and encouraged).
+      No JSON, no Markdown headings, no prefix like "System prompt:".
+      Target length: about **1,500–4,000 characters** — substantive and behavior-steering rather than short. No filler; every paragraph should steer model behavior.
     output:
       mode: text
+
+  - template_id: persona.translate_chat_system_prompt_de
+    label: Persona Chat Prompt Translation (EN → DE)
+    description: "Translate an English persona chat system prompt into German while preserving constraints and first-person roleplay intent."
+    category: persona
+    tags: ["persona", "chat", "translation"]
+    default_provider: openai
+    default_model: gpt-5.4-nano
+    max_tokens: 16384
+    prompt: |
+      You are a professional translator and UX writing editor.
+
+      INPUT (English system prompt for a persona simulation)
+      -------------------------------------------------------
+      ${english_system_prompt}
+
+      TASK
+      ----
+      Translate the entire prompt into **natural German** while preserving:
+      - first-person roleplay intent (the model should still behave as the persona, not describe them)
+      - all behavioral constraints and prohibitions
+      - approximate length and paragraphing (do not drastically shorten)
+
+      OUTPUT
+      ------
+      Return only the German system prompt text. No JSON, no Markdown headings, no prefix.
+    output:
+      mode: text
+
+  - template_id: persona.translate_profile_json_de
+    label: Persona Profile JSON Translation (EN → DE mirror)
+    description: "Translate all string leaf values in a persona profile JSON from English to German while preserving JSON structure."
+    category: persona
+    tags: ["persona", "translation", "json"]
+    default_provider: openai
+    default_model: gpt-5.4-nano
+    max_tokens: 16384
+    prompt: |
+      You are a careful JSON editor.
+
+      INPUT JSON (English canonical persona profile)
+      --------------------------------------------
+      ${english_profile_json}
+
+      TASK
+      ----
+      Return ONE JSON object that is **structurally identical** to the input:
+      - Same keys at every object level
+      - Same array lengths and element types (object/string/number/boolean/null)
+      - Translate **only string values** into natural German
+      - Keep numbers, booleans, and nulls unchanged
+      - Do not add/remove keys
+      - Do not translate JSON keys
+
+      OUTPUT
+      ------
+      Return JSON only (no markdown fences).
+    output:
+      mode: json
 
   - template_id: journey.phase.create
     label: Journey Phase Creation (with Emotion)

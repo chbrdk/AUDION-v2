@@ -7,7 +7,9 @@ import pytest
 from app.services.persona_prompt_builder import (
     CHAT_PROMPT_TEMPLATE_VERSION,
     build_compact_chat_prompt,
+    build_compact_chat_prompt_de,
     build_persona_profile_summary,
+    build_persona_profile_summary_en,
 )
 
 
@@ -30,9 +32,29 @@ def test_build_compact_chat_prompt_contains_identity_and_behaviour() -> None:
     assert "Jan Test" in out
     assert "B2B decision maker" in out
     assert "Wants fast ROI" in out
-    assert "Rolle" in out
+    assert "You are" in out
+    assert "Pain points" in out or "Time pressure" in out
+    assert "Goals" in out or "Save costs" in out
+
+
+def test_build_compact_chat_prompt_de_still_german() -> None:
+    profile = {
+        "pain_points": [{"label": "Time pressure"}],
+        "goals": [{"label": "Save costs"}],
+        "values": [],
+        "interests": [],
+        "communication_style": {"vocabulary": [], "sentence_structure": "", "skepticism_level": 5},
+        "traits": {},
+        "bio": "",
+    }
+    out = build_compact_chat_prompt_de(
+        name="Jan Test",
+        segment="B2B decision maker",
+        headline="Wants fast ROI",
+        profile=profile,
+    )
+    assert "Du bist" in out
     assert "Schmerzpunkte" in out or "Time pressure" in out
-    assert "Ziele" in out or "Save costs" in out
 
 
 def test_build_compact_chat_prompt_truncates_long_labels() -> None:
@@ -57,7 +79,42 @@ def test_build_compact_chat_prompt_truncates_long_labels() -> None:
 
 
 def test_chat_prompt_template_version_constant() -> None:
-    assert CHAT_PROMPT_TEMPLATE_VERSION == "2026-04-rich-chat-v1"
+    assert CHAT_PROMPT_TEMPLATE_VERSION == "2026-04-bilingual-chat-v1"
+
+
+def test_build_persona_profile_summary_en_includes_all_sections() -> None:
+    profile = {
+        "bio": "Engineer, 35.",
+        "pain_points": [{"label": "Too many tools", "evidence_count": 2}],
+        "goals": [{"label": "Simplify stack", "priority": 1}],
+        "values": [{"value": "Pragmatism"}],
+        "interests": ["DevOps"],
+        "communication_style": {
+            "vocabulary": ["API", "Pipeline"],
+            "sentence_structure": "Short, technical.",
+            "skepticism_level": 7,
+        },
+        "traits": {"detail-oriented": 0.8, "skeptical": 0.9},
+    }
+    out = build_persona_profile_summary_en(
+        name="Alex",
+        segment="Tech Lead",
+        headline="Wants less complexity",
+        profile=profile,
+    )
+    assert "Name: Alex" in out
+    assert "Segment: Tech Lead" in out
+    assert "Headline: Wants less complexity" in out
+    assert "Bio: Engineer" in out
+    assert "Too many tools" in out
+    assert "Evidence: 2" in out
+    assert "Simplify stack" in out
+    assert "Pragmatism" in out
+    assert "DevOps" in out
+    assert "API" in out and "Pipeline" in out
+    assert "sentence structure" in out.lower()
+    assert "skepticism" in out.lower()
+    assert "detail-oriented" in out or "skeptical" in out
 
 
 def test_build_persona_profile_summary_includes_all_sections() -> None:
@@ -85,9 +142,9 @@ def test_build_persona_profile_summary_includes_all_sections() -> None:
     assert "Headline: Wants less complexity" in out
     assert "Bio: Engineer" in out
     assert "Too many tools" in out
-    assert "Belege: 2" in out
+    assert "Evidence: 2" in out
     assert "Simplify stack" in out
-    assert "Priorität: 1" in out
+    assert "Priority: 1" in out
     assert "Pragmatism" in out
     assert "DevOps" in out
     assert "API" in out and "Pipeline" in out

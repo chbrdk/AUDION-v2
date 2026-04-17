@@ -6,9 +6,15 @@ The **chat system prompt** is built from the full persona profile so the model c
 
 ## Template Version
 
-- **Version**: `2026-04-rich-chat-v1`
+- **Version**: `2026-04-bilingual-chat-v1`
 - **Constant**: `CHAT_PROMPT_TEMPLATE_VERSION` in `apps/api/app/services/persona_prompt_builder.py`
 - Bumping this version makes `POST /personas/{id}/ensure-chat-prompt` regenerate prompts that were stored with an older version.
+
+## Bilingual storage (EN canonical)
+
+- **English** is canonical for the compact chat system prompt stored in `persona_prompts.system_prompt`.
+- **German** mirror is stored in `persona_prompts.system_prompt_de` (nullable until publish-time validation).
+- **Chat UI stays single-locale**, but the browser should send `locale` on chat streaming requests so **chat-api** can pick `system_prompt_de` when the UI locale is German.
 
 ## When the Prompt Is Ensured
 
@@ -21,9 +27,11 @@ The **chat system prompt** is built from the full persona profile so the model c
 ## Builder
 
 - **Module**: `apps/api/app/services/persona_prompt_builder.py`
-- **LLM**: `build_compact_chat_prompt_llm` — template `persona.build_chat_prompt`, context key `persona_profile_summary`.
-- **Summary**: Includes demographics (`age`, `location`, `gender`, `full_name`), `media_affinity`, `attention_span`, pains (with `evidence_count`), goals (with `priority`), values, interests, social usage, color palette, communication style, traits, optional `confidence`.
-- **Fallback**: `build_compact_chat_prompt` — longer caps than legacy compact; still truncated for safety.
+- **LLM (bilingual)**: `build_compact_chat_prompt_llm_bilingual` — template `persona.build_chat_prompt` (English), then translates to DE for `system_prompt_de`.
+- **Summary (EN)**: `build_persona_profile_summary_en` — same structure as the legacy summary, but English labels.
+- **Summary (DE, legacy)**: `build_persona_profile_summary` — still used for non-chat surfaces if needed.
+- **Fallback (EN)**: `build_compact_chat_prompt`
+- **Fallback (DE)**: `build_compact_chat_prompt_de`
 - **Template**: `apps/api/app/prompts/templates.yaml` — target roughly **1 500–4 000 characters**, `max_tokens: 4096`.
 
 ## API

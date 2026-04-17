@@ -160,9 +160,14 @@ class Project(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     name = Column(String(128), nullable=False)
+    # German mirror display name (optional).
+    name_de = Column(String(128), nullable=True)
     owner_user_id = Column(UUID(as_uuid=True), ForeignKey("audion.users.id"), nullable=False)
     description = Column(Text, nullable=True)
+    description_de = Column(Text, nullable=True)
     company_context = Column(Text, nullable=True)
+    company_context_de = Column(Text, nullable=True)
+    status = Column(String(32), nullable=False, default="draft")
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
@@ -266,8 +271,12 @@ class TargetGroup(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     project_id = Column(UUID(as_uuid=True), nullable=False)
     name = Column(String(128), nullable=False)
+    name_de = Column(String(128), nullable=True)
     description = Column(Text, nullable=True)
+    description_de = Column(Text, nullable=True)
     segment = Column(String(128), nullable=False)
+    segment_de = Column(String(128), nullable=True)
+    status = Column(String(32), nullable=False, default="draft")
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     updated_by = Column(String(128), nullable=True)
@@ -287,8 +296,13 @@ class Persona(Base):
     project_id = Column(UUID(as_uuid=True), nullable=False)
     name = Column(String(128), nullable=False)
     segment = Column(String(128), nullable=False)
+    # English (canonical) headline surface stored in DB column `headline`.
     headline = Column(Text, nullable=False)  # TEXT: AI/description can exceed 256 chars
+    # German mirror headline (optional until publish-time bilingual validation).
+    headline_de = Column(Text, nullable=True)
     profile = Column(JSONB, nullable=False)
+    # German mirror of `profile` JSON (same keys/shape; optional until publish validation).
+    profile_de = Column(JSONB, nullable=True)
     confidence = Column(Float, nullable=False)
     version = Column(String(32), nullable=False)
     target_group_id = Column(UUID(as_uuid=True), ForeignKey("audion.target_groups.id", ondelete="SET NULL"), nullable=True)
@@ -306,6 +320,7 @@ class Persona(Base):
     image_url = Column(Text, nullable=True)  # TEXT to allow data URLs from avatar generation (chat-api)
     image_generated_at = Column(DateTime, nullable=True)
     profile_card = Column(JSONB, nullable=True)
+    profile_card_de = Column(JSONB, nullable=True)
     tavus_replica_id = Column(String(256), nullable=True)  # Tavus replica ID for video chat (CVI)
     tavus_persona_id = Column(String(256), nullable=True)  # Optional Tavus persona ID
 
@@ -367,7 +382,10 @@ class PersonaPrompt(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     persona_id = Column(UUID(as_uuid=True), ForeignKey("audion.personas.id"), nullable=False)
+    # English (canonical) compact chat system prompt.
     system_prompt = Column(Text, nullable=False)
+    # German mirror prompt for single-locale DE chat runtimes (optional until publish validation).
+    system_prompt_de = Column(Text, nullable=True)
     template_version = Column(String(32), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     template_metadata = Column(JSONB, nullable=True)

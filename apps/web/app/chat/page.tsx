@@ -676,6 +676,7 @@ function ChatSharePageContent() {
         body: JSON.stringify({
           persona_id: personaIdParam,
           messages: apiMessages,
+          locale,
           ...(shareSessionId && { session_id: shareSessionId }),
           ...(userId && { user_id: userId }),
         }),

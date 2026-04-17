@@ -10,9 +10,14 @@ import { buildApiUrl } from "../../app/api/_lib/backend";
 export type ProjectSummary = {
   id: string;
   name: string;
+  name_de?: string | null;
   owner_user_id: string;
   description?: string | null;
+  description_de?: string | null;
   company_context?: string | null;
+  company_context_de?: string | null;
+  /** Publication lifecycle (`draft` | `published`). */
+  status?: string;
   created_at: string;
   updated_at: string;
 };
