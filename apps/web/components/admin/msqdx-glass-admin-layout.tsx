@@ -221,27 +221,33 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
       <Box sx={{ position: "relative", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
       {/* Header Bar – Page Title, Hamburger, Panel Toggle (Logo/Corner via MsqdxAppLayout) */}
       <Box
-        component="header"
-        className="msqdx-glass-admin-header-bar msqdx-glass-admin-header-bar--fade-bottom"
-        suppressHydrationWarning
+        className="msqdx-glass-admin-header-bar-mask msqdx-glass-admin-header-bar--fade-bottom"
         sx={{
           position: "absolute",
           top: 0,
           left: 0,
           right: 0,
           zIndex: 1300,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: { xs: "0.75rem 1rem", md: "1rem 1.5rem" },
-          minHeight: { xs: "56px", md: "64px" },
-          backgroundColor: "var(--msqdx-glass-admin-header-bar-bg)",
-          backdropFilter: "saturate(180%) blur(16px)",
-          WebkitBackdropFilter: "saturate(180%) blur(16px)",
-          borderBottom: "none",
           overflow: "visible",
         }}
       >
+        <Box
+          component="header"
+          className="msqdx-glass-admin-header-bar"
+          suppressHydrationWarning
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: { xs: "0.75rem 1rem", md: "1rem 1.5rem" },
+            minHeight: { xs: "56px", md: "64px" },
+            backgroundColor: "var(--msqdx-glass-admin-header-bar-bg)",
+            backdropFilter: "saturate(180%) blur(16px)",
+            WebkitBackdropFilter: "saturate(180%) blur(16px)",
+            borderBottom: "none",
+            overflow: "visible",
+          }}
+        >
         <Box sx={{ flex: 1, display: "flex", alignItems: "center" }}>
           <Box
             sx={{
@@ -356,6 +362,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
           <Box sx={{ color: theme.palette.mode === "dark" ? "#fff" : "#000" }}>
             <MsqdxIcon name={getPageIcon()} customSize={32} />
           </Box>
+        </Box>
         </Box>
       </Box>
 

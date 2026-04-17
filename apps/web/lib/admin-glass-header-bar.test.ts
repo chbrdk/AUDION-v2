@@ -24,6 +24,8 @@ describe("admin glass header bar chrome", () => {
     const layout = readFileSync(join(webRoot, "components/admin/msqdx-glass-admin-layout.tsx"), "utf8");
     const adminCss = readFileSync(join(webRoot, "styles/admin.css"), "utf8");
     expect(layout).toContain("msqdx-glass-admin-header-bar--fade-bottom");
+    expect(layout).toContain("msqdx-glass-admin-header-bar-mask");
+    expect(adminCss).toContain(".msqdx-glass-admin-header-bar-mask");
     expect(adminCss).toContain(".msqdx-glass-admin-header-bar--fade-bottom");
     expect(adminCss).toContain("mask-image:");
     expect(adminCss).toContain("--msqdx-glass-admin-header-bar-mask-fade-depth");

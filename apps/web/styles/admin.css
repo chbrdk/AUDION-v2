@@ -18,6 +18,12 @@
   overflow: visible;
 }
 
+/* Mask wrapper for the admin header bar (needed so backdrop-filter and mask-image work together). */
+.msqdx-glass-admin-header-bar-mask {
+  position: absolute;
+  overflow: visible;
+}
+
 /* Soft bottom edge on the main admin chrome header only (see MsqdxGlassAdminLayout). */
 .msqdx-glass-admin-header-bar--fade-bottom {
   -webkit-mask-image: linear-gradient(
