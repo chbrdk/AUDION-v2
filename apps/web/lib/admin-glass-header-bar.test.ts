@@ -30,4 +30,9 @@ describe("admin glass header bar chrome", () => {
     expect(adminCss).toContain("mask-image:");
     expect(adminCss).toContain("--msqdx-glass-admin-header-bar-mask-fade-depth");
   });
+
+  it("gives main content enough top padding to clear the absolute header", () => {
+    const layout = readFileSync(join(webRoot, "components/admin/msqdx-glass-admin-layout.tsx"), "utf8");
+    expect(layout).toContain("paddingTop: \"100px\"");
+  });
 });

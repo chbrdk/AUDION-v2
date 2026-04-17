@@ -383,7 +383,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
           overflowX: "hidden",
           overflowY: "auto",
           padding: { xs: "1rem", md: "1.5rem" },
-          paddingTop: 0,
+          paddingTop: "100px",
           minWidth: 0,
           maxWidth: "100%",
           width: "100%"
