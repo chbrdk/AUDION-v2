@@ -285,6 +285,91 @@ def init_db():
         except Exception as e:
             logger.error(f"Emergency fix failed (ignoring to proceed with normal init): {e}")
 
+        # 2c. ORM columns on projects / target_groups when migrations were not applied (e.g. legacy stamp
+        # without upgrade). SQLAlchemy SELECTs these on every list — must exist before Alembic runs.
+        # Mirrors: 20260309_company_ctx, 20260418_project_tg_bilingual_de, 20260418_proj_tg_pub_stat.
+        try:
+            with engine.connect() as conn:
+                proj_tbl = conn.execute(
+                    text(
+                        "SELECT EXISTS (SELECT 1 FROM information_schema.tables "
+                        "WHERE table_schema = 'audion' AND table_name = 'projects')"
+                    )
+                ).scalar()
+                if proj_tbl:
+                    conn.execute(
+                        text("ALTER TABLE audion.projects ADD COLUMN IF NOT EXISTS description TEXT NULL")
+                    )
+                    conn.execute(
+                        text("ALTER TABLE audion.projects ADD COLUMN IF NOT EXISTS company_context TEXT NULL")
+                    )
+                    conn.execute(
+                        text("ALTER TABLE audion.projects ADD COLUMN IF NOT EXISTS name_de VARCHAR(128) NULL")
+                    )
+                    conn.execute(
+                        text("ALTER TABLE audion.projects ADD COLUMN IF NOT EXISTS description_de TEXT NULL")
+                    )
+                    conn.execute(
+                        text(
+                            "ALTER TABLE audion.projects ADD COLUMN IF NOT EXISTS company_context_de TEXT NULL"
+                        )
+                    )
+                    if not conn.execute(
+                        text(
+                            "SELECT 1 FROM information_schema.columns "
+                            "WHERE table_schema = 'audion' AND table_name = 'projects' AND column_name = 'status'"
+                        )
+                    ).scalar():
+                        conn.execute(
+                            text(
+                                "ALTER TABLE audion.projects ADD COLUMN status VARCHAR(32) "
+                                "NOT NULL DEFAULT 'draft'"
+                            )
+                        )
+                        conn.execute(text("ALTER TABLE audion.projects ALTER COLUMN status DROP DEFAULT"))
+
+                tg_tbl = conn.execute(
+                    text(
+                        "SELECT EXISTS (SELECT 1 FROM information_schema.tables "
+                        "WHERE table_schema = 'audion' AND table_name = 'target_groups')"
+                    )
+                ).scalar()
+                if tg_tbl:
+                    conn.execute(
+                        text("ALTER TABLE audion.target_groups ADD COLUMN IF NOT EXISTS name_de VARCHAR(128) NULL")
+                    )
+                    conn.execute(
+                        text(
+                            "ALTER TABLE audion.target_groups ADD COLUMN IF NOT EXISTS segment_de VARCHAR(128) NULL"
+                        )
+                    )
+                    conn.execute(
+                        text(
+                            "ALTER TABLE audion.target_groups ADD COLUMN IF NOT EXISTS description_de TEXT NULL"
+                        )
+                    )
+                    if not conn.execute(
+                        text(
+                            "SELECT 1 FROM information_schema.columns "
+                            "WHERE table_schema = 'audion' AND table_name = 'target_groups' "
+                            "AND column_name = 'status'"
+                        )
+                    ).scalar():
+                        conn.execute(
+                            text(
+                                "ALTER TABLE audion.target_groups ADD COLUMN status VARCHAR(32) "
+                                "NOT NULL DEFAULT 'draft'"
+                            )
+                        )
+                        conn.execute(text("ALTER TABLE audion.target_groups ALTER COLUMN status DROP DEFAULT"))
+
+                conn.commit()
+                logger.info(
+                    "Ensured projects/target_groups ORM columns (bilingual DE mirrors, context, publication status)."
+                )
+        except Exception as e:
+            logger.warning(f"Projects/target_groups ORM column ensure failed: {e}")
+
         # 3. Migration Logic
         # Check if core tables exist. If so, we assume the schema is initialized.
         with engine.connect() as conn:
@@ -322,59 +407,6 @@ def init_db():
                 stamped_legacy_without_alembic = True
             else:
                 logger.info("Alembic version table found.")
-
-        # Ensure project company-context columns exist (same engine the app uses at runtime)
-        try:
-            with engine.connect() as conn:
-                conn.execute(text("ALTER TABLE audion.projects ADD COLUMN IF NOT EXISTS description TEXT NULL"))
-                conn.execute(text("ALTER TABLE audion.projects ADD COLUMN IF NOT EXISTS company_context TEXT NULL"))
-                conn.commit()
-                logger.info("Ensured audion.projects has description and company_context columns.")
-        except Exception as e:
-            logger.warning(f"Project columns ensure failed (may already exist): {e}")
-
-        # Publication lifecycle (draft/published): ORM expects these columns; legacy DBs that were only
-        # "stamped" to head never ran the Alembic upgrade SQL — add if missing (matches 20260418_proj_tg_pub_stat).
-        try:
-            with engine.connect() as conn:
-                proj_st = conn.execute(
-                    text(
-                        "SELECT column_name FROM information_schema.columns "
-                        "WHERE table_schema = 'audion' AND table_name = 'projects' AND column_name = 'status'"
-                    )
-                ).scalar()
-                if not proj_st:
-                    logger.warning(
-                        "projects.status missing — applying emergency add (migration may not have run)."
-                    )
-                    conn.execute(
-                        text(
-                            "ALTER TABLE audion.projects ADD COLUMN status VARCHAR(32) "
-                            "NOT NULL DEFAULT 'draft'"
-                        )
-                    )
-                    conn.execute(text("ALTER TABLE audion.projects ALTER COLUMN status DROP DEFAULT"))
-                tg_st = conn.execute(
-                    text(
-                        "SELECT column_name FROM information_schema.columns "
-                        "WHERE table_schema = 'audion' AND table_name = 'target_groups' AND column_name = 'status'"
-                    )
-                ).scalar()
-                if not tg_st:
-                    logger.warning(
-                        "target_groups.status missing — applying emergency add (migration may not have run)."
-                    )
-                    conn.execute(
-                        text(
-                            "ALTER TABLE audion.target_groups ADD COLUMN status VARCHAR(32) "
-                            "NOT NULL DEFAULT 'draft'"
-                        )
-                    )
-                    conn.execute(text("ALTER TABLE audion.target_groups ALTER COLUMN status DROP DEFAULT"))
-                conn.commit()
-                logger.info("Ensured audion.projects.status and audion.target_groups.status exist.")
-        except Exception as e:
-            logger.warning(f"Publication status column ensure failed (may already exist): {e}")
 
         # Coolify / unattended deploys: reconcile to head when alembic already tracks revisions.
         # Skip when we only stamped a legacy DB (would replay migrations from base → duplicate types/tables).

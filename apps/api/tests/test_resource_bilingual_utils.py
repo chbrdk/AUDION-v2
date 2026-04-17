@@ -116,6 +116,23 @@ def test_validate_target_group_bilingual_publish_published_rules() -> None:
     validate_target_group_bilingual_publish(target_group=tg)
 
 
+def test_init_db_emergency_orm_columns_for_projects_target_groups() -> None:
+    """init_db must add bilingual + status columns when migrations were skipped (legacy stamp)."""
+    root = Path(__file__).resolve().parents[1]
+    init_py = root / "app" / "scripts" / "init_db.py"
+    text = init_py.read_text(encoding="utf-8")
+    assert "2c. ORM columns on projects / target_groups" in text
+    for needle in (
+        "audion.projects ADD COLUMN IF NOT EXISTS name_de",
+        "audion.projects ADD COLUMN IF NOT EXISTS description_de",
+        "audion.projects ADD COLUMN IF NOT EXISTS company_context_de",
+        "audion.target_groups ADD COLUMN IF NOT EXISTS name_de",
+        "audion.target_groups ADD COLUMN IF NOT EXISTS segment_de",
+        "audion.target_groups ADD COLUMN IF NOT EXISTS description_de",
+    ):
+        assert needle in text, f"missing emergency DDL: {needle}"
+
+
 def test_coolify_migrate_script_present() -> None:
     root = Path(__file__).resolve().parents[1]
     script = root / "scripts" / "coolify-migrate.sh"
