@@ -467,6 +467,8 @@
     "segmentPlaceholder": "B2B / Enterprise / etc.",
     "headline": "Headline",
     "headlinePlaceholder": "Short description",
+    "chatSystemPromptSingleCaption": "Compact chat system prompt",
+    "chatSystemPromptSingleHint": "You edit one language at a time (interface language). Save fills the other language when it was still empty.",
     "chatSystemPromptEnCaption": "Compact chat system prompt (English)",
     "chatSystemPromptDeCaption": "Compact chat system prompt (German)",
     "chatSystemPromptDeHint": "Required for publish when an English prompt exists.",

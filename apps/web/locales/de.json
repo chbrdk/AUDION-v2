@@ -467,6 +467,8 @@
     "segmentPlaceholder": "B2B / Enterprise / etc.",
     "headline": "Headline",
     "headlinePlaceholder": "Kurzbeschreibung",
+    "chatSystemPromptSingleCaption": "Kompakter Chat-Systemprompt",
+    "chatSystemPromptSingleHint": "Bearbeitung in der Oberflächensprache. Beim Speichern wird die andere Sprache ergänzt, falls sie leer war.",
     "chatSystemPromptEnCaption": "Kompakter Chat-Systemprompt (Englisch)",
     "chatSystemPromptDeCaption": "Kompakter Chat-Systemprompt (Deutsch)",
     "chatSystemPromptDeHint": "Bei Veröffentlichung erforderlich, wenn ein englischer Prompt existiert.",

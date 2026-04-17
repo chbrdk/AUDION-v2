@@ -8,6 +8,7 @@ import { MsqdxGlassInlineEditControls } from "../msqdx-glass-inline-edit-control
 import { useInlineEdit } from "../hooks/use-inline-edit";
 import { Box } from "@mui/material";
 import { FORM_FIELD_ACCENT_SX, THEME_ACCENT } from "../../lib/theme-accent";
+import { mirrorFillStringPair } from "../../lib/bilingual-mirror";
 import { useI18n } from "../i18n/i18n-provider";
 
 export type EditFormState = {
@@ -24,7 +25,7 @@ export type MsqdxGlassPersonaBasicsCardProps = {
   expanded: boolean;
   onToggle: (id: string) => void;
   onEditField: (field: keyof EditFormState, value: string) => void;
-  onSave: (updates?: Partial<EditFormState>) => void | Promise<void>;
+  onSave: (updates?: Partial<EditFormState> & { headline_de?: string | null }) => void | Promise<void>;
   onArchive?: () => void;
   onDelete?: () => void;
   savePending: boolean;
@@ -43,7 +44,7 @@ export const MsqdxGlassPersonaBasicsCard = ({
   savePending,
   formatDate
 }: MsqdxGlassPersonaBasicsCardProps) => {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   // Individual inline edit hooks for each field
   const nameEdit = useInlineEdit({
     initialValue: detail.profile.name,
@@ -57,10 +58,15 @@ export const MsqdxGlassPersonaBasicsCard = ({
     isEqual: (a, b) => a === b
   });
 
+  const headlineBaseline =
+    locale === "de"
+      ? (detail.headline_de?.trim() || detail.profile.headline || "")
+      : (detail.profile.headline || "");
   const headlineEdit = useInlineEdit({
-    initialValue: detail.profile.headline,
-    currentValue: detail.profile.headline,
-    isEqual: (a, b) => a === b
+    initialValue: headlineBaseline,
+    currentValue: headlineBaseline,
+    isEqual: (a, b) => a === b,
+    baselineKey: `${detail.metadata.personaId}-${locale}`,
   });
 
   const updatedByEdit = useInlineEdit({
@@ -92,8 +98,13 @@ export const MsqdxGlassPersonaBasicsCard = ({
   };
 
   const handleSaveHeadline = async () => {
-    await onSave({ headline: headlineEdit.getValue() });
-    onEditField("headline", headlineEdit.getValue());
+    const v = headlineEdit.getValue();
+    const pair =
+      locale === "en"
+        ? mirrorFillStringPair(v, detail.headline_de ?? "")
+        : mirrorFillStringPair(detail.profile.headline ?? "", v);
+    await onSave({ headline: pair.en, headline_de: pair.de.trim() ? pair.de : null });
+    onEditField("headline", pair.en);
     setTimeout(() => {
       headlineEdit.sync();
     }, 100);

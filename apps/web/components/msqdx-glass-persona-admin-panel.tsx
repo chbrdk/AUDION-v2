@@ -59,6 +59,7 @@ type EditFormState = {
   name: string;
   headline: string;
   headline_de: string;
+  system_prompt_en: string;
   system_prompt_de: string;
   segment: string;
   status: string;
@@ -110,12 +111,14 @@ type PersonaSaveUpdates =
   | Partial<PersonaProfile>
   | { project_id?: string; target_group_id?: string | null }
   | { profile_de?: Record<string, unknown> | null }
-  | { system_prompt_de?: string | null };
+  | { system_prompt_de?: string | null }
+  | { system_prompt_en?: string | null };
 
 const defaultEditFormState: EditFormState = {
   name: "",
   headline: "",
   headline_de: "",
+  system_prompt_en: "",
   system_prompt_de: "",
   segment: "",
   status: "draft",
@@ -223,6 +226,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
   const [profileDeText, setProfileDeText] = useState<string>("");
   const profileDeDirtyRef = useRef(false);
   const systemPromptDeDirtyRef = useRef(false);
+  const systemPromptEnDirtyRef = useRef(false);
   const [savePending, setSavePending] = useState(false);
   const [createForm, setCreateForm] = useState<CreateFormState>(defaultCreateFormState);
   const [createPending, setCreatePending] = useState(false);
@@ -574,6 +578,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
       setProfileDeText("");
       profileDeDirtyRef.current = false;
       systemPromptDeDirtyRef.current = false;
+      systemPromptEnDirtyRef.current = false;
       metadataFormDirtyRef.current = false;
       return;
     }
@@ -587,6 +592,9 @@ export const MsqdxGlassPersonaAdminPanel = ({
       name: detail.profile.name,
       headline: detail.profile.headline,
       headline_de: detail.headline_de ?? "",
+      system_prompt_en: systemPromptEnDirtyRef.current
+        ? prev.system_prompt_en
+        : (detail.prompt.system_prompt ?? ""),
       system_prompt_de: systemPromptDeDirtyRef.current ? prev.system_prompt_de : (detail.prompt.system_prompt_de ?? ""),
       segment: detail.profile.segment,
       status: detail.metadata.status,
@@ -675,7 +683,8 @@ export const MsqdxGlassPersonaAdminPanel = ({
           "target_group_id" in updates ||
           "tavus_replica_id" in updates ||
           "tavus_persona_id" in updates ||
-          "system_prompt_de" in updates);
+          "system_prompt_de" in updates ||
+          "system_prompt_en" in updates);
 
       let formUpdates: Partial<EditFormState> | undefined;
       let demographicUpdates: Partial<PersonaProfile> | undefined;
@@ -692,9 +701,16 @@ export const MsqdxGlassPersonaAdminPanel = ({
       const updatedName = formUpdates?.name ?? editForm.name;
       const updatedHeadline = formUpdates?.headline ?? editForm.headline;
       const updatedHeadlineDe = formUpdates?.headline_de ?? editForm.headline_de;
+      const headlinePair = mirrorFillStringPair(updatedHeadline, updatedHeadlineDe);
+      const finalHeadline = headlinePair.en;
+      const finalHeadlineDe = headlinePair.de.trim() ? headlinePair.de : "";
+      const updatedSystemPromptEn =
+        updates && "system_prompt_en" in updates
+          ? String((updates as { system_prompt_en?: string | null }).system_prompt_en ?? "")
+          : (formUpdates?.system_prompt_en ?? editForm.system_prompt_en);
       const updatedSystemPromptDe =
         updates && "system_prompt_de" in updates
-          ? (((updates as { system_prompt_de?: string | null }).system_prompt_de ?? "") as string)
+          ? String((updates as { system_prompt_de?: string | null }).system_prompt_de ?? "")
           : (formUpdates?.system_prompt_de ?? editForm.system_prompt_de);
       const updatedSegment = formUpdates?.segment ?? editForm.segment;
       const updatedStatus = formUpdates?.status ?? editForm.status;
@@ -704,7 +720,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
       const profileUpdates: Partial<PersonaProfile> = {
         ...detail.profile,
         name: updatedName,
-        headline: updatedHeadline,
+        headline: finalHeadline,
         segment: updatedSegment,
       };
 
@@ -745,7 +761,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
         ...detail.profile,
         // Override with form updates first
         name: updatedName,
-        headline: updatedHeadline,
+        headline: finalHeadline,
         segment: updatedSegment,
       };
 
@@ -878,8 +894,8 @@ export const MsqdxGlassPersonaAdminPanel = ({
 
       const payload: Record<string, unknown> = {
         name: updatedName,
-        headline: updatedHeadline,
-        headline_de: updatedHeadlineDe,
+        headline: finalHeadline,
+        headline_de: finalHeadlineDe.trim() ? finalHeadlineDe : null,
         segment: updatedSegment,
         status: updatedStatus,
         updated_by: updatedBy,
@@ -903,14 +919,20 @@ export const MsqdxGlassPersonaAdminPanel = ({
             : (detail.metadata as { tavusPersonaId?: string | null }).tavusPersonaId ?? null;
       }
 
-      const shouldPatchPromptDe = Boolean(
-        systemPromptDeDirtyRef.current || (updates && "system_prompt_de" in updates)
+      const shouldPatchPrompt = Boolean(
+        systemPromptDeDirtyRef.current ||
+          systemPromptEnDirtyRef.current ||
+          (updates && ("system_prompt_de" in updates || "system_prompt_en" in updates))
       );
-      if (shouldPatchPromptDe) {
+      if (shouldPatchPrompt) {
+        const promptPair = mirrorFillStringPair(
+          updatedSystemPromptEn || (detail.prompt.system_prompt ?? ""),
+          updatedSystemPromptDe || (detail.prompt.system_prompt_de ?? "")
+        );
         payload.prompt = {
           persona_id: detail.prompt.persona_id ?? detail.metadata.personaId,
-          system_prompt: detail.prompt.system_prompt ?? "",
-          system_prompt_de: updatedSystemPromptDe,
+          system_prompt: promptPair.en.trim() || (detail.prompt.system_prompt ?? ""),
+          system_prompt_de: promptPair.de.trim() ? promptPair.de : null,
           template_version: detail.prompt.template_version ?? "unknown",
         };
       }
@@ -926,11 +948,14 @@ export const MsqdxGlassPersonaAdminPanel = ({
         if (formUpdates.headline !== undefined) handleEditField("headline", formUpdates.headline);
         if (formUpdates.headline_de !== undefined) handleEditField("headline_de", formUpdates.headline_de);
         if (formUpdates.system_prompt_de !== undefined) handleEditField("system_prompt_de", formUpdates.system_prompt_de);
+        if (formUpdates.system_prompt_en !== undefined) handleEditField("system_prompt_en", formUpdates.system_prompt_en);
         if (formUpdates.segment !== undefined) handleEditField("segment", formUpdates.segment);
         if (formUpdates.status !== undefined) handleEditField("status", formUpdates.status);
         if (formUpdates.updatedBy !== undefined) handleEditField("updatedBy", formUpdates.updatedBy);
       } else if (updates && "system_prompt_de" in updates) {
         handleEditField("system_prompt_de", ((updates as { system_prompt_de?: string | null }).system_prompt_de ?? "") as string);
+      } else if (updates && "system_prompt_en" in updates) {
+        handleEditField("system_prompt_en", ((updates as { system_prompt_en?: string | null }).system_prompt_en ?? "") as string);
       }
 
       const response = await fetch(buildApiUrl(`/api/persona-admin/${selectedId}`), {
@@ -957,6 +982,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
       metadataFormDirtyRef.current = false;
       profileDeDirtyRef.current = false;
       systemPromptDeDirtyRef.current = false;
+      systemPromptEnDirtyRef.current = false;
       setProfileDeText(updated.profile_de ? JSON.stringify(updated.profile_de, null, 2) : "");
       setDetail(updated);
       setList((prev) => ({
@@ -972,6 +998,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
           ...(formUpdates.headline !== undefined && { headline: formUpdates.headline }),
           ...(formUpdates.headline_de !== undefined && { headline_de: formUpdates.headline_de }),
           ...(formUpdates.system_prompt_de !== undefined && { system_prompt_de: formUpdates.system_prompt_de }),
+          ...(formUpdates.system_prompt_en !== undefined && { system_prompt_en: formUpdates.system_prompt_en }),
           ...(formUpdates.segment !== undefined && { segment: formUpdates.segment }),
           ...(formUpdates.status !== undefined && { status: formUpdates.status }),
           ...(formUpdates.updatedBy !== undefined && { updatedBy: formUpdates.updatedBy }),
@@ -979,6 +1006,9 @@ export const MsqdxGlassPersonaAdminPanel = ({
       } else if (updates && "system_prompt_de" in updates) {
         const nextDe = ((updates as { system_prompt_de?: string | null }).system_prompt_de ?? "") as string;
         setEditForm((prev) => ({ ...prev, system_prompt_de: nextDe }));
+      } else if (updates && "system_prompt_en" in updates) {
+        const nextEn = ((updates as { system_prompt_en?: string | null }).system_prompt_en ?? "") as string;
+        setEditForm((prev) => ({ ...prev, system_prompt_en: nextEn }));
       }
 
       notify(t("personaAdmin.toasts.personaSaved"));
@@ -1934,7 +1964,6 @@ export const MsqdxGlassPersonaAdminPanel = ({
                       {(() => {
                         const fieldDefinitions = getFieldDefinitions("persona");
                         const nameField = fieldDefinitions.find(f => f.key === "name");
-                        const headlineField = fieldDefinitions.find(f => f.key === "headline");
                         const segmentField = fieldDefinitions.find(f => f.key === "segment");
                         const handleFieldSave = async (key: string, value: any) => {
                           await handleSave({ [key]: value } as Partial<EditFormState>);
@@ -1970,65 +1999,73 @@ export const MsqdxGlassPersonaAdminPanel = ({
                               </div>
                             )}
                             <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-                              {headlineField && (
-                                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                                  {editingField === "headline" ? (
-                                    <Box sx={{ flex: 1 }}>
-                                      <MsqdxGlassFieldEditor
-                                        field={headlineField}
-                                        value={detail.profile.headline}
-                                        valueSyncKey={selectedId || undefined}
-                                        onChange={handleFieldChange}
-                                        onSave={(k, v) => handleFieldSave(k, v)}
-                                        inline={true}
-                                        disabled={savePending}
-                                        forceEditMode={true}
-                                        onEditEnd={() => setEditingField(null)}
-                                      />
-                                    </Box>
-                                  ) : editingField === "headline_de" ? (
-                                    <Box sx={{ flex: 1, display: "flex", gap: 1, alignItems: "flex-start", flexWrap: "wrap", width: "100%" }}>
-                                      <TextField
-                                        size="small"
-                                        fullWidth
-                                        value={editForm.headline_de}
-                                        onChange={(e) => {
-                                          metadataFormDirtyRef.current = true;
+                              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                                {editingField === "headline" ? (
+                                  <Box sx={{ flex: 1, display: "flex", flexDirection: "column", gap: 1, width: "100%" }}>
+                                    <TextField
+                                      size="small"
+                                      fullWidth
+                                      label={t("personaAdmin.headline")}
+                                      value={locale === "de" ? editForm.headline_de : editForm.headline}
+                                      onChange={(e) => {
+                                        metadataFormDirtyRef.current = true;
+                                        if (locale === "de") {
                                           setEditForm((prev) => ({ ...prev, headline_de: e.target.value }));
-                                        }}
-                                        placeholder={t("personaAdmin.headlinePlaceholder")}
-                                        disabled={savePending}
-                                      />
+                                        } else {
+                                          setEditForm((prev) => ({ ...prev, headline: e.target.value }));
+                                        }
+                                      }}
+                                      placeholder={t("personaAdmin.headlinePlaceholder")}
+                                      disabled={savePending}
+                                    />
+                                    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                                       <MsqdxButton
                                         variant="outlined"
                                         size="small"
                                         disabled={savePending}
+                                        onClick={() => {
+                                          metadataFormDirtyRef.current = false;
+                                          setEditForm((prev) => ({
+                                            ...prev,
+                                            headline: detail.profile.headline,
+                                            headline_de: detail.headline_de ?? "",
+                                          }));
+                                          setEditingField(null);
+                                        }}
+                                      >
+                                        {t("common.cancel")}
+                                      </MsqdxButton>
+                                      <MsqdxButton
+                                        variant="contained"
+                                        size="small"
+                                        disabled={savePending}
                                         onClick={async () => {
-                                          await handleSave({ headline_de: editForm.headline_de });
+                                          const p = mirrorFillStringPair(editForm.headline, editForm.headline_de);
+                                          await handleSave({ headline: p.en, headline_de: p.de });
                                           setEditingField(null);
                                         }}
                                       >
                                         {t("common.save")}
                                       </MsqdxButton>
                                     </Box>
-                                  ) : (
-                                    <>
-                                      <span style={{ fontSize: "1rem", color: "var(--color-text-secondary)" }}>
-                                        {locale === "de"
-                                          ? detail.headline_de?.trim() || detail.profile.headline || "—"
-                                          : detail.profile.headline || "—"}
-                                      </span>
-                                      <MsqdxGlassEditButton
-                                        onClick={() => setEditingField(locale === "de" ? "headline_de" : "headline")}
-                                        disabled={savePending}
-                                        aria-label="Edit headline"
-                                        size="small"
-                                        fontSize={14}
-                                      />
-                                    </>
-                                  )}
-                                </div>
-                              )}
+                                  </Box>
+                                ) : (
+                                  <>
+                                    <span style={{ fontSize: "1rem", color: "var(--color-text-secondary)" }}>
+                                      {locale === "de"
+                                        ? detail.headline_de?.trim() || detail.profile.headline || "—"
+                                        : detail.profile.headline || "—"}
+                                    </span>
+                                    <MsqdxGlassEditButton
+                                      onClick={() => setEditingField("headline")}
+                                      disabled={savePending}
+                                      aria-label="Edit headline"
+                                      size="small"
+                                      fontSize={14}
+                                    />
+                                  </>
+                                )}
+                              </div>
 
                               {locale === "de" ? (
                                 <Box sx={{ mt: 2 }}>
@@ -2083,75 +2120,57 @@ export const MsqdxGlassPersonaAdminPanel = ({
                               )}
 
                               <Box sx={{ mt: 2 }}>
-                                {locale === "en" && (
-                                  <>
-                                    <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
-                                      {t("personaAdmin.chatSystemPromptEnCaption")}
-                                    </MsqdxTypography>
-                                    <TextField
-                                      multiline
-                                      minRows={6}
-                                      fullWidth
-                                      value={detail.prompt.system_prompt ?? ""}
-                                      disabled
-                                      sx={{ "& textarea": { fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" } }}
-                                    />
-                                    <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 1 }}>
-                                      {t("personaAdmin.chatSystemPromptSwitchToDe")}
-                                    </MsqdxTypography>
-                                  </>
-                                )}
-                                {locale === "de" && (
-                                  <>
-                                    <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
-                                      {t("personaAdmin.chatSystemPromptDeCaption")}
-                                    </MsqdxTypography>
-                                    <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
-                                      {t("personaAdmin.chatSystemPromptDeHint")}
-                                    </MsqdxTypography>
-                                    <TextField
-                                      multiline
-                                      minRows={6}
-                                      fullWidth
-                                      value={editForm.system_prompt_de}
-                                      onChange={(e) => {
-                                        systemPromptDeDirtyRef.current = true;
-                                        setEditForm((prev) => ({ ...prev, system_prompt_de: e.target.value }));
-                                      }}
-                                      disabled={savePending}
-                                      sx={{ "& textarea": { fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" } }}
-                                    />
-                                    <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end", mt: 1, flexWrap: "wrap" }}>
-                                      <MsqdxButton
-                                        variant="outlined"
-                                        size="small"
-                                        disabled={savePending}
-                                        onClick={() => {
-                                          systemPromptDeDirtyRef.current = false;
-                                          setEditForm((prev) => ({
-                                            ...prev,
-                                            system_prompt_de: detail.prompt.system_prompt_de ?? "",
-                                          }));
-                                        }}
-                                      >
-                                        {t("common.reset")}
-                                      </MsqdxButton>
-                                      <MsqdxButton
-                                        variant="contained"
-                                        size="small"
-                                        disabled={savePending}
-                                        onClick={async () => {
-                                          await handleSave({ system_prompt_de: editForm.system_prompt_de });
-                                        }}
-                                      >
-                                        {t("common.save")}
-                                      </MsqdxButton>
-                                    </Box>
-                                    <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 1 }}>
-                                      {t("personaAdmin.chatSystemPromptSwitchToEn")}
-                                    </MsqdxTypography>
-                                  </>
-                                )}
+                                <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
+                                  {t("personaAdmin.chatSystemPromptSingleCaption")}
+                                </MsqdxTypography>
+                                <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 1 }}>
+                                  {t("personaAdmin.chatSystemPromptSingleHint")}
+                                </MsqdxTypography>
+                                <TextField
+                                  multiline
+                                  minRows={6}
+                                  fullWidth
+                                  value={locale === "de" ? editForm.system_prompt_de : editForm.system_prompt_en}
+                                  onChange={(e) => {
+                                    if (locale === "de") {
+                                      systemPromptDeDirtyRef.current = true;
+                                      setEditForm((prev) => ({ ...prev, system_prompt_de: e.target.value }));
+                                    } else {
+                                      systemPromptEnDirtyRef.current = true;
+                                      setEditForm((prev) => ({ ...prev, system_prompt_en: e.target.value }));
+                                    }
+                                  }}
+                                  disabled={savePending}
+                                  sx={{ "& textarea": { fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" } }}
+                                />
+                                <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end", mt: 1, flexWrap: "wrap" }}>
+                                  <MsqdxButton
+                                    variant="outlined"
+                                    size="small"
+                                    disabled={savePending}
+                                    onClick={() => {
+                                      systemPromptDeDirtyRef.current = false;
+                                      systemPromptEnDirtyRef.current = false;
+                                      setEditForm((prev) => ({
+                                        ...prev,
+                                        system_prompt_en: detail.prompt.system_prompt ?? "",
+                                        system_prompt_de: detail.prompt.system_prompt_de ?? "",
+                                      }));
+                                    }}
+                                  >
+                                    {t("common.reset")}
+                                  </MsqdxButton>
+                                  <MsqdxButton
+                                    variant="contained"
+                                    size="small"
+                                    disabled={savePending}
+                                    onClick={async () => {
+                                      await handleSave();
+                                    }}
+                                  >
+                                    {t("common.save")}
+                                  </MsqdxButton>
+                                </Box>
                               </Box>
                               {segmentField && (
                                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
