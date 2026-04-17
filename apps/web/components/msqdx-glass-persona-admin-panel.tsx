@@ -33,6 +33,7 @@ import {
   TextField,
   Tooltip,
 } from "@mui/material";
+import { mirrorFillStringPair } from "../lib/bilingual-mirror";
 import { buildApiUrl } from "../app/api/_lib/backend";
 import { normalizePersonaListResponse } from "../lib/persona-list-normalize";
 import { THEME_ACCENT } from "../lib/theme-accent";
@@ -1459,19 +1460,23 @@ export const MsqdxGlassPersonaAdminPanel = ({
     }
     setCreatePending(true);
     try {
+      const hlPair = mirrorFillStringPair(
+        createForm.headline || "New Persona",
+        createForm.headline_de || ""
+      );
+      const headlineEn = hlPair.en.trim() || "New Persona";
+      const headlineDeTrim = hlPair.de.trim() || null;
       const payload = {
         project_id: activeProjectId,
         name: createForm.name,
         segment: createForm.segment || "unspecified",
-        headline: createForm.headline || "New Persona",
-        ...(createForm.headline_de.trim()
-          ? { headline_de: createForm.headline_de.trim() }
-          : {}),
+        headline: headlineEn,
+        ...(headlineDeTrim ? { headline_de: headlineDeTrim } : {}),
         profile: {
           id: "",
           name: createForm.name,
           segment: createForm.segment || "unspecified",
-          headline: createForm.headline || "New Persona",
+          headline: headlineEn,
           bio: "",
           traits: {},
           pain_points: [],
@@ -1860,17 +1865,15 @@ export const MsqdxGlassPersonaAdminPanel = ({
               />
               <MsqdxFormField
                 label={t("personaAdmin.headline")}
-                value={createForm.headline}
-                onChange={(e) => setCreateForm((prev) => ({ ...prev, headline: e.target.value }))}
+                value={locale === "de" ? createForm.headline_de : createForm.headline}
+                onChange={(e) =>
+                  setCreateForm((prev) =>
+                    locale === "de"
+                      ? { ...prev, headline_de: e.target.value }
+                      : { ...prev, headline: e.target.value }
+                  )
+                }
                 placeholder={t("personaAdmin.headlinePlaceholder")}
-                fullWidth
-                size="small"
-              />
-              <MsqdxFormField
-                label={`${t("personaAdmin.headline")} (DE)`}
-                value={createForm.headline_de}
-                onChange={(e) => setCreateForm((prev) => ({ ...prev, headline_de: e.target.value }))}
-                placeholder="German headline (optional)"
                 fullWidth
                 size="small"
               />
@@ -1983,137 +1986,172 @@ export const MsqdxGlassPersonaAdminPanel = ({
                                         onEditEnd={() => setEditingField(null)}
                                       />
                                     </Box>
+                                  ) : editingField === "headline_de" ? (
+                                    <Box sx={{ flex: 1, display: "flex", gap: 1, alignItems: "flex-start", flexWrap: "wrap", width: "100%" }}>
+                                      <TextField
+                                        size="small"
+                                        fullWidth
+                                        value={editForm.headline_de}
+                                        onChange={(e) => {
+                                          metadataFormDirtyRef.current = true;
+                                          setEditForm((prev) => ({ ...prev, headline_de: e.target.value }));
+                                        }}
+                                        placeholder={t("personaAdmin.headlinePlaceholder")}
+                                        disabled={savePending}
+                                      />
+                                      <MsqdxButton
+                                        variant="outlined"
+                                        size="small"
+                                        disabled={savePending}
+                                        onClick={async () => {
+                                          await handleSave({ headline_de: editForm.headline_de });
+                                          setEditingField(null);
+                                        }}
+                                      >
+                                        {t("common.save")}
+                                      </MsqdxButton>
+                                    </Box>
                                   ) : (
                                     <>
-                                      <span style={{ fontSize: "1rem", color: "var(--color-text-secondary)" }}>{detail.profile.headline || "—"}</span>
-                                      <MsqdxGlassEditButton onClick={() => setEditingField("headline")} disabled={savePending} aria-label="Edit headline" size="small" fontSize={14} />
+                                      <span style={{ fontSize: "1rem", color: "var(--color-text-secondary)" }}>
+                                        {locale === "de"
+                                          ? detail.headline_de?.trim() || detail.profile.headline || "—"
+                                          : detail.profile.headline || "—"}
+                                      </span>
+                                      <MsqdxGlassEditButton
+                                        onClick={() => setEditingField(locale === "de" ? "headline_de" : "headline")}
+                                        disabled={savePending}
+                                        aria-label="Edit headline"
+                                        size="small"
+                                        fontSize={14}
+                                      />
                                     </>
                                   )}
                                 </div>
                               )}
-                              <Box sx={{ mt: 1 }}>
-                                <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
-                                  Headline (DE) — optional until publish
-                                </MsqdxTypography>
-                                <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start", flexWrap: "wrap" }}>
+
+                              {locale === "de" ? (
+                                <Box sx={{ mt: 2 }}>
+                                  <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
+                                    {t("personaAdmin.profileDeJsonCaption")}
+                                  </MsqdxTypography>
+                                  <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
+                                    {t("personaAdmin.profileDeJsonAdvanced")}
+                                  </MsqdxTypography>
                                   <TextField
-                                    size="small"
+                                    multiline
+                                    minRows={10}
                                     fullWidth
-                                    value={editForm.headline_de}
+                                    value={profileDeText}
                                     onChange={(e) => {
-                                      metadataFormDirtyRef.current = true;
-                                      setEditForm((prev) => ({ ...prev, headline_de: e.target.value }));
+                                      profileDeDirtyRef.current = true;
+                                      setProfileDeText(e.target.value);
                                     }}
-                                    placeholder="German headline"
                                     disabled={savePending}
+                                    sx={{ "& textarea": { fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" } }}
                                   />
-                                  <MsqdxButton
-                                    variant="outlined"
-                                    size="small"
-                                    disabled={savePending}
-                                    onClick={async () => {
-                                      await handleSave({ headline_de: editForm.headline_de });
-                                    }}
-                                  >
-                                    Save DE headline
-                                  </MsqdxButton>
+                                  <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end", mt: 1, flexWrap: "wrap" }}>
+                                    <MsqdxButton
+                                      variant="outlined"
+                                      size="small"
+                                      disabled={savePending}
+                                      onClick={() => {
+                                        profileDeDirtyRef.current = false;
+                                        setProfileDeText(detail.profile_de ? JSON.stringify(detail.profile_de, null, 2) : "");
+                                      }}
+                                    >
+                                      {t("common.reset")}
+                                    </MsqdxButton>
+                                    <MsqdxButton
+                                      variant="contained"
+                                      size="small"
+                                      disabled={savePending}
+                                      onClick={async () => {
+                                        await handleSave();
+                                      }}
+                                    >
+                                      {t("common.save")}
+                                    </MsqdxButton>
+                                  </Box>
                                 </Box>
-                              </Box>
+                              ) : (
+                                <Box sx={{ mt: 2 }}>
+                                  <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                                    {t("personaAdmin.profileDeSwitchLocale")}
+                                  </MsqdxTypography>
+                                </Box>
+                              )}
 
                               <Box sx={{ mt: 2 }}>
-                                <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
-                                  Profile JSON (DE) — must match EN profile keys/shape for publish
-                                </MsqdxTypography>
-                                <TextField
-                                  multiline
-                                  minRows={10}
-                                  fullWidth
-                                  value={profileDeText}
-                                  onChange={(e) => {
-                                    profileDeDirtyRef.current = true;
-                                    setProfileDeText(e.target.value);
-                                  }}
-                                  disabled={savePending}
-                                  sx={{ "& textarea": { fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" } }}
-                                />
-                                <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end", mt: 1, flexWrap: "wrap" }}>
-                                  <MsqdxButton
-                                    variant="outlined"
-                                    size="small"
-                                    disabled={savePending}
-                                    onClick={() => {
-                                      profileDeDirtyRef.current = false;
-                                      setProfileDeText(detail.profile_de ? JSON.stringify(detail.profile_de, null, 2) : "");
-                                    }}
-                                  >
-                                    Reset
-                                  </MsqdxButton>
-                                  <MsqdxButton
-                                    variant="contained"
-                                    size="small"
-                                    disabled={savePending}
-                                    onClick={async () => {
-                                      await handleSave();
-                                    }}
-                                  >
-                                    Save DE profile
-                                  </MsqdxButton>
-                                </Box>
-                              </Box>
-
-                              <Box sx={{ mt: 2 }}>
-                                <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
-                                  Compact chat system prompt (EN) — canonical
-                                </MsqdxTypography>
-                                <TextField
-                                  multiline
-                                  minRows={6}
-                                  fullWidth
-                                  value={detail.prompt.system_prompt ?? ""}
-                                  disabled
-                                  sx={{ "& textarea": { fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" } }}
-                                />
-                                <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 1.5, mb: 0.5 }}>
-                                  Compact chat system prompt (DE) — required for publish when EN prompt exists
-                                </MsqdxTypography>
-                                <TextField
-                                  multiline
-                                  minRows={6}
-                                  fullWidth
-                                  value={editForm.system_prompt_de}
-                                  onChange={(e) => {
-                                    systemPromptDeDirtyRef.current = true;
-                                    setEditForm((prev) => ({ ...prev, system_prompt_de: e.target.value }));
-                                  }}
-                                  disabled={savePending}
-                                  sx={{ "& textarea": { fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" } }}
-                                />
-                                <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end", mt: 1, flexWrap: "wrap" }}>
-                                  <MsqdxButton
-                                    variant="outlined"
-                                    size="small"
-                                    disabled={savePending}
-                                    onClick={() => {
-                                      systemPromptDeDirtyRef.current = false;
-                                      setEditForm((prev) => ({
-                                        ...prev,
-                                        system_prompt_de: detail.prompt.system_prompt_de ?? "",
-                                      }));
-                                    }}
-                                  >
-                                    Reset
-                                  </MsqdxButton>
-                                  <MsqdxButton
-                                    variant="contained"
-                                    size="small"
-                                    disabled={savePending}
-                                    onClick={async () => {
-                                      await handleSave({ system_prompt_de: editForm.system_prompt_de });
-                                    }}
-                                  >
-                                    Save DE prompt
-                                  </MsqdxButton>
-                                </Box>
+                                {locale === "en" && (
+                                  <>
+                                    <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
+                                      {t("personaAdmin.chatSystemPromptEnCaption")}
+                                    </MsqdxTypography>
+                                    <TextField
+                                      multiline
+                                      minRows={6}
+                                      fullWidth
+                                      value={detail.prompt.system_prompt ?? ""}
+                                      disabled
+                                      sx={{ "& textarea": { fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" } }}
+                                    />
+                                    <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 1 }}>
+                                      {t("personaAdmin.chatSystemPromptSwitchToDe")}
+                                    </MsqdxTypography>
+                                  </>
+                                )}
+                                {locale === "de" && (
+                                  <>
+                                    <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
+                                      {t("personaAdmin.chatSystemPromptDeCaption")}
+                                    </MsqdxTypography>
+                                    <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
+                                      {t("personaAdmin.chatSystemPromptDeHint")}
+                                    </MsqdxTypography>
+                                    <TextField
+                                      multiline
+                                      minRows={6}
+                                      fullWidth
+                                      value={editForm.system_prompt_de}
+                                      onChange={(e) => {
+                                        systemPromptDeDirtyRef.current = true;
+                                        setEditForm((prev) => ({ ...prev, system_prompt_de: e.target.value }));
+                                      }}
+                                      disabled={savePending}
+                                      sx={{ "& textarea": { fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" } }}
+                                    />
+                                    <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end", mt: 1, flexWrap: "wrap" }}>
+                                      <MsqdxButton
+                                        variant="outlined"
+                                        size="small"
+                                        disabled={savePending}
+                                        onClick={() => {
+                                          systemPromptDeDirtyRef.current = false;
+                                          setEditForm((prev) => ({
+                                            ...prev,
+                                            system_prompt_de: detail.prompt.system_prompt_de ?? "",
+                                          }));
+                                        }}
+                                      >
+                                        {t("common.reset")}
+                                      </MsqdxButton>
+                                      <MsqdxButton
+                                        variant="contained"
+                                        size="small"
+                                        disabled={savePending}
+                                        onClick={async () => {
+                                          await handleSave({ system_prompt_de: editForm.system_prompt_de });
+                                        }}
+                                      >
+                                        {t("common.save")}
+                                      </MsqdxButton>
+                                    </Box>
+                                    <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 1 }}>
+                                      {t("personaAdmin.chatSystemPromptSwitchToEn")}
+                                    </MsqdxTypography>
+                                  </>
+                                )}
                               </Box>
                               {segmentField && (
                                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>

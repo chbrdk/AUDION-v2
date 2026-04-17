@@ -6,6 +6,7 @@ import { Box, Stack } from "@mui/material";
 import type { TargetGroupListResponse, TargetGroupResponse } from "@msqdx-glass/types";
 import { MsqdxButton, MsqdxFormField, MsqdxIcon, MsqdxMoleculeCard, MsqdxTextareaField, MsqdxTypography } from "@msqdx/react";
 import { buildApiUrl } from "../../app/api/_lib/backend";
+import { mirrorFillStringPair } from "../../lib/bilingual-mirror";
 import { ADMIN_ROUTES } from "../../lib/routes";
 import { useProject } from "../projects/project-provider";
 import { useI18n } from "../i18n/i18n-provider";
@@ -38,7 +39,7 @@ function extractTargetGroupId(payload: unknown): string | null {
 }
 
 export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTargetGroupsOverviewProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const router = useRouter();
   const { activeProjectId, activeProject } = useProject();
   const accent = "var(--color-theme-accent)";
@@ -86,8 +87,10 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
   }, [activeProjectId]);
 
   const handleCreate = async () => {
-    const name = createForm.name.trim();
-    const segment = createForm.segment.trim();
+    const namePair = mirrorFillStringPair(createForm.name, createForm.name_de);
+    const segPair = mirrorFillStringPair(createForm.segment, createForm.segment_de);
+    const name = namePair.en.trim();
+    const segment = segPair.en.trim();
     if (!activeProjectId || !name || !segment) {
       setCreateError(t("targetGroupsAdmin.toasts.projectNameSegmentRequired"));
       return;
@@ -96,14 +99,15 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
     setCreating(true);
     setCreateError(null);
     try {
+      const descPair = mirrorFillStringPair(createForm.description, createForm.description_de);
       const payload = {
         project_id: activeProjectId,
-        name,
-        segment,
-        description: createForm.description.trim() || null,
-        name_de: createForm.name_de.trim() || null,
-        segment_de: createForm.segment_de.trim() || null,
-        description_de: createForm.description_de.trim() || null,
+        name: namePair.en.trim(),
+        segment: segPair.en.trim(),
+        description: descPair.en.trim() || null,
+        name_de: namePair.de.trim() || null,
+        segment_de: segPair.de.trim() || null,
+        description_de: descPair.de.trim() || null,
       };
 
       const response = await fetch(buildApiUrl("/api/target-groups"), {
@@ -223,10 +227,17 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
                     ? t("targetGroupsAdmin.projectIdLabel", { id: activeProjectId })
                     : t("targetGroupsAdmin.selectProject")}
               </MsqdxTypography>
+              <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                {t("targetGroupsAdmin.localeFieldHint")}
+              </MsqdxTypography>
               <MsqdxFormField
                 label={t("targetGroupsAdmin.name")}
-                value={createForm.name}
-                onChange={(e) => setCreateForm((prev) => ({ ...prev, name: e.target.value }))}
+                value={locale === "de" ? createForm.name_de : createForm.name}
+                onChange={(e) =>
+                  setCreateForm((prev) =>
+                    locale === "de" ? { ...prev, name_de: e.target.value } : { ...prev, name: e.target.value }
+                  )
+                }
                 placeholder={t("targetGroupsAdmin.namePlaceholder")}
                 size="small"
                 autoFocus
@@ -234,42 +245,28 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
               />
               <MsqdxFormField
                 label={t("targetGroupsAdmin.segment")}
-                value={createForm.segment}
-                onChange={(e) => setCreateForm((prev) => ({ ...prev, segment: e.target.value }))}
+                value={locale === "de" ? createForm.segment_de : createForm.segment}
+                onChange={(e) =>
+                  setCreateForm((prev) =>
+                    locale === "de" ? { ...prev, segment_de: e.target.value } : { ...prev, segment: e.target.value }
+                  )
+                }
                 placeholder={t("targetGroupsAdmin.segmentPlaceholder")}
                 size="small"
                 fullWidth
               />
               <MsqdxTextareaField
                 label={t("targetGroupsAdmin.description")}
-                value={createForm.description}
-                onChange={(e) => setCreateForm((prev) => ({ ...prev, description: e.target.value }))}
+                value={locale === "de" ? createForm.description_de : createForm.description}
+                onChange={(e) =>
+                  setCreateForm((prev) =>
+                    locale === "de"
+                      ? { ...prev, description_de: e.target.value }
+                      : { ...prev, description: e.target.value }
+                  )
+                }
                 placeholder={t("targetGroupsAdmin.descriptionPlaceholder")}
                 minRows={3}
-                fullWidth
-              />
-              <MsqdxFormField
-                label="Name (DE)"
-                value={createForm.name_de}
-                onChange={(e) => setCreateForm((prev) => ({ ...prev, name_de: e.target.value }))}
-                placeholder="German display name (optional)"
-                size="small"
-                fullWidth
-              />
-              <MsqdxFormField
-                label="Segment (DE)"
-                value={createForm.segment_de}
-                onChange={(e) => setCreateForm((prev) => ({ ...prev, segment_de: e.target.value }))}
-                placeholder="German segment (optional)"
-                size="small"
-                fullWidth
-              />
-              <MsqdxTextareaField
-                label="Description (DE)"
-                value={createForm.description_de}
-                onChange={(e) => setCreateForm((prev) => ({ ...prev, description_de: e.target.value }))}
-                placeholder="German description (optional)"
-                minRows={2}
                 fullWidth
               />
               {createError && (

@@ -1,4 +1,11 @@
-/** True when both project description and company context are blank (whitespace-only counts as empty). */
-export function isProjectAiContextEmpty(description: string, companyContext: string): boolean {
-  return !description.trim() && !companyContext.trim();
+/** True when description and company context are blank in all given language columns. */
+export function isProjectAiContextEmpty(
+  description: string,
+  companyContext: string,
+  descriptionDe?: string,
+  companyContextDe?: string
+): boolean {
+  const descEmpty = !description.trim() && !(descriptionDe?.trim());
+  const ctxEmpty = !companyContext.trim() && !(companyContextDe?.trim());
+  return descEmpty && ctxEmpty;
 }

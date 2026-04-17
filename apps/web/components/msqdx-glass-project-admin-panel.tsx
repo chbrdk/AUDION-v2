@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Alert, Box, Stack } from "@mui/material";
 import Link from "next/link";
@@ -9,6 +9,7 @@ import { MsqdxGlassCollapsiblePanel } from "./admin/msqdx-glass-collapsible-pane
 import { buildApiUrl, fetchWithTimeout } from "../app/api/_lib/backend";
 import { journeysApi, type JourneyResponse } from "../app/api/_lib/journeys";
 import { ADMIN_ROUTES } from "../lib/routes";
+import { mirrorFillStringPair } from "../lib/bilingual-mirror";
 import { isProjectAiContextEmpty } from "../lib/project-context";
 import { aiAssistApi, type AiTemplateSummary } from "../app/api/_lib/ai-assist";
 import { useProject, type ProjectSummary, type ProjectMember } from "./projects/project-provider";
@@ -71,7 +72,7 @@ export function MsqdxGlassProjectAdminPanel({
     activeProjectId,
     mode = "full",
 }: MsqdxGlassProjectAdminPanelProps) {
-    const { t } = useI18n();
+    const { t, locale } = useI18n();
     const router = useRouter();
     const accent = "var(--color-theme-accent)";
     const {
@@ -125,9 +126,21 @@ export function MsqdxGlassProjectAdminPanel({
     const [companyContext, setCompanyContext] = useState("");
     const [companyDescriptionDe, setCompanyDescriptionDe] = useState("");
     const [companyContextDe, setCompanyContextDe] = useState("");
+    const [projectNameEn, setProjectNameEn] = useState("");
     const [projectNameDe, setProjectNameDe] = useState("");
     const [projectPublicationStatus, setProjectPublicationStatus] = useState<"draft" | "published">("draft");
     const [savingContext, setSavingContext] = useState(false);
+
+    const hasCompanyContextForAi = useMemo(
+        () =>
+            Boolean(
+                companyDescription.trim() ||
+                    companyDescriptionDe.trim() ||
+                    companyContext.trim() ||
+                    companyContextDe.trim()
+            ),
+        [companyDescription, companyDescriptionDe, companyContext, companyContextDe]
+    );
     const [contextSaveError, setContextSaveError] = useState<string | null>(null);
 
     // Suggest target groups state
@@ -379,12 +392,14 @@ export function MsqdxGlassProjectAdminPanel({
             setCompanyContext(detail.company_context ?? "");
             setCompanyDescriptionDe(detail.description_de ?? "");
             setCompanyContextDe(detail.company_context_de ?? "");
+            setProjectNameEn(detail.name ?? "");
             setProjectNameDe(detail.name_de ?? "");
             const st = detail.status === "published" ? "published" : "draft";
             setProjectPublicationStatus(st);
         }
     }, [
         detail?.id,
+        detail?.name,
         detail?.description,
         detail?.company_context,
         detail?.description_de,
@@ -399,15 +414,20 @@ export function MsqdxGlassProjectAdminPanel({
         setSavingContext(true);
         setContextSaveError(null);
         try {
+            const namePair = mirrorFillStringPair(projectNameEn, projectNameDe);
+            const descPair = mirrorFillStringPair(companyDescription, companyDescriptionDe);
+            const ctxPair = mirrorFillStringPair(companyContext, companyContextDe);
+            const nameEnFinal = (namePair.en.trim() || detail?.name?.trim() || "").trim();
             const res = await fetch(buildApiUrl(`/api/projects/${selectedId}`), {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    description: companyDescription || null,
-                    company_context: companyContext || null,
-                    description_de: companyDescriptionDe || null,
-                    company_context_de: companyContextDe || null,
-                    name_de: projectNameDe || null,
+                    name: nameEnFinal || undefined,
+                    description: descPair.en.trim() || null,
+                    company_context: ctxPair.en.trim() || null,
+                    description_de: descPair.de.trim() || null,
+                    company_context_de: ctxPair.de.trim() || null,
+                    name_de: namePair.de.trim() || null,
                     status: projectPublicationStatus,
                 }),
             });
@@ -428,8 +448,10 @@ export function MsqdxGlassProjectAdminPanel({
         companyContext,
         companyDescriptionDe,
         companyContextDe,
+        projectNameEn,
         projectNameDe,
         projectPublicationStatus,
+        detail?.name,
         loadDetail,
         t,
     ]);
@@ -998,11 +1020,18 @@ export function MsqdxGlassProjectAdminPanel({
                             <Box className="msqdx-dashboard-project-header" sx={{ gridColumn: "1 / -1" }}>
                                 <MsqdxCard>
                                     <MsqdxTypography variant="h4" weight="semibold" sx={{ mb: 0.5 }}>
-                                        {detail.name}
+                                        {locale === "de" && (detail.name_de?.trim() || "").length > 0
+                                            ? detail.name_de
+                                            : detail.name}
                                     </MsqdxTypography>
-                                    {detail.name_de ? (
-                                        <MsqdxTypography variant="body2" sx={{ color: "text.secondary", mb: 0.5 }}>
-                                            {detail.name_de}
+                                    {locale === "de" && detail.name_de?.trim() && detail.name !== detail.name_de ? (
+                                        <MsqdxTypography variant="caption" sx={{ color: "text.secondary", mb: 0.5, display: "block" }}>
+                                            EN: {detail.name}
+                                        </MsqdxTypography>
+                                    ) : null}
+                                    {locale === "en" && detail.name_de?.trim() ? (
+                                        <MsqdxTypography variant="caption" sx={{ color: "text.secondary", mb: 0.5, display: "block" }}>
+                                            DE: {detail.name_de}
                                         </MsqdxTypography>
                                     ) : null}
                                     <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
@@ -1182,7 +1211,12 @@ export function MsqdxGlassProjectAdminPanel({
                                     onToggle={toggleSection}
                                 >
                                     <Stack spacing={2}>
-                                        {isProjectAiContextEmpty(companyDescription, companyContext) && (
+                                        {isProjectAiContextEmpty(
+                                            companyDescription,
+                                            companyContext,
+                                            companyDescriptionDe,
+                                            companyContextDe
+                                        ) && (
                                             <Alert severity="info" sx={{ alignItems: "flex-start" }}>
                                                 {t("settingsProjects.companyContext.emptyAiHint")}
                                             </Alert>
@@ -1212,10 +1246,29 @@ export function MsqdxGlassProjectAdminPanel({
                                             {t("settingsProjects.companyContext.publicationHint") ??
                                                 "Published requires German (DE) fields wherever English text is set."}
                                         </MsqdxTypography>
+                                        <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                                            {t("settingsProjects.companyContext.mirrorSaveHint")}
+                                        </MsqdxTypography>
+                                        <MsqdxFormField
+                                            label={t("settingsProjects.companyContext.displayNameLabel")}
+                                            value={locale === "de" ? projectNameDe : projectNameEn}
+                                            onChange={(e) =>
+                                                locale === "de"
+                                                    ? setProjectNameDe(e.target.value)
+                                                    : setProjectNameEn(e.target.value)
+                                            }
+                                            placeholder={t("settingsProjects.companyContext.displayNameLabel")}
+                                            size="small"
+                                            fullWidth
+                                        />
                                         <MsqdxFormField
                                             label={t("settingsProjects.companyContext.description") ?? "Project / company description"}
-                                            value={companyDescription}
-                                            onChange={(e) => setCompanyDescription(e.target.value)}
+                                            value={locale === "de" ? companyDescriptionDe : companyDescription}
+                                            onChange={(e) =>
+                                                locale === "de"
+                                                    ? setCompanyDescriptionDe(e.target.value)
+                                                    : setCompanyDescription(e.target.value)
+                                            }
                                             placeholder={t("settingsProjects.companyContext.descriptionPlaceholder") ?? "Short description of the project or company..."}
                                             multiline
                                             minRows={2}
@@ -1225,42 +1278,11 @@ export function MsqdxGlassProjectAdminPanel({
                                         />
                                         <MsqdxFormField
                                             label={t("settingsProjects.companyContext.contextLabel") ?? "Company context"}
-                                            value={companyContext}
-                                            onChange={(e) => setCompanyContext(e.target.value)}
+                                            value={locale === "de" ? companyContextDe : companyContext}
+                                            onChange={(e) =>
+                                                locale === "de" ? setCompanyContextDe(e.target.value) : setCompanyContext(e.target.value)
+                                            }
                                             placeholder={t("settingsProjects.companyContext.contextPlaceholder") ?? "Industry, products, target markets, tone of voice, etc. This context is used to suggest target groups and personas."}
-                                            multiline
-                                            minRows={3}
-                                            maxRows={10}
-                                            size="small"
-                                            fullWidth
-                                        />
-                                        <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                                            German mirrors (optional) — saved together with the fields above
-                                        </MsqdxTypography>
-                                        <MsqdxFormField
-                                            label="Project / company name (DE)"
-                                            value={projectNameDe}
-                                            onChange={(e) => setProjectNameDe(e.target.value)}
-                                            placeholder="German display name"
-                                            size="small"
-                                            fullWidth
-                                        />
-                                        <MsqdxFormField
-                                            label="Project / company description (DE)"
-                                            value={companyDescriptionDe}
-                                            onChange={(e) => setCompanyDescriptionDe(e.target.value)}
-                                            placeholder="German description"
-                                            multiline
-                                            minRows={2}
-                                            maxRows={6}
-                                            size="small"
-                                            fullWidth
-                                        />
-                                        <MsqdxFormField
-                                            label="Company context (DE)"
-                                            value={companyContextDe}
-                                            onChange={(e) => setCompanyContextDe(e.target.value)}
-                                            placeholder="German company context"
                                             multiline
                                             minRows={3}
                                             maxRows={10}
@@ -1310,12 +1332,12 @@ export function MsqdxGlassProjectAdminPanel({
                                             variant="outlined"
                                             size="small"
                                             onClick={handleSuggestTargetGroups}
-                                            disabled={suggestLoading || !(companyDescription.trim() || companyContext.trim())}
+                                            disabled={suggestLoading || !hasCompanyContextForAi}
                                             sx={{ color: "#000", borderColor: "#000", "&:hover": { borderColor: "#000", color: "#000", backgroundColor: "rgba(0,0,0,0.08)" } }}
                                         >
                                             {suggestLoading ? (t("settingsProjects.companyContext.suggestLoading") ?? "Generating…") : (t("settingsProjects.companyContext.suggestCta") ?? "Generate suggestions")}
                                         </MsqdxButton>
-                                        {!(companyDescription.trim() || companyContext.trim()) && (
+                                        {!hasCompanyContextForAi && (
                                             <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
                                                 {t("settingsProjects.companyContext.suggestEmpty") ?? "Save company context above first, then generate suggestions."}
                                             </MsqdxTypography>
@@ -1425,7 +1447,7 @@ export function MsqdxGlassProjectAdminPanel({
                                                 disabled={
                                                     personaSuggestLoading ||
                                                     !selectedTgIdForPersonas ||
-                                                    !(companyDescription.trim() || companyContext.trim())
+                                                    !hasCompanyContextForAi
                                                 }
                                                 sx={{ color: "#000", borderColor: "#000", "&:hover": { borderColor: "#000", color: "#000", backgroundColor: "rgba(0,0,0,0.08)" } }}
                                             >
@@ -1434,7 +1456,7 @@ export function MsqdxGlassProjectAdminPanel({
                                                     : (t("settingsProjects.suggestPersonas.cta") ?? "Generate persona suggestions")}
                                             </MsqdxButton>
                                         </Box>
-                                        {!(companyDescription.trim() || companyContext.trim()) && (
+                                        {!hasCompanyContextForAi && (
                                             <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
                                                 {t("settingsProjects.suggestPersonas.empty") ?? "Save company context above and select a target group."}
                                             </MsqdxTypography>

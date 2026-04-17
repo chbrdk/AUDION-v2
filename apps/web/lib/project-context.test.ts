@@ -11,4 +11,10 @@ describe("isProjectAiContextEmpty", () => {
     expect(isProjectAiContextEmpty("x", "")).toBe(false);
     expect(isProjectAiContextEmpty("", "y")).toBe(false);
   });
+
+  it("considers German columns when provided", () => {
+    expect(isProjectAiContextEmpty("", "", "de only", "")).toBe(false);
+    expect(isProjectAiContextEmpty("", "", "", "ctx de")).toBe(false);
+    expect(isProjectAiContextEmpty("", "", "", "")).toBe(true);
+  });
 });
