@@ -43,6 +43,10 @@
   --color-secondary-dx-grey-light: #d4d2d2;
   --color-secondary-dx-grey-light-tint: rgba(212, 210, 210, 0.5);
   --color-neutral: #f8f6f0;
+  /* Frosted admin top bar (MsqdxGlassAdminLayout header): warm neutral @ 30% — same base as --color-neutral */
+  --msqdx-glass-admin-header-bar-bg: rgb(from var(--color-neutral) r g b / 0.3);
+  /* Bottom edge: height of the soft mask fade (admin header --fade-bottom modifier only) */
+  --msqdx-glass-admin-header-bar-mask-fade-depth: 40px;
   --audion-light-border-color: #0f172a;
   --audion-light-html-background-color: #0f172a;
   --audion-sidebar-text-color: #ffffff;
@@ -74,6 +78,7 @@
   --color-secondary-dx-grey-light: #666666;
   --color-secondary-dx-grey-light-tint: rgba(102, 102, 102, 0.3);
   --color-neutral: #0f0f0f;
+  --msqdx-glass-admin-header-bar-bg: rgb(from var(--color-neutral) r g b / 0.82);
 }
 
 * {

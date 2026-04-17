@@ -18,6 +18,30 @@
   overflow: visible;
 }
 
+/* Soft bottom edge on the main admin chrome header only (see MsqdxGlassAdminLayout). */
+.msqdx-glass-admin-header-bar--fade-bottom {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0,
+    #000 calc(100% - var(--msqdx-glass-admin-header-bar-mask-fade-depth, 40px)),
+    rgba(0, 0, 0, 0.55) calc(100% - calc(var(--msqdx-glass-admin-header-bar-mask-fade-depth, 40px) * 0.45)),
+    rgba(0, 0, 0, 0.12) calc(100% - calc(var(--msqdx-glass-admin-header-bar-mask-fade-depth, 40px) * 0.2)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0,
+    #000 calc(100% - var(--msqdx-glass-admin-header-bar-mask-fade-depth, 40px)),
+    rgba(0, 0, 0, 0.55) calc(100% - calc(var(--msqdx-glass-admin-header-bar-mask-fade-depth, 40px) * 0.45)),
+    rgba(0, 0, 0, 0.12) calc(100% - calc(var(--msqdx-glass-admin-header-bar-mask-fade-depth, 40px) * 0.2)),
+    transparent 100%
+  );
+  mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+}
+
 .msqdx-glass-admin-header-corner {
   position: absolute;
   top: -2px;

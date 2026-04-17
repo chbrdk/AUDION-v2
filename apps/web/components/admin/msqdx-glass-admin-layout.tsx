@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { alpha, Box, IconButton, Tooltip, useTheme } from "@mui/material";
+import { Box, IconButton, Tooltip, useTheme } from "@mui/material";
 import { MsqdxButton, MsqdxIcon, MsqdxAdminNav, MsqdxAppLayout, MsqdxTypography } from "@msqdx/react";
 import type { AdminNavItem } from "@msqdx/react";
 import { useAdminHeader, useAdminPanel } from "./admin-layout-providers";
@@ -222,7 +222,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
       {/* Header Bar – Page Title, Hamburger, Panel Toggle (Logo/Corner via MsqdxAppLayout) */}
       <Box
         component="header"
-        className="msqdx-glass-admin-header-bar"
+        className="msqdx-glass-admin-header-bar msqdx-glass-admin-header-bar--fade-bottom"
         suppressHydrationWarning
         sx={{
           position: "absolute",
@@ -235,10 +235,10 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
           justifyContent: "space-between",
           padding: { xs: "0.75rem 1rem", md: "1rem 1.5rem" },
           minHeight: { xs: "56px", md: "64px" },
-          backgroundColor: (t) => alpha(t.palette.background.default, t.palette.mode === "dark" ? 0.82 : 0.76),
+          backgroundColor: "var(--msqdx-glass-admin-header-bar-bg)",
           backdropFilter: "saturate(180%) blur(16px)",
           WebkitBackdropFilter: "saturate(180%) blur(16px)",
-          borderBottom: (t) => `1px solid ${alpha(t.palette.divider, t.palette.mode === "dark" ? 0.35 : 0.55)}`,
+          borderBottom: "none",
           overflow: "visible",
         }}
       >
