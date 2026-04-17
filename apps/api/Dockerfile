@@ -37,6 +37,6 @@ COPY --from=proto /app/apps/api/.venv ./.venv
 COPY apps/api .
 COPY packages/proto /app/packages/proto
 COPY apps/api/start.sh /app/apps/api/start.sh
-RUN chmod +x /app/apps/api/start.sh
+RUN chmod +x /app/apps/api/start.sh /app/apps/api/scripts/coolify-migrate.sh
 ENV PATH="/app/apps/api/.venv/bin:$PATH"
 CMD ["/app/apps/api/start.sh"]

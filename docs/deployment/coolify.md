@@ -148,19 +148,25 @@ Coolify will use the `docker-compose.yml` file in the repository root. Ensure it
 
 ## Step 7: Database Migration
 
-After the first deployment, run database migrations:
+You do **not** need a Coolify terminal for routine migrations: the `api` container runs `app/scripts/init_db.py` on startup (`start.sh`), which ends with an idempotent **`alembic upgrade head`** on existing databases (fresh installs use `create_all` + stamp only).
 
-1. Open a terminal in the `api` service container:
+### Optional: explicit migrate job or deploy hook
+
+If you prefer a separate step (e.g. Coolify **Execute Command** on deploy, or a one-off command):
+
+```bash
+/app/apps/api/scripts/coolify-migrate.sh
+```
+
+Same environment variables as the `api` service (`DATABASE_URL`, `AUTH_JWT_SECRET`, etc.). The script lives in the image at `scripts/coolify-migrate.sh` relative to `apps/api`.
+
+### Manual terminal (only if needed)
+
+1. Open a terminal in the `api` service container (Coolify → Services → api → Terminal).
+2. Run:
    ```bash
-   # In Coolify, navigate to the application → Services → api → Terminal
+   cd /app/apps/api && alembic upgrade head
    ```
-
-2. Run migrations:
-   ```bash
-   alembic upgrade head
-   ```
-
-Alternatively, you can add a migration step to your deployment process or use an init container.
 
 ## Step 8: Verification
 

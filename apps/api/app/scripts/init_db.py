@@ -298,6 +298,7 @@ def init_db():
             )).scalar()
 
         alembic_cfg = Config("alembic.ini")
+        ran_create_all = False
 
         if not personas_exists:
             logger.info("Fresh database detected (no personas table). Creating all tables from models...")
@@ -306,20 +307,16 @@ def init_db():
             
             logger.info("Stamping database with current migration version...")
             command.stamp(alembic_cfg, "head")
+            ran_create_all = True
         else:
             logger.info("Existing database detected.")
             if not alembic_exists:
-                # Only stamp if we have app tables BUT no alembic version (legacy/unmanaged state)
+                # Legacy DB: no version table. Stamp declares current line; emergency DDL below may add
+                # columns missing from older images. A final `upgrade head` (after ensures) is idempotent.
                 logger.info("No alembic_version table found. Stamping to head to capture current state...")
                 command.stamp(alembic_cfg, "head")
-                # IMPORTANT: Stamping is an explicit declaration that the current schema matches head.
-                # Do not immediately run upgrade again in the same bootstrap run, or we risk re-applying
-                # operations in partially-managed databases (and triggering enum/type conflicts).
-                logger.info("Stamped to head; skipping upgrade in this bootstrap run.")
             else:
-                logger.info("Alembic version table found. Proceeding with standard upgrade...")
-                logger.info("Running upgrade head...")
-                command.upgrade(alembic_cfg, "head")
+                logger.info("Alembic version table found.")
 
         # Ensure project company-context columns exist (same engine the app uses at runtime)
         try:
@@ -330,6 +327,59 @@ def init_db():
                 logger.info("Ensured audion.projects has description and company_context columns.")
         except Exception as e:
             logger.warning(f"Project columns ensure failed (may already exist): {e}")
+
+        # Publication lifecycle (draft/published): ORM expects these columns; legacy DBs that were only
+        # "stamped" to head never ran the Alembic upgrade SQL — add if missing (matches 20260418_proj_tg_pub_stat).
+        try:
+            with engine.connect() as conn:
+                proj_st = conn.execute(
+                    text(
+                        "SELECT column_name FROM information_schema.columns "
+                        "WHERE table_schema = 'audion' AND table_name = 'projects' AND column_name = 'status'"
+                    )
+                ).scalar()
+                if not proj_st:
+                    logger.warning(
+                        "projects.status missing — applying emergency add (migration may not have run)."
+                    )
+                    conn.execute(
+                        text(
+                            "ALTER TABLE audion.projects ADD COLUMN status VARCHAR(32) "
+                            "NOT NULL DEFAULT 'draft'"
+                        )
+                    )
+                    conn.execute(text("ALTER TABLE audion.projects ALTER COLUMN status DROP DEFAULT"))
+                tg_st = conn.execute(
+                    text(
+                        "SELECT column_name FROM information_schema.columns "
+                        "WHERE table_schema = 'audion' AND table_name = 'target_groups' AND column_name = 'status'"
+                    )
+                ).scalar()
+                if not tg_st:
+                    logger.warning(
+                        "target_groups.status missing — applying emergency add (migration may not have run)."
+                    )
+                    conn.execute(
+                        text(
+                            "ALTER TABLE audion.target_groups ADD COLUMN status VARCHAR(32) "
+                            "NOT NULL DEFAULT 'draft'"
+                        )
+                    )
+                    conn.execute(text("ALTER TABLE audion.target_groups ALTER COLUMN status DROP DEFAULT"))
+                conn.commit()
+                logger.info("Ensured audion.projects.status and audion.target_groups.status exist.")
+        except Exception as e:
+            logger.warning(f"Publication status column ensure failed (may already exist): {e}")
+
+        # Coolify / unattended deploys: reconcile to head on existing DBs only. Fresh DBs used create_all
+        # + stamp; running upgrade would re-apply migrations and collide with existing tables.
+        if not ran_create_all:
+            try:
+                logger.info("Running alembic upgrade head (idempotent)...")
+                command.upgrade(alembic_cfg, "head")
+            except Exception as e:
+                logger.error(f"Alembic upgrade head failed: {e}")
+                raise
 
         logger.info("Database initialization completed successfully.")
 

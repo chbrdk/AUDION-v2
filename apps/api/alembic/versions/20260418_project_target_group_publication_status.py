@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy import inspect
 
 
 revision = "20260418_proj_tg_pub_stat"
@@ -21,20 +22,32 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "projects",
-        sa.Column("status", sa.String(length=32), nullable=False, server_default="draft"),
-        schema="audion",
-    )
-    op.add_column(
-        "target_groups",
-        sa.Column("status", sa.String(length=32), nullable=False, server_default="draft"),
-        schema="audion",
-    )
-    op.alter_column("projects", "status", server_default=None, schema="audion")
-    op.alter_column("target_groups", "status", server_default=None, schema="audion")
+    bind = op.get_bind()
+    insp = inspect(bind)
+    proj_cols = {c["name"] for c in insp.get_columns("projects", schema="audion")}
+    if "status" not in proj_cols:
+        op.add_column(
+            "projects",
+            sa.Column("status", sa.String(length=32), nullable=False, server_default="draft"),
+            schema="audion",
+        )
+        op.alter_column("projects", "status", server_default=None, schema="audion")
+    tg_cols = {c["name"] for c in insp.get_columns("target_groups", schema="audion")}
+    if "status" not in tg_cols:
+        op.add_column(
+            "target_groups",
+            sa.Column("status", sa.String(length=32), nullable=False, server_default="draft"),
+            schema="audion",
+        )
+        op.alter_column("target_groups", "status", server_default=None, schema="audion")
 
 
 def downgrade() -> None:
-    op.drop_column("target_groups", "status", schema="audion")
-    op.drop_column("projects", "status", schema="audion")
+    bind = op.get_bind()
+    insp = inspect(bind)
+    tg_cols = {c["name"] for c in insp.get_columns("target_groups", schema="audion")}
+    if "status" in tg_cols:
+        op.drop_column("target_groups", "status", schema="audion")
+    proj_cols = {c["name"] for c in insp.get_columns("projects", schema="audion")}
+    if "status" in proj_cols:
+        op.drop_column("projects", "status", schema="audion")

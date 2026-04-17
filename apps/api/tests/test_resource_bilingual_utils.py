@@ -116,6 +116,15 @@ def test_validate_target_group_bilingual_publish_published_rules() -> None:
     validate_target_group_bilingual_publish(target_group=tg)
 
 
+def test_coolify_migrate_script_present() -> None:
+    root = Path(__file__).resolve().parents[1]
+    script = root / "scripts" / "coolify-migrate.sh"
+    assert script.is_file()
+    text = script.read_text(encoding="utf-8")
+    assert "alembic.ini" in text
+    assert "upgrade head" in text
+
+
 def test_migration_project_target_group_publication_status_columns() -> None:
     root = Path(__file__).resolve().parents[1]
     mig = root / "alembic" / "versions" / "20260418_project_target_group_publication_status.py"
