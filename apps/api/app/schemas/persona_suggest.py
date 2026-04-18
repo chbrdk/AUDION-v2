@@ -19,6 +19,10 @@ class SuggestPersonasRequest(BaseModel):
     """Optional body for suggest-personas endpoint."""
 
     max_suggestions: int = Field(default=5, ge=1, le=10, description="Max number of persona suggestions.")
+    output_locale: str | None = Field(
+        default=None,
+        description='Language for suggested persona copy: "en" | "de".',
+    )
 
 
 class SuggestPersonasResponse(BaseModel):

@@ -23,6 +23,8 @@ export interface AiAssistExecuteOptions {
   journeyId?: string;
   phaseId?: string;
   phaseContext?: Record<string, unknown>;
+  /** When using journey AI, forwarded as `output_locale` so generated copy matches the UI language. */
+  outputLocale?: string;
   context?: Record<string, unknown>;
   promptVariables?: Record<string, unknown>;
   maxSuggestions?: number;
@@ -45,12 +47,17 @@ export const useAiAssist = () => {
         let response: UiAiAssistResult;
         const resolvedProjectId = options.projectId ?? activeProjectId ?? undefined;
         if (options.journeyId) {
+          const mergedPhaseContext = {
+            ...(options.context ?? {}),
+            ...(options.phaseContext ?? {}),
+          };
           const payload: JourneyAiGenerateRequest = {
             template_id: options.templateId as any, // templateId can be any string for journey AI
             phase_id: options.phaseId,
-            phase_context: options.phaseContext,
+            phase_context: Object.keys(mergedPhaseContext).length ? mergedPhaseContext : undefined,
             prompt_variables: options.promptVariables,
             max_suggestions: options.maxSuggestions,
+            output_locale: options.outputLocale,
           };
           const journeyResponse: JourneyAiGenerationResponse = await journeysApi.generateAiSuggestions(
             options.journeyId,
@@ -62,11 +69,15 @@ export const useAiAssist = () => {
             suggestions: journeyResponse.suggestions.map(mapJourneySuggestion),
           };
         } else {
+          const mergedContext = {
+            ...(options.context ?? {}),
+            ...(options.outputLocale ? { output_locale: options.outputLocale } : {}),
+          };
           const request: AiAssistRequest = {
             template_id: options.templateId,
             provider: options.provider,
             model: options.model,
-            context: options.context,
+            context: Object.keys(mergedContext).length ? mergedContext : options.context,
             prompt_variables: options.promptVariables,
             max_suggestions: options.maxSuggestions,
           };

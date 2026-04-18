@@ -214,6 +214,10 @@ class JourneyAiGenerateRequest(BaseModel):
         description="Optional variables to override prompt defaults (e.g., max_items)",
     )
     max_suggestions: int = Field(default=3, ge=1, le=10, description="Maximum number of suggestions to return")
+    output_locale: Optional[str] = Field(
+        default=None,
+        description='UI language for generated copy: "en" | "de" (aliases: locale, ui_locale in phase_context).',
+    )
 
 
 class JourneyAiSuggestion(BaseModel):

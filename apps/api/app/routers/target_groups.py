@@ -1115,6 +1115,7 @@ def suggest_personas_endpoint(
             target_group_segment=tg.segment or "",
             target_group_description=(tg.description or "").strip(),
             max_suggestions=max_suggestions,
+            output_locale=body.output_locale if body else None,
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc

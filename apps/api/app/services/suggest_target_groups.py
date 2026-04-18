@@ -11,6 +11,7 @@ from openai import OpenAI
 
 from ..core.config import get_settings
 from .openai_llm_usage import raw_units_from_openai_chat_completion
+from .persona_ai_locale import locale_label_for_ai_prompt, normalize_output_locale
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
@@ -26,6 +27,8 @@ class TargetGroupSuggestion:
 def suggest_target_groups(
     context_text: str,
     max_suggestions: int = 5,
+    *,
+    output_locale: str | None = None,
 ) -> tuple[list[TargetGroupSuggestion], dict[str, Any]]:
     """
     Call AI to suggest target groups from company/project context.
@@ -38,11 +41,16 @@ def suggest_target_groups(
     if not settings.openai_api_key:
         raise ValueError("OpenAI API key not configured. Set OPENAI_API_KEY for target group suggestions.")
 
+    loc = normalize_output_locale(output_locale)
+    lang = locale_label_for_ai_prompt(loc)
     prompt = f"""Based on the following company/project context, suggest between 3 and {max_suggestions} target groups (audience segments) that would be relevant for this project.
+
+LANGUAGE: Write every human-readable field (name, description) exclusively in {lang}. The "segment" value must be a short URL-safe ASCII slug (lowercase, hyphens); it may stay English-like if clearer for systems.
+
 For each target group provide:
-- name: A short, human-readable name (e.g. "Technical Decision Makers")
-- segment: A brief segment label (e.g. "tech-leads")
-- description: 2-3 sentences describing this audience and why they matter for the project
+- name: A short, human-readable name
+- segment: A brief segment label (ASCII slug, e.g. "tech-leads")
+- description: 2-3 sentences in {lang} describing this audience and why they matter for the project
 
 Respond with a JSON array only, no other text. Example format:
 [{{"name": "...", "segment": "...", "description": "..."}}, ...]
@@ -56,7 +64,13 @@ Company/project context:
     try:
         chat = client.chat.completions.create(
             messages=[
-                {"role": "system", "content": "You are a helpful marketing and research assistant. Output only valid JSON arrays."},
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a helpful marketing and research assistant. Output only valid JSON arrays. "
+                        f"Follow the LANGUAGE instruction in the user message for name and description ({lang})."
+                    ),
+                },
                 {"role": "user", "content": prompt},
             ],
             model=settings.ai_openai_model or "gpt-4o-mini",

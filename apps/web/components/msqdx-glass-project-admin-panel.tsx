@@ -466,7 +466,7 @@ export function MsqdxGlassProjectAdminPanel({
             const res = await fetch(buildApiUrl(`/api/projects/${selectedId}/suggest-target-groups`), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ max_suggestions: 5 }),
+                body: JSON.stringify({ max_suggestions: 5, output_locale: locale }),
             });
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
@@ -600,7 +600,11 @@ export function MsqdxGlassProjectAdminPanel({
         try {
             const res = await fetch(
                 buildApiUrl(`/api/target-groups/${selectedTgIdForPersonas}/suggest-personas`),
-                { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ max_suggestions: 5 }) }
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ max_suggestions: 5, output_locale: locale }),
+                }
             );
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
@@ -682,7 +686,7 @@ export function MsqdxGlassProjectAdminPanel({
                                 method: "POST",
                                 credentials: "include",
                                 headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ profile_overlay: profileOverlay }),
+                                body: JSON.stringify({ profile_overlay: profileOverlay, output_locale: locale }),
                             });
                             if (!enrichRes.ok) throw new Error("Enrich failed");
                         } finally {

@@ -96,7 +96,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
     key: number;
   }>({ open: false, message: "", autoHide: null, key: 0 });
   const { execute: runAiAssist, loading: aiAssistLoading } = useAiAssist();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   const runAiWithSnackbar = async <T = UiAiAssistResult>(
     options: AiAssistExecuteOptions,
@@ -251,6 +251,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
         {
           templateId: "journey.moments",
           journeyId,
+          outputLocale: locale,
           phaseContext: {
             name: formData.name,
             description: formData.description,
@@ -279,6 +280,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
         {
           templateId: "journey.phase.name",
           journeyId,
+          outputLocale: locale,
           context: {
             journey_name: journey?.name || "",
             journey_type: journey?.journey_type || "",
@@ -301,6 +303,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
         {
           templateId: "journey.description",
           journeyId,
+          outputLocale: locale,
           context: {
             journey_name: journey?.name || "",
             journey_type: journey?.journey_type || "",
@@ -324,6 +327,7 @@ export const MsqdxGlassJourneyPhaseCard = ({
         {
           templateId: "journey.phase.emotion",
           journeyId,
+          outputLocale: locale,
           context: {
             journey_name: journey?.name || "",
             phase_name: formData.name,

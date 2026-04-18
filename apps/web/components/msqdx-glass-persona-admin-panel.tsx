@@ -1690,7 +1690,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profile_overlay: profileOverlay }),
+        body: JSON.stringify({ profile_overlay: profileOverlay, output_locale: locale }),
       });
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));

@@ -225,6 +225,8 @@ export interface JourneyAiGenerateRequest {
   phase_context?: Record<string, unknown>;
   prompt_variables?: Record<string, unknown>;
   max_suggestions?: number;
+  /** "en" | "de" — matches persona admin `output_locale`; drives ${generated_text_locale_name} in journey templates. */
+  output_locale?: string;
 }
 
 export interface JourneyAiSuggestion {

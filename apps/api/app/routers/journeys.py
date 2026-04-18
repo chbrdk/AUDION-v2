@@ -38,6 +38,7 @@ from ..services.journey_serializer import (
     phase_to_response,
     to_journey_response,
 )
+from ..services.persona_ai_locale import finalize_ai_locale_context
 from ..services.persona_store import PersonaService
 from ..services.target_group_store import TargetGroupService
 from ..services.auth import get_current_user
@@ -469,7 +470,10 @@ async def generate_journey_ai_content(
         )
         # Merge with phase_context to include frontend-provided variables
         # (e.g., existing_phases_summary, last_phase_summary, etc.)
-        context = {**base_context, **(payload.phase_context or {})}
+        merged_ctx = {**base_context, **(payload.phase_context or {})}
+        if payload.output_locale:
+            merged_ctx["output_locale"] = payload.output_locale
+        context = finalize_ai_locale_context(merged_ctx)
         ai_request = AiAssistRequest(
             template_id=payload.template_id,
             context=context,

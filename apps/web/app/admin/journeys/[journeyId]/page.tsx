@@ -131,7 +131,7 @@ export default function JourneyEditorPage() {
   const [editingPhaseId, setEditingPhaseId] = useState<string | null>(null);
   const [expandedAccordions, setExpandedAccordions] = useState<Set<string>>(() => new Set());
   const { execute: runAiAssist, loading: aiAssistLoading } = useAiAssist();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   const isAccordionExpanded = (id: string) => expandedAccordions.has(id);
   const toggleAccordion = (id: string) =>
@@ -329,6 +329,7 @@ export default function JourneyEditorPage() {
       const result = await runAiAssist({
         templateId: "journey.phase.create",
         journeyId,
+        outputLocale: locale,
         phaseContext: {
           journey_name: journey.name,
           journey_type: journey.journey_type || "unknown",
@@ -557,6 +558,7 @@ export default function JourneyEditorPage() {
       const result = await runAiAssist({
         templateId: "journey.moments",
         journeyId,
+        outputLocale: locale,
         phaseContext: {
           name: phaseFormData.name,
           description: phaseFormData.description,

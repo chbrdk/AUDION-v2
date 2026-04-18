@@ -10,6 +10,8 @@ templates:
     prompt: |
       You are a Senior Journey Strategist. You support a team in concretizing a journey phase.
 
+      LANGUAGE: All user-visible strings in the JSON ("title", "content", and any descriptions) must be written exclusively in ${generated_text_locale_name}. Do not mix languages. Keep JSON keys and "element_type" values unchanged.
+
       JOURNEY BASIS
       -------------
       Journey Name: ${journey_name}
@@ -64,6 +66,8 @@ templates:
     default_model: gpt-5-mini
     max_tokens: 4096
     prompt: |
+      LANGUAGE: The full response (plain text paragraphs) must be written exclusively in ${generated_text_locale_name}. Do not mix languages.
+
       Write a concise and inspiring description for a customer journey phase.
       Avoid marketing language; stay concrete and from the user's perspective.
 
@@ -492,6 +496,8 @@ templates:
     prompt: |
       You are an experienced Journey Designer. Create a complete journey phase with emotion.
 
+      LANGUAGE: "name" and "description" must be in ${generated_text_locale_name}. The "expected_emotion" field must remain exactly one of: frustrated|anxious|neutral|hopeful|satisfied|delighted (English tokens). "duration_unit" stays minutes|hours|days (English).
+
       JOURNEY CONTEXT
       ---------------
       Journey Name: ${journey_name}
@@ -568,6 +574,8 @@ templates:
     # Optional: last context variable that ends the cacheable prefix (prompt caching)
     cache_prefix_last_variable: knowledge_context
     prompt: |
+      LANGUAGE: All human-readable strings in the JSON (journey name, description, phase names, phase descriptions, element "content") must be in ${generated_text_locale_name}. Keep JSON structure, keys, "element_type", "expected_emotion" (English emotion tokens), and "duration_unit" values as specified below.
+
       Based on the following information:
 
       COMPANY / PROJECT CONTEXT:
@@ -641,6 +649,8 @@ templates:
     default_model: gpt-5-mini
     max_tokens: 4096
     prompt: |
+      LANGUAGE: The phase name you return must be written exclusively in ${generated_text_locale_name}.
+
       Create a concise phase name (max. 50 characters) for a customer journey phase.
       
       Journey: ${journey_name} (${journey_type})

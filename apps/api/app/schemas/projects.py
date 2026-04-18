@@ -80,6 +80,10 @@ class ProjectDetailResponse(ProjectResponse):
 
 class SuggestTargetGroupsRequest(BaseModel):
     max_suggestions: int = 5
+    output_locale: str | None = Field(
+        default=None,
+        description='Language for AI-generated names/descriptions: "en" | "de".',
+    )
 
 
 class TargetGroupSuggestionItem(BaseModel):
