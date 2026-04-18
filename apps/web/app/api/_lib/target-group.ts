@@ -277,7 +277,11 @@ export type TargetGroupPersonaGenerateRequest = {
   chunkWeights?: Record<string, number>;
   variationParams?: Record<string, any>;
   limitChunks?: number;
-  /** "en" | "de" — forwarded as `output_locale` to persona-api (matches persona admin). */
+  /**
+   * Forwarded as `output_locale` to persona-api.
+   * **Omit** for bilingual storage: English strings in `profile` and a German mirror in `profile_de`
+   * (persona-api translates after generation). Pass `"de"` only if you intentionally want monolingual German in `profile`.
+   */
   outputLocale?: string;
 };
 

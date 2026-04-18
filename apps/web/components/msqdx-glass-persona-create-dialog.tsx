@@ -30,7 +30,7 @@ export const MsqdxGlassPersonaCreateDialog = ({
   onSubmit,
   loading = false,
 }: MsqdxGlassPersonaCreateDialogProps) => {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const [form, setForm] = useState<QuickCreateFormState>(defaultQuickFormState);
 
   const handleFieldChange = (field: keyof QuickCreateFormState, value: string) => {
@@ -47,7 +47,7 @@ export const MsqdxGlassPersonaCreateDialog = ({
       segment: form.segment.trim(),
       description: form.description.trim() || undefined,
       filterMode: "auto",
-      outputLocale: locale,
+      // Omit output_locale: canonical English `profile` + API-side `profile_de` (bilingual).
     };
 
     try {

@@ -166,7 +166,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
   activeTargetGroupId = null,
 }: MsqdxGlassTargetGroupAdminPanelProps) => {
   const { activeProjectId, activeProject } = useProject();
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const accent = "var(--color-theme-accent)";
   const [list, setList] = useState<TargetGroupListResponse>(initialList);
   const [selectedId, setSelectedId] = useState<string | null>(activeTargetGroupId ?? initialList.items[0]?.id ?? null);
@@ -486,7 +486,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
       segment: personaForm.segment.trim(),
       description: personaForm.description.trim() || undefined,
       filterMode: "auto",
-      outputLocale: locale,
+      // Omit output_locale: canonical English `profile` + server `profile_de` mirror (bilingual).
       variationParams: {
         randomize_chunks: true,
         temperature_mode: "random",
