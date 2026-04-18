@@ -5,7 +5,7 @@ import time
 from base64 import b64decode
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Dict, List
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
@@ -60,6 +60,10 @@ from ..services.persona_ai_context import (
     build_persona_sentence_structure_ai_context as _build_persona_sentence_structure_ai_context,
 )
 from ..services.persona_generation import PersonaGenerationService
+from ..services.persona_profile_translate_merge import (
+    enrich_profile_patch_json,
+    merge_persona_profile_bilingual_enrich,
+)
 from ..services.persona_prompt_builder import (
     CHAT_PROMPT_TEMPLATE_VERSION,
     build_compact_chat_prompt,
@@ -237,103 +241,27 @@ def list_personas(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-def _persona_target_group_summary(session: Session, persona: Persona) -> str:
-    if not persona.target_group_id:
-        return "Keine Target Group verknüpft."
-    try:
-        tg = target_group_service.get_target_group(session, str(persona.target_group_id))
-    except ValueError:
-        return "Target Group konnte nicht geladen werden."
-    summary = f"{tg.name} • Segment: {tg.segment or 'n/a'}"
-    if tg.description:
-        summary += f"\nBeschreibung: {tg.description}"
-    return summary
-
-
-def _persona_existing_pain_points(persona: Persona) -> List[str]:
-    profile = persona.profile or {}
-    candidates = profile.get("pain_points") or profile.get("painPoints") or []
-    values: List[str] = []
-    if isinstance(candidates, list):
-        for entry in candidates:
-            if isinstance(entry, dict):
-                label = entry.get("label") or entry.get("title")
-                desc = entry.get("description") or entry.get("content")
-                if label and desc:
-                    values.append(f"{label}: {desc}")
-                elif label:
-                    values.append(label)
-                elif desc:
-                    values.append(desc)
-            elif isinstance(entry, str):
-                values.append(entry)
-    return values
-
-
-def _persona_existing_goals(persona: Persona) -> List[str]:
-    profile = persona.profile or {}
-    candidates = profile.get("goals") or []
-    values: List[str] = []
-    if isinstance(candidates, list):
-        for entry in candidates:
-            if isinstance(entry, dict):
-                label = entry.get("label") or entry.get("title")
-                desc = entry.get("description") or entry.get("content")
-                if label and desc:
-                    values.append(f"{label}: {desc}")
-                elif label:
-                    values.append(label)
-                elif desc:
-                    values.append(desc)
-            elif isinstance(entry, str):
-                values.append(entry)
-    return values
-
-
-def _persona_existing_interests(persona: Persona) -> List[str]:
-    profile = persona.profile or {}
-    candidates = profile.get("interests") or []
-    values: List[str] = []
-    if isinstance(candidates, list):
-        for entry in candidates:
-            if isinstance(entry, str):
-                values.append(entry)
-            elif isinstance(entry, dict):
-                label = entry.get("label") or entry.get("title") or entry.get("name")
-                desc = entry.get("description") or entry.get("content")
-                if label and desc:
-                    values.append(f"{label}: {desc}")
-                elif label:
-                    values.append(label)
-                elif desc:
-                    values.append(desc)
-    return values
-
-
-def _persona_existing_values(persona: Persona) -> List[str]:
-    profile = persona.profile or {}
-    candidates = profile.get("values") or []
-    values: List[str] = []
-    if isinstance(candidates, list):
-        for entry in candidates:
-            if isinstance(entry, str):
-                values.append(entry)
-            elif isinstance(entry, dict):
-                label = entry.get("label") or entry.get("title") or entry.get("name")
-                desc = entry.get("description") or entry.get("content")
-                if label and desc:
-                    values.append(f"{label}: {desc}")
-                elif label:
-                    values.append(label)
-                elif desc:
-                    values.append(desc)
-    return values
-
-
 def _user_id_for_usage(current_user: User | None) -> str | None:
     if not current_user:
         return None
     return getattr(current_user, "plexon_user_id", None) or str(current_user.id)
+
+
+def _output_locale_from_payload(payload: dict[str, Any] | None) -> str | None:
+    """Aligns with web admin: `output_locale` \"en\" | \"de\" (optional `locale` / `ui_locale` aliases)."""
+    if not isinstance(payload, dict):
+        return None
+    v = payload.get("output_locale") or payload.get("locale") or payload.get("ui_locale")
+    return str(v).strip() if v is not None and str(v).strip() else None
+
+
+def _max_items_from_payload(payload: dict[str, Any] | None, *, default: int = 3, cap: int = 10) -> int:
+    raw = (payload or {}).get("max_items", default)
+    try:
+        n = int(raw)
+    except (TypeError, ValueError):
+        n = default
+    return max(1, min(n, cap))
 
 
 @router.post(
@@ -343,14 +271,13 @@ def _user_id_for_usage(current_user: User | None) -> str | None:
 )
 async def generate_persona_pain_points(
     persona_id: str,
-    payload: Dict[str, int] | None = Body(default=None),
+    payload: dict[str, Any] | None = Body(default=None),
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> AiAssistResponse:
     persona = _get_persona_or_404(session, persona_id)
-    max_items = (payload or {}).get("max_items", 3)
-    max_items = max(1, min(max_items, 10))
-    context = _build_persona_ai_context(session, persona, max_items)
+    max_items = _max_items_from_payload(payload)
+    context = _build_persona_ai_context(session, persona, max_items, output_locale=_output_locale_from_payload(payload))
     ai_request = AiAssistRequest(
         template_id="persona.pain_points",
         context=context,
@@ -381,14 +308,15 @@ async def generate_persona_pain_points(
 )
 async def generate_persona_interests(
     persona_id: str,
-    payload: Dict[str, int] | None = Body(default=None),
+    payload: dict[str, Any] | None = Body(default=None),
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> AiAssistResponse:
     persona = _get_persona_or_404(session, persona_id)
-    max_items = (payload or {}).get("max_items", 3)
-    max_items = max(1, min(max_items, 10))
-    context = _build_persona_interests_ai_context(session, persona, max_items)
+    max_items = _max_items_from_payload(payload)
+    context = _build_persona_interests_ai_context(
+        session, persona, max_items, output_locale=_output_locale_from_payload(payload)
+    )
     ai_request = AiAssistRequest(
         template_id="persona.interests",
         context=context,
@@ -419,14 +347,15 @@ async def generate_persona_interests(
 )
 async def generate_persona_values(
     persona_id: str,
-    payload: Dict[str, int] | None = Body(default=None),
+    payload: dict[str, Any] | None = Body(default=None),
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> AiAssistResponse:
     persona = _get_persona_or_404(session, persona_id)
-    max_items = (payload or {}).get("max_items", 3)
-    max_items = max(1, min(max_items, 10))
-    context = _build_persona_values_ai_context(session, persona, max_items)
+    max_items = _max_items_from_payload(payload)
+    context = _build_persona_values_ai_context(
+        session, persona, max_items, output_locale=_output_locale_from_payload(payload)
+    )
     ai_request = AiAssistRequest(
         template_id="persona.values",
         context=context,
@@ -463,14 +392,15 @@ async def generate_persona_values(
 )
 async def generate_persona_goals(
     persona_id: str,
-    payload: Dict[str, int] | None = Body(default=None),
+    payload: dict[str, Any] | None = Body(default=None),
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> AiAssistResponse:
     persona = _get_persona_or_404(session, persona_id)
-    max_items = (payload or {}).get("max_items", 3)
-    max_items = max(1, min(max_items, 10))
-    context = _build_persona_goals_ai_context(session, persona, max_items)
+    max_items = _max_items_from_payload(payload)
+    context = _build_persona_goals_ai_context(
+        session, persona, max_items, output_locale=_output_locale_from_payload(payload)
+    )
     ai_request = AiAssistRequest(
         template_id="persona.goals",
         context=context,
@@ -498,7 +428,7 @@ async def generate_persona_goals(
     "/{persona_id}/enrich",
     response_model=PersonaResponse,
     summary="Enrich persona with AI-generated traits",
-    description="Calls AI to generate pain points, goals, interests, and values for the persona and merges them into the profile. Optional body can include profile_overlay: { bio, age, location, gender } to ensure they are saved.",
+    description="Calls AI to generate pain points, goals, interests, and values for the persona and merges them into the profile. Optional body: profile_overlay: { bio, age, location, gender }; output_locale: \"en\" | \"de\" (same as persona admin).",
 )
 async def enrich_persona(
     persona_id: str,
@@ -508,6 +438,7 @@ async def enrich_persona(
 ) -> PersonaResponse:
     persona = _get_persona_or_404(session, persona_id)
     max_items = 5
+    out_loc = _output_locale_from_payload(body)
     uid = _user_id_for_usage(current_user)
     ai_assist = AiAssistService(session=session, retrieval_usage_user_id=uid)
 
@@ -571,7 +502,7 @@ async def enrich_persona(
         overlay = {}
 
     try:
-        ctx_pain = _build_persona_ai_context(session, persona, max_items)
+        ctx_pain = _build_persona_ai_context(session, persona, max_items, output_locale=out_loc)
         r_pain = await ai_assist.generate(
             AiAssistRequest(template_id="persona.pain_points", context=ctx_pain, max_suggestions=max_items),
         )
@@ -581,7 +512,7 @@ async def enrich_persona(
             if content:
                 pain_points.append({"label": content, "evidence_count": 1})
 
-        ctx_goals = _build_persona_goals_ai_context(session, persona, max_items)
+        ctx_goals = _build_persona_goals_ai_context(session, persona, max_items, output_locale=out_loc)
         r_goals = await ai_assist.generate(
             AiAssistRequest(template_id="persona.goals", context=ctx_goals, max_suggestions=max_items),
         )
@@ -591,7 +522,7 @@ async def enrich_persona(
             if content:
                 goals.append({"label": content, "priority": 1})
 
-        ctx_interests = _build_persona_interests_ai_context(session, persona, max_items)
+        ctx_interests = _build_persona_interests_ai_context(session, persona, max_items, output_locale=out_loc)
         r_interests = await ai_assist.generate(
             AiAssistRequest(template_id="persona.interests", context=ctx_interests, max_suggestions=max_items),
         )
@@ -601,7 +532,7 @@ async def enrich_persona(
             if content:
                 interests.append(content)
 
-        ctx_values = _build_persona_values_ai_context(session, persona, max_items)
+        ctx_values = _build_persona_values_ai_context(session, persona, max_items, output_locale=out_loc)
         r_values = await ai_assist.generate(
             AiAssistRequest(template_id="persona.values", context=ctx_values, max_suggestions=max_items),
         )
@@ -613,7 +544,7 @@ async def enrich_persona(
 
         # Traits (persona.traits returns list of {name, description})
         # PersonaProfile expects traits: Dict[str, float] (trait name -> score)
-        ctx_traits = _build_persona_traits_ai_context(session, persona, max_items)
+        ctx_traits = _build_persona_traits_ai_context(session, persona, max_items, output_locale=out_loc)
         r_traits = await ai_assist.generate(
             AiAssistRequest(template_id="persona.traits", context=ctx_traits, max_suggestions=max_items),
         )
@@ -625,7 +556,7 @@ async def enrich_persona(
 
         # Vocabulary (persona.vocabulary returns list of {word, description})
         # PersonaProfile expects communication_style.vocabulary: List[str]
-        ctx_vocab = _build_persona_vocabulary_ai_context(session, persona, max_items)
+        ctx_vocab = _build_persona_vocabulary_ai_context(session, persona, max_items, output_locale=out_loc)
         r_vocab = await ai_assist.generate(
             AiAssistRequest(template_id="persona.vocabulary", context=ctx_vocab, max_suggestions=max_items),
         )
@@ -636,7 +567,7 @@ async def enrich_persona(
                 vocabulary.append(str(word))
 
         # Sentence structure (persona.sentence_structure returns single description)
-        ctx_sent = _build_persona_sentence_structure_ai_context(session, persona)
+        ctx_sent = _build_persona_sentence_structure_ai_context(session, persona, output_locale=out_loc)
         r_sent = await ai_assist.generate(
             AiAssistRequest(template_id="persona.sentence_structure", context=ctx_sent, max_suggestions=1),
         )
@@ -657,24 +588,56 @@ async def enrich_persona(
     if "skepticism_level" not in merged_comm:
         merged_comm["skepticism_level"] = merged_comm.get("skepticism_level", 0)
 
-    profile_json = {
+    chip_updates: dict[str, Any] = {
         "pain_points": pain_points,
-        "painPoints": pain_points,
         "goals": goals,
         "interests": interests,
         "values": values,
         "traits": traits,
         "communication_style": merged_comm,
-        "communicationStyle": merged_comm,
     }
-    # Demographics: always set from overlay first, then existing, so they are never dropped
     for key in ("bio", "age", "location", "gender"):
         if overlay is not None and key in overlay:
-            profile_json[key] = overlay[key]
+            chip_updates[key] = overlay[key]
         elif key in existing:
-            profile_json[key] = existing[key]
+            chip_updates[key] = existing[key]
         else:
-            profile_json[key] = "" if key == "bio" else None
+            chip_updates[key] = "" if key == "bio" else None
+
+    profile_de_patch: dict[str, Any] | None = None
+    try:
+        gen = PersonaGenerationService()
+        next_en, aligned_de = merge_persona_profile_bilingual_enrich(
+            existing_en=existing,
+            existing_de=persona.profile_de if isinstance(getattr(persona, "profile_de", None), dict) else None,
+            chip_updates=chip_updates,
+            from_locale=out_loc,
+            translate=lambda fl, s: gen.translate_ui_string_map(from_locale=fl, strings=s),
+        )
+        profile_json = enrich_profile_patch_json(next_en)
+        profile_de_patch = aligned_de
+    except Exception as exc:  # noqa: BLE001
+        _log.warning(
+            "persona.enrich.bilingual_skipped",
+            extra={"persona_id": str(persona.id), "error": str(exc)},
+        )
+        profile_json = {
+            "pain_points": pain_points,
+            "painPoints": pain_points,
+            "goals": goals,
+            "interests": interests,
+            "values": values,
+            "traits": traits,
+            "communication_style": merged_comm,
+            "communicationStyle": merged_comm,
+        }
+        for key in ("bio", "age", "location", "gender"):
+            if overlay is not None and key in overlay:
+                profile_json[key] = overlay[key]
+            elif key in existing:
+                profile_json[key] = existing[key]
+            else:
+                profile_json[key] = "" if key == "bio" else None
     try:
         compact_prompt_en, compact_prompt_de = await build_compact_chat_prompt_llm_bilingual(
             session,
@@ -715,6 +678,7 @@ async def enrich_persona(
         segment=None,
         headline=None,
         profile=None,
+        profile_de=profile_de_patch,
         confidence=None,
         version=None,
         status=None,

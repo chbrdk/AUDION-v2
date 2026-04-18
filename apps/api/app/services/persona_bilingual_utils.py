@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import Any, Protocol, runtime_checkable
 
 
@@ -41,6 +42,31 @@ class _PersonaLike(Protocol):
 class _PersonaPromptLike(Protocol):
     system_prompt: str | None
     system_prompt_de: str | None
+
+
+def _align_recursive(en_val: Any, de_val: Any) -> Any:
+    """Align DE mirror node to EN shape (same structure as web `alignProfileDeToEnProfile`)."""
+    if en_val is None:
+        return de_val
+    if isinstance(en_val, list):
+        if not isinstance(de_val, list) or len(de_val) != len(en_val):
+            return [deepcopy(x) for x in en_val] if en_val else []
+        return [_align_recursive(a, b) for a, b in zip(en_val, de_val)]
+    if isinstance(en_val, dict):
+        de_dict = de_val if isinstance(de_val, dict) else {}
+        return {k: _align_recursive(en_val[k], de_dict.get(k)) for k in en_val}
+    return de_val if de_val is not None else en_val
+
+
+def align_profile_de_to_en_profile(en: dict[str, Any], de: dict[str, Any] | None) -> dict[str, Any]:
+    """Return `profile_de` with same keys/nested structure as `en` (fill from `de` where compatible)."""
+    if not isinstance(en, dict):
+        return {}
+    de_in = de if isinstance(de, dict) else {}
+    out: dict[str, Any] = {}
+    for k in en:
+        out[k] = _align_recursive(en[k], de_in.get(k))
+    return out
 
 
 def validate_bilingual_publish(*, persona: _PersonaLike, prompt_model: _PersonaPromptLike | None) -> None:

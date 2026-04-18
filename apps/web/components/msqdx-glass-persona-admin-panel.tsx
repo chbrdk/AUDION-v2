@@ -959,9 +959,6 @@ export const MsqdxGlassPersonaAdminPanel = ({
     };
   }, [detail, locale]);
 
-  /** Persona AI templates use ${generated_text_locale_name} (see apps/api templates.yaml). */
-  const generatedTextLocaleName = locale === "de" ? "German" : "English";
-
   const handleBioDemographicsBilingualSave = async (updates: Partial<PersonaProfile>) => {
     if (!selectedId || !detail) return;
     const stringKeys = ["bio", "location", "full_name"] as const;
@@ -1095,7 +1092,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
           persona_interests: existingInterestsSummary,
           target_group_summary: targetGroupSummary,
           max_items: 4,
-          generated_text_locale_name: generatedTextLocaleName,
+          output_locale: locale,
         },
         maxSuggestions: 4,
       });
@@ -1151,7 +1148,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
           persona_values: existingValuesSummary,
           target_group_summary: targetGroupSummary,
           max_items: 4,
-          generated_text_locale_name: generatedTextLocaleName,
+          output_locale: locale,
         },
         maxSuggestions: 4,
       });
@@ -1287,7 +1284,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
           knowledge_context: knowledgeContext,
           target_group_summary: targetGroupSummary,
           max_items: 5,
-          generated_text_locale_name: generatedTextLocaleName,
+          output_locale: locale,
         },
         maxSuggestions: 5,
       });
@@ -1364,7 +1361,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
           knowledge_context: knowledgeContext,
           target_group_summary: targetGroupSummary,
           max_items: 5,
-          generated_text_locale_name: generatedTextLocaleName,
+          output_locale: locale,
         },
         maxSuggestions: 5,
       });
@@ -1444,7 +1441,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
         context: {
           persona_id: selectedId || "",
           max_items: 4,
-          generated_text_locale_name: generatedTextLocaleName,
+          output_locale: locale,
         },
         maxSuggestions: 4,
       });
@@ -1506,7 +1503,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
           persona_goals: existingGoalsSummary,
           target_group_summary: targetGroupSummary,
           max_items: 4,
-          generated_text_locale_name: generatedTextLocaleName,
+          output_locale: locale,
         },
         maxSuggestions: 4,
       });

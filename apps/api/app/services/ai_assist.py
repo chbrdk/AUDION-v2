@@ -912,7 +912,9 @@ class AiAssistService:
         return self.settings.ai_openai_model
 
     def _build_context(self, context: Dict[str, Any], prompt_vars: Dict[str, Any]) -> Dict[str, Any]:
-        merged = {**context, **prompt_vars}
+        from .persona_ai_locale import finalize_ai_locale_context
+
+        merged = finalize_ai_locale_context({**context, **prompt_vars})
         flattened: Dict[str, Any] = {}
         for key, value in merged.items():
             flattened[key] = self._stringify(value)

@@ -7,10 +7,9 @@ from typing import Any, Dict, List
 from sqlalchemy.orm import Session
 
 from ..models import Persona
-from ..services.persona_store import PersonaService
-from ..services.target_group_store import TargetGroupService
+from .persona_ai_locale import locale_label_for_ai_prompt, normalize_output_locale, persona_profile_for_ai
+from .target_group_store import TargetGroupService
 
-persona_service = PersonaService()
 target_group_service = TargetGroupService()
 
 
@@ -27,8 +26,7 @@ def _persona_target_group_summary(session: Session, persona: Persona) -> str:
     return summary
 
 
-def _persona_existing_pain_points(persona: Persona) -> List[str]:
-    profile = persona.profile or {}
+def _persona_existing_pain_points(profile: dict[str, Any]) -> List[str]:
     candidates = profile.get("pain_points") or profile.get("painPoints") or []
     values: List[str] = []
     if isinstance(candidates, list):
@@ -47,8 +45,7 @@ def _persona_existing_pain_points(persona: Persona) -> List[str]:
     return values
 
 
-def _persona_existing_goals(persona: Persona) -> List[str]:
-    profile = persona.profile or {}
+def _persona_existing_goals(profile: dict[str, Any]) -> List[str]:
     candidates = profile.get("goals") or []
     values: List[str] = []
     if isinstance(candidates, list):
@@ -67,8 +64,7 @@ def _persona_existing_goals(persona: Persona) -> List[str]:
     return values
 
 
-def _persona_existing_interests(persona: Persona) -> List[str]:
-    profile = persona.profile or {}
+def _persona_existing_interests(profile: dict[str, Any]) -> List[str]:
     candidates = profile.get("interests") or []
     values: List[str] = []
     if isinstance(candidates, list):
@@ -87,8 +83,7 @@ def _persona_existing_interests(persona: Persona) -> List[str]:
     return values
 
 
-def _persona_existing_values(persona: Persona) -> List[str]:
-    profile = persona.profile or {}
+def _persona_existing_values(profile: dict[str, Any]) -> List[str]:
     candidates = profile.get("values") or []
     values: List[str] = []
     if isinstance(candidates, list):
@@ -107,65 +102,7 @@ def _persona_existing_values(persona: Persona) -> List[str]:
     return values
 
 
-def build_persona_ai_context(session: Session, persona: Persona, max_items: int) -> Dict[str, Any]:
-    """Build context for persona pain points AI generation."""
-    profile_json = json.dumps(persona.profile or {}, ensure_ascii=False, indent=2)
-    existing_pain_points = "\n".join(_persona_existing_pain_points(persona)) or "Keine Pain Points dokumentiert."
-    return {
-        "persona_name": persona.name,
-        "persona_segment": persona.segment,
-        "persona_profile": profile_json,
-        "persona_pain_points": existing_pain_points,
-        "target_group_summary": _persona_target_group_summary(session, persona),
-        "max_items": max_items,
-    }
-
-
-def build_persona_goals_ai_context(session: Session, persona: Persona, max_items: int) -> Dict[str, Any]:
-    """Build context for persona goals AI generation."""
-    profile_json = json.dumps(persona.profile or {}, ensure_ascii=False, indent=2)
-    existing_goals = "\n".join(_persona_existing_goals(persona)) or "Keine Goals dokumentiert."
-    return {
-        "persona_name": persona.name,
-        "persona_segment": persona.segment,
-        "persona_profile": profile_json,
-        "persona_goals": existing_goals,
-        "target_group_summary": _persona_target_group_summary(session, persona),
-        "max_items": max_items,
-    }
-
-
-def build_persona_interests_ai_context(session: Session, persona: Persona, max_items: int) -> Dict[str, Any]:
-    """Build context for persona interests AI generation."""
-    profile_json = json.dumps(persona.profile or {}, ensure_ascii=False, indent=2)
-    existing_interests = "\n".join(_persona_existing_interests(persona)) or "Keine Interests dokumentiert."
-    return {
-        "persona_name": persona.name,
-        "persona_segment": persona.segment,
-        "persona_profile": profile_json,
-        "persona_interests": existing_interests,
-        "target_group_summary": _persona_target_group_summary(session, persona),
-        "max_items": max_items,
-    }
-
-
-def build_persona_values_ai_context(session: Session, persona: Persona, max_items: int) -> Dict[str, Any]:
-    """Build context for persona values AI generation."""
-    profile_json = json.dumps(persona.profile or {}, ensure_ascii=False, indent=2)
-    existing_values = "\n".join(_persona_existing_values(persona)) or "Keine Values dokumentiert."
-    return {
-        "persona_name": persona.name,
-        "persona_segment": persona.segment,
-        "persona_profile": profile_json,
-        "persona_values": existing_values,
-        "target_group_summary": _persona_target_group_summary(session, persona),
-        "max_items": max_items,
-    }
-
-
-def _persona_existing_traits(persona: Persona) -> str:
-    """Format existing traits for template (persona.traits expects existing_traits string)."""
-    profile = persona.profile or {}
+def _persona_existing_traits(profile: dict[str, Any]) -> str:
     raw = profile.get("traits")
     if not raw:
         return "Keine Traits dokumentiert."
@@ -188,9 +125,7 @@ def _persona_existing_traits(persona: Persona) -> str:
     return "Keine Traits dokumentiert."
 
 
-def _persona_existing_vocabulary(persona: Persona) -> str:
-    """Format existing vocabulary for template (persona.vocabulary expects existing_vocabulary string)."""
-    profile = persona.profile or {}
+def _persona_existing_vocabulary(profile: dict[str, Any]) -> str:
     comm = profile.get("communication_style") or profile.get("communicationStyle") or {}
     if isinstance(comm, str):
         return "Keine Vocabulary dokumentiert."
@@ -202,54 +137,148 @@ def _persona_existing_vocabulary(persona: Persona) -> str:
         if isinstance(item, dict):
             word = item.get("word") or item.get("label") or item.get("title") or item.get("content")
             if word:
-                lines.append(word)
+                lines.append(str(word))
         elif isinstance(item, str):
             lines.append(item)
     return "\n".join(lines) if lines else "Keine Vocabulary dokumentiert."
 
 
-def build_persona_traits_ai_context(session: Session, persona: Persona, max_items: int) -> Dict[str, Any]:
-    """Build context for persona.traits template (persona_name, persona_headline, persona_bio, existing_traits, etc.)."""
-    profile = persona.profile or {}
-    profile_json = json.dumps(profile, ensure_ascii=False, indent=2)
+def _locale_fields(output_locale: str | None) -> dict[str, str]:
+    loc = normalize_output_locale(output_locale)
+    return {
+        "output_locale": loc,
+        "generated_text_locale_name": locale_label_for_ai_prompt(loc),
+    }
+
+
+def build_persona_ai_context(
+    session: Session, persona: Persona, max_items: int, *, output_locale: str | None = None
+) -> Dict[str, Any]:
+    """Build context for persona pain points AI generation."""
+    loc = normalize_output_locale(output_locale)
+    prof = persona_profile_for_ai(persona, loc)
+    profile_json = json.dumps(prof, ensure_ascii=False, indent=2)
+    existing_pain_points = "\n".join(_persona_existing_pain_points(prof)) or "Keine Pain Points dokumentiert."
+    return {
+        "persona_name": persona.name,
+        "persona_segment": persona.segment,
+        "persona_profile": profile_json,
+        "persona_pain_points": existing_pain_points,
+        "target_group_summary": _persona_target_group_summary(session, persona),
+        "max_items": max_items,
+        **_locale_fields(output_locale),
+    }
+
+
+def build_persona_goals_ai_context(
+    session: Session, persona: Persona, max_items: int, *, output_locale: str | None = None
+) -> Dict[str, Any]:
+    """Build context for persona goals AI generation."""
+    loc = normalize_output_locale(output_locale)
+    prof = persona_profile_for_ai(persona, loc)
+    profile_json = json.dumps(prof, ensure_ascii=False, indent=2)
+    existing_goals = "\n".join(_persona_existing_goals(prof)) or "Keine Goals dokumentiert."
+    return {
+        "persona_name": persona.name,
+        "persona_segment": persona.segment,
+        "persona_profile": profile_json,
+        "persona_goals": existing_goals,
+        "target_group_summary": _persona_target_group_summary(session, persona),
+        "max_items": max_items,
+        **_locale_fields(output_locale),
+    }
+
+
+def build_persona_interests_ai_context(
+    session: Session, persona: Persona, max_items: int, *, output_locale: str | None = None
+) -> Dict[str, Any]:
+    """Build context for persona interests AI generation."""
+    loc = normalize_output_locale(output_locale)
+    prof = persona_profile_for_ai(persona, loc)
+    profile_json = json.dumps(prof, ensure_ascii=False, indent=2)
+    existing_interests = "\n".join(_persona_existing_interests(prof)) or "Keine Interests dokumentiert."
+    return {
+        "persona_name": persona.name,
+        "persona_segment": persona.segment,
+        "persona_profile": profile_json,
+        "persona_interests": existing_interests,
+        "target_group_summary": _persona_target_group_summary(session, persona),
+        "max_items": max_items,
+        **_locale_fields(output_locale),
+    }
+
+
+def build_persona_values_ai_context(
+    session: Session, persona: Persona, max_items: int, *, output_locale: str | None = None
+) -> Dict[str, Any]:
+    """Build context for persona values AI generation."""
+    loc = normalize_output_locale(output_locale)
+    prof = persona_profile_for_ai(persona, loc)
+    profile_json = json.dumps(prof, ensure_ascii=False, indent=2)
+    existing_values = "\n".join(_persona_existing_values(prof)) or "Keine Values dokumentiert."
+    return {
+        "persona_name": persona.name,
+        "persona_segment": persona.segment,
+        "persona_profile": profile_json,
+        "persona_values": existing_values,
+        "target_group_summary": _persona_target_group_summary(session, persona),
+        "max_items": max_items,
+        **_locale_fields(output_locale),
+    }
+
+
+def build_persona_traits_ai_context(
+    session: Session, persona: Persona, max_items: int, *, output_locale: str | None = None
+) -> Dict[str, Any]:
+    """Build context for persona.traits template (traits keys stay EN; bio/headline follow merged profile for DE)."""
+    loc = normalize_output_locale(output_locale)
+    prof = persona_profile_for_ai(persona, loc)
+    profile_json = json.dumps(prof, ensure_ascii=False, indent=2)
     return {
         "persona_name": persona.name or "",
         "persona_headline": persona.headline or "",
-        "persona_bio": (profile.get("bio") or "").strip(),
-        "existing_traits": _persona_existing_traits(persona),
+        "persona_bio": (prof.get("bio") or "").strip(),
+        "existing_traits": _persona_existing_traits(prof),
         "graph_relationships_summary": "Use persona profile and target group for context.",
         "knowledge_context": profile_json,
         "target_group_summary": _persona_target_group_summary(session, persona),
         "max_items": max_items,
+        **_locale_fields(output_locale),
     }
 
 
-def build_persona_vocabulary_ai_context(session: Session, persona: Persona, max_items: int) -> Dict[str, Any]:
+def build_persona_vocabulary_ai_context(
+    session: Session, persona: Persona, max_items: int, *, output_locale: str | None = None
+) -> Dict[str, Any]:
     """Build context for persona.vocabulary template."""
-    profile = persona.profile or {}
-    profile_json = json.dumps(profile, ensure_ascii=False, indent=2)
+    loc = normalize_output_locale(output_locale)
+    prof = persona_profile_for_ai(persona, loc)
+    profile_json = json.dumps(prof, ensure_ascii=False, indent=2)
     return {
         "persona_name": persona.name or "",
         "persona_headline": persona.headline or "",
-        "persona_bio": (profile.get("bio") or "").strip(),
-        "existing_vocabulary": _persona_existing_vocabulary(persona),
+        "persona_bio": (prof.get("bio") or "").strip(),
+        "existing_vocabulary": _persona_existing_vocabulary(prof),
         "graph_relationships_summary": "Use persona profile and target group for context.",
         "knowledge_context": profile_json,
         "target_group_summary": _persona_target_group_summary(session, persona),
         "max_items": max_items,
+        **_locale_fields(output_locale),
     }
 
 
-def build_persona_sentence_structure_ai_context(session: Session, persona: Persona) -> Dict[str, Any]:
+def build_persona_sentence_structure_ai_context(
+    session: Session, persona: Persona, *, output_locale: str | None = None
+) -> Dict[str, Any]:
     """Build context for persona.sentence_structure template (single text output)."""
-    profile = persona.profile or {}
-    profile_json = json.dumps(profile, ensure_ascii=False, indent=2)
+    loc = normalize_output_locale(output_locale)
+    prof = persona_profile_for_ai(persona, loc)
+    profile_json = json.dumps(prof, ensure_ascii=False, indent=2)
     return {
         "persona_name": persona.name or "",
         "persona_headline": persona.headline or "",
-        "persona_bio": (profile.get("bio") or "").strip(),
+        "persona_bio": (prof.get("bio") or "").strip(),
         "target_group_summary": _persona_target_group_summary(session, persona),
         "persona_profile": profile_json,
+        **_locale_fields(output_locale),
     }
-
-

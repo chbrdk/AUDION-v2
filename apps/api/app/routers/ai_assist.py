@@ -35,12 +35,7 @@ from ..services.persona_ai_context import (
     build_persona_vocabulary_ai_context,
     build_persona_sentence_structure_ai_context,
 )
-
-def _with_generated_text_locale_default(ctx: dict) -> dict:
-    """Templates use ${generated_text_locale_name}; default preserves legacy German-only behaviour."""
-    if str(ctx.get("generated_text_locale_name") or "").strip():
-        return ctx
-    return {**ctx, "generated_text_locale_name": "German"}
+from ..services.persona_ai_locale import finalize_ai_locale_context
 
 
 def _enrich_persona_context(
@@ -51,48 +46,49 @@ def _enrich_persona_context(
     """Enrich context with persona data if persona_id is present."""
     persona_id = context.get("persona_id")
     if not persona_id:
-        return _with_generated_text_locale_default(context)
+        return finalize_ai_locale_context(context)
 
     # Validate UUID format
     try:
         persona_uuid = UUID(str(persona_id))
     except (ValueError, TypeError):
         logger.warning("ai.assist.invalid_persona_id", persona_id=str(persona_id))
-        return _with_generated_text_locale_default(context)
+        return finalize_ai_locale_context(context)
 
     persona = session.get(Persona, persona_uuid)
     if not persona:
         logger.warning("ai.assist.persona_not_found", persona_id=str(persona_id))
-        return _with_generated_text_locale_default(context)
-        
+        return finalize_ai_locale_context(context)
+
     if allowed_project_ids is not None and persona.project_id not in allowed_project_ids:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Persona access denied")
-    
+
     # Determine which context builder to use based on template_id
     template_id = context.get("_template_id", "")
     max_items = context.get("max_items") or context.get("max_suggestions") or 3
-    
+    output_loc = context.get("output_locale") or context.get("ui_locale")
+
     if "pain_points" in template_id:
-        persona_context = build_persona_ai_context(session, persona, max_items)
+        persona_context = build_persona_ai_context(session, persona, max_items, output_locale=output_loc)
     elif "goals" in template_id:
-        persona_context = build_persona_goals_ai_context(session, persona, max_items)
+        persona_context = build_persona_goals_ai_context(session, persona, max_items, output_locale=output_loc)
     elif "interests" in template_id:
-        persona_context = build_persona_interests_ai_context(session, persona, max_items)
+        persona_context = build_persona_interests_ai_context(session, persona, max_items, output_locale=output_loc)
     elif "values" in template_id:
-        persona_context = build_persona_values_ai_context(session, persona, max_items)
+        persona_context = build_persona_values_ai_context(session, persona, max_items, output_locale=output_loc)
     elif "traits" in template_id:
-        persona_context = build_persona_traits_ai_context(session, persona, max_items)
+        persona_context = build_persona_traits_ai_context(session, persona, max_items, output_locale=output_loc)
     elif "vocabulary" in template_id:
-        persona_context = build_persona_vocabulary_ai_context(session, persona, max_items)
+        persona_context = build_persona_vocabulary_ai_context(session, persona, max_items, output_locale=output_loc)
     elif "sentence_structure" in template_id:
-        persona_context = build_persona_sentence_structure_ai_context(session, persona)
+        persona_context = build_persona_sentence_structure_ai_context(session, persona, output_locale=output_loc)
     else:
         # Default: use pain_points context builder
-        persona_context = build_persona_ai_context(session, persona, max_items)
-    
+        persona_context = build_persona_ai_context(session, persona, max_items, output_locale=output_loc)
+
     # Persona fields from DB first; caller context overrides (e.g. admin UI output language).
     enriched = {**persona_context, **context}
-    return _with_generated_text_locale_default(enriched)
+    return finalize_ai_locale_context(enriched)
 
 
 def allowed_project_ids_dep(
