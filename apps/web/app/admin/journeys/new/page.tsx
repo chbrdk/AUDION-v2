@@ -22,7 +22,7 @@ function generateUUID(): string {
 export default function NewJourneyPage() {
   const router = useRouter();
   const { activeProjectId } = useProject();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -136,6 +136,7 @@ export default function NewJourneyPage() {
         project_id: activeProjectId,
         created_by: undefined, // Could be set from user context
         use_async: false, // Use synchronous generation for now
+        output_locale: locale,
       };
 
       const journey = await journeysApi.generateJourney(generateRequest);

@@ -27,6 +27,7 @@ def generate_journey_task(
     organization_id: str,
     user_id: str,
     project_id: str | None = None,
+    output_locale: str | None = None,
 ) -> str:
     """
     Async Journey Generation.
@@ -49,6 +50,7 @@ def generate_journey_task(
                 journey_type=journey_type,
                 organization_id=UUID(organization_id),
                 retrieval_usage_user_id=user_id if user_id and user_id != "system" else None,
+                output_locale=output_locale,
             )
         )
         

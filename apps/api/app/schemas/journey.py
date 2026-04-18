@@ -126,6 +126,10 @@ class JourneyGenerateRequest(BaseModel):
     project_id: Optional[str] = Field(default=None, description="Project ID (optional)")
     created_by: Optional[str] = Field(default=None, description="User who is generating the journey")
     use_async: bool = Field(default=False, description="Whether to generate asynchronously via Celery task")
+    output_locale: Optional[str] = Field(
+        default=None,
+        description='Language for AI-generated journey copy ("en" | "de"); forwarded to journey.full_generation.',
+    )
 
 
 class ProjectGenerateJourneyRequest(BaseModel):
@@ -134,6 +138,10 @@ class ProjectGenerateJourneyRequest(BaseModel):
     journey_type: str = Field(default="customer_journey", description="Type of journey (e.g. customer_journey, onboarding)")
     organization_id: Optional[str] = Field(default=None, description="Optional; defaults to project_id if not provided")
     created_by: Optional[str] = Field(default=None, description="User who triggered the generation")
+    output_locale: Optional[str] = Field(
+        default=None,
+        description='Language for AI-generated journey copy ("en" | "de"); forwarded to journey.full_generation.',
+    )
 
 
 class ValidationRequest(BaseModel):

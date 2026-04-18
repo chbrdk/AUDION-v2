@@ -15,3 +15,20 @@ def test_finalize_respects_output_locale_en() -> None:
     ctx = finalize_ai_locale_context({"output_locale": "en", "journey_name": "X"})
     assert ctx["output_locale"] == "en"
     assert ctx["generated_text_locale_name"] == "English"
+
+
+def test_finalize_keeps_journey_template_context_keys() -> None:
+    """`JourneyGenerationService._generate_with_context` runs finalize on this shape before `journey.full_generation`."""
+    ctx = finalize_ai_locale_context(
+        {
+            "company_context": "Acme sells widgets.",
+            "target_group_name": "TG",
+            "target_group_summary": "summary",
+            "journey_type": "customer_journey",
+            "persona_summaries": "- A: Traits…",
+            "knowledge_context": "chunk text",
+            "output_locale": "en",
+        }
+    )
+    assert ctx["company_context"] == "Acme sells widgets."
+    assert ctx["generated_text_locale_name"] == "English"

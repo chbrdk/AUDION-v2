@@ -741,6 +741,7 @@ export function MsqdxGlassProjectAdminPanel({
                     target_group_id: selectedTgIdForJourney || null,
                     journey_type: journeyType || "customer_journey",
                     organization_id: selectedId,
+                    output_locale: locale,
                 }),
             });
             if (!res.ok) {
@@ -755,7 +756,7 @@ export function MsqdxGlassProjectAdminPanel({
         } finally {
             setGenerateJourneyLoading(false);
         }
-    }, [selectedId, selectedTgIdForJourney, journeyType, t]);
+    }, [selectedId, selectedTgIdForJourney, journeyType, locale, t]);
 
     // Load prompt templates for selected project
     useEffect(() => {

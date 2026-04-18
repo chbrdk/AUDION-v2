@@ -477,6 +477,7 @@ async def generate_journey_from_project_endpoint(
             journey_type=payload.journey_type or "customer_journey",
             organization_id=organization_id,
             retrieval_usage_user_id=usage_uid,
+            output_locale=payload.output_locale,
         )
     except ValueError as exc:
         if "project_not_found" in str(exc):

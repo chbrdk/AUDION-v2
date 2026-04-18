@@ -15,6 +15,7 @@ from ..schemas import AiAssistRequest
 from ..services.ai_assist import AiAssistService, PromptTemplateRegistry
 from ..services.usage_report import report_retrieval_query_usage
 from ..services.persona_store import PersonaService
+from ..services.persona_ai_locale import finalize_ai_locale_context
 from ..services.target_group_store import TargetGroupService
 
 logger = structlog.get_logger(__name__)
@@ -54,6 +55,7 @@ class JourneyGenerationService:
         organization_id: UUID,
         *,
         retrieval_usage_user_id: str | None = None,
+        output_locale: str | None = None,
     ) -> Tuple[JourneyDraft, Dict[str, Any]]:
         """
         Generate a journey from Target Group knowledge and personas.
@@ -109,6 +111,7 @@ class JourneyGenerationService:
                 knowledge_chunks=knowledge_context,
                 journey_type=journey_type,
                 retrieval_usage_user_id=retrieval_usage_user_id,
+                output_locale=output_locale,
             )
 
             return journey_draft, usage_out
@@ -122,6 +125,7 @@ class JourneyGenerationService:
         organization_id: UUID,
         *,
         retrieval_usage_user_id: str | None = None,
+        output_locale: str | None = None,
     ) -> Tuple[JourneyDraft, Dict[str, Any]]:
         """
         Generate a full journey from project knowledge: project description + company_context,
@@ -150,6 +154,7 @@ class JourneyGenerationService:
                 knowledge_context=knowledge_context,
                 company_context=company_context,
                 retrieval_usage_user_id=retrieval_usage_user_id,
+                output_locale=output_locale,
             )
 
         target_group_response = self.target_group_service.get_target_group(session, str(target_group_id))
@@ -198,6 +203,7 @@ class JourneyGenerationService:
             knowledge_context=knowledge_context,
             company_context=company_context,
             retrieval_usage_user_id=retrieval_usage_user_id,
+            output_locale=output_locale,
         )
 
     async def _generate_with_context(
@@ -210,9 +216,10 @@ class JourneyGenerationService:
         knowledge_context: str,
         company_context: str = "",
         retrieval_usage_user_id: str | None = None,
+        output_locale: str | None = None,
     ) -> Tuple[JourneyDraft, Dict[str, Any]]:
         """Generate journey using template with pre-built context."""
-        context = {
+        raw_ctx: Dict[str, Any] = {
             "target_group_name": target_group_name,
             "target_group_summary": target_group_summary,
             "journey_type": journey_type,
@@ -220,6 +227,9 @@ class JourneyGenerationService:
             "knowledge_context": knowledge_context,
             "company_context": company_context or "",
         }
+        if output_locale is not None and str(output_locale).strip():
+            raw_ctx["output_locale"] = str(output_locale).strip()
+        context = finalize_ai_locale_context(raw_ctx)
         try:
             ai_request = AiAssistRequest(
                 template_id="journey.full_generation",
@@ -267,6 +277,7 @@ class JourneyGenerationService:
         company_context: str = "",
         *,
         retrieval_usage_user_id: str | None = None,
+        output_locale: str | None = None,
     ) -> Tuple[JourneyDraft, Dict[str, Any]]:
         """Generate journey using centralized AI assist service with templates."""
         persona_summaries = []
@@ -289,6 +300,7 @@ class JourneyGenerationService:
             knowledge_context=knowledge_text,
             company_context=company_context,
             retrieval_usage_user_id=retrieval_usage_user_id,
+            output_locale=output_locale,
         )
 
     def save_journey_draft(

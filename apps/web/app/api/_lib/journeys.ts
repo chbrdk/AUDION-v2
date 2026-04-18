@@ -215,6 +215,8 @@ export interface JourneyGenerateRequest {
   project_id?: string;
   created_by?: string;
   use_async?: boolean;
+  /** "en" | "de" — drives `journey.full_generation` copy language. */
+  output_locale?: string;
 }
 
 export type JourneyAiTemplateId = "journey_moments" | "phase_expectations";

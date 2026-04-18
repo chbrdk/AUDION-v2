@@ -211,6 +211,7 @@ async def generate_journey(
                 organization_id=payload.organization_id,
                 user_id=usage_uid,
                 project_id=payload.project_id,
+                output_locale=payload.output_locale,
             )
             # Return a placeholder journey with task_id in metadata
             # In production, you might want a separate endpoint to check task status
@@ -228,6 +229,7 @@ async def generate_journey(
             journey_type=payload.journey_type,
             organization_id=organization_uuid,
             retrieval_usage_user_id=_user_id_for_usage(current_user),
+            output_locale=payload.output_locale,
         )
         
         # Save journey
