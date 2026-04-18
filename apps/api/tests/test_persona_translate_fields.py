@@ -12,7 +12,12 @@ os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")
 os.environ.setdefault("AUTH_JWT_SECRET", "unit-test-jwt-secret-unit-test-jwt-secret")
 
-from app.services.persona_generation import PersonaGenerationService
+from app.services.persona_generation import (
+    PersonaGenerationService,
+    _openai_chat_temperature_kwargs,
+    _openai_chat_token_kwargs,
+    _openai_model_uses_max_completion_tokens,
+)
 
 
 def test_translate_ui_string_map_rejects_bad_locale() -> None:
@@ -25,6 +30,17 @@ def test_translate_ui_string_map_empty_returns_empty() -> None:
     svc = PersonaGenerationService()
     assert svc.translate_ui_string_map(from_locale="en", strings={}) == {}
     assert svc.translate_ui_string_map(from_locale="en", strings={"bio": "  "}) == {}
+
+
+def test_openai_chat_token_kwargs_gpt5_vs_gpt4() -> None:
+    assert _openai_model_uses_max_completion_tokens("gpt-5-mini") is True
+    assert _openai_chat_token_kwargs("gpt-5-mini", 2048) == {"max_completion_tokens": 2048}
+    assert _openai_chat_token_kwargs("gpt-4o-mini", 2048) == {"max_tokens": 2048}
+
+
+def test_openai_chat_temperature_kwargs_omits_for_gpt5() -> None:
+    assert _openai_chat_temperature_kwargs("gpt-5-mini", 0.2) == {}
+    assert _openai_chat_temperature_kwargs("gpt-4o-mini", 0.2) == {"temperature": 0.2}
 
 
 def test_translate_ui_string_map_parses_openai_json() -> None:

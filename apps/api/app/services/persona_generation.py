@@ -289,6 +289,31 @@ def anthropic_complete_text(
         return stream.get_final_text()
 
 
+def _openai_model_uses_max_completion_tokens(model: str) -> bool:
+    """Newer OpenAI chat models reject `max_tokens`; use `max_completion_tokens` instead."""
+    m = (model or "").strip().lower()
+    return bool(
+        m.startswith("gpt-5")
+        or m.startswith("o1")
+        or m.startswith("o3")
+        or m.startswith("o4")
+    )
+
+
+def _openai_chat_token_kwargs(model: str, max_out: int) -> Dict[str, int]:
+    if _openai_model_uses_max_completion_tokens(model):
+        return {"max_completion_tokens": int(max_out)}
+    return {"max_tokens": int(max_out)}
+
+
+def _openai_chat_temperature_kwargs(model: str, temperature: float) -> Dict[str, float]:
+    """GPT-5 / o-series chat models use fixed sampling; custom `temperature` returns 400."""
+    m = (model or "").strip().lower()
+    if m.startswith("gpt-5") or m.startswith("o1") or m.startswith("o3") or m.startswith("o4"):
+        return {}
+    return {"temperature": float(temperature)}
+
+
 @dataclass
 class PersonaGenerationResult:
     profile: Any
@@ -360,6 +385,7 @@ class PersonaGenerationService:
             return ""
         logger.info("persona.generate.json_repair_openai", persona_id=str(persona_id))
         max_out = settings.ai_persona_json_repair_max_tokens
+        om = settings.ai_openai_model or "gpt-5-mini"
         repair = client.chat.completions.create(
             messages=[
                 {
@@ -382,10 +408,10 @@ class PersonaGenerationService:
                     ),
                 },
             ],
-            model=settings.ai_openai_model or "gpt-5-mini",
-            temperature=0.0,
+            model=om,
             response_format={"type": "json_object"},
-            max_tokens=max_out,
+            **_openai_chat_temperature_kwargs(om, 0.0),
+            **_openai_chat_token_kwargs(om, max_out),
         )
         return repair.choices[0].message.content or ""
 
@@ -459,6 +485,8 @@ class PersonaGenerationService:
             return None
 
         try:
+            om = settings.ai_openai_model or "gpt-5-mini"
+            max_out = min(int(settings.ai_persona_openai_identity_max_tokens or 8192), 8192)
             completion = client.chat.completions.create(
                 messages=[
                     {
@@ -476,10 +504,10 @@ class PersonaGenerationService:
                         "content": json.dumps(english_profile, ensure_ascii=False),
                     },
                 ],
-                model=settings.ai_openai_model or "gpt-5-mini",
-                temperature=0.2,
+                model=om,
                 response_format={"type": "json_object"},
-                max_tokens=min(int(settings.ai_persona_openai_identity_max_tokens or 8192), 8192),
+                **_openai_chat_temperature_kwargs(om, 0.2),
+                **_openai_chat_token_kwargs(om, max_out),
             )
             text = completion.choices[0].message.content or ""
             parsed = parse_persona_generation_json(text)
@@ -494,6 +522,8 @@ class PersonaGenerationService:
             logger.warning("persona.translate.system_prompt_de.skipped_no_openai", persona_id=str(persona_id))
             return None
         try:
+            om = settings.ai_openai_model or "gpt-5-mini"
+            max_out = min(int(settings.ai_persona_openai_identity_max_tokens or 8192), 4096)
             completion = client.chat.completions.create(
                 messages=[
                     {
@@ -506,9 +536,9 @@ class PersonaGenerationService:
                     },
                     {"role": "user", "content": english_prompt},
                 ],
-                model=settings.ai_openai_model or "gpt-5-mini",
-                temperature=0.2,
-                max_tokens=min(int(settings.ai_persona_openai_identity_max_tokens or 8192), 4096),
+                model=om,
+                **_openai_chat_temperature_kwargs(om, 0.2),
+                **_openai_chat_token_kwargs(om, max_out),
             )
             out = (completion.choices[0].message.content or "").strip()
             return out or None
@@ -528,6 +558,7 @@ class PersonaGenerationService:
         if client is None:
             raise RuntimeError("openai_not_configured")
         to_lang = "German" if fl == "en" else "English"
+        om = settings.ai_openai_model or "gpt-4o-mini"
         try:
             completion = client.chat.completions.create(
                 messages=[
@@ -544,10 +575,10 @@ class PersonaGenerationService:
                     },
                     {"role": "user", "content": json.dumps(src, ensure_ascii=False)},
                 ],
-                model=settings.ai_openai_model or "gpt-4o-mini",
-                temperature=0.2,
+                model=om,
                 response_format={"type": "json_object"},
-                max_tokens=2048,
+                **_openai_chat_temperature_kwargs(om, 0.2),
+                **_openai_chat_token_kwargs(om, 2048),
             )
             text = (completion.choices[0].message.content or "").strip()
             parsed = parse_persona_generation_json(text)
@@ -781,6 +812,7 @@ class PersonaGenerationService:
         if self.provider == "openai" and self._openai:
             # Use OpenAI
             try:
+                om = settings.ai_openai_model or "gpt-5-mini"
                 chat_completion = self._openai.chat.completions.create(
                     messages=[
                         {
@@ -796,10 +828,10 @@ class PersonaGenerationService:
                         },
                         {"role": "user", "content": identity_prompt}
                     ],
-                    model=settings.ai_openai_model or "gpt-5-mini",
-                    temperature=temperature,
+                    model=om,
                     response_format={"type": "json_object"},
-                    max_tokens=settings.ai_persona_openai_identity_max_tokens,
+                    **_openai_chat_temperature_kwargs(om, temperature),
+                    **_openai_chat_token_kwargs(om, settings.ai_persona_openai_identity_max_tokens),
                 )
                 response_text = chat_completion.choices[0].message.content or ""
             except Exception as e:

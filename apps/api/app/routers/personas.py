@@ -1938,6 +1938,11 @@ def translate_persona_fields_admin(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        # OpenAI SDK errors (e.g. BadRequestError) must not become uncaught 500s.
+        if type(exc).__module__.startswith("openai"):
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
+        raise
     return PersonaTranslateFieldsResponse(strings=out)
 
 
