@@ -638,6 +638,9 @@ class _ExtendedVariableResolver:
 class AiAssistService:
     """Central service that executes templates via Anthropic / OpenAI."""
 
+    # INFO log cap for rendered prompts (full string at DEBUG only).
+    _PROMPT_LOG_INFO_MAX_CHARS = 12_000
+
     def __init__(
         self,
         *,
@@ -799,6 +802,68 @@ class AiAssistService:
         session.commit()
         return self.get_template_for_project(session=session, project_id=project_id, template_id=template_id)
 
+    def _build_rendered_prompt_with_locale_footer(
+        self,
+        *,
+        template: AiTemplateDefinition,
+        prompt_context: Dict[str, Any],
+        cache_last_var: str | None,
+    ) -> tuple[str, str | None, str | None]:
+        """
+        Build the user prompt and attach the locale guard footer.
+        When using prefix/suffix split for provider caching, the footer must be appended to suffix
+        so OpenAI/Anthropic still receive it (split path does not use the standalone prompt string).
+        """
+        prompt_prefix: str | None = None
+        prompt_suffix: str | None = None
+        if cache_last_var:
+            prompt_prefix, prompt_suffix = self._render_prompt_prefix_suffix(
+                template.prompt, prompt_context, cache_last_var
+            )
+        footer = locale_output_guard_footer(output_locale=prompt_context.get("output_locale"))
+        if prompt_prefix is not None and prompt_suffix is not None:
+            prompt_suffix = prompt_suffix + footer
+            rendered_prompt = prompt_prefix + "\n\n" + prompt_suffix
+        else:
+            rendered_prompt = append_locale_output_guard(
+                self._render_prompt(template.prompt, prompt_context),
+                output_locale=prompt_context.get("output_locale"),
+            )
+        exec_prefix = prompt_prefix if cache_last_var else None
+        exec_suffix = prompt_suffix if cache_last_var else None
+        return rendered_prompt, exec_prefix, exec_suffix
+
+    def _log_rendered_prompt_for_assist(
+        self,
+        *,
+        template_id: str,
+        rendered_prompt: str,
+        prompt_context: Dict[str, Any],
+    ) -> None:
+        plen = len(rendered_prompt)
+        max_len = self._PROMPT_LOG_INFO_MAX_CHARS
+        if plen <= max_len:
+            preview = rendered_prompt
+            truncated = False
+        else:
+            half = max_len // 2
+            preview = rendered_prompt[:half] + f"\n...[truncated {plen - max_len} chars]...\n" + rendered_prompt[-half:]
+            truncated = True
+        logger.info(
+            "ai.assist.prompt_meta",
+            template_id=template_id,
+            prompt_chars=plen,
+            prompt_truncated=truncated,
+            prompt_preview=preview,
+            context=prompt_context,
+        )
+        logger.debug(
+            "ai.assist.prompt_full",
+            template_id=template_id,
+            prompt=rendered_prompt,
+            context=prompt_context,
+        )
+
     async def generate(
         self,
         request: AiAssistRequest,
@@ -838,21 +903,11 @@ class AiAssistService:
             cache_last_var = getattr(template, "cache_prefix_last_variable", None) or TEMPLATE_CACHE_PREFIX_LAST_VAR.get(
                 request.template_id
             )
-            prompt_prefix: str | None = None
-            prompt_suffix: str | None = None
-            if cache_last_var:
-                prompt_prefix, prompt_suffix = self._render_prompt_prefix_suffix(
-                    template.prompt, prompt_context, cache_last_var
-                )
-            footer = locale_output_guard_footer(output_locale=prompt_context.get("output_locale"))
-            if prompt_prefix is not None and prompt_suffix is not None:
-                prompt_suffix = prompt_suffix + footer
-                rendered_prompt = prompt_prefix + "\n\n" + prompt_suffix
-            else:
-                rendered_prompt = append_locale_output_guard(
-                    self._render_prompt(template.prompt, prompt_context),
-                    output_locale=prompt_context.get("output_locale"),
-                )
+            rendered_prompt, prompt_prefix, prompt_suffix = self._build_rendered_prompt_with_locale_footer(
+                template=template,
+                prompt_context=prompt_context,
+                cache_last_var=cache_last_var,
+            )
 
             logger.info(
                 "ai.assist.dispatch",
@@ -864,12 +919,10 @@ class AiAssistService:
                 cache_split=bool(cache_last_var),
             )
 
-            # Log the full rendered prompt for debugging
-            logger.info(
-                "ai.assist.prompt_full",
+            self._log_rendered_prompt_for_assist(
                 template_id=request.template_id,
-                prompt=rendered_prompt,
-                context=prompt_context,
+                rendered_prompt=rendered_prompt,
+                prompt_context=prompt_context,
             )
 
             # Union logging removed - Audion is now autonomous

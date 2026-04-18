@@ -16,7 +16,14 @@ if TYPE_CHECKING:
 
 from ..core.config import get_settings
 from ..db import get_session
-from .persona_ai_locale import locale_output_guard_footer, normalize_output_locale
+from .persona_ai_locale import locale_output_guard_footer
+from .persona_generation_prompts import (
+    PERSONA_LLM_JSON_SCHEMA_INSTRUCTION,
+    persona_generation_output_locale,
+    persona_llm_schema_instruction,
+    system_prompt_persona_identity_anthropic,
+    system_prompt_persona_identity_openai,
+)
 from .persona_headline import truncate_headline as _truncate_headline_for_db
 from .persona_bilingual_utils import json_shape_compatible
 from ..models import (
@@ -32,66 +39,6 @@ from ..models import (
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
-
-
-# LLM instruction: must match PersonaProfile (proto) + extras the UI expects in profile JSON.
-PERSONA_LLM_JSON_SCHEMA_INSTRUCTION = (
-    "Return ONE JSON object with these keys: "
-    "name (string, short display name), full_name (string|null), age (integer|null), "
-    "gender (string|null, use English labels where applicable, e.g. female, male, non-binary, prefer not to say), "
-    "location (string|null, city/region/country one line), "
-    "media_affinity (integer 0-100|null, digital/news/media consumption intensity), "
-    "interests (array of 4-10 concise interest tags), "
-    "values (array of 4-10 concise value statements for this persona), "
-    "headline (string), bio (string), job_title (string|null, contextual only), "
-    "pain_points (array of strings or {label, evidence_count} objects), "
-    "goals (array of strings or {label, priority} objects where priority MUST be an integer 1..n, not words like high/medium), "
-    "traits (object: trait name -> number 0-1 or qualitative level), "
-    "communication_style: { vocabulary (string array), sentence_structure (string), skepticism_level (number 1-5) }, "
-    "confidence (number 0-1). "
-    "Optionally: social_media_usage (string array), attention_span (string), color_palette (string array). "
-    "Do not omit interests or values; infer plausible items from the research when not explicit. "
-    "LANGUAGE (mandatory): All human-readable string values must be English — name, full_name, headline, bio, "
-    "job_title, gender, location, interests, values, pain point labels, goal labels, trait names/keys as shown to users, "
-    "communication_style.vocabulary and sentence_structure, attention_span, social_media_usage strings. "
-    "Keep JSON keys in English as listed. Numeric fields stay numbers."
-)
-
-PERSONA_LLM_JSON_SCHEMA_INSTRUCTION_DE = (
-    "Return ONE JSON object with these keys: "
-    "name (string, short display name), full_name (string|null), age (integer|null), "
-    'gender (string|null, use German labels where applicable, e.g. \"weiblich\", \"männlich\", \"divers\", \"keine Angabe\"), '
-    "location (string|null, city/region/country one line), "
-    "media_affinity (integer 0-100|null, digital/news/media consumption intensity), "
-    "interests (array of 4-10 concise interest tags), "
-    "values (array of 4-10 concise value statements for this persona), "
-    "headline (string), bio (string), job_title (string|null, contextual only), "
-    "pain_points (array of strings or {label, evidence_count} objects), "
-    "goals (array of strings or {label, priority} objects where priority MUST be an integer 1..n, not words like high/medium), "
-    "traits (object: trait name -> number 0-1 or qualitative level), "
-    "communication_style: { vocabulary (string array), sentence_structure (string), skepticism_level (number 1-5) }, "
-    "confidence (number 0-1). "
-    "Optionally: social_media_usage (string array), attention_span (string), color_palette (string array). "
-    "Do not omit interests or values; infer plausible items from the research when not explicit. "
-    "LANGUAGE (mandatory): All human-readable string values must be German (Hochdeutsch) — name, full_name, headline, bio, "
-    "job_title, gender, location, interests, values, pain point labels, goal labels, trait names/keys as shown to users, "
-    "communication_style.vocabulary and sentence_structure, attention_span, social_media_usage strings. "
-    "Keep JSON keys in English as listed. Numeric fields stay numbers."
-)
-
-
-def _persona_generation_output_locale(output_locale: str | None) -> str:
-    """Canonical profile generation defaults to English unless the caller passes a UI locale."""
-    if output_locale is None:
-        return "en"
-    s = str(output_locale).strip()
-    if not s:
-        return "en"
-    return normalize_output_locale(s)
-
-
-def _persona_llm_schema_instruction(resolved_locale: str) -> str:
-    return PERSONA_LLM_JSON_SCHEMA_INSTRUCTION_DE if resolved_locale == "de" else PERSONA_LLM_JSON_SCHEMA_INSTRUCTION
 
 
 def _optional_str(val: Any) -> str | None:
@@ -650,7 +597,7 @@ class PersonaGenerationService:
         variation_params: Dict | None = None,
         output_locale: str | None = None,
     ) -> PersonaGenerationResult:
-        resolved_locale = _persona_generation_output_locale(output_locale)
+        resolved_locale = persona_generation_output_locale(output_locale)
         target_group_sources = []
         with get_session() as session:
             # If target_group_id is provided, get chunks from TargetGroupSource
@@ -747,36 +694,38 @@ class PersonaGenerationService:
                 if not (variation_params and variation_params.get("chunk_sample_size")):
                     chunks = chunks[:limit_chunks]
 
-        # Prepare excerpts
-        excerpts = ""
-        
-        if not chunks:
-            # Check if there are any documents for this target group
-            doc_count = 0
-            if target_group_id:
-                doc_count = session.execute(
-                    select(func.count(Document.id)).where(Document.target_group_id == target_group_id)
-                ).scalar()
-            
-            # If no documents/chunks, try to use Target Group description as fallback
-            target_group = session.get(TargetGroup, target_group_id) if target_group_id else None
-            
-            if doc_count == 0 and target_group:
-                logger.info("persona.generate.no_documents_fallback", target_group_id=str(target_group_id))
-                excerpts = (
-                    f"Target Group: {target_group.name}\n"
-                    f"Segment: {target_group.segment}\n"
-                    f"Description: {target_group.description or 'No description provided.'}\n"
-                    f"Note: No specific documents were provided, so generate a persona based on this high-level description."
-                )
-            elif doc_count == 0 and not chunk_ids:
-                raise ValueError("No documents found for this target group. Please upload documents first.")
-            elif not chunks:
-                raise ValueError("No processed knowledge chunks available. Please wait for document processing to complete or check for failures.")
-        else:
-            excerpts = "\n".join(f"- {chunk.content}" for chunk in chunks)
+            # Prepare excerpts (must stay inside session: chunk.content + session queries)
+            excerpts = ""
 
-        schema_instr = _persona_llm_schema_instruction(resolved_locale)
+            if not chunks:
+                # Check if there are any documents for this target group
+                doc_count = 0
+                if target_group_id:
+                    doc_count = session.execute(
+                        select(func.count(Document.id)).where(Document.target_group_id == target_group_id)
+                    ).scalar()
+
+                # If no documents/chunks, try to use Target Group description as fallback
+                target_group = session.get(TargetGroup, target_group_id) if target_group_id else None
+
+                if doc_count == 0 and target_group:
+                    logger.info("persona.generate.no_documents_fallback", target_group_id=str(target_group_id))
+                    excerpts = (
+                        f"Target Group: {target_group.name}\n"
+                        f"Segment: {target_group.segment}\n"
+                        f"Description: {target_group.description or 'No description provided.'}\n"
+                        f"Note: No specific documents were provided, so generate a persona based on this high-level description."
+                    )
+                elif doc_count == 0 and not chunk_ids:
+                    raise ValueError("No documents found for this target group. Please upload documents first.")
+                elif not chunks:
+                    raise ValueError(
+                        "No processed knowledge chunks available. Please wait for document processing to complete or check for failures."
+                    )
+            else:
+                excerpts = "\n".join(f"- {chunk.content}" for chunk in chunks)
+
+        schema_instr = persona_llm_schema_instruction(resolved_locale)
         # Define prompt variations (schema language follows resolved_locale / output_locale)
         prompt_templates = {
             "vivid": (
@@ -865,24 +814,7 @@ class PersonaGenerationService:
             # Use OpenAI
             try:
                 om = settings.ai_openai_model or "gpt-5-mini"
-                if resolved_locale == "de":
-                    sys_persona_lang = (
-                        "Du bist ein Assistent für die Persona-Generierung.\n"
-                        "Die Ausgabe MUSS ein einzelnes gültiges JSON-Objekt sein.\n"
-                        "KEINE Markdown-Codeblöcke. Kein Kommentar außerhalb des JSON.\n"
-                        "Alle nutzerlesbaren String-Werte im JSON müssen auf Deutsch (Hochdeutsch) sein.\n"
-                        "Interessen, Werte, full_name, gender, location, age, media_affinity wie im Nutzer-Schema.\n"
-                        "Vermeide nicht-escapte doppelte Anführungszeichen in String-Werten."
-                    )
-                else:
-                    sys_persona_lang = (
-                        "You are a helpful persona generation assistant.\n"
-                        "Output MUST be a single valid JSON object.\n"
-                        "Do NOT wrap JSON in markdown fences. Do NOT add any commentary.\n"
-                        "All human-readable string values in the JSON must be English.\n"
-                        "Include interests, values, full_name, gender, location, age, media_affinity as in the user schema.\n"
-                        "Avoid using unescaped double-quotes inside string values (e.g. don’t quote phrases like “...”)."
-                    )
+                sys_persona_lang = system_prompt_persona_identity_openai(resolved_locale)
                 chat_completion = self._openai.chat.completions.create(
                     messages=[
                         {
@@ -905,24 +837,7 @@ class PersonaGenerationService:
             if not self._anthropic:
                  raise ValueError("Anthropic client not initialized and OpenAI not selected/available.")
 
-            if resolved_locale == "de":
-                anthropic_system = (
-                    "Du gibst nur ein einzelnes JSON-Objekt aus. Keine Markdown- oder Codefences. "
-                    "Kein Kommentar vor oder nach dem JSON. Escape doppelte Anführungszeichen in Strings. "
-                    "Alle nutzerlesbaren Strings im JSON auf Deutsch (Hochdeutsch). "
-                    "Das Objekt enthält interests (Array), values (Array), Demografie "
-                    "(full_name, gender, location, age, media_affinity 0-100) sowie headline, bio, traits, pain_points, goals, "
-                    "communication_style, confidence."
-                )
-            else:
-                anthropic_system = (
-                    "You output a single JSON object only. Do not wrap it in markdown or code fences. "
-                    "Do not add commentary before or after the JSON. Escape any double quotes inside string values. "
-                    "All human-readable strings in the JSON must be English. "
-                    "The object must include interests (array), values (array), demographics "
-                    "(full_name, gender, location, age, media_affinity 0-100) plus headline, bio, traits, pain_points, goals, "
-                    "communication_style, confidence."
-                )
+            anthropic_system = system_prompt_persona_identity_anthropic(resolved_locale)
             response_text = anthropic_complete_text(
                 self._anthropic,
                 model=settings.ai_persona_identity_anthropic_model,

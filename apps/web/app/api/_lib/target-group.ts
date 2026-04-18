@@ -14,6 +14,7 @@ import type {
 // Re-export PersonaResponse for use in other modules
 export type { PersonaResponse };
 
+import { withOutputLocale } from "../../../lib/ai-output-locale";
 import { buildApiUrl } from "./backend";
 
 type TargetGroupCreateRequest = {
@@ -313,23 +314,25 @@ export async function generateTargetGroupPersona(
   request: TargetGroupPersonaGenerateRequest
 ): Promise<PersonaResponse> {
   // Use the Next.js API route instead of calling backend directly
+  const corePayload: Record<string, unknown> = {
+    segment: request.segment,
+    description: request.description,
+    filter_mode: request.filterMode ?? "auto",
+    document_ids: request.documentIds,
+    chunk_ids: request.chunkIds,
+    chunk_weights: request.chunkWeights,
+    variation_params: request.variationParams,
+    limit_chunks: request.limitChunks,
+  };
   const response = await fetch(buildApiUrl(`/api/target-groups/${targetGroupId}/personas/generate`), {
     method: "POST",
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      segment: request.segment,
-      description: request.description,
-      filter_mode: request.filterMode ?? "auto",
-      document_ids: request.documentIds,
-      chunk_ids: request.chunkIds,
-      chunk_weights: request.chunkWeights,
-      variation_params: request.variationParams,
-      limit_chunks: request.limitChunks,
-      ...(request.outputLocale ? { output_locale: request.outputLocale } : {}),
-    }),
+    body: JSON.stringify(
+      request.outputLocale ? withOutputLocale(corePayload, request.outputLocale) : corePayload
+    ),
   });
   if (!response.ok) {
     const errorText = await response.text();

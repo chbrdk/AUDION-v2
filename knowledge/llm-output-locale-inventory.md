@@ -26,7 +26,12 @@ Separate from persona-admin templates. Reply language is controlled by chat conf
 ## Defaults worth knowing
 
 - **`normalize_output_locale(None)`** → `"de"` (used by suggest services and Ai-Assist defaults).
-- **`PersonaGenerationService.generate` without `output_locale`** → resolved **`"en"`** for JSON profile strings (canonical EN profile); pass **`"de"`** for German-first generated copy (e.g. DE UI easy setup / TG generate).
+- **`persona_generation_output_locale` / `PersonaGenerationService.generate` without `output_locale`** → **`"en"`** for JSON profile strings (canonical EN profile); pass **`"de"`** for German-first generated copy (e.g. DE UI easy setup / TG generate). Implemented in [`apps/api/app/services/persona_generation_prompts.py`](apps/api/app/services/persona_generation_prompts.py).
+
+## Implementation notes
+
+- **Persona chunk excerpts:** Research excerpt strings and `DocumentChunk.content` are read **inside** the same `get_session()` block as chunk loading in [`persona_generation.py`](apps/api/app/services/persona_generation.py) so the ORM session is still open (avoids detached / closed-session use after `session.close()`).
+- **Ai-Assist logging:** `generate()` logs **`ai.assist.prompt_meta`** at INFO (`prompt_chars`, optional truncated `prompt_preview`, `context`). The full rendered prompt is **`ai.assist.prompt_full`** at DEBUG only. Web helper: [`apps/web/lib/ai-output-locale.ts`](apps/web/lib/ai-output-locale.ts) `withOutputLocale`.
 
 ## Maintenance
 

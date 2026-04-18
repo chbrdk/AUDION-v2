@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Box, Stack } from "@mui/material";
 import { MsqdxButton, MsqdxFormField, MsqdxMoleculeCard, MsqdxTextareaField, MsqdxTypography } from "@msqdx/react";
 import { buildApiUrl } from "../../app/api/_lib/backend";
+import { withOutputLocale } from "../../lib/ai-output-locale";
 import { API_ROUTES } from "../../lib/api-routes";
 import { ADMIN_ROUTES } from "../../lib/routes";
 import { useI18n } from "../i18n/i18n-provider";
@@ -47,20 +48,19 @@ export function MsqdxGlassEasySetupPanel() {
     setError(null);
     setResult(null);
     try {
-      const body: Record<string, string> = {
+      const base: Record<string, string> = {
         customer_name: customer,
         about: brief,
       };
       const url = websiteUrl.trim();
-      if (url) body.website_url = url;
+      if (url) base.website_url = url;
       const nameOverride = projectName.trim();
-      if (nameOverride) body.project_name = nameOverride;
-      body.output_locale = locale;
+      if (nameOverride) base.project_name = nameOverride;
 
       const response = await fetch(buildApiUrl(API_ROUTES.projectsBootstrap), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify(withOutputLocale(base, locale)),
       });
       if (!response.ok) {
         throw new Error(await parseError(response));
