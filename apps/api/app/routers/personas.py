@@ -829,20 +829,14 @@ def create_persona(payload: PersonaCreateRequest, session: Session = Depends(get
     The generation process analyzes relevant research data and extracts demographics, goals,
     pain points, communication patterns, and other persona attributes.
     
-    **Parameters:**
-    - `payload`: The persona generation request containing:
-      - `project_id`: ID of the project this persona belongs to
-      - `segment`: Target segment description (required)
-      - `description`: Optional additional description to guide generation
-      - `filter_mode`: Filter mode for selecting research chunks ("auto" or "manual")
-      - `chunk_ids`: Optional list of specific chunk IDs to use (if filter_mode is "manual")
-      - `target_group_id`: Optional target group ID to retrieve knowledge from
-      - `variation_params`: Optional parameters to control generation variation:
-        - `randomize_chunks`: Whether to randomize chunk selection
-        - `temperature`: LLM temperature (0.0-1.0) or "random"
-        - `prompt_style`: Prompt style ("vivid", "analytical", "personality-focused", "goal-oriented")
-        - `chunk_sample_size`: Number of chunks to sample
-      - `output_locale`: Optional `"en"` \| `"de"` for generated profile string language (omit = English).
+    **Parameters (`PersonaGenerateRequest`):**
+    - `project_id`: UUID of the project this persona belongs to (required)
+    - `segment`: Target segment / archetype label (required)
+    - `persona_id`: Optional UUID of an existing persona (uses its `target_group_id` for knowledge when set)
+    - `output_locale`: Optional `"en"` \| `"de"` for generated profile string language (omit = English).
+
+    For target-group-scoped generation (description, `filter_mode`, chunks, etc.), use
+    `POST /target-groups/{target_group_id}/personas/generate` instead.
     
     **Returns:**
     - The generated persona object with AI-extracted attributes including demographics,

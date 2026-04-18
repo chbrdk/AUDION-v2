@@ -60,7 +60,7 @@ export const useAiAssist = () => {
             max_suggestions: options.maxSuggestions,
           };
           const payload: JourneyAiGenerateRequest = options.outputLocale
-            ? (withOutputLocale(basePayload as Record<string, unknown>, options.outputLocale) as JourneyAiGenerateRequest)
+            ? withOutputLocale(basePayload, options.outputLocale)
             : basePayload;
           const journeyResponse: JourneyAiGenerationResponse = await journeysApi.generateAiSuggestions(
             options.journeyId,

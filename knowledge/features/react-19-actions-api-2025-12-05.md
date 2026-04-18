@@ -46,6 +46,8 @@ import { createPersonaAction } from "@/app/api/personas/create/actions";
 const [state, formAction, isPending] = useActionState(createPersonaAction, null);
 
 <form action={formAction}>
+  {/* `activeProjectId` from useProject() */}
+  <input type="hidden" name="project_id" value={activeProjectId} />
   <input name="segment" />
   <button disabled={isPending}>
     {isPending ? "Creating..." : "Create"}
