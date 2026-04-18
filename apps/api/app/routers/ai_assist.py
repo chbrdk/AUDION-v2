@@ -74,20 +74,47 @@ def _enrich_persona_context(
         persona_context = build_persona_goals_ai_context(session, persona, max_items, output_locale=output_loc)
     elif "interests" in template_id:
         persona_context = build_persona_interests_ai_context(session, persona, max_items, output_locale=output_loc)
+    elif "vocabulary" in template_id:
+        persona_context = build_persona_vocabulary_ai_context(session, persona, max_items, output_locale=output_loc)
     elif "values" in template_id:
         persona_context = build_persona_values_ai_context(session, persona, max_items, output_locale=output_loc)
     elif "traits" in template_id:
         persona_context = build_persona_traits_ai_context(session, persona, max_items, output_locale=output_loc)
-    elif "vocabulary" in template_id:
-        persona_context = build_persona_vocabulary_ai_context(session, persona, max_items, output_locale=output_loc)
     elif "sentence_structure" in template_id:
         persona_context = build_persona_sentence_structure_ai_context(session, persona, output_locale=output_loc)
     else:
         # Default: use pain_points context builder
         persona_context = build_persona_ai_context(session, persona, max_items, output_locale=output_loc)
 
-    # Persona fields from DB first; caller context overrides (e.g. admin UI output language).
+    # Start with client context (persona_id, _template_id, max_items, output_locale, …) then overlay
+    # server-built persona fields. Client-sent persona_profile / chip summaries must NOT overwrite
+    # DB-backed `persona_profile_for_ai` (DE mirror merge); that was causing English-only JSON in the
+    # prompt for DE UI despite LANGUAGE lines.
     enriched = {**persona_context, **context}
+
+    server_priority: list[str] = [
+        "persona_profile",
+        "persona_values",
+        "persona_interests",
+        "persona_goals",
+        "persona_pain_points",
+    ]
+    tid = str(template_id)
+    if "traits" in tid:
+        server_priority.extend(["persona_bio", "existing_traits", "knowledge_context"])
+    if "vocabulary" in tid:
+        server_priority.extend(["persona_bio", "existing_vocabulary", "knowledge_context"])
+    if "sentence_structure" in tid:
+        server_priority.extend(["persona_bio", "persona_profile"])
+
+    seen: set[str] = set()
+    for _k in server_priority:
+        if _k in seen:
+            continue
+        seen.add(_k)
+        if _k in persona_context:
+            enriched[_k] = persona_context[_k]
+
     return finalize_ai_locale_context(enriched)
 
 

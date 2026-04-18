@@ -1071,26 +1071,10 @@ export const MsqdxGlassPersonaAdminPanel = ({
     setPersonaAiError(null);
     try {
       const chipProfile = profileForChips ?? detail.profile;
-      // Build existing interests summary
-      const existingInterests = chipProfile.interests || [];
-      const existingInterestsSummary = existingInterests.length > 0
-        ? existingInterests.join(", ")
-        : t("personaAdmin.aiContext.noInterests");
-
-      // Build target group summary
-      const targetGroupSummary = detail.profile.segment || t("personaAdmin.aiContext.noTargetGroup");
-
-      // Build persona profile JSON
-      const personaProfile = JSON.stringify(chipProfile, null, 2);
-
       const result = await runPersonaAiAssist({
         templateId: "persona.interests",
         context: {
-          persona_name: detail.profile.name || "",
-          persona_segment: detail.profile.segment || "",
-          persona_profile: personaProfile,
-          persona_interests: existingInterestsSummary,
-          target_group_summary: targetGroupSummary,
+          persona_id: selectedId || "",
           max_items: 4,
           output_locale: locale,
         },
@@ -1127,26 +1111,10 @@ export const MsqdxGlassPersonaAdminPanel = ({
     setPersonaAiError(null);
     try {
       const chipProfile = profileForChips ?? detail.profile;
-      // Build existing values summary
-      const existingValues = chipProfile.values || [];
-      const existingValuesSummary = existingValues.length > 0
-        ? existingValues.join(", ")
-        : t("personaAdmin.aiContext.noValues");
-
-      // Build target group summary
-      const targetGroupSummary = detail.profile.segment || t("personaAdmin.aiContext.noTargetGroup");
-
-      // Build persona profile JSON
-      const personaProfile = JSON.stringify(chipProfile, null, 2);
-
       const result = await runPersonaAiAssist({
         templateId: "persona.values",
         context: {
-          persona_name: detail.profile.name || "",
-          persona_segment: detail.profile.segment || "",
-          persona_profile: personaProfile,
-          persona_values: existingValuesSummary,
-          target_group_summary: targetGroupSummary,
+          persona_id: selectedId || "",
           max_items: 4,
           output_locale: locale,
         },
@@ -1276,6 +1244,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
       const result = await runPersonaAiAssist({
         templateId: "persona.traits",
         context: {
+          persona_id: selectedId || "",
           persona_name: detail.profile.name || "",
           persona_headline: detail.profile.headline || "",
           persona_bio: detail.profile.bio || "",
@@ -1353,6 +1322,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
       const result = await runPersonaAiAssist({
         templateId: "persona.vocabulary",
         context: {
+          persona_id: selectedId || "",
           persona_name: detail.profile.name || "",
           persona_headline: detail.profile.headline || "",
           persona_bio: detail.profile.bio || "",
@@ -1482,26 +1452,10 @@ export const MsqdxGlassPersonaAdminPanel = ({
     setPersonaAiError(null);
     try {
       const chipProfile = profileForChips ?? detail.profile;
-      // Build existing goals summary
-      const existingGoals = chipProfile.goals?.map((goal) => goal.label) ?? [];
-      const existingGoalsSummary = existingGoals.length > 0
-        ? existingGoals.join(", ")
-        : t("personaAdmin.aiContext.noGoals");
-
-      // Build target group summary
-      const targetGroupSummary = detail.profile.segment || t("personaAdmin.aiContext.noTargetGroup");
-
-      // Build persona profile JSON
-      const personaProfile = JSON.stringify(chipProfile, null, 2);
-
       const result = await runPersonaAiAssist({
         templateId: "persona.goals",
         context: {
-          persona_name: detail.profile.name || "",
-          persona_segment: detail.profile.segment || "",
-          persona_profile: personaProfile,
-          persona_goals: existingGoalsSummary,
-          target_group_summary: targetGroupSummary,
+          persona_id: selectedId || "",
           max_items: 4,
           output_locale: locale,
         },
