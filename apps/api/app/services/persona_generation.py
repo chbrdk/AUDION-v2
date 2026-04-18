@@ -516,6 +516,52 @@ class PersonaGenerationService:
             logger.warning("persona.translate.system_prompt_de.failed", persona_id=str(persona_id), error=str(exc))
             return None
 
+    def translate_ui_string_map(self, *, from_locale: str, strings: dict[str, str]) -> dict[str, str]:
+        """Translate short persona field strings for admin UI (en→de or de→en). Same keys in/out."""
+        fl = (from_locale or "").strip().lower()
+        if fl not in ("en", "de"):
+            raise ValueError("translate_invalid_locale")
+        src = {k: v for k, v in strings.items() if isinstance(k, str) and isinstance(v, str) and v.strip()}
+        if not src:
+            return {}
+        client = self._openai_for_json_repair()
+        if client is None:
+            raise RuntimeError("openai_not_configured")
+        to_lang = "German" if fl == "en" else "English"
+        try:
+            completion = client.chat.completions.create(
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            f"You translate short persona admin field values into natural {to_lang}.\n"
+                            "Input is one JSON object: field keys to short text.\n"
+                            f"Return ONE JSON object with the SAME keys only; values are {to_lang} translations.\n"
+                            "Preserve meaning. Keep proper names and place names when commonly left untranslated.\n"
+                            "Do not add or remove keys. Use empty string only if input was empty.\n"
+                            "No markdown fences."
+                        ),
+                    },
+                    {"role": "user", "content": json.dumps(src, ensure_ascii=False)},
+                ],
+                model=settings.ai_openai_model or "gpt-4o-mini",
+                temperature=0.2,
+                response_format={"type": "json_object"},
+                max_tokens=2048,
+            )
+            text = (completion.choices[0].message.content or "").strip()
+            parsed = parse_persona_generation_json(text)
+            if not isinstance(parsed, dict):
+                return {}
+            out: dict[str, str] = {}
+            for k in src:
+                raw = parsed.get(k)
+                out[k] = raw.strip() if isinstance(raw, str) else str(raw) if raw is not None else ""
+            return out
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("persona.translate.ui_fields.failed", error=str(exc))
+            raise
+
     def generate(
         self,
         *,

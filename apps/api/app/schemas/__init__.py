@@ -660,6 +660,17 @@ class PersonaCreateRequest(BaseModel):
     )
 
 
+class PersonaTranslateFieldsRequest(BaseModel):
+    """Translate a flat map of short persona UI strings to the other admin locale (en↔de)."""
+
+    from_locale: str = Field(..., description="Source language: en or de.")
+    strings: Dict[str, str] = Field(default_factory=dict, description="Field key → text to translate.")
+
+
+class PersonaTranslateFieldsResponse(BaseModel):
+    strings: Dict[str, str] = Field(default_factory=dict, description="Same keys as input; translated values.")
+
+
 class PersonaPatchRequest(BaseModel):
     name: Optional[str] = Field(default=None, description="New persona name.")
     segment: Optional[str] = Field(default=None, description="Updated segment label.")
@@ -831,6 +842,8 @@ __all__ = [
     "PersonaListResponse",
     "PersonaCreateRequest",
     "PersonaPatchRequest",
+    "PersonaTranslateFieldsRequest",
+    "PersonaTranslateFieldsResponse",
     "PersonaResponse",
     "TargetGroupBase",
     "TargetGroupCreateRequest",

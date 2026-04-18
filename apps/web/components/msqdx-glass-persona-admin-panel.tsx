@@ -9,14 +9,14 @@ import { MsqdxIcon, MsqdxButton, MsqdxTypography, MsqdxCard, MsqdxFormField, Msq
 import { MsqdxGlassAiButtonIcon } from "./generic/msqdx-glass-ai-button-icon";
 import {
   MsqdxGlassBioCard,
+  MsqdxGlassBioCardEdit,
   MsqdxGlassPersonalityCard,
   MsqdxGlassPainPointsGoalsCard,
   MsqdxGlassCommunicationCard,
   MsqdxGlassKnowledgeSourcesCard,
   MsqdxGlassAdvancedCard,
-  MsqdxGlassDashboardCardSection,
 } from "./dashboard-cards";
-import { MsqdxGlassEntityEditor, MsqdxGlassFieldEditor, MsqdxGlassEditButton } from "./generic";
+import { MsqdxGlassFieldEditor, MsqdxGlassEditButton } from "./generic";
 import { getFieldDefinitions } from "@msqdx-glass/types";
 import { useAiAssist } from "../hooks/use-ai-assist";
 import { MsqdxGlassCollapsiblePanel } from "./admin/msqdx-glass-collapsible-panel";
@@ -34,6 +34,7 @@ import {
   Tooltip,
 } from "@mui/material";
 import { mirrorFillStringPair } from "../lib/bilingual-mirror";
+import { translatePersonaAdminFields } from "../lib/persona-translate-fields";
 import { buildApiUrl } from "../app/api/_lib/backend";
 import { normalizePersonaListResponse } from "../lib/persona-list-normalize";
 import { THEME_ACCENT } from "../lib/theme-accent";
@@ -59,8 +60,6 @@ type EditFormState = {
   name: string;
   headline: string;
   headline_de: string;
-  system_prompt_en: string;
-  system_prompt_de: string;
   segment: string;
   status: string;
   updatedBy: string;
@@ -70,7 +69,6 @@ type CreateFormState = {
   name: string;
   segment: string;
   headline: string;
-  headline_de: string;
 };
 
 type KnowledgeFormState = {
@@ -110,16 +108,17 @@ type PersonaSaveUpdates =
   | Partial<EditFormState>
   | Partial<PersonaProfile>
   | { project_id?: string; target_group_id?: string | null }
-  | { profile_de?: Record<string, unknown> | null }
-  | { system_prompt_de?: string | null }
-  | { system_prompt_en?: string | null };
+  | { profile_de?: Record<string, unknown> | null };
+
+type PersonaSaveOptions = {
+  premergedProfile?: PersonaProfile;
+  premergedProfileDe?: Record<string, unknown> | null;
+};
 
 const defaultEditFormState: EditFormState = {
   name: "",
   headline: "",
   headline_de: "",
-  system_prompt_en: "",
-  system_prompt_de: "",
   segment: "",
   status: "draft",
   updatedBy: "persona-admin-ui",
@@ -129,7 +128,6 @@ const defaultCreateFormState: CreateFormState = {
   name: "",
   segment: "",
   headline: "",
-  headline_de: "",
 };
 
 const defaultKnowledgeForm: KnowledgeFormState = {
@@ -223,10 +221,6 @@ export const MsqdxGlassPersonaAdminPanel = ({
   const [detailError, setDetailError] = useState<string | null>(null);
   const [detailLoading, setDetailLoading] = useState<boolean>(false);
   const [editForm, setEditForm] = useState<EditFormState>(defaultEditFormState);
-  const [profileDeText, setProfileDeText] = useState<string>("");
-  const profileDeDirtyRef = useRef(false);
-  const systemPromptDeDirtyRef = useRef(false);
-  const systemPromptEnDirtyRef = useRef(false);
   const [savePending, setSavePending] = useState(false);
   const [createForm, setCreateForm] = useState<CreateFormState>(defaultCreateFormState);
   const [createPending, setCreatePending] = useState(false);
@@ -575,10 +569,6 @@ export const MsqdxGlassPersonaAdminPanel = ({
   useEffect(() => {
     if (!detail) {
       setEditForm(defaultEditFormState);
-      setProfileDeText("");
-      profileDeDirtyRef.current = false;
-      systemPromptDeDirtyRef.current = false;
-      systemPromptEnDirtyRef.current = false;
       metadataFormDirtyRef.current = false;
       return;
     }
@@ -592,17 +582,10 @@ export const MsqdxGlassPersonaAdminPanel = ({
       name: detail.profile.name,
       headline: detail.profile.headline,
       headline_de: detail.headline_de ?? "",
-      system_prompt_en: systemPromptEnDirtyRef.current
-        ? prev.system_prompt_en
-        : (detail.prompt.system_prompt ?? ""),
-      system_prompt_de: systemPromptDeDirtyRef.current ? prev.system_prompt_de : (detail.prompt.system_prompt_de ?? ""),
       segment: detail.profile.segment,
       status: detail.metadata.status,
       updatedBy: detail.metadata.updatedBy ?? "persona-admin-ui",
     }));
-    if (!profileDeDirtyRef.current) {
-      setProfileDeText(detail.profile_de ? JSON.stringify(detail.profile_de, null, 2) : "");
-    }
   }, [detail, selectedId]);
 
   useEffect(() => {
@@ -654,15 +637,19 @@ export const MsqdxGlassPersonaAdminPanel = ({
     }
   };
 
-  const handleSave = async (updates?: PersonaSaveUpdates) => {
+  const handleSave = async (updates?: PersonaSaveUpdates, saveOptions?: PersonaSaveOptions) => {
     if (!selectedId || !detail) {
       return;
     }
     setSavePending(true);
     try {
+      const usePremerged = Boolean(saveOptions?.premergedProfile);
+
       // Check if updates contain demographic fields (PersonaProfile fields)
-      const hasDemographicFields = updates && (
-        'age' in updates ||
+      const hasDemographicFields =
+        !usePremerged &&
+        updates &&
+        ('age' in updates ||
         'location' in updates ||
         'gender' in updates ||
         'media_affinity' in updates ||
@@ -673,8 +660,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
         'traits' in updates ||
         'communication_style' in updates ||
         'pain_points' in updates ||
-        'goals' in updates
-      );
+        'goals' in updates);
 
       const hasStructuredPatchFields =
         updates &&
@@ -682,9 +668,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
           "project_id" in updates ||
           "target_group_id" in updates ||
           "tavus_replica_id" in updates ||
-          "tavus_persona_id" in updates ||
-          "system_prompt_de" in updates ||
-          "system_prompt_en" in updates);
+          "tavus_persona_id" in updates);
 
       let formUpdates: Partial<EditFormState> | undefined;
       let demographicUpdates: Partial<PersonaProfile> | undefined;
@@ -704,192 +688,151 @@ export const MsqdxGlassPersonaAdminPanel = ({
       const headlinePair = mirrorFillStringPair(updatedHeadline, updatedHeadlineDe);
       const finalHeadline = headlinePair.en;
       const finalHeadlineDe = headlinePair.de.trim() ? headlinePair.de : "";
-      const updatedSystemPromptEn =
-        updates && "system_prompt_en" in updates
-          ? String((updates as { system_prompt_en?: string | null }).system_prompt_en ?? "")
-          : (formUpdates?.system_prompt_en ?? editForm.system_prompt_en);
-      const updatedSystemPromptDe =
-        updates && "system_prompt_de" in updates
-          ? String((updates as { system_prompt_de?: string | null }).system_prompt_de ?? "")
-          : (formUpdates?.system_prompt_de ?? editForm.system_prompt_de);
       const updatedSegment = formUpdates?.segment ?? editForm.segment;
       const updatedStatus = formUpdates?.status ?? editForm.status;
       const updatedBy = formUpdates?.updatedBy ?? editForm.updatedBy ?? "persona-admin-ui";
 
-      // Prepare profile updates - preserve existing values and merge new ones
-      const profileUpdates: Partial<PersonaProfile> = {
-        ...detail.profile,
-        name: updatedName,
-        headline: finalHeadline,
-        segment: updatedSegment,
-      };
+      let completeProfile: PersonaProfile;
 
-      // Merge demographic updates (explicitly set values, including null)
-      if (demographicUpdates) {
-        // Explicitly handle each demographic field to ensure they are set
-        if ('age' in demographicUpdates) {
-          profileUpdates.age = demographicUpdates.age;
-        }
-        if ('location' in demographicUpdates) {
-          profileUpdates.location = demographicUpdates.location ?? null;
-        }
-        if ('gender' in demographicUpdates) {
-          // Explicitly set gender, even if it's an empty string (convert to null)
-          const genderValue = demographicUpdates.gender;
-          profileUpdates.gender = (genderValue && genderValue.trim() !== "") ? genderValue : null;
-        }
-        if ('media_affinity' in demographicUpdates) {
-          profileUpdates.media_affinity = demographicUpdates.media_affinity;
-        }
-        if ('full_name' in demographicUpdates) {
-          profileUpdates.full_name = demographicUpdates.full_name ?? null;
-        }
-        // Handle other fields
-        Object.keys(demographicUpdates).forEach((key) => {
-          if (!['age', 'location', 'gender', 'media_affinity', 'full_name', 'name', 'headline', 'segment'].includes(key)) {
-            const value = demographicUpdates[key as keyof PersonaProfile];
-            if (value !== undefined) {
-              (profileUpdates as any)[key] = value;
-            }
+      if (usePremerged && saveOptions?.premergedProfile) {
+        completeProfile = {
+          ...saveOptions.premergedProfile,
+          name: updatedName,
+          headline: finalHeadline,
+          segment: updatedSegment,
+        };
+        Object.assign(completeProfile, {
+          gender: completeProfile.gender ?? null,
+          age: completeProfile.age ?? null,
+          location: completeProfile.location ?? null,
+          media_affinity: completeProfile.media_affinity ?? null,
+          full_name: completeProfile.full_name ?? null,
+        });
+      } else {
+        // Prepare profile updates - preserve existing values and merge new ones
+        const profileUpdates: Partial<PersonaProfile> = {
+          ...detail.profile,
+          name: updatedName,
+          headline: finalHeadline,
+          segment: updatedSegment,
+        };
+
+        // Merge demographic updates (explicitly set values, including null)
+        if (demographicUpdates) {
+          if ('age' in demographicUpdates) {
+            profileUpdates.age = demographicUpdates.age;
           }
+          if ('location' in demographicUpdates) {
+            profileUpdates.location = demographicUpdates.location ?? null;
+          }
+          if ('gender' in demographicUpdates) {
+            const genderValue = demographicUpdates.gender;
+            profileUpdates.gender = (genderValue && genderValue.trim() !== "") ? genderValue : null;
+          }
+          if ('media_affinity' in demographicUpdates) {
+            profileUpdates.media_affinity = demographicUpdates.media_affinity;
+          }
+          if ('full_name' in demographicUpdates) {
+            profileUpdates.full_name = demographicUpdates.full_name ?? null;
+          }
+          Object.keys(demographicUpdates).forEach((key) => {
+            if (!['age', 'location', 'gender', 'media_affinity', 'full_name', 'name', 'headline', 'segment'].includes(key)) {
+              const value = demographicUpdates[key as keyof PersonaProfile];
+              if (value !== undefined) {
+                (profileUpdates as Record<string, unknown>)[key] = value as unknown;
+              }
+            }
+          });
+        }
+
+        completeProfile = {
+          ...detail.profile,
+          name: updatedName,
+          headline: finalHeadline,
+          segment: updatedSegment,
+        };
+
+        const existingGender = detail.profile?.gender;
+        const existingAge = detail.profile?.age;
+        const existingLocation = detail.profile?.location;
+        const existingMediaAffinity = detail.profile?.media_affinity;
+        const existingFullName = detail.profile?.full_name;
+
+        completeProfile.gender = completeProfile.gender ?? existingGender ?? null;
+        completeProfile.age = completeProfile.age ?? existingAge ?? null;
+        completeProfile.location = completeProfile.location ?? existingLocation ?? null;
+        completeProfile.media_affinity = completeProfile.media_affinity ?? existingMediaAffinity ?? null;
+        completeProfile.full_name = completeProfile.full_name ?? existingFullName ?? null;
+
+        if (demographicUpdates) {
+          if ('age' in demographicUpdates) {
+            completeProfile.age = demographicUpdates.age;
+          }
+          if ('location' in demographicUpdates) {
+            completeProfile.location = demographicUpdates.location ?? null;
+          }
+          if ('gender' in demographicUpdates) {
+            const genderValue = demographicUpdates.gender;
+            const finalGender = (genderValue && typeof genderValue === 'string' && genderValue.trim() !== "") ? genderValue : null;
+            completeProfile.gender = finalGender;
+          }
+          if ('media_affinity' in demographicUpdates) {
+            completeProfile.media_affinity = demographicUpdates.media_affinity;
+          }
+          if ('full_name' in demographicUpdates) {
+            completeProfile.full_name = demographicUpdates.full_name ?? null;
+          }
+          Object.keys(demographicUpdates).forEach((key) => {
+            if (!['age', 'location', 'gender', 'media_affinity', 'full_name', 'name', 'headline', 'segment'].includes(key)) {
+              const value = demographicUpdates[key as keyof PersonaProfile];
+              if (value !== undefined) {
+                (completeProfile as Record<string, unknown>)[key] = value as unknown;
+              }
+            }
+          });
+        }
+
+        if (profileUpdates) {
+          Object.keys(profileUpdates).forEach((key) => {
+            if (!['name', 'headline', 'segment'].includes(key)) {
+              const value = profileUpdates[key as keyof PersonaProfile];
+              if (value !== undefined) {
+                (completeProfile as Record<string, unknown>)[key] = value as unknown;
+              }
+            }
+          });
+        }
+
+        if (!('gender' in completeProfile)) {
+          completeProfile.gender = detail.profile?.gender ?? null;
+        }
+        if (!('age' in completeProfile)) {
+          completeProfile.age = detail.profile?.age ?? null;
+        }
+        if (!('location' in completeProfile)) {
+          completeProfile.location = detail.profile?.location ?? null;
+        }
+        if (!('media_affinity' in completeProfile)) {
+          completeProfile.media_affinity = detail.profile?.media_affinity ?? null;
+        }
+        if (!('full_name' in completeProfile)) {
+          completeProfile.full_name = detail.profile?.full_name ?? null;
+        }
+
+        Object.assign(completeProfile, {
+          gender: completeProfile.gender ?? null,
+          age: completeProfile.age ?? null,
+          location: completeProfile.location ?? null,
+          media_affinity: completeProfile.media_affinity ?? null,
+          full_name: completeProfile.full_name ?? null,
         });
       }
-
-      // Ensure we send the complete profile, not just updates
-      // Start with the existing profile and apply all updates
-      const completeProfile: PersonaProfile = {
-        ...detail.profile,
-        // Override with form updates first
-        name: updatedName,
-        headline: finalHeadline,
-        segment: updatedSegment,
-      };
-
-      // ALWAYS ensure optional demographic fields exist (even if null) so they're included in JSON
-      // JSON.stringify excludes undefined but includes null, so we need to explicitly set them
-      // We MUST set them as properties, not just check - use existing value or null
-      const existingGender = detail.profile?.gender;
-      const existingAge = detail.profile?.age;
-      const existingLocation = detail.profile?.location;
-      const existingMediaAffinity = detail.profile?.media_affinity;
-      const existingFullName = detail.profile?.full_name;
-
-      // Explicitly assign to ensure they're properties (not undefined)
-      completeProfile.gender = completeProfile.gender ?? existingGender ?? null;
-      completeProfile.age = completeProfile.age ?? existingAge ?? null;
-      completeProfile.location = completeProfile.location ?? existingLocation ?? null;
-      completeProfile.media_affinity = completeProfile.media_affinity ?? existingMediaAffinity ?? null;
-      completeProfile.full_name = completeProfile.full_name ?? existingFullName ?? null;
-
-      // Apply demographic updates explicitly to ensure they override existing values
-      if (demographicUpdates) {
-        if ('age' in demographicUpdates) {
-          completeProfile.age = demographicUpdates.age;
-        }
-        if ('location' in demographicUpdates) {
-          completeProfile.location = demographicUpdates.location ?? null;
-        }
-        if ('gender' in demographicUpdates) {
-          // Explicitly set gender, even if it's null or empty string
-          const genderValue = demographicUpdates.gender;
-          const finalGender = (genderValue && typeof genderValue === 'string' && genderValue.trim() !== "") ? genderValue : null;
-          completeProfile.gender = finalGender;
-          console.log('[DEBUG] Setting gender:', { genderValue, finalGender, hasGender: 'gender' in completeProfile });
-        }
-        if ('media_affinity' in demographicUpdates) {
-          completeProfile.media_affinity = demographicUpdates.media_affinity;
-        }
-        if ('full_name' in demographicUpdates) {
-          completeProfile.full_name = demographicUpdates.full_name ?? null;
-        }
-        // Merge any other demographic fields
-        Object.keys(demographicUpdates).forEach((key) => {
-          if (!['age', 'location', 'gender', 'media_affinity', 'full_name', 'name', 'headline', 'segment'].includes(key)) {
-            const value = demographicUpdates[key as keyof PersonaProfile];
-            if (value !== undefined) {
-              (completeProfile as any)[key] = value;
-            }
-          }
-        });
-      }
-
-      // Also apply profileUpdates for any other fields that were set
-      if (profileUpdates) {
-        Object.keys(profileUpdates).forEach((key) => {
-          if (!['name', 'headline', 'segment'].includes(key)) {
-            const value = profileUpdates[key as keyof PersonaProfile];
-            if (value !== undefined) {
-              (completeProfile as any)[key] = value;
-            }
-          }
-        });
-      }
-
-      // CRITICAL: Ensure all demographic fields are explicitly present in the profile (even if null)
-      // This is important because JSON.stringify will omit undefined fields but include null fields
-      // We must set them BEFORE serialization to ensure they're sent to the backend
-      if (!('gender' in completeProfile)) {
-        completeProfile.gender = detail.profile?.gender ?? null;
-      }
-      if (!('age' in completeProfile)) {
-        completeProfile.age = detail.profile?.age ?? null;
-      }
-      if (!('location' in completeProfile)) {
-        completeProfile.location = detail.profile?.location ?? null;
-      }
-      if (!('media_affinity' in completeProfile)) {
-        completeProfile.media_affinity = detail.profile?.media_affinity ?? null;
-      }
-      if (!('full_name' in completeProfile)) {
-        completeProfile.full_name = detail.profile?.full_name ?? null;
-      }
-
-      // FINAL check: Force all demographic fields to be explicitly set (even if null)
-      // This is critical because JSON.stringify() omits undefined but includes null
-      // We MUST set them as properties (not just check if they exist) to ensure serialization
-      Object.assign(completeProfile, {
-        gender: completeProfile.gender ?? null,
-        age: completeProfile.age ?? null,
-        location: completeProfile.location ?? null,
-        media_affinity: completeProfile.media_affinity ?? null,
-        full_name: completeProfile.full_name ?? null,
-      });
-
-      // Debug logging - log the complete payload AFTER ensuring all fields are set
-      console.log('[DEBUG] Sending payload:', {
-        hasProfile: !!completeProfile,
-        profileKeys: Object.keys(completeProfile || {}),
-        gender: completeProfile?.gender,
-        genderType: typeof completeProfile?.gender,
-        age: completeProfile?.age,
-        location: completeProfile?.location,
-        media_affinity: completeProfile?.media_affinity,
-        demographicUpdates: demographicUpdates,
-        hasGenderInProfile: 'gender' in completeProfile,
-        hasMediaAffinityInProfile: 'media_affinity' in completeProfile,
-        completeProfile: JSON.stringify(completeProfile, null, 2),
-      });
 
       let profileDe: Record<string, unknown> | null | undefined = undefined;
-      if (updates && "profile_de" in updates) {
+      if (usePremerged && saveOptions?.premergedProfileDe !== undefined) {
+        profileDe = saveOptions.premergedProfileDe;
+      } else if (updates && "profile_de" in updates) {
         profileDe = (updates as { profile_de?: Record<string, unknown> | null }).profile_de ?? null;
-      } else if (profileDeDirtyRef.current) {
-        const trimmed = profileDeText.trim();
-        if (trimmed.length > 0) {
-          try {
-            const parsed = JSON.parse(trimmed) as unknown;
-            if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-              throw new Error("profile_de must be a JSON object");
-            }
-            profileDe = parsed as Record<string, unknown>;
-          } catch (e) {
-            notify(e instanceof Error ? e.message : "Invalid profile_de JSON");
-            throw e;
-          }
-        } else {
-          // Explicitly allow clearing DE mirror
-          profileDe = null;
-        }
       }
 
       const payload: Record<string, unknown> = {
@@ -919,43 +862,14 @@ export const MsqdxGlassPersonaAdminPanel = ({
             : (detail.metadata as { tavusPersonaId?: string | null }).tavusPersonaId ?? null;
       }
 
-      const shouldPatchPrompt = Boolean(
-        systemPromptDeDirtyRef.current ||
-          systemPromptEnDirtyRef.current ||
-          (updates && ("system_prompt_de" in updates || "system_prompt_en" in updates))
-      );
-      if (shouldPatchPrompt) {
-        const promptPair = mirrorFillStringPair(
-          updatedSystemPromptEn || (detail.prompt.system_prompt ?? ""),
-          updatedSystemPromptDe || (detail.prompt.system_prompt_de ?? "")
-        );
-        payload.prompt = {
-          persona_id: detail.prompt.persona_id ?? detail.metadata.personaId,
-          system_prompt: promptPair.en.trim() || (detail.prompt.system_prompt ?? ""),
-          system_prompt_de: promptPair.de.trim() ? promptPair.de : null,
-          template_version: detail.prompt.template_version ?? "unknown",
-        };
-      }
-
-      console.log('[DEBUG] Payload JSON:', JSON.stringify(payload, null, 2));
-      console.log('[DEBUG] Profile keys before send:', Object.keys(completeProfile));
-      console.log('[DEBUG] Gender in profile before send:', 'gender' in completeProfile, completeProfile.gender);
-
-
       // Update local form state if we have form updates
       if (formUpdates) {
         if (formUpdates.name !== undefined) handleEditField("name", formUpdates.name);
         if (formUpdates.headline !== undefined) handleEditField("headline", formUpdates.headline);
         if (formUpdates.headline_de !== undefined) handleEditField("headline_de", formUpdates.headline_de);
-        if (formUpdates.system_prompt_de !== undefined) handleEditField("system_prompt_de", formUpdates.system_prompt_de);
-        if (formUpdates.system_prompt_en !== undefined) handleEditField("system_prompt_en", formUpdates.system_prompt_en);
         if (formUpdates.segment !== undefined) handleEditField("segment", formUpdates.segment);
         if (formUpdates.status !== undefined) handleEditField("status", formUpdates.status);
         if (formUpdates.updatedBy !== undefined) handleEditField("updatedBy", formUpdates.updatedBy);
-      } else if (updates && "system_prompt_de" in updates) {
-        handleEditField("system_prompt_de", ((updates as { system_prompt_de?: string | null }).system_prompt_de ?? "") as string);
-      } else if (updates && "system_prompt_en" in updates) {
-        handleEditField("system_prompt_en", ((updates as { system_prompt_en?: string | null }).system_prompt_en ?? "") as string);
       }
 
       const response = await fetch(buildApiUrl(`/api/persona-admin/${selectedId}`), {
@@ -967,23 +881,11 @@ export const MsqdxGlassPersonaAdminPanel = ({
       });
       if (!response.ok) {
         const errorText = await response.text().catch(() => "");
-        console.error('[DEBUG] Save failed:', response.status, errorText);
+        console.error("Persona save failed:", response.status, errorText);
         throw new Error(`Backend responded with ${response.status}: ${errorText}`);
       }
       const updated = (await response.json()) as PersonaResponse;
-      console.log('[DEBUG] Received response:', {
-        hasProfile: !!updated.profile,
-        profileKeys: Object.keys(updated.profile || {}),
-        gender: updated.profile?.gender,
-        age: updated.profile?.age,
-        location: updated.profile?.location,
-        media_affinity: updated.profile?.media_affinity,
-      });
       metadataFormDirtyRef.current = false;
-      profileDeDirtyRef.current = false;
-      systemPromptDeDirtyRef.current = false;
-      systemPromptEnDirtyRef.current = false;
-      setProfileDeText(updated.profile_de ? JSON.stringify(updated.profile_de, null, 2) : "");
       setDetail(updated);
       setList((prev) => ({
         ...prev,
@@ -997,18 +899,10 @@ export const MsqdxGlassPersonaAdminPanel = ({
           ...(formUpdates.name !== undefined && { name: formUpdates.name }),
           ...(formUpdates.headline !== undefined && { headline: formUpdates.headline }),
           ...(formUpdates.headline_de !== undefined && { headline_de: formUpdates.headline_de }),
-          ...(formUpdates.system_prompt_de !== undefined && { system_prompt_de: formUpdates.system_prompt_de }),
-          ...(formUpdates.system_prompt_en !== undefined && { system_prompt_en: formUpdates.system_prompt_en }),
           ...(formUpdates.segment !== undefined && { segment: formUpdates.segment }),
           ...(formUpdates.status !== undefined && { status: formUpdates.status }),
           ...(formUpdates.updatedBy !== undefined && { updatedBy: formUpdates.updatedBy }),
         }));
-      } else if (updates && "system_prompt_de" in updates) {
-        const nextDe = ((updates as { system_prompt_de?: string | null }).system_prompt_de ?? "") as string;
-        setEditForm((prev) => ({ ...prev, system_prompt_de: nextDe }));
-      } else if (updates && "system_prompt_en" in updates) {
-        const nextEn = ((updates as { system_prompt_en?: string | null }).system_prompt_en ?? "") as string;
-        setEditForm((prev) => ({ ...prev, system_prompt_en: nextEn }));
       }
 
       notify(t("personaAdmin.toasts.personaSaved"));
@@ -1020,11 +914,103 @@ export const MsqdxGlassPersonaAdminPanel = ({
     }
   };
 
+  const profileForBioEditor = useMemo((): PersonaProfile | null => {
+    if (!detail) return null;
+    const en = detail.profile;
+    if (locale !== "de") return en;
+    const raw = detail.profile_de;
+    const de =
+      raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Partial<PersonaProfile>) : {};
+    return {
+      ...en,
+      bio: typeof de.bio === "string" ? de.bio : en.bio,
+      full_name: de.full_name !== undefined && de.full_name !== null ? (de.full_name as string | null) : en.full_name,
+      location: typeof de.location === "string" ? de.location : en.location,
+      age: typeof de.age === "number" ? de.age : en.age,
+      gender: de.gender != null && String(de.gender).trim() !== "" ? (de.gender as string) : en.gender,
+      media_affinity: typeof de.media_affinity === "number" ? de.media_affinity : en.media_affinity,
+    };
+  }, [detail, locale]);
+
+  const handleBioDemographicsBilingualSave = async (updates: Partial<PersonaProfile>) => {
+    if (!selectedId || !detail) return;
+    const stringKeys = ["bio", "location", "full_name"] as const;
+    const toTranslate: Record<string, string> = {};
+    for (const k of stringKeys) {
+      if (k in updates && updates[k] !== undefined) {
+        const v = updates[k];
+        toTranslate[k] = typeof v === "string" ? v : v == null ? "" : String(v);
+      }
+    }
+    const filtered = Object.fromEntries(Object.entries(toTranslate).filter(([, v]) => v.trim().length > 0));
+
+    const baseDe =
+      detail.profile_de && typeof detail.profile_de === "object" && !Array.isArray(detail.profile_de)
+        ? { ...(detail.profile_de as Record<string, unknown>) }
+        : ({} as Record<string, unknown>);
+
+    let nextEn: PersonaProfile = { ...detail.profile };
+    let nextDe: Record<string, unknown> = baseDe;
+
+    const applyNumericShared = () => {
+      if ("age" in updates && updates.age !== undefined) {
+        nextEn.age = updates.age;
+        nextDe.age = updates.age;
+      }
+      if ("gender" in updates) {
+        const g = updates.gender;
+        const finalG = g && String(g).trim() !== "" ? String(g) : null;
+        nextEn.gender = finalG;
+        nextDe.gender = finalG;
+      }
+      if ("media_affinity" in updates && updates.media_affinity !== undefined) {
+        nextEn.media_affinity = updates.media_affinity;
+        nextDe.media_affinity = updates.media_affinity;
+      }
+    };
+
+    try {
+      if (locale === "en") {
+        nextEn = { ...nextEn, ...updates };
+        applyNumericShared();
+        if (Object.keys(filtered).length > 0) {
+          const { strings } = await translatePersonaAdminFields(selectedId, { fromLocale: "en", strings: filtered });
+          nextDe = { ...nextDe, ...strings };
+        }
+      } else {
+        nextDe = { ...nextDe, ...updates };
+        applyNumericShared();
+        if (Object.keys(filtered).length > 0) {
+          const { strings } = await translatePersonaAdminFields(selectedId, { fromLocale: "de", strings: filtered });
+          nextEn = { ...nextEn, ...strings };
+        }
+      }
+    } catch (e) {
+      notify(e instanceof Error ? e.message : t("personaAdmin.toasts.saveFailed"));
+      return;
+    }
+
+    for (const k of stringKeys) {
+      if (!(k in updates)) continue;
+      const cleared = updates[k] === null || updates[k] === "";
+      if (!cleared) continue;
+      if (k === "bio") {
+        nextEn.bio = "";
+        nextDe.bio = "";
+      } else {
+        const empty = updates[k] === null ? null : "";
+        (nextEn as Record<string, unknown>)[k] = empty;
+        (nextDe as Record<string, unknown>)[k] = empty;
+      }
+    }
+
+    await handleSave(undefined, {
+      premergedProfile: nextEn,
+      premergedProfileDe: Object.keys(nextDe).length ? nextDe : null,
+    });
+  };
+
   const handleDemographicSave = async (updates: Partial<PersonaProfile>) => {
-    console.log('[DEBUG handleDemographicSave] Received updates:', updates);
-    console.log('[DEBUG handleDemographicSave] Updates keys:', Object.keys(updates || {}));
-    console.log('[DEBUG handleDemographicSave] Gender:', updates?.gender, 'Type:', typeof updates?.gender);
-    console.log('[DEBUG handleDemographicSave] Media affinity:', updates?.media_affinity, 'Type:', typeof updates?.media_affinity);
     await handleSave(updates);
   };
 
@@ -1490,10 +1476,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
     }
     setCreatePending(true);
     try {
-      const hlPair = mirrorFillStringPair(
-        createForm.headline || "New Persona",
-        createForm.headline_de || ""
-      );
+      const hlPair = mirrorFillStringPair(createForm.headline || "New Persona", "");
       const headlineEn = hlPair.en.trim() || "New Persona";
       const headlineDeTrim = hlPair.de.trim() || null;
       const payload = {
@@ -1895,14 +1878,8 @@ export const MsqdxGlassPersonaAdminPanel = ({
               />
               <MsqdxFormField
                 label={t("personaAdmin.headline")}
-                value={locale === "de" ? createForm.headline_de : createForm.headline}
-                onChange={(e) =>
-                  setCreateForm((prev) =>
-                    locale === "de"
-                      ? { ...prev, headline_de: e.target.value }
-                      : { ...prev, headline: e.target.value }
-                  )
-                }
+                value={createForm.headline}
+                onChange={(e) => setCreateForm((prev) => ({ ...prev, headline: e.target.value }))}
                 placeholder={t("personaAdmin.headlinePlaceholder")}
                 fullWidth
                 size="small"
@@ -1941,14 +1918,14 @@ export const MsqdxGlassPersonaAdminPanel = ({
             {/* Dashboard Cards Grid */}
             <div className="msqdx-glass-dashboard-grid">
 
-              {/* Hero Card: Persona Header + Biography + Demographics */}
+              {/* Persona header (name, headline, segment); bio & demographics in the next card */}
               <Box sx={{ gridColumn: "1 / -1" }}>
                 <MsqdxDashboardCard
-                  id="bio-demographics"
-                  title={t("personaAdmin.bioDemographics")}
+                  id="persona-basics"
+                  title={t("personaAdmin.personaBasics")}
                   icon="person"
                   iconColor={{ color: THEME_ACCENT.color }}
-                  expanded={isAccordionExpanded("bio-demographics")}
+                  expanded={isAccordionExpanded("persona-basics")}
                   onToggle={toggleAccordion}
                 >
                   <Box sx={{ display: "flex", gap: 2, alignItems: "flex-start", mb: 2 }}>
@@ -2040,9 +2017,52 @@ export const MsqdxGlassPersonaAdminPanel = ({
                                         size="small"
                                         disabled={savePending}
                                         onClick={async () => {
-                                          const p = mirrorFillStringPair(editForm.headline, editForm.headline_de);
-                                          await handleSave({ headline: p.en, headline_de: p.de });
-                                          setEditingField(null);
+                                          if (!selectedId) return;
+                                          try {
+                                            const raw =
+                                              locale === "de"
+                                                ? editForm.headline_de.trim()
+                                                : editForm.headline.trim();
+                                            let headlineEn = editForm.headline.trim();
+                                            let headlineDe = editForm.headline_de.trim();
+                                            if (raw) {
+                                              try {
+                                                const { strings } = await translatePersonaAdminFields(selectedId, {
+                                                  fromLocale: locale,
+                                                  strings: { headline: raw },
+                                                });
+                                                const translated = strings.headline?.trim() ?? "";
+                                                if (locale === "de") {
+                                                  headlineDe = raw;
+                                                  headlineEn =
+                                                    translated ||
+                                                    mirrorFillStringPair("", raw).en ||
+                                                    headlineEn;
+                                                } else {
+                                                  headlineEn = raw;
+                                                  headlineDe =
+                                                    translated ||
+                                                    mirrorFillStringPair(raw, "").de ||
+                                                    headlineDe;
+                                                }
+                                              } catch {
+                                                const p = mirrorFillStringPair(
+                                                  locale === "de" ? headlineEn : raw,
+                                                  locale === "de" ? raw : headlineDe
+                                                );
+                                                headlineEn = p.en;
+                                                headlineDe = p.de;
+                                              }
+                                            } else {
+                                              const p = mirrorFillStringPair(editForm.headline, editForm.headline_de);
+                                              headlineEn = p.en.trim();
+                                              headlineDe = p.de.trim();
+                                            }
+                                            await handleSave({ headline: headlineEn, headline_de: headlineDe });
+                                            setEditingField(null);
+                                          } catch (e) {
+                                            notify(e instanceof Error ? e.message : t("personaAdmin.toasts.saveFailed"));
+                                          }
                                         }}
                                       >
                                         {t("common.save")}
@@ -2067,111 +2087,6 @@ export const MsqdxGlassPersonaAdminPanel = ({
                                 )}
                               </div>
 
-                              {locale === "de" ? (
-                                <Box sx={{ mt: 2 }}>
-                                  <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
-                                    {t("personaAdmin.profileDeJsonCaption")}
-                                  </MsqdxTypography>
-                                  <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
-                                    {t("personaAdmin.profileDeJsonAdvanced")}
-                                  </MsqdxTypography>
-                                  <TextField
-                                    multiline
-                                    minRows={10}
-                                    fullWidth
-                                    value={profileDeText}
-                                    onChange={(e) => {
-                                      profileDeDirtyRef.current = true;
-                                      setProfileDeText(e.target.value);
-                                    }}
-                                    disabled={savePending}
-                                    sx={{ "& textarea": { fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" } }}
-                                  />
-                                  <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end", mt: 1, flexWrap: "wrap" }}>
-                                    <MsqdxButton
-                                      variant="outlined"
-                                      size="small"
-                                      disabled={savePending}
-                                      onClick={() => {
-                                        profileDeDirtyRef.current = false;
-                                        setProfileDeText(detail.profile_de ? JSON.stringify(detail.profile_de, null, 2) : "");
-                                      }}
-                                    >
-                                      {t("common.reset")}
-                                    </MsqdxButton>
-                                    <MsqdxButton
-                                      variant="contained"
-                                      size="small"
-                                      disabled={savePending}
-                                      onClick={async () => {
-                                        await handleSave();
-                                      }}
-                                    >
-                                      {t("common.save")}
-                                    </MsqdxButton>
-                                  </Box>
-                                </Box>
-                              ) : (
-                                <Box sx={{ mt: 2 }}>
-                                  <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                                    {t("personaAdmin.profileDeSwitchLocale")}
-                                  </MsqdxTypography>
-                                </Box>
-                              )}
-
-                              <Box sx={{ mt: 2 }}>
-                                <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
-                                  {t("personaAdmin.chatSystemPromptSingleCaption")}
-                                </MsqdxTypography>
-                                <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 1 }}>
-                                  {t("personaAdmin.chatSystemPromptSingleHint")}
-                                </MsqdxTypography>
-                                <TextField
-                                  multiline
-                                  minRows={6}
-                                  fullWidth
-                                  value={locale === "de" ? editForm.system_prompt_de : editForm.system_prompt_en}
-                                  onChange={(e) => {
-                                    if (locale === "de") {
-                                      systemPromptDeDirtyRef.current = true;
-                                      setEditForm((prev) => ({ ...prev, system_prompt_de: e.target.value }));
-                                    } else {
-                                      systemPromptEnDirtyRef.current = true;
-                                      setEditForm((prev) => ({ ...prev, system_prompt_en: e.target.value }));
-                                    }
-                                  }}
-                                  disabled={savePending}
-                                  sx={{ "& textarea": { fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" } }}
-                                />
-                                <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end", mt: 1, flexWrap: "wrap" }}>
-                                  <MsqdxButton
-                                    variant="outlined"
-                                    size="small"
-                                    disabled={savePending}
-                                    onClick={() => {
-                                      systemPromptDeDirtyRef.current = false;
-                                      systemPromptEnDirtyRef.current = false;
-                                      setEditForm((prev) => ({
-                                        ...prev,
-                                        system_prompt_en: detail.prompt.system_prompt ?? "",
-                                        system_prompt_de: detail.prompt.system_prompt_de ?? "",
-                                      }));
-                                    }}
-                                  >
-                                    {t("common.reset")}
-                                  </MsqdxButton>
-                                  <MsqdxButton
-                                    variant="contained"
-                                    size="small"
-                                    disabled={savePending}
-                                    onClick={async () => {
-                                      await handleSave();
-                                    }}
-                                  >
-                                    {t("common.save")}
-                                  </MsqdxButton>
-                                </Box>
-                              </Box>
                               {segmentField && (
                                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                                   {editingField === "segment" ? (
@@ -2227,27 +2142,18 @@ export const MsqdxGlassPersonaAdminPanel = ({
                       })()}
                     </Box>
                   </Box>
-                  {detail.profile.bio && (
-                    <MsqdxGlassDashboardCardSection title={t("personaAdmin.biography")}>
-                      <p style={{ lineHeight: "1.6", whiteSpace: "pre-wrap", margin: 0 }}>
-                        {detail.profile.bio}
-                      </p>
-                    </MsqdxGlassDashboardCardSection>
-                  )}
-                  <MsqdxGlassDashboardCardSection title={t("personaAdmin.demographics")}>
-                    <MsqdxGlassEntityEditor
-                      entityType="persona"
-                      entity={detail.profile}
-                      entitySyncKey={selectedId ?? ""}
-                      onSave={async (updates) => {
-                        await handleDemographicSave(updates as Partial<PersonaProfile>);
-                      }}
-                      inline={true}
-                      fieldOverrides={{ name: undefined, headline: undefined, segment: undefined }}
-                    />
-                  </MsqdxGlassDashboardCardSection>
                 </MsqdxDashboardCard>
               </Box>
+
+              {profileForBioEditor ? (
+                <MsqdxGlassBioCardEdit
+                  profile={profileForBioEditor}
+                  expanded={isAccordionExpanded("bio-demographics")}
+                  onToggle={toggleAccordion}
+                  onSave={handleBioDemographicsBilingualSave}
+                  savePending={savePending}
+                />
+              ) : null}
 
               {/* Card: Metadata - full width */}
               <Box sx={{ gridColumn: "1 / -1" }}>

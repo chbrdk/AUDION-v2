@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import type { PersonaProfile } from "@msqdx-glass/types";
-import { Box, Slider, Typography, Stack } from "@mui/material";
-import { MsqdxIcon, MsqdxDashboardCard, MsqdxSelect, MsqdxFormField } from "@msqdx/react";
+import { Box, Slider, Typography, Stack, TextField } from "@mui/material";
+import { MsqdxDashboardCard, MsqdxSelect, MsqdxFormField } from "@msqdx/react";
 import { MsqdxGlassDashboardCardSection } from "./msqdx-glass-dashboard-card-section";
 import { useI18n } from "../i18n/i18n-provider";
 import { FORM_FIELD_ACCENT_SX, THEME_ACCENT } from "../../lib/theme-accent";
@@ -23,45 +23,64 @@ export const MsqdxGlassBioCardEdit = ({
   expanded,
   onToggle,
   onSave,
-  savePending = false
+  savePending = false,
 }: MsqdxGlassBioCardEditProps) => {
   const { t } = useI18n();
-  const genderOptions = useMemo(() => [
-    { value: "male", label: t("personaAdmin.genderMale") },
-    { value: "female", label: t("personaAdmin.genderFemale") },
-    { value: "diverse", label: t("personaAdmin.genderDiverse") },
-  ], [t]);
-  // Individual inline edit hooks for each field
+  const genderOptions = useMemo(
+    () => [
+      { value: "male", label: t("personaAdmin.genderMale") },
+      { value: "female", label: t("personaAdmin.genderFemale") },
+      { value: "diverse", label: t("personaAdmin.genderDiverse") },
+    ],
+    [t]
+  );
+
+  const bioEdit = useInlineEdit({
+    initialValue: profile.bio ?? "",
+    currentValue: profile.bio ?? "",
+    isEqual: (a, b) => a === b,
+    onChange: () => {},
+  });
+
+  const fullNameEdit = useInlineEdit({
+    initialValue: profile.full_name ?? "",
+    currentValue: profile.full_name ?? "",
+    isEqual: (a, b) => a === b,
+    onChange: () => {},
+  });
+
   const ageEdit = useInlineEdit({
     initialValue: profile.age ?? null,
     currentValue: profile.age ?? null,
     isEqual: (a, b) => a === b,
-    onChange: () => {
-      // Trigger re-render when value changes
-    }
+    onChange: () => {},
   });
 
   const locationEdit = useInlineEdit({
     initialValue: profile.location ?? "",
     currentValue: profile.location ?? "",
-    isEqual: (a, b) => a === b
+    isEqual: (a, b) => a === b,
   });
 
   const genderEdit = useInlineEdit({
     initialValue: profile.gender ?? "",
     currentValue: profile.gender ?? "",
-    isEqual: (a, b) => a === b
+    isEqual: (a, b) => a === b,
   });
 
   const mediaAffinityEdit = useInlineEdit({
     initialValue: profile.media_affinity ?? null,
     currentValue: profile.media_affinity ?? null,
-    isEqual: (a, b) => a === b
+    isEqual: (a, b) => a === b,
   });
 
-  // Sync from server when profile fields change — never while that field has local unsaved edits
-  // (otherwise any refreshed profile field resets sliders/inputs the user is still adjusting).
   useEffect(() => {
+    if (!bioEdit.hasChanges && bioEdit.value !== (profile.bio ?? "")) {
+      bioEdit.sync();
+    }
+    if (!fullNameEdit.hasChanges && fullNameEdit.value !== (profile.full_name ?? "")) {
+      fullNameEdit.sync();
+    }
     if (!ageEdit.hasChanges && ageEdit.value !== (profile.age ?? null)) {
       ageEdit.sync();
     }
@@ -76,54 +95,54 @@ export const MsqdxGlassBioCardEdit = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
+    profile.bio,
+    profile.full_name,
     profile.age,
     profile.location,
     profile.gender,
     profile.media_affinity,
+    bioEdit.hasChanges,
+    fullNameEdit.hasChanges,
     ageEdit.hasChanges,
     locationEdit.hasChanges,
     genderEdit.hasChanges,
     mediaAffinityEdit.hasChanges,
   ]);
 
-  // Element refs for positioning
+  const bioRef = useRef<HTMLDivElement>(null);
+  const fullNameRef = useRef<HTMLDivElement>(null);
   const ageRef = useRef<HTMLDivElement>(null);
   const locationRef = useRef<HTMLDivElement>(null);
   const genderRef = useRef<HTMLDivElement>(null);
   const mediaAffinityRef = useRef<HTMLDivElement>(null);
 
+  const handleSaveBio = async () => {
+    const v = bioEdit.getValue().trim();
+    await onSave({ bio: v });
+  };
+
+  const handleSaveFullName = async () => {
+    const v = fullNameEdit.getValue().trim();
+    await onSave({ full_name: v || null });
+  };
+
   const handleSaveAge = async () => {
-    const ageValue = ageEdit.getValue();
-    const updates: Partial<PersonaProfile> = {
-      age: ageValue
-    };
-    await onSave(updates);
+    await onSave({ age: ageEdit.getValue() });
   };
 
   const handleSaveLocation = async () => {
     const locationValue = locationEdit.getValue();
-    const updates: Partial<PersonaProfile> = {
-      location: locationValue || null
-    };
-    await onSave(updates);
+    await onSave({ location: locationValue || null });
   };
 
   const handleSaveGender = async () => {
     const genderValue = genderEdit.getValue();
-    // Send empty string as null, otherwise send the value as-is
-    const genderToSave = (genderValue && genderValue.trim() !== "") ? genderValue : null;
-    const updates: Partial<PersonaProfile> = {
-      gender: genderToSave
-    };
-    await onSave(updates);
+    const genderToSave = genderValue && genderValue.trim() !== "" ? genderValue : null;
+    await onSave({ gender: genderToSave });
   };
 
   const handleSaveMediaAffinity = async () => {
-    const mediaAffinityValue = mediaAffinityEdit.getValue();
-    const updates: Partial<PersonaProfile> = {
-      media_affinity: mediaAffinityValue
-    };
-    await onSave(updates);
+    await onSave({ media_affinity: mediaAffinityEdit.getValue() });
   };
 
   return (
@@ -136,17 +155,51 @@ export const MsqdxGlassBioCardEdit = ({
         expanded={expanded}
         onToggle={onToggle}
       >
-        {profile.bio && (
-          <MsqdxGlassDashboardCardSection title={t("personaAdmin.biography")}>
-            <p style={{ lineHeight: "1.6", whiteSpace: "pre-wrap", margin: 0 }}>
-              {profile.bio}
-            </p>
-          </MsqdxGlassDashboardCardSection>
-        )}
+        <MsqdxGlassDashboardCardSection title={t("personaAdmin.biography")}>
+          <Box ref={bioRef} sx={{ position: "relative" }}>
+            <TextField
+              multiline
+              minRows={4}
+              fullWidth
+              size="small"
+              label={t("personaAdmin.biography")}
+              value={bioEdit.value}
+              onChange={(e) => bioEdit.setValue(e.target.value)}
+              placeholder={t("personaAdmin.biography")}
+              disabled={savePending}
+              sx={{ "& textarea": { lineHeight: 1.6 } }}
+            />
+            <MsqdxGlassInlineEditControls
+              hasChanges={bioEdit.hasChanges}
+              saving={savePending}
+              onSave={handleSaveBio}
+              onDiscard={() => bioEdit.reset()}
+              anchorElement={bioRef.current}
+              position="top"
+            />
+          </Box>
+        </MsqdxGlassDashboardCardSection>
 
         <MsqdxGlassDashboardCardSection title={t("personaAdmin.demographics")}>
           <Stack spacing={3}>
-            {/* Age Slider */}
+            <Box ref={fullNameRef} sx={{ position: "relative" }}>
+              <MsqdxFormField
+                label={t("personaAdmin.fullName")}
+                value={fullNameEdit.value}
+                onChange={(e) => fullNameEdit.setValue(e.target.value)}
+                fullWidth
+                disabled={savePending}
+              />
+              <MsqdxGlassInlineEditControls
+                hasChanges={fullNameEdit.hasChanges}
+                saving={savePending}
+                onSave={handleSaveFullName}
+                onDiscard={() => fullNameEdit.reset()}
+                anchorElement={fullNameRef.current}
+                position="top"
+              />
+            </Box>
+
             <Box ref={ageRef} sx={{ position: "relative" }}>
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
                 <Typography variant="body2" component="label" sx={{ fontWeight: 500 }}>
@@ -158,20 +211,26 @@ export const MsqdxGlassBioCardEdit = ({
               </Box>
               <Slider
                 value={ageEdit.value ?? 25}
-                onChange={(_, value) => ageEdit.setValue(typeof value === "number" ? value : (Array.isArray(value) ? value[0] : 25) ?? 25)}
+                onChange={(_, value) =>
+                  ageEdit.setValue(typeof value === "number" ? value : (Array.isArray(value) ? value[0] : 25) ?? 25)
+                }
                 min={18}
                 max={100}
                 step={1}
                 marks={[
                   { value: 18, label: "18" },
                   { value: 50, label: "50" },
-                  { value: 100, label: "100" }
+                  { value: 100, label: "100" },
                 ]}
                 sx={{ color: "var(--color-theme-accent)" }}
               />
               <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.5 }}>
-                <Typography variant="caption" sx={{ color: "text.secondary" }}>18</Typography>
-                <Typography variant="caption" sx={{ color: "text.secondary" }}>100</Typography>
+                <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                  18
+                </Typography>
+                <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                  100
+                </Typography>
               </Box>
               <MsqdxGlassInlineEditControls
                 hasChanges={ageEdit.hasChanges}
@@ -183,16 +242,12 @@ export const MsqdxGlassBioCardEdit = ({
               />
             </Box>
 
-            {/* Gender Select */}
             <Box ref={genderRef} sx={{ position: "relative" }}>
               <MsqdxSelect
                 label={t("personaAdmin.gender")}
                 value={genderEdit.value}
                 onChange={(e) => genderEdit.setValue(String(e.target.value ?? ""))}
-                options={[
-                  { value: "", label: t("personaAdmin.genderNone") },
-                  ...genderOptions
-                ]}
+                options={[{ value: "", label: t("personaAdmin.genderNone") }, ...genderOptions]}
                 displayEmpty
                 fullWidth
                 size="small"
@@ -208,7 +263,6 @@ export const MsqdxGlassBioCardEdit = ({
               />
             </Box>
 
-            {/* Location Text Field */}
             <Box ref={locationRef} sx={{ position: "relative" }}>
               <MsqdxFormField
                 label={t("personaAdmin.location")}
@@ -227,7 +281,6 @@ export const MsqdxGlassBioCardEdit = ({
               />
             </Box>
 
-            {/* Media Affinity Slider */}
             <Box ref={mediaAffinityRef} sx={{ position: "relative" }}>
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
                 <Typography variant="body2" component="label" sx={{ fontWeight: 500 }}>
@@ -239,20 +292,26 @@ export const MsqdxGlassBioCardEdit = ({
               </Box>
               <Slider
                 value={mediaAffinityEdit.value ?? 50}
-                onChange={(_, value) => mediaAffinityEdit.setValue(typeof value === "number" ? value : (Array.isArray(value) ? value[0] : 50) ?? 50)}
+                onChange={(_, value) =>
+                  mediaAffinityEdit.setValue(typeof value === "number" ? value : (Array.isArray(value) ? value[0] : 50) ?? 50)
+                }
                 min={0}
                 max={100}
                 step={1}
                 marks={[
                   { value: 0, label: t("personaAdmin.skepticismLow") },
                   { value: 50, label: "50" },
-                  { value: 100, label: t("personaAdmin.skepticismHigh") }
+                  { value: 100, label: t("personaAdmin.skepticismHigh") },
                 ]}
                 sx={{ color: "var(--color-theme-accent)" }}
               />
               <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.5 }}>
-                <Typography variant="caption" sx={{ color: "text.secondary" }}>{t("personaAdmin.skepticismLow")}</Typography>
-                <Typography variant="caption" sx={{ color: "text.secondary" }}>{t("personaAdmin.skepticismHigh")}</Typography>
+                <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                  {t("personaAdmin.skepticismLow")}
+                </Typography>
+                <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                  {t("personaAdmin.skepticismHigh")}
+                </Typography>
               </Box>
               <MsqdxGlassInlineEditControls
                 hasChanges={mediaAffinityEdit.hasChanges}
@@ -267,7 +326,6 @@ export const MsqdxGlassBioCardEdit = ({
         </MsqdxGlassDashboardCardSection>
       </MsqdxDashboardCard>
 
-      {/* Add CSS animation for slideIn */}
       <style jsx global>{`
         @keyframes slideIn {
           from {

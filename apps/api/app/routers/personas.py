@@ -44,6 +44,8 @@ from ..schemas import (
     PersonaListResponse,
     PersonaPatchRequest,
     PersonaResponse,
+    PersonaTranslateFieldsRequest,
+    PersonaTranslateFieldsResponse,
 )
 from ..services.ai_assist import AiAssistService
 from ..services.auth import get_current_user
@@ -1914,6 +1916,29 @@ def create_tavus_session(
             detail="Failed to create Tavus session. Please try again later.",
         ) from e
     return data
+
+
+@persona_admin_router.post(
+    "/{persona_id}/translate-fields",
+    response_model=PersonaTranslateFieldsResponse,
+    summary="Translate persona UI field strings (admin, en↔de)",
+)
+def translate_persona_fields_admin(
+    persona_id: str,
+    body: PersonaTranslateFieldsRequest,
+    session: Session = Depends(get_db),
+) -> PersonaTranslateFieldsResponse:
+    _get_persona_or_404(session, persona_id)
+    fl = (body.from_locale or "").strip().lower()
+    if fl not in ("en", "de"):
+        raise HTTPException(status_code=400, detail="from_locale must be en or de")
+    try:
+        out = generator.translate_ui_string_map(from_locale=fl, strings=dict(body.strings or {}))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    return PersonaTranslateFieldsResponse(strings=out)
 
 
 @persona_admin_router.get(
