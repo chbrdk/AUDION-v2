@@ -1,5 +1,6 @@
 import type { Locale } from "./i18n";
 import { buildApiUrl } from "../app/api/_lib/backend";
+import { API_ROUTES } from "./api-routes";
 
 export type PersonaTranslateFieldsResult = { strings: Record<string, string> };
 
@@ -10,7 +11,7 @@ export async function translatePersonaAdminFields(
   personaId: string,
   args: { fromLocale: Locale; strings: Record<string, string> }
 ): Promise<PersonaTranslateFieldsResult> {
-  const res = await fetch(buildApiUrl(`/api/persona-admin/${encodeURIComponent(personaId)}/translate-fields`), {
+  const res = await fetch(buildApiUrl(API_ROUTES.personaAdminTranslateFields(personaId)), {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
