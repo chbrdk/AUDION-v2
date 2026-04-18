@@ -36,6 +36,7 @@ import {
 import { mirrorFillStringPair } from "../lib/bilingual-mirror";
 import { translatePersonaAdminFields } from "../lib/persona-translate-fields";
 import { alignProfileDeToEnProfile } from "../lib/persona-profile-de-shape";
+import { mergeCommunicationStyle, mergeEnProfileWithDeTranslation } from "../lib/persona-profile-bilingual-save";
 import { buildApiUrl } from "../app/api/_lib/backend";
 import { normalizePersonaListResponse } from "../lib/persona-list-normalize";
 import { THEME_ACCENT } from "../lib/theme-accent";
@@ -933,6 +934,31 @@ export const MsqdxGlassPersonaAdminPanel = ({
     };
   }, [detail, locale]);
 
+  /** Chip cards (DE UI): show `profile_de` strings where present; traits keys stay EN `profile` (shape-safe). */
+  const profileForChips = useMemo((): PersonaProfile | null => {
+    if (!detail) return null;
+    const en = detail.profile;
+    if (locale !== "de") return en;
+    const raw = detail.profile_de;
+    const de =
+      raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Partial<PersonaProfile>) : {};
+    const deCs = de.communication_style;
+    return {
+      ...en,
+      interests: Array.isArray(de.interests) ? (de.interests as string[]) : en.interests,
+      values: Array.isArray(de.values) ? (de.values as string[]) : en.values,
+      social_media_usage: Array.isArray(de.social_media_usage)
+        ? (de.social_media_usage as string[])
+        : en.social_media_usage,
+      communication_style:
+        deCs && typeof deCs === "object"
+          ? mergeCommunicationStyle(en.communication_style, deCs as Partial<NonNullable<PersonaProfile["communication_style"]>>)
+          : en.communication_style,
+      pain_points: Array.isArray(de.pain_points) ? (de.pain_points as PersonaProfile["pain_points"]) : en.pain_points,
+      goals: Array.isArray(de.goals) ? (de.goals as PersonaProfile["goals"]) : en.goals,
+    };
+  }, [detail, locale]);
+
   const handleBioDemographicsBilingualSave = async (updates: Partial<PersonaProfile>) => {
     if (!selectedId || !detail) return;
     const stringKeys = ["bio", "location", "full_name"] as const;
@@ -1017,7 +1043,23 @@ export const MsqdxGlassPersonaAdminPanel = ({
   };
 
   const handleDemographicSave = async (updates: Partial<PersonaProfile>) => {
-    await handleSave(updates);
+    if (!selectedId || !detail) return;
+    const merged = await mergeEnProfileWithDeTranslation(
+      { personaId: selectedId, detail, translate: translatePersonaAdminFields, locale },
+      updates
+    );
+    if ("error" in merged) {
+      notify(merged.error);
+      return;
+    }
+    const alignedDe = alignProfileDeToEnProfile(
+      merged.nextEn as unknown as Record<string, unknown>,
+      merged.nextDe as Record<string, unknown>
+    );
+    await handleSave(undefined, {
+      premergedProfile: merged.nextEn,
+      premergedProfileDe: alignedDe,
+    });
   };
 
   const handleSaveInterests = async (chips: string[]) => {
@@ -2393,7 +2435,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
 
               {/* Cards: Personality (Traits), Interests, Values – three columns */}
               <MsqdxGlassPersonalityCard
-                profile={detail.profile}
+                profile={profileForChips ?? detail.profile}
                 expandedTraits={isAccordionExpanded("personality-traits")}
                 expandedInterests={isAccordionExpanded("personality-interests")}
                 expandedValues={isAccordionExpanded("personality-values")}
@@ -2412,9 +2454,9 @@ export const MsqdxGlassPersonaAdminPanel = ({
               />
 
               {/* Card: Kommunikation - 50% width (nebeneinander mit Personality) */}
-              {detail.profile.communication_style && (
+              {(profileForChips ?? detail.profile).communication_style && (
                 <MsqdxGlassCommunicationCard
-                  profile={detail.profile}
+                  profile={profileForChips ?? detail.profile}
                   expanded={isAccordionExpanded("communication")}
                   onToggle={toggleAccordion}
                   onSaveVocabulary={handleSaveVocabulary}
@@ -2428,7 +2470,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
 
               {/* Card: Pain Points & Goals - Full Width, zweispaltig */}
               <MsqdxGlassPainPointsGoalsCard
-                profile={detail.profile}
+                profile={profileForChips ?? detail.profile}
                 expanded={isAccordionExpanded("pain-points-goals")}
                 onToggle={toggleAccordion}
                 onSavePainPoints={handleSavePainPoints}
