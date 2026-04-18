@@ -94,3 +94,29 @@ def finalize_ai_locale_context(ctx: dict[str, Any]) -> dict[str, Any]:
     out["output_locale"] = loc
     out["generated_text_locale_name"] = locale_label_for_ai_prompt(loc)
     return out
+
+
+def locale_output_guard_footer(*, output_locale: Any) -> str:
+    """
+    Non-cacheable suffix appended to every LLM user prompt so output language is repeated at the end
+    (recency). Must be appended to the variable suffix when prompts use prefix/suffix split for caching.
+    """
+    loc = normalize_output_locale(output_locale)
+    if loc == "en":
+        return (
+            "\n\n---\nCRITICAL OUTPUT LANGUAGE — ENGLISH: Every user-visible string you output "
+            "(including JSON field values for titles, descriptions, names, list items) must be written "
+            "exclusively in English. Do not use German or other languages. Keep JSON property keys exactly "
+            "as required by the schema."
+        )
+    return (
+        "\n\n---\nKRITISCH — AUSGABESPRACHE DEUTSCH: Jeder nutzerlesbare Text, den du ausgibst "
+        "(einschließlich JSON-Werte für Titel, Beschreibungen, Namen, Aufzählungen) muss ausschließlich "
+        "auf Deutsch (Hochdeutsch) formuliert sein. Kein Englisch in diesen Werten. JSON-Eigenschaftsnamen "
+        "unverändert wie im Schema vorgegeben."
+    )
+
+
+def append_locale_output_guard(rendered_prompt: str, *, output_locale: Any) -> str:
+    """Append `locale_output_guard_footer` to a single-string prompt (no cache split)."""
+    return str(rendered_prompt) + locale_output_guard_footer(output_locale=output_locale)

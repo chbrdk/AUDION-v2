@@ -11,7 +11,7 @@ from openai import OpenAI
 
 from ..core.config import get_settings
 from .openai_llm_usage import raw_units_from_openai_chat_completion
-from .persona_ai_locale import locale_label_for_ai_prompt, normalize_output_locale
+from .persona_ai_locale import locale_label_for_ai_prompt, locale_output_guard_footer, normalize_output_locale
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
@@ -58,7 +58,8 @@ Respond with a JSON array only, no other text. Example format:
 Company/project context:
 ---
 {context_text.strip()}
----"""
+---
+{locale_output_guard_footer(output_locale=loc)}"""
 
     client = OpenAI(api_key=settings.openai_api_key)
     try:

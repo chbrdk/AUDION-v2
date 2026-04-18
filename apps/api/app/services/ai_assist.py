@@ -27,6 +27,7 @@ from ..schemas import (
     AiTemplateDefinition,
     AiTemplateSummary,
 )
+from ..services.persona_ai_locale import append_locale_output_guard, locale_output_guard_footer
 from ..services.persona_store import PersonaService
 from ..services.target_group_store import TargetGroupService
 from ..services.usage_report import report_retrieval_query_usage
@@ -843,11 +844,15 @@ class AiAssistService:
                 prompt_prefix, prompt_suffix = self._render_prompt_prefix_suffix(
                     template.prompt, prompt_context, cache_last_var
                 )
-            rendered_prompt = (
-                (prompt_prefix + "\n\n" + prompt_suffix)
-                if (prompt_prefix is not None and prompt_suffix is not None)
-                else self._render_prompt(template.prompt, prompt_context)
-            )
+            footer = locale_output_guard_footer(output_locale=prompt_context.get("output_locale"))
+            if prompt_prefix is not None and prompt_suffix is not None:
+                prompt_suffix = prompt_suffix + footer
+                rendered_prompt = prompt_prefix + "\n\n" + prompt_suffix
+            else:
+                rendered_prompt = append_locale_output_guard(
+                    self._render_prompt(template.prompt, prompt_context),
+                    output_locale=prompt_context.get("output_locale"),
+                )
 
             logger.info(
                 "ai.assist.dispatch",
@@ -1192,7 +1197,10 @@ class AiAssistService:
 
             # Render the prompt with context (including extended variables)
             prompt_context = self._build_context(context, {})
-            rendered_prompt = self._render_prompt(prompt, prompt_context)
+            rendered_prompt = append_locale_output_guard(
+                self._render_prompt(prompt, prompt_context),
+                output_locale=prompt_context.get("output_locale"),
+            )
 
             logger.info(
                 "ai.assist.test_prompt",

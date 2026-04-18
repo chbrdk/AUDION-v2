@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from app.services.persona_ai_locale import (
+    append_locale_output_guard,
     finalize_ai_locale_context,
     locale_label_for_ai_prompt,
+    locale_output_guard_footer,
     merge_communication_style_de_overlay,
     normalize_output_locale,
     persona_profile_for_ai,
@@ -47,3 +49,18 @@ def test_persona_profile_for_ai_de_merges_lists() -> None:
 def test_locale_label_for_ai_prompt() -> None:
     assert locale_label_for_ai_prompt("en") == "English"
     assert locale_label_for_ai_prompt("de") == "German"
+
+
+def test_locale_output_guard_footer_de_and_en() -> None:
+    de_f = locale_output_guard_footer(output_locale="de")
+    assert "KRITISCH" in de_f
+    assert "AUSGABESPRACHE DEUTSCH" in de_f
+    en_f = locale_output_guard_footer(output_locale="en")
+    assert "CRITICAL OUTPUT LANGUAGE" in en_f
+    assert "English" in en_f
+
+
+def test_append_locale_output_guard() -> None:
+    out = append_locale_output_guard("Preamble", output_locale="de")
+    assert out.startswith("Preamble")
+    assert "KRITISCH" in out
