@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { journeysApi, type JourneyCreate, type JourneyGenerateRequest } from "../../../api/_lib/journeys";
+import { withOutputLocale } from "../../../../lib/ai-output-locale";
 import { targetGroupsApi, type TargetGroupResponse } from "../../../api/_lib/target-groups";
 import { MsqdxIcon } from "@msqdx/react";
 import { useProject } from "../../../../components/projects/project-provider";
@@ -129,15 +130,16 @@ export default function NewJourneyPage() {
       if (!uuidRegex.test(formData.target_group_id.trim())) {
         throw new Error(t("journeys.new.errors.targetGroupInvalidUuid"));
       }
-      const generateRequest: JourneyGenerateRequest = {
-        target_group_id: formData.target_group_id.trim(),
-        journey_type: formData.journey_type,
-        organization_id: formData.organization_id.trim(),
-        project_id: activeProjectId,
-        created_by: undefined, // Could be set from user context
-        use_async: false, // Use synchronous generation for now
-        output_locale: locale,
-      };
+      const generateRequest = withOutputLocale(
+        {
+          target_group_id: formData.target_group_id.trim(),
+          journey_type: formData.journey_type,
+          organization_id: formData.organization_id.trim(),
+          project_id: activeProjectId,
+          use_async: false,
+        },
+        locale
+      ) as JourneyGenerateRequest;
 
       const journey = await journeysApi.generateJourney(generateRequest);
       router.push(`/admin/journeys/${journey.id}`);

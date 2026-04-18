@@ -9,6 +9,7 @@ import { VariableContextPanel } from "./VariableContextPanel";
 import { ResizablePanel } from "./ResizablePanel";
 import { MsqdxIcon } from "@msqdx/react";
 import { aiAssistApi, type AiAssistResponse } from "../../app/api/_lib/ai-assist";
+import { withOutputLocale } from "../../lib/ai-output-locale";
 import { useI18n } from "../i18n/i18n-provider";
 import { generateMockContext } from "./mockData";
 
@@ -90,7 +91,7 @@ export function PromptBuilder({ initialPrompt, onPromptChange }: PromptBuilderPr
 
       const response = await aiAssistApi.testPrompt({
         prompt: prompt,
-        context: { ...effectiveContext, output_locale: locale },
+        context: withOutputLocale({ ...effectiveContext } as Record<string, unknown>, locale),
         temperature: 0.6,
         max_tokens: 1024,
       });

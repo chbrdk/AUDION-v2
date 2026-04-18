@@ -8,6 +8,7 @@ import { MsqdxButton, MsqdxCard, MsqdxFormField, MsqdxTypography, MsqdxIcon, Msq
 import { MsqdxGlassCollapsiblePanel } from "./admin/msqdx-glass-collapsible-panel";
 import { buildApiUrl, fetchWithTimeout } from "../app/api/_lib/backend";
 import { journeysApi, type JourneyResponse } from "../app/api/_lib/journeys";
+import { withOutputLocale } from "../lib/ai-output-locale";
 import { ADMIN_ROUTES } from "../lib/routes";
 import { mirrorFillStringPair } from "../lib/bilingual-mirror";
 import { isProjectAiContextEmpty } from "../lib/project-context";
@@ -466,7 +467,7 @@ export function MsqdxGlassProjectAdminPanel({
             const res = await fetch(buildApiUrl(`/api/projects/${selectedId}/suggest-target-groups`), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ max_suggestions: 5, output_locale: locale }),
+                body: JSON.stringify(withOutputLocale({ max_suggestions: 5 }, locale)),
             });
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
@@ -486,7 +487,7 @@ export function MsqdxGlassProjectAdminPanel({
         } finally {
             setSuggestLoading(false);
         }
-    }, [selectedId]);
+    }, [selectedId, locale, t]);
 
     const toggleSuggestion = useCallback((index: number) => {
         setSelectedSuggestions((prev) => {
@@ -603,7 +604,7 @@ export function MsqdxGlassProjectAdminPanel({
                 {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ max_suggestions: 5, output_locale: locale }),
+                  body: JSON.stringify(withOutputLocale({ max_suggestions: 5 }, locale)),
                 }
             );
             if (!res.ok) {
@@ -624,7 +625,7 @@ export function MsqdxGlassProjectAdminPanel({
         } finally {
             setPersonaSuggestLoading(false);
         }
-    }, [selectedId, selectedTgIdForPersonas, t]);
+    }, [selectedId, selectedTgIdForPersonas, locale, t]);
 
     const togglePersonaSuggestion = useCallback((index: number) => {
         setSelectedPersonaSuggestions((prev) => {
@@ -686,7 +687,7 @@ export function MsqdxGlassProjectAdminPanel({
                                 method: "POST",
                                 credentials: "include",
                                 headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ profile_overlay: profileOverlay, output_locale: locale }),
+                                body: JSON.stringify(withOutputLocale({ profile_overlay: profileOverlay }, locale)),
                             });
                             if (!enrichRes.ok) throw new Error("Enrich failed");
                         } finally {
@@ -723,6 +724,7 @@ export function MsqdxGlassProjectAdminPanel({
             personaSuggestions,
             projectTargetGroups,
             loadDetail,
+            locale,
             t,
         ]
     );
@@ -737,12 +739,16 @@ export function MsqdxGlassProjectAdminPanel({
                 method: "POST",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    target_group_id: selectedTgIdForJourney || null,
-                    journey_type: journeyType || "customer_journey",
-                    organization_id: selectedId,
-                    output_locale: locale,
-                }),
+                body: JSON.stringify(
+                    withOutputLocale(
+                        {
+                            target_group_id: selectedTgIdForJourney || null,
+                            journey_type: journeyType || "customer_journey",
+                            organization_id: selectedId,
+                        },
+                        locale
+                    )
+                ),
             });
             if (!res.ok) {
                 const errText = await res.text();

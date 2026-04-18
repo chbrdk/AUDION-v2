@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 
 import { aiAssistApi, type AiAssistRequest, type AiAssistResponse, type AiAssistSuggestion } from "../app/api/_lib/ai-assist";
+import { withOutputLocale } from "../lib/ai-output-locale";
 import {
   journeysApi,
   type JourneyAiGenerateRequest,
@@ -51,14 +52,16 @@ export const useAiAssist = () => {
             ...(options.context ?? {}),
             ...(options.phaseContext ?? {}),
           };
-          const payload: JourneyAiGenerateRequest = {
+          const basePayload: JourneyAiGenerateRequest = {
             template_id: options.templateId as any, // templateId can be any string for journey AI
             phase_id: options.phaseId,
             phase_context: Object.keys(mergedPhaseContext).length ? mergedPhaseContext : undefined,
             prompt_variables: options.promptVariables,
             max_suggestions: options.maxSuggestions,
-            output_locale: options.outputLocale,
           };
+          const payload: JourneyAiGenerateRequest = options.outputLocale
+            ? (withOutputLocale(basePayload as Record<string, unknown>, options.outputLocale) as JourneyAiGenerateRequest)
+            : basePayload;
           const journeyResponse: JourneyAiGenerationResponse = await journeysApi.generateAiSuggestions(
             options.journeyId,
             payload
@@ -69,10 +72,9 @@ export const useAiAssist = () => {
             suggestions: journeyResponse.suggestions.map(mapJourneySuggestion),
           };
         } else {
-          const mergedContext = {
-            ...(options.context ?? {}),
-            ...(options.outputLocale ? { output_locale: options.outputLocale } : {}),
-          };
+          const mergedContext = options.outputLocale
+            ? withOutputLocale({ ...(options.context ?? {}) }, options.outputLocale)
+            : { ...(options.context ?? {}) };
           const request: AiAssistRequest = {
             template_id: options.templateId,
             provider: options.provider,

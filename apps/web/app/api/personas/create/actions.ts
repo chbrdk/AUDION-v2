@@ -9,6 +9,8 @@
 
 import { revalidatePath } from "next/cache";
 
+import { withOutputLocale } from "../../../../lib/ai-output-locale";
+
 export type CreatePersonaActionState = {
   success: boolean;
   message?: string;
@@ -40,15 +42,17 @@ export async function createPersonaAction(
     const base = process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL || 
                  process.env.NEXT_PUBLIC_PERSONA_BACKEND_URL;
     
+    const generateBody: Record<string, unknown> = {
+      segment: segment.trim(),
+      description: description?.trim() || undefined,
+      filterMode: "auto",
+    };
     const response = await fetch(`${base}/personas/generate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        segment: segment.trim(),
-        description: description?.trim() || undefined,
-        filterMode: "auto",
-        ...(output_locale ? { output_locale } : {}),
-      }),
+      body: JSON.stringify(
+        output_locale ? withOutputLocale(generateBody, output_locale) : generateBody
+      ),
     });
 
     if (!response.ok) {

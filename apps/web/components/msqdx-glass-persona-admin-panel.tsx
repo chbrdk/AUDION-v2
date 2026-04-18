@@ -40,6 +40,7 @@ import { mergeCommunicationStyle, mergeEnProfileWithDeTranslation } from "../lib
 import { buildApiUrl } from "../app/api/_lib/backend";
 import { normalizePersonaListResponse } from "../lib/persona-list-normalize";
 import { THEME_ACCENT } from "../lib/theme-accent";
+import { withOutputLocale } from "../lib/ai-output-locale";
 import { sortMoodboardTiles } from "../lib/moodboard";
 import {
   moodboardCategoryMoodLine,
@@ -1073,11 +1074,13 @@ export const MsqdxGlassPersonaAdminPanel = ({
       const chipProfile = profileForChips ?? detail.profile;
       const result = await runPersonaAiAssist({
         templateId: "persona.interests",
-        context: {
-          persona_id: selectedId || "",
-          max_items: 4,
-          output_locale: locale,
-        },
+        context: withOutputLocale(
+          {
+            persona_id: selectedId || "",
+            max_items: 4,
+          },
+          locale
+        ),
         maxSuggestions: 4,
       });
       if (!result.suggestions.length) {
@@ -1113,11 +1116,13 @@ export const MsqdxGlassPersonaAdminPanel = ({
       const chipProfile = profileForChips ?? detail.profile;
       const result = await runPersonaAiAssist({
         templateId: "persona.values",
-        context: {
-          persona_id: selectedId || "",
-          max_items: 4,
-          output_locale: locale,
-        },
+        context: withOutputLocale(
+          {
+            persona_id: selectedId || "",
+            max_items: 4,
+          },
+          locale
+        ),
         maxSuggestions: 4,
       });
       if (!result.suggestions.length) {
@@ -1243,18 +1248,20 @@ export const MsqdxGlassPersonaAdminPanel = ({
 
       const result = await runPersonaAiAssist({
         templateId: "persona.traits",
-        context: {
-          persona_id: selectedId || "",
-          persona_name: detail.profile.name || "",
-          persona_headline: detail.profile.headline || "",
-          persona_bio: detail.profile.bio || "",
-          existing_traits: existingTraitsSummary,
-          graph_relationships_summary: graphRelationshipsSummary,
-          knowledge_context: knowledgeContext,
-          target_group_summary: targetGroupSummary,
-          max_items: 5,
-          output_locale: locale,
-        },
+        context: withOutputLocale(
+          {
+            persona_id: selectedId || "",
+            persona_name: detail.profile.name || "",
+            persona_headline: detail.profile.headline || "",
+            persona_bio: detail.profile.bio || "",
+            existing_traits: existingTraitsSummary,
+            graph_relationships_summary: graphRelationshipsSummary,
+            knowledge_context: knowledgeContext,
+            target_group_summary: targetGroupSummary,
+            max_items: 5,
+          },
+          locale
+        ),
         maxSuggestions: 5,
       });
 
@@ -1321,18 +1328,20 @@ export const MsqdxGlassPersonaAdminPanel = ({
 
       const result = await runPersonaAiAssist({
         templateId: "persona.vocabulary",
-        context: {
-          persona_id: selectedId || "",
-          persona_name: detail.profile.name || "",
-          persona_headline: detail.profile.headline || "",
-          persona_bio: detail.profile.bio || "",
-          existing_vocabulary: existingVocabularySummary,
-          graph_relationships_summary: graphRelationshipsSummary,
-          knowledge_context: knowledgeContext,
-          target_group_summary: targetGroupSummary,
-          max_items: 5,
-          output_locale: locale,
-        },
+        context: withOutputLocale(
+          {
+            persona_id: selectedId || "",
+            persona_name: detail.profile.name || "",
+            persona_headline: detail.profile.headline || "",
+            persona_bio: detail.profile.bio || "",
+            existing_vocabulary: existingVocabularySummary,
+            graph_relationships_summary: graphRelationshipsSummary,
+            knowledge_context: knowledgeContext,
+            target_group_summary: targetGroupSummary,
+            max_items: 5,
+          },
+          locale
+        ),
         maxSuggestions: 5,
       });
 
@@ -1408,11 +1417,13 @@ export const MsqdxGlassPersonaAdminPanel = ({
       const chipProfile = profileForChips ?? detail.profile;
       const result = await runPersonaAiAssist({
         templateId: "persona.pain_points",
-        context: {
-          persona_id: selectedId || "",
-          max_items: 4,
-          output_locale: locale,
-        },
+        context: withOutputLocale(
+          {
+            persona_id: selectedId || "",
+            max_items: 4,
+          },
+          locale
+        ),
         maxSuggestions: 4,
       });
       if (!result.suggestions.length) {
@@ -1454,11 +1465,13 @@ export const MsqdxGlassPersonaAdminPanel = ({
       const chipProfile = profileForChips ?? detail.profile;
       const result = await runPersonaAiAssist({
         templateId: "persona.goals",
-        context: {
-          persona_id: selectedId || "",
-          max_items: 4,
-          output_locale: locale,
-        },
+        context: withOutputLocale(
+          {
+            persona_id: selectedId || "",
+            max_items: 4,
+          },
+          locale
+        ),
         maxSuggestions: 4,
       });
       if (!result.suggestions.length) {
@@ -1644,7 +1657,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profile_overlay: profileOverlay, output_locale: locale }),
+        body: JSON.stringify(withOutputLocale({ profile_overlay: profileOverlay }, locale)),
       });
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));

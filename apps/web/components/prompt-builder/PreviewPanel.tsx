@@ -8,6 +8,7 @@ import { journeysApi, type JourneyResponse } from "../../app/api/_lib/journeys";
 import { targetGroupsApi, type TargetGroupResponse } from "../../app/api/_lib/target-groups";
 import { aiAssistApi, type AiAssistResponse } from "../../app/api/_lib/ai-assist";
 import { buildApiUrl } from "../../app/api/_lib/backend";
+import { withOutputLocale } from "../../lib/ai-output-locale";
 
 interface PreviewPanelProps {
   prompt: string;
@@ -244,7 +245,7 @@ export function PreviewPanel({ prompt, context, useMockData = false }: PreviewPa
       // Call the new test endpoint
       const response = await aiAssistApi.testPrompt({
         prompt: prompt,
-        context: { ...effectiveContext, output_locale: locale },
+        context: withOutputLocale({ ...effectiveContext } as Record<string, unknown>, locale),
         temperature: 0.6,
         max_tokens: 1024,
       });

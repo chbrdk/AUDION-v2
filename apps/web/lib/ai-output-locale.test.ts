@@ -8,4 +8,9 @@ describe("withOutputLocale", () => {
     expect(out).toEqual({ segment: "x", filter_mode: "auto", output_locale: "de" });
     expect("output_locale" in base).toBe(false);
   });
+
+  it("overwrites an existing output_locale when merging", () => {
+    const base = { max_suggestions: 3, output_locale: "en" };
+    expect(withOutputLocale(base, "de").output_locale).toBe("de");
+  });
 });
