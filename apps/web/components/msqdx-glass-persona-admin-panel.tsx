@@ -35,6 +35,7 @@ import {
 } from "@mui/material";
 import { mirrorFillStringPair } from "../lib/bilingual-mirror";
 import { translatePersonaAdminFields } from "../lib/persona-translate-fields";
+import { alignProfileDeToEnProfile } from "../lib/persona-profile-de-shape";
 import { buildApiUrl } from "../app/api/_lib/backend";
 import { normalizePersonaListResponse } from "../lib/persona-list-normalize";
 import { THEME_ACCENT } from "../lib/theme-accent";
@@ -1004,9 +1005,14 @@ export const MsqdxGlassPersonaAdminPanel = ({
       }
     }
 
+    const alignedDe = alignProfileDeToEnProfile(
+      nextEn as unknown as Record<string, unknown>,
+      nextDe as Record<string, unknown>
+    );
+
     await handleSave(undefined, {
       premergedProfile: nextEn,
-      premergedProfileDe: Object.keys(nextDe).length ? nextDe : null,
+      premergedProfileDe: alignedDe,
     });
   };
 
