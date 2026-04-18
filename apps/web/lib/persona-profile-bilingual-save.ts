@@ -8,6 +8,42 @@ const TOP_STRING_KEYS = ["bio", "location", "full_name"] as const;
 
 const LIST_KEYS = ["interests", "values", "social_media_usage"] as const;
 
+/** Chip text uses spaces; persisted trait keys use underscores (see persona admin). */
+export function traitHumanFromKey(key: string): string {
+  return key.replace(/_/g, " ").trim();
+}
+
+export function traitKeyFromHuman(human: string): string {
+  const t = human.trim().replace(/\s+/g, "_");
+  return t.length > 0 ? t : "trait";
+}
+
+/** Flat keys `traitk_0`… for translate-fields (DE UI → EN canonical keys). */
+export function buildTraitKeyTranslateChunk(traits: Record<string, number>): Record<string, string> {
+  const keys = Object.keys(traits).sort();
+  const out: Record<string, string> = {};
+  keys.forEach((k, i) => {
+    const h = traitHumanFromKey(k);
+    if (h.length > 0) out[`traitk_${i}`] = h;
+  });
+  return out;
+}
+
+/** Map translated English trait labels back to underscore keys; same numeric values. */
+export function rebuildTraitsAfterDeKeyTranslation(
+  sourceTraits: Record<string, number>,
+  tr: Record<string, string>
+): Record<string, number> {
+  const sortedKeys = Object.keys(sourceTraits).sort();
+  const out: Record<string, number> = {};
+  sortedKeys.forEach((origKey, i) => {
+    const raw = tr[`traitk_${i}`]?.trim();
+    const newKey = raw ? traitKeyFromHuman(raw) : origKey;
+    out[newKey] = sourceTraits[origKey]!;
+  });
+  return out;
+}
+
 export function mergeCommunicationStyle(
   base: PersonaProfile["communication_style"],
   patch: Partial<NonNullable<PersonaProfile["communication_style"]>> | undefined
@@ -291,7 +327,9 @@ function mirrorClearTopStrings(
 
 /**
  * Chip-based persona fields: merge into the active language (`profile` for EN, `profile_de` for DE),
- * translate to the other language, keep traits identical on both sides.
+ * translate to the other language. Trait keys must match on both mirrors (`json_shape_compatible`):
+ * we sync `profile_de.traits` from `profile.traits`. In DE UI, trait chip labels are translated to
+ * English keys on both profiles after save.
  */
 export async function mergeEnProfileWithDeTranslation(
   ctx: { personaId: string; detail: PersonaResponse; translate: TranslateFn; locale: Locale },
@@ -317,26 +355,37 @@ export async function mergeEnProfileWithDeTranslation(
   applySharedNumericFields(nextEn, nextDe, updates);
   mirrorEmptyListsBothSides(nextEn, nextDe, updates);
 
-  if ("traits" in updates && updates.traits) {
-    nextEn.traits = updates.traits;
-    nextDe.traits = { ...updates.traits };
+  if ("traits" in updates && (!updates.traits || Object.keys(updates.traits).length === 0)) {
+    nextEn.traits = {};
+    nextDe.traits = {};
   }
 
-  const filtered = buildTranslateStringMap(updates);
+  let filtered = buildTranslateStringMap(updates);
+  if (locale === "de" && updates.traits && Object.keys(updates.traits).length > 0) {
+    filtered = { ...filtered, ...buildTraitKeyTranslateChunk(updates.traits) };
+  }
 
+  let tr: Record<string, string> = {};
   try {
     if (Object.keys(filtered).length > 0) {
       const fromLocale = locale === "de" ? "de" : "en";
-      const { strings: tr } = await translate(personaId, { fromLocale, strings: filtered });
+      const res = await translate(personaId, { fromLocale, strings: filtered });
+      tr = res.strings;
       if (locale === "de") {
         applyTranslationsToEnMirror(nextEn, tr, updates);
       } else {
         applyTranslationsToDeMirror(nextEn, nextDe, tr);
       }
     }
+    if (locale === "de" && updates.traits && Object.keys(updates.traits).length > 0) {
+      nextEn.traits = rebuildTraitsAfterDeKeyTranslation(updates.traits, tr);
+      nextDe.traits = { ...nextEn.traits };
+    }
   } catch (e) {
     return { error: e instanceof Error ? e.message : "translate_failed" };
   }
+
+  nextDe.traits = { ...(nextEn.traits || {}) };
 
   mirrorClearTopStrings(nextEn, nextDe, updates);
   return { nextEn, nextDe };
