@@ -276,6 +276,8 @@ export type TargetGroupPersonaGenerateRequest = {
   chunkWeights?: Record<string, number>;
   variationParams?: Record<string, any>;
   limitChunks?: number;
+  /** "en" | "de" — forwarded as `output_locale` to persona-api (matches persona admin). */
+  outputLocale?: string;
 };
 
 export async function fetchTargetGroupPersonas(
@@ -326,6 +328,7 @@ export async function generateTargetGroupPersona(
       chunk_weights: request.chunkWeights,
       variation_params: request.variationParams,
       limit_chunks: request.limitChunks,
+      ...(request.outputLocale ? { output_locale: request.outputLocale } : {}),
     }),
   });
   if (!response.ok) {

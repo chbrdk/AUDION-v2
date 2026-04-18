@@ -115,6 +115,12 @@ class ProjectEasySetupRequest(BaseModel):
         max_length=128,
         description="Override display name for the project; defaults to customer_name.",
     )
+    output_locale: str | None = Field(
+        default=None,
+        description='UI locale for AI strings: "en" | "de" (aliases accepted by server). '
+        "Send from web `useI18n().locale`. Omit: target-group suggest uses server default (de); "
+        "persona profile JSON generation defaults to English unless this field is set.",
+    )
 
 
 class ProjectEasySetupTargetGroupSummary(BaseModel):

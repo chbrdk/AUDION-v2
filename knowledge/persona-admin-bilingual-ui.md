@@ -19,3 +19,7 @@
 - **Suggest target groups / suggest personas**: Optional **`output_locale`** on the POST body; services `suggest_target_groups` / `suggest_personas` steer the OpenAI prompt (`German` vs `English`). Project admin sends **`output_locale: locale`** with suggest and enrich requests.
 - **Full journey generation** (`journey.full_generation`): **`POST /projects/{project_id}/generate-journey`** and **`POST /journeys/generate`** accept optional **`output_locale`**. `JourneyGenerationService._generate_with_context` runs **`finalize_ai_locale_context`** before `AiAssistService.generate`, so the same template LANGUAGE rules apply. Web: project admin “Generate journey” and **admin/journeys/new** “Generate with AI” send **`output_locale`**. Async Celery **`generate_journey_task`** accepts **`output_locale`** (passed when starting the task from `use_async`).
 - **Chat system prompt** is not shown on the persona admin page; use **Ensure chat prompt** or server flows to update it.
+
+## LLM route inventory
+
+See **`knowledge/llm-output-locale-inventory.md`** for a checklist of API routes vs web `output_locale` coverage.

@@ -26,6 +26,7 @@ def generate_persona_for_target_group(
     chunk_weights: dict[str, float] | None = None,
     limit_chunks: int | None = None,
     variation_params: dict | None = None,
+    output_locale: str | None = None,
 ) -> PersonaResponse:
     """
     Create a Persona row, run synchronous generation, rollback persona on failure.
@@ -58,6 +59,7 @@ def generate_persona_for_target_group(
             chunk_weights=chunk_weights,
             limit_chunks=limit_chunks if filter_mode != "chunks_manual" else None,
             variation_params=variation_params,
+            output_locale=output_locale,
         )
     except Exception:
         session.delete(persona)

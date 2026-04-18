@@ -18,7 +18,7 @@ export type ProjectEasySetupResponse = {
 };
 
 export function MsqdxGlassEasySetupPanel() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { refreshProjects, selectProject } = useProject();
   const accent = "var(--color-theme-accent)";
 
@@ -55,6 +55,7 @@ export function MsqdxGlassEasySetupPanel() {
       if (url) body.website_url = url;
       const nameOverride = projectName.trim();
       if (nameOverride) body.project_name = nameOverride;
+      body.output_locale = locale;
 
       const response = await fetch(buildApiUrl(API_ROUTES.projectsBootstrap), {
         method: "POST",

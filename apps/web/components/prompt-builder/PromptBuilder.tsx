@@ -9,6 +9,7 @@ import { VariableContextPanel } from "./VariableContextPanel";
 import { ResizablePanel } from "./ResizablePanel";
 import { MsqdxIcon } from "@msqdx/react";
 import { aiAssistApi, type AiAssistResponse } from "../../app/api/_lib/ai-assist";
+import { useI18n } from "../i18n/i18n-provider";
 import { generateMockContext } from "./mockData";
 
 interface PromptBuilderProps {
@@ -17,6 +18,7 @@ interface PromptBuilderProps {
 }
 
 export function PromptBuilder({ initialPrompt, onPromptChange }: PromptBuilderProps) {
+  const { locale } = useI18n();
   const [prompt, setPrompt] = useState(initialPrompt);
   const [context, setContext] = useState<Record<string, string>>({});
   const [useMockData, setUseMockData] = useState(true);
@@ -88,7 +90,7 @@ export function PromptBuilder({ initialPrompt, onPromptChange }: PromptBuilderPr
 
       const response = await aiAssistApi.testPrompt({
         prompt: prompt,
-        context: effectiveContext,
+        context: { ...effectiveContext, output_locale: locale },
         temperature: 0.6,
         max_tokens: 1024,
       });
@@ -100,7 +102,7 @@ export function PromptBuilder({ initialPrompt, onPromptChange }: PromptBuilderPr
     } finally {
       setTesting(false);
     }
-  }, [prompt, enrichedContext, useMockData]);
+  }, [prompt, enrichedContext, useMockData, locale]);
 
   const canTest = !testing && prompt.trim().length > 0;
 

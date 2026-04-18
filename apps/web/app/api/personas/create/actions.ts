@@ -23,6 +23,9 @@ export async function createPersonaAction(
   try {
     const segment = formData.get("segment") as string;
     const description = formData.get("description") as string | null;
+    const outputLocaleRaw = formData.get("output_locale") as string | null;
+    const output_locale =
+      outputLocaleRaw && (outputLocaleRaw === "en" || outputLocaleRaw === "de") ? outputLocaleRaw : undefined;
 
     if (!segment?.trim()) {
       return {
@@ -44,6 +47,7 @@ export async function createPersonaAction(
         segment: segment.trim(),
         description: description?.trim() || undefined,
         filterMode: "auto",
+        ...(output_locale ? { output_locale } : {}),
       }),
     });
 

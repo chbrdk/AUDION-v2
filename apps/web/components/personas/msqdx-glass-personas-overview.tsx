@@ -55,7 +55,7 @@ function extractPersonaId(payload: unknown): string | null {
 }
 
 export function MsqdxGlassPersonasOverview({ initialList }: MsqdxGlassPersonasOverviewProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const router = useRouter();
   const { activeProjectId, activeProject, projects } = useProject();
   const accent = "var(--color-theme-accent)";
@@ -183,6 +183,7 @@ export function MsqdxGlassPersonasOverview({ initialList }: MsqdxGlassPersonasOv
         description,
         filterMode: "auto",
         limitChunks: 50,
+        outputLocale: locale,
       });
       const newId = extractPersonaId(created);
       setAiDialogOpen(false);

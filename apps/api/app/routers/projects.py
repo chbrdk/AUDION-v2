@@ -242,7 +242,11 @@ def project_easy_setup(
     context_text = "\n\n".join(context_parts)
 
     try:
-        suggestions, usage_raw = run_suggest_target_groups(context_text=context_text, max_suggestions=3)
+        suggestions, usage_raw = run_suggest_target_groups(
+            context_text=context_text,
+            max_suggestions=3,
+            output_locale=payload.output_locale,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
@@ -284,6 +288,7 @@ def project_easy_setup(
             target_group=tg,
             segment=first.segment,
             description=first.description,
+            output_locale=payload.output_locale,
         )
     except Exception as exc:
         raise HTTPException(

@@ -16,7 +16,7 @@ interface PreviewPanelProps {
 }
 
 export function PreviewPanel({ prompt, context, useMockData = false }: PreviewPanelProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [rendered, setRendered] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
@@ -244,7 +244,7 @@ export function PreviewPanel({ prompt, context, useMockData = false }: PreviewPa
       // Call the new test endpoint
       const response = await aiAssistApi.testPrompt({
         prompt: prompt,
-        context: effectiveContext,
+        context: { ...effectiveContext, output_locale: locale },
         temperature: 0.6,
         max_tokens: 1024,
       });

@@ -95,6 +95,10 @@ class PersonaGenerateRequest(BaseModel):
         default=None,
         description="Optional stable persona identifier to reuse; random UUID is generated when omitted.",
     )
+    output_locale: str | None = Field(
+        default=None,
+        description='Language for generated profile strings: "en" | "de". Omit = English (canonical).',
+    )
 
 
 class TargetGroupPersonaGenerateRequest(BaseModel):
@@ -134,6 +138,10 @@ class TargetGroupPersonaGenerateRequest(BaseModel):
         ge=1,
         le=200,
         description="Maximum number of knowledge chunks forwarded to the persona generator.",
+    )
+    output_locale: str | None = Field(
+        default=None,
+        description='Language for generated persona profile strings: "en" | "de". Omit = English (canonical).',
     )
 
 

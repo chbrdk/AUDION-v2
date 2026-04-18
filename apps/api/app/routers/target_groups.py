@@ -1266,6 +1266,7 @@ def generate_target_group_persona(
                 chunk_weights=chunk_weights_dict,
                 limit_chunks=payload.limit_chunks if payload.filter_mode != "chunks_manual" else None,
                 variation_params=payload.variation_params,
+                output_locale=payload.output_locale,
             )
         except Exception as exc:
             logger.error(

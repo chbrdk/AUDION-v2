@@ -85,6 +85,36 @@ def test_project_bootstrap_creates_project_target_group_persona(mock_suggest, mo
         assert len(tgs) == 1
         assert tgs[0].name == "Primary buyers"
         mock_gen_persona.assert_called_once()
+    assert mock_suggest.call_args.kwargs.get("output_locale") is None
+    assert mock_gen_persona.call_args.kwargs.get("output_locale") is None
+
+
+@patch("app.routers.projects.generate_persona_for_target_group")
+@patch("app.routers.projects.run_suggest_target_groups")
+def test_project_bootstrap_forwards_output_locale(mock_suggest, mock_gen_persona):
+    mock_suggest.return_value = (
+        [TargetGroupSuggestion(name="G1", segment="s1", description="d1")],
+        {},
+    )
+    mock_pr = MagicMock()
+    mock_pr.metadata.personaId = str(uuid4())
+    mock_pr.profile.name = "N"
+    mock_pr.profile.segment = "s1"
+    mock_gen_persona.return_value = mock_pr
+
+    token = _register_user()
+    res = client.post(
+        "/projects/bootstrap",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "customer_name": "Co",
+            "about": "About the co",
+            "output_locale": "en",
+        },
+    )
+    assert res.status_code == 201, res.text
+    assert mock_suggest.call_args.kwargs.get("output_locale") == "en"
+    assert mock_gen_persona.call_args.kwargs.get("output_locale") == "en"
 
 
 @patch("app.routers.projects.fetch_website_plain_text")

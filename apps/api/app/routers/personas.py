@@ -842,6 +842,7 @@ def create_persona(payload: PersonaCreateRequest, session: Session = Depends(get
         - `temperature`: LLM temperature (0.0-1.0) or "random"
         - `prompt_style`: Prompt style ("vivid", "analytical", "personality-focused", "goal-oriented")
         - `chunk_sample_size`: Number of chunks to sample
+      - `output_locale`: Optional `"en"` \| `"de"` for generated profile string language (omit = English).
     
     **Returns:**
     - The generated persona object with AI-extracted attributes including demographics,
@@ -898,6 +899,7 @@ def generate_persona(
         persona=persona,
         chunk_ids=chunk_ids if not target_group_id else None,
         target_group_id=target_group_id,
+        output_locale=payload.output_locale,
     )
 
     uid = _user_id_for_usage(current_user)
