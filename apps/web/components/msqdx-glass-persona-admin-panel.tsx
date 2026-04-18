@@ -959,6 +959,9 @@ export const MsqdxGlassPersonaAdminPanel = ({
     };
   }, [detail, locale]);
 
+  /** Persona AI templates use ${generated_text_locale_name} (see apps/api templates.yaml). */
+  const generatedTextLocaleName = locale === "de" ? "German" : "English";
+
   const handleBioDemographicsBilingualSave = async (updates: Partial<PersonaProfile>) => {
     if (!selectedId || !detail) return;
     const stringKeys = ["bio", "location", "full_name"] as const;
@@ -1070,8 +1073,9 @@ export const MsqdxGlassPersonaAdminPanel = ({
     if (!detail) return;
     setPersonaAiError(null);
     try {
+      const chipProfile = profileForChips ?? detail.profile;
       // Build existing interests summary
-      const existingInterests = detail.profile.interests || [];
+      const existingInterests = chipProfile.interests || [];
       const existingInterestsSummary = existingInterests.length > 0
         ? existingInterests.join(", ")
         : t("personaAdmin.aiContext.noInterests");
@@ -1080,7 +1084,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
       const targetGroupSummary = detail.profile.segment || t("personaAdmin.aiContext.noTargetGroup");
 
       // Build persona profile JSON
-      const personaProfile = JSON.stringify(detail.profile, null, 2);
+      const personaProfile = JSON.stringify(chipProfile, null, 2);
 
       const result = await runPersonaAiAssist({
         templateId: "persona.interests",
@@ -1091,6 +1095,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
           persona_interests: existingInterestsSummary,
           target_group_summary: targetGroupSummary,
           max_items: 4,
+          generated_text_locale_name: generatedTextLocaleName,
         },
         maxSuggestions: 4,
       });
@@ -1098,7 +1103,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
         setPersonaAiError(t("personaAdmin.toasts.noAiSuggestions"));
         return;
       }
-      const current = detail.profile.interests || [];
+      const current = chipProfile.interests || [];
       const merged = Array.from(
         new Set([
           ...current,
@@ -1124,8 +1129,9 @@ export const MsqdxGlassPersonaAdminPanel = ({
     if (!detail) return;
     setPersonaAiError(null);
     try {
+      const chipProfile = profileForChips ?? detail.profile;
       // Build existing values summary
-      const existingValues = detail.profile.values || [];
+      const existingValues = chipProfile.values || [];
       const existingValuesSummary = existingValues.length > 0
         ? existingValues.join(", ")
         : t("personaAdmin.aiContext.noValues");
@@ -1134,7 +1140,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
       const targetGroupSummary = detail.profile.segment || t("personaAdmin.aiContext.noTargetGroup");
 
       // Build persona profile JSON
-      const personaProfile = JSON.stringify(detail.profile, null, 2);
+      const personaProfile = JSON.stringify(chipProfile, null, 2);
 
       const result = await runPersonaAiAssist({
         templateId: "persona.values",
@@ -1145,6 +1151,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
           persona_values: existingValuesSummary,
           target_group_summary: targetGroupSummary,
           max_items: 4,
+          generated_text_locale_name: generatedTextLocaleName,
         },
         maxSuggestions: 4,
       });
@@ -1152,7 +1159,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
         setPersonaAiError(t("personaAdmin.toasts.noAiSuggestions"));
         return;
       }
-      const current = detail.profile.values || [];
+      const current = chipProfile.values || [];
       const merged = Array.from(
         new Set([
           ...current,
@@ -1280,6 +1287,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
           knowledge_context: knowledgeContext,
           target_group_summary: targetGroupSummary,
           max_items: 5,
+          generated_text_locale_name: generatedTextLocaleName,
         },
         maxSuggestions: 5,
       });
@@ -1323,8 +1331,9 @@ export const MsqdxGlassPersonaAdminPanel = ({
     try {
       setPersonaAiError(null);
 
+      const chipProfile = profileForChips ?? detail.profile;
       // Build existing vocabulary summary
-      const existingVocabulary = detail.profile.communication_style?.vocabulary || [];
+      const existingVocabulary = chipProfile.communication_style?.vocabulary || [];
       const existingVocabularySummary = existingVocabulary.length > 0
         ? existingVocabulary.join(", ")
         : t("personaAdmin.aiContext.noVocabulary");
@@ -1355,13 +1364,14 @@ export const MsqdxGlassPersonaAdminPanel = ({
           knowledge_context: knowledgeContext,
           target_group_summary: targetGroupSummary,
           max_items: 5,
+          generated_text_locale_name: generatedTextLocaleName,
         },
         maxSuggestions: 5,
       });
 
       // Parse suggestions and add to existing vocabulary
       if (result.suggestions && result.suggestions.length > 0) {
-        const currentVocabulary = detail.profile.communication_style?.vocabulary || [];
+        const currentVocabulary = chipProfile.communication_style?.vocabulary || [];
 
         // Extract vocabulary words from suggestions
         const newVocabulary = result.suggestions
@@ -1428,10 +1438,13 @@ export const MsqdxGlassPersonaAdminPanel = ({
     if (!detail) return;
     setPersonaAiError(null);
     try {
+      const chipProfile = profileForChips ?? detail.profile;
       const result = await runPersonaAiAssist({
         templateId: "persona.pain_points",
         context: {
           persona_id: selectedId || "",
+          max_items: 4,
+          generated_text_locale_name: generatedTextLocaleName,
         },
         maxSuggestions: 4,
       });
@@ -1439,7 +1452,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
         setPersonaAiError(t("personaAdmin.toasts.noAiSuggestions"));
         return;
       }
-      const current = detail.profile.pain_points?.map((pp) => pp.label) ?? [];
+      const current = chipProfile.pain_points?.map((pp) => pp.label) ?? [];
       const merged = Array.from(
         new Set([
           ...current,
@@ -1471,8 +1484,9 @@ export const MsqdxGlassPersonaAdminPanel = ({
     if (!detail) return;
     setPersonaAiError(null);
     try {
+      const chipProfile = profileForChips ?? detail.profile;
       // Build existing goals summary
-      const existingGoals = detail.profile.goals?.map((goal) => goal.label) ?? [];
+      const existingGoals = chipProfile.goals?.map((goal) => goal.label) ?? [];
       const existingGoalsSummary = existingGoals.length > 0
         ? existingGoals.join(", ")
         : t("personaAdmin.aiContext.noGoals");
@@ -1481,7 +1495,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
       const targetGroupSummary = detail.profile.segment || t("personaAdmin.aiContext.noTargetGroup");
 
       // Build persona profile JSON
-      const personaProfile = JSON.stringify(detail.profile, null, 2);
+      const personaProfile = JSON.stringify(chipProfile, null, 2);
 
       const result = await runPersonaAiAssist({
         templateId: "persona.goals",
@@ -1492,6 +1506,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
           persona_goals: existingGoalsSummary,
           target_group_summary: targetGroupSummary,
           max_items: 4,
+          generated_text_locale_name: generatedTextLocaleName,
         },
         maxSuggestions: 4,
       });
@@ -1499,7 +1514,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
         setPersonaAiError(t("personaAdmin.toasts.noAiSuggestions"));
         return;
       }
-      const current = detail.profile.goals?.map((goal) => goal.label) ?? [];
+      const current = chipProfile.goals?.map((goal) => goal.label) ?? [];
       const merged = Array.from(
         new Set([
           ...current,

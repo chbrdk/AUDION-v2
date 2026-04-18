@@ -87,7 +87,7 @@ templates:
     default_model: gpt-5-mini
     max_tokens: 4096
     prompt: |
-      SPRACHE: Alle generierten Texte (title, content, Beschreibungen) ausschließlich auf Deutsch. JSON-Schlüsselnamen unverändert lassen.
+      LANGUAGE: All generated user-facing strings (JSON fields "title", "content", descriptions) must be written exclusively in ${generated_text_locale_name}. Do not mix languages. Keep JSON key names unchanged.
 
       Analyze the persona information and suggest additional pain points
       that the team has not yet documented. Focus on concrete situations
@@ -122,7 +122,7 @@ templates:
     default_model: gpt-5-mini
     max_tokens: 4096
     prompt: |
-      SPRACHE: Alle generierten Texte (title, content, Beschreibungen) ausschließlich auf Deutsch. JSON-Schlüsselnamen unverändert lassen.
+      LANGUAGE: All generated user-facing strings (JSON fields "title", "content", descriptions) must be written exclusively in ${generated_text_locale_name}. Do not mix languages. Keep JSON key names unchanged.
 
       Analyze the persona information and suggest additional goals
       that the team has not yet documented. Focus on concrete aspirations,
@@ -157,7 +157,7 @@ templates:
     default_model: gpt-5-mini
     max_tokens: 4096
     prompt: |
-      SPRACHE: Alle generierten Texte (title, content, Beschreibungen) ausschließlich auf Deutsch. JSON-Schlüsselnamen unverändert lassen.
+      LANGUAGE: All generated user-facing strings (JSON fields "title", "content", descriptions) must be written exclusively in ${generated_text_locale_name}. Do not mix languages. Keep JSON key names unchanged.
 
       Analyze the persona information and suggest additional interests
       that the team has not yet documented. Focus on hobbies, activities,
@@ -192,7 +192,7 @@ templates:
     default_model: gpt-5-mini
     max_tokens: 4096
     prompt: |
-      SPRACHE: Alle generierten Texte (title, content, Beschreibungen) ausschließlich auf Deutsch. JSON-Schlüsselnamen unverändert lassen.
+      LANGUAGE: All generated user-facing strings (JSON fields "title", "content", descriptions) must be written exclusively in ${generated_text_locale_name}. Do not mix languages. Keep JSON key names unchanged.
 
       Analyze the persona information and suggest additional values
       that the team has not yet documented. Focus on principles, beliefs,
@@ -227,7 +227,7 @@ templates:
     default_model: gpt-5-mini
     max_tokens: 4096
     prompt: |
-      SPRACHE: Trait-Namen (name) und Beschreibungen (description) ausschließlich auf Deutsch. JSON-Schlüssel unverändert.
+      LANGUAGE: Trait names ("name" / content) and descriptions ("description") must be written exclusively in ${generated_text_locale_name}. Do not mix languages. Keep JSON key names unchanged.
 
       You are an experienced Persona Analyst. Create personality traits based on knowledge graph relationships and research context.
 
@@ -289,7 +289,7 @@ templates:
     default_model: gpt-5-mini
     max_tokens: 4096
     prompt: |
-      SPRACHE: Wörter (word) und Kurzbeschreibungen (description) ausschließlich auf Deutsch (typische Begriffe dieser Persona auf Deutsch).
+      LANGUAGE: Vocabulary words ("word" / content) and short descriptions ("description") must be written exclusively in ${generated_text_locale_name} (typical terms this persona would use in that language). Keep JSON key names unchanged.
 
       You are an experienced Communication Analyst. Create vocabulary words based on knowledge graph relationships and research context.
 
@@ -351,7 +351,7 @@ templates:
     default_model: gpt-5-mini
     max_tokens: 512
     prompt: |
-      SPRACHE: Der Absatz in content ausschließlich auf Deutsch.
+      LANGUAGE: The paragraph in "content" must be written exclusively in ${generated_text_locale_name}.
 
       You are a Communication Analyst. Based on the persona and target group, describe how this persona typically structures sentences when they write or speak.
 

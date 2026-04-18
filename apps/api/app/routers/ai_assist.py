@@ -36,6 +36,13 @@ from ..services.persona_ai_context import (
     build_persona_sentence_structure_ai_context,
 )
 
+def _with_generated_text_locale_default(ctx: dict) -> dict:
+    """Templates use ${generated_text_locale_name}; default preserves legacy German-only behaviour."""
+    if str(ctx.get("generated_text_locale_name") or "").strip():
+        return ctx
+    return {**ctx, "generated_text_locale_name": "German"}
+
+
 def _enrich_persona_context(
     session: Session,
     context: dict,
@@ -44,19 +51,19 @@ def _enrich_persona_context(
     """Enrich context with persona data if persona_id is present."""
     persona_id = context.get("persona_id")
     if not persona_id:
-        return context
-    
+        return _with_generated_text_locale_default(context)
+
     # Validate UUID format
     try:
         persona_uuid = UUID(str(persona_id))
     except (ValueError, TypeError):
         logger.warning("ai.assist.invalid_persona_id", persona_id=str(persona_id))
-        return context
+        return _with_generated_text_locale_default(context)
 
     persona = session.get(Persona, persona_uuid)
     if not persona:
         logger.warning("ai.assist.persona_not_found", persona_id=str(persona_id))
-        return context
+        return _with_generated_text_locale_default(context)
         
     if allowed_project_ids is not None and persona.project_id not in allowed_project_ids:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Persona access denied")
@@ -83,9 +90,9 @@ def _enrich_persona_context(
         # Default: use pain_points context builder
         persona_context = build_persona_ai_context(session, persona, max_items)
     
-    # Merge persona context with existing context (persona context takes precedence)
-    enriched = {**context, **persona_context}
-    return enriched
+    # Persona fields from DB first; caller context overrides (e.g. admin UI output language).
+    enriched = {**persona_context, **context}
+    return _with_generated_text_locale_default(enriched)
 
 
 def allowed_project_ids_dep(

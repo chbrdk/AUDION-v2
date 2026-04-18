@@ -69,6 +69,15 @@ def test_render_prompt_prefix_suffix_placeholder_missing() -> None:
     assert suffix == ""
 
 
+def test_with_generated_text_locale_default() -> None:
+    from app.routers.ai_assist import _with_generated_text_locale_default
+
+    assert _with_generated_text_locale_default({})["generated_text_locale_name"] == "German"
+    assert _with_generated_text_locale_default({"generated_text_locale_name": "English"})[
+        "generated_text_locale_name"
+    ] == "English"
+
+
 def test_template_cache_prefix_map_has_expected_templates() -> None:
     """TEMPLATE_CACHE_PREFIX_LAST_VAR includes high-value templates for caching."""
     assert "journey.full_generation" in TEMPLATE_CACHE_PREFIX_LAST_VAR
