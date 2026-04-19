@@ -246,6 +246,7 @@ def project_easy_setup(
             context_text=context_text,
             max_suggestions=3,
             output_locale=payload.output_locale,
+            bilingual=True,
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
@@ -270,6 +271,9 @@ def project_easy_setup(
                 name=first.name,
                 segment=first.segment,
                 description=first.description,
+                name_de=first.name_de or None,
+                segment_de=first.segment_de or None,
+                description_de=first.description_de or None,
             ),
         )
     except ValueError as exc:
@@ -288,7 +292,7 @@ def project_easy_setup(
             target_group=tg,
             segment=first.segment,
             description=first.description,
-            output_locale=payload.output_locale,
+            output_locale=None,
         )
     except Exception as exc:
         raise HTTPException(
@@ -419,10 +423,12 @@ def suggest_target_groups_endpoint(
         return SuggestTargetGroupsResponse(suggestions=[])
 
     try:
+        bilingual = bool(body and body.bilingual)
         suggestions, usage_raw = run_suggest_target_groups(
             context_text=context_text,
             max_suggestions=max_suggestions,
-            output_locale=body.output_locale if body else None,
+            output_locale=None if bilingual else (body.output_locale if body else None),
+            bilingual=bilingual,
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
@@ -432,7 +438,17 @@ def suggest_target_groups_endpoint(
         report_usage(user_id=uid, event_type="llm_request", raw_units=usage_raw)
 
     return SuggestTargetGroupsResponse(
-        suggestions=[TargetGroupSuggestionItem(name=s.name, segment=s.segment, description=s.description) for s in suggestions],
+        suggestions=[
+            TargetGroupSuggestionItem(
+                name=s.name,
+                segment=s.segment,
+                description=s.description,
+                name_de=s.name_de or None,
+                segment_de=s.segment_de or None,
+                description_de=s.description_de or None,
+            )
+            for s in suggestions
+        ],
     )
 
 

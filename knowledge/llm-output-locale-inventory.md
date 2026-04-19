@@ -8,7 +8,7 @@ Canonical server helper: `finalize_ai_locale_context` and `normalize_output_loca
 |--------------|---------------------|-------------------|--------|
 | `POST /ai-assist` | Yes — `_build_context` + `_enrich_persona_context` | Yes — `use-ai-assist` / admin panels | Template + locale guard footer. |
 | `POST /journeys/{id}/ai/generate` | Yes — `finalize_ai_locale_context` in router | Yes — journey editor / phase card | Proxied via Next `persona-backend/.../ai/generate`; body must include `output_locale`. |
-| `POST /projects/{id}/suggest-target-groups` | Yes — `suggest_target_groups(..., output_locale)` | Yes — `msqdx-glass-project-admin-panel` | |
+| `POST /projects/{id}/suggest-target-groups` | Yes — `suggest_target_groups` (`output_locale` or **`bilingual: true`** for EN+DE fields in one response) | Project admin; **target-groups overview** uses `bilingual: true` via `suggestProjectTargetGroups` | `bilingual` ignores `output_locale` for the prompt (always dual-language schema). |
 | `POST /projects/{id}/generate-journey` | Yes — journey generation service | Yes — project admin | |
 | `POST /projects/bootstrap` (easy setup) | Yes — suggest + persona gen | Yes — `MsqdxGlassEasySetupPanel` | `ProjectEasySetupRequest.output_locale`. |
 | `POST /target-groups/{id}/suggest-personas` | Yes | Yes — project admin | |
@@ -35,6 +35,7 @@ Separate from persona-admin templates. Reply language is controlled by chat conf
 - **Schema smoke:** [`apps/api/tests/test_persona_generate_request_output_locale.py`](apps/api/tests/test_persona_generate_request_output_locale.py) (skipped at collection if `msqdx_glass_proto` missing).
 - **Persona generate FormData → JSON:** [`apps/web/lib/persona-generate-api-body.ts`](apps/web/lib/persona-generate-api-body.ts) `parsePersonaGenerateForm` (Vitest: [`persona-generate-api-body.test.ts`](apps/web/lib/persona-generate-api-body.test.ts)).
 - **Target-group persona generate JSON:** omit `output_locale` for bilingual default — Vitest: [`apps/web/lib/target-group-persona-generate.test.ts`](apps/web/lib/target-group-persona-generate.test.ts).
+- **Suggest target groups (bilingual):** [`apps/web/lib/projects-suggest-target-groups.ts`](apps/web/lib/projects-suggest-target-groups.ts) — Vitest: [`projects-suggest-target-groups.test.ts`](apps/web/lib/projects-suggest-target-groups.test.ts).
 
 ## Maintenance
 

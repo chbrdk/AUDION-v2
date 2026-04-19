@@ -82,7 +82,11 @@ class SuggestTargetGroupsRequest(BaseModel):
     max_suggestions: int = 5
     output_locale: str | None = Field(
         default=None,
-        description='Language for AI-generated names/descriptions: "en" | "de".',
+        description='Language for AI-generated names/descriptions: "en" | "de". Ignored when bilingual=true.',
+    )
+    bilingual: bool = Field(
+        default=False,
+        description="When true, AI returns English canonical fields plus German mirrors (name_de, segment_de, description_de) in one response.",
     )
 
 
@@ -90,6 +94,9 @@ class TargetGroupSuggestionItem(BaseModel):
     name: str
     segment: str
     description: str
+    name_de: str | None = None
+    segment_de: str | None = None
+    description_de: str | None = None
 
 
 class SuggestTargetGroupsResponse(BaseModel):

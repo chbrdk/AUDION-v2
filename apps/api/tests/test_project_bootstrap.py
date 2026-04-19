@@ -85,13 +85,14 @@ def test_project_bootstrap_creates_project_target_group_persona(mock_suggest, mo
         assert len(tgs) == 1
         assert tgs[0].name == "Primary buyers"
         mock_gen_persona.assert_called_once()
+    assert mock_suggest.call_args.kwargs.get("bilingual") is True
     assert mock_suggest.call_args.kwargs.get("output_locale") is None
     assert mock_gen_persona.call_args.kwargs.get("output_locale") is None
 
 
 @patch("app.routers.projects.generate_persona_for_target_group")
 @patch("app.routers.projects.run_suggest_target_groups")
-def test_project_bootstrap_forwards_output_locale(mock_suggest, mock_gen_persona):
+def test_project_bootstrap_suggest_bilingual_persona_en_profile(mock_suggest, mock_gen_persona):
     mock_suggest.return_value = (
         [TargetGroupSuggestion(name="G1", segment="s1", description="d1")],
         {},
@@ -113,8 +114,9 @@ def test_project_bootstrap_forwards_output_locale(mock_suggest, mock_gen_persona
         },
     )
     assert res.status_code == 201, res.text
+    assert mock_suggest.call_args.kwargs.get("bilingual") is True
     assert mock_suggest.call_args.kwargs.get("output_locale") == "en"
-    assert mock_gen_persona.call_args.kwargs.get("output_locale") == "en"
+    assert mock_gen_persona.call_args.kwargs.get("output_locale") is None
 
 
 @patch("app.routers.projects.fetch_website_plain_text")

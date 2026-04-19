@@ -22,6 +22,9 @@ class TargetGroupSuggestion:
     name: str
     segment: str
     description: str
+    name_de: str = ""
+    segment_de: str = ""
+    description_de: str = ""
 
 
 def suggest_target_groups(
@@ -29,6 +32,7 @@ def suggest_target_groups(
     max_suggestions: int = 5,
     *,
     output_locale: str | None = None,
+    bilingual: bool = False,
 ) -> tuple[list[TargetGroupSuggestion], dict[str, Any]]:
     """
     Call AI to suggest target groups from company/project context.
@@ -69,7 +73,11 @@ Company/project context:
                     "role": "system",
                     "content": (
                         "You are a helpful marketing and research assistant. Output only valid JSON arrays. "
-                        f"Follow the LANGUAGE instruction in the user message for name and description ({lang})."
+                        + (
+                            "Each object must include name, name_de, segment, segment_de, description, description_de as specified in the user message."
+                            if bilingual
+                            else f"Follow the LANGUAGE instruction in the user message for name and description ({lang})."
+                        )
                     ),
                 },
                 {"role": "user", "content": prompt},
@@ -117,9 +125,32 @@ Company/project context:
         name = item.get("name") or item.get("name_short") or ""
         segment = item.get("segment") or item.get("segment_id") or ""
         description = item.get("description") or ""
-        if isinstance(name, str) and isinstance(segment, str) and isinstance(description, str):
-            name = name.strip() or f"Target Group {i + 1}"
-            segment = segment.strip() or f"segment-{i + 1}"
-            result.append(TargetGroupSuggestion(name=name, segment=segment, description=description.strip()))
+        if not isinstance(name, str) or not isinstance(segment, str) or not isinstance(description, str):
+            continue
+        name = name.strip() or f"Target Group {i + 1}"
+        segment = segment.strip() or f"segment-{i + 1}"
+        description = description.strip()
+        if bilingual:
+            name_de = (item.get("name_de") or "").strip() if isinstance(item.get("name_de"), str) else ""
+            segment_de = (item.get("segment_de") or "").strip() if isinstance(item.get("segment_de"), str) else ""
+            description_de = (item.get("description_de") or "").strip() if isinstance(item.get("description_de"), str) else ""
+            if not name_de:
+                name_de = name
+            if not segment_de:
+                segment_de = segment
+            if not description_de:
+                description_de = description
+            result.append(
+                TargetGroupSuggestion(
+                    name=name,
+                    segment=segment,
+                    description=description,
+                    name_de=name_de,
+                    segment_de=segment_de,
+                    description_de=description_de,
+                )
+            )
+        else:
+            result.append(TargetGroupSuggestion(name=name, segment=segment, description=description))
 
     return result[:max_suggestions], usage_raw

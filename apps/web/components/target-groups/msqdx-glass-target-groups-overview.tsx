@@ -2,11 +2,26 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Box, Stack } from "@mui/material";
+import {
+  Box,
+  Checkbox,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControlLabel,
+  IconButton,
+  Stack,
+  Tooltip,
+} from "@mui/material";
 import type { TargetGroupListResponse, TargetGroupResponse } from "@msqdx-glass/types";
 import { MsqdxButton, MsqdxFormField, MsqdxIcon, MsqdxMoleculeCard, MsqdxTextareaField, MsqdxTypography } from "@msqdx/react";
 import { buildApiUrl } from "../../app/api/_lib/backend";
 import { mirrorFillStringPair } from "../../lib/bilingual-mirror";
+import {
+  suggestProjectTargetGroups,
+  type TargetGroupSuggestionDto,
+} from "../../lib/projects-suggest-target-groups";
 import { ADMIN_ROUTES } from "../../lib/routes";
 import { useProject } from "../projects/project-provider";
 import { useI18n } from "../i18n/i18n-provider";
@@ -52,6 +67,13 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
   const [createForm, setCreateForm] = useState<CreateFormState>(defaultCreateFormState);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+
+  const [aiDialogOpen, setAiDialogOpen] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<TargetGroupSuggestionDto[]>([]);
+  const [selectedAiIndices, setSelectedAiIndices] = useState<Set<number>>(new Set());
+  const [aiCreating, setAiCreating] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   const items = useMemo(() => list.items ?? [], [list.items]);
 
@@ -136,6 +158,83 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
     }
   };
 
+  const openAiDialog = async () => {
+    if (!activeProjectId) return;
+    setAiDialogOpen(true);
+    setAiError(null);
+    setAiSuggestions([]);
+    setSelectedAiIndices(new Set());
+    setAiLoading(true);
+    try {
+      const res = await suggestProjectTargetGroups(activeProjectId, { bilingual: true, maxSuggestions: 5 });
+      setAiSuggestions(res.suggestions ?? []);
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : t("targetGroupsAdmin.generateWithAiFailed"));
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const toggleAiIndex = (index: number) => {
+    setSelectedAiIndices((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  };
+
+  const handleCreateSelectedSuggestions = async () => {
+    if (!activeProjectId) return;
+    if (selectedAiIndices.size === 0) {
+      setAiError(t("targetGroupsAdmin.generateWithAiNoneSelected"));
+      return;
+    }
+    setAiCreating(true);
+    setAiError(null);
+    let lastId: string | null = null;
+    try {
+      for (const index of Array.from(selectedAiIndices).sort((a, b) => a - b)) {
+        const s = aiSuggestions[index];
+        if (!s) continue;
+        const namePair = mirrorFillStringPair(s.name, s.name_de ?? "");
+        const segPair = mirrorFillStringPair(s.segment, s.segment_de ?? "");
+        const descPair = mirrorFillStringPair(s.description ?? "", s.description_de ?? "");
+        const payload = {
+          project_id: activeProjectId,
+          name: namePair.en.trim(),
+          segment: segPair.en.trim(),
+          description: descPair.en.trim() || null,
+          name_de: namePair.de.trim() || null,
+          segment_de: segPair.de.trim() || null,
+          description_de: descPair.de.trim() || null,
+        };
+        const response = await fetch(buildApiUrl("/api/target-groups"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!response.ok) {
+          const detail = await response.text().catch(() => "");
+          throw new Error(detail || `Backend responded with ${response.status}`);
+        }
+        const created = (await response.json()) as TargetGroupResponse;
+        lastId = extractTargetGroupId(created) ?? created.id ?? null;
+      }
+      setAiDialogOpen(false);
+      setAiSuggestions([]);
+      setSelectedAiIndices(new Set());
+      await refresh(activeProjectId);
+      if (lastId) {
+        router.push(ADMIN_ROUTES.targetGroupDetail(lastId));
+      }
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : t("targetGroupsAdmin.generateWithAiFailed"));
+    } finally {
+      setAiCreating(false);
+    }
+  };
+
   return (
     <Box sx={{ width: "100%" }} className="msqdx-glass-target-groups-overview">
       <Box
@@ -162,7 +261,25 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
             title={t("targetGroupsAdmin.newTargetGroup")}
             titleVariant="h6"
             subtitle={t("targetGroupsAdmin.namePlaceholder")}
-            headerActions={<MsqdxIcon name="add" customSize={22} style={{ color: accent }} />}
+            headerActions={(
+              <Stack direction="row" alignItems="center" spacing={0.5}>
+                <Tooltip title={t("targetGroupsAdmin.generateWithAi")}>
+                  <IconButton
+                    size="small"
+                    aria-label={t("targetGroupsAdmin.generateWithAi")}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void openAiDialog();
+                    }}
+                    disabled={!activeProjectId}
+                    sx={{ color: accent }}
+                  >
+                    <MsqdxIcon name="auto_awesome" customSize={22} />
+                  </IconButton>
+                </Tooltip>
+                <MsqdxIcon name="add" customSize={22} style={{ color: accent }} />
+              </Stack>
+            )}
             sx={{
               minHeight: 140,
               border: "2px dashed",
@@ -300,6 +417,88 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
           />
         ))}
       </Box>
+
+      <Dialog open={aiDialogOpen} onClose={() => !aiCreating && setAiDialogOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>{t("targetGroupsAdmin.generateWithAiTitle")}</DialogTitle>
+        <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
+          <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+            {t("targetGroupsAdmin.generateWithAiIntro")}
+          </MsqdxTypography>
+          {aiLoading ? (
+            <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+              {t("targetGroupsAdmin.generateWithAiLoading")}
+            </MsqdxTypography>
+          ) : aiSuggestions.length === 0 ? (
+            <MsqdxTypography variant="body2" sx={{ color: "warning.main" }}>
+              {t("targetGroupsAdmin.generateWithAiEmpty")}
+            </MsqdxTypography>
+          ) : (
+            <>
+              <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
+                {t("targetGroupsAdmin.generateWithAiSelectHint")}
+              </MsqdxTypography>
+              <Stack spacing={1}>
+                {aiSuggestions.map((s, index) => (
+                  <Box
+                    key={`${s.segment}-${index}`}
+                    sx={{
+                      border: "1px solid",
+                      borderColor: "divider",
+                      borderRadius: 1,
+                      p: 1.25,
+                    }}
+                  >
+                    <FormControlLabel
+                      control={(
+                        <Checkbox
+                          size="small"
+                          checked={selectedAiIndices.has(index)}
+                          onChange={() => toggleAiIndex(index)}
+                          disabled={aiCreating}
+                        />
+                      )}
+                      label={(
+                        <Box>
+                          <MsqdxTypography variant="subtitle2" weight="semibold">
+                            {locale === "de" && (s.name_de || "").trim() ? s.name_de : s.name}
+                          </MsqdxTypography>
+                          <MsqdxTypography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                            {(locale === "de" && (s.segment_de || "").trim() ? s.segment_de : s.segment) || "—"}
+                          </MsqdxTypography>
+                          <MsqdxTypography variant="body2" sx={{ mt: 0.5 }}>
+                            {(locale === "de" && (s.description_de || "").trim() ? s.description_de : s.description) || "—"}
+                          </MsqdxTypography>
+                        </Box>
+                      )}
+                      sx={{ alignItems: "flex-start", m: 0 }}
+                    />
+                  </Box>
+                ))}
+              </Stack>
+            </>
+          )}
+          {aiError ? (
+            <MsqdxTypography variant="caption" sx={{ color: "error.main" }}>
+              {aiError}
+            </MsqdxTypography>
+          ) : null}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <MsqdxButton variant="outlined" size="small" onClick={() => setAiDialogOpen(false)} disabled={aiCreating}>
+            {t("common.cancel")}
+          </MsqdxButton>
+          <MsqdxButton
+            variant="contained"
+            size="small"
+            brandColor="green"
+            onClick={() => void handleCreateSelectedSuggestions()}
+            disabled={aiCreating || aiLoading || aiSuggestions.length === 0 || selectedAiIndices.size === 0}
+            startIcon={<MsqdxIcon name="auto_awesome" customSize={16} />}
+          >
+            {aiCreating ? t("targetGroupsAdmin.generateWithAiCreating") : t("targetGroupsAdmin.generateWithAiSubmit")}
+          </MsqdxButton>
+        </DialogActions>
+      </Dialog>
 
       {(loading || loadError || (!activeProjectId && !items.length)) && (
         <Box sx={{ mt: 2 }}>
