@@ -9,6 +9,13 @@ Wenn die Web-App unter z. B. `https://audion.projects-a.plygrnd.tech` läuft u
 
 dann kann die Next.js-Web-App das **Persona-Backend (API)** nicht erreichen. **Ursache und Fix sind immer dieselben** (siehe unten).
 
+## ECONNREFUSED zu einer `172.x.x.x`-Adresse (z. B. `:8000`)
+
+Wenn Logs der Web-App **`connect ECONNREFUSED 172.18.0.xx:8000`** zeigen (z. B. bei **`/api/projects/...`**):
+
+- **`NEXT_PERSONA_BACKEND_INTERNAL_URL`** ist sehr wahrscheinlich auf eine **feste Container-IP** gesetzt. Docker-VIPs ändern sich; nach Redeploy ist nichts mehr unter dieser IP erreichbar → **ECONNREFUSED**.
+- **Fix:** URL auf den **stabilen internen Hostnamen** der API-App setzen (Coolify „internal“ hostname / Compose-**Service-Name**), z. B. `http://audion-api:8000` oder wie in eurer `docker-compose.yml` benannt — **nicht** `http://172.18.0.10:8000`.
+
 ## Ursache
 
 Die Route `apps/web/app/api/auth/me/route.ts` leitet server-seitig an das Persona-Backend weiter. Dafür verwendet sie `getPersonaBackendBase({ preferPublic: false })`:

@@ -14,6 +14,7 @@ import { mirrorFillStringPair } from "../lib/bilingual-mirror";
 import { isProjectAiContextEmpty } from "../lib/project-context";
 import { aiAssistApi, type AiTemplateSummary } from "../app/api/_lib/ai-assist";
 import { API_ROUTES } from "../lib/api-routes";
+import { formatResearchTimelineDetail } from "../lib/format-research-timeline-detail";
 import { useProject, type ProjectSummary, type ProjectMember } from "./projects/project-provider";
 import { useI18n } from "./i18n/i18n-provider";
 
@@ -320,6 +321,13 @@ export function MsqdxGlassProjectAdminPanel({
                     if (next.type === "summary_saved") {
                         void loadResearchLatest(selectedId);
                     }
+                    if (next.type === "run_failed") {
+                        const err =
+                            next.payload && typeof next.payload === "object" && "error" in next.payload
+                                ? (next.payload as { error?: unknown }).error
+                                : undefined;
+                        if (typeof err === "string" && err.trim()) setResearchError(err);
+                    }
                 } catch {
                     // ignore parse errors
                 }
@@ -415,6 +423,9 @@ export function MsqdxGlassProjectAdminPanel({
                 if (cancelled) return;
                 setResearchStatus(data?.status ?? null);
                 setResearchPagesFetched(Number(data?.pages_fetched ?? 0));
+                if (data?.status === "failed" && typeof data?.error === "string" && data.error.trim()) {
+                    setResearchError(data.error);
+                }
                 if (data?.status === "succeeded") {
                     void loadResearchLatest(selectedId);
                 }
@@ -1750,8 +1761,7 @@ export function MsqdxGlassProjectAdminPanel({
                                                                     variant="caption"
                                                                     sx={{ color: "text.primary", minWidth: 0, wordBreak: "break-word" }}
                                                                 >
-                                                                    {e.message ||
-                                                                        (e.type === "page_fetched" ? String(e.payload?.url ?? "") : "")}
+                                                                    {formatResearchTimelineDetail(e)}
                                                                 </MsqdxTypography>
                                                             </Stack>
                                                         ))}

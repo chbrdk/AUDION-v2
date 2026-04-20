@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { fetchWithTimeout, getPersonaBackendBase } from "../../_lib/backend";
 import { buildAuthHeaders, getAuthTokenFromRequest } from "../../_lib/auth";
+import { describePersonaUpstreamFetchError } from "../../_lib/upstream-fetch-error";
 
 const buildTargetUrl = (request: NextRequest, path: string) => {
   const base = getPersonaBackendBase({ preferPublic: false });
@@ -15,19 +16,28 @@ const forward = async (request: NextRequest, target: string) => {
   const token = getAuthTokenFromRequest(request);
   const body =
     request.method === "GET" || request.method === "HEAD" ? undefined : await request.text();
-  const upstream = await fetchWithTimeout(
-    target,
-    {
-      method: request.method,
-      cache: "no-store",
-      headers: {
-        ...(body ? { "Content-Type": request.headers.get("content-type") ?? "application/json" } : {}),
-        ...buildAuthHeaders(token),
+  let upstream: Response;
+  try {
+    upstream = await fetchWithTimeout(
+      target,
+      {
+        method: request.method,
+        cache: "no-store",
+        headers: {
+          ...(body ? { "Content-Type": request.headers.get("content-type") ?? "application/json" } : {}),
+          ...buildAuthHeaders(token),
+        },
+        body,
       },
-      body,
-    },
-    60_000
-  );
+      60_000
+    );
+  } catch (err) {
+    const { message, code, hint } = describePersonaUpstreamFetchError(err);
+    return NextResponse.json(
+      { detail: "Bad Gateway", upstream: "persona-api", message, code, hint },
+      { status: 502, headers: { "Cache-Control": "no-store" } }
+    );
+  }
 
   const contentType = upstream.headers.get("content-type") ?? "application/json";
   const responseBody = await upstream.text();

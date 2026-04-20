@@ -53,3 +53,6 @@ Progress events are durable and stored in:
 ## Downstream usage
 `POST /projects/{id}/suggest-target-groups` will include the latest research summary (EN JSON) when available, in addition to `project.description` and `project.company_context`.
 
+## Troubleshooting failed runs
+If **pages** reached the crawl cap (e.g. 20) but **status=failed**, the crawl finished; the exception happened in **synthesis (EN)**, **translation (DE)**, or **DB save**. Check `GET /projects/{id}/research/status?run_id=…` field **`error`**, the **`run_failed`** SSE event `payload.error`, column `audion.project_research_runs.error`, and worker logs (`project.research.task.failed`).
+
