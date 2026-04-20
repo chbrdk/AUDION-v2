@@ -5,6 +5,11 @@ export const API_ROUTES = {
   projectResearchStatus: (projectId: string, runId: string) =>
     `/api/projects/${encodeURIComponent(projectId)}/research/status?run_id=${encodeURIComponent(runId)}`,
   projectResearchLatest: (projectId: string) => `/api/projects/${encodeURIComponent(projectId)}/research/latest`,
+  projectResearchStream: (projectId: string, runId: string, after?: string | null) => {
+    const qs = new URLSearchParams({ run_id: runId });
+    if (after) qs.set("after", after);
+    return `/api/projects/${encodeURIComponent(projectId)}/research/stream?${qs.toString()}`;
+  },
   personaAdminAvatar: (personaId: string) => `/api/persona-admin/${encodeURIComponent(personaId)}/avatar`,
   /** POST: translate short persona field strings (en↔de); Next.js proxies to persona-api. */
   personaAdminTranslateFields: (personaId: string) =>

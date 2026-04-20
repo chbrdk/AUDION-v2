@@ -20,6 +20,30 @@ The summary JSON is a stable V1 shape with sections:\n- `company_overview`\n- `o
 ## API endpoints
 - `POST /projects/{project_id}/research/start`\n- `GET /projects/{project_id}/research/status?run_id=...`\n- `GET /projects/{project_id}/research/latest`
 
+## Streaming (SSE) progress
+To maximize UX for long-running research runs, the UI can connect to a **Server-Sent Events** stream.
+
+- **API**: `GET /projects/{project_id}/research/stream?run_id=...&after=...`
+- **Event types** (sent as `event: progress` with a JSON `data:` payload):
+  - `run_queued`
+  - `run_started`
+  - `crawl_start`
+  - `page_fetched` (payload includes `url`, optional `depth`, `pages_fetched`)
+  - `crawl_done`
+  - `synthesize_start` / `synthesize_done`
+  - `translate_start` / `translate_done`
+  - `summary_saved`
+  - `run_failed` (payload includes `error`)
+- **Done signal**: when the run is finished and no further events are pending, the server sends `event: done` and closes the stream.
+- **Resume**: pass `after=` on reconnect. This can be either:
+  - an event UUID, or
+  - an ISO timestamp (event `created_at`)
+
+## Data model (events)
+Progress events are durable and stored in:
+
+- `audion.project_research_events`: `(run_id, event_type, message, payload, created_at)`
+
 ## Downstream usage
 `POST /projects/{id}/suggest-target-groups` will include the latest research summary (EN JSON) when available, in addition to `project.description` and `project.company_context`.
 

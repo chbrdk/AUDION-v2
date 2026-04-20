@@ -5,7 +5,9 @@ from datetime import datetime
 from uuid import UUID, uuid4
 
 import httpx
+import time
 from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
@@ -23,6 +25,7 @@ from ..models import (
     ProjectResearchRunStatus,
     ProjectResearchSource,
     ProjectResearchSummary,
+    ProjectResearchEvent,
 )
 from ..schemas import (
     ProjectCreateRequest,
@@ -633,6 +636,93 @@ def get_latest_project_research(
         summary_de=summary.summary_de if isinstance(summary.summary_de, dict) else None,
         citations=summary.citations if isinstance(summary.citations, dict) else None,
         created_at=summary.created_at.isoformat() if getattr(summary, "created_at", None) else None,
+    )
+
+
+@router.get(
+    "/{project_id}/research/stream",
+    summary="Stream Project AI Research progress (SSE)",
+    description="Server-Sent Events stream of durable research progress events for a run. Supports resume via `after` cursor.",
+)
+def stream_project_research_events(
+    project_id: str,
+    run_id: str,
+    after: str | None = None,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+):
+    project = _get_project(session, project_id)
+    membership = _require_member(session, project_id=project.id, user_id=current_user.id)
+    _require_admin_or_owner(membership)
+
+    try:
+        rid = UUID(run_id)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Invalid run_id") from exc
+
+    run = session.get(ProjectResearchRun, rid)
+    if not run or run.project_id != project.id:
+        raise HTTPException(status_code=404, detail="Research run not found")
+
+    def _iter_sse():
+        last_created_at: datetime | None = None
+        if after:
+            # after can be an ISO timestamp (created_at) or an event UUID
+            try:
+                last_created_at = datetime.fromisoformat(after.replace("Z", "+00:00"))
+            except Exception:
+                try:
+                    eid = UUID(after)
+                    ev = session.get(ProjectResearchEvent, eid)
+                    if ev and ev.run_id == run.id:
+                        last_created_at = ev.created_at
+                except Exception:
+                    last_created_at = None
+
+        ping_every_seconds = 15.0
+        last_ping = time.monotonic()
+
+        while True:
+            q = session.query(ProjectResearchEvent).where(ProjectResearchEvent.run_id == run.id)
+            if last_created_at:
+                q = q.where(ProjectResearchEvent.created_at > last_created_at)
+            events = q.order_by(ProjectResearchEvent.created_at.asc()).limit(200).all()
+
+            for ev in events:
+                created_at = ev.created_at.replace(tzinfo=None).isoformat() + "Z" if ev.created_at else None
+                data = {
+                    "id": str(ev.id),
+                    "type": ev.event_type,
+                    "message": ev.message,
+                    "payload": ev.payload,
+                    "created_at": created_at,
+                }
+                payload_str = json.dumps(data, ensure_ascii=False)
+                yield "event: progress\n"
+                yield f"data: {payload_str}\n\n"
+                last_created_at = ev.created_at
+
+            session.refresh(run)
+            if run.status in (ProjectResearchRunStatus.succeeded, ProjectResearchRunStatus.failed) and not events:
+                yield "event: done\n"
+                yield "data: {}\n\n"
+                return
+
+            now = time.monotonic()
+            if now - last_ping >= ping_every_seconds:
+                yield "event: ping\n"
+                yield "data: {}\n\n"
+                last_ping = now
+
+            time.sleep(0.5)
+
+    return StreamingResponse(
+        _iter_sse(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        },
     )
 
 

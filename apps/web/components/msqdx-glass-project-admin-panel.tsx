@@ -177,6 +177,13 @@ export function MsqdxGlassProjectAdminPanel({
     const [savingContext, setSavingContext] = useState(false);
 
     // Project AI research state
+    type ResearchEvent = {
+        id: string;
+        type: string;
+        message?: string | null;
+        payload?: any;
+        created_at?: string | null;
+    };
     const [researchSeedUrl, setResearchSeedUrl] = useState("");
     const [researchStarting, setResearchStarting] = useState(false);
     const [researchRunId, setResearchRunId] = useState<string | null>(null);
@@ -185,6 +192,14 @@ export function MsqdxGlassProjectAdminPanel({
     const [researchPagesFetched, setResearchPagesFetched] = useState<number>(0);
     const [researchLatestLoading, setResearchLatestLoading] = useState(false);
     const [researchLatest, setResearchLatest] = useState<any | null>(null);
+    const [researchEvents, setResearchEvents] = useState<ResearchEvent[]>([]);
+    const [researchStreaming, setResearchStreaming] = useState(false);
+    const lastResearchCursorRef = useRef<string | null>(null);
+    const researchReconnectRef = useRef<number | null>(null);
+    const researchCanLoadLatest = useMemo(() => {
+        if (researchStatus === "succeeded") return true;
+        return researchEvents.some((e) => e.type === "summary_saved");
+    }, [researchEvents, researchStatus]);
 
     const loadResearchLatest = useCallback(
         async (projectId: string) => {
@@ -210,6 +225,103 @@ export function MsqdxGlassProjectAdminPanel({
         []
     );
 
+    // Stream research progress events (SSE) for the active run
+    useEffect(() => {
+        if (!selectedId || !researchRunId) return;
+
+        let cancelled = false;
+        let es: EventSource | null = null;
+
+        const connect = (after: string | null) => {
+            if (cancelled) return;
+            if (researchReconnectRef.current) {
+                window.clearTimeout(researchReconnectRef.current);
+                researchReconnectRef.current = null;
+            }
+
+            const qs = new URLSearchParams({ run_id: researchRunId });
+            if (after) qs.set("after", after);
+            const url = buildApiUrl(API_ROUTES.projectResearchStream(selectedId, researchRunId, after));
+
+            try {
+                es = new EventSource(url);
+            } catch {
+                es = null;
+            }
+            if (!es) return;
+
+            setResearchStreaming(true);
+            es.addEventListener("progress", (evt) => {
+                if (cancelled) return;
+                try {
+                    const parsed = JSON.parse(String((evt as MessageEvent).data ?? "{}"));
+                    const next: ResearchEvent = {
+                        id: String(parsed.id),
+                        type: String(parsed.type),
+                        message: parsed.message,
+                        payload: parsed.payload,
+                        created_at: parsed.created_at,
+                    };
+                    lastResearchCursorRef.current = next.id || next.created_at || lastResearchCursorRef.current;
+                    setResearchEvents((prev) => {
+                        if (prev.some((p) => p.id === next.id)) return prev;
+                        return [...prev, next];
+                    });
+                    if (next.type === "page_fetched") {
+                        const pages = Number(next.payload?.pages_fetched ?? NaN);
+                        if (!Number.isNaN(pages)) setResearchPagesFetched(pages);
+                    }
+                    if (next.type === "summary_saved") {
+                        void loadResearchLatest(selectedId);
+                    }
+                } catch {
+                    // ignore parse errors
+                }
+            });
+
+            es.addEventListener("done", () => {
+                if (cancelled) return;
+                setResearchStreaming(false);
+                try {
+                    es?.close();
+                } catch {
+                    // ignore
+                }
+            });
+
+            es.onerror = () => {
+                if (cancelled) return;
+                setResearchStreaming(false);
+                try {
+                    es?.close();
+                } catch {
+                    // ignore
+                }
+                const cursor = lastResearchCursorRef.current;
+                researchReconnectRef.current = window.setTimeout(() => connect(cursor), 1500);
+            };
+        };
+
+        // New run => reset stream state
+        lastResearchCursorRef.current = null;
+        setResearchEvents([]);
+        connect(null);
+
+        return () => {
+            cancelled = true;
+            try {
+                es?.close();
+            } catch {
+                // ignore
+            }
+            if (researchReconnectRef.current) {
+                window.clearTimeout(researchReconnectRef.current);
+                researchReconnectRef.current = null;
+            }
+            setResearchStreaming(false);
+        };
+    }, [selectedId, researchRunId, loadResearchLatest]);
+
     const startResearch = useCallback(async () => {
         if (!selectedId) return;
         const seed = researchSeedUrl.trim();
@@ -230,6 +342,7 @@ export function MsqdxGlassProjectAdminPanel({
             setResearchRunId(data?.run_id ?? null);
             setResearchStatus(data?.status ?? null);
             setResearchPagesFetched(Number(data?.pages_fetched ?? 0));
+            setResearchLatest(null);
         } catch (e) {
             setResearchError(e instanceof Error ? e.message : "Failed to start research");
         } finally {
@@ -1492,7 +1605,7 @@ export function MsqdxGlassProjectAdminPanel({
                                                 variant="outlined"
                                                 size="small"
                                                 onClick={() => (selectedId ? loadResearchLatest(selectedId) : undefined)}
-                                                disabled={researchLatestLoading || !selectedId}
+                                                disabled={researchLatestLoading || !selectedId || !researchCanLoadLatest}
                                             >
                                                 {researchLatestLoading
                                                     ? t("settingsProjects.projectResearch.loadingLatest")
@@ -1505,6 +1618,59 @@ export function MsqdxGlassProjectAdminPanel({
                                                 ? `Run: ${researchRunId} · status=${researchStatus ?? "—"} · pages=${researchPagesFetched}`
                                                 : t("settingsProjects.projectResearch.noRuns")}
                                         </MsqdxTypography>
+
+                                        {researchRunId ? (
+                                            <Box
+                                                sx={{
+                                                    border: "1px solid",
+                                                    borderColor: "divider",
+                                                    borderRadius: 1,
+                                                    p: 1.5,
+                                                    bgcolor: "rgba(0,0,0,0.02)",
+                                                }}
+                                            >
+                                                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                                                    <MsqdxChip
+                                                        size="small"
+                                                        label={
+                                                            researchStreaming
+                                                                ? (t("settingsProjects.projectResearch.streaming") ?? "Live")
+                                                                : (t("settingsProjects.projectResearch.notStreaming") ?? "Not live")
+                                                        }
+                                                        color={researchStreaming ? "success" : "default"}
+                                                    />
+                                                    <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
+                                                        {t("settingsProjects.projectResearch.progressTimeline") ?? "Progress"}
+                                                    </MsqdxTypography>
+                                                </Stack>
+                                                {researchEvents.length ? (
+                                                    <Stack spacing={0.75}>
+                                                        {researchEvents.slice(-30).map((e) => (
+                                                            <Stack key={e.id} direction="row" spacing={1} sx={{ minWidth: 0 }}>
+                                                                <MsqdxTypography
+                                                                    variant="caption"
+                                                                    sx={{ color: "text.secondary", minWidth: 110 }}
+                                                                >
+                                                                    {e.type}
+                                                                </MsqdxTypography>
+                                                                <MsqdxTypography
+                                                                    variant="caption"
+                                                                    sx={{ color: "text.primary", minWidth: 0, wordBreak: "break-word" }}
+                                                                >
+                                                                    {e.message ||
+                                                                        (e.type === "page_fetched" ? String(e.payload?.url ?? "") : "")}
+                                                                </MsqdxTypography>
+                                                            </Stack>
+                                                        ))}
+                                                    </Stack>
+                                                ) : (
+                                                    <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
+                                                        {t("settingsProjects.projectResearch.waitingForEvents") ??
+                                                            "Waiting for progress updates..."}
+                                                    </MsqdxTypography>
+                                                )}
+                                            </Box>
+                                        ) : null}
 
                                         {researchError ? (
                                             <MsqdxTypography variant="caption" sx={{ color: "error.main" }}>

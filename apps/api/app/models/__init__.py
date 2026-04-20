@@ -687,3 +687,17 @@ class ProjectResearchSummary(Base):
 
     run = relationship("ProjectResearchRun", back_populates="summaries")
 
+
+class ProjectResearchEvent(Base):
+    __tablename__ = "project_research_events"
+    __table_args__ = {"schema": "audion"}
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    run_id = Column(UUID(as_uuid=True), ForeignKey("audion.project_research_runs.id", ondelete="CASCADE"), nullable=False)
+    event_type = Column(String(64), nullable=False)
+    message = Column(Text, nullable=True)
+    payload = Column(JSONB, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    run = relationship("ProjectResearchRun")
+
