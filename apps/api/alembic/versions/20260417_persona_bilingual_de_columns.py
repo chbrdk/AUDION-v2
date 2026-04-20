@@ -15,7 +15,6 @@ from __future__ import annotations
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 
 revision = "20260417_persona_bilingual_de"
@@ -25,30 +24,27 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "personas",
-        sa.Column("headline_de", sa.Text(), nullable=True),
-        schema="audion",
+    # IF NOT EXISTS: init_db.py (2d) may have added these before Alembic runs on legacy/stamped DBs.
+    op.execute(
+        sa.text("ALTER TABLE audion.personas ADD COLUMN IF NOT EXISTS headline_de TEXT NULL")
     )
-    op.add_column(
-        "personas",
-        sa.Column("profile_de", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-        schema="audion",
+    op.execute(
+        sa.text("ALTER TABLE audion.personas ADD COLUMN IF NOT EXISTS profile_de JSONB NULL")
     )
-    op.add_column(
-        "personas",
-        sa.Column("profile_card_de", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-        schema="audion",
+    op.execute(
+        sa.text("ALTER TABLE audion.personas ADD COLUMN IF NOT EXISTS profile_card_de JSONB NULL")
     )
-    op.add_column(
-        "persona_prompts",
-        sa.Column("system_prompt_de", sa.Text(), nullable=True),
-        schema="audion",
+    op.execute(
+        sa.text(
+            "ALTER TABLE audion.persona_prompts ADD COLUMN IF NOT EXISTS system_prompt_de TEXT NULL"
+        )
     )
 
 
 def downgrade() -> None:
-    op.drop_column("persona_prompts", "system_prompt_de", schema="audion")
-    op.drop_column("personas", "profile_card_de", schema="audion")
-    op.drop_column("personas", "profile_de", schema="audion")
-    op.drop_column("personas", "headline_de", schema="audion")
+    op.execute(
+        sa.text("ALTER TABLE audion.persona_prompts DROP COLUMN IF EXISTS system_prompt_de")
+    )
+    op.execute(sa.text("ALTER TABLE audion.personas DROP COLUMN IF EXISTS profile_card_de"))
+    op.execute(sa.text("ALTER TABLE audion.personas DROP COLUMN IF EXISTS profile_de"))
+    op.execute(sa.text("ALTER TABLE audion.personas DROP COLUMN IF EXISTS headline_de"))

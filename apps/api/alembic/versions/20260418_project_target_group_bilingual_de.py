@@ -24,43 +24,39 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "projects",
-        sa.Column("name_de", sa.String(length=128), nullable=True),
-        schema="audion",
+    # IF NOT EXISTS: init_db.py (2c) may have added these on legacy DBs before this revision runs.
+    op.execute(
+        sa.text("ALTER TABLE audion.projects ADD COLUMN IF NOT EXISTS name_de VARCHAR(128) NULL")
     )
-    op.add_column(
-        "projects",
-        sa.Column("description_de", sa.Text(), nullable=True),
-        schema="audion",
+    op.execute(
+        sa.text("ALTER TABLE audion.projects ADD COLUMN IF NOT EXISTS description_de TEXT NULL")
     )
-    op.add_column(
-        "projects",
-        sa.Column("company_context_de", sa.Text(), nullable=True),
-        schema="audion",
+    op.execute(
+        sa.text(
+            "ALTER TABLE audion.projects ADD COLUMN IF NOT EXISTS company_context_de TEXT NULL"
+        )
     )
-
-    op.add_column(
-        "target_groups",
-        sa.Column("name_de", sa.String(length=128), nullable=True),
-        schema="audion",
+    op.execute(
+        sa.text(
+            "ALTER TABLE audion.target_groups ADD COLUMN IF NOT EXISTS name_de VARCHAR(128) NULL"
+        )
     )
-    op.add_column(
-        "target_groups",
-        sa.Column("segment_de", sa.String(length=128), nullable=True),
-        schema="audion",
+    op.execute(
+        sa.text(
+            "ALTER TABLE audion.target_groups ADD COLUMN IF NOT EXISTS segment_de VARCHAR(128) NULL"
+        )
     )
-    op.add_column(
-        "target_groups",
-        sa.Column("description_de", sa.Text(), nullable=True),
-        schema="audion",
+    op.execute(
+        sa.text(
+            "ALTER TABLE audion.target_groups ADD COLUMN IF NOT EXISTS description_de TEXT NULL"
+        )
     )
 
 
 def downgrade() -> None:
-    op.drop_column("target_groups", "description_de", schema="audion")
-    op.drop_column("target_groups", "segment_de", schema="audion")
-    op.drop_column("target_groups", "name_de", schema="audion")
-    op.drop_column("projects", "company_context_de", schema="audion")
-    op.drop_column("projects", "description_de", schema="audion")
-    op.drop_column("projects", "name_de", schema="audion")
+    op.execute(sa.text("ALTER TABLE audion.target_groups DROP COLUMN IF EXISTS description_de"))
+    op.execute(sa.text("ALTER TABLE audion.target_groups DROP COLUMN IF EXISTS segment_de"))
+    op.execute(sa.text("ALTER TABLE audion.target_groups DROP COLUMN IF EXISTS name_de"))
+    op.execute(sa.text("ALTER TABLE audion.projects DROP COLUMN IF EXISTS company_context_de"))
+    op.execute(sa.text("ALTER TABLE audion.projects DROP COLUMN IF EXISTS description_de"))
+    op.execute(sa.text("ALTER TABLE audion.projects DROP COLUMN IF EXISTS name_de"))
