@@ -578,7 +578,7 @@ def start_project_research(
                 INSERT INTO audion.project_research_events
                   (id, run_id, event_type, message, payload, created_at)
                 VALUES
-                  (:id, :run_id, :event_type, :message, :payload::jsonb, :created_at)
+                  (:id, :run_id, :event_type, :message, CAST(:payload AS jsonb), :created_at)
                 """
             ),
             {
