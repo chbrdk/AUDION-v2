@@ -14,14 +14,24 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const search = request.nextUrl.searchParams.toString();
   const target = `${base}/projects/${projectId}/research/stream${search ? `?${search}` : ""}`;
 
-  const upstream = await fetch(target, {
-    method: "GET",
-    cache: "no-store",
-    headers: {
-      ...buildAuthHeaders(token),
-      Accept: "text/event-stream",
-    },
-  });
+  let upstream: Response;
+  try {
+    upstream = await fetch(target, {
+      method: "GET",
+      cache: "no-store",
+      headers: {
+        ...buildAuthHeaders(token),
+        Accept: "text/event-stream",
+      },
+    });
+  } catch (err) {
+    // If the upstream isn't reachable from the Next.js runtime, surface a clear 502.
+    const msg = err instanceof Error ? err.message : "Upstream request failed";
+    return new Response(JSON.stringify({ detail: "Bad Gateway", upstream: "persona-api", message: msg }), {
+      status: 502,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 
   const headers = new Headers();
   headers.set("Content-Type", upstream.headers.get("content-type") ?? "text/event-stream");
@@ -32,6 +42,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   // Pass through useful upstream headers if present
   const upstreamCache = upstream.headers.get("cache-control");
   if (upstreamCache) headers.set("Upstream-Cache-Control", upstreamCache);
+
+  // If upstream returned a non-OK, return the body as text (SSE clients can't show it, but devtools can).
+  if (!upstream.ok) {
+    const txt = await upstream.text().catch(() => "");
+    return new Response(txt || upstream.statusText, {
+      status: upstream.status,
+      headers: { "Content-Type": upstream.headers.get("content-type") ?? "text/plain" },
+    });
+  }
 
   return new Response(upstream.body, { status: upstream.status, headers });
 }
