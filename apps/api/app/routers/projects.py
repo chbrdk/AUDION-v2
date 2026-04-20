@@ -807,7 +807,11 @@ def stream_project_research_events(
                                 if row:
                                     last_created_at, last_event_id = row[0], row[1]
                     except Exception:
-                        last_seq = None
+                        if has_seq:
+                            last_seq = None
+                        else:
+                            last_created_at = None
+                            last_event_id = None
 
         ping_every_seconds = 15.0
         last_ping = time.monotonic()
@@ -823,27 +827,37 @@ def stream_project_research_events(
                     events = q.order_by(ProjectResearchEvent.seq.asc()).limit(200).all()
             else:
                 with get_session() as s:
-                    rows = s.execute(
-                        text(
-                            """
-                            SELECT id, event_type, message, payload, created_at
-                            FROM audion.project_research_events
-                            WHERE run_id = :rid
-                              AND (
-                                :lc IS NULL
-                                OR created_at > :lc
-                                OR (created_at = :lc AND id > :lid)
-                              )
-                            ORDER BY created_at ASC, id ASC
-                            LIMIT 200
-                            """
-                        ),
-                        {
-                            "rid": str(run.id),
-                            "lc": last_created_at,
-                            "lid": str(last_event_id) if last_event_id else "00000000-0000-0000-0000-000000000000",
-                        },
-                    ).mappings().all()
+                    # NOTE: Avoid `%(lc)s IS NULL` with an untyped NULL bind — Postgres can't infer the parameter type.
+                    if last_created_at is None or last_event_id is None:
+                        rows = s.execute(
+                            text(
+                                """
+                                SELECT id, event_type, message, payload, created_at
+                                FROM audion.project_research_events
+                                WHERE run_id = :rid
+                                ORDER BY created_at ASC, id ASC
+                                LIMIT 200
+                                """
+                            ),
+                            {"rid": str(run.id)},
+                        ).mappings().all()
+                    else:
+                        rows = s.execute(
+                            text(
+                                """
+                                SELECT id, event_type, message, payload, created_at
+                                FROM audion.project_research_events
+                                WHERE run_id = :rid
+                                  AND (
+                                    created_at > :lc
+                                    OR (created_at = :lc AND id > :lid)
+                                  )
+                                ORDER BY created_at ASC, id ASC
+                                LIMIT 200
+                                """
+                            ),
+                            {"rid": str(run.id), "lc": last_created_at, "lid": str(last_event_id)},
+                        ).mappings().all()
                     events = list(rows)
 
             for ev in events:
