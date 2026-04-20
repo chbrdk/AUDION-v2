@@ -1,13 +1,14 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import structlog
 
 from ..celery_app import celery_app
 from ..db import get_session
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 
 from ..models import ProjectResearchEvent, ProjectResearchRun, ProjectResearchRunStatus, ProjectResearchSource, ProjectResearchSummary
 from ..services.project_research_crawl import CrawlLimits, crawl_project_website
@@ -20,7 +21,30 @@ logger = structlog.get_logger(__name__)
 
 
 def _max_event_seq(session, *, run_id: UUID) -> int:
-    val = session.scalar(select(func.coalesce(func.max(ProjectResearchEvent.seq), 0)).where(ProjectResearchEvent.run_id == run_id))
+    try:
+        has_seq = bool(
+            session.execute(
+                text(
+                    """
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_schema = 'audion'
+                      AND table_name = 'project_research_events'
+                      AND column_name = 'seq'
+                    LIMIT 1
+                    """
+                )
+            ).scalar()
+        )
+    except Exception:
+        has_seq = False
+
+    if not has_seq:
+        return 0
+
+    val = session.scalar(
+        select(func.coalesce(func.max(ProjectResearchEvent.seq), 0)).where(ProjectResearchEvent.run_id == run_id)
+    )
     return int(val or 0)
 
 
@@ -33,16 +57,55 @@ def _emit(
     message: str | None = None,
     payload: dict | None = None,
 ) -> None:
-    session.add(
-        ProjectResearchEvent(
-            run_id=run_id,
-            seq=seq,
-            event_type=event_type,
-            message=message,
-            payload=payload,
-            created_at=datetime.utcnow(),
+    try:
+        has_seq = bool(
+            session.execute(
+                text(
+                    """
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_schema = 'audion'
+                      AND table_name = 'project_research_events'
+                      AND column_name = 'seq'
+                    LIMIT 1
+                    """
+                )
+            ).scalar()
         )
-    )
+    except Exception:
+        has_seq = False
+
+    if has_seq:
+        session.add(
+            ProjectResearchEvent(
+                run_id=run_id,
+                seq=seq,
+                event_type=event_type,
+                message=message,
+                payload=payload,
+                created_at=datetime.utcnow(),
+            )
+        )
+    else:
+        # Legacy DBs that were stamped but not migrated yet (no `seq` column).
+        session.execute(
+            text(
+                """
+                INSERT INTO audion.project_research_events
+                  (id, run_id, event_type, message, payload, created_at)
+                VALUES
+                  (:id, :run_id, :event_type, :message, :payload::jsonb, :created_at)
+                """
+            ),
+            {
+                "id": str(uuid4()),
+                "run_id": str(run_id),
+                "event_type": event_type,
+                "message": message,
+                "payload": None if payload is None else json.dumps(payload, ensure_ascii=False),
+                "created_at": datetime.utcnow(),
+            },
+        )
 
 
 @celery_app.task(name="project.research.run", bind=True, max_retries=0)

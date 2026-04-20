@@ -8,6 +8,7 @@ import httpx
 import time
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
+from sqlalchemy import text
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
@@ -535,20 +536,61 @@ def start_project_research(
     session.refresh(run)
 
     # Emit durable event immediately (this is the true "queued" moment).
-    next_seq = session.scalar(
-        select(func.coalesce(func.max(ProjectResearchEvent.seq), 0)).where(ProjectResearchEvent.run_id == run.id)
-    )
-    session.add(
-        ProjectResearchEvent(
-            run_id=run.id,
-            seq=int(next_seq or 0) + 1,
-            event_type="run_queued",
-            message="Run created; waiting for worker to start.",
-            payload={"seed_url": seed_url},
-            created_at=datetime.utcnow(),
+    has_seq = False
+    try:
+        has_seq = bool(
+            session.execute(
+                text(
+                    """
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_schema = 'audion'
+                      AND table_name = 'project_research_events'
+                      AND column_name = 'seq'
+                    LIMIT 1
+                    """
+                )
+            ).scalar()
         )
-    )
-    session.commit()
+    except Exception:
+        has_seq = False
+
+    if has_seq:
+        next_seq = session.scalar(
+            select(func.coalesce(func.max(ProjectResearchEvent.seq), 0)).where(ProjectResearchEvent.run_id == run.id)
+        )
+        session.add(
+            ProjectResearchEvent(
+                run_id=run.id,
+                seq=int(next_seq or 0) + 1,
+                event_type="run_queued",
+                message="Run created; waiting for worker to start.",
+                payload={"seed_url": seed_url},
+                created_at=datetime.utcnow(),
+            )
+        )
+        session.commit()
+    else:
+        # Legacy DBs that were stamped but not migrated yet (no `seq` column).
+        session.execute(
+            text(
+                """
+                INSERT INTO audion.project_research_events
+                  (id, run_id, event_type, message, payload, created_at)
+                VALUES
+                  (:id, :run_id, :event_type, :message, :payload::jsonb, :created_at)
+                """
+            ),
+            {
+                "id": str(uuid4()),
+                "run_id": str(run.id),
+                "event_type": "run_queued",
+                "message": "Run created; waiting for worker to start.",
+                "payload": json.dumps({"seed_url": seed_url}, ensure_ascii=False),
+                "created_at": datetime.utcnow(),
+            },
+        )
+        session.commit()
 
     result = celery_app.send_task(
         "project.research.run",
@@ -681,18 +723,40 @@ def stream_project_research_events(
         raise HTTPException(status_code=404, detail="Research run not found")
 
     def _iter_sse():
+        # Backward compatibility: some prod DBs may have `project_research_events` but no `seq` yet.
+        has_seq = False
+        try:
+            with get_session() as s:
+                has_seq = bool(
+                    s.execute(
+                        text(
+                            """
+                            SELECT 1
+                            FROM information_schema.columns
+                            WHERE table_schema = 'audion'
+                              AND table_name = 'project_research_events'
+                              AND column_name = 'seq'
+                            LIMIT 1
+                            """
+                        )
+                    ).scalar()
+                )
+        except Exception:
+            has_seq = False
+
         last_seq: int | None = None
         if after:
             # after can be a seq integer, an event UUID, or an ISO timestamp (created_at)
-            if after.isdigit():
+            if has_seq and after.isdigit():
                 last_seq = int(after)
             else:
                 try:
                     eid = UUID(after)
                     with get_session() as s:
-                        ev = s.get(ProjectResearchEvent, eid)
-                        if ev and ev.run_id == run.id:
-                            last_seq = ev.seq
+                        if has_seq:
+                            ev = s.get(ProjectResearchEvent, eid)
+                            if ev and ev.run_id == run.id:
+                                last_seq = ev.seq
                 except Exception:
                     try:
                         dt = datetime.fromisoformat(after.replace("Z", "+00:00"))
@@ -701,11 +765,14 @@ def stream_project_research_events(
                                 s.query(ProjectResearchEvent)
                                 .where(ProjectResearchEvent.run_id == run.id)
                                 .where(ProjectResearchEvent.created_at <= dt)
-                                .order_by(ProjectResearchEvent.created_at.desc(), ProjectResearchEvent.seq.desc())
+                                .order_by(
+                                    ProjectResearchEvent.created_at.desc(),
+                                    ProjectResearchEvent.seq.desc() if has_seq else ProjectResearchEvent.id.desc(),
+                                )
                                 .first()
                             )
                             if ev:
-                                last_seq = ev.seq
+                                last_seq = ev.seq if has_seq else None
                     except Exception:
                         last_seq = None
 
@@ -716,15 +783,19 @@ def stream_project_research_events(
             # Use short-lived DB sessions for streaming to avoid long-held connections/transactions.
             with get_session() as s:
                 q = s.query(ProjectResearchEvent).where(ProjectResearchEvent.run_id == run.id)
-                if last_seq is not None:
-                    q = q.where(ProjectResearchEvent.seq > last_seq)
-                events = q.order_by(ProjectResearchEvent.seq.asc()).limit(200).all()
+                if has_seq:
+                    if last_seq is not None:
+                        q = q.where(ProjectResearchEvent.seq > last_seq)
+                    events = q.order_by(ProjectResearchEvent.seq.asc()).limit(200).all()
+                else:
+                    # No seq -> stream ordered by created_at + id, resume only via timestamp/uuid.
+                    events = q.order_by(ProjectResearchEvent.created_at.asc(), ProjectResearchEvent.id.asc()).limit(200).all()
 
             for ev in events:
                 created_at = ev.created_at.replace(tzinfo=None).isoformat() + "Z" if ev.created_at else None
                 data = {
                     "id": str(ev.id),
-                    "seq": int(ev.seq),
+                    "seq": int(ev.seq) if has_seq and getattr(ev, "seq", None) is not None else None,
                     "type": ev.event_type,
                     "message": ev.message,
                     "payload": ev.payload,
@@ -733,7 +804,8 @@ def stream_project_research_events(
                 payload_str = json.dumps(data, ensure_ascii=False)
                 yield "event: progress\n"
                 yield f"data: {payload_str}\n\n"
-                last_seq = int(ev.seq)
+                if has_seq and getattr(ev, "seq", None) is not None:
+                    last_seq = int(ev.seq)
 
             # Stop conditions: run finished and no pending events since last_seq.
             if not events:
