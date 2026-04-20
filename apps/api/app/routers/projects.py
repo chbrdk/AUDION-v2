@@ -534,6 +534,22 @@ def start_project_research(
     session.commit()
     session.refresh(run)
 
+    # Emit durable event immediately (this is the true "queued" moment).
+    next_seq = session.scalar(
+        select(func.coalesce(func.max(ProjectResearchEvent.seq), 0)).where(ProjectResearchEvent.run_id == run.id)
+    )
+    session.add(
+        ProjectResearchEvent(
+            run_id=run.id,
+            seq=int(next_seq or 0) + 1,
+            event_type="run_queued",
+            message="Run created; waiting for worker to start.",
+            payload={"seed_url": seed_url},
+            created_at=datetime.utcnow(),
+        )
+    )
+    session.commit()
+
     result = celery_app.send_task(
         "project.research.run",
         kwargs={"run_id": str(run.id)},
@@ -665,33 +681,50 @@ def stream_project_research_events(
         raise HTTPException(status_code=404, detail="Research run not found")
 
     def _iter_sse():
-        last_created_at: datetime | None = None
+        last_seq: int | None = None
         if after:
-            # after can be an ISO timestamp (created_at) or an event UUID
-            try:
-                last_created_at = datetime.fromisoformat(after.replace("Z", "+00:00"))
-            except Exception:
+            # after can be a seq integer, an event UUID, or an ISO timestamp (created_at)
+            if after.isdigit():
+                last_seq = int(after)
+            else:
                 try:
                     eid = UUID(after)
-                    ev = session.get(ProjectResearchEvent, eid)
-                    if ev and ev.run_id == run.id:
-                        last_created_at = ev.created_at
+                    with get_session() as s:
+                        ev = s.get(ProjectResearchEvent, eid)
+                        if ev and ev.run_id == run.id:
+                            last_seq = ev.seq
                 except Exception:
-                    last_created_at = None
+                    try:
+                        dt = datetime.fromisoformat(after.replace("Z", "+00:00"))
+                        with get_session() as s:
+                            ev = (
+                                s.query(ProjectResearchEvent)
+                                .where(ProjectResearchEvent.run_id == run.id)
+                                .where(ProjectResearchEvent.created_at <= dt)
+                                .order_by(ProjectResearchEvent.created_at.desc(), ProjectResearchEvent.seq.desc())
+                                .first()
+                            )
+                            if ev:
+                                last_seq = ev.seq
+                    except Exception:
+                        last_seq = None
 
         ping_every_seconds = 15.0
         last_ping = time.monotonic()
 
         while True:
-            q = session.query(ProjectResearchEvent).where(ProjectResearchEvent.run_id == run.id)
-            if last_created_at:
-                q = q.where(ProjectResearchEvent.created_at > last_created_at)
-            events = q.order_by(ProjectResearchEvent.created_at.asc()).limit(200).all()
+            # Use short-lived DB sessions for streaming to avoid long-held connections/transactions.
+            with get_session() as s:
+                q = s.query(ProjectResearchEvent).where(ProjectResearchEvent.run_id == run.id)
+                if last_seq is not None:
+                    q = q.where(ProjectResearchEvent.seq > last_seq)
+                events = q.order_by(ProjectResearchEvent.seq.asc()).limit(200).all()
 
             for ev in events:
                 created_at = ev.created_at.replace(tzinfo=None).isoformat() + "Z" if ev.created_at else None
                 data = {
                     "id": str(ev.id),
+                    "seq": int(ev.seq),
                     "type": ev.event_type,
                     "message": ev.message,
                     "payload": ev.payload,
@@ -700,13 +733,19 @@ def stream_project_research_events(
                 payload_str = json.dumps(data, ensure_ascii=False)
                 yield "event: progress\n"
                 yield f"data: {payload_str}\n\n"
-                last_created_at = ev.created_at
+                last_seq = int(ev.seq)
 
-            session.refresh(run)
-            if run.status in (ProjectResearchRunStatus.succeeded, ProjectResearchRunStatus.failed) and not events:
-                yield "event: done\n"
-                yield "data: {}\n\n"
-                return
+            # Stop conditions: run finished and no pending events since last_seq.
+            if not events:
+                with get_session() as s:
+                    fresh_run = s.get(ProjectResearchRun, run.id)
+                    if fresh_run and fresh_run.status in (
+                        ProjectResearchRunStatus.succeeded,
+                        ProjectResearchRunStatus.failed,
+                    ):
+                        yield "event: done\n"
+                        yield "data: {}\n\n"
+                        return
 
             now = time.monotonic()
             if now - last_ping >= ping_every_seconds:

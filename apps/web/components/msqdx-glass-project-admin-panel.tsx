@@ -179,6 +179,7 @@ export function MsqdxGlassProjectAdminPanel({
     // Project AI research state
     type ResearchEvent = {
         id: string;
+        seq?: number | null;
         type: string;
         message?: string | null;
         payload?: any;
@@ -194,12 +195,50 @@ export function MsqdxGlassProjectAdminPanel({
     const [researchLatest, setResearchLatest] = useState<any | null>(null);
     const [researchEvents, setResearchEvents] = useState<ResearchEvent[]>([]);
     const [researchStreaming, setResearchStreaming] = useState(false);
+    const [researchReconnecting, setResearchReconnecting] = useState(false);
+    const [researchShowPages, setResearchShowPages] = useState(false);
     const lastResearchCursorRef = useRef<string | null>(null);
     const researchReconnectRef = useRef<number | null>(null);
     const researchCanLoadLatest = useMemo(() => {
         if (researchStatus === "succeeded") return true;
         return researchEvents.some((e) => e.type === "summary_saved");
     }, [researchEvents, researchStatus]);
+
+    const researchPhase = useMemo(() => {
+        const types = researchEvents.map((e) => e.type);
+        if (types.includes("run_failed") || researchStatus === "failed") return "failed";
+        if (types.includes("summary_saved") || researchStatus === "succeeded") return "done";
+        if (types.includes("translate_start") || types.includes("translate_done")) return "translate";
+        if (types.includes("synthesize_start") || types.includes("synthesize_done")) return "synthesize";
+        if (types.includes("crawl_start") || types.includes("page_fetched") || types.includes("crawl_done")) return "crawl";
+        if (researchStatus === "queued") return "queued";
+        return "idle";
+    }, [researchEvents, researchStatus]);
+
+    const researchTimelineItems = useMemo(() => {
+        const nonPage = researchEvents.filter((e) => e.type !== "page_fetched");
+        const pageEvents = researchEvents.filter((e) => e.type === "page_fetched");
+        const lastPage = pageEvents.length ? pageEvents[pageEvents.length - 1] : null;
+
+        const items: Array<ResearchEvent & { __synthetic?: boolean }> = [];
+
+        if (pageEvents.length) {
+            items.push({
+                id: "__pages_fetched__",
+                seq: lastPage?.seq ?? null,
+                type: "pages_fetched",
+                message: `Fetched ${pageEvents.length} page${pageEvents.length === 1 ? "" : "s"}${lastPage?.payload?.url ? ` (latest: ${String(lastPage.payload.url)})` : ""}`,
+                payload: { pages_fetched: pageEvents.length, latest_url: lastPage?.payload?.url },
+                created_at: lastPage?.created_at ?? null,
+                __synthetic: true,
+            });
+        }
+
+        // Keep the most recent phase/state events, plus the synthetic pages summary above.
+        const tail = nonPage.slice(-20);
+        const pageTail = researchShowPages ? pageEvents.slice(-20) : [];
+        return [...tail, ...items, ...pageTail];
+    }, [researchEvents, researchShowPages]);
 
     const loadResearchLatest = useCallback(
         async (projectId: string) => {
@@ -251,18 +290,25 @@ export function MsqdxGlassProjectAdminPanel({
             if (!es) return;
 
             setResearchStreaming(true);
+            setResearchReconnecting(false);
             es.addEventListener("progress", (evt) => {
                 if (cancelled) return;
                 try {
                     const parsed = JSON.parse(String((evt as MessageEvent).data ?? "{}"));
                     const next: ResearchEvent = {
                         id: String(parsed.id),
+                        seq: typeof parsed.seq === "number" ? parsed.seq : null,
                         type: String(parsed.type),
                         message: parsed.message,
                         payload: parsed.payload,
                         created_at: parsed.created_at,
                     };
-                    lastResearchCursorRef.current = next.id || next.created_at || lastResearchCursorRef.current;
+                    // Prefer seq for resume (strict ordering); fallback to id / timestamp.
+                    lastResearchCursorRef.current =
+                        (next.seq != null ? String(next.seq) : null) ||
+                        next.id ||
+                        next.created_at ||
+                        lastResearchCursorRef.current;
                     setResearchEvents((prev) => {
                         if (prev.some((p) => p.id === next.id)) return prev;
                         return [...prev, next];
@@ -282,6 +328,7 @@ export function MsqdxGlassProjectAdminPanel({
             es.addEventListener("done", () => {
                 if (cancelled) return;
                 setResearchStreaming(false);
+                setResearchReconnecting(false);
                 try {
                     es?.close();
                 } catch {
@@ -292,6 +339,7 @@ export function MsqdxGlassProjectAdminPanel({
             es.onerror = () => {
                 if (cancelled) return;
                 setResearchStreaming(false);
+                setResearchReconnecting(true);
                 try {
                     es?.close();
                 } catch {
@@ -305,6 +353,7 @@ export function MsqdxGlassProjectAdminPanel({
         // New run => reset stream state
         lastResearchCursorRef.current = null;
         setResearchEvents([]);
+        setResearchReconnecting(false);
         connect(null);
 
         return () => {
@@ -319,6 +368,7 @@ export function MsqdxGlassProjectAdminPanel({
                 researchReconnectRef.current = null;
             }
             setResearchStreaming(false);
+            setResearchReconnecting(false);
         };
     }, [selectedId, researchRunId, loadResearchLatest]);
 
@@ -1639,19 +1689,62 @@ export function MsqdxGlassProjectAdminPanel({
                                                         }
                                                         color={researchStreaming ? "success" : "default"}
                                                     />
+                                                    <MsqdxChip
+                                                        size="small"
+                                                        label={
+                                                            researchPhase === "crawl"
+                                                                ? (t("settingsProjects.projectResearch.phaseCrawl") ?? "Crawl")
+                                                                : researchPhase === "synthesize"
+                                                                  ? (t("settingsProjects.projectResearch.phaseSynthesize") ?? "Synthesize")
+                                                                  : researchPhase === "translate"
+                                                                    ? (t("settingsProjects.projectResearch.phaseTranslate") ?? "Translate")
+                                                                    : researchPhase === "done"
+                                                                      ? (t("settingsProjects.projectResearch.phaseDone") ?? "Done")
+                                                                      : researchPhase === "failed"
+                                                                        ? (t("settingsProjects.projectResearch.phaseFailed") ?? "Failed")
+                                                                        : researchPhase === "queued"
+                                                                          ? (t("settingsProjects.projectResearch.phaseQueued") ?? "Queued")
+                                                                          : "—"
+                                                        }
+                                                        color={
+                                                            researchPhase === "failed"
+                                                                ? "error"
+                                                                : researchPhase === "done"
+                                                                  ? "success"
+                                                                  : researchPhase === "queued"
+                                                                    ? "warning"
+                                                                    : "default"
+                                                        }
+                                                    />
                                                     <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
                                                         {t("settingsProjects.projectResearch.progressTimeline") ?? "Progress"}
                                                     </MsqdxTypography>
+                                                    <MsqdxButton
+                                                        variant="text"
+                                                        size="small"
+                                                        onClick={() => setResearchShowPages((v) => !v)}
+                                                    >
+                                                        {researchShowPages
+                                                            ? (t("settingsProjects.projectResearch.hidePages") ?? "Hide pages")
+                                                            : (t("settingsProjects.projectResearch.showPages") ?? "Show pages")}
+                                                    </MsqdxButton>
                                                 </Stack>
-                                                {researchEvents.length ? (
+                                                {researchReconnecting ? (
+                                                    <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 1 }}>
+                                                        {t("settingsProjects.projectResearch.reconnecting") ?? "Reconnecting…"}
+                                                    </MsqdxTypography>
+                                                ) : null}
+                                                {researchTimelineItems.length ? (
                                                     <Stack spacing={0.75}>
-                                                        {researchEvents.slice(-30).map((e) => (
+                                                        {researchTimelineItems.map((e) => (
                                                             <Stack key={e.id} direction="row" spacing={1} sx={{ minWidth: 0 }}>
                                                                 <MsqdxTypography
                                                                     variant="caption"
                                                                     sx={{ color: "text.secondary", minWidth: 110 }}
                                                                 >
-                                                                    {e.type}
+                                                                    {e.type === "pages_fetched"
+                                                                        ? (t("settingsProjects.projectResearch.crawlProgress") ?? "Crawl progress")
+                                                                        : e.type}
                                                                 </MsqdxTypography>
                                                                 <MsqdxTypography
                                                                     variant="caption"

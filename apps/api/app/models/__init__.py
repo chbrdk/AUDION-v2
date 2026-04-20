@@ -694,6 +694,7 @@ class ProjectResearchEvent(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     run_id = Column(UUID(as_uuid=True), ForeignKey("audion.project_research_runs.id", ondelete="CASCADE"), nullable=False)
+    seq = Column(BigInteger, nullable=False)
     event_type = Column(String(64), nullable=False)
     message = Column(Text, nullable=True)
     payload = Column(JSONB, nullable=True)
