@@ -128,6 +128,12 @@ class Settings(BaseSettings):
     easy_setup_url_max_response_bytes: int = 2 * 1024 * 1024  # 2 MB raw response cap
     easy_setup_url_max_text_chars: int = 16_000  # appended to company_context after strip
 
+    # CHECKION (optional): enrich Project AI Research with Deep Scan page metadata (classification).
+    # Server-side only. Requires an API token for a CHECKION user that owns the domain scans (see knowledge).
+    checkion_api_base_url: str | None = None
+    checkion_api_token: str | None = None
+    checkion_request_timeout_seconds: float = 30.0
+
     # Feature Flags
     use_storion_proxy: bool = False
     storion_sync_poll_interval: float = 5.0

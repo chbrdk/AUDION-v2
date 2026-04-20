@@ -78,6 +78,18 @@ See [knowledge/tavus-video-chat.md](../knowledge/tavus-video-chat.md) for setup 
 - `http://api:8000` (not `http://localhost:8000`)
 - `http://chat-api:8001` (not `http://localhost:8001`)
 
+### CHECKION (Project AI Research enrichment)
+
+When both are set, the persona-api Celery worker calls CHECKION after the crawl to attach **per-page Deep Scan metadata** (e.g. `pageClassification`) to matching source URLs before synthesis. If CHECKION is unreachable or returns no scan, research continues with crawl text only.
+
+| Variable | Description | Default | Service |
+|----------|-------------|---------|---------|
+| `CHECKION_API_BASE_URL` | CHECKION Next.js origin (no trailing slash), e.g. `http://checkion:3000` or `https://checkion.example.com` | – | api, celery-worker |
+| `CHECKION_API_TOKEN` | CHECKION API Bearer token (`checkion_` + 64 hex). Must belong to the CHECKION user under whom Deep Scans for target domains were run. | – | api, celery-worker |
+| `CHECKION_REQUEST_TIMEOUT_SECONDS` | HTTP timeout for CHECKION calls | `30` | api, celery-worker |
+
+See [knowledge/project-ai-research.md](../knowledge/project-ai-research.md) (CHECKION section).
+
 ### Service URLs
 
 | Variable | Description | Default | Service |
@@ -110,6 +122,9 @@ NEO4J_PASSWORD=your-neo4j-password
 OPENAI_API_KEY=sk-proj-...
 CLAUDE_API_KEY=sk-ant-...  # Optional
 APP_ENV=production
+# Optional: CHECKION Deep Scan metadata for Project AI Research
+# CHECKION_API_BASE_URL=http://checkion:3000
+# CHECKION_API_TOKEN=checkion_...
 ```
 
 ### Chat API Service
@@ -145,6 +160,9 @@ NEO4J_PASSWORD=your-neo4j-password
 OPENAI_API_KEY=sk-proj-...
 CLAUDE_API_KEY=sk-ant-...  # Optional
 APP_ENV=production
+# Optional: same CHECKION vars as API if workers run Project AI Research
+# CHECKION_API_BASE_URL=http://checkion:3000
+# CHECKION_API_TOKEN=checkion_...
 ```
 
 ### Celery Beat Service

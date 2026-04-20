@@ -53,6 +53,13 @@ Progress events are durable and stored in:
 ## OpenAI model (persona-api, shared)
 Default **`gpt-5.4-mini`** via `ai_openai_model` in `apps/api/app/core/config.py` (override with env **`AI_OPENAI_MODEL`**). Project research synthesis/translation and other OpenAI call sites use this unless a code path passes another model.
 
+## CHECKION Deep Scan (optional enrichment)
+If **`CHECKION_API_BASE_URL`** and **`CHECKION_API_TOKEN`** are set on the **persona-api** and **Celery worker**, after the crawl the worker resolves the latest completed CHECKION domain scan for the **seed URL hostname** (`GET /api/scan/domain/by-domain?domain=…`), fetches paged **`GET /api/scan/domain/[scanId]/slim-pages`**, and merges a JSON-serializable **`checkion_page`** block (e.g. `pageClassification`, `score`, `uxScore`) onto each research source whose URL matches a slim page.
+
+**Constraint:** CHECKION only returns scans owned by the **user tied to the API token** (same as CHECKION’s `by-domain` behaviour). Use an **integration user** in CHECKION, run Deep Scans under that user, and put that user’s API token in AUDION env.
+
+If CHECKION is down, misconfigured, or has no scan, research **still succeeds** using crawl text only.
+
 ## Downstream usage
 `POST /projects/{id}/suggest-target-groups` will include the latest research summary (EN JSON) when available, in addition to `project.description` and `project.company_context`.
 

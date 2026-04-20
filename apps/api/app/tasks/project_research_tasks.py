@@ -10,7 +10,13 @@ from ..celery_app import celery_app
 from ..db import get_session
 from sqlalchemy import func, select, text
 
+from ..core.config import get_settings
 from ..models import ProjectResearchEvent, ProjectResearchRun, ProjectResearchRunStatus, ProjectResearchSource, ProjectResearchSummary
+from ..services.checkion_deep_scan_client import (
+    fetch_checkion_page_metadata_by_domain,
+    hostname_for_checkion_domain,
+    normalize_url_match_key,
+)
 from ..services.project_research_crawl import CrawlLimits, crawl_project_website
 from ..services.project_research_synthesis import (
     synthesize_project_research_summary_en,
@@ -183,6 +189,36 @@ def run_project_research_task(self, run_id: str) -> str:
             )
             session.commit()
             source_payload = [{"url": s.url, "text": s.raw_text or s.text_excerpt or ""} for s in sources]
+
+            settings = get_settings()
+            base = (settings.checkion_api_base_url or "").strip()
+            token = (settings.checkion_api_token or "").strip()
+            if base and token:
+                dom = hostname_for_checkion_domain(run.seed_url or "")
+                if dom:
+                    try:
+                        checkion_map = fetch_checkion_page_metadata_by_domain(
+                            base_url=base,
+                            token=token,
+                            domain=dom,
+                            timeout_seconds=float(settings.checkion_request_timeout_seconds or 30.0),
+                        )
+                        merged = 0
+                        for row in source_payload:
+                            key = normalize_url_match_key(str(row.get("url") or ""))
+                            meta = checkion_map.get(key)
+                            if meta:
+                                row["checkion_page"] = meta
+                                merged += 1
+                        logger.info(
+                            "project.research.checkion_merged",
+                            run_id=str(run.id),
+                            domain=dom,
+                            slim_pages_with_payload=len(checkion_map),
+                            sources_matched=merged,
+                        )
+                    except Exception as exc:
+                        logger.warning("project.research.checkion_skipped", run_id=str(run.id), error=str(exc))
         with get_session() as session:
             run = session.get(ProjectResearchRun, rid)
             if run:

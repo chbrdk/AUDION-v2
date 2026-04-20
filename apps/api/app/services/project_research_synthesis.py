@@ -43,25 +43,34 @@ def _openai_client() -> OpenAI:
     return OpenAI(api_key=settings.openai_api_key)
 
 
-def _sources_prompt(sources: list[dict[str, str]]) -> str:
+def _sources_prompt(sources: list[dict[str, Any]]) -> str:
     parts: list[str] = []
     for i, s in enumerate(sources, start=1):
         url = s.get("url") or ""
         text = s.get("text") or ""
         if not url or not text:
             continue
-        parts.append(f"SOURCE {i} URL: {url}\nSOURCE {i} TEXT:\n{text.strip()}\n")
+        block = f"SOURCE {i} URL: {url}\nSOURCE {i} TEXT:\n{text.strip()}\n"
+        cp = s.get("checkion_page")
+        if isinstance(cp, dict) and cp:
+            block += (
+                f"SOURCE {i} CHECKION_DEEP_SCAN (optional per-page metadata from an internal site scanner; "
+                "e.g. topic/tags/tiers. Use only to sharpen industry fit, wording, or hypotheses. "
+                "Do not treat CHECKION labels as facts—every substantive claim must still cite one or more SOURCE URLs from the page text above.):\n"
+                f"{json.dumps(cp, ensure_ascii=False)}\n"
+            )
+        parts.append(block)
     return "\n\n".join(parts)
 
 
-def synthesize_project_research_summary_en(*, sources: list[dict[str, str]]) -> dict[str, Any]:
+def synthesize_project_research_summary_en(*, sources: list[dict[str, Any]]) -> dict[str, Any]:
     """Return ProjectResearchSummaryV1 as dict (EN strings)."""
     client = _openai_client()
     model = settings.ai_openai_model or "gpt-5.4-mini"
     max_out = max(4096, int(settings.ai_project_research_max_completion_tokens or 16384))
     max_out = min(max_out, 128_000)
 
-    prompt = f"""You are a research analyst. Using ONLY the sources below, produce a structured research summary as ONE JSON object.\n\nHard rules:\n- Output must be ONE valid JSON object, no markdown fences.\n- English only for all human-readable strings.\n- Every claim MUST include citations: an array of URLs from the provided sources.\n- If you are unsure, omit the claim (do not guess).\n\nJSON schema:\n{{\n  \"version\": \"v1\",\n  \"company_overview\": {{\"summary\": string|null, \"claims\": [{{\"text\": string, \"citations\": [url], \"confidence\": number|null}}]}},\n  \"offerings\": {{...same...}},\n  \"industries\": {{...same...}},\n  \"icp_hypotheses\": {{...same...}},\n  \"buying_roles\": {{...same...}},\n  \"objections\": {{...same...}},\n  \"proof_points\": {{...same...}},\n  \"terminology\": {{...same...}},\n  \"meta\": {{\"notes\": string|null}}\n}}\n\nSources:\n---\n{_sources_prompt(sources)}\n---\n"""
+    prompt = f"""You are a research analyst. Using ONLY the sources below, produce a structured research summary as ONE JSON object.\n\nHard rules:\n- Output must be ONE valid JSON object, no markdown fences.\n- English only for all human-readable strings.\n- Every claim MUST include citations: an array of URLs from the provided SOURCE page URLs (the fetched page text).\n- Optional CHECKION_DEEP_SCAN blocks are supplementary signals (classification/metadata from another tool). They are not primary sources; do not cite CHECKION JSON as if it were the company website.\n- If you are unsure, omit the claim (do not guess).\n\nJSON schema:\n{{\n  \"version\": \"v1\",\n  \"company_overview\": {{\"summary\": string|null, \"claims\": [{{\"text\": string, \"citations\": [url], \"confidence\": number|null}}]}},\n  \"offerings\": {{...same...}},\n  \"industries\": {{...same...}},\n  \"icp_hypotheses\": {{...same...}},\n  \"buying_roles\": {{...same...}},\n  \"objections\": {{...same...}},\n  \"proof_points\": {{...same...}},\n  \"terminology\": {{...same...}},\n  \"meta\": {{\"notes\": string|null}}\n}}\n\nSources:\n---\n{_sources_prompt(sources)}\n---\n"""
 
     chat = _research_chat_completion(
         client,
