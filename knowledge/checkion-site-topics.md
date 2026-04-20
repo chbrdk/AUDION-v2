@@ -13,7 +13,8 @@ When CHECKION is not configured or no seed/scan is available, the API still retu
 
 1. Explicit `seed_url` query parameter if provided.
 2. Otherwise the latest **succeeded** `ProjectResearchRun.seed_url` for the project.
-3. If none: empty topics and `unavailable_reason=no_seed_url`.
+3. If none **and** the project has no `checkion_project_id`: empty topics and `unavailable_reason=no_seed_url`.
+4. If there is a linked **`checkion_project_id`**, the server resolves the latest scan via CHECKION `GET /api/projects/{id}/domain-summary` and does **not** require a research seed URL (hostname / by-domain is only used as fallback when the linked path is missing or returns no scan).
 
 ## Aggregation limits
 

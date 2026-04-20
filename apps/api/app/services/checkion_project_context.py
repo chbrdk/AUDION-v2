@@ -62,18 +62,19 @@ def fetch_checkion_site_topics_bundle(
         out["unavailable_reason"] = "checkion_not_configured"
         return out
 
+    checkion_pid = (getattr(project, "checkion_project_id", None) or "").strip() or None
     seed, hint = resolve_seed_url_for_checkion(session, project=project, explicit_seed_url=explicit_seed_url)
-    if not seed:
+    # Linked CHECKION project resolves scan via domain-summary; seed is only required for by-domain fallback.
+    if not seed and not checkion_pid:
         out["unavailable_reason"] = hint or "no_seed_url"
         return out
 
-    out["seed_url_used"] = seed
-    checkion_pid = getattr(project, "checkion_project_id", None)
+    out["seed_url_used"] = seed if seed else None
     pages, scan_id, source = fetch_checkion_raw_slim_pages_for_site_topics(
         base_url=base,
         token=token,
-        seed_url=seed,
-        checkion_project_id=checkion_pid if checkion_pid else None,
+        seed_url=seed or "",
+        checkion_project_id=checkion_pid,
         max_pages=max_pages,
         timeout_seconds=float(settings.checkion_request_timeout_seconds or 30.0),
     )

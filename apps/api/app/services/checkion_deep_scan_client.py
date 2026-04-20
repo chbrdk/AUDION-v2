@@ -362,7 +362,7 @@ def fetch_checkion_raw_slim_pages_for_site_topics(
     *,
     base_url: str,
     token: str,
-    seed_url: str,
+    seed_url: str | None,
     checkion_project_id: str | None,
     max_pages: int = _MAX_SLIM_PAGES_SITE_TOPICS_DEFAULT,
     timeout_seconds: float = 30.0,
