@@ -745,6 +745,9 @@ def stream_project_research_events(
             has_seq = False
 
         last_seq: int | None = None
+        # Legacy (no seq column): resume cursor is (created_at, id) — ORM cannot be used because mapper includes `seq`.
+        last_created_at: datetime | None = None
+        last_event_id: UUID | None = None
         if after:
             # after can be a seq integer, an event UUID, or an ISO timestamp (created_at)
             if has_seq and after.isdigit():
@@ -757,22 +760,52 @@ def stream_project_research_events(
                             ev = s.get(ProjectResearchEvent, eid)
                             if ev and ev.run_id == run.id:
                                 last_seq = ev.seq
+                        else:
+                            row = s.execute(
+                                text(
+                                    """
+                                    SELECT created_at, id
+                                    FROM audion.project_research_events
+                                    WHERE id = :eid AND run_id = :rid
+                                    LIMIT 1
+                                    """
+                                ),
+                                {"eid": str(eid), "rid": str(run.id)},
+                            ).first()
+                            if row:
+                                last_created_at, last_event_id = row[0], row[1]
                 except Exception:
                     try:
                         dt = datetime.fromisoformat(after.replace("Z", "+00:00"))
                         with get_session() as s:
-                            ev = (
-                                s.query(ProjectResearchEvent)
-                                .where(ProjectResearchEvent.run_id == run.id)
-                                .where(ProjectResearchEvent.created_at <= dt)
-                                .order_by(
-                                    ProjectResearchEvent.created_at.desc(),
-                                    ProjectResearchEvent.seq.desc() if has_seq else ProjectResearchEvent.id.desc(),
+                            if has_seq:
+                                ev = (
+                                    s.query(ProjectResearchEvent)
+                                    .where(ProjectResearchEvent.run_id == run.id)
+                                    .where(ProjectResearchEvent.created_at <= dt)
+                                    .order_by(
+                                        ProjectResearchEvent.created_at.desc(),
+                                        ProjectResearchEvent.seq.desc(),
+                                    )
+                                    .first()
                                 )
-                                .first()
-                            )
-                            if ev:
-                                last_seq = ev.seq if has_seq else None
+                                if ev:
+                                    last_seq = ev.seq
+                            else:
+                                row = s.execute(
+                                    text(
+                                        """
+                                        SELECT created_at, id
+                                        FROM audion.project_research_events
+                                        WHERE run_id = :rid AND created_at <= :dt
+                                        ORDER BY created_at DESC, id DESC
+                                        LIMIT 1
+                                        """
+                                    ),
+                                    {"rid": str(run.id), "dt": dt},
+                                ).first()
+                                if row:
+                                    last_created_at, last_event_id = row[0], row[1]
                     except Exception:
                         last_seq = None
 
@@ -781,31 +814,71 @@ def stream_project_research_events(
 
         while True:
             # Use short-lived DB sessions for streaming to avoid long-held connections/transactions.
-            with get_session() as s:
-                q = s.query(ProjectResearchEvent).where(ProjectResearchEvent.run_id == run.id)
-                if has_seq:
+            events: list = []
+            if has_seq:
+                with get_session() as s:
+                    q = s.query(ProjectResearchEvent).where(ProjectResearchEvent.run_id == run.id)
                     if last_seq is not None:
                         q = q.where(ProjectResearchEvent.seq > last_seq)
                     events = q.order_by(ProjectResearchEvent.seq.asc()).limit(200).all()
-                else:
-                    # No seq -> stream ordered by created_at + id, resume only via timestamp/uuid.
-                    events = q.order_by(ProjectResearchEvent.created_at.asc(), ProjectResearchEvent.id.asc()).limit(200).all()
+            else:
+                with get_session() as s:
+                    rows = s.execute(
+                        text(
+                            """
+                            SELECT id, event_type, message, payload, created_at
+                            FROM audion.project_research_events
+                            WHERE run_id = :rid
+                              AND (
+                                :lc IS NULL
+                                OR created_at > :lc
+                                OR (created_at = :lc AND id > :lid)
+                              )
+                            ORDER BY created_at ASC, id ASC
+                            LIMIT 200
+                            """
+                        ),
+                        {
+                            "rid": str(run.id),
+                            "lc": last_created_at,
+                            "lid": str(last_event_id) if last_event_id else "00000000-0000-0000-0000-000000000000",
+                        },
+                    ).mappings().all()
+                    events = list(rows)
 
             for ev in events:
-                created_at = ev.created_at.replace(tzinfo=None).isoformat() + "Z" if ev.created_at else None
-                data = {
-                    "id": str(ev.id),
-                    "seq": int(ev.seq) if has_seq and getattr(ev, "seq", None) is not None else None,
-                    "type": ev.event_type,
-                    "message": ev.message,
-                    "payload": ev.payload,
-                    "created_at": created_at,
-                }
-                payload_str = json.dumps(data, ensure_ascii=False)
-                yield "event: progress\n"
-                yield f"data: {payload_str}\n\n"
-                if has_seq and getattr(ev, "seq", None) is not None:
-                    last_seq = int(ev.seq)
+                if has_seq:
+                    created_at = ev.created_at.replace(tzinfo=None).isoformat() + "Z" if ev.created_at else None
+                    data = {
+                        "id": str(ev.id),
+                        "seq": int(ev.seq) if getattr(ev, "seq", None) is not None else None,
+                        "type": ev.event_type,
+                        "message": ev.message,
+                        "payload": ev.payload,
+                        "created_at": created_at,
+                    }
+                    payload_str = json.dumps(data, ensure_ascii=False)
+                    yield "event: progress\n"
+                    yield f"data: {payload_str}\n\n"
+                    if getattr(ev, "seq", None) is not None:
+                        last_seq = int(ev.seq)
+                else:
+                    eid = ev["id"]
+                    ca = ev["created_at"]
+                    created_at = ca.replace(tzinfo=None).isoformat() + "Z" if ca else None
+                    data = {
+                        "id": str(eid),
+                        "seq": None,
+                        "type": ev["event_type"],
+                        "message": ev["message"],
+                        "payload": ev["payload"],
+                        "created_at": created_at,
+                    }
+                    payload_str = json.dumps(data, ensure_ascii=False)
+                    yield "event: progress\n"
+                    yield f"data: {payload_str}\n\n"
+                    last_created_at = ca
+                    last_event_id = eid if isinstance(eid, UUID) else UUID(str(eid))
 
             # Stop conditions: run finished and no pending events since last_seq.
             if not events:
