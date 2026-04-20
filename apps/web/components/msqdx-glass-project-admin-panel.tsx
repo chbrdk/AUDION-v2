@@ -13,6 +13,7 @@ import { ADMIN_ROUTES } from "../lib/routes";
 import { mirrorFillStringPair } from "../lib/bilingual-mirror";
 import { isProjectAiContextEmpty } from "../lib/project-context";
 import { aiAssistApi, type AiTemplateSummary } from "../app/api/_lib/ai-assist";
+import { API_ROUTES } from "../lib/api-routes";
 import { useProject, type ProjectSummary, type ProjectMember } from "./projects/project-provider";
 import { useI18n } from "./i18n/i18n-provider";
 
@@ -122,6 +123,23 @@ export function MsqdxGlassProjectAdminPanel({
         return () => window.clearTimeout(timer);
     }, [selectedId, detailLoading]);
 
+    // Deep-link: /admin/projects/{id}#project-research
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        if (window.location.hash !== "#project-research") return;
+        if (!selectedId) return;
+        if (detailLoading) return;
+        setExpandedSections((prev) => {
+            const next = new Set(prev);
+            next.add("project-research");
+            return next;
+        });
+        const timer = window.setTimeout(() => {
+            document.getElementById("project-research")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 150);
+        return () => window.clearTimeout(timer);
+    }, [selectedId, detailLoading]);
+
     // Create Project State
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [newProjectName, setNewProjectName] = useState("");
@@ -136,7 +154,16 @@ export function MsqdxGlassProjectAdminPanel({
 
     // Accordion state for collapsible sections
     const [expandedSections, setExpandedSections] = useState<Set<string>>(
-        new Set(["overview", "company-context", "project-journeys", "suggest-target-groups", "suggest-personas", "members", "prompt-templates"])
+        new Set([
+            "overview",
+            "company-context",
+            "project-research",
+            "project-journeys",
+            "suggest-target-groups",
+            "suggest-personas",
+            "members",
+            "prompt-templates",
+        ])
     );
 
     // Company context form state (synced from detail on load)
@@ -148,6 +175,97 @@ export function MsqdxGlassProjectAdminPanel({
     const [projectNameDe, setProjectNameDe] = useState("");
     const [projectPublicationStatus, setProjectPublicationStatus] = useState<"draft" | "published">("draft");
     const [savingContext, setSavingContext] = useState(false);
+
+    // Project AI research state
+    const [researchSeedUrl, setResearchSeedUrl] = useState("");
+    const [researchStarting, setResearchStarting] = useState(false);
+    const [researchRunId, setResearchRunId] = useState<string | null>(null);
+    const [researchStatus, setResearchStatus] = useState<string | null>(null);
+    const [researchError, setResearchError] = useState<string | null>(null);
+    const [researchPagesFetched, setResearchPagesFetched] = useState<number>(0);
+    const [researchLatestLoading, setResearchLatestLoading] = useState(false);
+    const [researchLatest, setResearchLatest] = useState<any | null>(null);
+
+    const loadResearchLatest = useCallback(
+        async (projectId: string) => {
+            setResearchLatestLoading(true);
+            setResearchError(null);
+            try {
+                const res = await fetch(buildApiUrl(API_ROUTES.projectResearchLatest(projectId)), { cache: "no-store" });
+                if (!res.ok) {
+                    const txt = await res.text().catch(() => "");
+                    throw new Error(txt || res.statusText);
+                }
+                const data = await res.json();
+                setResearchLatest(data);
+                setResearchRunId(data?.run_id ?? null);
+                setResearchStatus(data?.status ?? null);
+            } catch (e) {
+                setResearchLatest(null);
+                setResearchError(e instanceof Error ? e.message : "Failed to load research");
+            } finally {
+                setResearchLatestLoading(false);
+            }
+        },
+        []
+    );
+
+    const startResearch = useCallback(async () => {
+        if (!selectedId) return;
+        const seed = researchSeedUrl.trim();
+        if (!seed) return;
+        setResearchStarting(true);
+        setResearchError(null);
+        try {
+            const res = await fetch(buildApiUrl(API_ROUTES.projectResearchStart(selectedId)), {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ seed_url: seed, max_pages: 20, max_depth: 2 }),
+            });
+            if (!res.ok) {
+                const txt = await res.text().catch(() => "");
+                throw new Error(txt || res.statusText);
+            }
+            const data = await res.json();
+            setResearchRunId(data?.run_id ?? null);
+            setResearchStatus(data?.status ?? null);
+            setResearchPagesFetched(Number(data?.pages_fetched ?? 0));
+        } catch (e) {
+            setResearchError(e instanceof Error ? e.message : "Failed to start research");
+        } finally {
+            setResearchStarting(false);
+        }
+    }, [selectedId, researchSeedUrl]);
+
+    // Poll research status while running
+    useEffect(() => {
+        if (!selectedId || !researchRunId) return;
+        if (!researchStatus || !["queued", "running"].includes(String(researchStatus))) return;
+        let cancelled = false;
+        const tick = async () => {
+            try {
+                const res = await fetch(buildApiUrl(API_ROUTES.projectResearchStatus(selectedId, researchRunId)), {
+                    cache: "no-store",
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (cancelled) return;
+                setResearchStatus(data?.status ?? null);
+                setResearchPagesFetched(Number(data?.pages_fetched ?? 0));
+                if (data?.status === "succeeded") {
+                    void loadResearchLatest(selectedId);
+                }
+            } catch {
+                // ignore polling errors
+            }
+        };
+        const timer = window.setInterval(tick, 2500);
+        void tick();
+        return () => {
+            cancelled = true;
+            window.clearInterval(timer);
+        };
+    }, [selectedId, researchRunId, researchStatus, loadResearchLatest]);
 
     const hasCompanyContextForAi = useMemo(
         () =>
@@ -1330,6 +1448,94 @@ export function MsqdxGlassProjectAdminPanel({
                                         >
                                             {savingContext ? (t("common.saving") ?? "Saving...") : (t("common.save") ?? "Save")}
                                         </MsqdxButton>
+                                    </Stack>
+                                </MsqdxDashboardCard>
+                            </Box>
+
+                            {/* Project AI Research */}
+                            <Box sx={{ gridColumn: "1 / -1" }}>
+                                <MsqdxDashboardCard
+                                    id="project-research"
+                                    title={t("settingsProjects.projectResearch.title") ?? "AI Research"}
+                                    icon="auto_awesome"
+                                    expanded={expandedSections.has("project-research")}
+                                    onToggle={toggleSection}
+                                >
+                                    <Stack spacing={2}>
+                                        <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+                                            {t("settingsProjects.projectResearch.subtitle")}
+                                        </MsqdxTypography>
+
+                                        <MsqdxFormField
+                                            label={t("settingsProjects.projectResearch.seedUrlLabel")}
+                                            value={researchSeedUrl}
+                                            onChange={(e) => setResearchSeedUrl(e.target.value)}
+                                            placeholder={t("settingsProjects.projectResearch.seedUrlPlaceholder")}
+                                            size="small"
+                                            fullWidth
+                                        />
+
+                                        <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+                                            <MsqdxButton
+                                                variant="contained"
+                                                size="small"
+                                                brandColor="green"
+                                                onClick={startResearch}
+                                                disabled={researchStarting || !selectedId || !researchSeedUrl.trim()}
+                                                startIcon={<MsqdxIcon name="auto_awesome" customSize={16} />}
+                                            >
+                                                {researchStarting
+                                                    ? t("settingsProjects.projectResearch.starting")
+                                                    : t("settingsProjects.projectResearch.start")}
+                                            </MsqdxButton>
+                                            <MsqdxButton
+                                                variant="outlined"
+                                                size="small"
+                                                onClick={() => (selectedId ? loadResearchLatest(selectedId) : undefined)}
+                                                disabled={researchLatestLoading || !selectedId}
+                                            >
+                                                {researchLatestLoading
+                                                    ? t("settingsProjects.projectResearch.loadingLatest")
+                                                    : t("settingsProjects.projectResearch.viewLatest")}
+                                            </MsqdxButton>
+                                        </Stack>
+
+                                        <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
+                                            {researchRunId
+                                                ? `Run: ${researchRunId} · status=${researchStatus ?? "—"} · pages=${researchPagesFetched}`
+                                                : t("settingsProjects.projectResearch.noRuns")}
+                                        </MsqdxTypography>
+
+                                        {researchError ? (
+                                            <MsqdxTypography variant="caption" sx={{ color: "error.main" }}>
+                                                {researchError}
+                                            </MsqdxTypography>
+                                        ) : null}
+
+                                        {researchLatest ? (
+                                            <Box
+                                                sx={{
+                                                    border: "1px solid",
+                                                    borderColor: "divider",
+                                                    borderRadius: 1,
+                                                    p: 1.5,
+                                                    bgcolor: "rgba(0,0,0,0.02)",
+                                                }}
+                                            >
+                                                <MsqdxTypography variant="subtitle2" weight="semibold" sx={{ mb: 1 }}>
+                                                    {t("settingsProjects.projectResearch.viewLatest")}
+                                                </MsqdxTypography>
+                                                <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>
+                                                    {JSON.stringify(
+                                                        locale === "de" && researchLatest.summary_de
+                                                            ? researchLatest.summary_de
+                                                            : researchLatest.summary_en,
+                                                        null,
+                                                        2
+                                                    )}
+                                                </pre>
+                                            </Box>
+                                        ) : null}
                                     </Stack>
                                 </MsqdxDashboardCard>
                             </Box>

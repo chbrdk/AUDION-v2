@@ -715,6 +715,24 @@
       "createOne": "Anlegen",
       "created": "Zielgruppe angelegt"
     },
+    "projectResearch": {
+      "title": "KI-Recherche",
+      "subtitle": "Crawlt die Unternehmenswebsite und erstellt eine strukturierte Zusammenfassung (EN kanonisch + DE Spiegel) für bessere Zielgruppen und Personas.",
+      "seedUrlLabel": "Unternehmens-URL",
+      "seedUrlPlaceholder": "https://example.com",
+      "start": "Recherche starten",
+      "starting": "Starte…",
+      "statusQueued": "In Warteschlange",
+      "statusRunning": "Läuft…",
+      "statusSucceeded": "Fertig",
+      "statusFailed": "Fehlgeschlagen",
+      "noRuns": "Noch keine Recherche gestartet.",
+      "viewLatest": "Letzte Zusammenfassung laden",
+      "loadingLatest": "Zusammenfassung wird geladen…",
+      "emptyLatest": "Noch keine Zusammenfassung verfügbar.",
+      "goToContext": "Zu Firmenkontext",
+      "goToResearch": "Zu KI-Recherche"
+    },
     "suggestPersonas": {
       "title": "Personas für Zielgruppe vorschlagen",
       "selectTargetGroup": "Zielgruppe wählen",

@@ -614,3 +614,76 @@ class PromptTemplate(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
+
+class ProjectResearchRunStatus(PyEnum):
+    queued = "queued"
+    running = "running"
+    succeeded = "succeeded"
+    failed = "failed"
+
+
+class ProjectResearchRun(Base):
+    __tablename__ = "project_research_runs"
+    __table_args__ = {"schema": "audion"}
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("audion.projects.id", ondelete="CASCADE"), nullable=False)
+    requested_by_user_id = Column(UUID(as_uuid=True), ForeignKey("audion.users.id", ondelete="SET NULL"), nullable=True)
+    status = Column(
+        Enum(ProjectResearchRunStatus, name="project_research_run_status"),
+        nullable=False,
+        default=ProjectResearchRunStatus.queued,
+    )
+    seed_url = Column(Text, nullable=False)
+    crawl_limits = Column(JSONB, nullable=True)
+    error = Column(Text, nullable=True)
+    started_at = Column(DateTime, nullable=True)
+    finished_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    project = relationship("Project")
+    requested_by = relationship("User")
+    sources = relationship("ProjectResearchSource", back_populates="run", cascade="all, delete-orphan")
+    summaries = relationship("ProjectResearchSummary", back_populates="run", cascade="all, delete-orphan")
+
+
+class ProjectResearchSource(Base):
+    __tablename__ = "project_research_sources"
+    __table_args__ = (
+        UniqueConstraint("run_id", "url", name="uq_project_research_source_run_url"),
+        {"schema": "audion"},
+    )
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    run_id = Column(UUID(as_uuid=True), ForeignKey("audion.project_research_runs.id", ondelete="CASCADE"), nullable=False)
+    url = Column(Text, nullable=False)
+    title = Column(Text, nullable=True)
+    content_type = Column(String(128), nullable=True)
+    fetched_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    content_hash = Column(String(64), nullable=True)
+    text_excerpt = Column(Text, nullable=True)
+    raw_text = Column(Text, nullable=True)
+    meta = Column(JSONB, nullable=True)
+
+    run = relationship("ProjectResearchRun", back_populates="sources")
+
+
+class ProjectResearchSummary(Base):
+    __tablename__ = "project_research_summaries"
+    __table_args__ = (
+        UniqueConstraint("run_id", name="uq_project_research_summary_run"),
+        {"schema": "audion"},
+    )
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    run_id = Column(UUID(as_uuid=True), ForeignKey("audion.project_research_runs.id", ondelete="CASCADE"), nullable=False)
+    summary_en = Column(JSONB, nullable=False)
+    summary_de = Column(JSONB, nullable=True)
+    citations = Column(JSONB, nullable=True)
+    model = Column(String(128), nullable=True)
+    usage = Column(JSONB, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    run = relationship("ProjectResearchRun", back_populates="summaries")
+

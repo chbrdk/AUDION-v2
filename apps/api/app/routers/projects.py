@@ -1,15 +1,29 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime
 from uuid import UUID, uuid4
 
 import httpx
 from fastapi import APIRouter, Body, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
 from ..db import get_db, get_session
-from ..models import Journey, JourneyPhase, Project, ProjectMember, ProjectMemberStatus, ProjectRole, TargetGroup, User
+from ..models import (
+    Journey,
+    JourneyPhase,
+    Project,
+    ProjectMember,
+    ProjectMemberStatus,
+    ProjectRole,
+    TargetGroup,
+    User,
+    ProjectResearchRun,
+    ProjectResearchRunStatus,
+    ProjectResearchSource,
+    ProjectResearchSummary,
+)
 from ..schemas import (
     ProjectCreateRequest,
     ProjectDetailResponse,
@@ -27,6 +41,9 @@ from ..schemas import (
     SuggestTargetGroupsResponse,
     TargetGroupCreateRequest,
     TargetGroupSuggestionItem,
+    ProjectResearchLatestResponse,
+    ProjectResearchRunStatusResponse,
+    ProjectResearchStartRequest,
 )
 from ..schemas.journey import JourneyResponse
 from ..services.ai_assist import seed_default_templates_for_project
@@ -39,6 +56,7 @@ from ..services.suggest_target_groups import suggest_target_groups as run_sugges
 from ..services.resource_bilingual_utils import normalize_publication_status, validate_project_bilingual_publish
 from ..services.target_group_store import TargetGroupService
 from ..services.usage_report import report_usage
+from ..celery_app import celery_app
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -415,6 +433,28 @@ def suggest_target_groups_endpoint(
         parts.append(project.description.strip())
     if project.company_context and project.company_context.strip():
         parts.append(project.company_context.strip())
+
+    # Optionally incorporate latest Project AI Research summary (EN canonical) if present.
+    latest_run = (
+        session.query(ProjectResearchRun)
+        .where(ProjectResearchRun.project_id == project.id)
+        .order_by(ProjectResearchRun.created_at.desc())
+        .first()
+    )
+    if latest_run:
+        latest_summary = (
+            session.query(ProjectResearchSummary)
+            .where(ProjectResearchSummary.run_id == latest_run.id)
+            .order_by(ProjectResearchSummary.created_at.desc())
+            .first()
+        )
+        if latest_summary and isinstance(latest_summary.summary_en, dict):
+            try:
+                research_compact = json.dumps(latest_summary.summary_en, ensure_ascii=False)
+            except Exception:
+                research_compact = None
+            if research_compact:
+                parts.append("PROJECT AI RESEARCH (JSON, English canonical):\n" + research_compact)
     context_text = "\n\n".join(parts) if parts else ""
 
     max_suggestions = min(max(1, (body.max_suggestions if body else 5)), 10)
@@ -449,6 +489,150 @@ def suggest_target_groups_endpoint(
             )
             for s in suggestions
         ],
+    )
+
+
+@router.post(
+    "/{project_id}/research/start",
+    response_model=ProjectResearchRunStatusResponse,
+    summary="Start Project AI Research",
+    description="Creates a project research run and enqueues a Celery task to crawl + synthesize a bilingual research summary.",
+)
+def start_project_research(
+    project_id: str,
+    body: ProjectResearchStartRequest,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> ProjectResearchRunStatusResponse:
+    project = _get_project(session, project_id)
+    membership = _require_member(session, project_id=project.id, user_id=current_user.id)
+    _require_admin_or_owner(membership)
+
+    seed_url, err = normalize_public_http_url(body.seed_url)
+    if err or not seed_url:
+        raise HTTPException(status_code=400, detail=err or "Invalid seed_url")
+
+    crawl_limits: dict[str, int] = {}
+    if body.max_pages is not None:
+        crawl_limits["max_pages"] = body.max_pages
+    if body.max_depth is not None:
+        crawl_limits["max_depth"] = body.max_depth
+
+    run = ProjectResearchRun(
+        project_id=project.id,
+        requested_by_user_id=current_user.id,
+        status=ProjectResearchRunStatus.queued,
+        seed_url=seed_url,
+        crawl_limits=crawl_limits or None,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
+    )
+    session.add(run)
+    session.commit()
+    session.refresh(run)
+
+    result = celery_app.send_task(
+        "project.research.run",
+        kwargs={"run_id": str(run.id)},
+        queue="research",
+        routing_key="research",
+    )
+    # Store celery task id in meta? (Not modeled yet) -> keep out for now.
+    _ = result
+
+    return ProjectResearchRunStatusResponse(
+        run_id=str(run.id),
+        status=run.status.value if hasattr(run.status, "value") else str(run.status),
+        pages_fetched=0,
+        pages_total_cap=(crawl_limits.get("max_pages") if crawl_limits else None),
+        started_at=run.started_at.isoformat() if run.started_at else None,
+        finished_at=run.finished_at.isoformat() if run.finished_at else None,
+    )
+
+
+@router.get(
+    "/{project_id}/research/status",
+    response_model=ProjectResearchRunStatusResponse,
+    summary="Get Project AI Research status",
+)
+def get_project_research_status(
+    project_id: str,
+    run_id: str,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> ProjectResearchRunStatusResponse:
+    project = _get_project(session, project_id)
+    _require_member(session, project_id=project.id, user_id=current_user.id)
+    membership = _get_membership(session, project_id=project.id, user_id=current_user.id)
+    _require_admin_or_owner(membership)
+
+    try:
+        rid = UUID(run_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid run_id") from None
+
+    run = session.get(ProjectResearchRun, rid)
+    if not run or run.project_id != project.id:
+        raise HTTPException(status_code=404, detail="Research run not found")
+
+    pages_fetched = session.scalar(
+        select(func.count(ProjectResearchSource.id)).where(ProjectResearchSource.run_id == run.id)
+    )
+
+    limits = run.crawl_limits if isinstance(run.crawl_limits, dict) else {}
+    cap = limits.get("max_pages") if isinstance(limits.get("max_pages"), int) else None
+
+    return ProjectResearchRunStatusResponse(
+        run_id=str(run.id),
+        status=run.status.value if hasattr(run.status, "value") else str(run.status),
+        error=run.error,
+        pages_fetched=int(pages_fetched or 0),
+        pages_total_cap=cap,
+        started_at=run.started_at.isoformat() if run.started_at else None,
+        finished_at=run.finished_at.isoformat() if run.finished_at else None,
+    )
+
+
+@router.get(
+    "/{project_id}/research/latest",
+    response_model=ProjectResearchLatestResponse,
+    summary="Get latest Project AI Research summary",
+)
+def get_latest_project_research(
+    project_id: str,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> ProjectResearchLatestResponse:
+    project = _get_project(session, project_id)
+    _require_member(session, project_id=project.id, user_id=current_user.id)
+    membership = _get_membership(session, project_id=project.id, user_id=current_user.id)
+    _require_admin_or_owner(membership)
+
+    run = (
+        session.query(ProjectResearchRun)
+        .where(ProjectResearchRun.project_id == project.id)
+        .order_by(ProjectResearchRun.created_at.desc())
+        .first()
+    )
+    if not run:
+        raise HTTPException(status_code=404, detail="No research run found")
+
+    summary = (
+        session.query(ProjectResearchSummary)
+        .where(ProjectResearchSummary.run_id == run.id)
+        .order_by(ProjectResearchSummary.created_at.desc())
+        .first()
+    )
+    if not summary:
+        raise HTTPException(status_code=404, detail="No research summary found")
+
+    return ProjectResearchLatestResponse(
+        run_id=str(run.id),
+        status=run.status.value if hasattr(run.status, "value") else str(run.status),
+        summary_en=summary.summary_en if isinstance(summary.summary_en, dict) else {},
+        summary_de=summary.summary_de if isinstance(summary.summary_de, dict) else None,
+        citations=summary.citations if isinstance(summary.citations, dict) else None,
+        created_at=summary.created_at.isoformat() if getattr(summary, "created_at", None) else None,
     )
 
 

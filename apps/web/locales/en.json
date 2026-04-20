@@ -715,6 +715,24 @@
       "createOne": "Create",
       "created": "Target group created"
     },
+    "projectResearch": {
+      "title": "AI Research",
+      "subtitle": "Crawl your company website and build a structured research summary (EN canonical + DE mirror) to power better target groups and personas.",
+      "seedUrlLabel": "Company URL",
+      "seedUrlPlaceholder": "https://example.com",
+      "start": "Start research",
+      "starting": "Starting…",
+      "statusQueued": "Queued",
+      "statusRunning": "Running…",
+      "statusSucceeded": "Completed",
+      "statusFailed": "Failed",
+      "noRuns": "No research run yet.",
+      "viewLatest": "Load latest summary",
+      "loadingLatest": "Loading summary…",
+      "emptyLatest": "No summary available yet.",
+      "goToContext": "Open Company & context",
+      "goToResearch": "Open AI Research"
+    },
     "suggestPersonas": {
       "title": "Suggest personas for target group",
       "selectTargetGroup": "Select target group",

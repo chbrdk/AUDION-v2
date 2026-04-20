@@ -77,6 +77,12 @@ from .projects import (
     SuggestTargetGroupsResponse,
     TargetGroupSuggestionItem,
 )
+from .research import (
+    ProjectResearchLatestResponse,
+    ProjectResearchRunStatusResponse,
+    ProjectResearchStartRequest,
+    ProjectResearchSummaryV1,
+)
 from .persona_suggest import (
     PersonaSuggestionItem,
     SuggestPersonasRequest,
