@@ -33,13 +33,13 @@ def test_translate_ui_string_map_empty_returns_empty() -> None:
 
 
 def test_openai_chat_token_kwargs_gpt5_vs_gpt4() -> None:
-    assert _openai_model_uses_max_completion_tokens("gpt-5-mini") is True
-    assert _openai_chat_token_kwargs("gpt-5-mini", 2048) == {"max_completion_tokens": 2048}
+    assert _openai_model_uses_max_completion_tokens("gpt-5.4-mini") is True
+    assert _openai_chat_token_kwargs("gpt-5.4-mini", 2048) == {"max_completion_tokens": 2048}
     assert _openai_chat_token_kwargs("gpt-4o-mini", 2048) == {"max_tokens": 2048}
 
 
 def test_openai_chat_temperature_kwargs_omits_for_gpt5() -> None:
-    assert _openai_chat_temperature_kwargs("gpt-5-mini", 0.2) == {}
+    assert _openai_chat_temperature_kwargs("gpt-5.4-mini", 0.2) == {}
     assert _openai_chat_temperature_kwargs("gpt-4o-mini", 0.2) == {"temperature": 0.2}
 
 

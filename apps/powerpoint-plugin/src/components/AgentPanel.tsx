@@ -35,7 +35,7 @@ export function AgentPanel({
 }: AgentPanelProps) {
   const [prompt, setPrompt] = useState('');
   const [viewport, setViewport] = useState<ViewportType>('desktop');
-  const [model, setModel] = useState<AIModelType>('gpt-5-mini');
+  const [model, setModel] = useState<AIModelType>('gpt-5.4-mini');
   const [showKnowledge, setShowKnowledge] = useState(false);
 
   const handleGenerate = () => {
@@ -293,7 +293,7 @@ export function AgentPanel({
               appearance: 'none'
             }}
           >
-            <option value="gpt-5-mini">gpt-5-mini (Fast & Smart)</option>
+            <option value="gpt-5.4-mini">gpt-5.4-mini (Fast & Smart)</option>
             <option value="gpt-4o-mini">gpt-4o-mini (Fallback)</option>
             <option value="gpt-4o">gpt-4o (Smart)</option>
           </select>

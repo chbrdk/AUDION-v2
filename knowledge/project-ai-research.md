@@ -50,9 +50,15 @@ Progress events are durable and stored in:
 
 - `audion.project_research_events`: `(run_id, event_type, message, payload, created_at)`
 
+## OpenAI model (persona-api, shared)
+Default **`gpt-5.4-mini`** via `ai_openai_model` in `apps/api/app/core/config.py` (override with env **`AI_OPENAI_MODEL`**). Project research synthesis/translation and other OpenAI call sites use this unless a code path passes another model.
+
 ## Downstream usage
 `POST /projects/{id}/suggest-target-groups` will include the latest research summary (EN JSON) when available, in addition to `project.description` and `project.company_context`.
 
 ## Troubleshooting failed runs
 If **pages** reached the crawl cap (e.g. 20) but **status=failed**, the crawl finished; the exception happened in **synthesis (EN)**, **translation (DE)**, or **DB save**. Check `GET /projects/{id}/research/status?run_id=…` field **`error`**, the **`run_failed`** SSE event `payload.error`, column `audion.project_research_runs.error`, and worker logs (`project.research.task.failed`).
+
+### “Empty response text from AI Provider” (synthesis)
+With **GPT-5** models, **reasoning tokens** count toward `max_completion_tokens`. A **4096** cap with a **large crawl prompt** can leave **no visible JSON** (`finish_reason=length`). The API uses a higher default for research (`AI_PROJECT_RESEARCH_MAX_COMPLETION_TOKENS`, default **16384**) and passes **`reasoning_effort: low`** for GPT-5. If it still fails, raise **`AI_PROJECT_RESEARCH_MAX_COMPLETION_TOKENS`** further (e.g. 32768) or reduce **`max_pages`** on the run.
 

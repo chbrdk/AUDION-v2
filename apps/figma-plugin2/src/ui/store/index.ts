@@ -106,8 +106,8 @@ interface PluginState {
   triggerChainGenerate: { prompt: string; viewport: 'desktop' | 'tablet' | 'mobile' } | null;
   setTriggerChainGenerate: (val: { prompt: string; viewport: 'desktop' | 'tablet' | 'mobile' } | null) => void;
 
-  selectedModel: 'gpt-4o' | 'gpt-4o-mini' | 'gpt-5-mini';
-  setSelectedModel: (val: 'gpt-4o' | 'gpt-4o-mini' | 'gpt-5-mini') => void;
+  selectedModel: 'gpt-4o' | 'gpt-4o-mini' | 'gpt-5.4-mini';
+  setSelectedModel: (val: 'gpt-4o' | 'gpt-4o-mini' | 'gpt-5.4-mini') => void;
 }
 
 export const usePluginStore = create<PluginState>((set) => ({
@@ -190,6 +190,6 @@ export const usePluginStore = create<PluginState>((set) => ({
   triggerChainGenerate: null,
   setTriggerChainGenerate: (val) => set({ triggerChainGenerate: val }),
 
-  selectedModel: 'gpt-4o',
+  selectedModel: 'gpt-5.4-mini',
   setSelectedModel: (val) => set({ selectedModel: val }),
 }));

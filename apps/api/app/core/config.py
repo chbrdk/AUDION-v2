@@ -59,10 +59,12 @@ class Settings(BaseSettings):
     ai_persona_identity_max_tokens: int = 32768
     ai_persona_json_repair_max_tokens: int = 32768
     ai_persona_openai_identity_max_tokens: int = 32768
-    ai_openai_model: str = "gpt-5-mini"
+    ai_openai_model: str = "gpt-5.4-mini"
     ai_default_provider: str = "anthropic"
     ai_default_temperature: float = 0.7
     ai_default_max_tokens: int = 4096
+    # Project AI Research: large crawl payloads + GPT-5 reasoning can exhaust small completion budgets.
+    ai_project_research_max_completion_tokens: int = 16384
     ai_knowledge_templates_path: str | None = None
     # Timeout for AI API HTTP requests (e.g. OpenAI). Long prompts (e.g. journey generation) may need 300s.
     ai_request_timeout_seconds: float = 300.0

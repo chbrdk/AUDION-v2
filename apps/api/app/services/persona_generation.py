@@ -377,7 +377,7 @@ class PersonaGenerationService:
             return ""
         logger.info("persona.generate.json_repair_openai", persona_id=str(persona_id))
         max_out = settings.ai_persona_json_repair_max_tokens
-        om = settings.ai_openai_model or "gpt-5-mini"
+        om = settings.ai_openai_model or "gpt-5.4-mini"
         repair = client.chat.completions.create(
             messages=[
                 {
@@ -477,7 +477,7 @@ class PersonaGenerationService:
             return None
 
         try:
-            om = settings.ai_openai_model or "gpt-5-mini"
+            om = settings.ai_openai_model or "gpt-5.4-mini"
             max_out = min(int(settings.ai_persona_openai_identity_max_tokens or 8192), 8192)
             completion = client.chat.completions.create(
                 messages=[
@@ -514,7 +514,7 @@ class PersonaGenerationService:
             logger.warning("persona.translate.system_prompt_de.skipped_no_openai", persona_id=str(persona_id))
             return None
         try:
-            om = settings.ai_openai_model or "gpt-5-mini"
+            om = settings.ai_openai_model or "gpt-5.4-mini"
             max_out = min(int(settings.ai_persona_openai_identity_max_tokens or 8192), 4096)
             completion = client.chat.completions.create(
                 messages=[
@@ -550,7 +550,7 @@ class PersonaGenerationService:
         if client is None:
             raise RuntimeError("openai_not_configured")
         to_lang = "German" if fl == "en" else "English"
-        om = settings.ai_openai_model or "gpt-4o-mini"
+        om = settings.ai_openai_model or "gpt-5.4-mini"
         try:
             completion = client.chat.completions.create(
                 messages=[
@@ -813,7 +813,7 @@ class PersonaGenerationService:
         if self.provider == "openai" and self._openai:
             # Use OpenAI
             try:
-                om = settings.ai_openai_model or "gpt-5-mini"
+                om = settings.ai_openai_model or "gpt-5.4-mini"
                 sys_persona_lang = system_prompt_persona_identity_openai(resolved_locale)
                 chat_completion = self._openai.chat.completions.create(
                     messages=[

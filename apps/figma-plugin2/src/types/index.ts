@@ -162,4 +162,4 @@ export interface ComponentKnowledgeBase {
 }
 
 export type ViewportType = 'desktop' | 'mobile' | 'both';
-export type AIModelType = 'gpt-5-mini' | 'gpt-4o-mini' | 'gpt-4o';
+export type AIModelType = 'gpt-5.4-mini' | 'gpt-4o-mini' | 'gpt-4o';
