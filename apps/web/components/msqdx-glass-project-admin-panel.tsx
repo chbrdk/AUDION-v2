@@ -27,6 +27,8 @@ type ProjectDetail = {
     company_context?: string | null;
     company_context_de?: string | null;
     status?: string;
+    /** CHECKION project id for Deep Scan slim-page merge (optional). */
+    checkion_project_id?: string | null;
     created_at: string;
     updated_at: string;
     members: ProjectMember[];
@@ -198,6 +200,13 @@ export function MsqdxGlassProjectAdminPanel({
     const [researchStreaming, setResearchStreaming] = useState(false);
     const [researchReconnecting, setResearchReconnecting] = useState(false);
     const [researchShowPages, setResearchShowPages] = useState(false);
+    type CheckionProjectRow = { id: string; name: string; domain?: string | null };
+    const [checkionRows, setCheckionRows] = useState<CheckionProjectRow[]>([]);
+    const [checkionListLoading, setCheckionListLoading] = useState(false);
+    const [checkionListError, setCheckionListError] = useState<string | null>(null);
+    const [checkionProjectDraft, setCheckionProjectDraft] = useState("");
+    const [savingCheckionLink, setSavingCheckionLink] = useState(false);
+    const [checkionLinkSaveError, setCheckionLinkSaveError] = useState<string | null>(null);
     const lastResearchCursorRef = useRef<string | null>(null);
     const researchReconnectRef = useRef<number | null>(null);
     const researchCanLoadLatest = useMemo(() => {
@@ -451,6 +460,7 @@ export function MsqdxGlassProjectAdminPanel({
             ),
         [companyDescription, companyDescriptionDe, companyContext, companyContextDe]
     );
+
     const [contextSaveError, setContextSaveError] = useState<string | null>(null);
 
     // Suggest target groups state
@@ -490,6 +500,18 @@ export function MsqdxGlassProjectAdminPanel({
     // Prompt templates for this project (full list for cards)
     const [promptTemplates, setPromptTemplates] = useState<AiTemplateSummary[]>([]);
     const [promptTemplatesLoading, setPromptTemplatesLoading] = useState(false);
+
+    const projectResearchExpanded = expandedSections.has("project-research");
+    const checkionSelectOptions = useMemo(
+        () => [
+            { value: "", label: t("settingsProjects.projectResearch.checkionAuto") },
+            ...checkionRows.map((r) => ({
+                value: r.id,
+                label: r.domain ? `${r.name} (${r.domain})` : r.name,
+            })),
+        ],
+        [checkionRows, t]
+    );
 
     const toggleSection = useCallback((section: string) => {
         setExpandedSections((prev) => {
@@ -573,6 +595,7 @@ export function MsqdxGlassProjectAdminPanel({
                     company_context: basicDetail.company_context ?? null,
                     company_context_de: basicDetail.company_context_de ?? null,
                     status: basicDetail.status ?? "draft",
+                    checkion_project_id: basicDetail.checkion_project_id ?? null,
                     created_at: basicDetail.created_at || "",
                     updated_at: basicDetail.updated_at || "",
                     members: basicDetail.members || [],
@@ -718,6 +741,46 @@ export function MsqdxGlassProjectAdminPanel({
         detail?.status,
     ]);
 
+    useEffect(() => {
+        if (!detail) {
+            setCheckionProjectDraft("");
+            return;
+        }
+        const v = detail.checkion_project_id?.trim();
+        setCheckionProjectDraft(v || "");
+    }, [detail?.id, detail?.checkion_project_id]);
+
+    useEffect(() => {
+        if (!selectedId || !projectResearchExpanded) return;
+        let cancelled = false;
+        setCheckionListLoading(true);
+        setCheckionListError(null);
+        void fetch(buildApiUrl(API_ROUTES.checkionProjects), { cache: "no-store" })
+            .then(async (res) => {
+                if (!res.ok) {
+                    const body = await res.text().catch(() => "");
+                    throw new Error(body || res.statusText);
+                }
+                return res.json() as Promise<{ items?: CheckionProjectRow[] }>;
+            })
+            .then((data) => {
+                if (cancelled) return;
+                setCheckionRows(Array.isArray(data.items) ? data.items : []);
+            })
+            .catch((e) => {
+                if (!cancelled) {
+                    setCheckionListError(e instanceof Error ? e.message : "CHECKION list failed");
+                    setCheckionRows([]);
+                }
+            })
+            .finally(() => {
+                if (!cancelled) setCheckionListLoading(false);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [selectedId, projectResearchExpanded]);
+
     // Save company context (PATCH project)
     const handleSaveCompanyContext = useCallback(async () => {
         if (!selectedId) return;
@@ -765,6 +828,30 @@ export function MsqdxGlassProjectAdminPanel({
         loadDetail,
         t,
     ]);
+
+    const handleSaveCheckionLink = useCallback(async () => {
+        if (!selectedId) return;
+        setSavingCheckionLink(true);
+        setCheckionLinkSaveError(null);
+        try {
+            const res = await fetch(buildApiUrl(`/api/projects/${selectedId}`), {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ checkion_project_id: checkionProjectDraft.trim() || "" }),
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                const msg = typeof err.detail === "string" ? err.detail : res.statusText;
+                throw new Error(msg ?? "Save failed");
+            }
+            await loadDetail(selectedId);
+            notify(t("settingsProjects.projectResearch.checkionSaved") ?? "CHECKION link saved");
+        } catch (e) {
+            setCheckionLinkSaveError(e instanceof Error ? e.message : "Save failed");
+        } finally {
+            setSavingCheckionLink(false);
+        }
+    }, [selectedId, checkionProjectDraft, loadDetail, t]);
 
     const handleSuggestTargetGroups = useCallback(async () => {
         if (!selectedId) return;
@@ -1639,6 +1726,45 @@ export function MsqdxGlassProjectAdminPanel({
                                         <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
                                             {t("settingsProjects.projectResearch.subtitle")}
                                         </MsqdxTypography>
+
+                                        <Stack spacing={1}>
+                                            <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
+                                                {t("settingsProjects.projectResearch.checkionHint")}
+                                            </MsqdxTypography>
+                                            <MsqdxSelect
+                                                label={t("settingsProjects.projectResearch.checkionLabel")}
+                                                value={checkionProjectDraft}
+                                                onChange={(e) => setCheckionProjectDraft(String((e.target as EventTarget & { value: string }).value))}
+                                                options={checkionSelectOptions}
+                                                disabled={checkionListLoading || !selectedId}
+                                                size="small"
+                                            />
+                                            {checkionListLoading && (
+                                                <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
+                                                    {t("settingsProjects.projectResearch.checkionLoadingList")}
+                                                </MsqdxTypography>
+                                            )}
+                                            {checkionListError && (
+                                                <MsqdxTypography variant="caption" sx={{ color: "warning.main" }}>
+                                                    {checkionListError}
+                                                </MsqdxTypography>
+                                            )}
+                                            {checkionLinkSaveError && (
+                                                <MsqdxTypography variant="caption" sx={{ color: "error.main" }}>
+                                                    {checkionLinkSaveError}
+                                                </MsqdxTypography>
+                                            )}
+                                            <MsqdxButton
+                                                variant="outlined"
+                                                size="small"
+                                                onClick={() => void handleSaveCheckionLink()}
+                                                disabled={savingCheckionLink || !selectedId}
+                                            >
+                                                {savingCheckionLink
+                                                    ? t("settingsProjects.projectResearch.savingCheckionLink")
+                                                    : t("settingsProjects.projectResearch.saveCheckionLink")}
+                                            </MsqdxButton>
+                                        </Stack>
 
                                         <MsqdxFormField
                                             label={t("settingsProjects.projectResearch.seedUrlLabel")}

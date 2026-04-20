@@ -745,7 +745,14 @@
       "showPages": "Seiten anzeigen",
       "hidePages": "Seiten ausblenden",
       "goToContext": "Zu Firmenkontext",
-      "goToResearch": "Zu KI-Recherche"
+      "goToResearch": "Zu KI-Recherche",
+      "checkionLabel": "CHECKION-Projekt (Deep Scan)",
+      "checkionHint": "Optional: CHECKION-Projekt wählen, damit die Recherche den neuesten Domain-Scan dieses Projekts nutzt. Leer = automatische Zuordnung über den Hostnamen der Unternehmens-URL (wie bisher).",
+      "checkionAuto": "Automatisch (Hostname)",
+      "checkionLoadingList": "CHECKION-Projekte werden geladen…",
+      "saveCheckionLink": "CHECKION-Verknüpfung speichern",
+      "savingCheckionLink": "Speichern…",
+      "checkionSaved": "CHECKION-Verknüpfung gespeichert"
     },
     "suggestPersonas": {
       "title": "Personas für Zielgruppe vorschlagen",

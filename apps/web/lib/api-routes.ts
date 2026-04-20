@@ -1,4 +1,6 @@
 export const API_ROUTES = {
+  /** GET: CHECKION projects for the integration token (persona-api `/integrations/checkion/projects`). */
+  checkionProjects: "/api/integrations/checkion/projects",
   /** POST: AI-assisted first project, target group, and persona (persona-api `/projects/bootstrap`). */
   projectsBootstrap: "/api/projects/bootstrap",
   projectResearchStart: (projectId: string) => `/api/projects/${encodeURIComponent(projectId)}/research/start`,

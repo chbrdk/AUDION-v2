@@ -54,7 +54,13 @@ Progress events are durable and stored in:
 Default **`gpt-5.4-mini`** via `ai_openai_model` in `apps/api/app/core/config.py` (override with env **`AI_OPENAI_MODEL`**). Project research synthesis/translation and other OpenAI call sites use this unless a code path passes another model.
 
 ## CHECKION Deep Scan (optional enrichment)
-If **`CHECKION_API_BASE_URL`** and **`CHECKION_API_TOKEN`** are set on the **persona-api** and **Celery worker**, after the crawl the worker resolves the latest completed CHECKION domain scan for the **seed URL hostname** (`GET /api/scan/domain/by-domain?domain=…`), fetches paged **`GET /api/scan/domain/[scanId]/slim-pages`**, and merges a JSON-serializable **`checkion_page`** block (e.g. `pageClassification`, `score`, `uxScore`) onto each research source whose URL matches a slim page.
+If **`CHECKION_API_BASE_URL`** and **`CHECKION_API_TOKEN`** are set on the **persona-api** and **Celery worker**, after the crawl the worker loads slim-pages and merges a JSON-serializable **`checkion_page`** block (e.g. `pageClassification`, `score`, `uxScore`) onto each research source whose URL matches a slim page.
+
+**Resolution order**
+1. If the AUDION project has **`checkion_project_id`** (nullable column on `audion.projects`), the worker calls CHECKION **`GET /api/projects/{id}/domain-summary`** to get a **`scanId`**, then paginates **`GET /api/scan/domain/{scanId}/slim-pages`**.
+2. Otherwise it falls back to the **seed URL hostname**: **`GET /api/scan/domain/by-domain?domain=…`**, then the same slim-pages pagination.
+
+**Admin UI:** Project settings → **AI Research** includes a dropdown fed by **`GET /integrations/checkion/projects`** (proxied from the web app as **`/api/integrations/checkion/projects`**). Saving updates the project via **`PATCH /projects/{id}`** with **`checkion_project_id`** (empty string clears the link).
 
 **Constraint:** CHECKION only returns scans owned by the **user tied to the API token** (same as CHECKION’s `by-domain` behaviour). Use an **integration user** in CHECKION, run Deep Scans under that user, and put that user’s API token in AUDION env.
 

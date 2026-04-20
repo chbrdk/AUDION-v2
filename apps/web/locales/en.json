@@ -745,7 +745,14 @@
       "showPages": "Show pages",
       "hidePages": "Hide pages",
       "goToContext": "Open Company & context",
-      "goToResearch": "Open AI Research"
+      "goToResearch": "Open AI Research",
+      "checkionLabel": "CHECKION project (Deep Scan)",
+      "checkionHint": "Optional: pick a CHECKION project so research uses its latest domain scan. If empty, the server matches by the company URL hostname (same as before).",
+      "checkionAuto": "Automatic (hostname match)",
+      "checkionLoadingList": "Loading CHECKION projects…",
+      "saveCheckionLink": "Save CHECKION link",
+      "savingCheckionLink": "Saving…",
+      "checkionSaved": "CHECKION link saved"
     },
     "suggestPersonas": {
       "title": "Suggest personas for target group",

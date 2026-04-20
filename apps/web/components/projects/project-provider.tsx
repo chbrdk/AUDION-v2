@@ -16,6 +16,8 @@ export type ProjectSummary = {
   description_de?: string | null;
   company_context?: string | null;
   company_context_de?: string | null;
+  /** Linked CHECKION project for Deep Scan enrichment (optional). */
+  checkion_project_id?: string | null;
   /** Publication lifecycle (`draft` | `published`). */
   status?: string;
   created_at: string;

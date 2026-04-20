@@ -1,8 +1,10 @@
 """Server-side CHECKION Deep Scan fetch for Project AI Research (optional).
 
 Uses CHECKION Next.js routes:
+  GET /api/projects/{id}/domain-summary  (scanId for linked CHECKION project)
   GET /api/scan/domain/by-domain?domain=
   GET /api/scan/domain/{scanId}/slim-pages?offset=&limit=
+  GET /api/projects  (list projects for admin UI)
 
 Auth: Authorization: Bearer <checkion_* token>
 """
@@ -79,34 +81,45 @@ def slim_page_to_checkion_payload(page: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
-def _fetch_checkion_with_client(
+def fetch_checkion_domain_summary_scan_id(
     client: httpx.Client,
     *,
     base: str,
     headers: dict[str, str],
-    domain: str,
-    page_limit: int,
-    max_pages_total: int,
-) -> dict[str, dict[str, Any]]:
-    by_domain_url = f"{base}/api/scan/domain/by-domain?domain={quote(domain.strip().lower())}"
-    r = client.get(by_domain_url, headers=headers)
+    checkion_project_id: str,
+) -> str | None:
+    """Resolve latest domain scan id for a CHECKION project (GET /api/projects/{id}/domain-summary)."""
+    pid = quote(str(checkion_project_id).strip(), safe="")
+    url = f"{base}/api/projects/{pid}/domain-summary"
+    r = client.get(url, headers=headers)
     if r.status_code >= 400:
         logger.warning(
-            "checkion.by_domain.http_error",
+            "checkion.domain_summary.http_error",
             status_code=r.status_code,
+            project_id=checkion_project_id,
             body_preview=r.text[:200] if r.text else "",
         )
-        return {}
+        return None
     body = r.json()
     if not isinstance(body, dict) or not body.get("success"):
-        logger.warning("checkion.by_domain.unexpected_body", body_type=type(body).__name__)
-        return {}
+        return None
     data = body.get("data")
     if not isinstance(data, dict) or not data.get("scanId"):
-        logger.info("checkion.by_domain.no_scan", domain=domain)
-        return {}
-    scan_id = str(data["scanId"])
+        logger.info("checkion.domain_summary.no_scan", project_id=checkion_project_id)
+        return None
+    return str(data["scanId"])
 
+
+def _fetch_slim_pages_for_scan_id(
+    client: httpx.Client,
+    *,
+    base: str,
+    headers: dict[str, str],
+    scan_id: str,
+    page_limit: int,
+    max_pages_total: int,
+    log_extra: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
     out: dict[str, dict[str, Any]] = {}
     offset = 0
     total_seen = 0
@@ -120,6 +133,7 @@ def _fetch_checkion_with_client(
                 status_code=rs.status_code,
                 offset=offset,
                 body_preview=rs.text[:200] if rs.text else "",
+                **log_extra,
             )
             break
         slim_body = rs.json()
@@ -151,13 +165,46 @@ def _fetch_checkion_with_client(
             break
         offset += batch
 
-    logger.info(
-        "checkion.slim_pages.loaded",
-        domain=domain,
-        scan_id=scan_id,
-        matched_pages=len(out),
-    )
+    logger.info("checkion.slim_pages.loaded", scan_id=scan_id, matched_pages=len(out), **log_extra)
     return out
+
+
+def _fetch_checkion_with_client(
+    client: httpx.Client,
+    *,
+    base: str,
+    headers: dict[str, str],
+    domain: str,
+    page_limit: int,
+    max_pages_total: int,
+) -> dict[str, dict[str, Any]]:
+    by_domain_url = f"{base}/api/scan/domain/by-domain?domain={quote(domain.strip().lower())}"
+    r = client.get(by_domain_url, headers=headers)
+    if r.status_code >= 400:
+        logger.warning(
+            "checkion.by_domain.http_error",
+            status_code=r.status_code,
+            body_preview=r.text[:200] if r.text else "",
+        )
+        return {}
+    body = r.json()
+    if not isinstance(body, dict) or not body.get("success"):
+        logger.warning("checkion.by_domain.unexpected_body", body_type=type(body).__name__)
+        return {}
+    data = body.get("data")
+    if not isinstance(data, dict) or not data.get("scanId"):
+        logger.info("checkion.by_domain.no_scan", domain=domain)
+        return {}
+    scan_id = str(data["scanId"])
+    return _fetch_slim_pages_for_scan_id(
+        client,
+        base=base,
+        headers=headers,
+        scan_id=scan_id,
+        page_limit=page_limit,
+        max_pages_total=max_pages_total,
+        log_extra={"domain": domain, "source": "by_domain"},
+    )
 
 
 def fetch_checkion_page_metadata_by_domain(
@@ -214,3 +261,124 @@ def fetch_checkion_page_metadata_by_domain(
     except Exception as e:
         logger.warning("checkion.unexpected_error", error=str(e))
         return {}
+
+
+def fetch_checkion_page_metadata_for_research(
+    *,
+    base_url: str,
+    token: str,
+    seed_url: str,
+    checkion_project_id: str | None,
+    timeout_seconds: float = 30.0,
+    page_limit: int = _SLIM_PAGE_LIMIT_DEFAULT,
+    max_pages_total: int = _MAX_SLIM_PAGES_TOTAL,
+    http_client: httpx.Client | None = None,
+) -> dict[str, dict[str, Any]]:
+    """
+    Prefer CHECKION project link (domain-summary → scanId); else latest scan by seed hostname (by-domain).
+    """
+    base = normalize_checkion_base_url(base_url)
+    if not base or not token:
+        return {}
+    domain = hostname_for_checkion_domain(seed_url) or ""
+    headers = {
+        "Authorization": f"Bearer {token.strip()}",
+        "Accept": "application/json",
+    }
+    timeout = httpx.Timeout(timeout_seconds, connect=min(10.0, timeout_seconds))
+
+    def _run(client: httpx.Client) -> dict[str, dict[str, Any]]:
+        cpid = (checkion_project_id or "").strip()
+        if cpid:
+            scan_id = fetch_checkion_domain_summary_scan_id(client, base=base, headers=headers, checkion_project_id=cpid)
+            if scan_id:
+                return _fetch_slim_pages_for_scan_id(
+                    client,
+                    base=base,
+                    headers=headers,
+                    scan_id=scan_id,
+                    page_limit=page_limit,
+                    max_pages_total=max_pages_total,
+                    log_extra={"source": "checkion_project", "checkion_project_id": cpid},
+                )
+        if domain:
+            return _fetch_checkion_with_client(
+                client,
+                base=base,
+                headers=headers,
+                domain=domain,
+                page_limit=page_limit,
+                max_pages_total=max_pages_total,
+            )
+        return {}
+
+    try:
+        if http_client is not None:
+            return _run(http_client)
+        with httpx.Client(timeout=timeout) as client:
+            return _run(client)
+    except httpx.RequestError as e:
+        logger.warning("checkion.request_error", error=str(e))
+        return {}
+    except json.JSONDecodeError as e:
+        logger.warning("checkion.json_error", error=str(e))
+        return {}
+    except Exception as e:
+        logger.warning("checkion.unexpected_error", error=str(e))
+        return {}
+
+
+def list_checkion_projects(
+    *,
+    base_url: str,
+    token: str,
+    timeout_seconds: float = 30.0,
+    http_client: httpx.Client | None = None,
+) -> list[dict[str, Any]]:
+    """GET /api/projects — items with id, name, domain (CHECKION project rows)."""
+    base = normalize_checkion_base_url(base_url)
+    if not base or not token:
+        return []
+    headers = {
+        "Authorization": f"Bearer {token.strip()}",
+        "Accept": "application/json",
+    }
+    timeout = httpx.Timeout(timeout_seconds, connect=min(10.0, timeout_seconds))
+    url = f"{base}/api/projects"
+
+    def _run(client: httpx.Client) -> list[dict[str, Any]]:
+        r = client.get(url, headers=headers)
+        if r.status_code >= 400:
+            logger.warning("checkion.list_projects.http_error", status_code=r.status_code, body_preview=r.text[:200] if r.text else "")
+            return []
+        body = r.json()
+        if not isinstance(body, dict) or not body.get("success"):
+            return []
+        data = body.get("data")
+        if not isinstance(data, list):
+            return []
+        out: list[dict[str, Any]] = []
+        for row in data:
+            if not isinstance(row, dict) or not row.get("id"):
+                continue
+            dom = row.get("domain")
+            domain_val: str | None = None
+            if dom is not None and str(dom).strip():
+                domain_val = str(dom).strip()
+            out.append(
+                {
+                    "id": str(row["id"]),
+                    "name": str(row.get("name") or ""),
+                    "domain": domain_val,
+                }
+            )
+        return out
+
+    try:
+        if http_client is not None:
+            return _run(http_client)
+        with httpx.Client(timeout=timeout) as client:
+            return _run(client)
+    except Exception as e:
+        logger.warning("checkion.list_projects.error", error=str(e))
+        return []

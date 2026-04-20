@@ -168,6 +168,8 @@ class Project(Base):
     company_context = Column(Text, nullable=True)
     company_context_de = Column(Text, nullable=True)
     status = Column(String(32), nullable=False, default="draft")
+    # Optional CHECKION project UUID (links AUDION project to CHECKION for Deep Scan slim-pages).
+    checkion_project_id = Column(String(40), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

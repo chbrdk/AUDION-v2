@@ -114,6 +114,7 @@ def _project_response(project: Project) -> ProjectResponse:
         company_context=project.company_context,
         company_context_de=getattr(project, "company_context_de", None),
         status=getattr(project, "status", None) or "draft",
+        checkion_project_id=getattr(project, "checkion_project_id", None),
         created_at=project.created_at,
         updated_at=project.updated_at,
     )
@@ -403,6 +404,9 @@ def update_project(
         project.company_context = payload.company_context
     if payload.company_context_de is not None:
         project.company_context_de = payload.company_context_de.strip() or None
+    if payload.checkion_project_id is not None:
+        raw_chk = str(payload.checkion_project_id).strip()
+        project.checkion_project_id = raw_chk if raw_chk else None
     project.updated_at = datetime.utcnow()
     try:
         validate_project_bilingual_publish(project=project)

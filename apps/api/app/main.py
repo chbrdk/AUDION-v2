@@ -21,6 +21,7 @@ from .routers.personas import router as personas_router, persona_admin_router
 from .routers.target_groups import router as target_groups_router
 from .routers.journeys import router as journeys_router
 from .routers.queue import router as queue_router
+from .routers.integrations_checkion import router as integrations_checkion_router
 from .ws.chat import router as chat_router
 from .services.job_processor import background_job_processor
 
@@ -84,6 +85,7 @@ def create_app() -> FastAPI:
     app.include_router(target_groups_router)
     app.include_router(journeys_router)
     app.include_router(queue_router)
+    app.include_router(integrations_checkion_router)
     app.include_router(chat_router)
 
     return app

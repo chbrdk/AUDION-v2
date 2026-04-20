@@ -38,6 +38,10 @@ class ProjectUpdateRequest(BaseModel):
         default=None,
         description="Set to draft or published. Published requires DE mirrors where EN text is set.",
     )
+    checkion_project_id: str | None = Field(
+        default=None,
+        description="CHECKION project UUID to load Deep Scan slim-pages from (set empty string to clear).",
+    )
 
 
 class ProjectResponse(BaseModel):
@@ -50,6 +54,7 @@ class ProjectResponse(BaseModel):
     company_context: str | None = None
     company_context_de: str | None = None
     status: str = "draft"
+    checkion_project_id: str | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -57,6 +62,16 @@ class ProjectResponse(BaseModel):
 class ProjectListResponse(BaseModel):
     items: list[ProjectResponse]
     total: int
+
+
+class CheckionProjectItem(BaseModel):
+    id: str
+    name: str
+    domain: str | None = None
+
+
+class CheckionProjectListResponse(BaseModel):
+    items: list[CheckionProjectItem]
 
 
 class ProjectMemberAddRequest(BaseModel):
