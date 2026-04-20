@@ -360,7 +360,7 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://coolify-internal-tempo:4318
 - **Dockerfile:** `apps/api/Dockerfile` (gleiche wie persona-api)
 - **Command Override:**
   ```bash
-  celery -A app.celery_app worker -Q ingestion -l info --pool=threads --concurrency=2
+  celery -A app.celery_app worker -Q celery,ingestion,journeys,analytics,moodboards,research -l info --pool=threads --concurrency=2
   ```
 
 **Environment Variables:**

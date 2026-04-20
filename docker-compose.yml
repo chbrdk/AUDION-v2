@@ -131,7 +131,7 @@ services:
       context: .
       dockerfile: apps/api/Dockerfile
     container_name: audion-celery-worker
-    command: celery -A app.celery_app worker --loglevel=info --concurrency=2 -Q celery,ingestion,journeys,analytics,moodboards
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=2 -Q celery,ingestion,journeys,analytics,moodboards,research
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=${REDIS_URL}

@@ -20,6 +20,12 @@ The summary JSON is a stable V1 shape with sections:\n- `company_overview`\n- `o
 ## API endpoints
 - `POST /projects/{project_id}/research/start`\n- `GET /projects/{project_id}/research/status?run_id=...`\n- `GET /projects/{project_id}/research/latest`
 
+## Celery / operations
+- The task `project.research.run` is routed to the Celery queue **`research`** (see `apps/api/app/celery_app.py`).
+- **If no worker consumes `research`**, runs stay stuck at **`run_queued`** in the UI forever (the API enqueues work, but nothing picks it up).
+- **Local Docker Compose**: `celery-worker` must include `research` in `-Q` (same service that runs `app.celery_app`).
+- **Coolify / prod**: extend the persona-api Celery worker command override to include `research` (see `knowledge/coolify-deployment.md`).
+
 ## Streaming (SSE) progress
 To maximize UX for long-running research runs, the UI can connect to a **Server-Sent Events** stream.
 
