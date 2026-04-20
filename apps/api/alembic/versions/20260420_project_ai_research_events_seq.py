@@ -1,6 +1,6 @@
 """Add per-run seq to project research events (stable SSE cursor).
 
-Revision ID: 20260420_proj_ai_research_events_seq
+Revision ID: 20260420_proj_ai_evt_seq
 Revises: 20260420_proj_ai_research_events
 Create Date: 2026-04-20
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 from alembic import op
 
 
-revision = "20260420_proj_ai_research_events_seq"
+revision = "20260420_proj_ai_evt_seq"
 down_revision = "20260420_proj_ai_research_events"
 branch_labels = None
 depends_on = None
