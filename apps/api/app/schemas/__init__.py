@@ -64,6 +64,8 @@ from .auth import (
 from .projects import (
     CheckionProjectItem,
     CheckionProjectListResponse,
+    CheckionSiteTopicItem,
+    CheckionSiteTopicsResponse,
     ProjectCreateRequest,
     ProjectDetailResponse,
     ProjectEasySetupPersonaSummary,
@@ -905,6 +907,8 @@ __all__ = [
     "ProjectUpdateRequest",
     "CheckionProjectItem",
     "CheckionProjectListResponse",
+    "CheckionSiteTopicItem",
+    "CheckionSiteTopicsResponse",
     "SuggestTargetGroupsRequest",
     "SuggestTargetGroupsResponse",
     "TargetGroupSuggestionItem",

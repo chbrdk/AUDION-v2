@@ -41,6 +41,7 @@ from ..services.target_group_store import TargetGroupService
 from ..services.auth import get_current_user
 from ..services.access_control import list_accessible_project_ids
 from ..services.usage_report import report_usage
+from ..services.checkion_project_context import build_optional_checkion_topics_prompt_block
 
 logger = structlog.get_logger(__name__)
 storage = StorageService()
@@ -1101,6 +1102,11 @@ def suggest_personas_endpoint(
         parts.append(project.description.strip())
     if project.company_context and project.company_context.strip():
         parts.append(project.company_context.strip())
+    inc_chk = True if body is None else bool(body.include_checkion_topics)
+    if inc_chk:
+        chk_block = build_optional_checkion_topics_prompt_block(session, project=project, explicit_seed_url=None)
+        if chk_block:
+            parts.append(chk_block)
     context_text = "\n\n".join(parts) if parts else ""
 
     max_suggestions = min(max(1, (body.max_suggestions if body else 5)), 10)

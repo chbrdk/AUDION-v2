@@ -22,6 +22,8 @@ logger = structlog.get_logger(__name__)
 
 _SLIM_PAGE_LIMIT_DEFAULT = 100
 _MAX_SLIM_PAGES_TOTAL = 2000
+# Lower cap for site-topic aggregation (suggest prompts + UI) to bound latency.
+_MAX_SLIM_PAGES_SITE_TOPICS_DEFAULT = 400
 
 
 def normalize_checkion_base_url(base: str | None) -> str | None:
@@ -110,7 +112,7 @@ def fetch_checkion_domain_summary_scan_id(
     return str(data["scanId"])
 
 
-def _fetch_slim_pages_for_scan_id(
+def _iter_slim_page_dicts(
     client: httpx.Client,
     *,
     base: str,
@@ -119,8 +121,9 @@ def _fetch_slim_pages_for_scan_id(
     page_limit: int,
     max_pages_total: int,
     log_extra: dict[str, Any],
-) -> dict[str, dict[str, Any]]:
-    out: dict[str, dict[str, Any]] = {}
+) -> list[dict[str, Any]]:
+    """Fetch slim-pages into a list (bounded). Single HTTP loop for URL-map + topic aggregation."""
+    raw: list[dict[str, Any]] = []
     offset = 0
     total_seen = 0
     while total_seen < max_pages_total:
@@ -149,12 +152,7 @@ def _fetch_slim_pages_for_scan_id(
             u = page.get("url")
             if not isinstance(u, str) or not u.strip():
                 continue
-            key = normalize_url_match_key(u)
-            if not key:
-                continue
-            payload = slim_page_to_checkion_payload(page)
-            if payload:
-                out[key] = payload
+            raw.append(page)
         batch = len(pages)
         total_seen += batch
         if batch == 0:
@@ -165,7 +163,39 @@ def _fetch_slim_pages_for_scan_id(
             break
         offset += batch
 
-    logger.info("checkion.slim_pages.loaded", scan_id=scan_id, matched_pages=len(out), **log_extra)
+    logger.info("checkion.slim_pages.loaded", scan_id=scan_id, raw_pages=len(raw), **log_extra)
+    return raw
+
+
+def _fetch_slim_pages_for_scan_id(
+    client: httpx.Client,
+    *,
+    base: str,
+    headers: dict[str, str],
+    scan_id: str,
+    page_limit: int,
+    max_pages_total: int,
+    log_extra: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
+    out: dict[str, dict[str, Any]] = {}
+    for page in _iter_slim_page_dicts(
+        client,
+        base=base,
+        headers=headers,
+        scan_id=scan_id,
+        page_limit=page_limit,
+        max_pages_total=max_pages_total,
+        log_extra=log_extra,
+    ):
+        u = page.get("url")
+        if not isinstance(u, str) or not u.strip():
+            continue
+        key = normalize_url_match_key(u)
+        if not key:
+            continue
+        payload = slim_page_to_checkion_payload(page)
+        if payload:
+            out[key] = payload
     return out
 
 
@@ -326,6 +356,81 @@ def fetch_checkion_page_metadata_for_research(
     except Exception as e:
         logger.warning("checkion.unexpected_error", error=str(e))
         return {}
+
+
+def fetch_checkion_raw_slim_pages_for_site_topics(
+    *,
+    base_url: str,
+    token: str,
+    seed_url: str,
+    checkion_project_id: str | None,
+    max_pages: int = _MAX_SLIM_PAGES_SITE_TOPICS_DEFAULT,
+    timeout_seconds: float = 30.0,
+    page_limit: int = _SLIM_PAGE_LIMIT_DEFAULT,
+    http_client: httpx.Client | None = None,
+) -> tuple[list[dict[str, Any]], str | None, str | None]:
+    """
+    Load raw slim-page dicts (bounded) for topic aggregation.
+    Returns (pages, scan_id, source) where source is ``checkion_project`` or ``by_domain``.
+    """
+    base = normalize_checkion_base_url(base_url)
+    if not base or not token:
+        return [], None, None
+    domain = hostname_for_checkion_domain(seed_url) or ""
+    headers = {
+        "Authorization": f"Bearer {token.strip()}",
+        "Accept": "application/json",
+    }
+    timeout = httpx.Timeout(timeout_seconds, connect=min(10.0, timeout_seconds))
+    cap = max(1, min(max_pages, _MAX_SLIM_PAGES_TOTAL))
+
+    def _run(client: httpx.Client) -> tuple[list[dict[str, Any]], str | None, str | None]:
+        cpid = (checkion_project_id or "").strip()
+        if cpid:
+            scan_id = fetch_checkion_domain_summary_scan_id(client, base=base, headers=headers, checkion_project_id=cpid)
+            if scan_id:
+                pages = _iter_slim_page_dicts(
+                    client,
+                    base=base,
+                    headers=headers,
+                    scan_id=scan_id,
+                    page_limit=page_limit,
+                    max_pages_total=cap,
+                    log_extra={"source": "checkion_project", "checkion_project_id": cpid, "purpose": "site_topics"},
+                )
+                return pages, scan_id, "checkion_project"
+        if domain:
+            by_domain_url = f"{base}/api/scan/domain/by-domain?domain={quote(domain.strip().lower())}"
+            r = client.get(by_domain_url, headers=headers)
+            if r.status_code >= 400:
+                return [], None, None
+            body = r.json()
+            if not isinstance(body, dict) or not body.get("success"):
+                return [], None, None
+            data = body.get("data")
+            if not isinstance(data, dict) or not data.get("scanId"):
+                return [], None, None
+            sid = str(data["scanId"])
+            pages = _iter_slim_page_dicts(
+                client,
+                base=base,
+                headers=headers,
+                scan_id=sid,
+                page_limit=page_limit,
+                max_pages_total=cap,
+                log_extra={"domain": domain, "source": "by_domain", "purpose": "site_topics"},
+            )
+            return pages, sid, "by_domain"
+        return [], None, None
+
+    try:
+        if http_client is not None:
+            return _run(http_client)
+        with httpx.Client(timeout=timeout) as client:
+            return _run(client)
+    except Exception as e:
+        logger.warning("checkion.site_topics.fetch_error", error=str(e))
+        return [], None, None
 
 
 def list_checkion_projects(

@@ -168,6 +168,8 @@ export function MsqdxGlassProjectAdminPanel({
             "prompt-templates",
         ])
     );
+    const projectResearchExpanded = useMemo(() => expandedSections.has("project-research"), [expandedSections]);
+    const checkionSiteTopicsExpanded = useMemo(() => expandedSections.has("checkion-site-topics"), [expandedSections]);
 
     // Company context form state (synced from detail on load)
     const [companyDescription, setCompanyDescription] = useState("");
@@ -207,6 +209,19 @@ export function MsqdxGlassProjectAdminPanel({
     const [checkionProjectDraft, setCheckionProjectDraft] = useState("");
     const [savingCheckionLink, setSavingCheckionLink] = useState(false);
     const [checkionLinkSaveError, setCheckionLinkSaveError] = useState<string | null>(null);
+    type CheckionSiteTopicRow = { tag: string; page_count: number; weight_sum: number; median_score?: number | null };
+    type CheckionSiteTopicsPayload = {
+        scan_id?: string | null;
+        source?: string | null;
+        topics?: CheckionSiteTopicRow[];
+        pages_processed?: number;
+        truncated?: boolean;
+        seed_url_used?: string | null;
+        unavailable_reason?: string | null;
+    };
+    const [siteTopicsPayload, setSiteTopicsPayload] = useState<CheckionSiteTopicsPayload | null>(null);
+    const [siteTopicsLoading, setSiteTopicsLoading] = useState(false);
+    const [siteTopicsError, setSiteTopicsError] = useState<string | null>(null);
     const lastResearchCursorRef = useRef<string | null>(null);
     const researchReconnectRef = useRef<number | null>(null);
     const researchCanLoadLatest = useMemo(() => {
@@ -450,6 +465,45 @@ export function MsqdxGlassProjectAdminPanel({
         };
     }, [selectedId, researchRunId, researchStatus, loadResearchLatest]);
 
+    useEffect(() => {
+        setSiteTopicsPayload(null);
+        setSiteTopicsError(null);
+    }, [selectedId]);
+
+    useEffect(() => {
+        if (!selectedId || !checkionSiteTopicsExpanded) return;
+        let cancelled = false;
+        (async () => {
+            setSiteTopicsLoading(true);
+            setSiteTopicsError(null);
+            try {
+                const res = await fetch(buildApiUrl(API_ROUTES.projectCheckionSiteTopics(selectedId)), { cache: "no-store" });
+                const data = (await res.json().catch(() => null)) as CheckionSiteTopicsPayload | { detail?: string } | null;
+                if (cancelled) return;
+                if (!res.ok) {
+                    const msg =
+                        typeof data === "object" && data && "detail" in data && typeof (data as { detail?: string }).detail === "string"
+                            ? (data as { detail: string }).detail
+                            : res.statusText;
+                    setSiteTopicsError(msg);
+                    setSiteTopicsPayload(null);
+                    return;
+                }
+                setSiteTopicsPayload(data as CheckionSiteTopicsPayload);
+            } catch (e) {
+                if (!cancelled) {
+                    setSiteTopicsError(e instanceof Error ? e.message : "Request failed");
+                    setSiteTopicsPayload(null);
+                }
+            } finally {
+                if (!cancelled) setSiteTopicsLoading(false);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [selectedId, checkionSiteTopicsExpanded]);
+
     const hasCompanyContextForAi = useMemo(
         () =>
             Boolean(
@@ -501,7 +555,6 @@ export function MsqdxGlassProjectAdminPanel({
     const [promptTemplates, setPromptTemplates] = useState<AiTemplateSummary[]>([]);
     const [promptTemplatesLoading, setPromptTemplatesLoading] = useState(false);
 
-    const projectResearchExpanded = expandedSections.has("project-research");
     const checkionSelectOptions = useMemo(
         () => [
             { value: "", label: t("settingsProjects.projectResearch.checkionAuto") },
@@ -1930,6 +1983,101 @@ export function MsqdxGlassProjectAdminPanel({
                                                     )}
                                                 </pre>
                                             </Box>
+                                        ) : null}
+                                    </Stack>
+                                </MsqdxDashboardCard>
+                            </Box>
+
+                            <Box sx={{ gridColumn: "1 / -1" }}>
+                                <MsqdxDashboardCard
+                                    id="checkion-site-topics"
+                                    title={t("settingsProjects.projectResearch.siteTopicsTitle") ?? "Site topics (CHECKION)"}
+                                    icon="label"
+                                    expanded={expandedSections.has("checkion-site-topics")}
+                                    onToggle={toggleSection}
+                                >
+                                    <Stack spacing={1.5}>
+                                        <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+                                            {t("settingsProjects.projectResearch.siteTopicsSubtitle") ??
+                                                "Aggregated page tags from the latest Deep Scan. Loaded when you expand this section."}
+                                        </MsqdxTypography>
+                                        {siteTopicsLoading ? (
+                                            <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
+                                                {t("settingsProjects.projectResearch.siteTopicsLoading") ?? "Loading topics…"}
+                                            </MsqdxTypography>
+                                        ) : null}
+                                        {siteTopicsError ? (
+                                            <MsqdxTypography variant="caption" sx={{ color: "error.main" }}>
+                                                {siteTopicsError}
+                                            </MsqdxTypography>
+                                        ) : null}
+                                        {!siteTopicsLoading && siteTopicsPayload?.unavailable_reason ? (
+                                            <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
+                                                {siteTopicsPayload.unavailable_reason === "checkion_not_configured"
+                                                    ? (t("settingsProjects.projectResearch.siteTopicsReasonNotConfigured") ??
+                                                      "CHECKION is not configured on the server.")
+                                                    : siteTopicsPayload.unavailable_reason === "no_seed_url"
+                                                      ? (t("settingsProjects.projectResearch.siteTopicsReasonNoSeed") ??
+                                                        "No seed URL: run AI research once or pass a company URL so the server can resolve the domain.")
+                                                      : siteTopicsPayload.unavailable_reason === "no_scan_or_empty_slim_pages"
+                                                        ? (t("settingsProjects.projectResearch.siteTopicsReasonNoScan") ??
+                                                          "No scan data or empty slim-pages for this project/domain.")
+                                                        : siteTopicsPayload.unavailable_reason}
+                                            </MsqdxTypography>
+                                        ) : null}
+                                        {!siteTopicsLoading &&
+                                        siteTopicsPayload &&
+                                        !siteTopicsPayload.unavailable_reason &&
+                                        (siteTopicsPayload.topics?.length ?? 0) === 0 ? (
+                                            <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
+                                                {t("settingsProjects.projectResearch.siteTopicsEmpty") ?? "No topic tags found."}
+                                            </MsqdxTypography>
+                                        ) : null}
+                                        {!siteTopicsLoading &&
+                                        siteTopicsPayload &&
+                                        !siteTopicsPayload.unavailable_reason &&
+                                        (siteTopicsPayload.topics?.length ?? 0) > 0 ? (
+                                            <>
+                                                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ gap: 0.75 }}>
+                                                    <MsqdxChip
+                                                        size="small"
+                                                        label={`scan: ${siteTopicsPayload.scan_id ?? "—"}`}
+                                                        variant="outlined"
+                                                    />
+                                                    <MsqdxChip
+                                                        size="small"
+                                                        label={`source: ${siteTopicsPayload.source ?? "—"}`}
+                                                        variant="outlined"
+                                                    />
+                                                    {siteTopicsPayload.truncated ? (
+                                                        <MsqdxChip
+                                                            size="small"
+                                                            color="warning"
+                                                            label={t("settingsProjects.projectResearch.siteTopicsTruncated") ?? "Truncated"}
+                                                        />
+                                                    ) : null}
+                                                    <MsqdxChip
+                                                        size="small"
+                                                        variant="outlined"
+                                                        label={`pages: ${siteTopicsPayload.pages_processed ?? 0}`}
+                                                    />
+                                                </Stack>
+                                                {siteTopicsPayload.seed_url_used ? (
+                                                    <MsqdxTypography variant="caption" sx={{ color: "text.secondary", wordBreak: "break-all" }}>
+                                                        {t("settingsProjects.projectResearch.siteTopicsSeedUsed") ?? "Seed URL used"}:{" "}
+                                                        {siteTopicsPayload.seed_url_used}
+                                                    </MsqdxTypography>
+                                                ) : null}
+                                                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
+                                                    {(siteTopicsPayload.topics ?? []).map((row) => (
+                                                        <MsqdxChip
+                                                            key={row.tag}
+                                                            size="small"
+                                                            label={`${row.tag} · ${row.page_count}p · w${row.weight_sum}`}
+                                                        />
+                                                    ))}
+                                                </Box>
+                                            </>
                                         ) : null}
                                     </Stack>
                                 </MsqdxDashboardCard>

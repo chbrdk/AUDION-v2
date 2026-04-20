@@ -74,6 +74,26 @@ class CheckionProjectListResponse(BaseModel):
     items: list[CheckionProjectItem]
 
 
+class CheckionSiteTopicItem(BaseModel):
+    tag: str
+    page_count: int
+    weight_sum: float
+    median_score: float | None = None
+
+
+class CheckionSiteTopicsResponse(BaseModel):
+    scan_id: str | None = None
+    source: str | None = Field(default=None, description="checkion_project | by_domain")
+    topics: list[CheckionSiteTopicItem] = Field(default_factory=list)
+    pages_processed: int = 0
+    truncated: bool = False
+    seed_url_used: str | None = None
+    unavailable_reason: str | None = Field(
+        default=None,
+        description="null when data ok; otherwise e.g. checkion_not_configured, no_seed_url, no_scan_or_empty_slim_pages",
+    )
+
+
 class ProjectMemberAddRequest(BaseModel):
     email: EmailStr
     role: str | None = Field(default=None, description="owner, admin, or member")
@@ -95,6 +115,10 @@ class ProjectDetailResponse(ProjectResponse):
 
 class SuggestTargetGroupsRequest(BaseModel):
     max_suggestions: int = 5
+    include_checkion_topics: bool = Field(
+        default=True,
+        description="When true and CHECKION is configured, append aggregated Deep Scan page topics to the AI context.",
+    )
     output_locale: str | None = Field(
         default=None,
         description='Language for AI-generated names/descriptions: "en" | "de". Ignored when bilingual=true.',

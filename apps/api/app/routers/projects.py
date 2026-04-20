@@ -6,7 +6,7 @@ from uuid import UUID, uuid4
 
 import httpx
 import time
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy import text
 from sqlalchemy import func, select
@@ -48,6 +48,8 @@ from ..schemas import (
     ProjectResearchLatestResponse,
     ProjectResearchRunStatusResponse,
     ProjectResearchStartRequest,
+    CheckionSiteTopicsResponse,
+    CheckionSiteTopicItem,
 )
 from ..schemas.journey import JourneyResponse
 from ..services.ai_assist import seed_default_templates_for_project
@@ -60,6 +62,10 @@ from ..services.suggest_target_groups import suggest_target_groups as run_sugges
 from ..services.resource_bilingual_utils import normalize_publication_status, validate_project_bilingual_publish
 from ..services.target_group_store import TargetGroupService
 from ..services.usage_report import report_usage
+from ..services.checkion_project_context import (
+    build_optional_checkion_topics_prompt_block,
+    fetch_checkion_site_topics_bundle,
+)
 from ..celery_app import celery_app
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -348,6 +354,43 @@ def project_easy_setup(
     )
 
 
+@router.get(
+    "/{project_id}/integrations/checkion/site-topics",
+    response_model=CheckionSiteTopicsResponse,
+    summary="CHECKION Deep Scan site topics",
+    description="Aggregates pageClassification tags from the latest slim-pages scan (linked CHECKION project or hostname fallback). Optional query seed_url overrides seed resolution.",
+)
+def get_checkion_site_topics(
+    project_id: str,
+    seed_url: str | None = Query(None, description="Optional seed URL for by-domain fallback when no CHECKION link."),
+    max_pages: int = Query(400, ge=1, le=2000, description="Max slim-pages to scan for aggregation."),
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+) -> CheckionSiteTopicsResponse:
+    project = _get_project(session, project_id)
+    _require_member(session, project_id=project.id, user_id=current_user.id)
+    bundle = fetch_checkion_site_topics_bundle(
+        session=session,
+        project=project,
+        explicit_seed_url=seed_url,
+        max_pages=max_pages,
+    )
+    raw_topics = bundle.get("topics") or []
+    topics: list[CheckionSiteTopicItem] = []
+    for t in raw_topics:
+        if isinstance(t, dict) and t.get("tag"):
+            topics.append(CheckionSiteTopicItem.model_validate(t))
+    return CheckionSiteTopicsResponse(
+        scan_id=bundle.get("scan_id"),
+        source=bundle.get("source"),
+        topics=topics,
+        pages_processed=int(bundle.get("pages_processed") or 0),
+        truncated=bool(bundle.get("truncated")),
+        seed_url_used=bundle.get("seed_url_used"),
+        unavailable_reason=bundle.get("unavailable_reason"),
+    )
+
+
 @router.get("/{project_id}", response_model=ProjectDetailResponse)
 def get_project(
     project_id: str,
@@ -463,6 +506,11 @@ def suggest_target_groups_endpoint(
                 research_compact = None
             if research_compact:
                 parts.append("PROJECT AI RESEARCH (JSON, English canonical):\n" + research_compact)
+    inc_chk = True if body is None else bool(body.include_checkion_topics)
+    if inc_chk:
+        chk_block = build_optional_checkion_topics_prompt_block(session, project=project, explicit_seed_url=None)
+        if chk_block:
+            parts.append(chk_block)
     context_text = "\n\n".join(parts) if parts else ""
 
     max_suggestions = min(max(1, (body.max_suggestions if body else 5)), 10)

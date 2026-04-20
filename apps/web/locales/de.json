@@ -752,7 +752,16 @@
       "checkionLoadingList": "CHECKION-Projekte werden geladen…",
       "saveCheckionLink": "CHECKION-Verknüpfung speichern",
       "savingCheckionLink": "Speichern…",
-      "checkionSaved": "CHECKION-Verknüpfung gespeichert"
+      "checkionSaved": "CHECKION-Verknüpfung gespeichert",
+      "siteTopicsTitle": "Website-Themen (CHECKION)",
+      "siteTopicsSubtitle": "Aggregierte Seiten-Tags aus dem neuesten Deep-Scan (Slim-Pages). Beim Aufklappen laden; optionaler Kontext für Zielgruppen- und Persona-Vorschläge.",
+      "siteTopicsLoading": "Themen werden geladen…",
+      "siteTopicsEmpty": "Keine Topic-Tags für diesen Scan gefunden.",
+      "siteTopicsTruncated": "Gekürzt (Limit)",
+      "siteTopicsSeedUsed": "Verwendete Seed-URL",
+      "siteTopicsReasonNotConfigured": "CHECKION-API ist auf dem Server nicht konfiguriert.",
+      "siteTopicsReasonNoSeed": "Noch keine Seed-URL: einmal AI Research starten (Unternehmens-URL oben) oder CHECKION-Projekt verknüpfen, damit die Domain aufgelöst werden kann.",
+      "siteTopicsReasonNoScan": "Keine Scan-Daten oder leere Slim-Pages für dieses Projekt bzw. diese Domain."
     },
     "suggestPersonas": {
       "title": "Personas für Zielgruppe vorschlagen",

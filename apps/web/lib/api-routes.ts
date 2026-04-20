@@ -7,6 +7,9 @@ export const API_ROUTES = {
   projectResearchStatus: (projectId: string, runId: string) =>
     `/api/projects/${encodeURIComponent(projectId)}/research/status?run_id=${encodeURIComponent(runId)}`,
   projectResearchLatest: (projectId: string) => `/api/projects/${encodeURIComponent(projectId)}/research/latest`,
+  /** GET: aggregated CHECKION Deep Scan page topics (persona-api proxy). */
+  projectCheckionSiteTopics: (projectId: string) =>
+    `/api/projects/${encodeURIComponent(projectId)}/integrations/checkion/site-topics`,
   projectResearchStream: (projectId: string, runId: string, after?: string | null) => {
     const qs = new URLSearchParams({ run_id: runId });
     if (after) qs.set("after", after);
