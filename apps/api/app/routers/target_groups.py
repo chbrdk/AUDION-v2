@@ -42,6 +42,7 @@ from ..services.auth import get_current_user
 from ..services.access_control import list_accessible_project_ids
 from ..services.usage_report import report_usage
 from ..services.checkion_project_context import build_optional_checkion_topics_prompt_block
+from ..services.project_research_prompt import build_optional_project_research_json_context
 
 logger = structlog.get_logger(__name__)
 storage = StorageService()
@@ -1102,6 +1103,11 @@ def suggest_personas_endpoint(
         parts.append(project.description.strip())
     if project.company_context and project.company_context.strip():
         parts.append(project.company_context.strip())
+    inc_res = True if body is None else bool(body.include_project_research)
+    if inc_res:
+        research_block = build_optional_project_research_json_context(session, project=project)
+        if research_block:
+            parts.append(research_block)
     inc_chk = True if body is None else bool(body.include_checkion_topics)
     if inc_chk:
         chk_block = build_optional_checkion_topics_prompt_block(session, project=project, explicit_seed_url=None)

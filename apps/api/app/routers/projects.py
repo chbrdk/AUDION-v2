@@ -66,6 +66,7 @@ from ..services.checkion_project_context import (
     build_optional_checkion_topics_prompt_block,
     fetch_checkion_site_topics_bundle,
 )
+from ..services.project_research_prompt import build_optional_project_research_json_context
 from ..celery_app import celery_app
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -485,27 +486,11 @@ def suggest_target_groups_endpoint(
     if project.company_context and project.company_context.strip():
         parts.append(project.company_context.strip())
 
-    # Optionally incorporate latest Project AI Research summary (EN canonical) if present.
-    latest_run = (
-        session.query(ProjectResearchRun)
-        .where(ProjectResearchRun.project_id == project.id)
-        .order_by(ProjectResearchRun.created_at.desc())
-        .first()
-    )
-    if latest_run:
-        latest_summary = (
-            session.query(ProjectResearchSummary)
-            .where(ProjectResearchSummary.run_id == latest_run.id)
-            .order_by(ProjectResearchSummary.created_at.desc())
-            .first()
-        )
-        if latest_summary and isinstance(latest_summary.summary_en, dict):
-            try:
-                research_compact = json.dumps(latest_summary.summary_en, ensure_ascii=False)
-            except Exception:
-                research_compact = None
-            if research_compact:
-                parts.append("PROJECT AI RESEARCH (JSON, English canonical):\n" + research_compact)
+    inc_res = True if body is None else bool(body.include_project_research)
+    if inc_res:
+        research_block = build_optional_project_research_json_context(session, project=project)
+        if research_block:
+            parts.append(research_block)
     inc_chk = True if body is None else bool(body.include_checkion_topics)
     if inc_chk:
         chk_block = build_optional_checkion_topics_prompt_block(session, project=project, explicit_seed_url=None)

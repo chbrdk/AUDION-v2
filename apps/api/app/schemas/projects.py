@@ -115,6 +115,10 @@ class ProjectDetailResponse(ProjectResponse):
 
 class SuggestTargetGroupsRequest(BaseModel):
     max_suggestions: int = 5
+    include_project_research: bool = Field(
+        default=True,
+        description="When true and a latest Project AI Research summary exists, append its EN JSON to the AI context.",
+    )
     include_checkion_topics: bool = Field(
         default=True,
         description="When true and CHECKION is configured, append aggregated Deep Scan page topics to the AI context.",

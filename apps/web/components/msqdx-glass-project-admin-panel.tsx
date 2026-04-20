@@ -17,6 +17,7 @@ import { API_ROUTES } from "../lib/api-routes";
 import { formatResearchTimelineDetail } from "../lib/format-research-timeline-detail";
 import { useProject, type ProjectSummary, type ProjectMember } from "./projects/project-provider";
 import { useI18n } from "./i18n/i18n-provider";
+import { ProjectResearchSummaryPreview } from "./admin/project-research-summary-preview";
 
 type ProjectDetail = {
     id: string;
@@ -202,6 +203,8 @@ export function MsqdxGlassProjectAdminPanel({
     const [researchStreaming, setResearchStreaming] = useState(false);
     const [researchReconnecting, setResearchReconnecting] = useState(false);
     const [researchShowPages, setResearchShowPages] = useState(false);
+    const [researchShowRawJson, setResearchShowRawJson] = useState(false);
+    const [researchSummaryQuietEmpty, setResearchSummaryQuietEmpty] = useState(false);
     type CheckionProjectRow = { id: string; name: string; domain?: string | null };
     const [checkionRows, setCheckionRows] = useState<CheckionProjectRow[]>([]);
     const [checkionListLoading, setCheckionListLoading] = useState(false);
@@ -266,22 +269,46 @@ export function MsqdxGlassProjectAdminPanel({
     }, [researchEvents, researchShowPages]);
 
     const loadResearchLatest = useCallback(
-        async (projectId: string) => {
+        async (
+            projectId: string,
+            opts?: { syncRunState?: boolean; quietNotFound?: boolean }
+        ) => {
+            const syncRunState = opts?.syncRunState !== false;
+            const quietNotFound = opts?.quietNotFound === true;
             setResearchLatestLoading(true);
-            setResearchError(null);
+            if (!quietNotFound) {
+                setResearchError(null);
+            }
+            setResearchSummaryQuietEmpty(false);
             try {
                 const res = await fetch(buildApiUrl(API_ROUTES.projectResearchLatest(projectId)), { cache: "no-store" });
+                if (res.status === 404) {
+                    if (quietNotFound) {
+                        setResearchLatest(null);
+                        setResearchSummaryQuietEmpty(true);
+                        return;
+                    }
+                    const txt = await res.text().catch(() => "");
+                    throw new Error(txt || res.statusText || "No research summary found");
+                }
                 if (!res.ok) {
                     const txt = await res.text().catch(() => "");
                     throw new Error(txt || res.statusText);
                 }
                 const data = await res.json();
                 setResearchLatest(data);
-                setResearchRunId(data?.run_id ?? null);
-                setResearchStatus(data?.status ?? null);
+                setResearchSummaryQuietEmpty(false);
+                if (syncRunState) {
+                    setResearchRunId(data?.run_id ?? null);
+                    setResearchStatus(data?.status ?? null);
+                }
             } catch (e) {
                 setResearchLatest(null);
-                setResearchError(e instanceof Error ? e.message : "Failed to load research");
+                if (!quietNotFound) {
+                    setResearchError(e instanceof Error ? e.message : "Failed to load research");
+                } else {
+                    setResearchSummaryQuietEmpty(true);
+                }
             } finally {
                 setResearchLatestLoading(false);
             }
@@ -425,6 +452,7 @@ export function MsqdxGlassProjectAdminPanel({
             setResearchStatus(data?.status ?? null);
             setResearchPagesFetched(Number(data?.pages_fetched ?? 0));
             setResearchLatest(null);
+            setResearchSummaryQuietEmpty(false);
         } catch (e) {
             setResearchError(e instanceof Error ? e.message : "Failed to start research");
         } finally {
@@ -468,7 +496,22 @@ export function MsqdxGlassProjectAdminPanel({
     useEffect(() => {
         setSiteTopicsPayload(null);
         setSiteTopicsError(null);
+        setResearchLatest(null);
+        setResearchSummaryQuietEmpty(false);
+        setResearchShowRawJson(false);
+        setResearchRunId(null);
+        setResearchStatus(null);
+        setResearchEvents([]);
+        setResearchError(null);
+        setResearchPagesFetched(0);
     }, [selectedId]);
+
+    useEffect(() => {
+        if (!selectedId || !projectResearchExpanded) return;
+        const st = String(researchStatus || "");
+        if (st === "queued" || st === "running") return;
+        void loadResearchLatest(selectedId, { syncRunState: false, quietNotFound: true });
+    }, [selectedId, projectResearchExpanded, researchStatus, loadResearchLatest]);
 
     useEffect(() => {
         if (!selectedId || !checkionSiteTopicsExpanded) return;
@@ -1779,6 +1822,10 @@ export function MsqdxGlassProjectAdminPanel({
                                         <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
                                             {t("settingsProjects.projectResearch.subtitle")}
                                         </MsqdxTypography>
+                                        <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                                            {t("settingsProjects.projectResearch.summaryAutoLoadHint") ??
+                                                "When you expand this section, the latest saved summary loads automatically (structured view)."}
+                                        </MsqdxTypography>
 
                                         <Stack spacing={1}>
                                             <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
@@ -1960,6 +2007,20 @@ export function MsqdxGlassProjectAdminPanel({
                                             </MsqdxTypography>
                                         ) : null}
 
+                                        {researchLatestLoading && projectResearchExpanded ? (
+                                            <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
+                                                {t("settingsProjects.projectResearch.summaryLoading") ?? "Loading research summary…"}
+                                            </MsqdxTypography>
+                                        ) : null}
+                                        {researchSummaryQuietEmpty &&
+                                        !researchLatest &&
+                                        !researchLatestLoading &&
+                                        projectResearchExpanded ? (
+                                            <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
+                                                {t("settingsProjects.projectResearch.summaryEmpty") ??
+                                                    "No saved research summary yet. Run research above, then it appears here."}
+                                            </MsqdxTypography>
+                                        ) : null}
                                         {researchLatest ? (
                                             <Box
                                                 sx={{
@@ -1970,18 +2031,49 @@ export function MsqdxGlassProjectAdminPanel({
                                                     bgcolor: "rgba(0,0,0,0.02)",
                                                 }}
                                             >
-                                                <MsqdxTypography variant="subtitle2" weight="semibold" sx={{ mb: 1 }}>
-                                                    {t("settingsProjects.projectResearch.viewLatest")}
-                                                </MsqdxTypography>
-                                                <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>
-                                                    {JSON.stringify(
-                                                        locale === "de" && researchLatest.summary_de
-                                                            ? researchLatest.summary_de
-                                                            : researchLatest.summary_en,
-                                                        null,
-                                                        2
-                                                    )}
-                                                </pre>
+                                                <Stack direction="row" flexWrap="wrap" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                                                    <MsqdxTypography variant="subtitle2" weight="semibold">
+                                                        {t("settingsProjects.projectResearch.summaryHeading") ?? "Research summary"}
+                                                    </MsqdxTypography>
+                                                    {researchLatest.run_id ? (
+                                                        <MsqdxChip size="small" variant="outlined" label={`run: ${researchLatest.run_id}`} />
+                                                    ) : null}
+                                                    {researchLatest.status ? (
+                                                        <MsqdxChip size="small" variant="outlined" label={String(researchLatest.status)} />
+                                                    ) : null}
+                                                    {researchLatest.created_at ? (
+                                                        <MsqdxChip
+                                                            size="small"
+                                                            variant="outlined"
+                                                            label={String(researchLatest.created_at).slice(0, 19)}
+                                                        />
+                                                    ) : null}
+                                                    <MsqdxButton variant="text" size="small" onClick={() => setResearchShowRawJson((v) => !v)}>
+                                                        {researchShowRawJson
+                                                            ? (t("settingsProjects.projectResearch.summaryStructured") ?? "Structured view")
+                                                            : (t("settingsProjects.projectResearch.summaryRawJson") ?? "Raw JSON")}
+                                                    </MsqdxButton>
+                                                </Stack>
+                                                {researchShowRawJson ? (
+                                                    <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>
+                                                        {JSON.stringify(
+                                                            locale === "de" && researchLatest.summary_de
+                                                                ? researchLatest.summary_de
+                                                                : researchLatest.summary_en,
+                                                            null,
+                                                            2
+                                                        )}
+                                                    </pre>
+                                                ) : (
+                                                    <ProjectResearchSummaryPreview
+                                                        summary={
+                                                            (locale === "de" && researchLatest.summary_de
+                                                                ? researchLatest.summary_de
+                                                                : researchLatest.summary_en) as Record<string, unknown>
+                                                        }
+                                                        t={t}
+                                                    />
+                                                )}
                                             </Box>
                                         ) : null}
                                     </Stack>

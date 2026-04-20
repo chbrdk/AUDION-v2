@@ -17,6 +17,9 @@ Limited internal crawl:\n- Same host/subdomain only\n- Depth <= 2\n- Default cap
 ## Output schema (V1)
 The summary JSON is a stable V1 shape with sections:\n- `company_overview`\n- `offerings`\n- `industries`\n- `icp_hypotheses`\n- `buying_roles`\n- `objections`\n- `proof_points`\n- `terminology`\n\nEach section contains `claims[]` with `citations[]` (source URLs).
 
+## Admin UI (AUDION Web)
+In **Project settings → AI Research**, opening the collapsible section triggers a quiet `GET /projects/{id}/research/latest` (404 does not show as a global error). The response is shown as a **structured** summary (V1 sections: company overview, offerings, claims with citation counts) with a **Raw JSON** toggle for the full payload.
+
 ## API endpoints
 - `POST /projects/{project_id}/research/start`\n- `GET /projects/{project_id}/research/status?run_id=...`\n- `GET /projects/{project_id}/research/latest`
 
@@ -72,7 +75,12 @@ The API model expects this column; the database is behind. **Fix:** redeploy the
 **Manual SQL (Postgres, emergency only):** `ALTER TABLE audion.projects ADD COLUMN IF NOT EXISTS checkion_project_id VARCHAR(40) NULL;` — still stamp/upgrade Alembic so `audion.alembic_version` matches.
 
 ## Downstream usage
-`POST /projects/{id}/suggest-target-groups` will include the latest research summary (EN JSON) when available, in addition to `project.description` and `project.company_context`.
+The latest research summary (**`summary_en`** JSON: structured claims, ICP hints, terminology, optional GEO/competition-style fields as produced by the pipeline) is appended to the LLM context as **`PROJECT AI RESEARCH (JSON, English canonical):`** when present:
+
+- `POST /projects/{id}/suggest-target-groups` — together with `description`, `company_context`, optional CHECKION site topics (`include_project_research` / `include_checkion_topics`, default true).
+- `POST /target-groups/{id}/suggest-personas` — same research block and optional CHECKION topics (parity with target-group suggest).
+
+Implementation: `apps/api/app/services/project_research_prompt.py` (`build_optional_project_research_json_context`).
 
 ## Troubleshooting failed runs
 If **pages** reached the crawl cap (e.g. 20) but **status=failed**, the crawl finished; the exception happened in **synthesis (EN)**, **translation (DE)**, or **DB save**. Check `GET /projects/{id}/research/status?run_id=…` field **`error`**, the **`run_failed`** SSE event `payload.error`, column `audion.project_research_runs.error`, and worker logs (`project.research.task.failed`).

@@ -19,6 +19,10 @@ class SuggestPersonasRequest(BaseModel):
     """Optional body for suggest-personas endpoint."""
 
     max_suggestions: int = Field(default=5, ge=1, le=10, description="Max number of persona suggestions.")
+    include_project_research: bool = Field(
+        default=True,
+        description="When true and a latest Project AI Research summary exists, append its EN JSON to the AI context.",
+    )
     include_checkion_topics: bool = Field(
         default=True,
         description="When true and CHECKION is configured, append aggregated Deep Scan page topics to the AI context.",
