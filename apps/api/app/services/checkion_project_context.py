@@ -89,6 +89,9 @@ def fetch_checkion_site_topics_bundle(
     out["pages_processed"] = int(agg.get("pages_processed") or 0)
     fetch_hit_cap = len(pages) >= max(1, max_pages)
     out["truncated"] = bool(agg.get("truncated")) or fetch_hit_cap
+    # CHECKION DB-backed slim-pages historically omitted pageClassification; after CHECKION fix this should be rare.
+    if pages and scan_id and not out["topics"]:
+        out["unavailable_reason"] = "no_tags_in_slim_pages"
     return out
 
 

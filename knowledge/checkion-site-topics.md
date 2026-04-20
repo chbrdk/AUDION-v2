@@ -16,6 +16,12 @@ When CHECKION is not configured or no seed/scan is available, the API still retu
 3. If none **and** the project has no `checkion_project_id`: empty topics and `unavailable_reason=no_seed_url`.
 4. If there is a linked **`checkion_project_id`**, the server resolves the latest scan via CHECKION `GET /api/projects/{id}/domain-summary` and does **not** require a research seed URL (hostname / by-domain is only used as fallback when the linked path is missing or returns no scan).
 
+## CHECKION: `pageClassification` on slim-pages
+
+Paged **`GET /api/scan/domain/{scanId}/slim-pages`** is DB-first: rows come from `domain_pages` joined to `scans`. Those slim rows **must** include `pageClassification` (from `scans.result->'pageClassification'`) or AUDION will aggregate **zero topics** while still returning HTTP 200. CHECKION implements this in `lib/db/domain-slim-pages.ts` (`listSlimPagesFromDomainPagesTable`).
+
+If slim pages load but tags stay empty, AUDION may return **`unavailable_reason=no_tags_in_slim_pages`** until CHECKION is updated or scans lack classification in stored results.
+
 ## Aggregation limits
 
 - Slim-pages fetch is capped by `max_pages` (default 400).

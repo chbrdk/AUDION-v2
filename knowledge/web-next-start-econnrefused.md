@@ -6,6 +6,13 @@ When running `next start`, the server logs:
 - `connect ECONNREFUSED <ip>:8000`
 Often coming from `apps/web/app/api/auth/me/route.ts`.
 
+## Docker: `ECONNREFUSED 172.18.x.x:8000`
+`172.18.*` is usually the **current bridge IP** Docker DNS assigned to the API container (hostname `api` resolves to that IP). The error is **not** “wrong IP syntax” — it means **nothing accepted TCP on port 8000** at that moment: API container stopped/crashed, still starting, or **not on the same network** as `web`.
+
+- Check: `docker compose ps` — `api` / `audion-api` should be **Up (healthy)**.
+- Logs: `docker compose logs api --tail 100` (migrations, DB, missing env often prevent bind on `:8000`).
+- Avoid setting `NEXT_PERSONA_BACKEND_INTERNAL_URL` to a **literal 172.x** address in Coolify/env files; use the **stable service hostname** (e.g. `http://api:8000` in Compose, or Coolify’s internal API hostname). Container IPs change after redeploy.
+
 ## Root cause
 The Web app proxies auth to the **Persona Backend**:
 - Server-side base URL is resolved via `getPersonaBackendBase({ preferPublic: false })`

@@ -90,7 +90,7 @@ class CheckionSiteTopicsResponse(BaseModel):
     seed_url_used: str | None = None
     unavailable_reason: str | None = Field(
         default=None,
-        description="null when data ok; otherwise e.g. checkion_not_configured, no_seed_url, no_scan_or_empty_slim_pages",
+        description="null when data ok; otherwise e.g. checkion_not_configured, no_seed_url, no_scan_or_empty_slim_pages, no_tags_in_slim_pages",
     )
 
 

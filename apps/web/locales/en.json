@@ -761,7 +761,8 @@
       "siteTopicsSeedUsed": "Seed URL used",
       "siteTopicsReasonNotConfigured": "CHECKION API is not configured on the server.",
       "siteTopicsReasonNoSeed": "No seed URL yet: run AI research once (company URL above) or link a CHECKION project so the server can resolve the domain.",
-      "siteTopicsReasonNoScan": "No scan data or empty slim-pages for this project or domain."
+      "siteTopicsReasonNoScan": "No scan data or empty slim-pages for this project or domain.",
+      "siteTopicsReasonNoTags": "Pages were found but none carried topic tags (pageClassification). Deploy the latest CHECKION (slim-pages from DB now include classification from page scans) or ensure scans completed the classification step."
     },
     "suggestPersonas": {
       "title": "Suggest personas for target group",

@@ -26,8 +26,10 @@ services:
       # Rewrite /mcp → MCP server (optional; set AUDION_API_TOKEN in mcp service)
       - MCP_SERVER_URL=http://mcp:3100
     depends_on:
-      - api
-      - chat-api
+      api:
+        condition: service_healthy
+      chat-api:
+        condition: service_started
     healthcheck:
       # Use wget - modern Node images might not have fetch in a way that works for this
       test: [ "CMD-SHELL", "wget -q --spider http://localhost:3005/api/health || exit 1" ]

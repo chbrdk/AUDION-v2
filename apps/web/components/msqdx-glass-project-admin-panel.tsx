@@ -2022,7 +2022,10 @@ export function MsqdxGlassProjectAdminPanel({
                                                       : siteTopicsPayload.unavailable_reason === "no_scan_or_empty_slim_pages"
                                                         ? (t("settingsProjects.projectResearch.siteTopicsReasonNoScan") ??
                                                           "No scan data or empty slim-pages for this project/domain.")
-                                                        : siteTopicsPayload.unavailable_reason}
+                                                        : siteTopicsPayload.unavailable_reason === "no_tags_in_slim_pages"
+                                                          ? (t("settingsProjects.projectResearch.siteTopicsReasonNoTags") ??
+                                                            "Slim-pages were loaded but no page tags (pageClassification) were present. Update CHECKION so DB slim-pages include classification, or re-run classification on the scan.")
+                                                          : siteTopicsPayload.unavailable_reason}
                                             </MsqdxTypography>
                                         ) : null}
                                         {!siteTopicsLoading &&

@@ -58,6 +58,32 @@ def test_bundle_loads_topics_without_research_seed_when_checkion_project_linked(
     assert call_kw["seed_url"] == ""
 
 
+@patch("app.services.checkion_project_context.fetch_checkion_raw_slim_pages_for_site_topics")
+@patch("app.services.checkion_project_context.get_settings")
+def test_bundle_no_tags_reason_when_slim_pages_have_no_classification(
+    mock_get_settings: MagicMock,
+    mock_fetch: MagicMock,
+) -> None:
+    mock_get_settings.return_value = SimpleNamespace(
+        checkion_api_base_url="https://checkion.example",
+        checkion_api_token="token",
+        checkion_request_timeout_seconds=30.0,
+    )
+    mock_fetch.return_value = (
+        [{"url": "https://corp.example/a", "score": 10}],
+        "scan-xyz",
+        "checkion_project",
+    )
+    project = SimpleNamespace(id=uuid4(), checkion_project_id="p1")
+    session = _session_with_no_research_run()
+
+    out = fetch_checkion_site_topics_bundle(session=session, project=project, max_pages=50)
+
+    assert out["unavailable_reason"] == "no_tags_in_slim_pages"
+    assert out["scan_id"] == "scan-xyz"
+    assert out["topics"] == []
+
+
 @patch("app.services.checkion_project_context.get_settings")
 def test_bundle_still_requires_seed_without_checkion_link(mock_get_settings: MagicMock) -> None:
     mock_get_settings.return_value = SimpleNamespace(
