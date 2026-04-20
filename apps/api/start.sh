@@ -73,6 +73,15 @@ while True:
 
 PY
 
+# Alembic migrations first (Coolify / Docker: every deploy starts a new container → this always runs).
+# Ensures schema matches code (e.g. new columns) before init_db emergency DDL + seed.
+echo "Running database migrations (Alembic)..."
+if [ -x /app/apps/api/scripts/coolify-migrate.sh ]; then
+  /app/apps/api/scripts/coolify-migrate.sh
+else
+  bash /app/apps/api/scripts/coolify-migrate.sh
+fi
+
 echo "Running database initialization..."
 PYTHONPATH=/app/apps/api /app/apps/api/.venv/bin/python3 app/scripts/init_db.py
 

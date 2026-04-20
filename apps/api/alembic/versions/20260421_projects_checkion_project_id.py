@@ -17,12 +17,13 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "projects",
-        sa.Column("checkion_project_id", sa.String(length=40), nullable=True),
-        schema="audion",
+    # IF NOT EXISTS: init_db may add this column before Alembic runs; plain add_column would fail.
+    op.execute(
+        sa.text(
+            "ALTER TABLE audion.projects ADD COLUMN IF NOT EXISTS checkion_project_id VARCHAR(40) NULL"
+        )
     )
 
 
 def downgrade() -> None:
-    op.drop_column("projects", "checkion_project_id", schema="audion")
+    op.execute(sa.text("ALTER TABLE audion.projects DROP COLUMN IF EXISTS checkion_project_id"))

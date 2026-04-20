@@ -66,6 +66,11 @@ If **`CHECKION_API_BASE_URL`** and **`CHECKION_API_TOKEN`** are set on the **per
 
 If CHECKION is down, misconfigured, or has no scan, research **still succeeds** using crawl text only.
 
+### `UndefinedColumn: projects.checkion_project_id does not exist`
+The API model expects this column; the database is behind. **Fix:** redeploy the **api** service (Coolify/Docker): `start.sh` runs **`scripts/coolify-migrate.sh`** (`alembic upgrade head`) before `init_db.py`. Or manually: `cd /app/apps/api && alembic upgrade head`.
+
+**Manual SQL (Postgres, emergency only):** `ALTER TABLE audion.projects ADD COLUMN IF NOT EXISTS checkion_project_id VARCHAR(40) NULL;` — still stamp/upgrade Alembic so `audion.alembic_version` matches.
+
 ## Downstream usage
 `POST /projects/{id}/suggest-target-groups` will include the latest research summary (EN JSON) when available, in addition to `project.description` and `project.company_context`.
 

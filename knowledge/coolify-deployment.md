@@ -853,23 +853,21 @@ Services müssen in richtiger Reihenfolge gestartet werden:
 4. Workers
 5. Frontend
 
-### Database Migrations
+### Database Migrations (AUDION API)
 
-Migrations müssen nach dem ersten Deployment manuell ausgeführt werden:
+Beim **Start des API-Containers** führt `apps/api/start.sh` automatisch **`scripts/coolify-migrate.sh`** aus (`alembic upgrade head`), danach `app/scripts/init_db.py`. Jeder **Redeploy** der API wendet damit ausstehende Migrationen an — kein separates Coolify-Kommando nötig.
+
+Manuell (nur bei Bedarf):
 
 ```bash
-# Via persona-api Container
-docker exec {persona-api-container} \
-  uv run alembic upgrade head
+docker exec {api-container} /app/apps/api/scripts/coolify-migrate.sh
 ```
-
-Oder über Coolify's Execute Command Feature.
 
 ### First-Time Setup
 
 Nach dem ersten Deployment:
 
-1. Database Migrations ausführen
+1. API einmal deployen/starten (Migrationen laufen mit `start.sh` mit)
 2. Initial Admin User erstellen (falls nötig)
 3. Test Document Upload
 4. Health Checks validieren

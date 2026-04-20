@@ -287,7 +287,8 @@ def init_db():
 
         # 2c. ORM columns on projects / target_groups when migrations were not applied (e.g. legacy stamp
         # without upgrade). SQLAlchemy SELECTs these on every list — must exist before Alembic runs.
-        # Mirrors: 20260309_company_ctx, 20260418_project_tg_bilingual_de, 20260418_proj_tg_pub_stat.
+        # Mirrors: 20260309_company_ctx, 20260418_project_tg_bilingual_de, 20260418_proj_tg_pub_stat,
+        # 20260421_chk_proj_id (checkion_project_id).
         try:
             with engine.connect() as conn:
                 proj_tbl = conn.execute(
@@ -328,6 +329,12 @@ def init_db():
                         )
                         conn.execute(text("ALTER TABLE audion.projects ALTER COLUMN status DROP DEFAULT"))
 
+                    conn.execute(
+                        text(
+                            "ALTER TABLE audion.projects ADD COLUMN IF NOT EXISTS checkion_project_id VARCHAR(40) NULL"
+                        )
+                    )
+
                 tg_tbl = conn.execute(
                     text(
                         "SELECT EXISTS (SELECT 1 FROM information_schema.tables "
@@ -365,7 +372,7 @@ def init_db():
 
                 conn.commit()
                 logger.info(
-                    "Ensured projects/target_groups ORM columns (bilingual DE mirrors, context, publication status)."
+                    "Ensured projects/target_groups ORM columns (bilingual DE mirrors, context, publication status, checkion_project_id)."
                 )
         except Exception as e:
             logger.warning(f"Projects/target_groups ORM column ensure failed: {e}")

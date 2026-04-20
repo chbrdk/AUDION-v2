@@ -146,19 +146,25 @@ Coolify will use the `docker-compose.yml` file in the repository root. Ensure it
 2. Monitor the build logs
 3. Wait for all services to start (check health checks)
 
-## Step 7: Database Migration
+## Step 7: Database migration (deploy)
 
-You do **not** need a Coolify terminal for routine migrations: the `api` container runs `app/scripts/init_db.py` on startup (`start.sh`), which ends with an idempotent **`alembic upgrade head`** on existing databases (fresh installs use `create_all` + stamp only).
+On **every API container start**, `start.sh` runs (in order):
 
-### Optional: explicit migrate job or deploy hook
+1. Wait until Postgres accepts connections.
+2. **`scripts/coolify-migrate.sh`** → **`alembic upgrade head`** (applies all pending migrations; safe to repeat).
+3. **`app/scripts/init_db.py`** → schema ensures, legacy paths, optional second `upgrade` where applicable, seeds.
 
-If you prefer a separate step (e.g. Coolify **Execute Command** on deploy, or a one-off command):
+You do **not** need a separate Coolify “Execute Command” for normal deploys: redeploying the **api** service is enough.
+
+**Important:** If you override the **api** container **command** in Coolify to something other than the image default, you must either keep using **`/app/apps/api/start.sh`** or run **`/app/apps/api/scripts/coolify-migrate.sh`** yourself before starting uvicorn; otherwise migrations will not run.
+
+### Optional: run migrations only (debug / one-off)
+
+Same env as the `api` service:
 
 ```bash
 /app/apps/api/scripts/coolify-migrate.sh
 ```
-
-Same environment variables as the `api` service (`DATABASE_URL`, `AUTH_JWT_SECRET`, etc.). The script lives in the image at `scripts/coolify-migrate.sh` relative to `apps/api`.
 
 ### Manual terminal (only if needed)
 

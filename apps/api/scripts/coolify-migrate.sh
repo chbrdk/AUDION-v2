@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Run Alembic migrations without opening a Coolify terminal.
-# Usage (Docker / Coolify): same env as api service, from app dir:
-#   /app/apps/api/scripts/coolify-migrate.sh
-# Coolify: optional "Execute Command" on deploy, or one-off job with this script as command.
+# Run Alembic migrations (Coolify / Docker deploy path).
+# - Called automatically from start.sh before init_db on every API container start.
+# - Can still be run manually: /app/apps/api/scripts/coolify-migrate.sh
+# Requires same env as api (DATABASE_URL, etc.). Working directory: apps/api (script cd's there).
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
