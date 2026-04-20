@@ -105,6 +105,23 @@ export function MsqdxGlassProjectAdminPanel({
         console.log('[ProjectAdminPanel] Projects state:', projects, 'count:', projects.length);
     }, [initialProjects, projects, activeProjectId]);
 
+    // Deep-link from target-groups AI dialog: /admin/projects/{id}#company-context
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        if (window.location.hash !== "#company-context") return;
+        if (!selectedId) return;
+        if (detailLoading) return;
+        setExpandedSections((prev) => {
+            const next = new Set(prev);
+            next.add("company-context");
+            return next;
+        });
+        const timer = window.setTimeout(() => {
+            document.getElementById("company-context")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 150);
+        return () => window.clearTimeout(timer);
+    }, [selectedId, detailLoading]);
+
     // Create Project State
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [newProjectName, setNewProjectName] = useState("");

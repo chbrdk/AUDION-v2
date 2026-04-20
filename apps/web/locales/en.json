@@ -391,6 +391,7 @@
     "generateWithAiSubmit": "Create selected",
     "generateWithAiFailed": "Could not load or create target groups.",
     "generateWithAiNoneSelected": "Select at least one suggestion.",
+    "generateWithAiGoToProject": "Open project — company context",
     "toasts": {
       "listUpdated": "List updated",
       "listUpdateError": "Error updating list",

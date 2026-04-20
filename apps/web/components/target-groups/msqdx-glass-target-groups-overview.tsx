@@ -429,9 +429,31 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
               {t("targetGroupsAdmin.generateWithAiLoading")}
             </MsqdxTypography>
           ) : aiSuggestions.length === 0 ? (
-            <MsqdxTypography variant="body2" sx={{ color: "warning.main" }}>
-              {t("targetGroupsAdmin.generateWithAiEmpty")}
-            </MsqdxTypography>
+            <Stack spacing={1.5}>
+              <MsqdxTypography variant="body2" sx={{ color: "warning.main" }}>
+                {t("targetGroupsAdmin.generateWithAiEmpty")}
+              </MsqdxTypography>
+              {activeProjectId ? (
+                <MsqdxButton
+                  variant="outlined"
+                  size="small"
+                  type="button"
+                  onClick={() => {
+                    setAiDialogOpen(false);
+                    router.push(`${ADMIN_ROUTES.projectDetail(activeProjectId)}#company-context`);
+                  }}
+                  startIcon={<MsqdxIcon name="open_in_new" customSize={16} />}
+                  sx={{
+                    alignSelf: "flex-start",
+                    borderColor: accent,
+                    color: accent,
+                    "&:hover": { borderColor: accent, backgroundColor: "transparent" },
+                  }}
+                >
+                  {t("targetGroupsAdmin.generateWithAiGoToProject")}
+                </MsqdxButton>
+              ) : null}
+            </Stack>
           ) : (
             <>
               <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>

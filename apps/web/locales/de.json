@@ -391,6 +391,7 @@
     "generateWithAiSubmit": "Ausgewählte anlegen",
     "generateWithAiFailed": "Vorschläge konnten nicht geladen oder Zielgruppen nicht angelegt werden.",
     "generateWithAiNoneSelected": "Bitte mindestens einen Vorschlag auswählen.",
+    "generateWithAiGoToProject": "Zum Projekt — Firmenkontext",
     "toasts": {
       "listUpdated": "Liste aktualisiert",
       "listUpdateError": "Fehler beim Aktualisieren der Liste",
