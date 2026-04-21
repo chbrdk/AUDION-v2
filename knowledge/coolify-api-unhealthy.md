@@ -23,6 +23,17 @@ If Coolify evaluates container health early, `/health` cannot respond until `uvi
 - then runs DB wait + migrations + init + seeding
 - if bootstrap fails, it stops `uvicorn` and exits non-zero
 
+### Follow-up: Alembic `DuplicateTable` during deploy
+If deploy logs show an error like:
+
+- `psycopg.errors.DuplicateTable: relation "ai_suggestion_cache" already exists`
+
+it means the table exists already (manual creation or partial deploy) but Alembic still tries to create it.
+The migration `20260421_ai_suggestion_cache` was updated to:
+
+- skip `create_table` when the table already exists
+- still ensure the expected index + unique constraint exist
+
 ### Notes
 - Healthcheck in `docker-compose.yml` is still `http://localhost:8000/health`.
 - If you need to tune the initial health window, use env vars:
