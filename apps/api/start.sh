@@ -39,6 +39,40 @@ elif command -v python3 >/dev/null 2>&1; then
 fi
 
 # Run database initialization
+echo "Starting uvicorn (for fast healthchecks)..."
+/app/apps/api/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+UVICORN_PID="$!"
+
+cleanup() {
+  if [[ -n "${UVICORN_PID:-}" ]]; then
+    kill "$UVICORN_PID" >/dev/null 2>&1 || true
+  fi
+}
+trap cleanup EXIT INT TERM
+
+echo "Waiting for /health to respond..."
+PYTHONPATH=/app/apps/api /app/apps/api/.venv/bin/python3 - <<'PY'
+import os
+import time
+import urllib.request
+
+timeout_seconds = float(os.getenv("API_HEALTHWAIT_TIMEOUT_SECONDS", "30"))
+interval_seconds = float(os.getenv("API_HEALTHWAIT_INTERVAL_SECONDS", "0.5"))
+deadline = time.time() + timeout_seconds
+
+while True:
+    try:
+        with urllib.request.urlopen("http://localhost:8000/health", timeout=1) as resp:
+            if 200 <= resp.status < 300:
+                print("/health is responding.")
+                break
+    except Exception:
+        pass
+    if time.time() >= deadline:
+        raise SystemExit(f"/health not responding after {timeout_seconds}s")
+    time.sleep(interval_seconds)
+PY
+
 echo "Waiting for database to be ready..."
 PYTHONPATH=/app/apps/api /app/apps/api/.venv/bin/python3 - <<'PY'
 import os
@@ -88,7 +122,5 @@ PYTHONPATH=/app/apps/api /app/apps/api/.venv/bin/python3 app/scripts/init_db.py
 echo "Seeding prompt templates..."
 PYTHONPATH=/app/apps/api /app/apps/api/.venv/bin/python3 app/scripts/seed_prompts.py
 
-# Use exec to replace shell with uvicorn process (PID 1)
-# This ensures uvicorn is the main process and receives signals correctly
-echo "Starting uvicorn..."
-exec /app/apps/api/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+echo "Bootstrap complete. Continuing to run uvicorn..."
+wait "$UVICORN_PID"
