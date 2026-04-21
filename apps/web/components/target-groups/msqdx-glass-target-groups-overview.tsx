@@ -445,6 +445,7 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
         PaperProps={{
           sx: {
             width: "min(1200px, 96vw)",
+            borderRadius: "var(--msqdx-radius-3xl)",
           },
         }}
       >
@@ -590,10 +591,16 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
                             {Array.isArray((s as any).relevance_signals) && (s as any).relevance_signals.length ? (
                               <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.75, flexWrap: "wrap" }}>
                                 <MsqdxButton
-                                  variant="text"
+                                  variant="outlined"
                                   size="small"
                                   onClick={() => toggleAiDetails(index)}
-                                  sx={{ minWidth: 0, px: 0.5 }}
+                                  sx={{
+                                    minWidth: 0,
+                                    px: 1,
+                                    borderColor: "var(--color-theme-accent)",
+                                    color: "var(--color-theme-accent)",
+                                    "&:hover": { borderColor: "var(--color-theme-accent)", bgcolor: "var(--color-theme-accent-tint)" },
+                                  }}
                                 >
                                   {expandedAiDetails.has(index)
                                     ? (t("targetGroupsAdmin.relevanceDetailsHide") ?? "Hide details")

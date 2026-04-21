@@ -2325,10 +2325,19 @@ export function MsqdxGlassProjectAdminPanel({
                                                                                 {sg.relevance_signals.slice(0, 2).join(" · ")}
                                                                             </MsqdxTypography>
                                                                             <MsqdxButton
-                                                                                variant="text"
+                                                                                variant="outlined"
                                                                                 size="small"
                                                                                 onClick={() => toggleSuggestionDetails(i)}
-                                                                                sx={{ minWidth: 0, px: 0.5 }}
+                                                                                sx={{
+                                                                                    minWidth: 0,
+                                                                                    px: 1,
+                                                                                    borderColor: "var(--color-theme-accent)",
+                                                                                    color: "var(--color-theme-accent)",
+                                                                                    "&:hover": {
+                                                                                        borderColor: "var(--color-theme-accent)",
+                                                                                        bgcolor: "var(--color-theme-accent-tint)",
+                                                                                    },
+                                                                                }}
                                                                             >
                                                                                 {expandedSuggestionDetails.has(i)
                                                                                     ? (t("settingsProjects.companyContext.relevanceDetailsHide") ?? "Hide details")
