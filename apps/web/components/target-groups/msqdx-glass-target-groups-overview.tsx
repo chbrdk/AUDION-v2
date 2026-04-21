@@ -72,6 +72,7 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<TargetGroupSuggestionDto[]>([]);
   const [selectedAiIndices, setSelectedAiIndices] = useState<Set<number>>(new Set());
+  const [expandedAiDetails, setExpandedAiDetails] = useState<Set<number>>(new Set());
   const [aiCreating, setAiCreating] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
@@ -164,6 +165,7 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
     setAiError(null);
     setAiSuggestions([]);
     setSelectedAiIndices(new Set());
+    setExpandedAiDetails(new Set());
     setAiLoading(true);
     try {
       const res = await suggestProjectTargetGroups(activeProjectId, { bilingual: true, maxSuggestions: 5 });
@@ -177,6 +179,15 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
 
   const toggleAiIndex = (index: number) => {
     setSelectedAiIndices((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  };
+
+  const toggleAiDetails = (index: number) => {
+    setExpandedAiDetails((prev) => {
       const next = new Set(prev);
       if (next.has(index)) next.delete(index);
       else next.add(index);
@@ -481,6 +492,63 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
                       )}
                       label={(
                         <Box>
+                          {typeof (s as any).relevance_score_deterministic === "number" || typeof (s as any).relevance_score === "number" ? (
+                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5, flexWrap: "wrap" }}>
+                              {typeof (s as any).relevance_score_deterministic === "number" ? (
+                                <MsqdxChip
+                                  size="small"
+                                  variant="outlined"
+                                  label={`${t("targetGroupsAdmin.relevanceDet") ?? "Relevance (det)"}: ${Math.max(
+                                    0,
+                                    Math.min(100, Number((s as any).relevance_score_deterministic))
+                                  )}%`}
+                                />
+                              ) : null}
+                              {typeof (s as any).relevance_score === "number" ? (
+                                <MsqdxChip
+                                  size="small"
+                                  variant="outlined"
+                                  label={`${t("targetGroupsAdmin.relevanceLlm") ?? "Relevance (LLM)"}: ${Math.max(
+                                    0,
+                                    Math.min(100, Number((s as any).relevance_score))
+                                  )}%`}
+                                />
+                              ) : null}
+                              {typeof (s as any).relevance_reason === "string" && String((s as any).relevance_reason).trim() ? (
+                                <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
+                                  {String((s as any).relevance_reason).trim()}
+                                </MsqdxTypography>
+                              ) : null}
+                            </Stack>
+                          ) : null}
+                          {Array.isArray((s as any).relevance_signals) && (s as any).relevance_signals.length ? (
+                            <>
+                              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5, flexWrap: "wrap" }}>
+                                <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
+                                  {String(((s as any).relevance_signals as string[]).slice(0, 2).join(" · "))}
+                                </MsqdxTypography>
+                                <MsqdxButton
+                                  variant="text"
+                                  size="small"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    toggleAiDetails(index);
+                                  }}
+                                  sx={{ minWidth: 0, px: 0.5 }}
+                                >
+                                  {expandedAiDetails.has(index)
+                                    ? (t("targetGroupsAdmin.relevanceDetailsHide") ?? "Hide details")
+                                    : (t("targetGroupsAdmin.relevanceDetailsShow") ?? "Show details")}
+                                </MsqdxButton>
+                              </Stack>
+                              {expandedAiDetails.has(index) ? (
+                                <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
+                                  {String(((s as any).relevance_signals as string[]).slice(0, 8).join(" · "))}
+                                </MsqdxTypography>
+                              ) : null}
+                            </>
+                          ) : null}
                           <MsqdxTypography variant="subtitle2" weight="semibold">
                             {locale === "de" && (s.name_de || "").trim() ? s.name_de : s.name}
                           </MsqdxTypography>

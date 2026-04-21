@@ -25,6 +25,8 @@ class TargetGroupSuggestion:
     name_de: str = ""
     segment_de: str = ""
     description_de: str = ""
+    relevance_score: int | None = None
+    relevance_reason: str = ""
 
 
 def suggest_target_groups(
@@ -47,17 +49,51 @@ def suggest_target_groups(
 
     loc = normalize_output_locale(output_locale)
     lang = locale_label_for_ai_prompt(loc)
-    prompt = f"""Based on the following company/project context, suggest between 3 and {max_suggestions} target groups (audience segments) that would be relevant for this project.
+    if bilingual:
+        prompt = f"""Based on the following company/project context, suggest between 3 and {max_suggestions} target groups (audience segments) that would be relevant for this project.
+
+BILINGUAL OUTPUT (strict):
+- name, description: English (canonical)
+- name_de, description_de: German mirror (native German)
+- segment, segment_de: short URL-safe ASCII slugs (lowercase, hyphens). segment_de can be same as segment if you prefer.
+- relevance_score: integer 0..100 (higher = more relevant given the context)
+- relevance_reason: one short English sentence why it's relevant (<= 120 chars)
+
+For each target group provide:
+- name: A short, human-readable English name
+- name_de: German mirror of name
+- segment: A brief segment label (ASCII slug, e.g. "tech-leads")
+- segment_de: German mirror slug (ASCII)
+- description: 2-3 English sentences describing this audience and why they matter for the project
+- description_de: German mirror of description
+- relevance_score: integer 0..100
+- relevance_reason: short English sentence
+
+Respond with a JSON array only, no other text. Example format:
+[{{"name": "...", "name_de": "...", "segment": "...", "segment_de": "...", "description": "...", "description_de": \"...\", \"relevance_score\": 87, \"relevance_reason\": \"...\"}}, ...]
+
+Company/project context:
+---
+{context_text.strip()}
+---
+{locale_output_guard_footer(output_locale="en")}"""
+    else:
+        prompt = f"""Based on the following company/project context, suggest between 3 and {max_suggestions} target groups (audience segments) that would be relevant for this project.
 
 LANGUAGE: Write every human-readable field (name, description) exclusively in {lang}. The "segment" value must be a short URL-safe ASCII slug (lowercase, hyphens); it may stay English-like if clearer for systems.
+Also add:
+- relevance_score: integer 0..100 (higher = more relevant given the context)
+- relevance_reason: one short sentence in {lang} (<= 120 chars) why it's relevant
 
 For each target group provide:
 - name: A short, human-readable name
 - segment: A brief segment label (ASCII slug, e.g. "tech-leads")
 - description: 2-3 sentences in {lang} describing this audience and why they matter for the project
+- relevance_score: integer 0..100
+- relevance_reason: short sentence in {lang}
 
 Respond with a JSON array only, no other text. Example format:
-[{{"name": "...", "segment": "...", "description": "..."}}, ...]
+[{{"name": "...", "segment": "...", "description": \"...\", \"relevance_score\": 87, \"relevance_reason\": \"...\"}}, ...]
 
 Company/project context:
 ---
@@ -134,6 +170,11 @@ Company/project context:
             name_de = (item.get("name_de") or "").strip() if isinstance(item.get("name_de"), str) else ""
             segment_de = (item.get("segment_de") or "").strip() if isinstance(item.get("segment_de"), str) else ""
             description_de = (item.get("description_de") or "").strip() if isinstance(item.get("description_de"), str) else ""
+            rs = item.get("relevance_score")
+            relevance_score = int(rs) if isinstance(rs, (int, float)) else None
+            if relevance_score is not None:
+                relevance_score = max(0, min(100, relevance_score))
+            relevance_reason = (item.get("relevance_reason") or "").strip() if isinstance(item.get("relevance_reason"), str) else ""
             if not name_de:
                 name_de = name
             if not segment_de:
@@ -148,9 +189,24 @@ Company/project context:
                     name_de=name_de,
                     segment_de=segment_de,
                     description_de=description_de,
+                    relevance_score=relevance_score,
+                    relevance_reason=relevance_reason,
                 )
             )
         else:
-            result.append(TargetGroupSuggestion(name=name, segment=segment, description=description))
+            rs = item.get("relevance_score")
+            relevance_score = int(rs) if isinstance(rs, (int, float)) else None
+            if relevance_score is not None:
+                relevance_score = max(0, min(100, relevance_score))
+            relevance_reason = (item.get("relevance_reason") or "").strip() if isinstance(item.get("relevance_reason"), str) else ""
+            result.append(
+                TargetGroupSuggestion(
+                    name=name,
+                    segment=segment,
+                    description=description,
+                    relevance_score=relevance_score,
+                    relevance_reason=relevance_reason,
+                )
+            )
 
     return result[:max_suggestions], usage_raw

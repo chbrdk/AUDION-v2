@@ -561,12 +561,24 @@ export function MsqdxGlassProjectAdminPanel({
     const [contextSaveError, setContextSaveError] = useState<string | null>(null);
 
     // Suggest target groups state
-    type TargetGroupSuggestion = { name: string; segment: string; description: string };
+    type TargetGroupSuggestion = {
+        name: string;
+        segment: string;
+        description: string;
+        name_de?: string | null;
+        segment_de?: string | null;
+        description_de?: string | null;
+        relevance_score?: number | null;
+        relevance_reason?: string | null;
+        relevance_score_deterministic?: number | null;
+        relevance_signals?: string[] | null;
+    };
     const [suggestions, setSuggestions] = useState<TargetGroupSuggestion[]>([]);
     const [suggestLoading, setSuggestLoading] = useState(false);
     const [suggestError, setSuggestError] = useState<string | null>(null);
     const [selectedSuggestions, setSelectedSuggestions] = useState<Set<number>>(new Set());
     const [creatingTgIds, setCreatingTgIds] = useState<Set<number>>(new Set());
+    const [expandedSuggestionDetails, setExpandedSuggestionDetails] = useState<Set<number>>(new Set());
 
     // Suggest personas (per target group) state
     type PersonaSuggestionItem = { name: string; age?: string | null; headline: string; bio?: string; location?: string | null; gender?: string | null };
@@ -955,6 +967,7 @@ export function MsqdxGlassProjectAdminPanel({
         setSuggestError(null);
         setSuggestions([]);
         setSelectedSuggestions(new Set());
+        setExpandedSuggestionDetails(new Set());
         try {
             const res = await fetch(buildApiUrl(`/api/projects/${selectedId}/suggest-target-groups`), {
                 method: "POST",
@@ -983,6 +996,15 @@ export function MsqdxGlassProjectAdminPanel({
 
     const toggleSuggestion = useCallback((index: number) => {
         setSelectedSuggestions((prev) => {
+            const next = new Set(prev);
+            if (next.has(index)) next.delete(index);
+            else next.add(index);
+            return next;
+        });
+    }, []);
+
+    const toggleSuggestionDetails = useCallback((index: number) => {
+        setExpandedSuggestionDetails((prev) => {
             const next = new Set(prev);
             if (next.has(index)) next.delete(index);
             else next.add(index);
@@ -2243,6 +2265,28 @@ export function MsqdxGlassProjectAdminPanel({
                                                                 disabled={creatingTgIds.has(i)}
                                                             />
                                                             <Box sx={{ flex: 1 }}>
+                                                                {typeof sg.relevance_score_deterministic === "number" ? (
+                                                                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ gap: 0.75, mb: 0.5 }}>
+                                                                        <MsqdxChip
+                                                                            size="small"
+                                                                            variant="outlined"
+                                                                            label={`${t("settingsProjects.companyContext.relevanceDet") ?? "Relevance (det)"}: ${Math.max(
+                                                                                0,
+                                                                                Math.min(100, Number(sg.relevance_score_deterministic))
+                                                                            )}%`}
+                                                                        />
+                                                                        {typeof sg.relevance_score === "number" ? (
+                                                                            <MsqdxChip
+                                                                                size="small"
+                                                                                variant="outlined"
+                                                                                label={`${t("settingsProjects.companyContext.relevanceLlm") ?? "Relevance (LLM)"}: ${Math.max(
+                                                                                    0,
+                                                                                    Math.min(100, Number(sg.relevance_score))
+                                                                                )}%`}
+                                                                            />
+                                                                        ) : null}
+                                                                    </Stack>
+                                                                ) : null}
                                                                 <MsqdxTypography variant="subtitle2" weight="semibold">
                                                                     {sg.name}
                                                                 </MsqdxTypography>
@@ -2254,6 +2298,30 @@ export function MsqdxGlassProjectAdminPanel({
                                                                         {sg.description}
                                                                     </MsqdxTypography>
                                                                 )}
+                                                                {Array.isArray(sg.relevance_signals) && sg.relevance_signals.length ? (
+                                                                    <>
+                                                                        <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5, flexWrap: "wrap" }}>
+                                                                            <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
+                                                                                {sg.relevance_signals.slice(0, 2).join(" · ")}
+                                                                            </MsqdxTypography>
+                                                                            <MsqdxButton
+                                                                                variant="text"
+                                                                                size="small"
+                                                                                onClick={() => toggleSuggestionDetails(i)}
+                                                                                sx={{ minWidth: 0, px: 0.5 }}
+                                                                            >
+                                                                                {expandedSuggestionDetails.has(i)
+                                                                                    ? (t("settingsProjects.companyContext.relevanceDetailsHide") ?? "Hide details")
+                                                                                    : (t("settingsProjects.companyContext.relevanceDetailsShow") ?? "Show details")}
+                                                                            </MsqdxButton>
+                                                                        </Stack>
+                                                                        {expandedSuggestionDetails.has(i) ? (
+                                                                            <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.25 }}>
+                                                                                {sg.relevance_signals.slice(0, 8).join(" · ")}
+                                                                            </MsqdxTypography>
+                                                                        ) : null}
+                                                                    </>
+                                                                ) : null}
                                                             </Box>
                                                             <MsqdxButton
                                                                 variant="contained"

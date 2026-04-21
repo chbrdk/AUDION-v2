@@ -66,7 +66,11 @@ from ..services.checkion_project_context import (
     build_optional_checkion_topics_prompt_block,
     fetch_checkion_site_topics_bundle,
 )
-from ..services.project_research_prompt import build_optional_project_research_json_context
+from ..services.project_research_prompt import (
+    build_optional_project_research_json_context,
+    get_latest_project_research_summary_en,
+)
+from ..services.target_group_relevance import deterministic_target_group_relevance
 from ..celery_app import celery_app
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -487,12 +491,16 @@ def suggest_target_groups_endpoint(
         parts.append(project.company_context.strip())
 
     inc_res = True if body is None else bool(body.include_project_research)
+    research_summary_en = None
     if inc_res:
+        research_summary_en = get_latest_project_research_summary_en(session, project=project)
         research_block = build_optional_project_research_json_context(session, project=project)
         if research_block:
             parts.append(research_block)
     inc_chk = True if body is None else bool(body.include_checkion_topics)
+    checkion_bundle = None
     if inc_chk:
+        checkion_bundle = fetch_checkion_site_topics_bundle(session=session, project=project, explicit_seed_url=None)
         chk_block = build_optional_checkion_topics_prompt_block(session, project=project, explicit_seed_url=None)
         if chk_block:
             parts.append(chk_block)
@@ -518,8 +526,17 @@ def suggest_target_groups_endpoint(
     if uid and usage_raw:
         report_usage(user_id=uid, event_type="llm_request", raw_units=usage_raw)
 
-    return SuggestTargetGroupsResponse(
-        suggestions=[
+    checkion_topics = (checkion_bundle or {}).get("topics") if isinstance(checkion_bundle, dict) else None
+    items: list[TargetGroupSuggestionItem] = []
+    for s in suggestions:
+        det_score, det_signals = deterministic_target_group_relevance(
+            name=s.name,
+            segment=s.segment,
+            description=s.description,
+            checkion_topics=checkion_topics,
+            research_summary_en=research_summary_en if isinstance(research_summary_en, dict) else None,
+        )
+        items.append(
             TargetGroupSuggestionItem(
                 name=s.name,
                 segment=s.segment,
@@ -527,10 +544,14 @@ def suggest_target_groups_endpoint(
                 name_de=s.name_de or None,
                 segment_de=s.segment_de or None,
                 description_de=s.description_de or None,
+                relevance_score=getattr(s, "relevance_score", None),
+                relevance_reason=(getattr(s, "relevance_reason", "") or "").strip() or None,
+                relevance_score_deterministic=det_score,
+                relevance_signals=det_signals[:8],
             )
-            for s in suggestions
-        ],
-    )
+        )
+    items.sort(key=lambda x: (x.relevance_score_deterministic or 0, x.relevance_score or 0), reverse=True)
+    return SuggestTargetGroupsResponse(suggestions=items)
 
 
 @router.post(

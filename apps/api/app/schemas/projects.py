@@ -140,6 +140,10 @@ class TargetGroupSuggestionItem(BaseModel):
     name_de: str | None = None
     segment_de: str | None = None
     description_de: str | None = None
+    relevance_score: int | None = Field(default=None, ge=0, le=100)
+    relevance_reason: str | None = Field(default=None, max_length=256)
+    relevance_score_deterministic: int | None = Field(default=None, ge=0, le=100)
+    relevance_signals: list[str] = Field(default_factory=list, max_length=8)
 
 
 class SuggestTargetGroupsResponse(BaseModel):

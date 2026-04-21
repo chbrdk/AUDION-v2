@@ -9,13 +9,8 @@ from sqlalchemy.orm import Session
 from ..models import Project, ProjectResearchRun, ProjectResearchSummary
 
 
-def build_optional_project_research_json_context(session: Session, *, project: Project) -> str | None:
-    """
-    Latest research run's EN canonical summary as compact JSON text, or None.
-
-    The stored dict typically includes structured fields (e.g. positioning, GEO questions,
-    competition) produced by the project AI research pipeline — same payload the admin UI shows.
-    """
+def get_latest_project_research_summary_en(session: Session, *, project: Project) -> dict | None:
+    """Return latest EN canonical summary dict (or None)."""
     latest_run = (
         session.query(ProjectResearchRun)
         .where(ProjectResearchRun.project_id == project.id)
@@ -32,8 +27,21 @@ def build_optional_project_research_json_context(session: Session, *, project: P
     )
     if not latest_summary or not isinstance(latest_summary.summary_en, dict):
         return None
+    return latest_summary.summary_en
+
+
+def build_optional_project_research_json_context(session: Session, *, project: Project) -> str | None:
+    """
+    Latest research run's EN canonical summary as compact JSON text, or None.
+
+    The stored dict typically includes structured fields (e.g. positioning, GEO questions,
+    competition) produced by the project AI research pipeline — same payload the admin UI shows.
+    """
+    summary_en = get_latest_project_research_summary_en(session, project=project)
+    if not isinstance(summary_en, dict):
+        return None
     try:
-        research_compact = json.dumps(latest_summary.summary_en, ensure_ascii=False)
+        research_compact = json.dumps(summary_en, ensure_ascii=False)
     except Exception:
         return None
     if not research_compact.strip():
