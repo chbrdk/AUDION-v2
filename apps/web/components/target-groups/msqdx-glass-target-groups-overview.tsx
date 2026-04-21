@@ -525,90 +525,94 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
                       </Box>
 
                       <Box sx={{ flex: 1, minWidth: 0 }}>
-                        {/* Row 1: scores + name + segment + short description in one line */}
-                        <Stack
-                          direction="row"
-                          spacing={1}
-                          alignItems="center"
-                          flexWrap="wrap"
-                          useFlexGap
-                          sx={{ gap: 0.75 }}
-                        >
-                          {typeof (s as any).relevance_score_deterministic === "number" ? (
-                            <MsqdxChip
-                              size="small"
-                              variant="outlined"
-                              label={`${t("targetGroupsAdmin.relevanceDet") ?? "Relevance (det)"}: ${Math.max(
-                                0,
-                                Math.min(100, Number((s as any).relevance_score_deterministic))
-                              )}%`}
-                              sx={{ "& .MuiChip-label": { fontSize: 13, fontWeight: 700 } }}
-                            />
-                          ) : null}
-                          {typeof (s as any).relevance_score === "number" ? (
-                            <MsqdxChip
-                              size="small"
-                              variant="outlined"
-                              label={`${t("targetGroupsAdmin.relevanceLlm") ?? "Relevance (LLM)"}: ${Math.max(
-                                0,
-                                Math.min(100, Number((s as any).relevance_score))
-                              )}%`}
-                              sx={{ "& .MuiChip-label": { fontSize: 13, fontWeight: 700 } }}
-                            />
-                          ) : null}
-
-                          <MsqdxTypography
-                            variant="subtitle2"
-                            weight="semibold"
-                            sx={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                          >
-                            {locale === "de" && (s.name_de || "").trim() ? s.name_de : s.name}
-                          </MsqdxTypography>
-
-                          <MsqdxTypography
-                            variant="caption"
-                            sx={{ color: "text.secondary", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                          >
-                            {(locale === "de" && (s.segment_de || "").trim() ? s.segment_de : s.segment) || "—"}
-                          </MsqdxTypography>
-
-                          <MsqdxTypography
-                            variant="body2"
-                            sx={{ color: "text.secondary", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}
-                          >
-                            {(locale === "de" && (s.description_de || "").trim() ? s.description_de : s.description) || "—"}
-                          </MsqdxTypography>
-                        </Stack>
-
-                        {/* Row 2: signals + details toggle */}
-                        {Array.isArray((s as any).relevance_signals) && (s as any).relevance_signals.length ? (
-                          <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.75, flexWrap: "wrap" }}>
-                            <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
-                              {String(((s as any).relevance_signals as string[]).slice(0, 2).join(" · "))}
-                            </MsqdxTypography>
-                            <MsqdxButton
-                              variant="text"
-                              size="small"
-                              onClick={() => toggleAiDetails(index)}
-                              sx={{ minWidth: 0, px: 0.5 }}
+                        <Stack direction="row" spacing={2} alignItems="flex-start">
+                          {/* Left: big scores */}
+                          <Stack direction="row" spacing={1.25} alignItems="stretch" sx={{ flexShrink: 0 }}>
+                            <Box
+                              sx={{
+                                minWidth: 86,
+                                px: 1,
+                                py: 0.75,
+                                border: "1px solid",
+                                borderColor: "divider",
+                                borderRadius: 1,
+                                textAlign: "center",
+                              }}
                             >
-                              {expandedAiDetails.has(index)
-                                ? (t("targetGroupsAdmin.relevanceDetailsHide") ?? "Hide details")
-                                : (t("targetGroupsAdmin.relevanceDetailsShow") ?? "Show details")}
-                            </MsqdxButton>
-                            {expandedAiDetails.has(index) ? (
-                              <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", width: "100%" }}>
-                                {String(((s as any).relevance_signals as string[]).slice(0, 8).join(" · "))}
+                              <MsqdxTypography variant="h6" weight="semibold" sx={{ lineHeight: 1.1 }}>
+                                {typeof (s as any).relevance_score_deterministic === "number"
+                                  ? `${Math.max(0, Math.min(100, Number((s as any).relevance_score_deterministic)))}%`
+                                  : "—"}
+                              </MsqdxTypography>
+                              <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                                {t("targetGroupsAdmin.relevanceDet") ?? "Relevance (det)"}
+                              </MsqdxTypography>
+                            </Box>
+
+                            <Box
+                              sx={{
+                                minWidth: 86,
+                                px: 1,
+                                py: 0.75,
+                                border: "1px solid",
+                                borderColor: "divider",
+                                borderRadius: 1,
+                                textAlign: "center",
+                              }}
+                            >
+                              <MsqdxTypography variant="h6" weight="semibold" sx={{ lineHeight: 1.1 }}>
+                                {typeof (s as any).relevance_score === "number"
+                                  ? `${Math.max(0, Math.min(100, Number((s as any).relevance_score)))}%`
+                                  : "—"}
+                              </MsqdxTypography>
+                              <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                                {t("targetGroupsAdmin.relevanceLlm") ?? "Relevance (LLM)"}
+                              </MsqdxTypography>
+                            </Box>
+                          </Stack>
+
+                          {/* Right: headline + segment + description */}
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <MsqdxTypography variant="h6" weight="semibold" sx={{ mb: 0.25 }}>
+                              {locale === "de" && (s.name_de || "").trim() ? s.name_de : s.name}
+                            </MsqdxTypography>
+                            <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                              {(locale === "de" && (s.segment_de || "").trim() ? s.segment_de : s.segment) || "—"}
+                            </MsqdxTypography>
+                            <MsqdxTypography variant="body2" sx={{ mt: 0.75, color: "text.primary" }}>
+                              {(locale === "de" && (s.description_de || "").trim() ? s.description_de : s.description) || "—"}
+                            </MsqdxTypography>
+
+                            {/* Details toggle: hide CHECKION/research signals until expanded */}
+                            {Array.isArray((s as any).relevance_signals) && (s as any).relevance_signals.length ? (
+                              <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.75, flexWrap: "wrap" }}>
+                                <MsqdxButton
+                                  variant="text"
+                                  size="small"
+                                  onClick={() => toggleAiDetails(index)}
+                                  sx={{ minWidth: 0, px: 0.5 }}
+                                >
+                                  {expandedAiDetails.has(index)
+                                    ? (t("targetGroupsAdmin.relevanceDetailsHide") ?? "Hide details")
+                                    : (t("targetGroupsAdmin.relevanceDetailsShow") ?? "Show details")}
+                                </MsqdxButton>
+                                {expandedAiDetails.has(index) ? (
+                                  <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", width: "100%" }}>
+                                    {String(((s as any).relevance_signals as string[]).slice(0, 8).join(" · "))}
+                                  </MsqdxTypography>
+                                ) : null}
+                              </Stack>
+                            ) : null}
+
+                            {expandedAiDetails.has(index) &&
+                            typeof (s as any).relevance_reason === "string" &&
+                            String((s as any).relevance_reason).trim() ? (
+                              <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.5 }}>
+                                {String((s as any).relevance_reason).trim()}
                               </MsqdxTypography>
                             ) : null}
-                          </Stack>
-                        ) : null}
-
-                        {typeof (s as any).relevance_reason === "string" && String((s as any).relevance_reason).trim() ? (
-                          <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.5 }}>
-                            {String((s as any).relevance_reason).trim()}
-                          </MsqdxTypography>
-                        ) : null}
+                          </Box>
+                        </Stack>
                       </Box>
                     </Stack>
                   </Box>
