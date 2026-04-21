@@ -961,7 +961,7 @@ export function MsqdxGlassProjectAdminPanel({
         }
     }, [selectedId, checkionProjectDraft, loadDetail, t]);
 
-    const handleSuggestTargetGroups = useCallback(async () => {
+    const handleSuggestTargetGroups = useCallback(async (opts?: { forceRefresh?: boolean }) => {
         if (!selectedId) return;
         setSuggestLoading(true);
         setSuggestError(null);
@@ -969,7 +969,8 @@ export function MsqdxGlassProjectAdminPanel({
         setSelectedSuggestions(new Set());
         setExpandedSuggestionDetails(new Set());
         try {
-            const res = await fetch(buildApiUrl(`/api/projects/${selectedId}/suggest-target-groups`), {
+            const url = `/api/projects/${selectedId}/suggest-target-groups${opts?.forceRefresh ? "?force_refresh=1" : ""}`;
+            const res = await fetch(buildApiUrl(url), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(withOutputLocale({ max_suggestions: 5 }, locale)),
@@ -2221,16 +2222,26 @@ export function MsqdxGlassProjectAdminPanel({
                                     onToggle={toggleSection}
                                 >
                                     <Stack spacing={2}>
-                                        <MsqdxButton
-                                            className="msqdx-action-card-outlined-btn"
-                                            variant="outlined"
-                                            size="small"
-                                            onClick={handleSuggestTargetGroups}
-                                            disabled={suggestLoading || !hasCompanyContextForAi}
-                                            sx={{ color: "#000", borderColor: "#000", "&:hover": { borderColor: "#000", color: "#000", backgroundColor: "rgba(0,0,0,0.08)" } }}
-                                        >
-                                            {suggestLoading ? (t("settingsProjects.companyContext.suggestLoading") ?? "Generating…") : (t("settingsProjects.companyContext.suggestCta") ?? "Generate suggestions")}
-                                        </MsqdxButton>
+                                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ gap: 1 }}>
+                                            <MsqdxButton
+                                                className="msqdx-action-card-outlined-btn"
+                                                variant="outlined"
+                                                size="small"
+                                                onClick={() => handleSuggestTargetGroups()}
+                                                disabled={suggestLoading || !hasCompanyContextForAi}
+                                                sx={{ color: "#000", borderColor: "#000", "&:hover": { borderColor: "#000", color: "#000", backgroundColor: "rgba(0,0,0,0.08)" } }}
+                                            >
+                                                {suggestLoading ? (t("settingsProjects.companyContext.suggestLoading") ?? "Generating…") : (t("settingsProjects.companyContext.suggestCta") ?? "Generate suggestions")}
+                                            </MsqdxButton>
+                                            <MsqdxButton
+                                                variant="text"
+                                                size="small"
+                                                onClick={() => handleSuggestTargetGroups({ forceRefresh: true })}
+                                                disabled={suggestLoading || !hasCompanyContextForAi}
+                                            >
+                                                {t("settingsProjects.companyContext.suggestRegenerate") ?? "Regenerate"}
+                                            </MsqdxButton>
+                                        </Stack>
                                         {!hasCompanyContextForAi && (
                                             <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
                                                 {t("settingsProjects.companyContext.suggestEmpty") ?? "Save company context above first, then generate suggestions."}

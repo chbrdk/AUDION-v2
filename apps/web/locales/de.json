@@ -716,6 +716,7 @@
       "suggestCta": "Vorschläge generieren",
       "suggestLoading": "Wird generiert…",
       "suggestEmpty": "Bitte zuerst den Unternehmenskontext oben speichern, dann Vorschläge generieren.",
+      "suggestRegenerate": "Neu generieren",
       "relevanceDet": "Relevanz (det)",
       "relevanceLlm": "Relevanz (LLM)",
       "relevanceDetailsShow": "Details anzeigen",

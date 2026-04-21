@@ -177,6 +177,28 @@ class Project(Base):
     members = relationship("ProjectMember", back_populates="project", cascade="all, delete-orphan")
 
 
+class AiSuggestionCache(Base):
+    """Cached AI suggestions keyed by stable context hash."""
+
+    __tablename__ = "ai_suggestion_cache"
+    __table_args__ = (
+        UniqueConstraint("project_id", "kind", "context_hash", name="uq_ai_suggestion_cache_key"),
+        {"schema": "audion"},
+    )
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("audion.projects.id", ondelete="CASCADE"), nullable=False)
+    kind = Column(String(64), nullable=False)  # e.g. "suggest_target_groups"
+    context_hash = Column(String(64), nullable=False)  # sha256 hex
+
+    request_payload = Column(JSONB, nullable=False, default=dict)
+    response_payload = Column(JSONB, nullable=False, default=dict)
+    meta = Column(JSONB, nullable=False, default=dict)  # model, prompt_version, usage, cache notes
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
 class ProjectMember(Base):
     __tablename__ = "project_members"
     __table_args__ = (

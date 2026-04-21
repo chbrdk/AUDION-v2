@@ -716,6 +716,7 @@
       "suggestCta": "Generate suggestions",
       "suggestLoading": "Generating…",
       "suggestEmpty": "Save company context above first, then generate suggestions.",
+      "suggestRegenerate": "Regenerate",
       "relevanceDet": "Relevance (det)",
       "relevanceLlm": "Relevance (LLM)",
       "relevanceDetailsShow": "Show details",

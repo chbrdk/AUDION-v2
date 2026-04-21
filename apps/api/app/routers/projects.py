@@ -71,6 +71,13 @@ from ..services.project_research_prompt import (
     get_latest_project_research_summary_en,
 )
 from ..services.target_group_relevance import deterministic_target_group_relevance
+from ..services.ai_suggestion_cache import (
+    SUGGESTION_CACHE_PROMPT_VERSION,
+    SUGGEST_TARGET_GROUPS_KIND,
+    get_cache_entry,
+    stable_context_hash,
+    upsert_cache_entry,
+)
 from ..celery_app import celery_app
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -476,6 +483,7 @@ def update_project(
 def suggest_target_groups_endpoint(
     project_id: str,
     body: SuggestTargetGroupsRequest | None = Body(None),
+    force_refresh: bool = Query(False, description="Bypass cached suggestions and re-generate."),
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_db),
 ) -> SuggestTargetGroupsResponse:
@@ -492,6 +500,7 @@ def suggest_target_groups_endpoint(
 
     inc_res = True if body is None else bool(body.include_project_research)
     research_summary_en = None
+    research_summary_id = None
     if inc_res:
         research_summary_en = get_latest_project_research_summary_en(session, project=project)
         research_block = build_optional_project_research_json_context(session, project=project)
@@ -511,12 +520,51 @@ def suggest_target_groups_endpoint(
     if not context_text.strip():
         return SuggestTargetGroupsResponse(suggestions=[])
 
+    # Cache: stable key from effective inputs (not the full context_text).
+    bilingual = bool(body and body.bilingual)
+    output_locale = None if bilingual else (body.output_locale if body else None)
+    checkion_scan_id = (checkion_bundle or {}).get("scan_id") if isinstance(checkion_bundle, dict) else None
+    checkion_topics = (checkion_bundle or {}).get("topics") if isinstance(checkion_bundle, dict) else None
+    ctx_payload = {
+        "kind": SUGGEST_TARGET_GROUPS_KIND,
+        "prompt_version": SUGGESTION_CACHE_PROMPT_VERSION,
+        "project": {
+            "id": str(project.id),
+            "description": (project.description or "").strip(),
+            "company_context": (project.company_context or "").strip(),
+            "checkion_project_id": (getattr(project, "checkion_project_id", None) or "").strip() or None,
+        },
+        "include_project_research": inc_res,
+        "include_checkion_topics": inc_chk,
+        "research": {
+            "has_summary": bool(isinstance(research_summary_en, dict) and research_summary_en),
+            # Hash the summary to avoid storing the full blob in the key.
+            "summary_hash": stable_context_hash(research_summary_en) if isinstance(research_summary_en, dict) else None,
+        },
+        "checkion": {
+            "scan_id": checkion_scan_id,
+            "topics_hash": stable_context_hash({"topics": checkion_topics}) if isinstance(checkion_topics, list) else None,
+        },
+        "request": {
+            "max_suggestions": max_suggestions,
+            "bilingual": bilingual,
+            "output_locale": output_locale,
+        },
+    }
+    ctx_hash = stable_context_hash(ctx_payload)
+    if not force_refresh:
+        cached = get_cache_entry(session, project_id=str(project.id), kind=SUGGEST_TARGET_GROUPS_KIND, context_hash=ctx_hash)
+        if cached and isinstance(cached.response_payload, dict) and isinstance(cached.response_payload.get("suggestions"), list):
+            try:
+                return SuggestTargetGroupsResponse.model_validate(cached.response_payload)
+            except Exception:
+                pass
+
     try:
-        bilingual = bool(body and body.bilingual)
         suggestions, usage_raw = run_suggest_target_groups(
             context_text=context_text,
             max_suggestions=max_suggestions,
-            output_locale=None if bilingual else (body.output_locale if body else None),
+            output_locale=output_locale,
             bilingual=bilingual,
         )
     except ValueError as exc:
@@ -526,7 +574,6 @@ def suggest_target_groups_endpoint(
     if uid and usage_raw:
         report_usage(user_id=uid, event_type="llm_request", raw_units=usage_raw)
 
-    checkion_topics = (checkion_bundle or {}).get("topics") if isinstance(checkion_bundle, dict) else None
     items: list[TargetGroupSuggestionItem] = []
     for s in suggestions:
         det_score, det_signals = deterministic_target_group_relevance(
@@ -551,7 +598,25 @@ def suggest_target_groups_endpoint(
             )
         )
     items.sort(key=lambda x: (x.relevance_score_deterministic or 0, x.relevance_score or 0), reverse=True)
-    return SuggestTargetGroupsResponse(suggestions=items)
+    out = SuggestTargetGroupsResponse(suggestions=items)
+
+    # Store cache entry (best-effort; failures should not fail the request).
+    try:
+        upsert_cache_entry(
+            session,
+            project=project,
+            kind=SUGGEST_TARGET_GROUPS_KIND,
+            context_hash=ctx_hash,
+            request_payload=ctx_payload,
+            response_payload=out.model_dump(),
+            meta={
+                "model": (get_settings().ai_openai_model or "gpt-5.4-mini"),
+                "usage_raw": usage_raw,
+            },
+        )
+    except Exception:
+        session.rollback()
+    return out
 
 
 @router.post(
