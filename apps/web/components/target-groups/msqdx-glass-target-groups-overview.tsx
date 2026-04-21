@@ -15,7 +15,7 @@ import {
   Tooltip,
 } from "@mui/material";
 import type { TargetGroupListResponse, TargetGroupResponse } from "@msqdx-glass/types";
-import { MsqdxButton, MsqdxFormField, MsqdxIcon, MsqdxMoleculeCard, MsqdxTextareaField, MsqdxTypography } from "@msqdx/react";
+import { MsqdxButton, MsqdxChip, MsqdxFormField, MsqdxIcon, MsqdxMoleculeCard, MsqdxTextareaField, MsqdxTypography } from "@msqdx/react";
 import { buildApiUrl } from "../../app/api/_lib/backend";
 import { mirrorFillStringPair } from "../../lib/bilingual-mirror";
 import {
