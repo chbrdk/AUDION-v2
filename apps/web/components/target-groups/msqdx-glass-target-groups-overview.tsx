@@ -4,18 +4,25 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Box,
-  Checkbox,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  FormControlLabel,
   IconButton,
   Stack,
   Tooltip,
 } from "@mui/material";
 import type { TargetGroupListResponse, TargetGroupResponse } from "@msqdx-glass/types";
-import { MsqdxButton, MsqdxChip, MsqdxFormField, MsqdxIcon, MsqdxMoleculeCard, MsqdxTextareaField, MsqdxTypography } from "@msqdx/react";
+import {
+  MsqdxButton,
+  MsqdxCheckboxField,
+  MsqdxChip,
+  MsqdxFormField,
+  MsqdxIcon,
+  MsqdxMoleculeCard,
+  MsqdxTextareaField,
+  MsqdxTypography,
+} from "@msqdx/react";
 import { buildApiUrl } from "../../app/api/_lib/backend";
 import { mirrorFillStringPair } from "../../lib/bilingual-mirror";
 import {
@@ -429,7 +436,17 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
         ))}
       </Box>
 
-      <Dialog open={aiDialogOpen} onClose={() => !aiCreating && setAiDialogOpen(false)} fullWidth maxWidth="sm">
+      <Dialog
+        open={aiDialogOpen}
+        onClose={() => !aiCreating && setAiDialogOpen(false)}
+        fullWidth
+        maxWidth="lg"
+        PaperProps={{
+          sx: {
+            width: "min(1200px, 96vw)",
+          },
+        }}
+      >
         <DialogTitle>{t("targetGroupsAdmin.generateWithAiTitle")}</DialogTitle>
         <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
           <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
@@ -478,90 +495,122 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
                       border: "1px solid",
                       borderColor: "divider",
                       borderRadius: 1,
-                      p: 1.25,
+                      p: 1.5,
+                      bgcolor: "background.paper",
                     }}
                   >
-                    <FormControlLabel
-                      control={(
-                        <Checkbox
-                          size="small"
-                          checked={selectedAiIndices.has(index)}
-                          onChange={() => toggleAiIndex(index)}
-                          disabled={aiCreating}
+                    <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                      <Box
+                        sx={{
+                          mt: 0.1,
+                          // Use DS checkbox visuals, but hide the group label and option label.
+                          "& .MuiInputLabel-root": { display: "none" },
+                          "& .MuiFormControlLabel-label": { display: "none" },
+                          "& .MuiFormControlLabel-root": { m: 0 },
+                          // Make the checkbox icon more prominent in the suggestion list.
+                          "& .MuiCheckbox-root": { p: 0.25 },
+                          "& .MuiSvgIcon-root": { fontSize: 26 },
+                        }}
+                      >
+                        <MsqdxCheckboxField
+                          label=" "
+                          options={[{ value: "on", label: " ", disabled: aiCreating }]}
+                          row
+                          value={selectedAiIndices.has(index) ? ["on"] : []}
+                          onChange={() => {
+                            if (aiCreating) return;
+                            toggleAiIndex(index);
+                          }}
                         />
-                      )}
-                      label={(
-                        <Box>
-                          {typeof (s as any).relevance_score_deterministic === "number" || typeof (s as any).relevance_score === "number" ? (
-                            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5, flexWrap: "wrap" }}>
-                              {typeof (s as any).relevance_score_deterministic === "number" ? (
-                                <MsqdxChip
-                                  size="small"
-                                  variant="outlined"
-                                  label={`${t("targetGroupsAdmin.relevanceDet") ?? "Relevance (det)"}: ${Math.max(
-                                    0,
-                                    Math.min(100, Number((s as any).relevance_score_deterministic))
-                                  )}%`}
-                                />
-                              ) : null}
-                              {typeof (s as any).relevance_score === "number" ? (
-                                <MsqdxChip
-                                  size="small"
-                                  variant="outlined"
-                                  label={`${t("targetGroupsAdmin.relevanceLlm") ?? "Relevance (LLM)"}: ${Math.max(
-                                    0,
-                                    Math.min(100, Number((s as any).relevance_score))
-                                  )}%`}
-                                />
-                              ) : null}
-                              {typeof (s as any).relevance_reason === "string" && String((s as any).relevance_reason).trim() ? (
-                                <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
-                                  {String((s as any).relevance_reason).trim()}
-                                </MsqdxTypography>
-                              ) : null}
-                            </Stack>
+                      </Box>
+
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        {/* Row 1: scores + name + segment + short description in one line */}
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          alignItems="center"
+                          flexWrap="wrap"
+                          useFlexGap
+                          sx={{ gap: 0.75 }}
+                        >
+                          {typeof (s as any).relevance_score_deterministic === "number" ? (
+                            <MsqdxChip
+                              size="small"
+                              variant="outlined"
+                              label={`${t("targetGroupsAdmin.relevanceDet") ?? "Relevance (det)"}: ${Math.max(
+                                0,
+                                Math.min(100, Number((s as any).relevance_score_deterministic))
+                              )}%`}
+                              sx={{ "& .MuiChip-label": { fontSize: 13, fontWeight: 700 } }}
+                            />
                           ) : null}
-                          {Array.isArray((s as any).relevance_signals) && (s as any).relevance_signals.length ? (
-                            <>
-                              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5, flexWrap: "wrap" }}>
-                                <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
-                                  {String(((s as any).relevance_signals as string[]).slice(0, 2).join(" · "))}
-                                </MsqdxTypography>
-                                <MsqdxButton
-                                  variant="text"
-                                  size="small"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    toggleAiDetails(index);
-                                  }}
-                                  sx={{ minWidth: 0, px: 0.5 }}
-                                >
-                                  {expandedAiDetails.has(index)
-                                    ? (t("targetGroupsAdmin.relevanceDetailsHide") ?? "Hide details")
-                                    : (t("targetGroupsAdmin.relevanceDetailsShow") ?? "Show details")}
-                                </MsqdxButton>
-                              </Stack>
-                              {expandedAiDetails.has(index) ? (
-                                <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
-                                  {String(((s as any).relevance_signals as string[]).slice(0, 8).join(" · "))}
-                                </MsqdxTypography>
-                              ) : null}
-                            </>
+                          {typeof (s as any).relevance_score === "number" ? (
+                            <MsqdxChip
+                              size="small"
+                              variant="outlined"
+                              label={`${t("targetGroupsAdmin.relevanceLlm") ?? "Relevance (LLM)"}: ${Math.max(
+                                0,
+                                Math.min(100, Number((s as any).relevance_score))
+                              )}%`}
+                              sx={{ "& .MuiChip-label": { fontSize: 13, fontWeight: 700 } }}
+                            />
                           ) : null}
-                          <MsqdxTypography variant="subtitle2" weight="semibold">
+
+                          <MsqdxTypography
+                            variant="subtitle2"
+                            weight="semibold"
+                            sx={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                          >
                             {locale === "de" && (s.name_de || "").trim() ? s.name_de : s.name}
                           </MsqdxTypography>
-                          <MsqdxTypography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+
+                          <MsqdxTypography
+                            variant="caption"
+                            sx={{ color: "text.secondary", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                          >
                             {(locale === "de" && (s.segment_de || "").trim() ? s.segment_de : s.segment) || "—"}
                           </MsqdxTypography>
-                          <MsqdxTypography variant="body2" sx={{ mt: 0.5 }}>
+
+                          <MsqdxTypography
+                            variant="body2"
+                            sx={{ color: "text.secondary", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}
+                          >
                             {(locale === "de" && (s.description_de || "").trim() ? s.description_de : s.description) || "—"}
                           </MsqdxTypography>
-                        </Box>
-                      )}
-                      sx={{ alignItems: "flex-start", m: 0 }}
-                    />
+                        </Stack>
+
+                        {/* Row 2: signals + details toggle */}
+                        {Array.isArray((s as any).relevance_signals) && (s as any).relevance_signals.length ? (
+                          <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.75, flexWrap: "wrap" }}>
+                            <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
+                              {String(((s as any).relevance_signals as string[]).slice(0, 2).join(" · "))}
+                            </MsqdxTypography>
+                            <MsqdxButton
+                              variant="text"
+                              size="small"
+                              onClick={() => toggleAiDetails(index)}
+                              sx={{ minWidth: 0, px: 0.5 }}
+                            >
+                              {expandedAiDetails.has(index)
+                                ? (t("targetGroupsAdmin.relevanceDetailsHide") ?? "Hide details")
+                                : (t("targetGroupsAdmin.relevanceDetailsShow") ?? "Show details")}
+                            </MsqdxButton>
+                            {expandedAiDetails.has(index) ? (
+                              <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", width: "100%" }}>
+                                {String(((s as any).relevance_signals as string[]).slice(0, 8).join(" · "))}
+                              </MsqdxTypography>
+                            ) : null}
+                          </Stack>
+                        ) : null}
+
+                        {typeof (s as any).relevance_reason === "string" && String((s as any).relevance_reason).trim() ? (
+                          <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.5 }}>
+                            {String((s as any).relevance_reason).trim()}
+                          </MsqdxTypography>
+                        ) : null}
+                      </Box>
+                    </Stack>
                   </Box>
                 ))}
               </Stack>
