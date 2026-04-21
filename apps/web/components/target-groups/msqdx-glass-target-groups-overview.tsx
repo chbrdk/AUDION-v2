@@ -528,8 +528,8 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
 
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Stack direction="row" spacing={2} alignItems="flex-start">
-                          {/* Left: big scores */}
-                          <Stack direction="row" spacing={1.25} alignItems="stretch" sx={{ flexShrink: 0 }}>
+                          {/* Left: big scores (stacked); right column unchanged */}
+                          <Stack direction="column" spacing={1} alignItems="stretch" sx={{ flexShrink: 0 }}>
                             <Box
                               sx={{
                                 minWidth: 86,
