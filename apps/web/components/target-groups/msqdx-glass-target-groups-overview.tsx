@@ -23,6 +23,7 @@ import {
   MsqdxTextareaField,
   MsqdxTypography,
 } from "@msqdx/react";
+import { MSQDX_TYPOGRAPHY } from "@msqdx/tokens";
 import { buildApiUrl } from "../../app/api/_lib/backend";
 import { mirrorFillStringPair } from "../../lib/bilingual-mirror";
 import {
@@ -493,8 +494,8 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
                     key={`${s.segment}-${index}`}
                     sx={{
                       border: "1px solid",
-                      borderColor: "divider",
-                      borderRadius: 1,
+                      borderColor: "var(--color-secondary-dx-grey-light-tint)",
+                      borderRadius: "var(--msqdx-radius-3xl)",
                       p: 1.5,
                       bgcolor: "background.paper",
                     }}
@@ -533,19 +534,20 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
                                 minWidth: 86,
                                 px: 1,
                                 py: 0.75,
-                                border: "1px solid",
-                                borderColor: "divider",
-                                borderRadius: 1,
                                 textAlign: "center",
                               }}
                             >
-                              <MsqdxTypography variant="h6" weight="semibold" sx={{ lineHeight: 1.1 }}>
+                              <MsqdxTypography
+                                variant="h6"
+                                weight="semibold"
+                                sx={{ lineHeight: 1.1, fontFamily: MSQDX_TYPOGRAPHY.fontFamily.mono }}
+                              >
                                 {typeof (s as any).relevance_score_deterministic === "number"
                                   ? `${Math.max(0, Math.min(100, Number((s as any).relevance_score_deterministic)))}%`
                                   : "—"}
                               </MsqdxTypography>
                               <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                                {t("targetGroupsAdmin.relevanceDet") ?? "Relevance (det)"}
+                                {t("targetGroupsAdmin.relevanceDet") ?? "Relevance (deterministic)"}
                               </MsqdxTypography>
                             </Box>
 
@@ -554,19 +556,20 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
                                 minWidth: 86,
                                 px: 1,
                                 py: 0.75,
-                                border: "1px solid",
-                                borderColor: "divider",
-                                borderRadius: 1,
                                 textAlign: "center",
                               }}
                             >
-                              <MsqdxTypography variant="h6" weight="semibold" sx={{ lineHeight: 1.1 }}>
+                              <MsqdxTypography
+                                variant="h6"
+                                weight="semibold"
+                                sx={{ lineHeight: 1.1, fontFamily: MSQDX_TYPOGRAPHY.fontFamily.mono }}
+                              >
                                 {typeof (s as any).relevance_score === "number"
                                   ? `${Math.max(0, Math.min(100, Number((s as any).relevance_score)))}%`
                                   : "—"}
                               </MsqdxTypography>
                               <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                                {t("targetGroupsAdmin.relevanceLlm") ?? "Relevance (LLM)"}
+                                {t("targetGroupsAdmin.relevanceLlm") ?? "Relevance (AI)"}
                               </MsqdxTypography>
                             </Box>
                           </Stack>

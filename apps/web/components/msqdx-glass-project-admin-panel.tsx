@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Alert, Box, Stack } from "@mui/material";
 import Link from "next/link";
 import { MsqdxButton, MsqdxCard, MsqdxFormField, MsqdxTypography, MsqdxIcon, MsqdxDashboardCard, MsqdxChip, MsqdxSelect } from "@msqdx/react";
+import { MSQDX_TYPOGRAPHY } from "@msqdx/tokens";
 import { MsqdxGlassCollapsiblePanel } from "./admin/msqdx-glass-collapsible-panel";
 import { buildApiUrl, fetchWithTimeout } from "../app/api/_lib/backend";
 import { journeysApi, type JourneyResponse } from "../app/api/_lib/journeys";
@@ -2261,8 +2262,8 @@ export function MsqdxGlassProjectAdminPanel({
                                                             sx={{
                                                                 p: 1.5,
                                                                 border: "1px solid",
-                                                                borderColor: "divider",
-                                                                borderRadius: 1,
+                                                                borderColor: "var(--color-secondary-dx-grey-light-tint)",
+                                                                borderRadius: "var(--msqdx-radius-3xl)",
                                                                 display: "flex",
                                                                 alignItems: "flex-start",
                                                                 gap: 1,
@@ -2277,24 +2278,32 @@ export function MsqdxGlassProjectAdminPanel({
                                                             />
                                                             <Box sx={{ flex: 1 }}>
                                                                 {typeof sg.relevance_score_deterministic === "number" ? (
-                                                                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ gap: 0.75, mb: 0.5 }}>
-                                                                        <MsqdxChip
-                                                                            size="small"
-                                                                            variant="outlined"
-                                                                            label={`${t("settingsProjects.companyContext.relevanceDet") ?? "Relevance (det)"}: ${Math.max(
-                                                                                0,
-                                                                                Math.min(100, Number(sg.relevance_score_deterministic))
-                                                                            )}%`}
-                                                                        />
+                                                                    <Stack direction="row" spacing={1.25} alignItems="stretch" sx={{ flexShrink: 0, mb: 0.5 }}>
+                                                                        <Box sx={{ minWidth: 72, px: 0.75, py: 0.5, textAlign: "center" }}>
+                                                                            <MsqdxTypography
+                                                                                variant="subtitle2"
+                                                                                weight="semibold"
+                                                                                sx={{ lineHeight: 1.1, fontFamily: MSQDX_TYPOGRAPHY.fontFamily.mono }}
+                                                                            >
+                                                                                {`${Math.max(0, Math.min(100, Number(sg.relevance_score_deterministic)))}%`}
+                                                                            </MsqdxTypography>
+                                                                            <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                                                                                {t("settingsProjects.companyContext.relevanceDet") ?? "Relevance (deterministic)"}
+                                                                            </MsqdxTypography>
+                                                                        </Box>
                                                                         {typeof sg.relevance_score === "number" ? (
-                                                                            <MsqdxChip
-                                                                                size="small"
-                                                                                variant="outlined"
-                                                                                label={`${t("settingsProjects.companyContext.relevanceLlm") ?? "Relevance (LLM)"}: ${Math.max(
-                                                                                    0,
-                                                                                    Math.min(100, Number(sg.relevance_score))
-                                                                                )}%`}
-                                                                            />
+                                                                            <Box sx={{ minWidth: 72, px: 0.75, py: 0.5, textAlign: "center" }}>
+                                                                                <MsqdxTypography
+                                                                                    variant="subtitle2"
+                                                                                    weight="semibold"
+                                                                                    sx={{ lineHeight: 1.1, fontFamily: MSQDX_TYPOGRAPHY.fontFamily.mono }}
+                                                                                >
+                                                                                    {`${Math.max(0, Math.min(100, Number(sg.relevance_score)))}%`}
+                                                                                </MsqdxTypography>
+                                                                                <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                                                                                    {t("settingsProjects.companyContext.relevanceLlm") ?? "Relevance (AI)"}
+                                                                                </MsqdxTypography>
+                                                                            </Box>
                                                                         ) : null}
                                                                     </Stack>
                                                                 ) : null}
