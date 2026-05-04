@@ -34,3 +34,11 @@ Suggest target groups and suggest personas append an optional block built by `bu
 ## Web
 
 BFF path is under `/api/projects/...` (see `apps/web/lib/api-routes.ts` → `projectCheckionSiteTopics`). The project admin panel loads this when the **Site topics (CHECKION)** section is expanded.
+
+## CHECKION – Gesamtüberblick (Partner-Repo)
+
+Für Funktionen, Use Cases und Ökosystem (PLEXON, MCP, AUDION-Anbindung) siehe im **CHECKION**-Repository:
+
+- `knowledge/checkion-funktionen-und-use-cases.md`
+- `knowledge/checkion-oekosystem-enablement-und-plugin-strategie.md`
+- `knowledge/checkion-oekosystem-one-pager.md`
