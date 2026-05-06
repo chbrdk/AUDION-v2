@@ -15,6 +15,7 @@ type AgentStep = {
   target?: string | null;
   result?: string | null;
   reasoning?: string | null;
+  screenshot?: string | null;
   timestamp?: string;
 };
 
@@ -223,6 +224,24 @@ export default function UxJourneyAgentAdminPage() {
                     <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.25 }}>
                       Step {s.step ?? idx + 1} · {s.action ?? "step"}
                     </MsqdxTypography>
+                    {s.screenshot ? (
+                      <Box
+                        component="img"
+                        src={s.screenshot}
+                        alt={`Step ${s.step ?? idx + 1} screenshot`}
+                        sx={{
+                          width: "100%",
+                          maxWidth: 960,
+                          height: 180,
+                          objectFit: "cover",
+                          borderRadius: 1,
+                          border: "1px solid",
+                          borderColor: "divider",
+                          mb: 1,
+                          display: "block",
+                        }}
+                      />
+                    ) : null}
                     {(s.target || s.result || s.reasoning) ? (
                       <MsqdxTypography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
                         {[
