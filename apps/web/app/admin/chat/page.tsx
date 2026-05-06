@@ -399,6 +399,7 @@ function AdminChatPageContent() {
   const [uxJourneyJobId, setUxJourneyJobId] = useState<string | null>(null);
   const [uxJourneyError, setUxJourneyError] = useState<string | null>(null);
   const [uxJourneyStatus, setUxJourneyStatus] = useState<"idle" | "running" | "complete" | "error">("idle");
+  const [uxJourneyStartMessageId, setUxJourneyStartMessageId] = useState<string | null>(null);
   const typingBuffersRef = useRef<Record<string, string>>({});
   const typingTimersRef = useRef<Record<string, ReturnType<typeof setTimeout> | null>>({});
   const personaMenuOpen = Boolean(personaMenuAnchor);
@@ -447,12 +448,26 @@ function AdminChatPageContent() {
     activePersona?.name ??
     "Persona";
 
+  const normalizeUxJourneyUrl = useCallback((raw: string): string => {
+    const s = (raw || "").trim();
+    if (!s) return "";
+    // If user types "porsche.com", default to https://
+    if (!/^https?:\/\//i.test(s)) {
+      return `https://${s.replace(/^\/\//, "")}`;
+    }
+    // Prefer https even when user typed http://
+    if (s.toLowerCase().startsWith("http://")) {
+      return `https://${s.slice("http://".length)}`;
+    }
+    return s;
+  }, []);
+
   const startUxJourney = useCallback(async () => {
     if (!activePersonaId || !activePersona) {
       setUxJourneyError("Select a persona first.");
       return;
     }
-    const url = uxJourneyUrl.trim();
+    const url = normalizeUxJourneyUrl(uxJourneyUrl);
     const task = uxJourneyTask.trim();
     if (!url || !task) return;
 
@@ -484,12 +499,23 @@ function AdminChatPageContent() {
       setUxJourneyJobId(jobId);
       setUxJourneyStatus("running");
       // Post a lightweight system message immediately.
+      const msgId = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36);
+      setUxJourneyStartMessageId(msgId);
+      const liveUrl = API_ROUTES.uxJourneyAgentLiveStream(jobId);
       setMessages((prev) => [
         ...prev,
         {
-          id: (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36),
+          id: msgId,
           role: "system",
-          content: `Started **Persona UX Journey** for **${personaDisplayName}**\\n\\n- Job: \`${jobId}\`\\n- URL: ${url}\\n\\nLive: \`${API_ROUTES.uxJourneyAgentLiveStream(jobId)}\``,
+          content:
+            `Started **Persona UX Journey** for **${personaDisplayName}**\\n\\n` +
+            `- Job: \`${jobId}\`\\n` +
+            `- URL: ${url}\\n` +
+            `\\n` +
+            `### Live view\\n` +
+            `![Live stream](${liveUrl})\\n\\n` +
+            `### Steps (live)\\n` +
+            `- (Waiting for first step…)`,
         },
       ]);
 
@@ -534,6 +560,33 @@ function AdminChatPageContent() {
           return;
         }
         const st = String(data?.status || "").toLowerCase();
+        if (st === "running" && uxJourneyStartMessageId) {
+          const steps = Array.isArray(data?.result?.steps) ? data.result.steps : [];
+          const maxStepsLive = 12;
+          const stepLines = steps.slice(-maxStepsLive).map((s: any, i: number) => {
+            const n = s?.step ?? (steps.length - maxStepsLive + i + 1);
+            const action = s?.action ?? "step";
+            const target = s?.target ? ` — ${String(s.target).slice(0, 120)}` : "";
+            return `- **${n}. ${action}**${target}`;
+          });
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === uxJourneyStartMessageId
+                ? {
+                    ...m,
+                    content:
+                      `Started **Persona UX Journey** for **${personaDisplayName}**\\n\\n` +
+                      `- Job: \`${uxJourneyJobId}\`\\n` +
+                      `\\n` +
+                      `### Live view\\n` +
+                      `![Live stream](${API_ROUTES.uxJourneyAgentLiveStream(uxJourneyJobId)})\\n\\n` +
+                      `### Steps (live)\\n` +
+                      `${stepLines.join("\\n") || "- (Waiting for steps…)"}`,
+                  }
+                : m
+            )
+          );
+        }
         if (st === "complete" || data?.result) {
           setUxJourneyStatus("complete");
           const steps = Array.isArray(data?.result?.steps) ? data.result.steps : [];
@@ -606,7 +659,7 @@ function AdminChatPageContent() {
     return () => {
       cancelled = true;
     };
-  }, [uxJourneyJobId, uxJourneyStatus]);
+  }, [uxJourneyJobId, uxJourneyStatus, uxJourneyStartMessageId, personaDisplayName]);
   const personaChipData = useMemo(
     () =>
       [

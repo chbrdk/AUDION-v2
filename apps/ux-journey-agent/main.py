@@ -356,6 +356,13 @@ async def run_agent(job_id: str, url: str, task: str, persona: dict[str, Any] | 
     video_dir = str(VIDEO_BASE_DIR / job_id)
     os.makedirs(video_dir, exist_ok=True)
 
+    # Stable domain label (also used for partial progress results)
+    try:
+        from urllib.parse import urlparse
+        domain = urlparse(url).netloc or url
+    except Exception:
+        domain = url
+
     try:
         llm = _make_llm()
         try:
@@ -383,6 +390,26 @@ async def run_agent(job_id: str, url: str, task: str, persona: dict[str, Any] | 
             await asyncio.sleep(max(0, STEP_START_DELAY_SECONDS))
 
         async def _on_step_end(agent_instance: Any) -> None:
+            # Best-effort: publish partial progress (steps so far) for polling UIs.
+            try:
+                steps_now = _history_to_steps(agent_instance.history)
+                # Keep payload bounded for frequent polling.
+                steps_now = steps_now[-60:]
+                partial: dict[str, Any] = {
+                    "jobId": job_id,
+                    "taskDescription": task,
+                    "siteDomain": domain,
+                    "steps": steps_now,
+                    "success": None,
+                }
+                if persona and isinstance(persona, dict):
+                    partial["persona"] = {"id": persona.get("id"), "name": persona.get("name")}
+                async with _jobs_lock:
+                    if job_id in _jobs:
+                        _jobs[job_id].result = partial
+            except Exception:
+                pass
+
             actions: list[Any] = []
             raw: Any = None
             try:
@@ -499,11 +526,7 @@ async def run_agent(job_id: str, url: str, task: str, persona: dict[str, Any] | 
         success = _history_success(history)
         screenshots = _history_screenshots(history)
 
-        try:
-            from urllib.parse import urlparse
-            domain = urlparse(url).netloc or url
-        except Exception:
-            domain = url
+        # `domain` already computed above for partial progress updates.
 
         # Move recorded video to a known path (browser-use[video] writes MP4, Playwright can write WebM)
         video_path: str | None = None
