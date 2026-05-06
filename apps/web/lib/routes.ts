@@ -9,6 +9,8 @@ export const ADMIN_ROUTES = {
   journeyNew: "/admin/journeys/new",
   journeyDetail: (journeyId: string) => `/admin/journeys/${encodeURIComponent(journeyId)}`,
 
+  uxJourneyAgent: "/admin/ux-journey-agent",
+
   personas: "/admin/personas",
   personaDetail: (personaId: string) => `/admin/personas/${encodeURIComponent(personaId)}`,
 

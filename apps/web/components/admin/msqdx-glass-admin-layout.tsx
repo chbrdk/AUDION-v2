@@ -26,6 +26,7 @@ const ADMIN_NAV_ITEMS = [
   { labelKey: "nav.personas", path: "/admin/personas", icon: "person" },
   { labelKey: "nav.targetGroups", path: "/admin/target-groups", icon: "groups" },
   { labelKey: "nav.journeys", path: "/admin/journeys", icon: "route" },
+  { labelKey: "nav.uxJourneyAgent", path: "/admin/ux-journey-agent", icon: "travel_explore" },
 ] as const;
 
 const ADMIN_NAV_EXTERNAL_ITEMS = [
@@ -115,6 +116,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
       "/admin/personas": t("nav.personas"),
       "/admin/target-groups": t("nav.targetGroups"),
       "/admin/journeys": t("nav.journeys"),
+      "/admin/ux-journey-agent": t("nav.uxJourneyAgent"),
       "/admin/profile": t("nav.profile"),
       "/admin/settings": t("nav.settings"),
     };
@@ -146,6 +148,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
       "/admin/personas": "person",
       "/admin/target-groups": "groups",
       "/admin/journeys": "route",
+      "/admin/ux-journey-agent": "travel_explore",
       "/admin/profile": "account_circle",
       "/admin/settings": "settings",
     };

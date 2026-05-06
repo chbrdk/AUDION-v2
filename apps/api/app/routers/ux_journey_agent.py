@@ -1,0 +1,133 @@
+from __future__ import annotations
+
+from typing import AsyncIterator
+
+import httpx
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
+from fastapi.responses import JSONResponse, StreamingResponse
+
+from ..core.config import get_settings
+from ..models import User
+from ..services.auth import get_current_user
+
+router = APIRouter(prefix="/ux-journey-agent", tags=["ux-journey-agent"])
+
+
+def _agent_base_url_or_503() -> tuple[str, float]:
+    settings = get_settings()
+    base = (settings.ux_journey_agent_url or "").strip().rstrip("/")
+    if not base:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="UX Journey Agent is not configured (UX_JOURNEY_AGENT_URL).",
+        )
+    timeout = float(settings.ux_journey_agent_timeout_seconds or 30.0)
+    return base, timeout
+
+
+@router.post("/run")
+async def start_run(
+    body: dict = Body(...),
+    current_user: User = Depends(get_current_user),
+) -> JSONResponse:
+    """Start a UX journey-agent run. Forwards to the agent service (POST /run)."""
+    del current_user  # auth only
+    base, timeout = _agent_base_url_or_503()
+    url = f"{base}/run"
+    try:
+        async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
+            res = await client.post(url, json=body)
+        content_type = res.headers.get("content-type", "application/json")
+        if res.status_code >= 400:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"UX Journey Agent error ({res.status_code}).",
+            )
+        data = res.json()
+        return JSONResponse(content=data, media_type=content_type)
+    except httpx.TimeoutException as exc:
+        raise HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail="UX Journey Agent request timed out.") from exc
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to reach UX Journey Agent service.") from exc
+
+
+@router.get("/run/{job_id}")
+async def get_run(
+    job_id: str,
+    current_user: User = Depends(get_current_user),
+) -> JSONResponse:
+    """Get status/result for a run. Forwards to the agent service (GET /run/{jobId})."""
+    del current_user  # auth only
+    base, timeout = _agent_base_url_or_503()
+    url = f"{base}/run/{job_id}"
+    try:
+        async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
+            res = await client.get(url)
+        if res.status_code == 404:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
+        if res.status_code >= 400:
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"UX Journey Agent error ({res.status_code}).")
+        return JSONResponse(content=res.json(), media_type=res.headers.get("content-type", "application/json"))
+    except httpx.TimeoutException as exc:
+        raise HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail="UX Journey Agent request timed out.") from exc
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to reach UX Journey Agent service.") from exc
+
+
+async def _stream_upstream(request: Request, upstream_url: str, *, timeout: float) -> tuple[AsyncIterator[bytes], str]:
+    client = httpx.AsyncClient(timeout=timeout, follow_redirects=True)
+    upstream = await client.stream(
+        "GET",
+        upstream_url,
+        headers={"Accept": request.headers.get("accept", "*/*")},
+    ).__aenter__()
+
+    async def _iter() -> AsyncIterator[bytes]:
+        try:
+            async for chunk in upstream.aiter_bytes():
+                if chunk:
+                    yield chunk
+        finally:
+            await upstream.__aexit__(None, None, None)
+            await client.aclose()
+
+    media_type = upstream.headers.get("content-type") or "application/octet-stream"
+    if upstream.status_code == 404:
+        # E.g. job not running / no live frame.
+        await upstream.__aexit__(None, None, None)
+        await client.aclose()
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+    if upstream.status_code >= 400:
+        await upstream.__aexit__(None, None, None)
+        await client.aclose()
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"UX Journey Agent error ({upstream.status_code}).")
+    return _iter(), media_type
+
+
+@router.get("/run/{job_id}/live/stream")
+async def live_stream(
+    job_id: str,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+) -> StreamingResponse:
+    """MJPEG stream passthrough (GET /run/{jobId}/live/stream)."""
+    del current_user  # auth only
+    base, timeout = _agent_base_url_or_503()
+    upstream_url = f"{base}/run/{job_id}/live/stream"
+    iterator, media_type = await _stream_upstream(request, upstream_url, timeout=timeout)
+    return StreamingResponse(iterator, media_type=media_type, headers={"Cache-Control": "no-store"})
+
+
+@router.get("/run/{job_id}/video")
+async def video(
+    job_id: str,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+) -> StreamingResponse:
+    """Video passthrough (GET /run/{jobId}/video)."""
+    del current_user  # auth only
+    base, timeout = _agent_base_url_or_503()
+    upstream_url = f"{base}/run/{job_id}/video"
+    iterator, media_type = await _stream_upstream(request, upstream_url, timeout=timeout)
+    return StreamingResponse(iterator, media_type=media_type, headers={"Cache-Control": "no-store"})
+

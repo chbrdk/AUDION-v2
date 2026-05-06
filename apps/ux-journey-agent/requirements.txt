@@ -1,0 +1,7 @@
+# UX Journey Agent for CHECKION – Browser Use + Claude
+# Python 3.11+ (browser-use requirement)
+# [video] enables browser-use's built-in MP4 screen recording
+fastapi>=0.115.0
+uvicorn[standard]>=0.27.0
+browser-use[video]>=0.11.0
+playwright>=1.40.0

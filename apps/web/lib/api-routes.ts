@@ -19,5 +19,11 @@ export const API_ROUTES = {
   /** POST: translate short persona field strings (en↔de); Next.js proxies to persona-api. */
   personaAdminTranslateFields: (personaId: string) =>
     `/api/persona-admin/${encodeURIComponent(personaId)}/translate-fields`,
+
+  /** UX Journey Agent (persona-api proxy): start + status + live/video passthrough. */
+  uxJourneyAgentRun: "/api/ux-journey-agent/run",
+  uxJourneyAgentStatus: (jobId: string) => `/api/ux-journey-agent/run/${encodeURIComponent(jobId)}`,
+  uxJourneyAgentLiveStream: (jobId: string) => `/api/ux-journey-agent/run/${encodeURIComponent(jobId)}/live/stream`,
+  uxJourneyAgentVideo: (jobId: string) => `/api/ux-journey-agent/run/${encodeURIComponent(jobId)}/video`,
 } as const;
 

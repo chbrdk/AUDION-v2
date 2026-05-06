@@ -134,6 +134,10 @@ class Settings(BaseSettings):
     checkion_api_token: str | None = None
     checkion_request_timeout_seconds: float = 30.0
 
+    # UX Journey Agent (optional): separate service (FastAPI) for browser-use runs.
+    ux_journey_agent_url: str | None = Field(default=None, validation_alias=AliasChoices("ux_journey_agent_url", "UX_JOURNEY_AGENT_URL"))
+    ux_journey_agent_timeout_seconds: float = 30.0
+
     # Feature Flags
     use_storion_proxy: bool = False
     storion_sync_poll_interval: float = 5.0
