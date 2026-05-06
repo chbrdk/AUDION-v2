@@ -82,7 +82,10 @@ export default function UxJourneyAgentAdminPage() {
           return;
         }
         const st = (data.status || "").toLowerCase();
-        if (st === "complete" || data.result) {
+        // The agent returns partial `result` even while running; only treat it as complete
+        // when the upstream status says so (or when success is explicitly set).
+        const hasFinalResult = data?.result?.success === true || data?.result?.success === false;
+        if (st === "complete" || hasFinalResult) {
           setResult(data);
           setStatus("complete");
           return;

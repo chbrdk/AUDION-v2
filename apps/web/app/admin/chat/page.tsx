@@ -593,7 +593,10 @@ function AdminChatPageContent() {
             )
           );
         }
-        if (st === "complete" || data?.result) {
+        // The agent service publishes partial progress via `result` even while `status=running`.
+        // Only mark complete when the upstream status is complete (or when success is explicitly set).
+        const hasFinalResult = data?.result?.success === true || data?.result?.success === false;
+        if (st === "complete" || hasFinalResult) {
           setUxJourneyStatus("complete");
           const steps = Array.isArray(data?.result?.steps) ? data.result.steps : [];
           const videoUrl = API_ROUTES.uxJourneyAgentVideo(uxJourneyJobId);
