@@ -17,6 +17,7 @@ from .routers.chat import router as chat_rest_router
 from .routers.voice import router as voice_router
 from .routers.images import router as images_router
 from .routers.documents import router as documents_router
+from .routers.history import router as history_router
 from .ws.chat import router as chat_ws_router
 
 logger = structlog.get_logger(__name__)
@@ -96,6 +97,7 @@ def create_app() -> FastAPI:
     app.include_router(voice_router)  # Voice streaming API
     app.include_router(images_router)  # Image upload API
     app.include_router(documents_router)  # DOCX upload for chat
+    app.include_router(history_router)  # Chat history persistence (system messages, UI events)
     app.include_router(chat_ws_router)  # WebSocket for chat
 
     return app

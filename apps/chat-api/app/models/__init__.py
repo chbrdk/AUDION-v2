@@ -109,3 +109,39 @@ class PromptTemplate(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
+
+# ---------------------------------------------------------------------------
+# Chat history persistence (lightweight, for UI-generated system messages)
+# ---------------------------------------------------------------------------
+
+
+class ChatConversation(Base):
+    __tablename__ = "chat_conversations"
+    __table_args__ = _get_table_args()
+
+    # Web UI uses non-UUID IDs like "conv_..."; keep as string.
+    id = Column(String(128), primary_key=True)
+    persona_id = Column(UUID(as_uuid=True), _fk("personas.id"), nullable=False)
+    persona_name = Column(String(256), nullable=False, default="")
+    title = Column(String(256), nullable=False, default="New Conversation")
+    is_archived = Column(String(8), nullable=False, default="false")  # keep simple (legacy-friendly)
+    metadata = Column(JSONB, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    messages = relationship("ChatConversationMessage", back_populates="conversation")
+
+
+class ChatConversationMessage(Base):
+    __tablename__ = "chat_conversation_messages"
+    __table_args__ = _get_table_args()
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    conversation_id = Column(String(128), _fk("chat_conversations.id"), nullable=False)
+    role = Column(String(32), nullable=False)  # "system" | "user" | "persona"
+    content = Column(Text, nullable=False)
+    extra = Column(JSONB, nullable=True)  # structured payloads (e.g. ux journey jobId)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    conversation = relationship("ChatConversation", back_populates="messages")
+

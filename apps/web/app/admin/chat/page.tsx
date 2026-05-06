@@ -51,6 +51,7 @@ import { INPUT_ACCENT_SX } from "../../../lib/theme-accent";
 import { VariablePalette } from "../../../components/prompt-builder/VariablePalette";
 import { type VariableDefinition } from "../../../components/prompt-builder/variableDefinitions";
 import { getChatApiBase, getVoiceApiBase, buildApiUrl, fetchWithTimeout, buildChatDocumentsUploadUrl } from "../../api/_lib/backend";
+import { API_ROUTES } from "../../../lib/api-routes";
 import { useAuth } from "../../../components/auth/auth-provider";
 import { useSpeechToText } from "../../../hooks/use-speech-to-text";
 import { useWhisperTranscription } from "../../../hooks/use-whisper-transcription";
@@ -390,6 +391,14 @@ function AdminChatPageContent() {
   } | null>(null);
   const targetGroupStreamingRoundRef = useRef<{ userMessage: string; responses: StreamingResponseSlot[] } | null>(null);
   const [sendingTargetGroup, setSendingTargetGroup] = useState(false);
+  // UX Journey Agent (chat action)
+  const [uxJourneyDialogOpen, setUxJourneyDialogOpen] = useState(false);
+  const [uxJourneyUrl, setUxJourneyUrl] = useState("");
+  const [uxJourneyTask, setUxJourneyTask] = useState("");
+  const [uxJourneyStarting, setUxJourneyStarting] = useState(false);
+  const [uxJourneyJobId, setUxJourneyJobId] = useState<string | null>(null);
+  const [uxJourneyError, setUxJourneyError] = useState<string | null>(null);
+  const [uxJourneyStatus, setUxJourneyStatus] = useState<"idle" | "running" | "complete" | "error">("idle");
   const typingBuffersRef = useRef<Record<string, string>>({});
   const typingTimersRef = useRef<Record<string, ReturnType<typeof setTimeout> | null>>({});
   const personaMenuOpen = Boolean(personaMenuAnchor);
@@ -437,6 +446,167 @@ function AdminChatPageContent() {
     personaProfile?.name ??
     activePersona?.name ??
     "Persona";
+
+  const startUxJourney = useCallback(async () => {
+    if (!activePersonaId || !activePersona) {
+      setUxJourneyError("Select a persona first.");
+      return;
+    }
+    const url = uxJourneyUrl.trim();
+    const task = uxJourneyTask.trim();
+    if (!url || !task) return;
+
+    setUxJourneyError(null);
+    setUxJourneyStarting(true);
+    try {
+      const res = await fetch(API_ROUTES.uxJourneyAgentRun, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url,
+          task,
+          persona: {
+            id: activePersonaId,
+            name: personaDisplayName,
+            headline: activePersona.headline,
+            profile: activePersona.profile ?? null,
+            systemPrompt: activePersona.systemPrompt ?? null,
+          },
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { jobId?: string; detail?: string; error?: string };
+      if (!res.ok || !data.jobId) {
+        setUxJourneyStatus("error");
+        setUxJourneyError(data.detail || data.error || `Failed to start run (${res.status})`);
+        return;
+      }
+      const jobId = data.jobId as string;
+      setUxJourneyJobId(jobId);
+      setUxJourneyStatus("running");
+      // Post a lightweight system message immediately.
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36),
+          role: "system",
+          content: `Started **Persona UX Journey** for **${personaDisplayName}**\\n\\n- Job: \`${jobId}\`\\n- URL: ${url}\\n\\nLive: \`${API_ROUTES.uxJourneyAgentLiveStream(jobId)}\``,
+        },
+      ]);
+
+      // Persist in chat-api (best-effort)
+      try {
+        const conversationId = currentConversationId || generateConversationId();
+        if (!currentConversationId) setCurrentConversationId(conversationId);
+        await fetch(buildApiUrl(`/api/chat/history/conversations/${encodeURIComponent(conversationId)}/messages`), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            role: "system",
+            content: `Started Persona UX Journey for ${personaDisplayName}\nJob: ${jobId}\nURL: ${url}`,
+            extra: { kind: "ux_journey_agent_started", jobId, url },
+            persona_id: activePersonaId,
+            persona_name: personaDisplayName,
+            title: conversationTitle || "New Conversation",
+          }),
+        });
+      } catch {
+        // never block UI
+      }
+    } catch (e) {
+      setUxJourneyStatus("error");
+      setUxJourneyError(e instanceof Error ? e.message : "Network error");
+    } finally {
+      setUxJourneyStarting(false);
+    }
+  }, [activePersonaId, activePersona, personaDisplayName, uxJourneyUrl, uxJourneyTask]);
+
+  useEffect(() => {
+    if (!uxJourneyJobId || uxJourneyStatus !== "running") return;
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const res = await fetch(API_ROUTES.uxJourneyAgentStatus(uxJourneyJobId), { cache: "no-store" });
+        const data = (await res.json().catch(() => ({}))) as any;
+        if (cancelled) return;
+        if (!res.ok) {
+          setUxJourneyStatus("error");
+          setUxJourneyError(data?.detail || data?.error || `Failed (${res.status})`);
+          return;
+        }
+        const st = String(data?.status || "").toLowerCase();
+        if (st === "complete" || data?.result) {
+          setUxJourneyStatus("complete");
+          const steps = Array.isArray(data?.result?.steps) ? data.result.steps : [];
+          const maxSteps = 20;
+          const stepLines = steps.slice(0, maxSteps).map((s: any, i: number) => {
+            const n = s?.step ?? i + 1;
+            const action = s?.action ?? "step";
+            const target = s?.target ? ` — ${String(s.target).slice(0, 160)}` : "";
+            return `- **${n}. ${action}**${target}`;
+          });
+          const truncated = steps.length > maxSteps ? `\\n\\n(Showing first ${maxSteps} of ${steps.length} steps.)` : "";
+          const videoUrl = API_ROUTES.uxJourneyAgentVideo(uxJourneyJobId);
+          const statusUrl = API_ROUTES.uxJourneyAgentStatus(uxJourneyJobId);
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36),
+              role: "system",
+              content:
+                `## Persona UX Journey complete\\n\\n` +
+                `- Job: \`${uxJourneyJobId}\`\\n` +
+                `- Video: \`${videoUrl}\`\\n` +
+                `- Status: \`${statusUrl}\`\\n\\n` +
+                `### Steps\\n` +
+                `${stepLines.join("\\n") || "- (No steps)"}` +
+                truncated,
+            },
+          ]);
+
+          // Persist completion in chat-api (best-effort)
+          try {
+            const conversationId = currentConversationId || "";
+            if (conversationId) {
+              await fetch(buildApiUrl(`/api/chat/history/conversations/${encodeURIComponent(conversationId)}/messages`), {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  role: "system",
+                  content: `Persona UX Journey complete\nJob: ${uxJourneyJobId}\nVideo: ${videoUrl}\nSteps: ${steps.length}`,
+                  extra: {
+                    kind: "ux_journey_agent_complete",
+                    jobId: uxJourneyJobId,
+                    stepsCount: steps.length,
+                    stepsPreview: steps.slice(0, maxSteps),
+                    videoUrl,
+                    statusUrl,
+                  },
+                }),
+              });
+            }
+          } catch {
+            // never block UI
+          }
+          return;
+        }
+        if (st === "error") {
+          setUxJourneyStatus("error");
+          setUxJourneyError(String(data?.error || "Journey failed"));
+          return;
+        }
+        setTimeout(poll, 2000);
+      } catch (e) {
+        if (!cancelled) {
+          setUxJourneyStatus("error");
+          setUxJourneyError(e instanceof Error ? e.message : "Network error");
+        }
+      }
+    };
+    poll();
+    return () => {
+      cancelled = true;
+    };
+  }, [uxJourneyJobId, uxJourneyStatus]);
   const personaChipData = useMemo(
     () =>
       [
@@ -2093,38 +2263,55 @@ function AdminChatPageContent() {
       );
     } else if (activePersonaId && activePersona) {
       setHeaderContent(
-        <Button
-          variant="text"
-          onClick={() => setPersonaDrawerOpen(true)}
-          sx={{
-            textTransform: "none",
-            display: "flex",
-            alignItems: "center",
-            gap: 1.5,
-            padding: "0.5rem 1rem",
-            borderRadius: "8px",
-            "&:hover": {
-              backgroundColor: alpha(theme.palette.text.primary, 0.08)
-            }
-          }}
-        >
-          <Avatar
-            src={safeAvatarSrc(activePersona.image_url ?? null, activePersonaId ?? undefined) ?? undefined}
-            alt={activePersona.name}
-            sx={{ width: 36, height: 36 }}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Button
+            variant="text"
+            onClick={() => setPersonaDrawerOpen(true)}
+            sx={{
+              textTransform: "none",
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+              padding: "0.5rem 1rem",
+              borderRadius: "8px",
+              "&:hover": {
+                backgroundColor: alpha(theme.palette.text.primary, 0.08)
+              }
+            }}
           >
-            {(activePersona?.name ?? "").charAt(0)}
-          </Avatar>
-          <Box textAlign="left">
-            <Typography variant="body2" sx={{ fontWeight: 500, lineHeight: 1 }}>
-              {personaDisplayName}
-            </Typography>
-            <Typography variant="caption" sx={{ color: alpha(theme.palette.text.primary, 0.7) }}>
-              View persona profile
-            </Typography>
-          </Box>
-          <MsqdxIcon name="chevron_right" customSize={20} />
-        </Button>
+            <Avatar
+              src={safeAvatarSrc(activePersona.image_url ?? null, activePersonaId ?? undefined) ?? undefined}
+              alt={activePersona.name}
+              sx={{ width: 36, height: 36 }}
+            >
+              {(activePersona?.name ?? "").charAt(0)}
+            </Avatar>
+            <Box textAlign="left">
+              <Typography variant="body2" sx={{ fontWeight: 500, lineHeight: 1 }}>
+                {personaDisplayName}
+              </Typography>
+              <Typography variant="caption" sx={{ color: alpha(theme.palette.text.primary, 0.7) }}>
+                View persona profile
+              </Typography>
+            </Box>
+            <MsqdxIcon name="chevron_right" customSize={20} />
+          </Button>
+
+          <Tooltip title="Run UX Journey as persona" placement="bottom">
+            <span>
+              <IconButton
+                onClick={() => setUxJourneyDialogOpen(true)}
+                sx={{
+                  borderRadius: "8px",
+                  border: `1px solid ${alpha(theme.palette.text.primary, 0.12)}`,
+                }}
+                aria-label="Run UX Journey as persona"
+              >
+                <MsqdxIcon name="travel_explore" customSize={22} />
+              </IconButton>
+            </span>
+          </Tooltip>
+        </Box>
       );
     } else {
       setHeaderContent(null);
@@ -2292,6 +2479,54 @@ function AdminChatPageContent() {
           )}
         </Box>
       )}
+
+      {/* UX Journey Agent dialog (persona mode) */}
+      <Dialog open={uxJourneyDialogOpen} onClose={() => setUxJourneyDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Persona UX Journey</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+              Run a browser-based UX journey as <b>{personaDisplayName}</b>.
+            </Typography>
+            <TextField
+              label="URL"
+              value={uxJourneyUrl}
+              onChange={(e) => setUxJourneyUrl(e.target.value)}
+              placeholder="https://example.com"
+              fullWidth
+            />
+            <TextField
+              label="Task"
+              value={uxJourneyTask}
+              onChange={(e) => setUxJourneyTask(e.target.value)}
+              placeholder='e.g. "Find pricing page and compare plans"'
+              fullWidth
+              multiline
+              minRows={2}
+            />
+            {uxJourneyError && (
+              <Typography variant="body2" sx={{ color: "error.main" }}>
+                {uxJourneyError}
+              </Typography>
+            )}
+            {uxJourneyJobId && (
+              <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                Job: {uxJourneyJobId} · Status: {uxJourneyStatus}
+              </Typography>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setUxJourneyDialogOpen(false)}>Close</Button>
+          <Button
+            variant="contained"
+            onClick={startUxJourney}
+            disabled={uxJourneyStarting || !uxJourneyUrl.trim() || !uxJourneyTask.trim() || !activePersonaId}
+          >
+            {uxJourneyStarting ? "Starting…" : "Start"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Chat Interface - Persona mode or Target group mode with selection */}
       {showChatState && (

@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import glob
+import json
 import os
 import shutil
 import time
@@ -48,6 +49,7 @@ class JobState:
     status: str  # "running" | "complete" | "error"
     url: str
     task: str
+    persona: dict[str, Any] | None = None
     result: dict[str, Any] | None = None
     error: str | None = None
     video_path: str | None = None  # path to recorded video file (if any)
@@ -67,6 +69,7 @@ _live_frames: dict[str, tuple[float, bytes]] = {}
 class RunRequest(BaseModel):
     url: str
     task: str
+    persona: dict[str, Any] | None = None
 
 class RunResponse(BaseModel):
     jobId: str
@@ -93,6 +96,52 @@ def _make_llm():
             from browser_use.llm.openai import ChatOpenAI
         return ChatOpenAI(model=os.environ.get("UX_JOURNEY_OPENAI_MODEL", "gpt-4o"), temperature=0)
     raise RuntimeError("Set ANTHROPIC_API_KEY or OPENAI_API_KEY for the agent LLM.")
+
+
+def _persona_instruction(persona: dict[str, Any] | None) -> str:
+    """Build a short instruction block from persona context (bounded length)."""
+    if not persona or not isinstance(persona, dict):
+        return ""
+    try:
+        persona_id = str(persona.get("id") or "").strip()
+        name = str(persona.get("name") or "").strip()
+        headline = str(persona.get("headline") or "").strip()
+        profile = persona.get("profile")
+        system_prompt = str(persona.get("systemPrompt") or "").strip()
+
+        profile_json = ""
+        if isinstance(profile, dict):
+            slim = {
+                k: profile.get(k)
+                for k in (
+                    "bio",
+                    "location",
+                    "values",
+                    "interests",
+                    "traits",
+                    "painPoints",
+                    "goals",
+                    "communicationStyle",
+                )
+                if k in profile
+            }
+            profile_json = json.dumps(slim, ensure_ascii=False)[:4000]
+
+        prompt_part = system_prompt[:2000] if system_prompt else ""
+
+        parts = [
+            "PERSONA_CONTEXT:",
+            f"- id: {persona_id}" if persona_id else None,
+            f"- name: {name}" if name else None,
+            f"- headline: {headline}" if headline else None,
+            f"- systemPrompt: {prompt_part}" if prompt_part else None,
+            f"- profile: {profile_json}" if profile_json else None,
+            "INSTRUCTION: Execute the task as if you were this persona. Base choices, attention, and actions on the persona context above.",
+        ]
+        text = "\n".join([p for p in parts if p])
+        return (text.strip() + "\n\n") if text.strip() else ""
+    except Exception:
+        return ""
 
 
 def _normalize_action_entry(entry: Any) -> tuple[str, str, str]:
@@ -287,7 +336,7 @@ async def _live_screenshot_loop(job_id: str) -> None:
         await asyncio.sleep(LIVE_FRAME_INTERVAL)
 
 
-async def run_agent(job_id: str, url: str, task: str) -> None:
+async def run_agent(job_id: str, url: str, task: str, persona: dict[str, Any] | None = None) -> None:
     try:
         from browser_use import Agent, Browser
     except ImportError as e:
@@ -317,7 +366,8 @@ async def run_agent(job_id: str, url: str, task: str) -> None:
         import inspect
         sig = inspect.signature(Agent.__init__)
         german_instruction = "WICHTIG: Formuliere alle deine Überlegungen und Gedanken (thinking/reasoning) ausschließlich auf Deutsch. "
-        task_with_lang = german_instruction + task
+        persona_instr = _persona_instruction(persona)
+        task_with_lang = german_instruction + persona_instr + task
         agent_kw: dict[str, Any] = {"task": task_with_lang, "llm": llm, "browser": browser}
         if "initial_url" in sig.parameters:
             agent_kw["initial_url"] = url
@@ -482,6 +532,11 @@ async def run_agent(job_id: str, url: str, task: str) -> None:
             "success": success,
             "screenshots": screenshots[:50],
         }
+        if persona and isinstance(persona, dict):
+            result["persona"] = {
+                "id": persona.get("id"),
+                "name": persona.get("name"),
+            }
         if video_path:
             result["videoUrl"] = f"/run/{job_id}/video"
 
@@ -524,9 +579,9 @@ async def start_run(body: RunRequest) -> RunResponse:
 
     job_id = str(uuid.uuid4())
     async with _jobs_lock:
-        _jobs[job_id] = JobState(job_id=job_id, status="running", url=url, task=task)
+        _jobs[job_id] = JobState(job_id=job_id, status="running", url=url, task=task, persona=body.persona)
 
-    asyncio.create_task(run_agent(job_id, url, task))
+    asyncio.create_task(run_agent(job_id, url, task, body.persona))
     return RunResponse(jobId=job_id)
 
 @app.get("/run/{job_id}")
