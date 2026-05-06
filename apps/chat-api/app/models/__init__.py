@@ -125,7 +125,8 @@ class ChatConversation(Base):
     persona_name = Column(String(256), nullable=False, default="")
     title = Column(String(256), nullable=False, default="New Conversation")
     is_archived = Column(String(8), nullable=False, default="false")  # keep simple (legacy-friendly)
-    metadata = Column(JSONB, nullable=True)
+    # IMPORTANT: attribute name cannot be `metadata` (reserved by SQLAlchemy declarative).
+    conversation_metadata = Column("metadata", JSONB, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

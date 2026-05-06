@@ -55,7 +55,7 @@ def upsert_conversation(body: ConversationUpsertBody, _: None = Depends(verify_r
                 persona_id=persona_uuid,
                 persona_name=(body.persona_name or getattr(persona, "name", "") or "").strip(),
                 title=(body.title or "New Conversation").strip(),
-                metadata=body.metadata,
+                conversation_metadata=body.metadata,
                 created_at=datetime.utcnow(),
                 updated_at=datetime.utcnow(),
             )
@@ -67,7 +67,7 @@ def upsert_conversation(body: ConversationUpsertBody, _: None = Depends(verify_r
             if body.title is not None:
                 convo.title = body.title
             if body.metadata is not None:
-                convo.metadata = body.metadata
+                convo.conversation_metadata = body.metadata
             convo.updated_at = datetime.utcnow()
 
         session.commit()
@@ -104,7 +104,7 @@ def append_message(
                 persona_id=persona_uuid,
                 persona_name=(body.persona_name or getattr(persona, "name", "") or "").strip(),
                 title=(body.title or "New Conversation").strip(),
-                metadata=None,
+                conversation_metadata=None,
                 created_at=datetime.utcnow(),
                 updated_at=datetime.utcnow(),
             )
