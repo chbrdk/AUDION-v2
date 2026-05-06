@@ -43,11 +43,20 @@ type Message = {
     videoUrl?: string;
     /** Total steps seen for this run (even if steps[] is just a preview). */
     stepsTotal?: number;
+    personaPolicy?: {
+      dimensions?: Record<string, number>;
+      heuristics?: string[];
+    } | null;
     steps?: Array<{
       step?: number;
       action?: string;
       target?: string | null;
       reasoning?: string | null;
+      reasoningMeta?: {
+        evaluation_previous_goal?: string | null;
+        memory?: string | null;
+        next_goal?: string | null;
+      } | null;
       result?: string | null;
       timestamp?: string;
     }>;
@@ -539,6 +548,48 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                         ) : null}
                       </Box>
 
+                      {message.uxJourney.personaPolicy?.dimensions ? (
+                        <Box
+                          sx={{
+                            mt: 0.25,
+                            p: 1,
+                            borderRadius: 2,
+                            border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+                            backgroundColor: alpha(theme.palette.background.paper, 0.35),
+                          }}
+                        >
+                          <Typography variant="caption" sx={{ display: "block", mb: 0.5, color: "text.secondary" }}>
+                            Persona behavior policy
+                          </Typography>
+                          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
+                            {Object.entries(message.uxJourney.personaPolicy.dimensions)
+                              .slice(0, 6)
+                              .map(([k, v]) => (
+                                <Box
+                                  key={k}
+                                  sx={{
+                                    px: 1,
+                                    py: 0.25,
+                                    borderRadius: 999,
+                                    border: `1px solid ${alpha(theme.palette.divider, 0.7)}`,
+                                    backgroundColor: alpha(theme.palette.background.paper, 0.55),
+                                  }}
+                                >
+                                  <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                                    {k}: {Number(v).toFixed(2)}
+                                  </Typography>
+                                </Box>
+                              ))}
+                          </Box>
+                          {Array.isArray(message.uxJourney.personaPolicy.heuristics) &&
+                          message.uxJourney.personaPolicy.heuristics.length ? (
+                            <Typography variant="body2" sx={{ mt: 0.75, whiteSpace: "pre-wrap", color: "text.secondary" }}>
+                              {message.uxJourney.personaPolicy.heuristics.slice(0, 4).map((h) => `• ${h}`).join("\n")}
+                            </Typography>
+                          ) : null}
+                        </Box>
+                      ) : null}
+
                       {message.uxJourney.liveUrl && message.uxJourney.status === "running" ? (
                         <Box>
                           <Typography variant="caption" sx={{ display: "block", mb: 0.5, color: "text.secondary" }}>
@@ -664,6 +715,84 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                                     <AccordionDetails sx={{ px: 0, pt: 0 }}>
                                       <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word", color: "text.secondary" }}>
                                         {String(s.reasoning).length > 1200 ? String(s.reasoning).slice(0, 1200) + "…" : s.reasoning}
+                                      </Typography>
+                                    </AccordionDetails>
+                                  </Accordion>
+                                ) : null}
+
+                                {s.reasoningMeta?.evaluation_previous_goal ? (
+                                  <Accordion
+                                    disableGutters
+                                    elevation={0}
+                                    sx={{
+                                      mt: s.reasoning ? 0.5 : 1,
+                                      bgcolor: "transparent",
+                                      "&:before": { display: "none" },
+                                    }}
+                                  >
+                                    <AccordionSummary
+                                      expandIcon={<MsqdxIcon name="expand_more" customSize={16} />}
+                                      sx={{ px: 0, minHeight: 34, "& .MuiAccordionSummary-content": { my: 0 } }}
+                                    >
+                                      <Typography variant="caption" sx={{ letterSpacing: 0.8, textTransform: "uppercase", color: "text.secondary" }}>
+                                        Previous goal evaluation
+                                      </Typography>
+                                    </AccordionSummary>
+                                    <AccordionDetails sx={{ px: 0, pt: 0 }}>
+                                      <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word", color: "text.secondary" }}>
+                                        {s.reasoningMeta.evaluation_previous_goal}
+                                      </Typography>
+                                    </AccordionDetails>
+                                  </Accordion>
+                                ) : null}
+
+                                {s.reasoningMeta?.memory ? (
+                                  <Accordion
+                                    disableGutters
+                                    elevation={0}
+                                    sx={{
+                                      mt: s.reasoning || s.reasoningMeta?.evaluation_previous_goal ? 0.5 : 1,
+                                      bgcolor: "transparent",
+                                      "&:before": { display: "none" },
+                                    }}
+                                  >
+                                    <AccordionSummary
+                                      expandIcon={<MsqdxIcon name="expand_more" customSize={16} />}
+                                      sx={{ px: 0, minHeight: 34, "& .MuiAccordionSummary-content": { my: 0 } }}
+                                    >
+                                      <Typography variant="caption" sx={{ letterSpacing: 0.8, textTransform: "uppercase", color: "text.secondary" }}>
+                                        Memory
+                                      </Typography>
+                                    </AccordionSummary>
+                                    <AccordionDetails sx={{ px: 0, pt: 0 }}>
+                                      <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word", color: "text.secondary" }}>
+                                        {s.reasoningMeta.memory}
+                                      </Typography>
+                                    </AccordionDetails>
+                                  </Accordion>
+                                ) : null}
+
+                                {s.reasoningMeta?.next_goal ? (
+                                  <Accordion
+                                    disableGutters
+                                    elevation={0}
+                                    sx={{
+                                      mt: s.reasoning || s.reasoningMeta?.evaluation_previous_goal || s.reasoningMeta?.memory ? 0.5 : 1,
+                                      bgcolor: "transparent",
+                                      "&:before": { display: "none" },
+                                    }}
+                                  >
+                                    <AccordionSummary
+                                      expandIcon={<MsqdxIcon name="expand_more" customSize={16} />}
+                                      sx={{ px: 0, minHeight: 34, "& .MuiAccordionSummary-content": { my: 0 } }}
+                                    >
+                                      <Typography variant="caption" sx={{ letterSpacing: 0.8, textTransform: "uppercase", color: "text.secondary" }}>
+                                        Next goal
+                                      </Typography>
+                                    </AccordionSummary>
+                                    <AccordionDetails sx={{ px: 0, pt: 0 }}>
+                                      <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word", color: "text.secondary" }}>
+                                        {s.reasoningMeta.next_goal}
                                       </Typography>
                                     </AccordionDetails>
                                   </Accordion>

@@ -238,6 +238,17 @@ type Message = {
   document_ids?: string[];
   document_attachment_meta?: Array<{ id: string; filename: string }>;
   reasoning?: string;
+  uxJourney?: {
+    jobId: string;
+    url?: string;
+    status?: "running" | "complete" | "error";
+    liveUrl?: string;
+    videoUrl?: string;
+    stepsTotal?: number;
+    personaPolicy?: any;
+    steps?: any[];
+    error?: string | null;
+  };
 };
 
 type TargetGroupListItem = { id: string; name: string; segment?: string };
@@ -562,6 +573,7 @@ function AdminChatPageContent() {
         const st = String(data?.status || "").toLowerCase();
         if (st === "running" && uxJourneyStartMessageId) {
           const steps = Array.isArray(data?.result?.steps) ? data.result.steps : [];
+          const personaPolicy = data?.result?.personaPolicy;
           setMessages((prev) =>
             prev.map((m) =>
               m.id === uxJourneyStartMessageId
@@ -573,6 +585,7 @@ function AdminChatPageContent() {
                       liveUrl: API_ROUTES.uxJourneyAgentLiveStream(uxJourneyJobId),
                       stepsTotal: steps.length,
                       steps: steps.slice(-12),
+                      personaPolicy: personaPolicy ?? m.uxJourney?.personaPolicy,
                       error: null,
                     },
                   }
@@ -585,6 +598,7 @@ function AdminChatPageContent() {
           const steps = Array.isArray(data?.result?.steps) ? data.result.steps : [];
           const videoUrl = API_ROUTES.uxJourneyAgentVideo(uxJourneyJobId);
           const statusUrl = API_ROUTES.uxJourneyAgentStatus(uxJourneyJobId);
+          const personaPolicy = data?.result?.personaPolicy;
           setMessages((prev) => [
             ...prev,
             {
@@ -597,6 +611,7 @@ function AdminChatPageContent() {
                 videoUrl,
                 stepsTotal: steps.length,
                 steps: steps.slice(0, 20),
+                personaPolicy,
                 error: null,
               },
             },

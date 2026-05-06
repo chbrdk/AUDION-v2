@@ -80,7 +80,13 @@ class RunResponse(BaseModel):
 
 def _make_llm():
     """Create LLM from env: Anthropic (ANTHROPIC_API_KEY) or OpenAI (OPENAI_API_KEY)."""
-    if os.environ.get("ANTHROPIC_API_KEY"):
+    provider = (os.environ.get("UX_JOURNEY_LLM_PROVIDER") or "auto").strip().lower()
+    if provider in ("claude", "anthropic") and not os.environ.get("ANTHROPIC_API_KEY"):
+        raise RuntimeError("UX_JOURNEY_LLM_PROVIDER=anthropic but ANTHROPIC_API_KEY is not set.")
+    if provider in ("openai",) and not os.environ.get("OPENAI_API_KEY"):
+        raise RuntimeError("UX_JOURNEY_LLM_PROVIDER=openai but OPENAI_API_KEY is not set.")
+
+    if provider in ("claude", "anthropic") or (provider == "auto" and os.environ.get("ANTHROPIC_API_KEY")):
         try:
             from browser_use import ChatAnthropic
         except ImportError:
@@ -89,13 +95,105 @@ def _make_llm():
             model=os.environ.get("UX_JOURNEY_CLAUDE_MODEL", "claude-sonnet-4-20250514"),
             temperature=0,
         )
-    if os.environ.get("OPENAI_API_KEY"):
+    if provider in ("openai",) or (provider == "auto" and os.environ.get("OPENAI_API_KEY")):
         try:
             from browser_use import ChatOpenAI
         except ImportError:
             from browser_use.llm.openai import ChatOpenAI
         return ChatOpenAI(model=os.environ.get("UX_JOURNEY_OPENAI_MODEL", "gpt-4o"), temperature=0)
     raise RuntimeError("Set ANTHROPIC_API_KEY or OPENAI_API_KEY for the agent LLM.")
+
+
+def _llm_meta() -> dict[str, str]:
+    """Expose provider/model for debugging (does not include secrets)."""
+    provider = (os.environ.get("UX_JOURNEY_LLM_PROVIDER") or "auto").strip().lower()
+    if provider in ("claude", "anthropic") or (provider == "auto" and os.environ.get("ANTHROPIC_API_KEY")):
+        return {
+            "provider": "anthropic",
+            "model": os.environ.get("UX_JOURNEY_CLAUDE_MODEL", "claude-sonnet-4-20250514"),
+        }
+    if provider in ("openai",) or (provider == "auto" and os.environ.get("OPENAI_API_KEY")):
+        return {
+            "provider": "openai",
+            "model": os.environ.get("UX_JOURNEY_OPENAI_MODEL", "gpt-4o"),
+        }
+    return {"provider": "unknown", "model": "unknown"}
+
+
+def _extract_thinking_text(text: str) -> str:
+    """
+    browser-use sometimes returns a flattened string like:
+    thinking='...' evaluation_previous_goal='...' memory='...' next_goal='...'
+    We only want the human-readable thinking.
+    """
+    s = (text or "").strip()
+    if not s:
+        return ""
+    # Fast-path: looks like key='value' pairs and contains thinking=
+    if "thinking=" in s:
+        try:
+            import re
+
+            m = re.search(r"thinking=(?:'|\")(?P<v>.*?)(?:'|\")\s*(?:evaluation_previous_goal=|memory=|next_goal=|$)", s, re.DOTALL)
+            if m and m.group("v") is not None:
+                return m.group("v").strip()
+        except Exception:
+            pass
+    # Some providers may return {"thought": "..."} like strings
+    if s.startswith("{") and s.endswith("}"):
+        try:
+            obj = json.loads(s)
+            if isinstance(obj, dict):
+                v = obj.get("thinking") or obj.get("thought") or obj.get("reasoning")
+                if isinstance(v, str):
+                    return v.strip()
+        except Exception:
+            pass
+    return s
+
+
+def _extract_structured_model_output(text: str) -> dict[str, str] | None:
+    """
+    Try to extract structured fields from browser-use flattened outputs.
+    Returns None if it doesn't look structured.
+    """
+    s = (text or "").strip()
+    if not s:
+        return None
+    # Pattern: thinking='...' evaluation_previous_goal='...' memory='...' next_goal='...'
+    if "thinking=" in s:
+        try:
+            import re
+
+            def _pick(key: str) -> str:
+                m = re.search(rf"{key}=(?:'|\")(?P<v>.*?)(?:'|\")", s, re.DOTALL)
+                return (m.group("v") if m and m.group("v") is not None else "").strip()
+
+            out = {
+                "thinking": _pick("thinking"),
+                "evaluation_previous_goal": _pick("evaluation_previous_goal"),
+                "memory": _pick("memory"),
+                "next_goal": _pick("next_goal"),
+            }
+            if any(v for v in out.values()):
+                return out
+        except Exception:
+            return None
+    # JSON-ish dict
+    if s.startswith("{") and s.endswith("}"):
+        try:
+            obj = json.loads(s)
+            if isinstance(obj, dict):
+                out: dict[str, str] = {}
+                for k in ("thinking", "thought", "reasoning", "evaluation_previous_goal", "memory", "next_goal"):
+                    v = obj.get(k)
+                    if isinstance(v, str) and v.strip():
+                        out[k] = v.strip()
+                if out:
+                    return out
+        except Exception:
+            return None
+    return None
 
 
 def _persona_instruction(persona: dict[str, Any] | None) -> str:
@@ -136,12 +234,175 @@ def _persona_instruction(persona: dict[str, Any] | None) -> str:
             f"- headline: {headline}" if headline else None,
             f"- systemPrompt: {prompt_part}" if prompt_part else None,
             f"- profile: {profile_json}" if profile_json else None,
+            _persona_policy_instruction(persona),
             "INSTRUCTION: Execute the task as if you were this persona. Base choices, attention, and actions on the persona context above.",
         ]
         text = "\n".join([p for p in parts if p])
         return (text.strip() + "\n\n") if text.strip() else ""
     except Exception:
         return ""
+
+
+def _text_blob_from_persona(persona: dict[str, Any]) -> str:
+    """Create a single text blob from persona fields for keyword scoring."""
+    chunks: list[str] = []
+    for k in ("name", "headline", "systemPrompt"):
+        v = persona.get(k)
+        if isinstance(v, str) and v.strip():
+            chunks.append(v.strip())
+    profile = persona.get("profile")
+    if isinstance(profile, dict):
+        for k in ("bio", "values", "interests", "traits", "painPoints", "goals", "communicationStyle", "location"):
+            v = profile.get(k)
+            if isinstance(v, str) and v.strip():
+                chunks.append(v.strip())
+            elif isinstance(v, list):
+                chunks.extend([str(x).strip() for x in v if str(x).strip()])
+            elif isinstance(v, dict):
+                try:
+                    chunks.append(json.dumps(v, ensure_ascii=False))
+                except Exception:
+                    pass
+    return "\n".join(chunks).lower()
+
+
+def _score_keywords(text: str, positives: list[str], negatives: list[str] | None = None) -> float:
+    """
+    Very small deterministic heuristic score in [0,1].
+    positives increase score, negatives decrease score.
+    """
+    if not text:
+        return 0.5
+    pos = sum(1 for w in positives if w in text)
+    neg = sum(1 for w in (negatives or []) if w in text)
+    raw = pos - neg
+    # squash into [0,1] without needing numpy
+    if raw >= 4:
+        return 1.0
+    if raw <= -4:
+        return 0.0
+    return max(0.0, min(1.0, 0.5 + (raw * 0.12)))
+
+
+def _persona_policy(persona: dict[str, Any] | None) -> dict[str, Any]:
+    """
+    Derive a navigation behavior policy from persona context.
+    Dimensions are intentionally coarse but actionable for navigation choices.
+    """
+    if not persona or not isinstance(persona, dict):
+        return {
+            "dimensions": {
+                "risk_aversion": 0.5,
+                "time_pressure": 0.5,
+                "exploration": 0.5,
+                "detail_orientation": 0.5,
+                "trust_skepticism": 0.5,
+                "accessibility_need": 0.5,
+            },
+            "heuristics": [],
+        }
+
+    text = _text_blob_from_persona(persona)
+
+    risk_aversion = _score_keywords(
+        text,
+        positives=["vorsichtig", "risk", "risiko", "sicher", "sicherheit", "skept", "misstrau", "datenschutz", "privacy", "vermeidet", "genau", "gründlich"],
+        negatives=["mutig", "experimentier", "impuls", "spontan", "draufgänger"],
+    )
+    time_pressure = _score_keywords(
+        text,
+        positives=["schnell", "zeitdruck", "effizient", "kurz", "sofort", "dringend", "quick", "fast"],
+        negatives=["geduldig", "in ruhe", "ausführlich", "genießen", "entspannt", "slow"],
+    )
+    exploration = _score_keywords(
+        text,
+        positives=["neugierig", "entdecken", "explor", "inspir", "stöbern", "ausprobieren", "varianten", "vergleich"],
+        negatives=["ziel", "goal", "fokuss", "direkt", "straight", "nur das nötigste"],
+    )
+    detail_orientation = _score_keywords(
+        text,
+        positives=["detail", "zahlen", "daten", "spezifikation", "belege", "fakten", "gründlich", "analyse", "vergleich", "kriterien"],
+        negatives=["oberflächlich", "gefühlt", "intuition", "kurz"],
+    )
+    trust_skepticism = _score_keywords(
+        text,
+        positives=["skept", "misstrau", "nachweis", "quelle", "bewertungen", "reviews", "garantie", "agb", "bedingungen", "impressum"],
+        negatives=["vertrau", "markenloyal", "loyal", "fan"],
+    )
+    accessibility_need = _score_keywords(
+        text,
+        positives=["barriere", "accessib", "screenreader", "seh", "hör", "motor", "einfach", "klar", "groß", "kontrast"],
+        negatives=["egal", "unwichtig"],
+    )
+
+    dims = {
+        "risk_aversion": round(risk_aversion, 2),
+        "time_pressure": round(time_pressure, 2),
+        "exploration": round(exploration, 2),
+        "detail_orientation": round(detail_orientation, 2),
+        "trust_skepticism": round(trust_skepticism, 2),
+        "accessibility_need": round(accessibility_need, 2),
+    }
+
+    heuristics: list[str] = []
+    # Risk aversion
+    if risk_aversion >= 0.66:
+        heuristics.append("Prefer official navigation (menu/footer) over ads or unknown external links.")
+        heuristics.append("Avoid suspicious popups; dismiss cookie banners safely; do not sign up unless required.")
+    elif risk_aversion <= 0.34:
+        heuristics.append("Willing to try alternative paths quickly if the first route is blocked.")
+
+    # Time pressure
+    if time_pressure >= 0.66:
+        heuristics.append("Optimize for speed: use site search, direct model pages, and shortest path to the answer.")
+    elif time_pressure <= 0.34:
+        heuristics.append("Take time to scan the page; read labels carefully before clicking.")
+
+    # Exploration vs goal-driven
+    if exploration >= 0.66:
+        heuristics.append("Explore 2–3 candidate paths before committing; compare options.")
+    elif exploration <= 0.34:
+        heuristics.append("Stay goal-driven: pick one most likely path and follow it end-to-end.")
+
+    # Detail orientation
+    if detail_orientation >= 0.66:
+        heuristics.append("Prefer detailed sources (spec sheets, configurator, FAQs) over marketing pages.")
+    elif detail_orientation <= 0.34:
+        heuristics.append("Prefer summaries; avoid deep dives unless necessary.")
+
+    # Trust / skepticism
+    if trust_skepticism >= 0.66:
+        heuristics.append("Verify claims via official pages and cross-check key facts when possible.")
+
+    # Accessibility
+    if accessibility_need >= 0.66:
+        heuristics.append("Prefer simple flows, high-contrast pages, and avoid complex interactions when alternatives exist.")
+
+    return {"dimensions": dims, "heuristics": heuristics[:12]}
+
+
+def _persona_policy_instruction(persona: dict[str, Any] | None) -> str:
+    """
+    Insert a concise, actionable policy into the prompt to cause *behavioral* differences
+    in navigation based on persona psychology.
+    """
+    policy = _persona_policy(persona)
+    dims = policy.get("dimensions") if isinstance(policy, dict) else None
+    heuristics = policy.get("heuristics") if isinstance(policy, dict) else None
+    if not isinstance(dims, dict):
+        return ""
+
+    dim_line = ", ".join([f"{k}={dims.get(k)}" for k in ("risk_aversion", "time_pressure", "exploration", "detail_orientation", "trust_skepticism", "accessibility_need")])
+    hs = [h for h in (heuristics or []) if isinstance(h, str) and h.strip()]
+    hs = hs[:8]
+    hs_block = "\n".join([f"- {h}" for h in hs]) if hs else ""
+
+    return (
+        "PERSONA_BEHAVIOR_POLICY:\n"
+        f"- dimensions: {dim_line}\n"
+        + ("- navigation_heuristics:\n" + hs_block + "\n" if hs_block else "")
+        + "INSTRUCTION: When choosing actions, explicitly let the policy influence your choices. In your thinking, mention which dimension(s) drove the decision (e.g., risk_aversion, time_pressure).\n"
+    )
 
 
 def _normalize_action_entry(entry: Any) -> tuple[str, str, str]:
@@ -193,28 +454,36 @@ def _normalize_action_entry(entry: Any) -> tuple[str, str, str]:
     return (action_label, target, result)
 
 
-def _get_model_thoughts(history: Any) -> list[str]:
-    """Extract reasoning/thoughts per step from browser-use history (model_thoughts or model_outputs). No length limit."""
-    out: list[str] = []
+def _get_model_thoughts(history: Any) -> list[dict[str, Any]]:
+    """Extract model outputs per step from browser-use history, best-effort structured."""
+    out: list[dict[str, Any]] = []
     try:
         if hasattr(history, "model_thoughts") and callable(history.model_thoughts):
             raw = list(history.model_thoughts())
             if isinstance(raw, list):
                 for item in raw:
                     if isinstance(item, str):
-                        out.append(item)
+                        structured = _extract_structured_model_output(item)
+                        out.append({"thinking": _extract_thinking_text(item), "structured": structured, "raw": item})
                     elif item is not None:
-                        out.append(str(item))
+                        s = str(item)
+                        structured = _extract_structured_model_output(s)
+                        out.append({"thinking": _extract_thinking_text(s), "structured": structured, "raw": s})
         if not out and hasattr(history, "model_outputs") and callable(history.model_outputs):
             raw = list(history.model_outputs())
             if isinstance(raw, list):
                 for item in raw:
                     if isinstance(item, str):
-                        out.append(item)
+                        structured = _extract_structured_model_output(item)
+                        out.append({"thinking": _extract_thinking_text(item), "structured": structured, "raw": item})
                     elif isinstance(item, dict) and item.get("thought"):
-                        out.append(str(item["thought"]))
+                        s = str(item["thought"])
+                        structured = _extract_structured_model_output(s)
+                        out.append({"thinking": _extract_thinking_text(s), "structured": structured, "raw": s})
                     elif item is not None:
-                        out.append(str(item))
+                        s = str(item)
+                        structured = _extract_structured_model_output(s)
+                        out.append({"thinking": _extract_thinking_text(s), "structured": structured, "raw": s})
     except Exception:
         pass
     return out
@@ -236,8 +505,18 @@ def _history_to_steps(history: Any) -> list[dict[str, Any]]:
                 "result": result or None,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
-            if i < len(thoughts) and thoughts[i].strip():
-                step_entry["reasoning"] = thoughts[i].strip()
+            if i < len(thoughts):
+                thinking = str(thoughts[i].get("thinking") or "").strip()
+                if thinking:
+                    step_entry["reasoning"] = thinking
+                structured = thoughts[i].get("structured")
+                if isinstance(structured, dict) and any(str(v or "").strip() for v in structured.values()):
+                    # Keep only known keys and bound length a bit.
+                    step_entry["reasoningMeta"] = {
+                        "evaluation_previous_goal": str(structured.get("evaluation_previous_goal") or "")[:4000] or None,
+                        "memory": str(structured.get("memory") or "")[:4000] or None,
+                        "next_goal": str(structured.get("next_goal") or "")[:4000] or None,
+                    }
             steps.append(step_entry)
         if not steps and hasattr(history, "urls") and callable(history.urls):
             for i, u in enumerate(history.urls()):
@@ -528,24 +807,28 @@ async def run_agent(job_id: str, url: str, task: str, persona: dict[str, Any] | 
 
         # `domain` already computed above for partial progress updates.
 
-        # Move recorded video to a known path (browser-use[video] writes MP4, Playwright can write WebM)
+        # Move recorded video to a known path.
+        # Playwright often writes WebM in nested folders; we search recursively and pick the newest file.
         video_path: str | None = None
-        if os.path.isdir(video_dir):
-            for ext in ("*.mp4", "*.webm"):
-                found = glob.glob(os.path.join(video_dir, ext))
-                if found:
-                    suffix = ext.replace("*", "")
-                    dest = VIDEO_BASE_DIR / f"{job_id}{suffix}"
-                    try:
-                        shutil.move(found[0], str(dest))
-                        video_path = str(dest)
-                        break
-                    except Exception:
-                        pass
-            try:
-                shutil.rmtree(video_dir, ignore_errors=True)
-            except Exception:
-                pass
+        try:
+            found_path = _find_recorded_video_file(video_dir)
+            if found_path and found_path.is_file():
+                suffix = found_path.suffix.lower()  # ".mp4" | ".webm"
+                dest = VIDEO_BASE_DIR / f"{job_id}{suffix}"
+                try:
+                    VIDEO_BASE_DIR.mkdir(parents=True, exist_ok=True)
+                    shutil.move(str(found_path), str(dest))
+                    video_path = str(dest)
+                except Exception:
+                    # Best-effort: if move fails, fall back to serving from original location.
+                    video_path = str(found_path)
+        finally:
+            # Cleanup temp directory only if we successfully moved it into VIDEO_BASE_DIR.
+            if video_path and Path(video_path).parent == VIDEO_BASE_DIR:
+                try:
+                    shutil.rmtree(video_dir, ignore_errors=True)
+                except Exception:
+                    pass
 
         result = {
             "jobId": job_id,
@@ -554,6 +837,8 @@ async def run_agent(job_id: str, url: str, task: str, persona: dict[str, Any] | 
             "steps": steps,
             "success": success,
             "screenshots": screenshots[:50],
+            "llm": _llm_meta(),
+            "personaPolicy": _persona_policy(persona),
         }
         if persona and isinstance(persona, dict):
             result["persona"] = {
@@ -577,9 +862,36 @@ async def run_agent(job_id: str, url: str, task: str, persona: dict[str, Any] | 
     finally:
         if browser is not None:
             try:
+                # Ensure Playwright flushes the recording to disk before we try to move it.
                 await browser.close()
             except Exception:
                 pass
+
+
+def _pick_latest_file(paths: list[Path]) -> Path | None:
+    if not paths:
+        return None
+    try:
+        return max(paths, key=lambda p: p.stat().st_mtime)
+    except Exception:
+        return paths[0]
+
+
+def _find_recorded_video_file(video_dir: str) -> Path | None:
+    """
+    browser-use / Playwright may write recordings into nested folders, and filenames can vary.
+    We search recursively and pick the newest MP4/WebM.
+    """
+    base = Path(video_dir)
+    if not base.is_dir():
+        return None
+    candidates: list[Path] = []
+    try:
+        candidates.extend([p for p in base.rglob("*.mp4") if p.is_file()])
+        candidates.extend([p for p in base.rglob("*.webm") if p.is_file()])
+    except Exception:
+        return None
+    return _pick_latest_file(candidates)
 
 # ---------------------------------------------------------------------------
 # FastAPI app
