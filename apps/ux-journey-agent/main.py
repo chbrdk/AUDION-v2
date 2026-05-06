@@ -34,16 +34,27 @@ STEP_SCREENSHOTS_BASE = Path(
 # If true, also embed data:image/jpeg;base64,... in JSON (large; can break proxies / payload limits).
 UX_JOURNEY_EMBED_SCREENSHOTS = (os.environ.get("UX_JOURNEY_EMBED_SCREENSHOTS", "0").strip().lower() in ("1", "true", "yes"))
 
-# Delay at the *start* of each step so the viewer sees the current state before the action runs ("action lead-in")
-STEP_START_DELAY_SECONDS = float(os.environ.get("UX_JOURNEY_STEP_START_DELAY_SECONDS", "2.5"))
-# Delay at the *end* of each step (after action + red circle) before the next step
-STEP_DELAY_SECONDS = float(os.environ.get("UX_JOURNEY_STEP_DELAY_SECONDS", "2.0"))
-# How long the red click circle stays visible (seconds); increase to slow down and make actions more visible
-CLICK_CIRCLE_VISIBLE_SECONDS = float(os.environ.get("UX_JOURNEY_CLICK_CIRCLE_VISIBLE_SECONDS", "2.5"))
-# After a scroll action: run a slow step-based scroll so the live stream captures it (duration per direction in seconds)
-SCROLL_VISIBLE_SECONDS = float(os.environ.get("UX_JOURNEY_SCROLL_VISIBLE_SECONDS", "5.0"))
+# Base pacing (seconds). Effective waits = these × UX_JOURNEY_SLOWMO. Defaults are tuned for readable video without extra env.
+STEP_START_DELAY_SECONDS = float(os.environ.get("UX_JOURNEY_STEP_START_DELAY_SECONDS", "3.5"))
+STEP_DELAY_SECONDS = float(os.environ.get("UX_JOURNEY_STEP_DELAY_SECONDS", "3.0"))
+CLICK_CIRCLE_VISIBLE_SECONDS = float(os.environ.get("UX_JOURNEY_CLICK_CIRCLE_VISIBLE_SECONDS", "3.5"))
+SCROLL_VISIBLE_SECONDS = float(os.environ.get("UX_JOURNEY_SCROLL_VISIBLE_SECONDS", "7.0"))
 # Live viewport screenshot interval (seconds); lower = higher fps (0.04 = 25 fps)
 LIVE_FRAME_INTERVAL = float(os.environ.get("UX_JOURNEY_LIVE_FRAME_INTERVAL", "0.04"))
+
+# Global slow-motion factor for *recording*. Default 2 = ~2× longer pacing in the Playwright video at 1× playback.
+# Override with UX_JOURNEY_SLOWMO=1 for snappier runs, or higher for more extreme slow-mo.
+UX_JOURNEY_SLOWMO = float(os.environ.get("UX_JOURNEY_SLOWMO", os.environ.get("UX_JOURNEY_SLOWMO_MULTIPLIER", "2")))
+if UX_JOURNEY_SLOWMO < 0.25:
+    UX_JOURNEY_SLOWMO = 0.25
+if UX_JOURNEY_SLOWMO > 12:
+    UX_JOURNEY_SLOWMO = 12.0
+
+
+def _slow(seconds: float) -> float:
+    """Scale a pacing delay by UX_JOURNEY_SLOWMO (true slow-motion recording)."""
+    return max(0.0, float(seconds) * UX_JOURNEY_SLOWMO)
+
 
 # ---------------------------------------------------------------------------
 # Job store (in-memory; replace with Redis/DB for multi-instance)
@@ -720,7 +731,7 @@ async def _live_screenshot_loop(job_id: str) -> None:
             break
         except Exception:
             pass
-        await asyncio.sleep(LIVE_FRAME_INTERVAL)
+        await asyncio.sleep(LIVE_FRAME_INTERVAL * UX_JOURNEY_SLOWMO)
 
 
 async def run_agent(job_id: str, url: str, task: str, persona: dict[str, Any] | None = None) -> None:
@@ -793,7 +804,7 @@ async def run_agent(job_id: str, url: str, task: str, persona: dict[str, Any] | 
 
         async def _on_step_start(agent_instance: Any) -> None:
             # Pause at the beginning of each step so the video shows the current state before the action runs
-            await asyncio.sleep(max(0, STEP_START_DELAY_SECONDS))
+            await asyncio.sleep(_slow(max(0, STEP_START_DELAY_SECONDS)))
 
         async def _on_step_end(agent_instance: Any) -> None:
             actions: list[Any] = []
@@ -814,7 +825,8 @@ async def run_agent(job_id: str, url: str, task: str, persona: dict[str, Any] | 
                             cx = getattr(b, "x", 0) + getattr(b, "width", 0) / 2
                             cy = getattr(b, "y", 0) + getattr(b, "height", 0) / 2
                             radius = 24
-                            ms = int(CLICK_CIRCLE_VISIBLE_SECONDS * 1000)
+                            circle_hold = _slow(CLICK_CIRCLE_VISIBLE_SECONDS)
+                            ms = int(circle_hold * 1000)
                             js = (
                                 f"(function(){{var el=document.getElementById('agent-click-ring');"
                                 f"if(el)el.remove();el=document.createElement('div');el.id='agent-click-ring';"
@@ -833,7 +845,7 @@ async def run_agent(job_id: str, url: str, task: str, persona: dict[str, Any] | 
                                     send = cdp.send
                                     if hasattr(send, "Runtime"):
                                         await send.Runtime.evaluate(expression=js, session_id=cdp.session_id)
-                            await asyncio.sleep(CLICK_CIRCLE_VISIBLE_SECONDS)
+                            await asyncio.sleep(circle_hold)
             except Exception:
                 pass
             # 2) If last action was scroll, run a very slow step-based scroll so the live stream always captures it
@@ -845,7 +857,7 @@ async def run_agent(job_id: str, url: str, task: str, persona: dict[str, Any] | 
                     cdp = await agent_instance.browser_session.get_or_create_cdp_session()
                     if cdp:
                         # Step-based scroll: move in small steps at ~25 fps so each frame shows movement
-                        duration_sec = max(1.0, SCROLL_VISIBLE_SECONDS)
+                        duration_sec = max(1.0, _slow(SCROLL_VISIBLE_SECONDS))
                         interval_ms = 40  # 25 fps
                         total_px = 80
                         steps = max(1, int((duration_sec * 1000) / interval_ms))
@@ -889,7 +901,7 @@ async def run_agent(job_id: str, url: str, task: str, persona: dict[str, Any] | 
             except Exception:
                 pass
             # 3) Pause so the video clearly shows the state before the next step
-            await asyncio.sleep(max(0.5, STEP_DELAY_SECONDS - CLICK_CIRCLE_VISIBLE_SECONDS))
+            await asyncio.sleep(_slow(max(0.5, STEP_DELAY_SECONDS - CLICK_CIRCLE_VISIBLE_SECONDS)))
 
             # After UI settles (circle/scroll/delays), publish steps + screenshot file + lightweight JSON.
             await _publish_partial_steps(
@@ -1129,7 +1141,7 @@ async def _mjpeg_stream_generator(job_id: str):
                 + b"\r\n"
             )
             yield part
-        await asyncio.sleep(LIVE_FRAME_INTERVAL)
+        await asyncio.sleep(LIVE_FRAME_INTERVAL * UX_JOURNEY_SLOWMO)
 
 
 @app.get("/run/{job_id}/live/stream")

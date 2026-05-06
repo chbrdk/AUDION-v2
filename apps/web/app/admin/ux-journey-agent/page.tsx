@@ -4,7 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Box } from "@mui/material";
 import { MsqdxButton, MsqdxCard, MsqdxFormField, MsqdxTypography } from "@msqdx/react";
 
-import { API_ROUTES } from "../../../lib/api-routes";
+import { API_ROUTES, withNextBasePath } from "../../../lib/api-routes";
+import { getUxJourneyVideoPlaybackRate } from "../../../lib/ux-journey-playback";
+import { UxJourneyLivePoll } from "../../../components/ux-journey-live-poll";
 import { useI18n } from "../../../components/i18n/i18n-provider";
 
 type Status = "idle" | "running" | "complete" | "error";
@@ -22,7 +24,7 @@ type AgentStep = {
 
 function uxJourneyStepShotSrc(s: AgentStep): string | null {
   if (s.screenshot?.trim()) return s.screenshot;
-  if (s.screenshotUrl?.trim().startsWith("/")) return `/api/ux-journey-agent${s.screenshotUrl}`;
+  if (s.screenshotUrl?.trim().startsWith("/")) return withNextBasePath(`/api/ux-journey-agent${s.screenshotUrl}`);
   return null;
 }
 
@@ -176,19 +178,7 @@ export default function UxJourneyAgentAdminPage() {
           <MsqdxTypography variant="subtitle2" sx={{ mb: 1 }}>
             Live view
           </MsqdxTypography>
-          <Box
-            component="img"
-            src={API_ROUTES.uxJourneyAgentLiveStream(jobId)}
-            alt="Live stream"
-            sx={{
-              width: "100%",
-              maxWidth: 960,
-              borderRadius: 1,
-              border: "1px solid",
-              borderColor: "divider",
-              display: "block",
-            }}
-          />
+          <UxJourneyLivePoll jobId={jobId} maxWidth={960} />
         </MsqdxCard>
       )}
 
@@ -203,6 +193,9 @@ export default function UxJourneyAgentAdminPage() {
               controls
               playsInline
               src={API_ROUTES.uxJourneyAgentVideo(jobId)}
+              onLoadedMetadata={(e: React.SyntheticEvent<HTMLVideoElement>) => {
+                e.currentTarget.playbackRate = getUxJourneyVideoPlaybackRate();
+              }}
               sx={{ width: "100%", maxWidth: 960, borderRadius: 1, display: "block", backgroundColor: "#000" }}
             />
           </MsqdxCard>

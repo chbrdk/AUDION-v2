@@ -120,6 +120,33 @@ async def _stream_upstream(
     return _iter(), media_type, upstream.status_code, passthrough_headers
 
 
+@router.get("/run/{job_id}/live")
+async def live_frame(
+    job_id: str,
+    current_user: User = Depends(get_current_user),
+) -> Response:
+    """Latest single JPEG frame while the job is running (agent GET /run/{jobId}/live)."""
+    del current_user  # auth only
+    base, timeout = _agent_base_url_or_503()
+    upstream_url = f"{base}/run/{job_id}/live"
+    try:
+        async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
+            res = await client.get(upstream_url)
+        if res.status_code == status.HTTP_404_NOT_FOUND:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No live frame")
+        if res.status_code >= 400:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"UX Journey Agent error ({res.status_code}).",
+            )
+        media_type = res.headers.get("content-type") or "image/jpeg"
+        return Response(content=res.content, media_type=media_type, headers={"Cache-Control": "no-store"})
+    except httpx.TimeoutException as exc:
+        raise HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail="UX Journey Agent request timed out.") from exc
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to reach UX Journey Agent service.") from exc
+
+
 @router.get("/run/{job_id}/step/{step_no}/screenshot")
 async def step_screenshot(
     job_id: str,

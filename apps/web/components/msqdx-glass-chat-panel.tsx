@@ -23,6 +23,9 @@ import {
   systemPromptTooltipSlotSx,
 } from "../lib/system-prompt-tooltip-content-sx";
 import { useI18n } from "./i18n/i18n-provider";
+import { withNextBasePath } from "../lib/api-routes";
+import { getUxJourneyVideoPlaybackRate } from "../lib/ux-journey-playback";
+import { UxJourneyLivePoll } from "./ux-journey-live-poll";
 
 type Message = {
   id: string;
@@ -78,7 +81,7 @@ function uxJourneyStepShotSrc(
   screenshotUrl: string | null | undefined,
 ): string | null {
   if (screenshot?.trim()) return screenshot;
-  if (screenshotUrl?.trim().startsWith("/")) return `/api/ux-journey-agent${screenshotUrl}`;
+  if (screenshotUrl?.trim().startsWith("/")) return withNextBasePath(`/api/ux-journey-agent${screenshotUrl}`);
   return null;
 }
 
@@ -603,24 +606,12 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                         </Box>
                       ) : null}
 
-                      {message.uxJourney.liveUrl && message.uxJourney.status === "running" ? (
+                      {message.uxJourney.status === "running" && message.uxJourney.jobId ? (
                         <Box>
                           <Typography variant="caption" sx={{ display: "block", mb: 0.5, color: "text.secondary" }}>
                             {t("chat.uxJourney.liveView")}
                           </Typography>
-                          <Box
-                            component="img"
-                            src={message.uxJourney.liveUrl}
-                            alt="Live stream"
-                            sx={{
-                              width: "100%",
-                              maxWidth: 720,
-                              borderRadius: 2,
-                              border: `1px solid ${alpha(theme.palette.divider, 0.7)}`,
-                              backgroundColor: alpha(theme.palette.background.paper, 0.35),
-                              display: "block",
-                            }}
-                          />
+                          <UxJourneyLivePoll jobId={message.uxJourney.jobId} maxWidth={720} />
                         </Box>
                       ) : null}
 
@@ -634,6 +625,9 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                             controls
                             playsInline
                             src={message.uxJourney.videoUrl}
+                            onLoadedMetadata={(e: React.SyntheticEvent<HTMLVideoElement>) => {
+                              e.currentTarget.playbackRate = getUxJourneyVideoPlaybackRate();
+                            }}
                             sx={{
                               width: "100%",
                               maxWidth: 720,

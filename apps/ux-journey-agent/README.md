@@ -17,12 +17,13 @@ Browser agent service for CHECKION: runs autonomous navigation tasks (URL + natu
 | `ANTHROPIC_API_KEY` | one of these | Claude (recommended) |
 | `OPENAI_API_KEY` | one of these | OpenAI fallback |
 | `UX_JOURNEY_MAX_STEPS` | no | Max agent steps (default 25) |
+| `UX_JOURNEY_SLOWMO` | no | Multiplies pacing delays for **real** slow-mo in the recording (default **`2`** in code — no env needed). Set `1` for faster runs; alias `UX_JOURNEY_SLOWMO_MULTIPLIER` (clamped 0.25–12) |
 | `UX_JOURNEY_CLAUDE_MODEL` | no | Claude model (default claude-sonnet-4-20250514) |
 | `UX_JOURNEY_VIDEO_DIR` | no | Directory for video files (default `/tmp/ux-journey-videos`). **Use a path that is mounted as a persistent volume in Docker** (e.g. `/data/journey-videos`) so videos survive container restarts. |
-| `UX_JOURNEY_STEP_START_DELAY_SECONDS` | no | Delay at the *start* of each step so the viewer sees the current state before the action runs (default 2.5). Increase to slow the agent. |
-| `UX_JOURNEY_STEP_DELAY_SECONDS` | no | Delay at the *end* of each step after the red circle (default 2.0). Increase to slow the agent. |
-| `UX_JOURNEY_CLICK_CIRCLE_VISIBLE_SECONDS` | no | How long the red click circle is shown (default 2.5). Increase so clicks are visible longer. |
-| `UX_JOURNEY_SCROLL_VISIBLE_SECONDS` | no | After a scroll action, duration in seconds for each direction of the slow step-based scroll (default 5.0). Ensures the live stream captures scrolling at 25 fps. |
+| `UX_JOURNEY_STEP_START_DELAY_SECONDS` | no | Base step lead-in before action (default **3.5** s, then × `UX_JOURNEY_SLOWMO`) |
+| `UX_JOURNEY_STEP_DELAY_SECONDS` | no | Base tail pause after step (default **3.0** s, then × slowmo) |
+| `UX_JOURNEY_CLICK_CIRCLE_VISIBLE_SECONDS` | no | Base click-ring visibility (default **3.5** s, then × slowmo) |
+| `UX_JOURNEY_SCROLL_VISIBLE_SECONDS` | no | Base slow-scroll duration per direction (default **7.0** s, then × slowmo) |
 | `UX_JOURNEY_LIVE_FRAME_INTERVAL` | no | Seconds between live/MJPEG frames (default 0.04 = 25 fps). Lower value = higher fps. |
 | `PORT` | no | HTTP port (default 8320) |
 

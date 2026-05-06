@@ -1,3 +1,11 @@
+/** Prefix client-side API URLs when Next `basePath` is set (e.g. `/audion`). */
+export function withNextBasePath(path: string): string {
+  const base = (typeof process !== "undefined" ? process.env.NEXT_PUBLIC_BASE_PATH : "") || "";
+  const trimmed = base.replace(/\/$/, "");
+  const p = path.startsWith("/") ? path : `/${path}`;
+  return trimmed ? `${trimmed}${p}` : p;
+}
+
 export const API_ROUTES = {
   /** GET: CHECKION projects for the integration token (persona-api `/integrations/checkion/projects`). */
   checkionProjects: "/api/integrations/checkion/projects",
@@ -21,12 +29,15 @@ export const API_ROUTES = {
     `/api/persona-admin/${encodeURIComponent(personaId)}/translate-fields`,
 
   /** UX Journey Agent (persona-api proxy): start + status + live/video passthrough. */
-  uxJourneyAgentRun: "/api/ux-journey-agent/run",
-  uxJourneyAgentStatus: (jobId: string) => `/api/ux-journey-agent/run/${encodeURIComponent(jobId)}`,
-  uxJourneyAgentLiveStream: (jobId: string) => `/api/ux-journey-agent/run/${encodeURIComponent(jobId)}/live/stream`,
-  uxJourneyAgentVideo: (jobId: string) => `/api/ux-journey-agent/run/${encodeURIComponent(jobId)}/video`,
+  uxJourneyAgentRun: withNextBasePath("/api/ux-journey-agent/run"),
+  uxJourneyAgentStatus: (jobId: string) => withNextBasePath(`/api/ux-journey-agent/run/${encodeURIComponent(jobId)}`),
+  /** Latest single JPEG frame (works better through proxies than MJPEG in `<img>`). */
+  uxJourneyAgentLiveFrame: (jobId: string) => withNextBasePath(`/api/ux-journey-agent/run/${encodeURIComponent(jobId)}/live`),
+  uxJourneyAgentLiveStream: (jobId: string) =>
+    withNextBasePath(`/api/ux-journey-agent/run/${encodeURIComponent(jobId)}/live/stream`),
+  uxJourneyAgentVideo: (jobId: string) => withNextBasePath(`/api/ux-journey-agent/run/${encodeURIComponent(jobId)}/video`),
   /** GET: JPEG after each step (agent serves `/run/{jobId}/step/{n}/screenshot`; Next proxies here). */
   uxJourneyAgentStepScreenshot: (jobId: string, stepNo: number) =>
-    `/api/ux-journey-agent/run/${encodeURIComponent(jobId)}/step/${stepNo}/screenshot`,
+    withNextBasePath(`/api/ux-journey-agent/run/${encodeURIComponent(jobId)}/step/${stepNo}/screenshot`),
 } as const;
 
