@@ -617,6 +617,29 @@ def _step_screenshot_path(job_id: str, step_no: int) -> Path:
     return STEP_SCREENSHOTS_BASE / job_id / f"{step_no}.jpg"
 
 
+def _latest_step_screenshot_bytes(job_id: str) -> bytes | None:
+    """Newest per-step JPEG on disk (same dir as GET .../step/{n}/screenshot)."""
+    d = STEP_SCREENSHOTS_BASE / job_id
+    if not d.is_dir():
+        return None
+    best: Path | None = None
+    best_n = -1
+    for p in d.glob("*.jpg"):
+        try:
+            n = int(p.stem)
+        except ValueError:
+            continue
+        if n > best_n:
+            best_n = n
+            best = p
+    if best and best.is_file():
+        try:
+            return best.read_bytes()
+        except OSError:
+            return None
+    return None
+
+
 async def _publish_partial_steps(
     *,
     job_id: str,
@@ -644,6 +667,9 @@ async def _publish_partial_steps(
             jpeg = frame[1]
         if not jpeg:
             jpeg = await _capture_live_frame(agent_instance)
+
+        if jpeg:
+            _live_frames[job_id] = (time.monotonic(), jpeg)
 
         if jpeg and steps_now:
             last = steps_now[-1]
@@ -1115,9 +1141,21 @@ async def get_run_video(job_id: str) -> FileResponse:
 async def get_run_live(job_id: str) -> Response:
     """Return the latest live viewport frame (JPEG) while the job is running."""
     frame = _live_frames.get(job_id)
-    if not frame:
+    jpeg_bytes: bytes | None = frame[1] if frame else None
+
+    if not jpeg_bytes:
+        agent = _live_agents.get(job_id)
+        if agent:
+            captured = await _capture_live_frame(agent)
+            if captured:
+                jpeg_bytes = captured
+                _live_frames[job_id] = (time.monotonic(), captured)
+
+    if not jpeg_bytes:
+        jpeg_bytes = _latest_step_screenshot_bytes(job_id)
+
+    if not jpeg_bytes:
         raise HTTPException(status_code=404, detail="No live frame")
-    _, jpeg_bytes = frame
     return Response(
         content=jpeg_bytes,
         media_type="image/jpeg",
