@@ -27,6 +27,12 @@ MJPEG_BOUNDARY = b"frame"
 
 # Directory for recorded videos (per job)
 VIDEO_BASE_DIR = Path(os.environ.get("UX_JOURNEY_VIDEO_DIR", "/tmp/ux-journey-videos"))
+# Per-step viewport JPEGs (persists across video temp-dir cleanup). Served via GET /run/{jobId}/step/{n}/screenshot
+STEP_SCREENSHOTS_BASE = Path(
+    os.environ.get("UX_JOURNEY_STEP_SCREENSHOTS_DIR", str(VIDEO_BASE_DIR / "step-shots"))
+)
+# If true, also embed data:image/jpeg;base64,... in JSON (large; can break proxies / payload limits).
+UX_JOURNEY_EMBED_SCREENSHOTS = (os.environ.get("UX_JOURNEY_EMBED_SCREENSHOTS", "0").strip().lower() in ("1", "true", "yes"))
 
 # Delay at the *start* of each step so the viewer sees the current state before the action runs ("action lead-in")
 STEP_START_DELAY_SECONDS = float(os.environ.get("UX_JOURNEY_STEP_START_DELAY_SECONDS", "2.5"))
@@ -558,18 +564,24 @@ def _history_screenshots(history: Any) -> list[str]:
 def _merge_step_screenshots(*, base_steps: list[dict[str, Any]], overlay_steps: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Merge screenshot fields from overlay_steps into base_steps by step number.
-    We keep base_steps order/content, and only copy `screenshot` when present.
+    We keep base_steps order/content, and only copy `screenshot` / `screenshotUrl` when present.
     """
     try:
-        by_step: dict[int, str] = {}
+        by_shot: dict[int, str] = {}
+        by_url: dict[int, str] = {}
         for s in overlay_steps or []:
             if not isinstance(s, dict):
                 continue
             n = s.get("step")
+            if not isinstance(n, int):
+                continue
             shot = s.get("screenshot")
-            if isinstance(n, int) and isinstance(shot, str) and shot.strip():
-                by_step[n] = shot
-        if not by_step:
+            if isinstance(shot, str) and shot.strip():
+                by_shot[n] = shot
+            url = s.get("screenshotUrl")
+            if isinstance(url, str) and url.strip():
+                by_url[n] = url
+        if not by_shot and not by_url:
             return base_steps
         merged: list[dict[str, Any]] = []
         for s in base_steps or []:
@@ -577,12 +589,79 @@ def _merge_step_screenshots(*, base_steps: list[dict[str, Any]], overlay_steps: 
                 merged.append(s)
                 continue
             n = s.get("step")
-            if isinstance(n, int) and n in by_step and not (isinstance(s.get("screenshot"), str) and s.get("screenshot", "").strip()):
-                s = {**s, "screenshot": by_step[n]}
+            if isinstance(n, int):
+                has_shot = isinstance(s.get("screenshot"), str) and bool(s.get("screenshot", "").strip())
+                has_url = isinstance(s.get("screenshotUrl"), str) and bool(s.get("screenshotUrl", "").strip())
+                if n in by_shot and not has_shot:
+                    s = {**s, "screenshot": by_shot[n]}
+                if n in by_url and not has_url:
+                    s = {**s, "screenshotUrl": by_url[n]}
             merged.append(s)
         return merged
     except Exception:
         return base_steps
+
+
+def _step_screenshot_path(job_id: str, step_no: int) -> Path:
+    return STEP_SCREENSHOTS_BASE / job_id / f"{step_no}.jpg"
+
+
+async def _publish_partial_steps(
+    *,
+    job_id: str,
+    agent_instance: Any,
+    task: str,
+    domain: str,
+    persona: dict[str, Any] | None,
+) -> None:
+    """Write latest steps + per-step screenshot file + small JSON (screenshotUrl, not huge base64)."""
+    try:
+        steps_now = _history_to_steps(agent_instance.history)
+        steps_now = steps_now[-60:]
+        try:
+            async with _jobs_lock:
+                prev = _jobs.get(job_id).result if job_id in _jobs and _jobs.get(job_id) else None
+            prev_steps = prev.get("steps") if isinstance(prev, dict) else None
+            if isinstance(prev_steps, list) and prev_steps:
+                steps_now = _merge_step_screenshots(base_steps=steps_now, overlay_steps=prev_steps)
+        except Exception:
+            pass
+
+        jpeg: bytes | None = None
+        frame = _live_frames.get(job_id)
+        if frame and isinstance(frame, tuple) and len(frame) == 2:
+            jpeg = frame[1]
+        if not jpeg:
+            jpeg = await _capture_live_frame(agent_instance)
+
+        if jpeg and steps_now:
+            last = steps_now[-1]
+            step_num = last.get("step")
+            if isinstance(step_num, int):
+                out = _step_screenshot_path(job_id, step_num)
+                out.parent.mkdir(parents=True, exist_ok=True)
+                out.write_bytes(jpeg)
+                rel = f"/run/{job_id}/step/{step_num}/screenshot"
+                last["screenshotUrl"] = rel
+                if UX_JOURNEY_EMBED_SCREENSHOTS:
+                    last["screenshot"] = f"data:image/jpeg;base64,{base64.b64encode(jpeg).decode('ascii')}"
+                else:
+                    last.pop("screenshot", None)
+
+        partial: dict[str, Any] = {
+            "jobId": job_id,
+            "taskDescription": task,
+            "siteDomain": domain,
+            "steps": steps_now,
+            "success": None,
+        }
+        if persona and isinstance(persona, dict):
+            partial["persona"] = {"id": persona.get("id"), "name": persona.get("name")}
+        async with _jobs_lock:
+            if job_id in _jobs:
+                _jobs[job_id].result = partial
+    except Exception:
+        pass
 
 
 async def _capture_live_frame(agent: Any) -> bytes | None:
@@ -717,50 +796,6 @@ async def run_agent(job_id: str, url: str, task: str, persona: dict[str, Any] | 
             await asyncio.sleep(max(0, STEP_START_DELAY_SECONDS))
 
         async def _on_step_end(agent_instance: Any) -> None:
-            # Best-effort: publish partial progress (steps so far) for polling UIs.
-            try:
-                steps_now = _history_to_steps(agent_instance.history)
-                # Keep payload bounded for frequent polling.
-                steps_now = steps_now[-60:]
-                # Preserve screenshots captured in earlier step-end updates (history_to_steps recomputes steps fresh).
-                try:
-                    async with _jobs_lock:
-                        prev = _jobs.get(job_id).result if job_id in _jobs and _jobs.get(job_id) else None
-                    prev_steps = prev.get("steps") if isinstance(prev, dict) else None
-                    if isinstance(prev_steps, list) and prev_steps:
-                        steps_now = _merge_step_screenshots(base_steps=steps_now, overlay_steps=prev_steps)
-                except Exception:
-                    pass
-
-                # Attach a screenshot (data URL) to the latest step so UIs can show per-step visuals.
-                # Prefer the existing live-frame (already captured) to avoid extra CDP calls.
-                try:
-                    jpeg: bytes | None = None
-                    frame = _live_frames.get(job_id)
-                    if frame and isinstance(frame, tuple) and len(frame) == 2:
-                        jpeg = frame[1]
-                    if not jpeg:
-                        jpeg = await _capture_live_frame(agent_instance)
-                    if jpeg and steps_now:
-                        b64 = base64.b64encode(jpeg).decode("ascii")
-                        steps_now[-1]["screenshot"] = f"data:image/jpeg;base64,{b64}"
-                except Exception:
-                    pass
-                partial: dict[str, Any] = {
-                    "jobId": job_id,
-                    "taskDescription": task,
-                    "siteDomain": domain,
-                    "steps": steps_now,
-                    "success": None,
-                }
-                if persona and isinstance(persona, dict):
-                    partial["persona"] = {"id": persona.get("id"), "name": persona.get("name")}
-                async with _jobs_lock:
-                    if job_id in _jobs:
-                        _jobs[job_id].result = partial
-            except Exception:
-                pass
-
             actions: list[Any] = []
             raw: Any = None
             try:
@@ -855,6 +890,15 @@ async def run_agent(job_id: str, url: str, task: str, persona: dict[str, Any] | 
                 pass
             # 3) Pause so the video clearly shows the state before the next step
             await asyncio.sleep(max(0.5, STEP_DELAY_SECONDS - CLICK_CIRCLE_VISIBLE_SECONDS))
+
+            # After UI settles (circle/scroll/delays), publish steps + screenshot file + lightweight JSON.
+            await _publish_partial_steps(
+                job_id=job_id,
+                agent_instance=agent_instance,
+                task=task,
+                domain=domain,
+                persona=persona,
+            )
 
         _live_agents[job_id] = agent
         screenshot_task = asyncio.create_task(_live_screenshot_loop(job_id))
@@ -1015,6 +1059,19 @@ async def get_run(job_id: str) -> dict[str, Any]:
     if job.error:
         out["error"] = job.error
     return out
+
+
+@app.get("/run/{job_id}/step/{step_no}/screenshot")
+async def get_step_screenshot(job_id: str, step_no: int) -> FileResponse:
+    """JPEG captured after each agent step (see _publish_partial_steps)."""
+    path = _step_screenshot_path(job_id, step_no)
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="Screenshot not found")
+    return FileResponse(
+        str(path),
+        media_type="image/jpeg",
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @app.get("/run/{job_id}/video")

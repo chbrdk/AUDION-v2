@@ -25,5 +25,8 @@ export const API_ROUTES = {
   uxJourneyAgentStatus: (jobId: string) => `/api/ux-journey-agent/run/${encodeURIComponent(jobId)}`,
   uxJourneyAgentLiveStream: (jobId: string) => `/api/ux-journey-agent/run/${encodeURIComponent(jobId)}/live/stream`,
   uxJourneyAgentVideo: (jobId: string) => `/api/ux-journey-agent/run/${encodeURIComponent(jobId)}/video`,
+  /** GET: JPEG after each step (agent serves `/run/{jobId}/step/{n}/screenshot`; Next proxies here). */
+  uxJourneyAgentStepScreenshot: (jobId: string, stepNo: number) =>
+    `/api/ux-journey-agent/run/${encodeURIComponent(jobId)}/step/${stepNo}/screenshot`,
 } as const;
 

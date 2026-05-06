@@ -53,6 +53,8 @@ type Message = {
       target?: string | null;
       reasoning?: string | null;
       screenshot?: string | null;
+      /** Agent-relative path e.g. `/run/{jobId}/step/3/screenshot` — load via Next proxy. */
+      screenshotUrl?: string | null;
       reasoningMeta?: {
         evaluation_previous_goal?: string | null;
         memory?: string | null;
@@ -69,6 +71,16 @@ type MsqdxGlassChatPanelProps = {
   messages: Message[];
   systemPrompt?: string; // Optional: System prompt to display in tooltip
 };
+
+/** Embedded data URL or agent-relative `screenshotUrl` (proxied via `/api/ux-journey-agent`). */
+function uxJourneyStepShotSrc(
+  screenshot: string | null | undefined,
+  screenshotUrl: string | null | undefined,
+): string | null {
+  if (screenshot?.trim()) return screenshot;
+  if (screenshotUrl?.trim().startsWith("/")) return `/api/ux-journey-agent${screenshotUrl}`;
+  return null;
+}
 
 export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPanelProps) => {
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -681,6 +693,36 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                                   </Typography>
                                 </Box>
 
+                                {(() => {
+                                  const shotSrc = uxJourneyStepShotSrc(s.screenshot, s.screenshotUrl);
+                                  if (!shotSrc) return null;
+                                  return (
+                                    <Box
+                                      sx={{
+                                        mt: s.target ? 0.75 : 0.9,
+                                        borderRadius: 1.5,
+                                        overflow: "hidden",
+                                        border: `1px solid ${alpha(theme.palette.divider, 0.65)}`,
+                                        backgroundColor: alpha(theme.palette.background.paper, 0.35),
+                                        cursor: "zoom-in",
+                                      }}
+                                      onClick={() => openLightbox([shotSrc], 0)}
+                                    >
+                                      <Box
+                                        component="img"
+                                        src={shotSrc}
+                                        alt={`Step ${s.step ?? idx + 1} screenshot`}
+                                        sx={{
+                                          width: "100%",
+                                          height: 140,
+                                          objectFit: "cover",
+                                          display: "block",
+                                        }}
+                                      />
+                                    </Box>
+                                  );
+                                })()}
+
                                 {s.target ? (
                                   <Typography
                                     variant="body2"
@@ -693,32 +735,6 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                                   >
                                     {String(s.target).length > 160 ? String(s.target).slice(0, 160) + "…" : s.target}
                                   </Typography>
-                                ) : null}
-
-                                {s.screenshot ? (
-                                  <Box
-                                    sx={{
-                                      mt: s.target ? 0.75 : 0.9,
-                                      borderRadius: 1.5,
-                                      overflow: "hidden",
-                                      border: `1px solid ${alpha(theme.palette.divider, 0.65)}`,
-                                      backgroundColor: alpha(theme.palette.background.paper, 0.35),
-                                      cursor: "zoom-in",
-                                    }}
-                                    onClick={() => openLightbox([s.screenshot as string], 0)}
-                                  >
-                                    <Box
-                                      component="img"
-                                      src={s.screenshot as string}
-                                      alt={`Step ${s.step ?? idx + 1} screenshot`}
-                                      sx={{
-                                        width: "100%",
-                                        height: 140,
-                                        objectFit: "cover",
-                                        display: "block",
-                                      }}
-                                    />
-                                  </Box>
                                 ) : null}
 
                                 {s.reasoning ? (

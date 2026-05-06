@@ -70,7 +70,13 @@ const forward = async (request: NextRequest, target: string, opts: { stream: boo
     });
   }
 
-  const responseBody = await upstream.text();
+  // Binary bodies (e.g. step screenshots) must not go through `.text()` — it corrupts JPEG bytes.
+  const isBinary =
+    contentType.startsWith("image/") ||
+    contentType === "application/octet-stream" ||
+    contentType.startsWith("audio/") ||
+    contentType.startsWith("font/");
+  const responseBody = isBinary ? await upstream.arrayBuffer() : await upstream.text();
   return new NextResponse(responseBody, {
     status: upstream.status,
     headers: {

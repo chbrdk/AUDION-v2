@@ -16,8 +16,15 @@ type AgentStep = {
   result?: string | null;
   reasoning?: string | null;
   screenshot?: string | null;
+  screenshotUrl?: string | null;
   timestamp?: string;
 };
+
+function uxJourneyStepShotSrc(s: AgentStep): string | null {
+  if (s.screenshot?.trim()) return s.screenshot;
+  if (s.screenshotUrl?.trim().startsWith("/")) return `/api/ux-journey-agent${s.screenshotUrl}`;
+  return null;
+}
 
 type AgentRunResponse = {
   status?: string;
@@ -210,7 +217,9 @@ export default function UxJourneyAgentAdminPage() {
               </MsqdxTypography>
             ) : (
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                {steps.map((s, idx) => (
+                {steps.map((s, idx) => {
+                  const shotSrc = uxJourneyStepShotSrc(s);
+                  return (
                   <Box
                     key={idx}
                     sx={{
@@ -224,10 +233,10 @@ export default function UxJourneyAgentAdminPage() {
                     <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.25 }}>
                       Step {s.step ?? idx + 1} · {s.action ?? "step"}
                     </MsqdxTypography>
-                    {s.screenshot ? (
+                    {shotSrc ? (
                       <Box
                         component="img"
-                        src={s.screenshot}
+                        src={shotSrc}
                         alt={`Step ${s.step ?? idx + 1} screenshot`}
                         sx={{
                           width: "100%",
@@ -252,7 +261,8 @@ export default function UxJourneyAgentAdminPage() {
                       </MsqdxTypography>
                     ) : null}
                   </Box>
-                ))}
+                  );
+                })}
               </Box>
             )}
           </MsqdxCard>
