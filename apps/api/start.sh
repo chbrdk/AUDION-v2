@@ -56,7 +56,7 @@ import os
 import time
 import urllib.request
 
-timeout_seconds = float(os.getenv("API_HEALTHWAIT_TIMEOUT_SECONDS", "30"))
+timeout_seconds = float(os.getenv("API_HEALTHWAIT_TIMEOUT_SECONDS", "120"))
 interval_seconds = float(os.getenv("API_HEALTHWAIT_INTERVAL_SECONDS", "0.5"))
 deadline = time.time() + timeout_seconds
 

@@ -8,7 +8,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .core.logging import configure_logging
 from .core.telemetry import configure_tracing
-from .db import Base, engine
 from . import models  # noqa: F401
 from .routers.discovery import router as discovery_router
 from .routers.auth import router as auth_router
@@ -44,7 +43,9 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     configure_logging()
     configure_tracing()
-    Base.metadata.create_all(bind=engine)
+    # Do not call Base.metadata.create_all here: it blocks the worker on first DB connection and breaks
+    # Docker/Coolify healthchecks (start.sh only waits briefly for /health). Schema is applied by
+    # Alembic + app/scripts/init_db.py after /health is already up.
 
     from .core.config import get_settings
     settings = get_settings()
