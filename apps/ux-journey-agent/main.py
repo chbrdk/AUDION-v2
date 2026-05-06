@@ -651,18 +651,37 @@ async def run_agent(job_id: str, url: str, task: str, persona: dict[str, Any] | 
         # Prefer initial_url if supported; else bake URL into task. Instruct model to output reasoning in German.
         import inspect
         sig = inspect.signature(Agent.__init__)
-        german_instruction = "WICHTIG: Formuliere alle deine Überlegungen und Gedanken (thinking/reasoning) ausschließlich auf Deutsch. "
+        # Prompt-shaping to reduce premature "done" decisions.
+        # Note: max_steps only sets an upper bound; the agent can still stop early if it thinks it's done.
+        min_steps = int(os.environ.get("UX_JOURNEY_MIN_STEPS", "6"))
+        german_instruction = (
+            "WICHTIG: Formuliere alle deine Überlegungen und Gedanken (thinking/reasoning) ausschließlich auf Deutsch. "
+            "WICHTIG: Beende die Journey NICHT zu früh. Markiere erst dann als 'done'/'fertig', wenn du das Ziel wirklich erreicht hast "
+            "UND es anhand sichtbarer UI-Indikatoren verifiziert hast (z.B. Bestätigungsseite, eindeutiger State, URL, Erfolgsmeldung). "
+            f"WICHTIG: Beende NICHT vor mindestens {min_steps} Schritten. Wenn das Ziel früher erreicht wirkt, nutze die restlichen Schritte für "
+            "Validierung (zurück/nach vorne, alternative Navigation, erneute Sichtprüfung), statt zu stoppen. "
+        )
         persona_instr = _persona_instruction(persona)
         task_with_lang = german_instruction + persona_instr + task
+        max_steps = int(os.environ.get("UX_JOURNEY_MAX_STEPS", "25"))
         agent_kw: dict[str, Any] = {"task": task_with_lang, "llm": llm, "browser": browser}
         if "initial_url" in sig.parameters:
             agent_kw["initial_url"] = url
         else:
             agent_kw["task"] = f"Go to {url}. Then: {task_with_lang}"
+        # Ensure max_steps is applied for different browser-use versions:
+        # - Some versions accept it in the constructor
+        # - Others expose it as an attribute on the instance
+        # - Others use different naming (best-effort)
+        if "max_steps" in sig.parameters:
+            agent_kw["max_steps"] = max_steps
+        elif "max_actions" in sig.parameters:
+            agent_kw["max_actions"] = max_steps
         agent = Agent(**agent_kw)
-        max_steps = int(os.environ.get("UX_JOURNEY_MAX_STEPS", "25"))
         if hasattr(agent, "max_steps"):
             agent.max_steps = max_steps
+        elif hasattr(agent, "max_actions"):
+            agent.max_actions = max_steps
 
         async def _on_step_start(agent_instance: Any) -> None:
             # Pause at the beginning of each step so the video shows the current state before the action runs
