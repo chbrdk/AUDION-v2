@@ -507,15 +507,14 @@ function AdminChatPageContent() {
         {
           id: msgId,
           role: "system",
-          content:
-            `Started **Persona UX Journey** for **${personaDisplayName}**\\n\\n` +
-            `- Job: \`${jobId}\`\\n` +
-            `- URL: ${url}\\n` +
-            `\\n` +
-            `### Live view\\n` +
-            `![Live stream](${liveUrl})\\n\\n` +
-            `### Steps (live)\\n` +
-            `- (Waiting for first step…)`,
+          content: `Started Persona UX Journey for ${personaDisplayName}`,
+          uxJourney: {
+            jobId,
+            url,
+            status: "running",
+            liveUrl,
+            steps: [],
+          },
         },
       ]);
 
@@ -562,26 +561,18 @@ function AdminChatPageContent() {
         const st = String(data?.status || "").toLowerCase();
         if (st === "running" && uxJourneyStartMessageId) {
           const steps = Array.isArray(data?.result?.steps) ? data.result.steps : [];
-          const maxStepsLive = 12;
-          const stepLines = steps.slice(-maxStepsLive).map((s: any, i: number) => {
-            const n = s?.step ?? (steps.length - maxStepsLive + i + 1);
-            const action = s?.action ?? "step";
-            const target = s?.target ? ` — ${String(s.target).slice(0, 120)}` : "";
-            return `- **${n}. ${action}**${target}`;
-          });
           setMessages((prev) =>
             prev.map((m) =>
               m.id === uxJourneyStartMessageId
                 ? {
                     ...m,
-                    content:
-                      `Started **Persona UX Journey** for **${personaDisplayName}**\\n\\n` +
-                      `- Job: \`${uxJourneyJobId}\`\\n` +
-                      `\\n` +
-                      `### Live view\\n` +
-                      `![Live stream](${API_ROUTES.uxJourneyAgentLiveStream(uxJourneyJobId)})\\n\\n` +
-                      `### Steps (live)\\n` +
-                      `${stepLines.join("\\n") || "- (Waiting for steps…)"}`,
+                    uxJourney: {
+                      jobId: uxJourneyJobId,
+                      status: "running",
+                      liveUrl: API_ROUTES.uxJourneyAgentLiveStream(uxJourneyJobId),
+                      steps: steps.slice(-12),
+                      error: null,
+                    },
                   }
                 : m
             )
@@ -590,14 +581,6 @@ function AdminChatPageContent() {
         if (st === "complete" || data?.result) {
           setUxJourneyStatus("complete");
           const steps = Array.isArray(data?.result?.steps) ? data.result.steps : [];
-          const maxSteps = 20;
-          const stepLines = steps.slice(0, maxSteps).map((s: any, i: number) => {
-            const n = s?.step ?? i + 1;
-            const action = s?.action ?? "step";
-            const target = s?.target ? ` — ${String(s.target).slice(0, 160)}` : "";
-            return `- **${n}. ${action}**${target}`;
-          });
-          const truncated = steps.length > maxSteps ? `\\n\\n(Showing first ${maxSteps} of ${steps.length} steps.)` : "";
           const videoUrl = API_ROUTES.uxJourneyAgentVideo(uxJourneyJobId);
           const statusUrl = API_ROUTES.uxJourneyAgentStatus(uxJourneyJobId);
           setMessages((prev) => [
@@ -605,14 +588,14 @@ function AdminChatPageContent() {
             {
               id: (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36),
               role: "system",
-              content:
-                `## Persona UX Journey complete\\n\\n` +
-                `- Job: \`${uxJourneyJobId}\`\\n` +
-                `- Video: \`${videoUrl}\`\\n` +
-                `- Status: \`${statusUrl}\`\\n\\n` +
-                `### Steps\\n` +
-                `${stepLines.join("\\n") || "- (No steps)"}` +
-                truncated,
+              content: `Persona UX Journey complete`,
+              uxJourney: {
+                jobId: uxJourneyJobId,
+                status: "complete",
+                videoUrl,
+                steps: steps.slice(0, 20),
+                error: null,
+              },
             },
           ]);
 
@@ -630,7 +613,7 @@ function AdminChatPageContent() {
                     kind: "ux_journey_agent_complete",
                     jobId: uxJourneyJobId,
                     stepsCount: steps.length,
-                    stepsPreview: steps.slice(0, maxSteps),
+                    stepsPreview: steps.slice(0, 20),
                     videoUrl,
                     statusUrl,
                   },

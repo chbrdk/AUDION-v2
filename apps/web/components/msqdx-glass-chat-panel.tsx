@@ -34,6 +34,23 @@ type Message = {
   document_attachment_meta?: Array<{ id: string; filename: string }>;
   /** Optional model reasoning stream (collapsible in UI). */
   reasoning?: string;
+  /** Optional structured UX Journey Agent payload (renders as cards). */
+  uxJourney?: {
+    jobId: string;
+    url?: string;
+    status?: "running" | "complete" | "error";
+    liveUrl?: string;
+    videoUrl?: string;
+    steps?: Array<{
+      step?: number;
+      action?: string;
+      target?: string | null;
+      reasoning?: string | null;
+      result?: string | null;
+      timestamp?: string;
+    }>;
+    error?: string | null;
+  };
 };
 
 type MsqdxGlassChatPanelProps = {
@@ -125,6 +142,40 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
     if (role === "user") return USER_BORDER;
     if (role === "system") return SYSTEM_BORDER;
     return PERSONA_BORDER;
+  };
+
+  const journeyActionLabel = (action?: string) => {
+    const a = (action || "").toLowerCase();
+    if (a === "navigate") return "Navigate";
+    if (a === "click") return "Click";
+    if (a === "done") return "Done";
+    if (a) return a;
+    return "Step";
+  };
+
+  const journeyActionChipSx = (action?: string) => {
+    const a = (action || "").toLowerCase();
+    const base = {
+      px: 1,
+      py: 0.25,
+      borderRadius: 999,
+      fontWeight: 800,
+      letterSpacing: 0.5,
+      textTransform: "uppercase" as const,
+      fontSize: "0.70rem",
+      lineHeight: 1.2,
+      border: `1px solid ${alpha(theme.palette.divider, 0.7)}`,
+    };
+    if (a === "done") {
+      return { ...base, backgroundColor: alpha("#16a34a", 0.16), borderColor: alpha("#16a34a", 0.35), color: "#16a34a" };
+    }
+    if (a === "navigate") {
+      return { ...base, backgroundColor: alpha("#2563eb", 0.14), borderColor: alpha("#2563eb", 0.32), color: "#2563eb" };
+    }
+    if (a === "click") {
+      return { ...base, backgroundColor: alpha("#0ea5e9", 0.14), borderColor: alpha("#0ea5e9", 0.32), color: "#0ea5e9" };
+    }
+    return { ...base, backgroundColor: alpha(theme.palette.text.primary, 0.06), color: theme.palette.text.primary };
   };
 
   useEffect(() => {
@@ -453,7 +504,188 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                       </AccordionDetails>
                     </Accordion>
                   ) : null}
-                  <ChatMessageMarkdown content={message.content} />
+                  {message.uxJourney ? (
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center" }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                          Persona UX Journey
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                          {message.uxJourney.jobId}
+                        </Typography>
+                        {message.uxJourney.status ? (
+                          <Box
+                            sx={{
+                              px: 1,
+                              py: 0.25,
+                              borderRadius: 999,
+                              border: `1px solid ${alpha(theme.palette.divider, 0.7)}`,
+                              backgroundColor: alpha(theme.palette.background.paper, 0.5),
+                            }}
+                          >
+                            <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                              {message.uxJourney.status}
+                            </Typography>
+                          </Box>
+                        ) : null}
+                      </Box>
+
+                      {message.uxJourney.liveUrl && message.uxJourney.status === "running" ? (
+                        <Box>
+                          <Typography variant="caption" sx={{ display: "block", mb: 0.5, color: "text.secondary" }}>
+                            Live view
+                          </Typography>
+                          <Box
+                            component="img"
+                            src={message.uxJourney.liveUrl}
+                            alt="Live stream"
+                            sx={{
+                              width: "100%",
+                              maxWidth: 720,
+                              borderRadius: 2,
+                              border: `1px solid ${alpha(theme.palette.divider, 0.7)}`,
+                              backgroundColor: alpha(theme.palette.background.paper, 0.35),
+                              display: "block",
+                            }}
+                          />
+                        </Box>
+                      ) : null}
+
+                      {message.uxJourney.videoUrl && message.uxJourney.status === "complete" ? (
+                        <Box>
+                          <Typography variant="caption" sx={{ display: "block", mb: 0.5, color: "text.secondary" }}>
+                            Video
+                          </Typography>
+                          <Box
+                            component="video"
+                            controls
+                            playsInline
+                            src={message.uxJourney.videoUrl}
+                            sx={{
+                              width: "100%",
+                              maxWidth: 720,
+                              borderRadius: 2,
+                              border: `1px solid ${alpha(theme.palette.divider, 0.7)}`,
+                              backgroundColor: "#000",
+                              display: "block",
+                            }}
+                          />
+                        </Box>
+                      ) : null}
+
+                      <Box>
+                        <Typography variant="caption" sx={{ display: "block", mb: 0.5, color: "text.secondary" }}>
+                          Steps
+                        </Typography>
+                        {Array.isArray(message.uxJourney.steps) && message.uxJourney.steps.length ? (
+                          <Box sx={{ display: "flex", gap: 1, overflowX: "auto", pb: 0.5, scrollSnapType: "x mandatory" }}>
+                            {message.uxJourney.steps.map((s, idx) => (
+                              <Box
+                                key={idx}
+                                sx={{
+                                  minWidth: 260,
+                                  maxWidth: 340,
+                                  flex: "0 0 auto",
+                                  p: 1.5,
+                                  borderRadius: 2,
+                                  border: `1px solid ${alpha(theme.palette.divider, 0.7)}`,
+                                  backgroundColor: alpha(theme.palette.background.paper, 0.55),
+                                  scrollSnapAlign: "start",
+                                }}
+                              >
+                                <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                                  <Box component="span" sx={journeyActionChipSx(s.action)}>
+                                    {journeyActionLabel(s.action)}
+                                  </Box>
+                                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                                    {`Step ${s.step ?? idx + 1}`}
+                                  </Typography>
+                                </Box>
+
+                                {s.target ? (
+                                  <Typography
+                                    variant="body2"
+                                    sx={{
+                                      mt: 0.75,
+                                      fontWeight: 600,
+                                      color: theme.palette.text.primary,
+                                      wordBreak: "break-word",
+                                    }}
+                                  >
+                                    {String(s.target).length > 160 ? String(s.target).slice(0, 160) + "…" : s.target}
+                                  </Typography>
+                                ) : null}
+
+                                {s.reasoning ? (
+                                  <Accordion
+                                    disableGutters
+                                    elevation={0}
+                                    sx={{
+                                      mt: 1,
+                                      bgcolor: "transparent",
+                                      "&:before": { display: "none" },
+                                    }}
+                                  >
+                                    <AccordionSummary
+                                      expandIcon={<MsqdxIcon name="expand_more" customSize={16} />}
+                                      sx={{ px: 0, minHeight: 34, "& .MuiAccordionSummary-content": { my: 0 } }}
+                                    >
+                                      <Typography variant="caption" sx={{ letterSpacing: 0.8, textTransform: "uppercase", color: "text.secondary" }}>
+                                        Reasoning
+                                      </Typography>
+                                    </AccordionSummary>
+                                    <AccordionDetails sx={{ px: 0, pt: 0 }}>
+                                      <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word", color: "text.secondary" }}>
+                                        {String(s.reasoning).length > 1200 ? String(s.reasoning).slice(0, 1200) + "…" : s.reasoning}
+                                      </Typography>
+                                    </AccordionDetails>
+                                  </Accordion>
+                                ) : null}
+
+                                {s.result ? (
+                                  <Accordion
+                                    disableGutters
+                                    elevation={0}
+                                    sx={{
+                                      mt: s.reasoning ? 0.5 : 1,
+                                      bgcolor: "transparent",
+                                      "&:before": { display: "none" },
+                                    }}
+                                  >
+                                    <AccordionSummary
+                                      expandIcon={<MsqdxIcon name="expand_more" customSize={16} />}
+                                      sx={{ px: 0, minHeight: 34, "& .MuiAccordionSummary-content": { my: 0 } }}
+                                    >
+                                      <Typography variant="caption" sx={{ letterSpacing: 0.8, textTransform: "uppercase", color: "text.secondary" }}>
+                                        Result
+                                      </Typography>
+                                    </AccordionSummary>
+                                    <AccordionDetails sx={{ px: 0, pt: 0 }}>
+                                      <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word", color: "text.secondary" }}>
+                                        {String(s.result).length > 1200 ? String(s.result).slice(0, 1200) + "…" : s.result}
+                                      </Typography>
+                                    </AccordionDetails>
+                                  </Accordion>
+                                ) : null}
+                              </Box>
+                            ))}
+                          </Box>
+                        ) : (
+                          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                            {message.uxJourney.status === "running" ? "Waiting for steps…" : "No steps."}
+                          </Typography>
+                        )}
+                      </Box>
+
+                      {message.uxJourney.error ? (
+                        <Typography variant="body2" sx={{ color: "error.main" }}>
+                          {message.uxJourney.error}
+                        </Typography>
+                      ) : null}
+                    </Box>
+                  ) : (
+                    <ChatMessageMarkdown content={message.content} />
+                  )}
                 </Box>
                 
                 {message.document_attachment_meta && message.document_attachment_meta.length > 0 && (
