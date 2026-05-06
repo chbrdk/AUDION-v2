@@ -41,6 +41,8 @@ type Message = {
     status?: "running" | "complete" | "error";
     liveUrl?: string;
     videoUrl?: string;
+    /** Total steps seen for this run (even if steps[] is just a preview). */
+    stepsTotal?: number;
     steps?: Array<{
       step?: number;
       action?: string;
@@ -144,13 +146,13 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
     return PERSONA_BORDER;
   };
 
-  const journeyActionLabel = (action?: string) => {
+  const journeyActionMeta = (action?: string): { label: string; icon: string } => {
     const a = (action || "").toLowerCase();
-    if (a === "navigate") return "Navigate";
-    if (a === "click") return "Click";
-    if (a === "done") return "Done";
-    if (a) return a;
-    return "Step";
+    if (a === "navigate") return { label: t("chat.uxJourney.actionNavigate"), icon: "travel_explore" };
+    if (a === "click") return { label: t("chat.uxJourney.actionClick"), icon: "touch_app" };
+    if (a === "done") return { label: t("chat.uxJourney.actionDone"), icon: "check_circle" };
+    if (a) return { label: a, icon: "bolt" };
+    return { label: t("chat.uxJourney.step"), icon: "flag" };
   };
 
   const journeyActionChipSx = (action?: string) => {
@@ -165,6 +167,9 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
       fontSize: "0.70rem",
       lineHeight: 1.2,
       border: `1px solid ${alpha(theme.palette.divider, 0.7)}`,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 0.5,
     };
     if (a === "done") {
       return { ...base, backgroundColor: alpha("#16a34a", 0.16), borderColor: alpha("#16a34a", 0.35), color: "#16a34a" };
@@ -508,7 +513,7 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
                       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center" }}>
                         <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                          Persona UX Journey
+                          {t("chat.uxJourney.title")}
                         </Typography>
                         <Typography variant="caption" sx={{ color: "text.secondary" }}>
                           {message.uxJourney.jobId}
@@ -524,7 +529,11 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                             }}
                           >
                             <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                              {message.uxJourney.status}
+                              {message.uxJourney.status === "running"
+                                ? t("chat.uxJourney.statusRunning")
+                                : message.uxJourney.status === "complete"
+                                  ? t("chat.uxJourney.statusComplete")
+                                  : t("chat.uxJourney.statusError")}
                             </Typography>
                           </Box>
                         ) : null}
@@ -533,7 +542,7 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                       {message.uxJourney.liveUrl && message.uxJourney.status === "running" ? (
                         <Box>
                           <Typography variant="caption" sx={{ display: "block", mb: 0.5, color: "text.secondary" }}>
-                            Live view
+                            {t("chat.uxJourney.liveView")}
                           </Typography>
                           <Box
                             component="img"
@@ -554,7 +563,7 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                       {message.uxJourney.videoUrl && message.uxJourney.status === "complete" ? (
                         <Box>
                           <Typography variant="caption" sx={{ display: "block", mb: 0.5, color: "text.secondary" }}>
-                            Video
+                            {t("chat.uxJourney.video")}
                           </Typography>
                           <Box
                             component="video"
@@ -575,7 +584,12 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
 
                       <Box>
                         <Typography variant="caption" sx={{ display: "block", mb: 0.5, color: "text.secondary" }}>
-                          Steps
+                          {(() => {
+                            const shown = Array.isArray(message.uxJourney.steps) ? message.uxJourney.steps.length : 0;
+                            const total = typeof message.uxJourney.stepsTotal === "number" ? message.uxJourney.stepsTotal : undefined;
+                            if (total && total > 0) return `${t("chat.uxJourney.steps")} (${shown} ${t("chat.uxJourney.of")} ${total})`;
+                            return t("chat.uxJourney.steps");
+                          })()}
                         </Typography>
                         {Array.isArray(message.uxJourney.steps) && message.uxJourney.steps.length ? (
                           <Box sx={{ display: "flex", gap: 1, overflowX: "auto", pb: 0.5, scrollSnapType: "x mandatory" }}>
@@ -594,11 +608,24 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                                 }}
                               >
                                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-                                  <Box component="span" sx={journeyActionChipSx(s.action)}>
-                                    {journeyActionLabel(s.action)}
-                                  </Box>
+                                  {(() => {
+                                    const meta = journeyActionMeta(s.action);
+                                    return (
+                                      <Box component="span" sx={journeyActionChipSx(s.action)}>
+                                        <MsqdxIcon name={meta.icon} customSize={14} />
+                                        {meta.label}
+                                      </Box>
+                                    );
+                                  })()}
                                   <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                                    {`Step ${s.step ?? idx + 1}`}
+                                    {(() => {
+                                      const n = s.step ?? idx + 1;
+                                      const total = typeof message.uxJourney?.stepsTotal === "number" ? message.uxJourney.stepsTotal : undefined;
+                                      if (total && total > 0) {
+                                        return `${t("chat.uxJourney.step")} ${n} ${t("chat.uxJourney.of")} ${total}`;
+                                      }
+                                      return `${t("chat.uxJourney.step")} ${n}`;
+                                    })()}
                                   </Typography>
                                 </Box>
 
@@ -631,7 +658,7 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                                       sx={{ px: 0, minHeight: 34, "& .MuiAccordionSummary-content": { my: 0 } }}
                                     >
                                       <Typography variant="caption" sx={{ letterSpacing: 0.8, textTransform: "uppercase", color: "text.secondary" }}>
-                                        Reasoning
+                                        {t("chat.uxJourney.reasoning")}
                                       </Typography>
                                     </AccordionSummary>
                                     <AccordionDetails sx={{ px: 0, pt: 0 }}>
@@ -657,7 +684,7 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                                       sx={{ px: 0, minHeight: 34, "& .MuiAccordionSummary-content": { my: 0 } }}
                                     >
                                       <Typography variant="caption" sx={{ letterSpacing: 0.8, textTransform: "uppercase", color: "text.secondary" }}>
-                                        Result
+                                        {t("chat.uxJourney.result")}
                                       </Typography>
                                     </AccordionSummary>
                                     <AccordionDetails sx={{ px: 0, pt: 0 }}>
