@@ -22,6 +22,8 @@ const forward = async (request: NextRequest, target: string, opts: { stream: boo
   const token = getAuthTokenFromRequest(request);
   const body =
     request.method === "GET" || request.method === "HEAD" ? undefined : await request.text();
+  const range = request.headers.get("range") ?? undefined;
+  const ifRange = request.headers.get("if-range") ?? undefined;
 
   let upstream: Response;
   try {
@@ -34,6 +36,8 @@ const forward = async (request: NextRequest, target: string, opts: { stream: boo
           ...(body ? { "Content-Type": request.headers.get("content-type") ?? "application/json" } : {}),
           ...buildAuthHeaders(token),
           ...(stream ? { Accept: request.headers.get("accept") ?? "*/*" } : {}),
+          ...(range ? { Range: range } : {}),
+          ...(ifRange ? { "If-Range": ifRange } : {}),
         },
         body,
       },
@@ -51,11 +55,17 @@ const forward = async (request: NextRequest, target: string, opts: { stream: boo
   const contentType = upstream.headers.get("content-type") ?? "application/octet-stream";
 
   if (stream) {
+    const passthrough: Record<string, string> = {};
+    for (const k of ["accept-ranges", "content-range", "content-length", "etag", "last-modified"]) {
+      const v = upstream.headers.get(k);
+      if (v) passthrough[k] = v;
+    }
     return new NextResponse(upstream.body, {
       status: upstream.status,
       headers: {
         "Content-Type": contentType,
         "Cache-Control": "no-store",
+        ...passthrough,
       },
     });
   }

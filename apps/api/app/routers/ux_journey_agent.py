@@ -74,12 +74,23 @@ async def get_run(
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to reach UX Journey Agent service.") from exc
 
 
-async def _stream_upstream(request: Request, upstream_url: str, *, timeout: float) -> tuple[AsyncIterator[bytes], str]:
+async def _stream_upstream(
+    request: Request, upstream_url: str, *, timeout: float
+) -> tuple[AsyncIterator[bytes], str, int, dict[str, str]]:
     client = httpx.AsyncClient(timeout=timeout, follow_redirects=True)
+    # Pass through headers that streaming consumers (especially <video>) rely on.
+    req_headers: dict[str, str] = {"Accept": request.headers.get("accept", "*/*")}
+    range_header = request.headers.get("range")
+    if range_header:
+        req_headers["Range"] = range_header
+    if_range = request.headers.get("if-range")
+    if if_range:
+        req_headers["If-Range"] = if_range
+
     upstream = await client.stream(
         "GET",
         upstream_url,
-        headers={"Accept": request.headers.get("accept", "*/*")},
+        headers=req_headers,
     ).__aenter__()
 
     async def _iter() -> AsyncIterator[bytes]:
@@ -92,6 +103,11 @@ async def _stream_upstream(request: Request, upstream_url: str, *, timeout: floa
             await client.aclose()
 
     media_type = upstream.headers.get("content-type") or "application/octet-stream"
+    passthrough_headers: dict[str, str] = {}
+    for k in ("accept-ranges", "content-range", "content-length", "etag", "last-modified"):
+        v = upstream.headers.get(k)
+        if v:
+            passthrough_headers[k] = v
     if upstream.status_code == 404:
         # E.g. job not running / no live frame.
         await upstream.__aexit__(None, None, None)
@@ -101,7 +117,7 @@ async def _stream_upstream(request: Request, upstream_url: str, *, timeout: floa
         await upstream.__aexit__(None, None, None)
         await client.aclose()
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"UX Journey Agent error ({upstream.status_code}).")
-    return _iter(), media_type
+    return _iter(), media_type, upstream.status_code, passthrough_headers
 
 
 @router.get("/run/{job_id}/live/stream")
@@ -114,8 +130,9 @@ async def live_stream(
     del current_user  # auth only
     base, timeout = _agent_base_url_or_503()
     upstream_url = f"{base}/run/{job_id}/live/stream"
-    iterator, media_type = await _stream_upstream(request, upstream_url, timeout=timeout)
-    return StreamingResponse(iterator, media_type=media_type, headers={"Cache-Control": "no-store"})
+    iterator, media_type, upstream_status, passthrough_headers = await _stream_upstream(request, upstream_url, timeout=timeout)
+    headers = {"Cache-Control": "no-store", **passthrough_headers}
+    return StreamingResponse(iterator, media_type=media_type, status_code=upstream_status, headers=headers)
 
 
 @router.get("/run/{job_id}/video")
@@ -128,6 +145,7 @@ async def video(
     del current_user  # auth only
     base, timeout = _agent_base_url_or_503()
     upstream_url = f"{base}/run/{job_id}/video"
-    iterator, media_type = await _stream_upstream(request, upstream_url, timeout=timeout)
-    return StreamingResponse(iterator, media_type=media_type, headers={"Cache-Control": "no-store"})
+    iterator, media_type, upstream_status, passthrough_headers = await _stream_upstream(request, upstream_url, timeout=timeout)
+    headers = {"Cache-Control": "no-store", **passthrough_headers}
+    return StreamingResponse(iterator, media_type=media_type, status_code=upstream_status, headers=headers)
 
