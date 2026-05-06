@@ -722,9 +722,25 @@ async def run_agent(job_id: str, url: str, task: str, persona: dict[str, Any] | 
                 steps_now = _history_to_steps(agent_instance.history)
                 # Keep payload bounded for frequent polling.
                 steps_now = steps_now[-60:]
-                # Attach a screenshot (data URL) to the latest step so UIs can show per-step visuals.
+                # Preserve screenshots captured in earlier step-end updates (history_to_steps recomputes steps fresh).
                 try:
-                    jpeg = await _capture_live_frame(agent_instance)
+                    async with _jobs_lock:
+                        prev = _jobs.get(job_id).result if job_id in _jobs and _jobs.get(job_id) else None
+                    prev_steps = prev.get("steps") if isinstance(prev, dict) else None
+                    if isinstance(prev_steps, list) and prev_steps:
+                        steps_now = _merge_step_screenshots(base_steps=steps_now, overlay_steps=prev_steps)
+                except Exception:
+                    pass
+
+                # Attach a screenshot (data URL) to the latest step so UIs can show per-step visuals.
+                # Prefer the existing live-frame (already captured) to avoid extra CDP calls.
+                try:
+                    jpeg: bytes | None = None
+                    frame = _live_frames.get(job_id)
+                    if frame and isinstance(frame, tuple) and len(frame) == 2:
+                        jpeg = frame[1]
+                    if not jpeg:
+                        jpeg = await _capture_live_frame(agent_instance)
                     if jpeg and steps_now:
                         b64 = base64.b64encode(jpeg).decode("ascii")
                         steps_now[-1]["screenshot"] = f"data:image/jpeg;base64,{b64}"
