@@ -87,11 +87,22 @@ async def _stream_upstream(
     if if_range:
         req_headers["If-Range"] = if_range
 
-    upstream = await client.stream(
+    # `client.stream(...)` returns the async context manager, not the response.
+    # We have to keep a reference to the manager so we can `__aexit__` on it
+    # later — `await ctx.__aenter__()` yields a `httpx.Response`, which itself
+    # has no async-exit hook (that's where the previous AttributeError came from).
+    stream_ctx = client.stream(
         "GET",
         upstream_url,
         headers=req_headers,
-    ).__aenter__()
+    )
+    upstream = await stream_ctx.__aenter__()
+
+    async def _close_upstream() -> None:
+        try:
+            await stream_ctx.__aexit__(None, None, None)
+        finally:
+            await client.aclose()
 
     async def _iter() -> AsyncIterator[bytes]:
         try:
@@ -99,8 +110,7 @@ async def _stream_upstream(
                 if chunk:
                     yield chunk
         finally:
-            await upstream.__aexit__(None, None, None)
-            await client.aclose()
+            await _close_upstream()
 
     media_type = upstream.headers.get("content-type") or "application/octet-stream"
     passthrough_headers: dict[str, str] = {}
@@ -110,13 +120,15 @@ async def _stream_upstream(
             passthrough_headers[k] = v
     if upstream.status_code == 404:
         # E.g. job not running / no live frame.
-        await upstream.__aexit__(None, None, None)
-        await client.aclose()
+        await _close_upstream()
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
     if upstream.status_code >= 400:
-        await upstream.__aexit__(None, None, None)
-        await client.aclose()
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"UX Journey Agent error ({upstream.status_code}).")
+        upstream_status_code = upstream.status_code
+        await _close_upstream()
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"UX Journey Agent error ({upstream_status_code}).",
+        )
     return _iter(), media_type, upstream.status_code, passthrough_headers
 
 
