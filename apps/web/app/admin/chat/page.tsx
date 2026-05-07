@@ -1827,8 +1827,14 @@ function AdminChatPageContent() {
             parsedData.jobId
           ) {
             const jobId: string = parsedData.jobId;
+            const errStr =
+              typeof parsedData.error === "string" ? parsedData.error : null;
+            // Treat any `error` from the chat-api as a hard failure even if
+            // `success === null` (e.g. stagnation watchdog) — otherwise the
+            // bubble would still render as "complete" while carrying an
+            // error message.
             const finalStatus: "running" | "complete" | "error" =
-              parsedData.success === false ? "error" : "complete";
+              errStr || parsedData.success === false ? "error" : "complete";
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === personaMessageId

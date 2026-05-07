@@ -1048,10 +1048,21 @@ export const MsqdxGlassChatPanel = ({
                         </Box>
                       ) : null}
 
-                      {message.uxJourney.videoUrl && message.uxJourney.status === "complete" ? (
+                      {/* Render the recording on EITHER terminal status. When the
+                          stagnation watchdog cancels a hung run, the chat-api
+                          calls the agent's /cancel endpoint which closes the
+                          browser cleanly and finalizes the partial WebM —
+                          giving us a (short) video the user can still play
+                          back even though the run failed. Hiding the player
+                          on `error` would throw that recording away. */}
+                      {message.uxJourney.videoUrl &&
+                      (message.uxJourney.status === "complete" ||
+                        message.uxJourney.status === "error") ? (
                         <Box>
                           <Typography variant="caption" sx={{ display: "block", mb: 0.5, color: "text.secondary" }}>
-                            {t("chat.uxJourney.video")}
+                            {message.uxJourney.status === "error"
+                              ? t("chat.uxJourney.videoPartial")
+                              : t("chat.uxJourney.video")}
                           </Typography>
                           <Box
                             component="video"

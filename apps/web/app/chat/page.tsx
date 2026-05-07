@@ -910,14 +910,22 @@ function ChatSharePageContent() {
               parsed.jobId
             ) {
               const jobId = parsed.jobId;
+              const errMsg = typeof parsed.error === "string" ? parsed.error : null;
+              // The chat-api emits `tool_completed` with `error` populated when
+              // the run stalled or was cancelled by the watchdog. In those cases
+              // `success` is typically `null`, but the bubble should still
+              // render in the "error" lane so the UI labels it honestly and
+              // the partial video (if any) is shown.
+              const computedStatus: "error" | "complete" =
+                errMsg || parsed.success === false ? "error" : "complete";
               setMessages((prev) =>
                 setUxJourneyOnMessage(prev, personaMsgId, {
                   jobId,
-                  status: parsed.success === false ? "error" : "complete",
+                  status: computedStatus,
                   videoUrl: parsed.videoUrl
                     ? API_ROUTES.uxJourneyAgentVideo(jobId)
                     : undefined,
-                  error: typeof parsed.error === "string" ? parsed.error : null,
+                  error: errMsg,
                 }),
               );
             } else if (parsed.type === "error") {

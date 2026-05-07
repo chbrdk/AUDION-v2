@@ -71,6 +71,14 @@ class JobState:
     error: str | None = None
     video_path: str | None = None  # path to recorded video file (if any)
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    # Reference to the asyncio.Task running `run_agent` for this job. Stored
+    # so a `POST /run/{jobId}/cancel` can `task.cancel()` it without touching
+    # internal browser-use state. Cleared after the task settles.
+    run_task: Any = None  # asyncio.Task — typed as Any to keep dataclass plain
+    # Set to True by the cancel handler so `run_agent` knows the CancelledError
+    # it observes is intentional and it should still finalize the recording
+    # (instead of bubbling out as a hard failure).
+    cancel_requested: bool = False
 
 _jobs: dict[str, JobState] = {}
 _jobs_lock = asyncio.Lock()
@@ -1204,11 +1212,24 @@ async def run_agent(
                 persona=persona,
             )
         )
+        cancelled = False
         try:
             try:
-                history = await agent.run(on_step_start=_on_step_start, on_step_end=_on_step_end)
-            except TypeError:
-                history = await agent.run()
+                try:
+                    history = await agent.run(on_step_start=_on_step_start, on_step_end=_on_step_end)
+                except TypeError:
+                    history = await agent.run()
+            except asyncio.CancelledError:
+                # `POST /run/{jobId}/cancel` (or any other task-level cancel)
+                # landed while we were awaiting the agent. We DO want the rest
+                # of this coroutine to run so the partial recording gets moved
+                # into VIDEO_BASE_DIR and the persona / chat sees a usable
+                # videoUrl + the steps that did happen.
+                cancelled = True
+                try:
+                    history = getattr(agent, "history", None) or history
+                except Exception:
+                    pass
         finally:
             for bg in (screenshot_task, history_watcher_task):
                 bg.cancel()
@@ -1298,6 +1319,10 @@ async def run_agent(
             }
         if video_path:
             result["videoUrl"] = f"/run/{job_id}/video"
+        if cancelled:
+            # Surface the cancellation in the result so the chat UI can label
+            # the card honestly ("Run was cancelled before completion").
+            result["cancelled"] = True
 
         async with _jobs_lock:
             if job_id in _jobs:
@@ -1311,6 +1336,8 @@ async def run_agent(
                     pass
                 _jobs[job_id].status = "complete"
                 _jobs[job_id].result = result
+                if cancelled and not _jobs[job_id].error:
+                    _jobs[job_id].error = "Run was cancelled before completion."
                 if video_path:
                     _jobs[job_id].video_path = video_path
 
@@ -1479,10 +1506,81 @@ async def start_run(body: RunRequest) -> RunResponse:
     async with _jobs_lock:
         _jobs[job_id] = JobState(job_id=job_id, status="running", url=url, task=task, persona=body.persona)
 
-    asyncio.create_task(
+    # Keep a reference to the running task so `POST /run/{jobId}/cancel` can
+    # signal it. Without this, a stalled browser-use loop is unkillable from
+    # outside and the caller has no way to recover the partial recording.
+    run_task = asyncio.create_task(
         run_agent(job_id, url, task, body.persona, max_steps_override=body.max_steps)
     )
+    async with _jobs_lock:
+        if job_id in _jobs:
+            _jobs[job_id].run_task = run_task
     return RunResponse(jobId=job_id)
+
+
+@app.post("/run/{job_id}/cancel")
+async def cancel_run(job_id: str) -> dict[str, Any]:
+    """
+    Force-cancel a running journey: signals the agent task, waits briefly for
+    its `finally` blocks to close the browser (which finalizes the WebM
+    recording on disk) and to publish a partial result, then returns the
+    current job state.
+
+    Idempotent: calling this on a job that's already terminal (or unknown)
+    just reports the current status without doing anything destructive.
+    """
+    async with _jobs_lock:
+        job = _jobs.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    # Already terminal — nothing to do.
+    if job.status not in ("running", None):
+        return {
+            "jobId": job_id,
+            "status": job.status,
+            "alreadyTerminal": True,
+        }
+
+    job.cancel_requested = True
+    task = job.run_task
+    cancel_signalled = False
+    if task is not None and not task.done():
+        try:
+            task.cancel()
+            cancel_signalled = True
+        except Exception:
+            pass
+
+    # Give run_agent up to ~30s to drain its finally blocks (browser close
+    # can take a moment, especially when Playwright is mid-frame). We don't
+    # propagate the underlying exception — the worst case is the caller sees
+    # `status: "running"` and can re-poll.
+    if task is not None and cancel_signalled:
+        try:
+            await asyncio.wait_for(asyncio.shield(_safe_await(task)), timeout=30.0)
+        except asyncio.TimeoutError:
+            pass
+
+    async with _jobs_lock:
+        job_after = _jobs.get(job_id)
+    return {
+        "jobId": job_id,
+        "status": job_after.status if job_after else "unknown",
+        "cancelSignalled": cancel_signalled,
+        "result": (job_after.result if job_after else None),
+    }
+
+
+async def _safe_await(task: Any) -> None:
+    """Await a task, swallowing CancelledError so callers can use `wait_for`
+    without having to special-case the cancel they just signalled."""
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+    except Exception:
+        pass
 
 @app.get("/run/{job_id}")
 async def get_run(job_id: str) -> dict[str, Any]:

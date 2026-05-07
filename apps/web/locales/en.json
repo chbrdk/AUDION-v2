@@ -249,6 +249,7 @@
       "statusError": "error",
       "liveView": "Live view",
       "video": "Video",
+      "videoPartial": "Recording (partial)",
       "steps": "Steps",
       "step": "Step",
       "of": "of",

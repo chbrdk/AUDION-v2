@@ -476,6 +476,12 @@ class ToolExecutor:
         last_emitted_step_count = -1
         last_step_change_at = time.monotonic()
         last_seen_step_count = 0
+        # Snapshot of the most recent successful poll. We keep this around so
+        # that early-break paths (timeout / stagnation / 404) can still hand a
+        # partial result (steps + maybe videoUrl) to the LLM and the chat UI,
+        # instead of silently throwing away everything the agent produced.
+        latest_result_obj: Dict[str, Any] = {}
+        latest_status_str: str = "running"
 
         async with httpx.AsyncClient(timeout=request_timeout, follow_redirects=True) as poll_client:
             while True:
@@ -544,6 +550,13 @@ class ToolExecutor:
                 steps_list: List[Dict[str, Any]] = (
                     [s for s in steps_raw if isinstance(s, dict)] if isinstance(steps_raw, list) else []
                 )
+                # Preserve every successful poll so an early-break path can
+                # still surface the agent's partial work (steps, screenshots,
+                # and — if Playwright already finalized the recording —
+                # `videoUrl`).
+                if isinstance(result_obj, dict) and result_obj:
+                    latest_result_obj = result_obj
+                    latest_status_str = status_str
 
                 # Reset the stagnation watchdog whenever the upstream produced
                 # progress — even if the SSE forwarder hasn't yet emitted a
@@ -585,6 +598,55 @@ class ToolExecutor:
                     break
 
                 await asyncio.sleep(poll_interval)
+
+        # If we left the loop via an early-break path (timeout / stagnation /
+        # forgotten job) we never copied a `result_obj` into `final_result`.
+        # Fall back to the most recent successful poll so the LLM and the
+        # chat UI still see whatever the agent produced before it died.
+        # Also categorize the final state as "error" — without this the
+        # frontend would render the bubble as "complete" when in fact the
+        # run failed.
+        if not final_result and latest_result_obj:
+            final_result = latest_result_obj
+        if final_error and final_status == "running":
+            final_status = "error"
+
+        # Best-effort: if the agent stalled but we know the job_id is still
+        # alive on the upstream side, ask it to finalize so the partial
+        # `.webm` recording gets flushed to disk and a `videoUrl` becomes
+        # available. This is cheap (single HTTP call with a short timeout)
+        # and dramatically improves the user-visible recovery: instead of an
+        # empty error card, they get steps + a short clip of what happened.
+        if final_error and base_url:
+            try:
+                async with httpx.AsyncClient(timeout=15.0) as cancel_client:
+                    cancel_res = await cancel_client.post(f"{base_url}/run/{job_id}/cancel")
+                if cancel_res.status_code < 400:
+                    logger.info(
+                        "tool_executor.inspect_website.cancel_ok",
+                        job_id=job_id,
+                    )
+                    # Re-poll once with a generous timeout — the cancel handler
+                    # waits for the agent task to wind down, so a freshly-moved
+                    # video file should now be there.
+                    try:
+                        async with httpx.AsyncClient(timeout=20.0) as repoll_client:
+                            res = await repoll_client.get(f"{base_url}/run/{job_id}")
+                        if res.status_code < 400:
+                            data = res.json()
+                            new_result = data.get("result") if isinstance(data.get("result"), dict) else None
+                            if isinstance(new_result, dict) and new_result:
+                                final_result = new_result
+                    except Exception:
+                        pass
+            except Exception as exc:
+                # Best-effort only — never let the cancel attempt itself
+                # bubble into the chat error path.
+                logger.warning(
+                    "tool_executor.inspect_website.cancel_failed",
+                    job_id=job_id,
+                    error=str(exc),
+                )
 
         # Step 3: emit completion event and build the compact tool-result for the LLM.
         success = final_result.get("success") if isinstance(final_result, dict) else None

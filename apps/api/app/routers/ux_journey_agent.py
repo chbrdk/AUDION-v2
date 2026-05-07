@@ -51,6 +51,39 @@ async def start_run(
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to reach UX Journey Agent service.") from exc
 
 
+@router.post("/run/{job_id}/cancel")
+async def cancel_run(
+    job_id: str,
+    current_user: User = Depends(get_current_user),
+) -> JSONResponse:
+    """
+    Force-cancel a running journey on the upstream agent. The agent's handler
+    is responsible for closing the browser cleanly so the partial recording
+    becomes a playable video file. Returns the agent's current state JSON.
+    """
+    del current_user  # auth only
+    base, timeout = _agent_base_url_or_503()
+    url = f"{base}/run/{job_id}/cancel"
+    # The agent's cancel handler waits up to ~30s for the run task to drain
+    # its finally blocks. Give the proxy a slightly bigger budget so we don't
+    # time out before the agent actually finishes cleanup.
+    try:
+        async with httpx.AsyncClient(timeout=max(timeout, 45.0), follow_redirects=True) as client:
+            res = await client.post(url)
+        if res.status_code == 404:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
+        if res.status_code >= 400:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"UX Journey Agent error ({res.status_code}).",
+            )
+        return JSONResponse(content=res.json(), media_type=res.headers.get("content-type", "application/json"))
+    except httpx.TimeoutException as exc:
+        raise HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail="UX Journey Agent cancel timed out.") from exc
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to reach UX Journey Agent service.") from exc
+
+
 @router.get("/run/{job_id}")
 async def get_run(
     job_id: str,
