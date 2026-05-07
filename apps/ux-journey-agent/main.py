@@ -1171,6 +1171,17 @@ async def run_agent(job_id: str, url: str, task: str, persona: dict[str, Any] | 
             _live_agents.pop(job_id, None)
             _live_frames.pop(job_id, None)
 
+        # CRITICAL: close the browser *before* discovering / moving / transcoding the video.
+        # Playwright only finalizes the WebM container (header, cues, EOF) when the browser is
+        # closed. Moving or feeding ffmpeg a still-open recording produces a 0-second / unplayable
+        # file in the UI even though the run looks "complete".
+        if browser is not None:
+            try:
+                await browser.close()
+            except Exception:
+                pass
+            browser = None  # avoid double-close in the outer finally
+
         # Map browser-use history to CHECKION result format
         steps = _history_to_steps(history)
         success = _history_success(history)
@@ -1184,15 +1195,26 @@ async def run_agent(job_id: str, url: str, task: str, persona: dict[str, Any] | 
         try:
             found_path = _find_recorded_video_file(video_dir)
             if found_path and found_path.is_file():
-                suffix = found_path.suffix.lower()  # ".mp4" | ".webm"
-                dest = VIDEO_BASE_DIR / f"{job_id}{suffix}"
+                # Sanity: refuse 0-byte / suspiciously small recordings (would render as 0:00).
                 try:
-                    VIDEO_BASE_DIR.mkdir(parents=True, exist_ok=True)
-                    shutil.move(str(found_path), str(dest))
-                    video_path = str(dest)
+                    size = found_path.stat().st_size
                 except Exception:
-                    # Best-effort: if move fails, fall back to serving from original location.
-                    video_path = str(found_path)
+                    size = 0
+                if size <= 1024:
+                    print(
+                        f"video: refusing to publish suspiciously small recording {found_path} (size={size})",
+                        flush=True,
+                    )
+                else:
+                    suffix = found_path.suffix.lower()  # ".mp4" | ".webm"
+                    dest = VIDEO_BASE_DIR / f"{job_id}{suffix}"
+                    try:
+                        VIDEO_BASE_DIR.mkdir(parents=True, exist_ok=True)
+                        shutil.move(str(found_path), str(dest))
+                        video_path = str(dest)
+                    except Exception:
+                        # Best-effort: if move fails, fall back to serving from original location.
+                        video_path = str(found_path)
         finally:
             # Cleanup temp directory only if we successfully moved it into VIDEO_BASE_DIR.
             if video_path and Path(video_path).parent == VIDEO_BASE_DIR:
