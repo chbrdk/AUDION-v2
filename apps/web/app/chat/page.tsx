@@ -362,12 +362,13 @@ function ChatSharePageContent() {
                   }),
                 );
               } else if (Array.isArray(result.steps) && result.steps.length > 0) {
+                const stepsList = result.steps as UxJourneyStep[];
                 setMessages((prev) =>
                   setUxJourneyOnMessage(prev, m.id, {
                     jobId,
                     status: "running",
-                    steps: (result.steps as UxJourneyStep[]).slice(-12),
-                    stepsTotal: result.steps.length,
+                    steps: stepsList.slice(-12),
+                    stepsTotal: stepsList.length,
                     lastProgressAt: Date.now(),
                   }),
                 );
