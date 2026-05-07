@@ -122,9 +122,20 @@ def _make_llm():
             from browser_use import ChatAnthropic
         except ImportError:
             from browser_use.llm.anthropic import ChatAnthropic
+        # Default: Haiku 4.5. Browser-use makes 1 LLM call per step, and Sonnet
+        # spent 4–6s per call where Haiku takes 1.5–2s — across a 10-step run
+        # that turns a 50–60s journey into ~20s. Larger max_tokens lets Haiku
+        # produce more elaborate plans per step (occasionally fewer steps);
+        # output is billed by actual tokens generated, so a generous ceiling
+        # is free overhead. Override per-deployment via env if needed.
+        try:
+            max_tokens = int(os.environ.get("UX_JOURNEY_CLAUDE_MAX_TOKENS", "16384"))
+        except ValueError:
+            max_tokens = 16384
         return ChatAnthropic(
-            model=os.environ.get("UX_JOURNEY_CLAUDE_MODEL", "claude-sonnet-4-20250514"),
+            model=os.environ.get("UX_JOURNEY_CLAUDE_MODEL", "claude-haiku-4-5-20251001"),
             temperature=0,
+            max_tokens=max_tokens,
         )
     if provider in ("openai",) or (provider == "auto" and os.environ.get("OPENAI_API_KEY")):
         try:
@@ -141,7 +152,8 @@ def _llm_meta() -> dict[str, str]:
     if provider in ("claude", "anthropic") or (provider == "auto" and os.environ.get("ANTHROPIC_API_KEY")):
         return {
             "provider": "anthropic",
-            "model": os.environ.get("UX_JOURNEY_CLAUDE_MODEL", "claude-sonnet-4-20250514"),
+            "model": os.environ.get("UX_JOURNEY_CLAUDE_MODEL", "claude-haiku-4-5-20251001"),
+            "max_tokens": os.environ.get("UX_JOURNEY_CLAUDE_MAX_TOKENS", "16384"),
         }
     if provider in ("openai",) or (provider == "auto" and os.environ.get("OPENAI_API_KEY")):
         return {

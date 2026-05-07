@@ -18,7 +18,8 @@ Browser agent service for CHECKION: runs autonomous navigation tasks (URL + natu
 | `OPENAI_API_KEY` | one of these | OpenAI fallback |
 | `UX_JOURNEY_MAX_STEPS` | no | Max agent steps (default 25) |
 | `UX_JOURNEY_SLOWMO` | no | Multiplies pacing delays for **real** slow-mo in the recording (default **`2`** in code — no env needed). Set `1` for faster runs; alias `UX_JOURNEY_SLOWMO_MULTIPLIER` (clamped 0.25–12) |
-| `UX_JOURNEY_CLAUDE_MODEL` | no | Claude model (default claude-sonnet-4-20250514) |
+| `UX_JOURNEY_CLAUDE_MODEL` | no | Claude model (default `claude-haiku-4-5-20251001` — faster + cheaper than Sonnet for browser-use's per-step decisions; set to `claude-sonnet-4-20250514` if you need deeper reasoning at the cost of ~2–3× per-step latency) |
+| `UX_JOURNEY_CLAUDE_MAX_TOKENS` | no | Per-step output ceiling for Anthropic (default **16384**). Higher = more elaborate planning headroom; only generated tokens are billed. |
 | `UX_JOURNEY_VIDEO_DIR` | no | Directory for video files (default `/tmp/ux-journey-videos`). **Use a path that is mounted as a persistent volume in Docker** (e.g. `/data/journey-videos`) so videos survive container restarts. |
 | `UX_JOURNEY_STEP_START_DELAY_SECONDS` | no | Base step lead-in before action (default **3.5** s, then × `UX_JOURNEY_SLOWMO`) |
 | `UX_JOURNEY_STEP_DELAY_SECONDS` | no | Base tail pause after step (default **3.0** s, then × slowmo) |
