@@ -701,47 +701,207 @@ async def _publish_partial_steps(
         pass
 
 
-async def _capture_live_frame(agent: Any) -> bytes | None:
-    """Capture current viewport as JPEG via CDP or Playwright page. Returns None on failure."""
-    # Fallback: try Playwright page.screenshot if browser_session exposes a page
-    page = getattr(agent.browser_session, "page", None) or getattr(
-        agent.browser_session, "current_page", None
-    )
-    if page is not None and hasattr(page, "screenshot"):
-        try:
-            result = await page.screenshot(type="jpeg", quality=80)
-            if isinstance(result, bytes):
-                return result
-        except Exception:
-            pass
-
-    # Primary: CDP Page.captureScreenshot
-    try:
-        cdp = await agent.browser_session.get_or_create_cdp_session()
-        if not cdp:
-            return None
-        send = None
-        if hasattr(cdp, "cdp_client"):
-            send = getattr(cdp.cdp_client, "send", None)
-        elif hasattr(cdp, "send"):
-            send = cdp.send
-        if not send:
-            return None
-        Page = getattr(send, "Page", None)
-        if not Page:
-            return None
-        capture = getattr(Page, "capture_screenshot", None) or getattr(Page, "captureScreenshot", None)
-        if not capture:
-            return None
-        kwargs: dict[str, Any] = {"format": "jpeg", "quality": 80}
-        if hasattr(cdp, "session_id") and cdp.session_id is not None:
-            kwargs["session_id"] = cdp.session_id
-        result = await capture(**kwargs)
-        if isinstance(result, dict) and result.get("data"):
-            return base64.b64decode(result["data"])
+def _decode_b64_image(value: str) -> bytes | None:
+    """Decode a possibly data-URL-prefixed base64 string into bytes."""
+    if not isinstance(value, str) or not value:
         return None
+    raw = value.split(",", 1)[1] if value.startswith("data:") else value
+    try:
+        return base64.b64decode(raw)
     except Exception:
         return None
+
+
+def _latest_history_screenshot_bytes(agent: Any) -> bytes | None:
+    """Most recent screenshot maintained by browser-use itself (works across 0.11+ versions)."""
+    history = getattr(agent, "history", None)
+    if history is None:
+        return None
+    try:
+        screenshots = (
+            history.screenshots(n_last=1, return_none_if_not_screenshot=False)
+            if hasattr(history, "screenshots")
+            else None
+        )
+    except Exception:
+        screenshots = None
+    if screenshots:
+        latest = screenshots[-1] if isinstance(screenshots, list) else screenshots
+        decoded = _decode_b64_image(latest) if isinstance(latest, str) else None
+        if decoded:
+            return decoded
+    try:
+        paths = (
+            history.screenshot_paths(n_last=1, return_none_if_not_screenshot=False)
+            if hasattr(history, "screenshot_paths")
+            else None
+        )
+    except Exception:
+        paths = None
+    if paths:
+        path = paths[-1] if isinstance(paths, list) else paths
+        if isinstance(path, str) and path:
+            try:
+                with open(path, "rb") as fh:
+                    data = fh.read()
+                    if data:
+                        return data
+            except OSError:
+                pass
+    return None
+
+
+async def _capture_live_frame_diag(agent: Any) -> dict[str, Any]:
+    """Run all capture paths and report which one (if any) yielded JPEG bytes.
+
+    Returned dict keys:
+      ``path``           – first path that succeeded (``history`` | ``page`` | ``cdp`` | ``none``).
+      ``bytes``          – the captured JPEG (``bytes``) or ``None``.
+      ``size``           – byte length of capture (``int``).
+      ``probes``         – per-path probe info (status / error per path).
+      ``agent``          – which agent attributes are available (for sanity).
+    """
+    probes: dict[str, Any] = {}
+    captured: bytes | None = None
+    path_used: str = "none"
+
+    bs = getattr(agent, "browser_session", None) or getattr(agent, "browser", None)
+    agent_info = {
+        "has_history": hasattr(agent, "history"),
+        "has_browser_session": hasattr(agent, "browser_session"),
+        "has_browser": hasattr(agent, "browser"),
+        "browser_session_type": type(bs).__name__ if bs is not None else None,
+    }
+
+    # 1) browser-use history (preferred)
+    try:
+        history = getattr(agent, "history", None)
+        history_probe: dict[str, Any] = {"available": history is not None}
+        if history is not None:
+            try:
+                raw_history = getattr(history, "history", None)
+                history_probe["length"] = (
+                    len(raw_history) if isinstance(raw_history, (list, tuple)) else None
+                )
+            except Exception as exc:
+                history_probe["length_error"] = repr(exc)
+            try:
+                screenshots = (
+                    history.screenshots(n_last=1, return_none_if_not_screenshot=False)
+                    if hasattr(history, "screenshots")
+                    else None
+                )
+                history_probe["screenshots_n_last"] = (
+                    len(screenshots) if isinstance(screenshots, list) else 0
+                )
+            except Exception as exc:
+                screenshots = None
+                history_probe["screenshots_error"] = repr(exc)
+        history_jpeg = _latest_history_screenshot_bytes(agent)
+        history_probe["captured"] = bool(history_jpeg)
+        if history_jpeg and not captured:
+            captured = history_jpeg
+            path_used = "history"
+        probes["history"] = history_probe
+    except Exception as exc:
+        probes["history"] = {"error": repr(exc)}
+
+    # 2) Playwright page.screenshot
+    try:
+        page = (
+            (getattr(bs, "page", None) if bs is not None else None)
+            or (getattr(bs, "current_page", None) if bs is not None else None)
+            or getattr(agent, "page", None)
+        )
+        page_probe: dict[str, Any] = {
+            "page_available": page is not None,
+            "has_screenshot": page is not None and hasattr(page, "screenshot"),
+        }
+        if not captured and page is not None and hasattr(page, "screenshot"):
+            try:
+                result = await page.screenshot(type="jpeg", quality=80)
+                if isinstance(result, bytes):
+                    captured = result
+                    path_used = "page"
+                    page_probe["captured"] = True
+                else:
+                    page_probe["captured"] = False
+                    page_probe["unexpected_type"] = type(result).__name__
+            except Exception as exc:
+                page_probe["error"] = repr(exc)
+        probes["page"] = page_probe
+    except Exception as exc:
+        probes["page"] = {"error": repr(exc)}
+
+    # 3) CDP Page.captureScreenshot
+    try:
+        cdp_probe: dict[str, Any] = {
+            "browser_session_available": bs is not None,
+            "has_get_or_create_cdp_session": bs is not None
+            and hasattr(bs, "get_or_create_cdp_session"),
+        }
+        if not captured and bs is not None and hasattr(bs, "get_or_create_cdp_session"):
+            try:
+                cdp = await bs.get_or_create_cdp_session()
+                cdp_probe["cdp_session"] = cdp is not None
+                if cdp is not None:
+                    send = None
+                    if hasattr(cdp, "cdp_client"):
+                        send = getattr(cdp.cdp_client, "send", None)
+                    elif hasattr(cdp, "send"):
+                        send = cdp.send
+                    cdp_probe["has_send"] = send is not None
+                    if send is not None:
+                        Page = getattr(send, "Page", None)
+                        cdp_probe["has_page_domain"] = Page is not None
+                        if Page is not None:
+                            capture = getattr(Page, "capture_screenshot", None) or getattr(
+                                Page, "captureScreenshot", None
+                            )
+                            cdp_probe["has_capture"] = capture is not None
+                            if capture is not None:
+                                kwargs: dict[str, Any] = {"format": "jpeg", "quality": 80}
+                                if hasattr(cdp, "session_id") and cdp.session_id is not None:
+                                    kwargs["session_id"] = cdp.session_id
+                                try:
+                                    result = await capture(**kwargs)
+                                    if isinstance(result, dict) and result.get("data"):
+                                        captured = base64.b64decode(result["data"])
+                                        path_used = "cdp"
+                                        cdp_probe["captured"] = True
+                                    else:
+                                        cdp_probe["captured"] = False
+                                        cdp_probe["unexpected_response"] = (
+                                            type(result).__name__
+                                        )
+                                except Exception as exc:
+                                    cdp_probe["capture_error"] = repr(exc)
+            except Exception as exc:
+                cdp_probe["session_error"] = repr(exc)
+        probes["cdp"] = cdp_probe
+    except Exception as exc:
+        probes["cdp"] = {"error": repr(exc)}
+
+    return {
+        "path": path_used,
+        "bytes": captured,
+        "size": len(captured) if captured else 0,
+        "probes": probes,
+        "agent": agent_info,
+    }
+
+
+async def _capture_live_frame(agent: Any) -> bytes | None:
+    """Best-effort viewport JPEG.
+
+    Order:
+    1. browser-use ``history.screenshots(n_last=1)`` — populated by the agent on every step,
+       works across 0.11+ versions where ``browser_session`` is just an alias for ``Browser``.
+    2. ``page.screenshot`` (older browser-use that exposed a Playwright page).
+    3. CDP ``Page.captureScreenshot`` via ``get_or_create_cdp_session`` (legacy path).
+    """
+    diag = await _capture_live_frame_diag(agent)
+    return diag.get("bytes")
 
 
 async def _live_screenshot_loop(job_id: str) -> None:
@@ -758,6 +918,51 @@ async def _live_screenshot_loop(job_id: str) -> None:
         except Exception:
             pass
         await asyncio.sleep(LIVE_FRAME_INTERVAL * UX_JOURNEY_SLOWMO)
+
+
+async def _history_watcher_loop(
+    *,
+    job_id: str,
+    task: str,
+    domain: str,
+    persona: dict[str, Any] | None,
+) -> None:
+    """Publish partial steps whenever the agent's history grows.
+
+    Independent of browser-use's ``on_step_end`` hook (which may not fire on every
+    version) – ensures the UI keeps receiving steps + screenshots even when the
+    callback API differs.
+    """
+    last_seen = -1
+    while job_id in _live_agents:
+        try:
+            agent = _live_agents.get(job_id)
+            if agent is not None:
+                history = getattr(agent, "history", None)
+                length: int = 0
+                if history is not None:
+                    raw_history = getattr(history, "history", None)
+                    if isinstance(raw_history, (list, tuple)):
+                        length = len(raw_history)
+                    elif hasattr(history, "number_of_steps"):
+                        try:
+                            length = int(history.number_of_steps())
+                        except Exception:
+                            length = 0
+                if length > last_seen:
+                    last_seen = length
+                    await _publish_partial_steps(
+                        job_id=job_id,
+                        agent_instance=agent,
+                        task=task,
+                        domain=domain,
+                        persona=persona,
+                    )
+        except asyncio.CancelledError:
+            break
+        except Exception:
+            pass
+        await asyncio.sleep(1.0)
 
 
 async def run_agent(job_id: str, url: str, task: str, persona: dict[str, Any] | None = None) -> None:
@@ -822,6 +1027,9 @@ async def run_agent(job_id: str, url: str, task: str, persona: dict[str, Any] | 
             agent_kw["max_steps"] = max_steps
         elif "max_actions" in sig.parameters:
             agent_kw["max_actions"] = max_steps
+        # Force per-step screenshots so history.screenshots() always has data the live preview can serve.
+        if "use_vision" in sig.parameters:
+            agent_kw["use_vision"] = True
         agent = Agent(**agent_kw)
         if hasattr(agent, "max_steps"):
             agent.max_steps = max_steps
@@ -940,17 +1148,26 @@ async def run_agent(job_id: str, url: str, task: str, persona: dict[str, Any] | 
 
         _live_agents[job_id] = agent
         screenshot_task = asyncio.create_task(_live_screenshot_loop(job_id))
+        history_watcher_task = asyncio.create_task(
+            _history_watcher_loop(
+                job_id=job_id,
+                task=task,
+                domain=domain,
+                persona=persona,
+            )
+        )
         try:
             try:
                 history = await agent.run(on_step_start=_on_step_start, on_step_end=_on_step_end)
             except TypeError:
                 history = await agent.run()
         finally:
-            screenshot_task.cancel()
-            try:
-                await screenshot_task
-            except asyncio.CancelledError:
-                pass
+            for bg in (screenshot_task, history_watcher_task):
+                bg.cancel()
+                try:
+                    await bg
+                except asyncio.CancelledError:
+                    pass
             _live_agents.pop(job_id, None)
             _live_frames.pop(job_id, None)
 
@@ -1135,6 +1352,62 @@ async def get_run_video(job_id: str) -> FileResponse:
         media_type=media_type,
         filename=filename,
     )
+
+
+@app.get("/run/{job_id}/live/diag")
+async def get_run_live_diag(job_id: str) -> dict[str, Any]:
+    """Diagnostic JSON: which capture path is currently producing frames for this job.
+
+    Use this from devtools / curl when ``/live`` keeps returning 404 to see whether
+    history-based, Playwright page or CDP screenshot capture works in the current agent.
+    """
+    job_known = False
+    job_status: str | None = None
+    async with _jobs_lock:
+        job = _jobs.get(job_id)
+        if job is not None:
+            job_known = True
+            job_status = job.status
+
+    has_live_agent = job_id in _live_agents
+    cached_frame = _live_frames.get(job_id)
+    cached_age_seconds: float | None = None
+    if cached_frame is not None:
+        try:
+            cached_age_seconds = max(0.0, time.monotonic() - float(cached_frame[0]))
+        except Exception:
+            cached_age_seconds = None
+
+    step_dir = STEP_SCREENSHOTS_BASE / job_id
+    step_files: list[str] = []
+    if step_dir.is_dir():
+        try:
+            step_files = sorted(p.name for p in step_dir.glob("*.jpg"))
+        except Exception:
+            step_files = []
+
+    diag: dict[str, Any] = {
+        "jobKnown": job_known,
+        "jobStatus": job_status,
+        "hasLiveAgent": has_live_agent,
+        "hasCachedFrame": cached_frame is not None,
+        "cachedFrameAgeSeconds": cached_age_seconds,
+        "stepScreenshotsOnDisk": step_files,
+        "stepScreenshotsDir": str(step_dir),
+        "envSlowmo": UX_JOURNEY_SLOWMO,
+        "envLiveFrameInterval": LIVE_FRAME_INTERVAL,
+    }
+
+    agent = _live_agents.get(job_id)
+    if agent is not None:
+        capture = await _capture_live_frame_diag(agent)
+        # Drop raw bytes from JSON output, but keep size/path/probes.
+        capture.pop("bytes", None)
+        diag["captureProbe"] = capture
+    else:
+        diag["captureProbe"] = {"path": "no-agent", "size": 0, "probes": {}, "agent": {}}
+
+    return diag
 
 
 @app.get("/run/{job_id}/live")

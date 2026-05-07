@@ -120,6 +120,30 @@ async def _stream_upstream(
     return _iter(), media_type, upstream.status_code, passthrough_headers
 
 
+@router.get("/run/{job_id}/live/diag")
+async def live_diag(
+    job_id: str,
+    current_user: User = Depends(get_current_user),
+) -> JSONResponse:
+    """Diagnostic JSON about live capture status (agent GET /run/{jobId}/live/diag)."""
+    del current_user  # auth only
+    base, timeout = _agent_base_url_or_503()
+    upstream_url = f"{base}/run/{job_id}/live/diag"
+    try:
+        async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
+            res = await client.get(upstream_url)
+        if res.status_code >= 400:
+            return JSONResponse(
+                status_code=res.status_code,
+                content={"detail": f"UX Journey Agent diag returned {res.status_code}"},
+            )
+        return JSONResponse(content=res.json(), media_type=res.headers.get("content-type", "application/json"))
+    except httpx.TimeoutException as exc:
+        raise HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail="UX Journey Agent request timed out.") from exc
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to reach UX Journey Agent service.") from exc
+
+
 @router.get("/run/{job_id}/live")
 async def live_frame(
     job_id: str,
