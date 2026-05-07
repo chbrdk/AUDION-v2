@@ -281,6 +281,113 @@ function ChatSharePageContent() {
   const [personaDrawerOpen, setPersonaDrawerOpen] = useState(false);
   const typingBuffersRef = useRef<Record<string, string>>({});
   const typingTimersRef = useRef<Record<string, ReturnType<typeof setTimeout> | null>>({});
+  // Mirror of the latest `messages` so the polling-fallback effect below can
+  // read the live state without re-binding every time messages change. This
+  // keeps the polling loop stable: it only needs a single setTimeout chain
+  // that wakes up periodically and inspects what's currently running.
+  const messagesRef = useRef<Message[]>([]);
+  messagesRef.current = messages;
+
+  // ------------------------------------------------------------------------
+  // Polling fallback for `running` UX-Journey cards.
+  //
+  // Why: the chat-api streams `tool_progress`/`tool_completed` over SSE while
+  // the browser-agent runs. When that connection drops mid-flight (transient
+  // network blip, HTTP/2 reset, mobile tab idle, server restart) the UI is
+  // left with a card frozen in `status: "running"` forever. The agent itself
+  // keeps going on the backend, just with no one listening.
+  //
+  // What this does: every few seconds, scan `messages` for any UX-Journey
+  // that's still `running` and poll the agent directly. If the agent reports
+  // a terminal status we transition the card just like a `tool_completed`
+  // would — including videoUrl, steps, and error. Otherwise we refresh the
+  // step list so the card visibly progresses even when SSE is dead.
+  //
+  // We deliberately wait ~6s after start before the first poll so the SSE
+  // path gets first crack at delivering the terminal event in the happy
+  // case (no double-update flicker).
+  // ------------------------------------------------------------------------
+  useEffect(() => {
+    let cancelled = false;
+    const tick = async () => {
+      if (cancelled) return;
+      const running = messagesRef.current.filter(
+        (m) => m.uxJourney?.status === "running" && !!m.uxJourney.jobId,
+      );
+      if (running.length > 0) {
+        await Promise.all(
+          running.map(async (m) => {
+            const jobId = m.uxJourney!.jobId;
+            try {
+              const res = await fetch(API_ROUTES.uxJourneyAgentStatus(jobId), {
+                cache: "no-store",
+              });
+              if (!res.ok) return;
+              const data = (await res.json().catch(() => ({}))) as {
+                status?: string;
+                error?: string;
+                result?: {
+                  success?: boolean | null;
+                  steps?: UxJourneyStep[];
+                  videoUrl?: string;
+                };
+              };
+              if (cancelled) return;
+              const st = String(data?.status || "").toLowerCase();
+              const result = data?.result ?? {};
+              const success = result?.success;
+              const errStr =
+                typeof data?.error === "string" && data.error ? data.error : null;
+              const isTerminal =
+                st === "complete" ||
+                st === "error" ||
+                success === true ||
+                success === false;
+              if (isTerminal) {
+                setMessages((prev) =>
+                  setUxJourneyOnMessage(prev, m.id, {
+                    jobId,
+                    status:
+                      errStr || success === false ? "error" : "complete",
+                    videoUrl: result.videoUrl
+                      ? API_ROUTES.uxJourneyAgentVideo(jobId)
+                      : undefined,
+                    error: errStr,
+                    steps: Array.isArray(result.steps)
+                      ? (result.steps as UxJourneyStep[])
+                      : undefined,
+                    stepsTotal: Array.isArray(result.steps)
+                      ? result.steps.length
+                      : undefined,
+                  }),
+                );
+              } else if (Array.isArray(result.steps) && result.steps.length > 0) {
+                setMessages((prev) =>
+                  setUxJourneyOnMessage(prev, m.id, {
+                    jobId,
+                    status: "running",
+                    steps: (result.steps as UxJourneyStep[]).slice(-12),
+                    stepsTotal: result.steps.length,
+                    lastProgressAt: Date.now(),
+                  }),
+                );
+              }
+            } catch {
+              /* best-effort: try again next tick */
+            }
+          }),
+        );
+      }
+      if (!cancelled) {
+        setTimeout(tick, 4000);
+      }
+    };
+    const startTimer = setTimeout(tick, 6000);
+    return () => {
+      cancelled = true;
+      clearTimeout(startTimer);
+    };
+  }, []);
 
   const profile = persona?.profile as Record<string, unknown> | undefined;
   const rawDisplayName =
@@ -938,19 +1045,37 @@ function ChatSharePageContent() {
         if (streamErr) break;
       }
       if (streamErr) {
+        // Don't clobber the persona bubble if a UX-Journey is still in flight
+        // OR if the persona already streamed some text — the polling fallback
+        // (effect above) will close the journey out and the user sees a
+        // partial reply instead of a raw "network error" string. Surface the
+        // disconnect honestly via a toast-style placeholder only when there's
+        // truly nothing else to show.
         setMessages((prev) =>
-          prev.map((m) =>
-            m.id === personaMsgId ? { ...m, content: streamErr!, role: "system" as const } : m
-          )
+          prev.map((m) => {
+            if (m.id !== personaMsgId) return m;
+            const hasRunningJourney = m.uxJourney?.status === "running";
+            const hasContent = m.content?.trim().length > 0;
+            if (hasRunningJourney || hasContent) {
+              return m;
+            }
+            return { ...m, content: streamErr!, role: "system" as const };
+          }),
         );
       }
     } catch (e) {
       clearTypingState(personaMsgId);
       const errMsg = e instanceof Error ? e.message : t("chat.sendFailed");
       setMessages((prev) =>
-        prev.map((m) =>
-          m.id === personaMsgId ? { ...m, content: errMsg, role: "system" as const } : m
-        )
+        prev.map((m) => {
+          if (m.id !== personaMsgId) return m;
+          const hasRunningJourney = m.uxJourney?.status === "running";
+          const hasContent = m.content?.trim().length > 0;
+          if (hasRunningJourney || hasContent) {
+            return m;
+          }
+          return { ...m, content: errMsg, role: "system" as const };
+        }),
       );
     } finally {
       setSending(false);

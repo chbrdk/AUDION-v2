@@ -421,6 +421,10 @@ function AdminChatPageContent() {
   const [uxJourneyStartMessageId, setUxJourneyStartMessageId] = useState<string | null>(null);
   const typingBuffersRef = useRef<Record<string, string>>({});
   const typingTimersRef = useRef<Record<string, ReturnType<typeof setTimeout> | null>>({});
+  // Mirror of `messages` for the polling-fallback effect below; lets that
+  // effect read the live state without re-binding when messages change.
+  const messagesRef = useRef<Message[]>([]);
+  messagesRef.current = messages;
   const personaMenuOpen = Boolean(personaMenuAnchor);
   const previousInputRef = useRef("");
   const speechSessionActiveRef = useRef(false);
@@ -436,6 +440,117 @@ function AdminChatPageContent() {
   } = useSpeechToText();
   const handleTranscriptionCompleteRef = useRef<((text: string) => void) | null>(null);
   const replaceMessageVariablesRef = useRef<((message: string) => string) | null>(null);
+
+  // ------------------------------------------------------------------------
+  // Polling fallback for `running` UX-Journey cards.
+  //
+  // Mirrors the same logic used in apps/web/app/chat/page.tsx — see the
+  // comment block there for the full rationale. In short: when SSE drops
+  // mid-flight (network blip, HTTP/2 reset, server restart) the card would
+  // otherwise sit at `status: "running"` forever. This loop polls each
+  // running journey directly against the agent so the card transitions
+  // even when the chat stream is dead.
+  // ------------------------------------------------------------------------
+  useEffect(() => {
+    let cancelled = false;
+    const tick = async () => {
+      if (cancelled) return;
+      const running = messagesRef.current.filter(
+        (m) => m.uxJourney?.status === "running" && !!m.uxJourney.jobId,
+      );
+      if (running.length > 0) {
+        await Promise.all(
+          running.map(async (m) => {
+            const jobId = m.uxJourney!.jobId;
+            try {
+              const res = await fetch(API_ROUTES.uxJourneyAgentStatus(jobId), {
+                cache: "no-store",
+              });
+              if (!res.ok) return;
+              const data = (await res.json().catch(() => ({}))) as {
+                status?: string;
+                error?: string;
+                result?: {
+                  success?: boolean | null;
+                  steps?: any[];
+                  videoUrl?: string;
+                };
+              };
+              if (cancelled) return;
+              const st = String(data?.status || "").toLowerCase();
+              const result = data?.result ?? {};
+              const success = result?.success;
+              const errStr =
+                typeof data?.error === "string" && data.error ? data.error : null;
+              const isTerminal =
+                st === "complete" ||
+                st === "error" ||
+                success === true ||
+                success === false;
+              if (isTerminal) {
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === m.id
+                      ? {
+                          ...msg,
+                          uxJourney: {
+                            ...(msg.uxJourney ?? { jobId }),
+                            jobId,
+                            status:
+                              errStr || success === false
+                                ? "error"
+                                : "complete",
+                            videoUrl: result.videoUrl
+                              ? API_ROUTES.uxJourneyAgentVideo(jobId)
+                              : msg.uxJourney?.videoUrl,
+                            error: errStr,
+                            steps: Array.isArray(result.steps)
+                              ? result.steps
+                              : msg.uxJourney?.steps,
+                            stepsTotal: Array.isArray(result.steps)
+                              ? result.steps.length
+                              : msg.uxJourney?.stepsTotal,
+                          },
+                        }
+                      : msg,
+                  ),
+                );
+              } else if (Array.isArray(result.steps) && result.steps.length > 0) {
+                const fresh = result.steps;
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === m.id
+                      ? {
+                          ...msg,
+                          uxJourney: {
+                            ...(msg.uxJourney ?? { jobId }),
+                            jobId,
+                            status: "running",
+                            steps: fresh.slice(-12),
+                            stepsTotal: fresh.length,
+                            lastProgressAt: Date.now(),
+                          },
+                        }
+                      : msg,
+                  ),
+                );
+              }
+            } catch {
+              /* best-effort: try again next tick */
+            }
+          }),
+        );
+      }
+      if (!cancelled) {
+        setTimeout(tick, 4000);
+      }
+    };
+    const startTimer = setTimeout(tick, 6000);
+    return () => {
+      cancelled = true;
+      clearTimeout(startTimer);
+    };
+  }, []);
 
   const {
     recording: whisperRecording,
@@ -1887,12 +2002,21 @@ function AdminChatPageContent() {
           errorMsg = "The AI service is currently overloaded. Please try again in a few moments.";
         }
 
+        // Don't blank the persona bubble when a UX-Journey is still running
+        // or when the persona already streamed real content. The polling
+        // fallback (effect above) will close the journey out and the user
+        // sees the partial reply + the toast — better than a raw network
+        // error string clobbering the answer.
         setMessages((prev) => {
           const updated = [...prev];
           const personaMsg = updated.find((m) => m.id === personaMessageId);
           if (personaMsg) {
-            personaMsg.content = errorMsg;
-            personaMsg.role = "system";
+            const hasRunningJourney = personaMsg.uxJourney?.status === "running";
+            const hasContent = (personaMsg.content ?? "").trim().length > 0;
+            if (!hasRunningJourney && !hasContent) {
+              personaMsg.content = errorMsg;
+              personaMsg.role = "system";
+            }
           }
           return updated;
         });
@@ -1943,8 +2067,15 @@ function AdminChatPageContent() {
         const updated = [...prev];
         const personaMsg = updated.find((m) => m.id === personaMessageId);
         if (personaMsg) {
-          personaMsg.content = errorMessage;
-          personaMsg.role = "system";
+          const hasRunningJourney = personaMsg.uxJourney?.status === "running";
+          const hasContent = (personaMsg.content ?? "").trim().length > 0;
+          if (!hasRunningJourney && !hasContent) {
+            // Same rule as the streamErr branch: only blank the bubble when
+            // the user has nothing else to look at. Otherwise the polling
+            // fallback handles the journey and the toast carries the error.
+            personaMsg.content = errorMessage;
+            personaMsg.role = "system";
+          }
         }
         return updated;
       });
