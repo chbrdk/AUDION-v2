@@ -7,6 +7,8 @@ import {
   AccordionSummary,
   alpha,
   Box,
+  Button,
+  CircularProgress,
   Dialog,
   IconButton,
   Stack,
@@ -41,9 +43,22 @@ type Message = {
   reasoning?: string;
   /** Optional structured UX Journey Agent payload (renders as cards). */
   uxJourney?: {
+    /**
+     * Upstream ux-journey-agent job id. Empty until the LLM's `inspect_website`
+     * call has actually been approved and the agent run has started.
+     */
     jobId: string;
     url?: string;
-    status?: "running" | "complete" | "error";
+    /**
+     * Card lifecycle:
+     *  - "proposed": LLM asked permission, waiting for user click (confirm CTA).
+     *  - "approved": user clicked Yes; waiting for the agent to start (spinner).
+     *  - "running":  agent is browsing — live frame + streaming steps.
+     *  - "complete": done — video + final steps.
+     *  - "denied":   user clicked No; LLM continues without browsing.
+     *  - "error":    upstream/agent error (shown via `error` field).
+     */
+    status?: "proposed" | "approved" | "running" | "complete" | "denied" | "error";
     liveUrl?: string;
     videoUrl?: string;
     /** Total steps seen for this run (even if steps[] is just a preview). */
@@ -68,6 +83,18 @@ type Message = {
       result?: string | null;
       timestamp?: string;
     }>;
+    /**
+     * Pending human-in-the-loop confirmation. Present while `status === "proposed"`
+     * (and briefly after the user clicks until the SSE state transitions).
+     */
+    pendingDecision?: {
+      callId: string;
+      promptText?: string | null;
+      task?: string | null;
+      maxSteps?: number | null;
+      /** Local optimistic state once the user clicked but before the SSE-side transition lands. */
+      submitting?: boolean;
+    };
     error?: string | null;
   };
 };
@@ -75,6 +102,24 @@ type Message = {
 type MsqdxGlassChatPanelProps = {
   messages: Message[];
   systemPrompt?: string; // Optional: System prompt to display in tooltip
+  /**
+   * Called when the user clicks Approve/Deny on a pending `inspect_website`
+   * proposal. The page is responsible for POSTing to the chat-api decision
+   * endpoint and updating local state (incl. `pendingDecision.submitting`).
+   * No-op safe — when omitted, the confirm CTA is hidden.
+   */
+  onUxJourneyDecision?: (params: {
+    messageId: string;
+    callId: string;
+    decision: "approve" | "deny";
+  }) => void;
+  /**
+   * Called when the user clicks the inline "Live ansehen?" hint chip on a
+   * persona reply that mentions a URL but has no journey card yet. The
+   * implementation typically dispatches a follow-up user message that the
+   * persona will then react to (and, if approved, browse).
+   */
+  onInspectWebsite?: (params: { messageId: string; url: string }) => void;
 };
 
 /** Embedded data URL or agent-relative `screenshotUrl` (proxied via `/api/ux-journey-agent`). */
@@ -115,7 +160,49 @@ const uxJourneyStepLabelSx = {
   color: "var(--color-theme-accent)",
 } as const;
 
-export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPanelProps) => {
+/** First absolute http(s) URL in a string, or null. Used by the inline hint chip. */
+const URL_RE = /\bhttps?:\/\/[^\s)]+/i;
+function firstUrlInText(text: string | null | undefined): string | null {
+  if (!text) return null;
+  const m = text.match(URL_RE);
+  if (!m) return null;
+  // Strip a few common trailing punctuation marks to avoid '...porsche.de.' etc.
+  return m[0].replace(/[.,!?;:)]+$/g, "");
+}
+
+type UxJourneyStatus = NonNullable<NonNullable<Message["uxJourney"]>["status"]>;
+
+/** Short label + tone color for the prominent status pill on the card. */
+function statusPillStyle(status: UxJourneyStatus | undefined): {
+  label: string;
+  bg: string;
+  fg: string;
+  border: string;
+} {
+  switch (status) {
+    case "proposed":
+      return { label: "Bestätigung nötig", bg: alpha("#f59e0b", 0.18), fg: "#92400e", border: alpha("#f59e0b", 0.45) };
+    case "approved":
+      return { label: "Bereit · startet…", bg: alpha("#0ea5e9", 0.16), fg: "#0369a1", border: alpha("#0ea5e9", 0.42) };
+    case "running":
+      return { label: "Live · läuft", bg: alpha("#2563eb", 0.16), fg: "#1d4ed8", border: alpha("#2563eb", 0.42) };
+    case "complete":
+      return { label: "Abgeschlossen", bg: alpha("#16a34a", 0.16), fg: "#15803d", border: alpha("#16a34a", 0.42) };
+    case "denied":
+      return { label: "Abgelehnt", bg: alpha("#6b7280", 0.16), fg: "#374151", border: alpha("#6b7280", 0.42) };
+    case "error":
+      return { label: "Fehler", bg: alpha("#dc2626", 0.16), fg: "#991b1b", border: alpha("#dc2626", 0.42) };
+    default:
+      return { label: status ?? "—", bg: alpha("#6b7280", 0.12), fg: "#374151", border: alpha("#6b7280", 0.32) };
+  }
+}
+
+export const MsqdxGlassChatPanel = ({
+  messages,
+  systemPrompt,
+  onUxJourneyDecision,
+  onInspectWebsite,
+}: MsqdxGlassChatPanelProps) => {
   const bottomRef = useRef<HTMLDivElement>(null);
   /**
    * Tracks whether the user is "stuck" at the bottom of the conversation.
@@ -617,35 +704,239 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                       </AccordionDetails>
                     </Accordion>
                   ) : null}
-                  {message.uxJourney ? (
-                    <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center" }}>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                          {t("chat.uxJourney.title")}
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                          {message.uxJourney.jobId}
-                        </Typography>
-                        {message.uxJourney.status ? (
-                          <Box
-                            sx={{
-                              px: 1,
-                              py: 0.25,
-                              borderRadius: 999,
-                              border: `1px solid ${alpha(theme.palette.divider, 0.7)}`,
-                              backgroundColor: alpha(theme.palette.background.paper, 0.5),
-                            }}
-                          >
-                            <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                              {message.uxJourney.status === "running"
-                                ? t("chat.uxJourney.statusRunning")
-                                : message.uxJourney.status === "complete"
-                                  ? t("chat.uxJourney.statusComplete")
-                                  : t("chat.uxJourney.statusError")}
-                            </Typography>
+                  {/* Persona reply / system text — always renders, even alongside the UX-journey card. */}
+                  {message.content ? <ChatMessageMarkdown content={message.content} /> : null}
+
+                  {/* Inline "Live ansehen?" hint when persona mentions a URL but didn't trigger the tool. */}
+                  {!message.uxJourney && message.role === "persona" && onInspectWebsite
+                    ? (() => {
+                        const url = firstUrlInText(message.content);
+                        if (!url) return null;
+                        return (
+                          <Box sx={{ mt: 1 }}>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              startIcon={<MsqdxIcon name="travel_explore" customSize={16} />}
+                              onClick={() => onInspectWebsite({ messageId: message.id, url })}
+                              sx={{
+                                borderRadius: 999,
+                                textTransform: "none",
+                                px: 1.25,
+                                py: 0.25,
+                                fontSize: "0.75rem",
+                                fontWeight: 600,
+                                color: "var(--color-theme-accent)",
+                                borderColor: "var(--color-theme-accent)",
+                                "&:hover": {
+                                  borderColor: "var(--color-theme-accent)",
+                                  backgroundColor: alpha(theme.palette.text.primary, 0.04),
+                                },
+                              }}
+                            >
+                              {t("chat.uxJourney.inspectHint", { defaultValue: "Live ansehen?" })}
+                              <Typography
+                                component="span"
+                                sx={{ ml: 0.75, color: "text.secondary", fontWeight: 500, fontSize: "0.7rem" }}
+                              >
+                                {url}
+                              </Typography>
+                            </Button>
                           </Box>
+                        );
+                      })()
+                    : null}
+
+                  {message.uxJourney ? (
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 1,
+                        mt: message.content ? 1 : 0,
+                        p: 1.25,
+                        borderRadius: 2,
+                        border: `1px solid ${alpha(theme.palette.divider, 0.7)}`,
+                        backgroundColor: alpha(theme.palette.background.paper, 0.35),
+                      }}
+                    >
+                      {/* --- Header row: status pill + URL/jobId --- */}
+                      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, alignItems: "center" }}>
+                        {(() => {
+                          const tone = statusPillStyle(message.uxJourney.status);
+                          return (
+                            <Box
+                              sx={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 0.5,
+                                px: 1,
+                                py: 0.25,
+                                borderRadius: 999,
+                                border: `1px solid ${tone.border}`,
+                                backgroundColor: tone.bg,
+                                color: tone.fg,
+                              }}
+                            >
+                              {message.uxJourney.status === "running" ||
+                              message.uxJourney.status === "approved" ? (
+                                <CircularProgress size={11} thickness={6} sx={{ color: tone.fg }} />
+                              ) : (
+                                <MsqdxIcon
+                                  name={
+                                    message.uxJourney.status === "complete"
+                                      ? "check_circle"
+                                      : message.uxJourney.status === "proposed"
+                                        ? "help_outline"
+                                        : message.uxJourney.status === "denied"
+                                          ? "cancel"
+                                          : message.uxJourney.status === "error"
+                                            ? "error_outline"
+                                            : "bolt"
+                                  }
+                                  customSize={14}
+                                />
+                              )}
+                              <Typography
+                                variant="caption"
+                                sx={{ fontWeight: 700, letterSpacing: 0.3, color: tone.fg }}
+                              >
+                                {tone.label}
+                              </Typography>
+                            </Box>
+                          );
+                        })()}
+                        {message.uxJourney.url ? (
+                          <Tooltip title={message.uxJourney.url}>
+                            <Typography
+                              component="a"
+                              href={message.uxJourney.url}
+                              target="_blank"
+                              rel="noreferrer noopener"
+                              variant="caption"
+                              sx={{
+                                fontFamily: MSQDX_TYPOGRAPHY.fontFamily.mono,
+                                color: "text.secondary",
+                                textDecoration: "none",
+                                maxWidth: 320,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                                "&:hover": { textDecoration: "underline" },
+                              }}
+                            >
+                              {message.uxJourney.url}
+                            </Typography>
+                          </Tooltip>
+                        ) : null}
+                        {message.uxJourney.jobId ? (
+                          <Typography
+                            variant="caption"
+                            sx={{ ml: "auto", color: "text.secondary", fontFamily: MSQDX_TYPOGRAPHY.fontFamily.mono }}
+                          >
+                            #{message.uxJourney.jobId.slice(0, 8)}
+                          </Typography>
                         ) : null}
                       </Box>
+
+                      {/* --- proposed: confirm CTA --- */}
+                      {message.uxJourney.status === "proposed" && message.uxJourney.pendingDecision ? (
+                        <Box
+                          sx={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 1,
+                            p: 1.25,
+                            borderRadius: 2,
+                            backgroundColor: alpha("#f59e0b", 0.06),
+                            border: `1px dashed ${alpha("#f59e0b", 0.45)}`,
+                          }}
+                        >
+                          <Box sx={uxJourneyStepMarkdownSx}>
+                            <ChatMessageMarkdown
+                              dense
+                              content={
+                                message.uxJourney.pendingDecision.promptText ??
+                                `Soll ich **${message.uxJourney.url ?? "diese Seite"}** live im Browser besuchen?`
+                              }
+                            />
+                          </Box>
+                          {message.uxJourney.pendingDecision.task ? (
+                            <Typography
+                              variant="caption"
+                              sx={{ color: "text.secondary", fontStyle: "italic" }}
+                            >
+                              {t("chat.uxJourney.task", { defaultValue: "Auftrag" })}: {message.uxJourney.pendingDecision.task}
+                            </Typography>
+                          ) : null}
+                          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                            <Button
+                              size="small"
+                              variant="contained"
+                              disabled={
+                                !onUxJourneyDecision || message.uxJourney.pendingDecision.submitting
+                              }
+                              startIcon={
+                                message.uxJourney.pendingDecision.submitting ? (
+                                  <CircularProgress size={14} thickness={6} sx={{ color: "inherit" }} />
+                                ) : (
+                                  <MsqdxIcon name="play_arrow" customSize={16} />
+                                )
+                              }
+                              onClick={() => {
+                                if (!onUxJourneyDecision || !message.uxJourney?.pendingDecision) return;
+                                onUxJourneyDecision({
+                                  messageId: message.id,
+                                  callId: message.uxJourney.pendingDecision.callId,
+                                  decision: "approve",
+                                });
+                              }}
+                              sx={{ textTransform: "none", borderRadius: 999, px: 1.5 }}
+                            >
+                              {t("chat.uxJourney.confirmYes", { defaultValue: "Ja, jetzt besuchen" })}
+                            </Button>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              disabled={
+                                !onUxJourneyDecision || message.uxJourney.pendingDecision.submitting
+                              }
+                              startIcon={<MsqdxIcon name="block" customSize={16} />}
+                              onClick={() => {
+                                if (!onUxJourneyDecision || !message.uxJourney?.pendingDecision) return;
+                                onUxJourneyDecision({
+                                  messageId: message.id,
+                                  callId: message.uxJourney.pendingDecision.callId,
+                                  decision: "deny",
+                                });
+                              }}
+                              sx={{ textTransform: "none", borderRadius: 999, px: 1.5 }}
+                            >
+                              {t("chat.uxJourney.confirmNo", { defaultValue: "Nein, antworte ohne" })}
+                            </Button>
+                          </Box>
+                        </Box>
+                      ) : null}
+
+                      {/* --- approved: brief spinner while we wait for tool_started --- */}
+                      {message.uxJourney.status === "approved" ? (
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, color: "text.secondary" }}>
+                          <CircularProgress size={14} thickness={6} />
+                          <Typography variant="caption">
+                            {t("chat.uxJourney.starting", { defaultValue: "Browser-Agent startet…" })}
+                          </Typography>
+                        </Box>
+                      ) : null}
+
+                      {/* --- denied: short note (LLM continues with normal reply above) --- */}
+                      {message.uxJourney.status === "denied" ? (
+                        <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                          {t("chat.uxJourney.deniedNote", {
+                            defaultValue:
+                              "Die Persona darf diese Seite nicht live besuchen. Sie antwortet stattdessen aus eigenem Wissen.",
+                          })}
+                        </Typography>
+                      ) : null}
 
                       {message.uxJourney.personaPolicy?.dimensions ? (
                         <Box
@@ -724,15 +1015,37 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                         </Box>
                       ) : null}
 
-                      <Box>
-                        <Typography variant="caption" sx={{ display: "block", mb: 0.5, color: "text.secondary" }}>
-                          {(() => {
-                            const shown = Array.isArray(message.uxJourney.steps) ? message.uxJourney.steps.length : 0;
-                            const total = typeof message.uxJourney.stepsTotal === "number" ? message.uxJourney.stepsTotal : undefined;
-                            if (total && total > 0) return `${t("chat.uxJourney.steps")} (${shown} ${t("chat.uxJourney.of")} ${total})`;
-                            return t("chat.uxJourney.steps");
-                          })()}
-                        </Typography>
+                      {/* --- Steps drill-down. Hidden during the proposed/approved/denied
+                          phases (no steps yet / no value), and default-collapsed once the
+                          run is complete so the persona summary above stays the focus. --- */}
+                      {message.uxJourney.status !== "proposed" &&
+                      message.uxJourney.status !== "approved" &&
+                      message.uxJourney.status !== "denied" ? (
+                        <Accordion
+                          defaultExpanded={message.uxJourney.status === "running"}
+                          disableGutters
+                          elevation={0}
+                          sx={{
+                            bgcolor: "transparent",
+                            borderTop: `1px solid ${alpha(theme.palette.divider, 0.55)}`,
+                            pt: 0.5,
+                            "&:before": { display: "none" },
+                          }}
+                        >
+                          <AccordionSummary
+                            expandIcon={<MsqdxIcon name="expand_more" customSize={18} />}
+                            sx={{ px: 0, minHeight: 34, "& .MuiAccordionSummary-content": { my: 0 } }}
+                          >
+                            <Typography variant="caption" sx={{ ...uxJourneyStepLabelSx, color: "text.secondary" }}>
+                              {(() => {
+                                const shown = Array.isArray(message.uxJourney?.steps) ? message.uxJourney.steps.length : 0;
+                                const total = typeof message.uxJourney?.stepsTotal === "number" ? message.uxJourney.stepsTotal : undefined;
+                                if (total && total > 0) return `${t("chat.uxJourney.steps")} (${shown} ${t("chat.uxJourney.of")} ${total})`;
+                                return t("chat.uxJourney.steps");
+                              })()}
+                            </Typography>
+                          </AccordionSummary>
+                          <AccordionDetails sx={{ px: 0, pt: 0.5 }}>
                         {Array.isArray(message.uxJourney.steps) && message.uxJourney.steps.length ? (
                           <Box sx={{ display: "flex", gap: 1, overflowX: "auto", pb: 0.5, scrollSnapType: "x mandatory" }}>
                             {message.uxJourney.steps.map((s, idx) => (
@@ -982,7 +1295,9 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                             {message.uxJourney.status === "running" ? "Waiting for steps…" : "No steps."}
                           </Typography>
                         )}
-                      </Box>
+                          </AccordionDetails>
+                        </Accordion>
+                      ) : null}
 
                       {message.uxJourney.error ? (
                         <Typography variant="body2" sx={{ color: "error.main" }}>
@@ -990,9 +1305,7 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                         </Typography>
                       ) : null}
                     </Box>
-                  ) : (
-                    <ChatMessageMarkdown content={message.content} />
-                  )}
+                  ) : null}
                 </Box>
                 
                 {message.document_attachment_meta && message.document_attachment_meta.length > 0 && (

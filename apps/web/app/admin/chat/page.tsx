@@ -241,12 +241,19 @@ type Message = {
   uxJourney?: {
     jobId: string;
     url?: string;
-    status?: "running" | "complete" | "error";
+    status?: "proposed" | "approved" | "running" | "complete" | "denied" | "error";
     liveUrl?: string;
     videoUrl?: string;
     stepsTotal?: number;
     personaPolicy?: any;
     steps?: any[];
+    pendingDecision?: {
+      callId: string;
+      promptText?: string | null;
+      task?: string | null;
+      maxSteps?: number | null;
+      submitting?: boolean;
+    };
     error?: string | null;
   };
 };
@@ -818,7 +825,68 @@ function AdminChatPageContent() {
     );
   };
 
+  /** Approve/Deny click from a `tool_proposed` confirm CTA (admin chat).
+   *  Mirrors apps/web/app/chat/page.tsx — see comment there for the lifecycle. */
+  const handleUxJourneyDecision = async ({
+    messageId,
+    callId,
+    decision,
+  }: {
+    messageId: string;
+    callId: string;
+    decision: "approve" | "deny";
+  }) => {
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (m.id !== messageId) return m;
+        const prevJourney = m.uxJourney ?? { jobId: "" };
+        return {
+          ...m,
+          uxJourney: {
+            ...prevJourney,
+            status: decision === "approve" ? "approved" : "denied",
+            pendingDecision:
+              decision === "approve"
+                ? { callId, submitting: true }
+                : undefined,
+          },
+        };
+      }),
+    );
+    try {
+      const apiBase = getChatApiBase();
+      await fetch(`${apiBase}/tool-call/decision/${encodeURIComponent(callId)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ decision }),
+      });
+    } catch (err) {
+      console.warn("ux-journey decision POST failed", err);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId
+            ? {
+                ...m,
+                uxJourney: {
+                  ...(m.uxJourney ?? { jobId: "" }),
+                  status: "error",
+                  error:
+                    "Could not deliver your decision to the server. The persona will fall back to no-browse mode after a short timeout.",
+                },
+              }
+            : m,
+        ),
+      );
+    }
+  };
 
+  /** "Live ansehen?" hint chip → triggers a follow-up user message. */
+  const handleInspectHintClick = ({ url }: { url: string }) => {
+    if (sending) return;
+    if (handleSendRef.current) {
+      void handleSendRef.current(`Schau dir ${url} an, was fällt dir auf?`);
+    }
+  };
 
   useEffect(() => {
     const loadPersonas = async () => {
@@ -1652,6 +1720,46 @@ function AdminChatPageContent() {
           } else if (parsedData.type === "reasoning_delta" && parsedData.delta) {
             appendReasoningDelta(personaMessageId, parsedData.delta);
           } else if (
+            parsedData.type === "tool_proposed" &&
+            parsedData.tool === "inspect_website" &&
+            parsedData.callId
+          ) {
+            // Human-in-the-loop: the LLM wants to inspect a website, but
+            // server-side policy paused before actually calling the agent.
+            // Render a confirm CTA on the persona bubble; the user's click
+            // POSTs back to /api/chat/tool-call/decision/{callId}.
+            const callId: string = parsedData.callId;
+            const args = (parsedData.arguments ?? {}) as {
+              url?: string;
+              task?: string;
+              max_steps?: number;
+            };
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === personaMessageId
+                  ? {
+                      ...m,
+                      uxJourney: {
+                        ...(m.uxJourney ?? {}),
+                        jobId: m.uxJourney?.jobId ?? "",
+                        url: args.url,
+                        status: "proposed",
+                        steps: m.uxJourney?.steps ?? [],
+                        stepsTotal: m.uxJourney?.stepsTotal ?? 0,
+                        pendingDecision: {
+                          callId,
+                          promptText: parsedData.promptText ?? null,
+                          task: args.task ?? null,
+                          maxSteps:
+                            typeof args.max_steps === "number" ? args.max_steps : null,
+                          submitting: false,
+                        },
+                      },
+                    }
+                  : m,
+              ),
+            );
+          } else if (
             parsedData.type === "tool_started" &&
             parsedData.tool === "inspect_website" &&
             parsedData.jobId
@@ -1674,6 +1782,8 @@ function AdminChatPageContent() {
                         liveUrl: API_ROUTES.uxJourneyAgentLiveStream(jobId),
                         steps: m.uxJourney?.steps ?? [],
                         stepsTotal: m.uxJourney?.stepsTotal ?? 0,
+                        // Decision actioned; clear the confirm CTA state.
+                        pendingDecision: undefined,
                       },
                     }
                   : m,
@@ -3035,7 +3145,12 @@ function AdminChatPageContent() {
               </Box>
             ) : (
               <Box sx={{ width: "100%", minHeight: 0, flex: 1, alignSelf: "stretch", display: "flex", flexDirection: "column" }}>
-                <MsqdxGlassChatPanel messages={messages} systemPrompt={currentSystemPrompt} />
+                <MsqdxGlassChatPanel
+                  messages={messages}
+                  systemPrompt={currentSystemPrompt}
+                  onUxJourneyDecision={handleUxJourneyDecision}
+                  onInspectWebsite={handleInspectHintClick}
+                />
               </Box>
             )}
           </Box>

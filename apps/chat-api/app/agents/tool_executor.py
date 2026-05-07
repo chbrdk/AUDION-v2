@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import time
+import uuid
 from typing import Any, Callable, Dict, List, Optional
 from uuid import UUID
 
@@ -16,7 +17,13 @@ import structlog
 
 from sqlalchemy import select
 
-from ..agents.events import ToolCompletedEvent, ToolProgressEvent, ToolStartedEvent
+from ..agents import tool_decisions
+from ..agents.events import (
+    ToolCompletedEvent,
+    ToolProgressEvent,
+    ToolProposedEvent,
+    ToolStartedEvent,
+)
 from ..agents.retrieval import RetrievalAgent
 from ..core.config import get_settings
 from ..db import get_session
@@ -335,6 +342,63 @@ class ToolExecutor:
                 ),
             }
 
+        # Step 0: optional human-in-the-loop confirmation. The persona agent
+        # runs this coroutine inside `asyncio.run(...)` from the worker thread
+        # (see PersonaAgent._stream_response_with_tools), so we can safely
+        # off-load the blocking `threading.Event.wait` to a thread without
+        # starving the chat-api FastAPI loop.
+        if settings.chat_action_tools_require_confirmation and send_event is not None:
+            persona_name = (
+                (persona_context or {}).get("name") if isinstance(persona_context, dict) else None
+            )
+            call_id = uuid.uuid4().hex
+            tool_decisions.register(call_id)
+            try:
+                send_event(
+                    ToolProposedEvent(
+                        tool="inspect_website",
+                        call_id=call_id,
+                        arguments={"url": url, "task": task, "max_steps": max_steps},
+                        prompt_text=_build_confirm_prompt(url=url, task=task, persona_name=persona_name),
+                    )
+                )
+            except Exception as exc:
+                logger.warning("tool_executor.inspect_website.proposed_event_failed", error=str(exc))
+                tool_decisions.cancel_pending(call_id)
+                # Fail closed: don't silently auto-run if the proposal can't reach the user.
+                return {
+                    "ok": False,
+                    "denied": True,
+                    "error": "Could not send the confirmation prompt to the user.",
+                }
+
+            confirm_timeout = float(settings.chat_action_tools_confirmation_timeout_seconds or 120.0)
+            decision, reason = await asyncio.to_thread(
+                tool_decisions.wait_for_decision,
+                call_id,
+                timeout_seconds=confirm_timeout,
+            )
+            logger.info(
+                "tool_executor.inspect_website.decision",
+                call_id=call_id,
+                decision=decision,
+                reason=reason,
+            )
+            if decision == "deny":
+                # Return a structured tool result the LLM can react to. The
+                # persona prompt instructs it to acknowledge the user's "no"
+                # gracefully and continue without browsing.
+                return {
+                    "ok": False,
+                    "denied": True,
+                    "call_id": call_id,
+                    "reason": reason or "User declined the website inspection.",
+                    "summary_text": (
+                        f"User declined to let me browse {url}. I will answer based on "
+                        f"what I already know without visiting the site."
+                    ),
+                }
+
         run_payload = {
             "url": url,
             "task": task,
@@ -554,6 +618,21 @@ class ToolExecutor:
         if final_error:
             tool_result["error"] = final_error
         return tool_result
+
+
+def _build_confirm_prompt(*, url: str, task: str, persona_name: str | None) -> str:
+    """
+    Short German confirm-prompt rendered in the chat UI's confirm CTA. We keep
+    the language deliberately simple so the same string works whether the
+    user chats in DE or EN — the persona's actual reply later will pick up the
+    user's language.
+    """
+    who = (persona_name or "").strip() or "die Persona"
+    short_task = task if len(task) <= 140 else task[:137].rstrip() + "…"
+    return (
+        f"Soll {who} **{url}** live im Browser besuchen?\n\n"
+        f"_Auftrag: {short_task}_"
+    )
 
 
 def _compact_step_for_sse(step: Dict[str, Any]) -> Dict[str, Any]:

@@ -27,6 +27,28 @@ class _ToolEventBase(BaseModel):
     job_id: str = Field(..., description="Upstream job id (UUID from ux-journey-agent /run).")
 
 
+class ToolProposedEvent(BaseModel):
+    """
+    Emitted when an action tool is about to run and the policy requires the
+    user to approve first. Frontend shows a confirm CTA on the persona bubble;
+    the user's decision flows back via `POST /chat/tool-call/decision/{call_id}`.
+
+    Note: `job_id` is intentionally NOT part of this event — at this point the
+    upstream ux-journey-agent has not been called yet. We use a `call_id` that
+    is unique per tool invocation in this chat.
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    tool: str = Field(..., description="Tool name (e.g. 'inspect_website').")
+    call_id: str = Field(..., description="Per-call id used to route the user decision back.")
+    arguments: Dict[str, Any] = Field(default_factory=dict, description="The tool arguments the LLM proposed.")
+    prompt_text: Optional[str] = Field(
+        default=None,
+        description="Human-readable prompt rendered in the confirm UI (e.g. 'Soll ich porsche.de live ansehen?').",
+    )
+
+
 class ToolStartedEvent(_ToolEventBase):
     """Emitted right after a long-running tool acquired its upstream job id."""
 

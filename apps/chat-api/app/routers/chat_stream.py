@@ -13,7 +13,12 @@ from typing import Any, AsyncIterator, Dict, List, Optional
 import structlog
 from msqdx_glass_proto import CompleteEvent, ContentDeltaEvent, ReasoningDeltaEvent, SourcesEvent, ThinkingEvent
 
-from ..agents.events import ToolCompletedEvent, ToolProgressEvent, ToolStartedEvent
+from ..agents.events import (
+    ToolCompletedEvent,
+    ToolProgressEvent,
+    ToolProposedEvent,
+    ToolStartedEvent,
+)
 from ..core.config import get_settings
 from ..services.usage_report import report_retrieval_query_usage, report_usage
 from ..utils.openai_chat_stream import iter_chat_completion_stream_parts
@@ -86,6 +91,20 @@ def _event_to_sse_chunks(
                 event_type="chat_message",
                 raw_units={"runs": 1},
             )
+    elif isinstance(event, ToolProposedEvent):
+        chunks.append(
+            "data: "
+            + json.dumps(
+                {
+                    "type": "tool_proposed",
+                    "tool": event.tool,
+                    "callId": event.call_id,
+                    "arguments": event.arguments,
+                    "promptText": event.prompt_text,
+                }
+            )
+            + "\n\n"
+        )
     elif isinstance(event, ToolStartedEvent):
         chunks.append(
             "data: "

@@ -127,11 +127,18 @@ type UxJourneyStep = {
 type UxJourneyPayload = {
   jobId: string;
   url?: string;
-  status?: "running" | "complete" | "error";
+  status?: "proposed" | "approved" | "running" | "complete" | "denied" | "error";
   liveUrl?: string;
   videoUrl?: string;
   stepsTotal?: number;
   steps?: UxJourneyStep[];
+  pendingDecision?: {
+    callId: string;
+    promptText?: string | null;
+    task?: string | null;
+    maxSteps?: number | null;
+    submitting?: boolean;
+  };
   error?: string | null;
 };
 
@@ -641,11 +648,76 @@ function ChatSharePageContent() {
     );
   };
 
-  const handleSend = async () => {
-    const text = input.trim();
+  /** Optimistically updates the bubble and POSTs the user's verdict to the
+   *  chat-api decision endpoint. The chat-api worker thread that's parked in
+   *  `wait_for_decision` then continues the LLM tool loop (or returns a
+   *  synthetic deny tool result, which the LLM reacts to in the same SSE
+   *  stream). */
+  const handleUxJourneyDecision = async ({
+    messageId,
+    callId,
+    decision,
+  }: {
+    messageId: string;
+    callId: string;
+    decision: "approve" | "deny";
+  }) => {
+    setMessages((prev) =>
+      setUxJourneyOnMessage(prev, messageId, {
+        jobId: "",
+        status: decision === "approve" ? "approved" : "denied",
+        pendingDecision:
+          decision === "approve"
+            ? { callId, submitting: true }
+            : undefined,
+      }),
+    );
+    try {
+      const apiBase = getChatApiBase();
+      await fetch(`${apiBase}/tool-call/decision/${encodeURIComponent(callId)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ decision }),
+      });
+    } catch (err) {
+      // The chat-api endpoint itself almost never errors (it's a thin in-memory
+      // signal). Any network blip here would leave the worker thread to
+      // auto-deny via timeout — we surface a user-facing note instead of
+      // pretending nothing happened.
+      console.warn("ux-journey decision POST failed", err);
+      setMessages((prev) =>
+        setUxJourneyOnMessage(prev, messageId, {
+          jobId: "",
+          status: "error",
+          error: t("chat.uxJourney.decisionFailed", {
+            defaultValue:
+              "Could not deliver your decision to the server. The persona will fall back to no-browse mode after a short timeout.",
+          }),
+        }),
+      );
+    }
+  };
+
+  /** Inline "Live ansehen?" hint click → triggers a new user message that the
+   *  persona will react to (and then propose `inspect_website` on, which
+   *  re-enters the confirm flow). */
+  const handleInspectHintClick = ({ url }: { url: string }) => {
+    if (sending) return;
+    void handleSend(
+      t("chat.uxJourney.inspectFollowUp", {
+        defaultValue: `Schau dir ${url} an, was fällt dir auf?`,
+        url,
+      }),
+    );
+  };
+
+  const handleSend = async (overrideText?: string) => {
+    const text = (overrideText ?? input).trim();
     if (!personaIdParam || !persona || sending || !text) return;
 
-    setInput("");
+    if (!overrideText) {
+      setInput("");
+    }
     setSending(true);
     const userMsgId = `user-${Date.now()}`;
     const personaMsgId = `persona-${Date.now()}`;
@@ -751,6 +823,9 @@ function ChatSharePageContent() {
               error?: string;
               tool?: string;
               jobId?: string;
+              callId?: string;
+              arguments?: { url?: string; task?: string; max_steps?: number };
+              promptText?: string | null;
               url?: string;
               status?: string;
               steps?: UxJourneyStep[];
@@ -762,6 +837,29 @@ function ChatSharePageContent() {
               enqueueDelta(personaMsgId, parsed.delta);
             } else if (parsed.type === "reasoning_delta" && parsed.delta) {
               appendReasoningDelta(personaMsgId, parsed.delta);
+            } else if (
+              parsed.type === "tool_proposed" &&
+              parsed.tool === "inspect_website" &&
+              parsed.callId
+            ) {
+              const callId = parsed.callId;
+              const args = parsed.arguments ?? {};
+              setMessages((prev) =>
+                setUxJourneyOnMessage(prev, personaMsgId, {
+                  jobId: "",
+                  url: args.url,
+                  status: "proposed",
+                  steps: [],
+                  stepsTotal: 0,
+                  pendingDecision: {
+                    callId,
+                    promptText: parsed.promptText ?? null,
+                    task: args.task ?? null,
+                    maxSteps: typeof args.max_steps === "number" ? args.max_steps : null,
+                    submitting: false,
+                  },
+                }),
+              );
             } else if (
               parsed.type === "tool_started" &&
               parsed.tool === "inspect_website" &&
@@ -776,6 +874,8 @@ function ChatSharePageContent() {
                   liveUrl: API_ROUTES.uxJourneyAgentLiveStream(jobId),
                   steps: [],
                   stepsTotal: 0,
+                  // Decision was actioned; the confirm CTA is gone.
+                  pendingDecision: undefined,
                 }),
               );
             } else if (
@@ -955,7 +1055,11 @@ function ChatSharePageContent() {
         ) : (
           <Box sx={{ width: "100%", minHeight: 0, flex: 1 }}>
             {moodboardPreview}
-            <MsqdxGlassChatPanel messages={messages} />
+            <MsqdxGlassChatPanel
+              messages={messages}
+              onUxJourneyDecision={handleUxJourneyDecision}
+              onInspectWebsite={handleInspectHintClick}
+            />
           </Box>
         )}
       </Box>

@@ -10,6 +10,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import select
 
+from ..agents import tool_decisions
 from ..core.config import get_settings
 from ..core.http_exceptions import exception_to_http
 from ..db import get_session
@@ -529,3 +530,48 @@ async def send_message_stream(request: ChatMessageRequest, _: None = Depends(ver
             "X-Content-Type-Options": "nosniff",
         },
     )
+
+
+class ToolCallDecisionRequest(BaseModel):
+    """User's verdict on a pending action-tool proposal (see tool_decisions.py)."""
+
+    decision: str = Field(..., description="'approve' or 'deny'")
+    reason: str | None = Field(default=None, description="Optional free-form note from the user.")
+
+    @model_validator(mode="after")
+    def validate_decision(self):
+        if self.decision not in ("approve", "deny"):
+            raise ValueError("decision must be 'approve' or 'deny'")
+        return self
+
+
+@router.post("/tool-call/decision/{call_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def submit_tool_call_decision(
+    call_id: str,
+    body: ToolCallDecisionRequest,
+    _: None = Depends(verify_request_token),
+):
+    """
+    Receives the user's approve/deny click for a pending action-tool proposal
+    and unblocks the chat-api worker thread that's currently parked in
+    `tool_decisions.wait_for_decision(...)`.
+
+    Idempotent: a second call for the same `call_id` is a 200/204 NOOP — the
+    decision lives only until the worker reads it once.
+    """
+    accepted = tool_decisions.record_decision(
+        call_id,
+        decision=body.decision,  # type: ignore[arg-type]
+        reason=body.reason,
+    )
+    logger.info(
+        "chat.tool_call.decision",
+        call_id=call_id,
+        decision=body.decision,
+        accepted=accepted,
+    )
+    # We deliberately return 204 even when no slot was waiting — the typical
+    # cause is the chat request already timed out / aborted, in which case the
+    # frontend doesn't need a different code path. The user just sees the
+    # bubble's status fall back to "denied" / "expired" via the SSE path.
+    return None

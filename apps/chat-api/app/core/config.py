@@ -51,6 +51,15 @@ class Settings(BaseSettings):
     # are gated by their own toggle, since they have side effects and require
     # the ux-journey-agent service to be reachable.
     chat_action_tools_enabled: bool = True
+    # Human-in-the-loop confirmation for action tools. When True, the persona
+    # agent emits a `tool_proposed` SSE event and BLOCKS the worker thread
+    # until the user clicks Approve/Deny in the chat UI (see
+    # `app/agents/tool_decisions.py`). Tools the LLM proposes are never
+    # executed silently while this is on.
+    chat_action_tools_require_confirmation: bool = True
+    # How long the worker thread waits for a user decision before auto-denying
+    # the tool call so the chat request can finish.
+    chat_action_tools_confirmation_timeout_seconds: float = 120.0
     # Direct URL to the apps/ux-journey-agent FastAPI service. We talk to it
     # straight from chat-api (instead of going through persona-api) to avoid a
     # second auth hop — the agent itself is unauthenticated inside the cluster.
