@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import { keyframes } from "@emotion/react";
 import { MsqdxIcon } from "@msqdx/react";
+import { MSQDX_TYPOGRAPHY } from "@msqdx/tokens";
 import { ChatMessageMarkdown } from "./chat/chat-message-markdown";
 import { glassChatPanelMessagesStackSx } from "../lib/glass-chat-panel-layout";
 import { normalizeAndTruncate, normalizeReasoningText } from "../lib/normalize-reasoning-text";
@@ -101,8 +102,30 @@ const uxJourneyStepMarkdownSx = {
   },
 } as const;
 
+/**
+ * Caption-style label rendered inside each per-step accordion summary
+ * (e.g. "BEGRÜNDUNG", "MEMORY"). Brand-accent color + mono font so the
+ * section markers stand out without overwhelming the content.
+ */
+const uxJourneyStepLabelSx = {
+  letterSpacing: 0.8,
+  textTransform: "uppercase",
+  fontFamily: MSQDX_TYPOGRAPHY.fontFamily.mono,
+  fontWeight: 600,
+  color: "var(--color-theme-accent)",
+} as const;
+
 export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPanelProps) => {
   const bottomRef = useRef<HTMLDivElement>(null);
+  /**
+   * Tracks whether the user is "stuck" at the bottom of the conversation.
+   * Updated by a scroll listener on the nearest scrollable ancestor; we only
+   * auto-scroll on message mutations (e.g. UX journey steps streaming in)
+   * when the user has not manually scrolled up.
+   */
+  const stickToBottomRef = useRef(true);
+  /** Previous message count, used to detect new bubbles (vs in-place mutation). */
+  const prevMessagesLengthRef = useRef(messages.length);
   const theme = useTheme();
   const { t } = useI18n();
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -224,8 +247,53 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
     return { ...base, backgroundColor: alpha(theme.palette.text.primary, 0.06), color: theme.palette.text.primary };
   };
 
+  // Track sticky-to-bottom state by listening to the nearest scrollable ancestor.
+  // If the user scrolls up, we stop auto-scrolling on subsequent message updates.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const STICK_THRESHOLD_PX = 80;
+
+    const findScrollContainer = (): HTMLElement | null => {
+      let el: HTMLElement | null = bottomRef.current?.parentElement ?? null;
+      while (el) {
+        const cs = window.getComputedStyle(el);
+        if (cs.overflowY === "auto" || cs.overflowY === "scroll") return el;
+        el = el.parentElement;
+      }
+      return null;
+    };
+
+    const computeNearBottom = (): boolean => {
+      const container = findScrollContainer();
+      if (container) {
+        return container.scrollHeight - container.scrollTop - container.clientHeight <= STICK_THRESHOLD_PX;
+      }
+      return (
+        document.documentElement.scrollHeight - window.scrollY - window.innerHeight <= STICK_THRESHOLD_PX
+      );
+    };
+
+    const onScroll = () => {
+      stickToBottomRef.current = computeNearBottom();
+    };
+
+    onScroll();
+    const container = findScrollContainer();
+    const target: HTMLElement | Window = container ?? window;
+    target.addEventListener("scroll", onScroll, { passive: true });
+    return () => target.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const grew = messages.length > prevMessagesLengthRef.current;
+    prevMessagesLengthRef.current = messages.length;
+    // Always follow when a NEW bubble is added (e.g. user just sent a message
+    // or a fresh persona response begins). Otherwise only follow if the user
+    // is still parked at the bottom — in-place mutations like UX-journey steps
+    // streaming in must NOT yank a user who has scrolled up.
+    if (grew || stickToBottomRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      stickToBottomRef.current = true;
+    }
   }, [messages]);
 
   useEffect(() => {
@@ -755,6 +823,8 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                                     sx={{
                                       mt: 1,
                                       bgcolor: "transparent",
+                                      borderTop: `1px solid ${alpha(theme.palette.divider, 0.55)}`,
+                                      pt: 0.25,
                                       "&:before": { display: "none" },
                                     }}
                                   >
@@ -762,7 +832,7 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                                       expandIcon={<MsqdxIcon name="expand_more" customSize={16} />}
                                       sx={{ px: 0, minHeight: 34, "& .MuiAccordionSummary-content": { my: 0 } }}
                                     >
-                                      <Typography variant="caption" sx={{ letterSpacing: 0.8, textTransform: "uppercase", color: "text.secondary" }}>
+                                      <Typography variant="caption" sx={uxJourneyStepLabelSx}>
                                         {t("chat.uxJourney.reasoning")}
                                       </Typography>
                                     </AccordionSummary>
@@ -785,6 +855,8 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                                     sx={{
                                       mt: s.reasoning ? 0.5 : 1,
                                       bgcolor: "transparent",
+                                      borderTop: `1px solid ${alpha(theme.palette.divider, 0.55)}`,
+                                      pt: 0.25,
                                       "&:before": { display: "none" },
                                     }}
                                   >
@@ -792,7 +864,7 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                                       expandIcon={<MsqdxIcon name="expand_more" customSize={16} />}
                                       sx={{ px: 0, minHeight: 34, "& .MuiAccordionSummary-content": { my: 0 } }}
                                     >
-                                      <Typography variant="caption" sx={{ letterSpacing: 0.8, textTransform: "uppercase", color: "text.secondary" }}>
+                                      <Typography variant="caption" sx={uxJourneyStepLabelSx}>
                                         Previous goal evaluation
                                       </Typography>
                                     </AccordionSummary>
@@ -815,6 +887,8 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                                     sx={{
                                       mt: s.reasoning || s.reasoningMeta?.evaluation_previous_goal ? 0.5 : 1,
                                       bgcolor: "transparent",
+                                      borderTop: `1px solid ${alpha(theme.palette.divider, 0.55)}`,
+                                      pt: 0.25,
                                       "&:before": { display: "none" },
                                     }}
                                   >
@@ -822,7 +896,7 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                                       expandIcon={<MsqdxIcon name="expand_more" customSize={16} />}
                                       sx={{ px: 0, minHeight: 34, "& .MuiAccordionSummary-content": { my: 0 } }}
                                     >
-                                      <Typography variant="caption" sx={{ letterSpacing: 0.8, textTransform: "uppercase", color: "text.secondary" }}>
+                                      <Typography variant="caption" sx={uxJourneyStepLabelSx}>
                                         Memory
                                       </Typography>
                                     </AccordionSummary>
@@ -845,6 +919,8 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                                     sx={{
                                       mt: s.reasoning || s.reasoningMeta?.evaluation_previous_goal || s.reasoningMeta?.memory ? 0.5 : 1,
                                       bgcolor: "transparent",
+                                      borderTop: `1px solid ${alpha(theme.palette.divider, 0.55)}`,
+                                      pt: 0.25,
                                       "&:before": { display: "none" },
                                     }}
                                   >
@@ -852,7 +928,7 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                                       expandIcon={<MsqdxIcon name="expand_more" customSize={16} />}
                                       sx={{ px: 0, minHeight: 34, "& .MuiAccordionSummary-content": { my: 0 } }}
                                     >
-                                      <Typography variant="caption" sx={{ letterSpacing: 0.8, textTransform: "uppercase", color: "text.secondary" }}>
+                                      <Typography variant="caption" sx={uxJourneyStepLabelSx}>
                                         Next goal
                                       </Typography>
                                     </AccordionSummary>
@@ -875,6 +951,8 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                                     sx={{
                                       mt: s.reasoning ? 0.5 : 1,
                                       bgcolor: "transparent",
+                                      borderTop: `1px solid ${alpha(theme.palette.divider, 0.55)}`,
+                                      pt: 0.25,
                                       "&:before": { display: "none" },
                                     }}
                                   >
@@ -882,7 +960,7 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                                       expandIcon={<MsqdxIcon name="expand_more" customSize={16} />}
                                       sx={{ px: 0, minHeight: 34, "& .MuiAccordionSummary-content": { my: 0 } }}
                                     >
-                                      <Typography variant="caption" sx={{ letterSpacing: 0.8, textTransform: "uppercase", color: "text.secondary" }}>
+                                      <Typography variant="caption" sx={uxJourneyStepLabelSx}>
                                         {t("chat.uxJourney.result")}
                                       </Typography>
                                     </AccordionSummary>
