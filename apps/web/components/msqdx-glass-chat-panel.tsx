@@ -190,6 +190,19 @@ function relativeAgo(epochMs: number | undefined): string | null {
   return `vor ${m}:${s.toString().padStart(2, "0")}`;
 }
 
+/** Whether to render the main persona markdown bubble (hide when proposed-card shows same prompt). */
+function showPersonaMarkdownBody(message: Message): boolean {
+  if (!message.content?.trim()) return false;
+  if (
+    message.role === "persona" &&
+    message.uxJourney?.status === "proposed" &&
+    message.uxJourney.pendingDecision?.promptText?.trim()
+  ) {
+    return false;
+  }
+  return true;
+}
+
 /** Short label + tone color for the prominent status pill on the card. */
 function statusPillStyle(status: UxJourneyStatus | undefined): {
   label: string;
@@ -736,8 +749,12 @@ export const MsqdxGlassChatPanel = ({
                       </AccordionDetails>
                     </Accordion>
                   ) : null}
-                  {/* Persona reply / system text — always renders, even alongside the UX-journey card. */}
-                  {message.content ? <ChatMessageMarkdown content={message.content} /> : null}
+                  {/* Persona reply — skip duplicating the confirm prompt: stream content and
+                      `tool_proposed.promptText` are usually the same; rendering both stacks
+                      duplicate <p>/<em> blocks. The proposed card is the canonical UI. */}
+                  {showPersonaMarkdownBody(message) ? (
+                    <ChatMessageMarkdown content={message.content} />
+                  ) : null}
 
                   {/* Inline "Live ansehen?" hint when persona mentions a URL but didn't trigger the tool. */}
                   {!message.uxJourney && message.role === "persona" && onInspectWebsite
@@ -766,7 +783,7 @@ export const MsqdxGlassChatPanel = ({
                                 },
                               }}
                             >
-                              {t("chat.uxJourney.inspectHint", { defaultValue: "Live ansehen?" })}
+                              {t("chat.uxJourney.inspectHint")}
                               <Typography
                                 component="span"
                                 sx={{ ml: 0.75, color: "text.secondary", fontWeight: 500, fontSize: "0.7rem" }}
@@ -785,7 +802,7 @@ export const MsqdxGlassChatPanel = ({
                         display: "flex",
                         flexDirection: "column",
                         gap: 1,
-                        mt: message.content ? 1 : 0,
+                        mt: showPersonaMarkdownBody(message) || message.reasoning?.trim() ? 1 : 0,
                         p: 1.25,
                         borderRadius: 2,
                         border: `1px solid ${alpha(theme.palette.divider, 0.7)}`,
@@ -915,8 +932,10 @@ export const MsqdxGlassChatPanel = ({
                             <ChatMessageMarkdown
                               dense
                               content={
-                                message.uxJourney.pendingDecision.promptText ??
-                                `Soll ich **${message.uxJourney.url ?? "diese Seite"}** live im Browser besuchen?`
+                                message.uxJourney.pendingDecision.promptText?.trim() ||
+                                t("chat.uxJourney.confirmPromptFallback", {
+                                  url: message.uxJourney.url?.trim() || t("chat.uxJourney.thisPage"),
+                                })
                               }
                             />
                           </Box>
@@ -925,7 +944,7 @@ export const MsqdxGlassChatPanel = ({
                               variant="caption"
                               sx={{ color: "text.secondary", fontStyle: "italic" }}
                             >
-                              {t("chat.uxJourney.task", { defaultValue: "Auftrag" })}: {message.uxJourney.pendingDecision.task}
+                              {t("chat.uxJourney.task")}: {message.uxJourney.pendingDecision.task}
                             </Typography>
                           ) : null}
                           <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
@@ -952,7 +971,7 @@ export const MsqdxGlassChatPanel = ({
                               }}
                               sx={{ textTransform: "none", borderRadius: 999, px: 1.5 }}
                             >
-                              {t("chat.uxJourney.confirmYes", { defaultValue: "Ja, jetzt besuchen" })}
+                              {t("chat.uxJourney.confirmYes")}
                             </Button>
                             <Button
                               size="small"
@@ -971,7 +990,7 @@ export const MsqdxGlassChatPanel = ({
                               }}
                               sx={{ textTransform: "none", borderRadius: 999, px: 1.5 }}
                             >
-                              {t("chat.uxJourney.confirmNo", { defaultValue: "Nein, antworte ohne" })}
+                              {t("chat.uxJourney.confirmNo")}
                             </Button>
                           </Box>
                         </Box>
@@ -982,7 +1001,7 @@ export const MsqdxGlassChatPanel = ({
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1, color: "text.secondary" }}>
                           <CircularProgress size={14} thickness={6} />
                           <Typography variant="caption">
-                            {t("chat.uxJourney.starting", { defaultValue: "Browser-Agent startet…" })}
+                            {t("chat.uxJourney.starting")}
                           </Typography>
                         </Box>
                       ) : null}
@@ -990,10 +1009,7 @@ export const MsqdxGlassChatPanel = ({
                       {/* --- denied: short note (LLM continues with normal reply above) --- */}
                       {message.uxJourney.status === "denied" ? (
                         <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                          {t("chat.uxJourney.deniedNote", {
-                            defaultValue:
-                              "Die Persona darf diese Seite nicht live besuchen. Sie antwortet stattdessen aus eigenem Wissen.",
-                          })}
+                          {t("chat.uxJourney.deniedNote")}
                         </Typography>
                       ) : null}
 

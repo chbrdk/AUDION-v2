@@ -257,7 +257,15 @@
       "actionClick": "Klicken",
       "actionDone": "Fertig",
       "reasoning": "Begründung",
-      "result": "Ergebnis"
+      "result": "Ergebnis",
+      "inspectHint": "Live ansehen?",
+      "task": "Auftrag",
+      "confirmYes": "Ja, jetzt besuchen",
+      "confirmNo": "Nein, antworte ohne",
+      "starting": "Browser-Agent startet…",
+      "deniedNote": "Die Persona darf diese Seite nicht live besuchen. Sie antwortet stattdessen aus eigenem Wissen.",
+      "confirmPromptFallback": "Soll ich **{url}** live im Browser besuchen?",
+      "thisPage": "diese Seite"
     },
     "moodboardTitle": "Moodboard",
     "moodboardDrawerHint": "Kurzauswahl — das vollständige Moodboard siehst du über dem Chat.",

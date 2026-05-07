@@ -257,7 +257,15 @@
       "actionClick": "Click",
       "actionDone": "Done",
       "reasoning": "Reasoning",
-      "result": "Result"
+      "result": "Result",
+      "inspectHint": "View live?",
+      "task": "Task",
+      "confirmYes": "Yes, visit now",
+      "confirmNo": "No, answer without visiting",
+      "starting": "Starting browser agent…",
+      "deniedNote": "This persona may not visit that site live. It will answer from its own knowledge instead.",
+      "confirmPromptFallback": "Should I visit **{url}** live in the browser?",
+      "thisPage": "this page"
     },
     "moodboardTitle": "Moodboard",
     "moodboardDrawerHint": "Preview — the full moodboard appears above the chat.",
