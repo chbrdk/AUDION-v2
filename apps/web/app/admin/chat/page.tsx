@@ -1651,6 +1651,89 @@ function AdminChatPageContent() {
             }
           } else if (parsedData.type === "reasoning_delta" && parsedData.delta) {
             appendReasoningDelta(personaMessageId, parsedData.delta);
+          } else if (
+            parsedData.type === "tool_started" &&
+            parsedData.tool === "inspect_website" &&
+            parsedData.jobId
+          ) {
+            // The persona LLM decided to inspect a website. Pin a UX-journey
+            // payload onto the current persona bubble so MsqdxGlassChatPanel
+            // renders the existing live card (same shape as the manual dialog).
+            const jobId: string = parsedData.jobId;
+            const url: string | undefined = parsedData.url;
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === personaMessageId
+                  ? {
+                      ...m,
+                      uxJourney: {
+                        ...(m.uxJourney ?? {}),
+                        jobId,
+                        url,
+                        status: "running",
+                        liveUrl: API_ROUTES.uxJourneyAgentLiveStream(jobId),
+                        steps: m.uxJourney?.steps ?? [],
+                        stepsTotal: m.uxJourney?.stepsTotal ?? 0,
+                      },
+                    }
+                  : m,
+              ),
+            );
+          } else if (
+            parsedData.type === "tool_progress" &&
+            parsedData.tool === "inspect_website" &&
+            parsedData.jobId
+          ) {
+            const jobId: string = parsedData.jobId;
+            const status: "running" | "complete" | "error" =
+              parsedData.status === "complete" || parsedData.status === "error"
+                ? parsedData.status
+                : "running";
+            const steps: any[] = Array.isArray(parsedData.steps) ? parsedData.steps : [];
+            const stepsTotal: number =
+              typeof parsedData.stepsTotal === "number" ? parsedData.stepsTotal : steps.length;
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === personaMessageId
+                  ? {
+                      ...m,
+                      uxJourney: {
+                        ...(m.uxJourney ?? { jobId }),
+                        jobId,
+                        status,
+                        steps,
+                        stepsTotal,
+                      },
+                    }
+                  : m,
+              ),
+            );
+          } else if (
+            parsedData.type === "tool_completed" &&
+            parsedData.tool === "inspect_website" &&
+            parsedData.jobId
+          ) {
+            const jobId: string = parsedData.jobId;
+            const finalStatus: "running" | "complete" | "error" =
+              parsedData.success === false ? "error" : "complete";
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === personaMessageId
+                  ? {
+                      ...m,
+                      uxJourney: {
+                        ...(m.uxJourney ?? { jobId }),
+                        jobId,
+                        status: finalStatus,
+                        videoUrl: parsedData.videoUrl
+                          ? API_ROUTES.uxJourneyAgentVideo(jobId)
+                          : m.uxJourney?.videoUrl,
+                        error: typeof parsedData.error === "string" ? parsedData.error : null,
+                      },
+                    }
+                  : m,
+              ),
+            );
           } else if (parsedData.type === "sources") {
             const normalizedSources = (parsedData.sources || []).map((source: any, index: number) => ({
               chunk_id: source.chunk_id ?? `chunk-${index}`,

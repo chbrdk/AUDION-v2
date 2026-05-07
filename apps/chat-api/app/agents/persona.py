@@ -36,6 +36,7 @@ class PersonaAgent:
         usage_user_id: Optional[str] = None,
         reply_mode: str = "standard",
         turn_naturalness_addendum: str = "",
+        persona_context: Optional[Dict[str, Any]] = None,
     ) -> None:
         """
         Stream a persona response using OpenAI.
@@ -71,6 +72,7 @@ class PersonaAgent:
                 usage_user_id=usage_user_id,
                 reply_mode=reply_mode,
                 turn_naturalness_addendum=turn_naturalness_addendum,
+                persona_context=persona_context,
             )
         else:
             logger.info("persona.agent.streaming_start", persona_id=persona_id, question_length=len(question), sources_count=len(sources))
@@ -179,6 +181,7 @@ class PersonaAgent:
         usage_user_id: Optional[str] = None,
         reply_mode: str = "standard",
         turn_naturalness_addendum: str = "",
+        persona_context: Optional[Dict[str, Any]] = None,
     ) -> None:
         """Stream response with tool support."""
         import structlog
@@ -376,7 +379,10 @@ class PersonaAgent:
                         
                         logger.info("persona.agent.tool_call_execute", tool_name=tool_name, arguments_keys=list(tool_arguments.keys()))
                         
-                        # Execute tool
+                        # Execute tool. send_event lets long-running tools (e.g.
+                        # inspect_website) stream lifecycle events back through
+                        # the SSE pipeline; persona_context is forwarded to
+                        # action tools so they can run "as the persona".
                         try:
                             tool_result = asyncio.run(
                                 self._tool_executor.execute_tool(
@@ -384,6 +390,8 @@ class PersonaAgent:
                                     tool_arguments,
                                     persona_segment,
                                     usage_user_id=usage_user_id,
+                                    send_event=send_event,
+                                    persona_context=persona_context,
                                 )
                             )
                         except RuntimeError as e:
@@ -397,10 +405,19 @@ class PersonaAgent:
                                             tool_arguments,
                                             persona_segment,
                                             usage_user_id=usage_user_id,
+                                            send_event=send_event,
+                                            persona_context=persona_context,
                                         )
                                     )
                                 )
-                                tool_result = future.result(timeout=30)
+                                # inspect_website may block on a real browser
+                                # journey for several minutes, so we don't cap
+                                # the future here — the tool itself enforces
+                                # the configured total-budget timeout.
+                                future_timeout = (
+                                    None if tool_name == "inspect_website" else 30
+                                )
+                                tool_result = future.result(timeout=future_timeout)
                         
                         # Add tool call and result to messages
                         messages.append({

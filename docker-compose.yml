@@ -91,6 +91,11 @@ services:
       - INDEXING_API_URL=http://indexing-api:8000
       - REDIS_URL=${REDIS_URL}
       - APP_ENV=${APP_ENV:-production}
+      # Direct connection to apps/ux-journey-agent (same env var that persona-api uses).
+      # When unset, the inspect_website tool returns a clear error to the LLM
+      # but never crashes the chat flow.
+      - UX_JOURNEY_AGENT_URL=${UX_JOURNEY_AGENT_URL:-}
+      - CHAT_ACTION_TOOLS_ENABLED=${CHAT_ACTION_TOOLS_ENABLED:-true}
     depends_on:
       - api
       - indexing-api

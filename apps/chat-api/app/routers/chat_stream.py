@@ -6,18 +6,27 @@ import asyncio
 import json
 import queue
 import threading
+import time
 from dataclasses import dataclass
 from typing import Any, AsyncIterator, Dict, List, Optional
 
 import structlog
 from msqdx_glass_proto import CompleteEvent, ContentDeltaEvent, ReasoningDeltaEvent, SourcesEvent, ThinkingEvent
 
+from ..agents.events import ToolCompletedEvent, ToolProgressEvent, ToolStartedEvent
 from ..core.config import get_settings
 from ..services.usage_report import report_retrieval_query_usage, report_usage
 from ..utils.openai_chat_stream import iter_chat_completion_stream_parts
 from ..utils.turn_naturalness import TurnSessionState, compose_persona_system_prompt, finalize_turn_session_after_assistant
 from ..utils.text import clean_response_text
 from ..ws.chat import get_persona_agent, get_retrieval_agent
+
+# Keepalive comment line (SSE spec: lines starting with ":" are ignored by clients).
+# Sent on idle while a long-running tool is busy, so reverse proxies (Coolify/nginx)
+# don't drop the connection on read-timeout. Note: parser must not treat "data: …"
+# strictly — most browsers tolerate stray comment lines.
+_SSE_KEEPALIVE = ": ping\n\n"
+_SSE_KEEPALIVE_INTERVAL_SECONDS = 15.0
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
@@ -39,6 +48,93 @@ class ChatStreamContext:
     reply_mode: str = "standard"
     turn_naturalness_addendum: str = ""
     turn_session_state: Optional[TurnSessionState] = None
+    # Compact persona snapshot forwarded to action tools (e.g. inspect_website
+    # passes this through to ux-journey-agent so the browse runs "as the persona").
+    # Schema mirrors the manual UX-journey trigger in apps/web/app/admin/chat/page.tsx
+    # (id, name, headline, profile, systemPrompt). Optional — tools must handle None.
+    persona_context: Optional[Dict[str, Any]] = None
+
+
+def _event_to_sse_chunks(
+    event: object,
+    ctx: ChatStreamContext,
+    emit_sanitized_delta,
+    usage_reported: List[bool],
+) -> List[str]:
+    """
+    Translate one PersonaAgent event (model from msqdx_glass_proto OR a local
+    tool lifecycle event) into the SSE `data: ...` line(s) the frontend expects.
+
+    Returning a list (not yielding) keeps this trivially callable from both the
+    drain-after-thread-exit branch and the normal hot loop in `iter_chat_sse`.
+    """
+    chunks: List[str] = []
+    if isinstance(event, ContentDeltaEvent):
+        delta_payload = emit_sanitized_delta(event.delta)
+        if delta_payload:
+            chunks.append(f"data: {json.dumps({'type': 'delta', 'delta': delta_payload})}\n\n")
+    elif isinstance(event, ReasoningDeltaEvent) and event.delta:
+        chunks.append(f"data: {json.dumps({'type': 'reasoning_delta', 'delta': event.delta})}\n\n")
+    elif isinstance(event, SourcesEvent):
+        chunks.append(f"data: {json.dumps({'type': 'sources', 'sources': event.sources})}\n\n")
+    elif isinstance(event, CompleteEvent):
+        chunks.append(f"data: {json.dumps({'type': 'complete'})}\n\n")
+        if ctx.user_id and not usage_reported[0]:
+            usage_reported[0] = True
+            report_usage(
+                user_id=ctx.user_id,
+                event_type="chat_message",
+                raw_units={"runs": 1},
+            )
+    elif isinstance(event, ToolStartedEvent):
+        chunks.append(
+            "data: "
+            + json.dumps(
+                {
+                    "type": "tool_started",
+                    "tool": event.tool,
+                    "jobId": event.job_id,
+                    "url": event.url,
+                    "task": event.task,
+                }
+            )
+            + "\n\n"
+        )
+    elif isinstance(event, ToolProgressEvent):
+        chunks.append(
+            "data: "
+            + json.dumps(
+                {
+                    "type": "tool_progress",
+                    "tool": event.tool,
+                    "jobId": event.job_id,
+                    "status": event.status,
+                    "steps": event.steps,
+                    "stepsTotal": event.steps_total,
+                }
+            )
+            + "\n\n"
+        )
+    elif isinstance(event, ToolCompletedEvent):
+        chunks.append(
+            "data: "
+            + json.dumps(
+                {
+                    "type": "tool_completed",
+                    "tool": event.tool,
+                    "jobId": event.job_id,
+                    "success": event.success,
+                    "videoUrl": event.video_url,
+                    "error": event.error,
+                }
+            )
+            + "\n\n"
+        )
+    elif isinstance(event, ThinkingEvent):
+        if hasattr(event, "status") and event.status and "error" in event.status.lower():
+            error_msg = event.status.replace("Error generating response: ", "")
+            chunks.append(f"data: {json.dumps({'type': 'error', 'error': error_msg})}\n\n")
+    return chunks
 
 
 async def iter_chat_sse(ctx: ChatStreamContext) -> AsyncIterator[str]:
@@ -81,6 +177,7 @@ async def iter_chat_sse(ctx: ChatStreamContext) -> AsyncIterator[str]:
                         usage_user_id=ctx.user_id,
                         reply_mode=ctx.reply_mode,
                         turn_naturalness_addendum=ctx.turn_naturalness_addendum,
+                        persona_context=ctx.persona_context,
                     )
                 except Exception as e:
                     logger.error("chat.stream.persona_agent_failed", error=str(e), exc_info=True)
@@ -107,6 +204,7 @@ async def iter_chat_sse(ctx: ChatStreamContext) -> AsyncIterator[str]:
                 return delta_payload
 
             logger.info("chat.stream.queue_processing_started", persona_id=ctx.persona_id)
+            last_yield_at = time.monotonic()
             while True:
                 try:
                     event = await loop.run_in_executor(
@@ -121,30 +219,18 @@ async def iter_chat_sse(ctx: ChatStreamContext) -> AsyncIterator[str]:
                                 event = event_queue.get_nowait()
                                 if event is None:
                                     break
-                                if isinstance(event, ContentDeltaEvent):
-                                    delta_payload = emit_sanitized_delta(event.delta)
-                                    if delta_payload:
-                                        yield f"data: {json.dumps({'type': 'delta', 'delta': delta_payload})}\n\n"
-                                elif isinstance(event, ReasoningDeltaEvent) and event.delta:
-                                    yield f"data: {json.dumps({'type': 'reasoning_delta', 'delta': event.delta})}\n\n"
-                                elif isinstance(event, SourcesEvent):
-                                    yield f"data: {json.dumps({'type': 'sources', 'sources': event.sources})}\n\n"
-                                elif isinstance(event, CompleteEvent):
-                                    yield f"data: {json.dumps({'type': 'complete'})}\n\n"
-                                    if ctx.user_id and not usage_reported[0]:
-                                        usage_reported[0] = True
-                                        report_usage(
-                                            user_id=ctx.user_id,
-                                            event_type="chat_message",
-                                            raw_units={"runs": 1},
-                                        )
-                                elif isinstance(event, ThinkingEvent):
-                                    pass
+                                for sse_chunk in _event_to_sse_chunks(event, ctx, emit_sanitized_delta, usage_reported):
+                                    yield sse_chunk
+                                    last_yield_at = time.monotonic()
                         except queue.Empty:
                             pass
                         if stream_error[0]:
                             raise stream_error[0]
                         break
+                    # Keep proxies awake while a long-running tool is busy.
+                    if time.monotonic() - last_yield_at >= _SSE_KEEPALIVE_INTERVAL_SECONDS:
+                        yield _SSE_KEEPALIVE
+                        last_yield_at = time.monotonic()
                     await asyncio.sleep(0.01)
                     continue
 
@@ -153,31 +239,9 @@ async def iter_chat_sse(ctx: ChatStreamContext) -> AsyncIterator[str]:
                         raise stream_error[0]
                     break
 
-                if isinstance(event, ContentDeltaEvent):
-                    logger.debug(
-                        "chat.stream.content_delta_event",
-                        delta_length=len(event.delta) if event.delta else 0,
-                    )
-                    delta_payload = emit_sanitized_delta(event.delta)
-                    if delta_payload:
-                        yield f"data: {json.dumps({'type': 'delta', 'delta': delta_payload})}\n\n"
-                elif isinstance(event, ReasoningDeltaEvent) and event.delta:
-                    yield f"data: {json.dumps({'type': 'reasoning_delta', 'delta': event.delta})}\n\n"
-                elif isinstance(event, SourcesEvent):
-                    yield f"data: {json.dumps({'type': 'sources', 'sources': event.sources})}\n\n"
-                elif isinstance(event, CompleteEvent):
-                    yield f"data: {json.dumps({'type': 'complete'})}\n\n"
-                    if ctx.user_id and not usage_reported[0]:
-                        usage_reported[0] = True
-                        report_usage(
-                            user_id=ctx.user_id,
-                            event_type="chat_message",
-                            raw_units={"runs": 1},
-                        )
-                elif isinstance(event, ThinkingEvent):
-                    if hasattr(event, "status") and event.status and "error" in event.status.lower():
-                        error_msg = event.status.replace("Error generating response: ", "")
-                        yield f"data: {json.dumps({'type': 'error', 'error': error_msg})}\n\n"
+                for sse_chunk in _event_to_sse_chunks(event, ctx, emit_sanitized_delta, usage_reported):
+                    yield sse_chunk
+                    last_yield_at = time.monotonic()
 
             stream_thread.join(timeout=2)
             logger.info("chat.stream.tools_complete", persona_id=ctx.persona_id)

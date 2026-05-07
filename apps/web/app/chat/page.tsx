@@ -24,6 +24,7 @@ import { MsqdxGlassChatPanel } from "../../components/msqdx-glass-chat-panel";
 import { MsqdxIcon, MsqdxInput } from "@msqdx/react";
 import { INPUT_ACCENT_SX_WITH_FALLBACK } from "../../lib/theme-accent";
 import { getChatApiBase, buildApiUrl } from "../../app/api/_lib/backend";
+import { API_ROUTES } from "../../lib/api-routes";
 import { useAuth } from "../../components/auth/auth-provider";
 import { useProject } from "../../components/projects/project-provider";
 import { useI18n } from "../../components/i18n/i18n-provider";
@@ -107,13 +108,59 @@ type Moodboard = {
   tiles: MoodboardTile[];
 };
 
+type UxJourneyStep = {
+  step?: number;
+  action?: string;
+  target?: string | null;
+  reasoning?: string | null;
+  screenshot?: string | null;
+  screenshotUrl?: string | null;
+  reasoningMeta?: {
+    evaluation_previous_goal?: string | null;
+    memory?: string | null;
+    next_goal?: string | null;
+  } | null;
+  result?: string | null;
+  timestamp?: string;
+};
+
+type UxJourneyPayload = {
+  jobId: string;
+  url?: string;
+  status?: "running" | "complete" | "error";
+  liveUrl?: string;
+  videoUrl?: string;
+  stepsTotal?: number;
+  steps?: UxJourneyStep[];
+  error?: string | null;
+};
+
 type Message = {
   id: string;
   role: "user" | "persona" | "system";
   content: string;
   personaName?: string;
   reasoning?: string;
+  /** Streamed UX-journey payload for the inspect_website tool. */
+  uxJourney?: UxJourneyPayload;
 };
+
+/** Merge updates onto the live `uxJourney` payload of a single message. */
+function setUxJourneyOnMessage(
+  prev: Message[],
+  messageId: string,
+  patch: Partial<UxJourneyPayload>,
+): Message[] {
+  return prev.map((m) => {
+    if (m.id !== messageId) return m;
+    const next: UxJourneyPayload = {
+      ...(m.uxJourney ?? { jobId: patch.jobId ?? "" }),
+      ...patch,
+      jobId: patch.jobId || m.uxJourney?.jobId || "",
+    };
+    return { ...m, uxJourney: next };
+  });
+}
 
 const welcomeFadeIn = keyframes`
   from {
@@ -702,11 +749,74 @@ function ChatSharePageContent() {
               type?: string;
               delta?: string;
               error?: string;
+              tool?: string;
+              jobId?: string;
+              url?: string;
+              status?: string;
+              steps?: UxJourneyStep[];
+              stepsTotal?: number;
+              success?: boolean | null;
+              videoUrl?: string | null;
             };
             if (parsed.type === "delta" && parsed.delta) {
               enqueueDelta(personaMsgId, parsed.delta);
             } else if (parsed.type === "reasoning_delta" && parsed.delta) {
               appendReasoningDelta(personaMsgId, parsed.delta);
+            } else if (
+              parsed.type === "tool_started" &&
+              parsed.tool === "inspect_website" &&
+              parsed.jobId
+            ) {
+              const jobId = parsed.jobId;
+              setMessages((prev) =>
+                setUxJourneyOnMessage(prev, personaMsgId, {
+                  jobId,
+                  url: parsed.url,
+                  status: "running",
+                  liveUrl: API_ROUTES.uxJourneyAgentLiveStream(jobId),
+                  steps: [],
+                  stepsTotal: 0,
+                }),
+              );
+            } else if (
+              parsed.type === "tool_progress" &&
+              parsed.tool === "inspect_website" &&
+              parsed.jobId
+            ) {
+              const jobId = parsed.jobId;
+              const status =
+                parsed.status === "complete" || parsed.status === "error"
+                  ? (parsed.status as "complete" | "error")
+                  : "running";
+              setMessages((prev) =>
+                setUxJourneyOnMessage(prev, personaMsgId, {
+                  jobId,
+                  status,
+                  steps: Array.isArray(parsed.steps) ? parsed.steps : [],
+                  stepsTotal:
+                    typeof parsed.stepsTotal === "number"
+                      ? parsed.stepsTotal
+                      : Array.isArray(parsed.steps)
+                        ? parsed.steps.length
+                        : 0,
+                }),
+              );
+            } else if (
+              parsed.type === "tool_completed" &&
+              parsed.tool === "inspect_website" &&
+              parsed.jobId
+            ) {
+              const jobId = parsed.jobId;
+              setMessages((prev) =>
+                setUxJourneyOnMessage(prev, personaMsgId, {
+                  jobId,
+                  status: parsed.success === false ? "error" : "complete",
+                  videoUrl: parsed.videoUrl
+                    ? API_ROUTES.uxJourneyAgentVideo(jobId)
+                    : undefined,
+                  error: typeof parsed.error === "string" ? parsed.error : null,
+                }),
+              );
             } else if (parsed.type === "error") {
               streamErr = parsed.error ?? t("chat.unknownError");
             }

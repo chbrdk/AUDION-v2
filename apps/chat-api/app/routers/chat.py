@@ -191,6 +191,7 @@ def build_chat_stream_context(request: ChatMessageRequest) -> ChatStreamContext:
             detail=f"Invalid persona_id format: {e}",
         ) from e
 
+    persona_context: Dict[str, Any] | None = None
     with get_session() as session:
         persona = session.get(Persona, persona_uuid)
         if not persona:
@@ -234,17 +235,34 @@ def build_chat_stream_context(request: ChatMessageRequest) -> ChatStreamContext:
             detail="Persona prompt not found",
         )
 
+    # Snapshot persona fields for action tools (e.g. inspect_website forwards
+    # this to ux-journey-agent so it browses "as this persona"). Mirrors the
+    # payload that the manual admin-chat dialog sends today.
+    if persona is not None:
+        persona_context = {
+            "id": str(persona.id),
+            "name": persona.name,
+            "headline": persona.headline,
+            "profile": persona.profile if isinstance(persona.profile, dict) else None,
+            "systemPrompt": base_system_prompt,
+        }
+
     persona_segment: str | None = persona.segment if persona and persona.segment else None
     use_tools = settings.chat_use_tools
     tools = None
     if use_tools:
         from ..agents.tools import KNOWLEDGE_TOOLS
 
-        tools = KNOWLEDGE_TOOLS
+        tools = list(KNOWLEDGE_TOOLS)
+        if settings.chat_action_tools_enabled:
+            from ..agents.tools import ACTION_TOOLS
+
+            tools = tools + list(ACTION_TOOLS)
         logger.info(
             "chat.tools.enabled",
             persona_id=request.persona_id,
             tools_count=len(tools),
+            action_tools_enabled=settings.chat_action_tools_enabled,
             persona_segment=persona_segment,
         )
     else:
@@ -318,6 +336,32 @@ def build_chat_stream_context(request: ChatMessageRequest) -> ChatStreamContext:
             detail="Either 'message' or 'messages' must be provided",
         )
 
+    # Reinforce action-tool usage. Even though the OpenAI function schema in
+    # `agents/tools.py` already constrains when `inspect_website` is allowed,
+    # appending a short instruction to the system prompt has been more reliable
+    # for keeping the persona's voice intact in the post-tool summary turn.
+    if (
+        use_tools
+        and settings.chat_action_tools_enabled
+        and settings.ux_journey_agent_url
+        and tools
+        and any(t.get("name") == "inspect_website" for t in tools)
+    ):
+        system_prompt = (
+            system_prompt
+            + "\n\n"
+            + (
+                "You can call the tool `inspect_website(url, task)` to actually "
+                "visit a page in a real browser AS THIS PERSONA. Only call it "
+                "when the user explicitly references a specific page, site or URL "
+                "and live observation would help your answer. Never invent URLs; "
+                "if a brand is mentioned without an explicit URL and you are "
+                "uncertain which page the user means, ask back instead of guessing. "
+                "After the tool returns, summarize what you (as this persona) "
+                "experienced in first person, in the persona's voice and language."
+            )
+        )
+
     if not retrieval_query or retrieval_query == "N/A":
         retrieval_query = ""
 
@@ -356,6 +400,7 @@ def build_chat_stream_context(request: ChatMessageRequest) -> ChatStreamContext:
         reply_mode=naturalness.reply_mode,
         turn_naturalness_addendum=naturalness.system_addendum_de,
         turn_session_state=turn_session_state,
+        persona_context=persona_context,
     )
 
 

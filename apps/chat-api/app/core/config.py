@@ -47,6 +47,25 @@ class Settings(BaseSettings):
     # Auth: when set, requests must send Authorization: Bearer <key> or X-API-Key: <key>. Empty = no auth.
     auth_api_key: str = ""
     chat_use_tools: bool = True  # Enable tools/functions for chat (default: True)
+    # Action tools (e.g. inspect_website that triggers the UX Journey Agent)
+    # are gated by their own toggle, since they have side effects and require
+    # the ux-journey-agent service to be reachable.
+    chat_action_tools_enabled: bool = True
+    # Direct URL to the apps/ux-journey-agent FastAPI service. We talk to it
+    # straight from chat-api (instead of going through persona-api) to avoid a
+    # second auth hop — the agent itself is unauthenticated inside the cluster.
+    # Leave empty to disable the inspect_website tool at runtime.
+    ux_journey_agent_url: str | None = None
+    # Overall HTTP timeout for one ux-journey-agent request (start + each poll).
+    # The journey itself can run for minutes; the tool tracks it via polling.
+    ux_journey_agent_timeout_seconds: float = 60.0
+    # How long the inspect_website tool may keep polling before giving up
+    # (caps the worst-case open SSE connection back to the browser).
+    ux_journey_inspect_total_timeout_seconds: float = 600.0
+    # Default browser-step cap if the LLM doesn't supply one.
+    ux_journey_inspect_default_max_steps: int = 12
+    # Wait between poll iterations.
+    ux_journey_poll_interval_seconds: float = 2.0
     # Model used for persona chat (non-streaming /message, stream, voice)
     chat_model: str = "gpt-5.4-nano"
     # Max completion tokens per assistant reply (OpenAI: max_completion_tokens)

@@ -1,9 +1,14 @@
 """
-Anthropic Tools/Functions definitions for Knowledge Base access.
+Anthropic-style tool/function definitions for the persona chat.
 
-These tools allow the LLM to dynamically query the knowledge base (Qdrant)
-during chat conversations, enabling on-demand retrieval instead of
-always loading all chunks upfront.
+`KNOWLEDGE_TOOLS` are read-only retrieval tools (Qdrant / DB) that the persona
+LLM may call to ground its answer in stored research.
+
+`ACTION_TOOLS` are tools that produce side effects in the broader product —
+currently a single `inspect_website` tool that hands off to the
+`apps/ux-journey-agent` service to actually visit a page in a real browser as
+the persona. The orchestrator (see `app/routers/chat.py`) merges both lists
+when `chat_action_tools_enabled` is true.
 """
 
 from typing import Dict, Any, List
@@ -69,6 +74,48 @@ KNOWLEDGE_TOOLS: List[Dict[str, Any]] = [
             },
             "required": ["document_id"]
         }
+    }
+]
+
+
+ACTION_TOOLS: List[Dict[str, Any]] = [
+    {
+        "name": "inspect_website",
+        "description": (
+            "Open a website in a real browser as this persona and report what "
+            "you experience. Use ONLY when the user explicitly asks you to look "
+            "at, browse, evaluate or navigate a specific URL or named site "
+            "(e.g. \"Schau dir Porsche.de an\", \"Check out the Taycan product page\"). "
+            "Do NOT call this for general questions answerable from your own "
+            "knowledge or retrieval tools. Never invent URLs — if the user "
+            "mentions only a brand without a URL and you are not sure, ask back. "
+            "After this tool returns, summarize what you (as this persona) "
+            "experienced in first person, in the persona's voice and language."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string",
+                    "description": "Absolute URL to inspect, e.g. https://porsche.de/taycan",
+                },
+                "task": {
+                    "type": "string",
+                    "description": (
+                        "Short, persona-flavored objective for the visit "
+                        "(e.g. 'Find the Taycan configurator and check pricing for a sporty trim')."
+                    ),
+                },
+                "max_steps": {
+                    "type": "integer",
+                    "description": "Optional cap on browser steps (default 12).",
+                    "default": 12,
+                    "minimum": 3,
+                    "maximum": 30,
+                },
+            },
+            "required": ["url", "task"],
+        },
     }
 ]
 

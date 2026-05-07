@@ -1,18 +1,22 @@
 """
-Tool Execution Handler for Knowledge Tools.
+Tool Execution Handler for Knowledge + Action Tools.
 
-Executes Anthropic tool calls and returns results in the expected format.
+Executes Anthropic-style tool calls and returns results in the expected format.
 """
 
 from __future__ import annotations
 
-from typing import Dict, Any
+import asyncio
+import time
+from typing import Any, Callable, Dict, List, Optional
 from uuid import UUID
 
+import httpx
 import structlog
 
 from sqlalchemy import select
 
+from ..agents.events import ToolCompletedEvent, ToolProgressEvent, ToolStartedEvent
 from ..agents.retrieval import RetrievalAgent
 from ..core.config import get_settings
 from ..db import get_session
@@ -24,37 +28,46 @@ settings = get_settings()
 
 
 class ToolExecutor:
-    """Executes tool calls for Knowledge Base access."""
-    
+    """Executes tool calls for the persona chat (knowledge + action tools)."""
+
     def __init__(self):
         self.retrieval_agent = RetrievalAgent()
-    
+
     async def execute_tool(
         self,
         tool_name: str,
         arguments: Dict[str, Any],
         persona_segment: str | None = None,
         usage_user_id: str | None = None,
+        send_event: Callable[[Any], None] | None = None,
+        persona_context: Dict[str, Any] | None = None,
     ) -> Dict[str, Any]:
         """
         Execute a tool call and return results.
-        
+
         Args:
             tool_name: Name of the tool to execute
             arguments: Tool arguments as a dictionary
             persona_segment: Optional persona segment for filtering
-            
+            usage_user_id: PLEXON/internal user id for usage tracking
+            send_event: Optional callback for emitting lifecycle events (used by
+                long-running tools like inspect_website to stream progress).
+            persona_context: Snapshot of the active persona (id, name, headline,
+                profile, systemPrompt) — forwarded to the ux-journey-agent.
+
         Returns:
             Dictionary with tool execution results
         """
         logger.info("tool_executor.execute", tool_name=tool_name, arguments_keys=list(arguments.keys()))
-        
+
         if tool_name == "search_knowledge":
             return await self._search_knowledge(arguments, persona_segment, usage_user_id)
         elif tool_name == "get_target_group_knowledge":
             return await self._get_target_group_knowledge(arguments, usage_user_id)
         elif tool_name == "get_document_content":
             return await self._get_document_content(arguments)
+        elif tool_name == "inspect_website":
+            return await self._inspect_website(arguments, persona_context, send_event)
         else:
             logger.warning("tool_executor.unknown_tool", tool_name=tool_name)
             return {
@@ -278,4 +291,317 @@ class ToolExecutor:
                 "content": "",
                 "chunks": []
             }
+
+    # ------------------------------------------------------------------ #
+    # Action tool: inspect_website (delegates to apps/ux-journey-agent)  #
+    # ------------------------------------------------------------------ #
+
+    async def _inspect_website(
+        self,
+        arguments: Dict[str, Any],
+        persona_context: Dict[str, Any] | None,
+        send_event: Callable[[Any], None] | None,
+    ) -> Dict[str, Any]:
+        """
+        Trigger a UX-Journey browse against `arguments["url"]` and stream live
+        progress to the chat client via `send_event`. Blocks until the journey
+        completes (or times out) so the LLM can summarize the persona's
+        experience in its follow-up reply.
+        """
+        url = (arguments.get("url") or "").strip()
+        task = (arguments.get("task") or "").strip()
+        max_steps_arg = arguments.get("max_steps")
+
+        if not url or not task:
+            return {
+                "ok": False,
+                "error": "Both 'url' and 'task' are required.",
+            }
+
+        try:
+            max_steps = int(max_steps_arg) if max_steps_arg is not None else settings.ux_journey_inspect_default_max_steps
+        except (TypeError, ValueError):
+            max_steps = settings.ux_journey_inspect_default_max_steps
+        max_steps = max(3, min(30, max_steps))
+
+        base_url = (settings.ux_journey_agent_url or "").strip().rstrip("/")
+        if not base_url:
+            logger.warning("tool_executor.inspect_website.unconfigured")
+            return {
+                "ok": False,
+                "error": (
+                    "The UX Journey Agent is not configured for this environment. "
+                    "Tell the user that live website inspection is currently unavailable."
+                ),
+            }
+
+        run_payload = {
+            "url": url,
+            "task": task,
+            "max_steps": max_steps,
+        }
+        if persona_context:
+            run_payload["persona"] = persona_context
+
+        # Step 1: start the run.
+        request_timeout = float(settings.ux_journey_agent_timeout_seconds or 60.0)
+        try:
+            async with httpx.AsyncClient(timeout=request_timeout, follow_redirects=True) as client:
+                start_res = await client.post(f"{base_url}/run", json=run_payload)
+        except httpx.HTTPError as exc:
+            logger.error("tool_executor.inspect_website.start_failed", error=str(exc), exc_info=True)
+            return {
+                "ok": False,
+                "error": f"Could not reach the UX Journey Agent: {exc!s}",
+            }
+
+        if start_res.status_code >= 400:
+            logger.warning(
+                "tool_executor.inspect_website.start_http_error",
+                status_code=start_res.status_code,
+                body_preview=start_res.text[:240],
+            )
+            return {
+                "ok": False,
+                "error": f"UX Journey Agent rejected the request (HTTP {start_res.status_code}).",
+            }
+
+        try:
+            start_data = start_res.json()
+        except Exception:
+            start_data = {}
+        job_id = (start_data.get("jobId") or start_data.get("job_id") or "").strip()
+        if not job_id:
+            return {
+                "ok": False,
+                "error": "UX Journey Agent did not return a jobId.",
+            }
+
+        logger.info(
+            "tool_executor.inspect_website.started",
+            job_id=job_id,
+            url=url,
+            max_steps=max_steps,
+        )
+
+        if send_event is not None:
+            try:
+                send_event(
+                    ToolStartedEvent(
+                        tool="inspect_website",
+                        job_id=job_id,
+                        url=url,
+                        task=task,
+                    )
+                )
+            except Exception as exc:
+                logger.warning("tool_executor.inspect_website.start_event_failed", error=str(exc))
+
+        # Step 2: poll until the run completes (or we hit the safety budget).
+        poll_interval = max(0.5, float(settings.ux_journey_poll_interval_seconds or 2.0))
+        total_budget = float(settings.ux_journey_inspect_total_timeout_seconds or 600.0)
+        deadline = time.monotonic() + total_budget
+
+        final_status: str = "running"
+        final_result: Dict[str, Any] = {}
+        final_error: str | None = None
+        last_emitted_step_count = -1
+
+        async with httpx.AsyncClient(timeout=request_timeout, follow_redirects=True) as poll_client:
+            while True:
+                if time.monotonic() >= deadline:
+                    final_error = "inspect_website timed out before the journey finished."
+                    logger.warning(
+                        "tool_executor.inspect_website.timeout",
+                        job_id=job_id,
+                        budget_s=total_budget,
+                    )
+                    break
+
+                try:
+                    res = await poll_client.get(f"{base_url}/run/{job_id}")
+                except httpx.HTTPError as exc:
+                    logger.warning(
+                        "tool_executor.inspect_website.poll_failed",
+                        job_id=job_id,
+                        error=str(exc),
+                    )
+                    await asyncio.sleep(poll_interval)
+                    continue
+
+                if res.status_code == 404:
+                    final_error = "UX Journey Agent forgot the job (404)."
+                    break
+                if res.status_code >= 400:
+                    logger.warning(
+                        "tool_executor.inspect_website.poll_http_error",
+                        job_id=job_id,
+                        status_code=res.status_code,
+                    )
+                    await asyncio.sleep(poll_interval)
+                    continue
+
+                try:
+                    data = res.json()
+                except Exception:
+                    data = {}
+
+                status_str = str(data.get("status") or "running").lower()
+                result_obj = data.get("result") if isinstance(data.get("result"), dict) else {}
+                steps_raw = result_obj.get("steps") if isinstance(result_obj, dict) else None
+                steps_list: List[Dict[str, Any]] = (
+                    [s for s in steps_raw if isinstance(s, dict)] if isinstance(steps_raw, list) else []
+                )
+
+                # Emit progress event when steps change. We trim screenshots out
+                # of the SSE payload (they are served as separate JPEG endpoints)
+                # to keep frames small.
+                if send_event is not None and len(steps_list) != last_emitted_step_count:
+                    last_emitted_step_count = len(steps_list)
+                    try:
+                        send_event(
+                            ToolProgressEvent(
+                                tool="inspect_website",
+                                job_id=job_id,
+                                status=status_str,
+                                steps=[_compact_step_for_sse(s) for s in steps_list[-12:]],
+                                steps_total=len(steps_list),
+                            )
+                        )
+                    except Exception as exc:
+                        logger.warning(
+                            "tool_executor.inspect_website.progress_event_failed",
+                            error=str(exc),
+                        )
+
+                upstream_error = data.get("error") if isinstance(data.get("error"), str) else None
+                has_terminal_success = (
+                    isinstance(result_obj, dict) and result_obj.get("success") in (True, False)
+                )
+                if status_str in ("complete", "completed", "done") or has_terminal_success or status_str == "error":
+                    final_status = status_str
+                    final_result = result_obj or {}
+                    if upstream_error:
+                        final_error = upstream_error
+                    break
+
+                await asyncio.sleep(poll_interval)
+
+        # Step 3: emit completion event and build the compact tool-result for the LLM.
+        success = final_result.get("success") if isinstance(final_result, dict) else None
+        steps_final_raw = final_result.get("steps") if isinstance(final_result, dict) else []
+        steps_final: List[Dict[str, Any]] = (
+            [s for s in steps_final_raw if isinstance(s, dict)] if isinstance(steps_final_raw, list) else []
+        )
+        video_url_rel = final_result.get("videoUrl") if isinstance(final_result, dict) else None
+
+        if send_event is not None:
+            try:
+                send_event(
+                    ToolCompletedEvent(
+                        tool="inspect_website",
+                        job_id=job_id,
+                        success=success if isinstance(success, bool) else None,
+                        video_url=video_url_rel if isinstance(video_url_rel, str) else None,
+                        error=final_error,
+                    )
+                )
+            except Exception as exc:
+                logger.warning("tool_executor.inspect_website.complete_event_failed", error=str(exc))
+
+        # Compact summary for the LLM. We deliberately exclude screenshots and
+        # large reasoning blocks — only the essence per step.
+        key_findings = []
+        for step in steps_final[-5:]:
+            key_findings.append(
+                {
+                    "step": step.get("step"),
+                    "action": step.get("action"),
+                    "target": _truncate(step.get("target"), 160),
+                    "result": _truncate(step.get("result"), 240),
+                }
+            )
+
+        summary_text = _build_summary_text(
+            url=url,
+            task=task,
+            steps_count=len(steps_final),
+            success=success,
+            error=final_error,
+            site_domain=final_result.get("siteDomain") if isinstance(final_result, dict) else None,
+        )
+
+        logger.info(
+            "tool_executor.inspect_website.complete",
+            job_id=job_id,
+            success=success,
+            steps_count=len(steps_final),
+            had_error=bool(final_error),
+        )
+
+        tool_result: Dict[str, Any] = {
+            "ok": final_error is None,
+            "jobId": job_id,
+            "status": final_status,
+            "success": success,
+            "summary_text": summary_text,
+            "key_findings": key_findings,
+            "url": url,
+            "task": task,
+        }
+        if video_url_rel:
+            tool_result["video_url"] = video_url_rel
+        if final_error:
+            tool_result["error"] = final_error
+        return tool_result
+
+
+def _compact_step_for_sse(step: Dict[str, Any]) -> Dict[str, Any]:
+    """Trim a single step entry to fields the chat panel renders."""
+    return {
+        "step": step.get("step"),
+        "action": step.get("action"),
+        "target": step.get("target"),
+        "result": step.get("result"),
+        "reasoning": step.get("reasoning"),
+        "reasoningMeta": step.get("reasoningMeta") or step.get("reasoning_meta"),
+        "screenshotUrl": step.get("screenshotUrl") or step.get("screenshot_url"),
+        "timestamp": step.get("timestamp"),
+    }
+
+
+def _truncate(value: Any, limit: int) -> str | None:
+    if value is None:
+        return None
+    s = str(value)
+    if len(s) <= limit:
+        return s
+    return s[: max(0, limit - 1)].rstrip() + "…"
+
+
+def _build_summary_text(
+    *,
+    url: str,
+    task: str,
+    steps_count: int,
+    success: Any,
+    error: str | None,
+    site_domain: str | None,
+) -> str:
+    """Compact human-readable summary the LLM can quote / build on."""
+    if error:
+        return (
+            f"Tried to browse {url} as the persona but the journey was interrupted: {error}. "
+            f"Steps observed before the interruption: {steps_count}."
+        )
+    where = site_domain or url
+    success_phrase = (
+        "completed the visit successfully"
+        if success is True
+        else "could not finish the task" if success is False else "finished the visit"
+    )
+    return (
+        f"Visited {where} for the task '{task}' and {success_phrase} "
+        f"after {steps_count} step(s)."
+    )
 
