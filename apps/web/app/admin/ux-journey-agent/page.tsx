@@ -7,6 +7,8 @@ import { MsqdxButton, MsqdxCard, MsqdxFormField, MsqdxTypography } from "@msqdx/
 import { API_ROUTES, withNextBasePath } from "../../../lib/api-routes";
 import { getUxJourneyVideoPlaybackRate } from "../../../lib/ux-journey-playback";
 import { UxJourneyLivePoll } from "../../../components/ux-journey-live-poll";
+import { ChatMessageMarkdown } from "../../../components/chat/chat-message-markdown";
+import { normalizeReasoningText } from "../../../lib/normalize-reasoning-text";
 import { useI18n } from "../../../components/i18n/i18n-provider";
 
 type Status = "idle" | "running" | "complete" | "error";
@@ -245,14 +247,50 @@ export default function UxJourneyAgentAdminPage() {
                         }}
                       />
                     ) : null}
-                    {(s.target || s.result || s.reasoning) ? (
-                      <MsqdxTypography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
-                        {[
-                          s.target ? `Target: ${s.target}` : null,
-                          s.reasoning ? `Reasoning: ${s.reasoning}` : null,
-                          s.result ? `Result: ${s.result}` : null,
-                        ].filter(Boolean).join("\n")}
+                    {s.target ? (
+                      <MsqdxTypography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                        {normalizeReasoningText(s.target)}
                       </MsqdxTypography>
+                    ) : null}
+                    {s.reasoning ? (
+                      <Box sx={{ mb: 0.5 }}>
+                        <MsqdxTypography
+                          variant="caption"
+                          sx={{
+                            color: "text.secondary",
+                            textTransform: "uppercase",
+                            letterSpacing: 0.6,
+                            display: "block",
+                            mb: 0.25,
+                          }}
+                        >
+                          Reasoning
+                        </MsqdxTypography>
+                        <ChatMessageMarkdown
+                          dense
+                          content={normalizeReasoningText(s.reasoning)}
+                        />
+                      </Box>
+                    ) : null}
+                    {s.result ? (
+                      <Box>
+                        <MsqdxTypography
+                          variant="caption"
+                          sx={{
+                            color: "text.secondary",
+                            textTransform: "uppercase",
+                            letterSpacing: 0.6,
+                            display: "block",
+                            mb: 0.25,
+                          }}
+                        >
+                          Result
+                        </MsqdxTypography>
+                        <ChatMessageMarkdown
+                          dense
+                          content={normalizeReasoningText(s.result)}
+                        />
+                      </Box>
                     ) : null}
                   </Box>
                   );

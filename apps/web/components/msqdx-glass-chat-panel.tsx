@@ -18,6 +18,7 @@ import { keyframes } from "@emotion/react";
 import { MsqdxIcon } from "@msqdx/react";
 import { ChatMessageMarkdown } from "./chat/chat-message-markdown";
 import { glassChatPanelMessagesStackSx } from "../lib/glass-chat-panel-layout";
+import { normalizeAndTruncate, normalizeReasoningText } from "../lib/normalize-reasoning-text";
 import {
   systemPromptTooltipContentSx,
   systemPromptTooltipSlotSx,
@@ -84,6 +85,21 @@ function uxJourneyStepShotSrc(
   if (screenshotUrl?.trim().startsWith("/")) return withNextBasePath(`/api/ux-journey-agent${screenshotUrl}`);
   return null;
 }
+
+/**
+ * Shared style for markdown content rendered inside per-step accordions
+ * (Reasoning, Previous Goal Evaluation, Memory, Next Goal, Result).
+ * Uses primary text color and a slightly smaller body size than the default
+ * `body2` so the cards stay compact while remaining easy to read.
+ */
+const uxJourneyStepMarkdownSx = {
+  color: "text.primary",
+  wordBreak: "break-word",
+  "& .MuiTypography-root": {
+    fontSize: "0.75rem",
+    lineHeight: 1.5,
+  },
+} as const;
 
 export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPanelProps) => {
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -524,13 +540,12 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                         </Typography>
                       </AccordionSummary>
                       <AccordionDetails sx={{ px: 0, pt: 0 }}>
-                        <Typography
-                          variant="body2"
-                          component="div"
-                          sx={{ whiteSpace: "pre-wrap", opacity: 0.88, color: theme.palette.text.secondary }}
-                        >
-                          {message.reasoning}
-                        </Typography>
+                        <Box sx={{ opacity: 0.88, color: theme.palette.text.secondary }}>
+                          <ChatMessageMarkdown
+                            dense
+                            content={normalizeReasoningText(message.reasoning)}
+                          />
+                        </Box>
                       </AccordionDetails>
                     </Accordion>
                   ) : null}
@@ -656,8 +671,8 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                               <Box
                                 key={idx}
                                 sx={{
-                                  minWidth: 260,
-                                  maxWidth: 340,
+                                  minWidth: 345,
+                                  maxWidth: 450,
                                   flex: "0 0 auto",
                                   p: 1.5,
                                   borderRadius: 2,
@@ -728,12 +743,13 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                                       wordBreak: "break-word",
                                     }}
                                   >
-                                    {String(s.target).length > 160 ? String(s.target).slice(0, 160) + "…" : s.target}
+                                    {normalizeAndTruncate(s.target, 160)}
                                   </Typography>
                                 ) : null}
 
                                 {s.reasoning ? (
                                   <Accordion
+                                    defaultExpanded
                                     disableGutters
                                     elevation={0}
                                     sx={{
@@ -751,15 +767,19 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                                       </Typography>
                                     </AccordionSummary>
                                     <AccordionDetails sx={{ px: 0, pt: 0 }}>
-                                      <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word", color: "text.secondary" }}>
-                                        {String(s.reasoning).length > 1200 ? String(s.reasoning).slice(0, 1200) + "…" : s.reasoning}
-                                      </Typography>
+                                      <Box sx={uxJourneyStepMarkdownSx}>
+                                        <ChatMessageMarkdown
+                                          dense
+                                          content={normalizeAndTruncate(s.reasoning, 1200)}
+                                        />
+                                      </Box>
                                     </AccordionDetails>
                                   </Accordion>
                                 ) : null}
 
                                 {s.reasoningMeta?.evaluation_previous_goal ? (
                                   <Accordion
+                                    defaultExpanded
                                     disableGutters
                                     elevation={0}
                                     sx={{
@@ -777,15 +797,19 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                                       </Typography>
                                     </AccordionSummary>
                                     <AccordionDetails sx={{ px: 0, pt: 0 }}>
-                                      <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word", color: "text.secondary" }}>
-                                        {s.reasoningMeta.evaluation_previous_goal}
-                                      </Typography>
+                                      <Box sx={uxJourneyStepMarkdownSx}>
+                                        <ChatMessageMarkdown
+                                          dense
+                                          content={normalizeReasoningText(s.reasoningMeta.evaluation_previous_goal)}
+                                        />
+                                      </Box>
                                     </AccordionDetails>
                                   </Accordion>
                                 ) : null}
 
                                 {s.reasoningMeta?.memory ? (
                                   <Accordion
+                                    defaultExpanded
                                     disableGutters
                                     elevation={0}
                                     sx={{
@@ -803,15 +827,19 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                                       </Typography>
                                     </AccordionSummary>
                                     <AccordionDetails sx={{ px: 0, pt: 0 }}>
-                                      <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word", color: "text.secondary" }}>
-                                        {s.reasoningMeta.memory}
-                                      </Typography>
+                                      <Box sx={uxJourneyStepMarkdownSx}>
+                                        <ChatMessageMarkdown
+                                          dense
+                                          content={normalizeReasoningText(s.reasoningMeta.memory)}
+                                        />
+                                      </Box>
                                     </AccordionDetails>
                                   </Accordion>
                                 ) : null}
 
                                 {s.reasoningMeta?.next_goal ? (
                                   <Accordion
+                                    defaultExpanded
                                     disableGutters
                                     elevation={0}
                                     sx={{
@@ -829,15 +857,19 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                                       </Typography>
                                     </AccordionSummary>
                                     <AccordionDetails sx={{ px: 0, pt: 0 }}>
-                                      <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word", color: "text.secondary" }}>
-                                        {s.reasoningMeta.next_goal}
-                                      </Typography>
+                                      <Box sx={uxJourneyStepMarkdownSx}>
+                                        <ChatMessageMarkdown
+                                          dense
+                                          content={normalizeReasoningText(s.reasoningMeta.next_goal)}
+                                        />
+                                      </Box>
                                     </AccordionDetails>
                                   </Accordion>
                                 ) : null}
 
                                 {s.result ? (
                                   <Accordion
+                                    defaultExpanded
                                     disableGutters
                                     elevation={0}
                                     sx={{
@@ -855,9 +887,12 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                                       </Typography>
                                     </AccordionSummary>
                                     <AccordionDetails sx={{ px: 0, pt: 0 }}>
-                                      <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word", color: "text.secondary" }}>
-                                        {String(s.result).length > 1200 ? String(s.result).slice(0, 1200) + "…" : s.result}
-                                      </Typography>
+                                      <Box sx={uxJourneyStepMarkdownSx}>
+                                        <ChatMessageMarkdown
+                                          dense
+                                          content={normalizeAndTruncate(s.result, 1200)}
+                                        />
+                                      </Box>
                                     </AccordionDetails>
                                   </Accordion>
                                 ) : null}

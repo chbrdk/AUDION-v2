@@ -137,6 +137,33 @@ def _llm_meta() -> dict[str, str]:
     return {"provider": "unknown", "model": "unknown"}
 
 
+def _decode_repr_escapes(value: str) -> str:
+    """
+    Values pulled from a Python repr like ``thinking='Foo:\\nBar'`` arrive with
+    literal backslash-escape pairs (``\\n``, ``\\t``, ``\\'`` …) instead of the
+    real characters. Decode them so the frontend can render proper line breaks
+    and Markdown. Falls back to a manual replacement if ``unicode_escape``
+    chokes on the input.
+    """
+    if not value:
+        return value
+    if "\\" not in value:
+        return value
+    try:
+        # Round-trip via latin-1 to keep non-ASCII characters intact.
+        return value.encode("latin-1", "backslashreplace").decode("unicode_escape")
+    except Exception:
+        return (
+            value
+            .replace("\\r\\n", "\n")
+            .replace("\\n", "\n")
+            .replace("\\t", "\t")
+            .replace("\\'", "'")
+            .replace('\\"', '"')
+            .replace("\\\\", "\\")
+        )
+
+
 def _extract_thinking_text(text: str) -> str:
     """
     browser-use sometimes returns a flattened string like:
@@ -153,7 +180,7 @@ def _extract_thinking_text(text: str) -> str:
 
             m = re.search(r"thinking=(?:'|\")(?P<v>.*?)(?:'|\")\s*(?:evaluation_previous_goal=|memory=|next_goal=|$)", s, re.DOTALL)
             if m and m.group("v") is not None:
-                return m.group("v").strip()
+                return _decode_repr_escapes(m.group("v")).strip()
         except Exception:
             pass
     # Some providers may return {"thought": "..."} like strings
@@ -184,7 +211,8 @@ def _extract_structured_model_output(text: str) -> dict[str, str] | None:
 
             def _pick(key: str) -> str:
                 m = re.search(rf"{key}=(?:'|\")(?P<v>.*?)(?:'|\")", s, re.DOTALL)
-                return (m.group("v") if m and m.group("v") is not None else "").strip()
+                raw = m.group("v") if m and m.group("v") is not None else ""
+                return _decode_repr_escapes(raw).strip()
 
             out = {
                 "thinking": _pick("thinking"),
