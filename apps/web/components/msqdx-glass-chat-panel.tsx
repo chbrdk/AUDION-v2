@@ -63,6 +63,12 @@ type Message = {
     videoUrl?: string;
     /** Total steps seen for this run (even if steps[] is just a preview). */
     stepsTotal?: number;
+    /**
+     * Wall-clock ms-epoch of the most recent SSE update (started/progress).
+     * Used by the card to render a "letzter Step vor 0:42" caption while
+     * running, so the user can tell when the agent is silently stalled.
+     */
+    lastProgressAt?: number;
     personaPolicy?: {
       dimensions?: Record<string, number>;
       heuristics?: string[];
@@ -172,6 +178,18 @@ function firstUrlInText(text: string | null | undefined): string | null {
 
 type UxJourneyStatus = NonNullable<NonNullable<Message["uxJourney"]>["status"]>;
 
+/** Compact "vor 0:42" / "vor 1:23" representation of an ms-epoch timestamp. */
+function relativeAgo(epochMs: number | undefined): string | null {
+  if (!epochMs) return null;
+  const seconds = Math.max(0, Math.floor((Date.now() - epochMs) / 1000));
+  // Hide the caption for the first few seconds to avoid flashing on fresh updates.
+  if (seconds < 3) return null;
+  if (seconds < 60) return `vor ${seconds}s`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `vor ${m}:${s.toString().padStart(2, "0")}`;
+}
+
 /** Short label + tone color for the prominent status pill on the card. */
 function statusPillStyle(status: UxJourneyStatus | undefined): {
   label: string;
@@ -218,6 +236,20 @@ export const MsqdxGlassChatPanel = ({
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxImages, setLightboxImages] = useState<string[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  // Re-render ticker for the "letzter Step vor X" caption on running cards.
+  // Only ticks while at least one bubble has a `running` UX-journey, so we
+  // don't burn frames on otherwise-idle conversations.
+  const [nowTick, setNowTick] = useState(0);
+  useEffect(() => {
+    const hasRunning = messages.some(
+      (m) => m.uxJourney?.status === "running" || m.uxJourney?.status === "approved",
+    );
+    if (!hasRunning) return;
+    const id = window.setInterval(() => setNowTick((n) => n + 1), 5_000);
+    return () => window.clearInterval(id);
+  }, [messages]);
+  void nowTick; // touch — purpose is to force a re-render every 5s while running.
 
   const lightboxHasPrev = lightboxIndex > 0;
   const lightboxHasNext = lightboxIndex < lightboxImages.length - 1;
@@ -829,6 +861,33 @@ export const MsqdxGlassChatPanel = ({
                             </Typography>
                           </Tooltip>
                         ) : null}
+                        {(() => {
+                          // Inactivity hint (only while running/approved):
+                          // tells the user the agent is silently working / stuck.
+                          if (
+                            message.uxJourney.status !== "running" &&
+                            message.uxJourney.status !== "approved"
+                          )
+                            return null;
+                          const ago = relativeAgo(message.uxJourney.lastProgressAt);
+                          if (!ago) return null;
+                          const seconds = Math.floor(
+                            (Date.now() - (message.uxJourney.lastProgressAt ?? 0)) / 1000,
+                          );
+                          const stalled = seconds >= 60;
+                          return (
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: stalled ? "#b45309" : "text.secondary",
+                                fontFamily: MSQDX_TYPOGRAPHY.fontFamily.mono,
+                                fontWeight: stalled ? 700 : 500,
+                              }}
+                            >
+                              {ago}
+                            </Typography>
+                          );
+                        })()}
                         {message.uxJourney.jobId ? (
                           <Typography
                             variant="caption"

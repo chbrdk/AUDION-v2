@@ -247,6 +247,7 @@ type Message = {
     stepsTotal?: number;
     personaPolicy?: any;
     steps?: any[];
+    lastProgressAt?: number;
     pendingDecision?: {
       callId: string;
       promptText?: string | null;
@@ -1784,6 +1785,7 @@ function AdminChatPageContent() {
                         stepsTotal: m.uxJourney?.stepsTotal ?? 0,
                         // Decision actioned; clear the confirm CTA state.
                         pendingDecision: undefined,
+                        lastProgressAt: Date.now(),
                       },
                     }
                   : m,
@@ -1813,6 +1815,7 @@ function AdminChatPageContent() {
                         status,
                         steps,
                         stepsTotal,
+                        lastProgressAt: Date.now(),
                       },
                     }
                   : m,

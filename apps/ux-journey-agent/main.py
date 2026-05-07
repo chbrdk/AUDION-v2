@@ -87,6 +87,12 @@ class RunRequest(BaseModel):
     url: str
     task: str
     persona: dict[str, Any] | None = None
+    # Caller-supplied upper bound on agent steps. We clamp to a sane window
+    # because browser-use can otherwise spin for many minutes if the LLM keeps
+    # asking for more actions. When omitted, falls back to UX_JOURNEY_MAX_STEPS
+    # (or 25). The frontend's `inspect_website` tool definition exposes this to
+    # the chat LLM so personas can tighten/loosen the budget per request.
+    max_steps: int | None = None
 
 class RunResponse(BaseModel):
     jobId: str
@@ -993,7 +999,14 @@ async def _history_watcher_loop(
         await asyncio.sleep(1.0)
 
 
-async def run_agent(job_id: str, url: str, task: str, persona: dict[str, Any] | None = None) -> None:
+async def run_agent(
+    job_id: str,
+    url: str,
+    task: str,
+    persona: dict[str, Any] | None = None,
+    *,
+    max_steps_override: int | None = None,
+) -> None:
     try:
         from browser_use import Agent, Browser
     except ImportError as e:
@@ -1041,7 +1054,14 @@ async def run_agent(job_id: str, url: str, task: str, persona: dict[str, Any] | 
         )
         persona_instr = _persona_instruction(persona)
         task_with_lang = german_instruction + persona_instr + task
-        max_steps = int(os.environ.get("UX_JOURNEY_MAX_STEPS", "25"))
+        # Per-request override (from chat-api / direct callers) wins over the
+        # process-wide env default. Clamp to a sensible 3..30 window — values
+        # outside that range usually indicate a confused LLM, not intent.
+        env_default_max_steps = int(os.environ.get("UX_JOURNEY_MAX_STEPS", "25"))
+        if isinstance(max_steps_override, int) and max_steps_override > 0:
+            max_steps = max(3, min(30, max_steps_override))
+        else:
+            max_steps = env_default_max_steps
         agent_kw: dict[str, Any] = {"task": task_with_lang, "llm": llm, "browser": browser}
         if "initial_url" in sig.parameters:
             agent_kw["initial_url"] = url
@@ -1251,29 +1271,15 @@ async def run_agent(job_id: str, url: str, task: str, persona: dict[str, Any] | 
                 except Exception:
                     pass
 
-        # Transcode to smooth MP4 so the player can seek and avoid VFR-induced judder.
-        if video_path:
-            try:
-                src = Path(video_path)
-                smooth = VIDEO_BASE_DIR / f"{job_id}.smooth.mp4"
-                if await _transcode_to_smooth_mp4(src, smooth):
-                    final_dest = VIDEO_BASE_DIR / f"{job_id}.mp4"
-                    try:
-                        if final_dest.exists() and final_dest.resolve() != src.resolve():
-                            final_dest.unlink()
-                    except Exception:
-                        pass
-                    try:
-                        smooth.replace(final_dest)
-                        if src != final_dest and src.is_file():
-                            src.unlink(missing_ok=True)
-                        video_path = str(final_dest)
-                    except Exception:
-                        # Keep transcoded file at its temporary name if rename fails.
-                        video_path = str(smooth)
-            except Exception:
-                # Transcoding is best-effort; fall back to original recording.
-                pass
+        # NOTE: We deliberately set j.status = "complete" BEFORE transcoding.
+        # Transcoding to a smooth MP4 (libx264 + CFR re-encode) can take many
+        # seconds — sometimes minutes for long runs — and we observed chats
+        # appear "still running" for many minutes after the agent was actually
+        # done. The video handler at GET /run/{jobId}/video serves whatever
+        # file currently exists, so the player works during transcode using
+        # the raw move target (.webm / pre-transcode .mp4); once the smooth
+        # version is ready we update j.video_path and the next reload picks
+        # it up.
 
         result = {
             "jobId": job_id,
@@ -1307,6 +1313,14 @@ async def run_agent(job_id: str, url: str, task: str, persona: dict[str, Any] | 
                 _jobs[job_id].result = result
                 if video_path:
                     _jobs[job_id].video_path = video_path
+
+        # Background polish step: smooth-MP4 transcode. Does NOT block the
+        # status flip above; the chat-api / frontend already see "complete"
+        # by the time this runs. On success we replace the served file at
+        # the same logical path, so a player that reloads the video after
+        # this finishes gets the smoother variant for free.
+        if video_path:
+            asyncio.create_task(_finalize_video(job_id=job_id, source_path=video_path))
     except Exception as e:
         async with _jobs_lock:
             if job_id in _jobs:
@@ -1330,6 +1344,48 @@ VIDEO_TRANSCODE_PRESET = os.environ.get("UX_JOURNEY_VIDEO_PRESET", "veryfast")
 VIDEO_TRANSCODE_DISABLED = (
     os.environ.get("UX_JOURNEY_VIDEO_TRANSCODE", "1").strip().lower() in ("0", "false", "no")
 )
+
+
+async def _finalize_video(*, job_id: str, source_path: str) -> None:
+    """
+    Background polish for a finished journey: re-encode the raw recording to a
+    smooth seekable MP4. Runs AFTER the job's status has already flipped to
+    "complete", so any latency here is invisible to the chat. On success we
+    swap the served file at the conventional `{job_id}.mp4` location and update
+    `_jobs[job_id].video_path`; on failure we silently keep the raw recording.
+
+    We don't raise — this is best-effort polish. Logging the failure is enough.
+    """
+    try:
+        src = Path(source_path)
+        if not src.is_file():
+            return
+        smooth = VIDEO_BASE_DIR / f"{job_id}.smooth.mp4"
+        if not await _transcode_to_smooth_mp4(src, smooth):
+            return
+        final_dest = VIDEO_BASE_DIR / f"{job_id}.mp4"
+        try:
+            if final_dest.exists() and final_dest.resolve() != src.resolve():
+                final_dest.unlink()
+        except Exception:
+            pass
+        new_path: str
+        try:
+            smooth.replace(final_dest)
+            if src != final_dest and src.is_file():
+                src.unlink(missing_ok=True)
+            new_path = str(final_dest)
+        except Exception:
+            # Rename failed — keep the smooth file at its temp name so it's
+            # still served instead of the laggy original.
+            new_path = str(smooth)
+        async with _jobs_lock:
+            if job_id in _jobs:
+                _jobs[job_id].video_path = new_path
+    except Exception as exc:
+        # Best-effort polish; log so it surfaces in the structured agent logs
+        # but never propagate into the (already-completed) job state.
+        print(f"video.finalize: job={job_id} error={exc}", flush=True)
 
 
 async def _transcode_to_smooth_mp4(src: Path, dest: Path) -> bool:
@@ -1423,7 +1479,9 @@ async def start_run(body: RunRequest) -> RunResponse:
     async with _jobs_lock:
         _jobs[job_id] = JobState(job_id=job_id, status="running", url=url, task=task, persona=body.persona)
 
-    asyncio.create_task(run_agent(job_id, url, task, body.persona))
+    asyncio.create_task(
+        run_agent(job_id, url, task, body.persona, max_steps_override=body.max_steps)
+    )
     return RunResponse(jobId=job_id)
 
 @app.get("/run/{job_id}")

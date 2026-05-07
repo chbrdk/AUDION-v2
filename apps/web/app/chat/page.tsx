@@ -132,6 +132,7 @@ type UxJourneyPayload = {
   videoUrl?: string;
   stepsTotal?: number;
   steps?: UxJourneyStep[];
+  lastProgressAt?: number;
   pendingDecision?: {
     callId: string;
     promptText?: string | null;
@@ -876,6 +877,7 @@ function ChatSharePageContent() {
                   stepsTotal: 0,
                   // Decision was actioned; the confirm CTA is gone.
                   pendingDecision: undefined,
+                  lastProgressAt: Date.now(),
                 }),
               );
             } else if (
@@ -899,6 +901,7 @@ function ChatSharePageContent() {
                       : Array.isArray(parsed.steps)
                         ? parsed.steps.length
                         : 0,
+                  lastProgressAt: Date.now(),
                 }),
               );
             } else if (

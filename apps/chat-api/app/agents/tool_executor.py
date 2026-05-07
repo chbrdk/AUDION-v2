@@ -463,22 +463,50 @@ class ToolExecutor:
 
         # Step 2: poll until the run completes (or we hit the safety budget).
         poll_interval = max(0.5, float(settings.ux_journey_poll_interval_seconds or 2.0))
-        total_budget = float(settings.ux_journey_inspect_total_timeout_seconds or 600.0)
+        total_budget = float(settings.ux_journey_inspect_total_timeout_seconds or 360.0)
+        # `stagnation_budget` is the inactivity threshold: how long we accept
+        # zero step movement before we declare the agent stalled. Set < total
+        # so a stuck run aborts long before the hard ceiling.
+        stagnation_budget = float(settings.ux_journey_inspect_stagnation_seconds or 75.0)
         deadline = time.monotonic() + total_budget
 
         final_status: str = "running"
         final_result: Dict[str, Any] = {}
         final_error: str | None = None
         last_emitted_step_count = -1
+        last_step_change_at = time.monotonic()
+        last_seen_step_count = 0
 
         async with httpx.AsyncClient(timeout=request_timeout, follow_redirects=True) as poll_client:
             while True:
-                if time.monotonic() >= deadline:
+                now = time.monotonic()
+                if now >= deadline:
                     final_error = "inspect_website timed out before the journey finished."
                     logger.warning(
                         "tool_executor.inspect_website.timeout",
                         job_id=job_id,
                         budget_s=total_budget,
+                    )
+                    break
+
+                # Stagnation watchdog: if the upstream agent stopped producing
+                # new steps but never flipped its status, we declare it stalled
+                # so the chat can recover. We only arm the watchdog after at
+                # least one step has been observed (a fresh run with 0 steps
+                # for the first 30s is normal page-load latency, not a stall).
+                if (
+                    last_seen_step_count > 0
+                    and (now - last_step_change_at) >= stagnation_budget
+                ):
+                    final_error = (
+                        f"inspect_website stalled — no new steps for {int(stagnation_budget)}s "
+                        f"after step {last_seen_step_count}. The browser agent is likely stuck."
+                    )
+                    logger.warning(
+                        "tool_executor.inspect_website.stagnation",
+                        job_id=job_id,
+                        last_step=last_seen_step_count,
+                        stagnation_s=stagnation_budget,
                     )
                     break
 
@@ -516,6 +544,13 @@ class ToolExecutor:
                 steps_list: List[Dict[str, Any]] = (
                     [s for s in steps_raw if isinstance(s, dict)] if isinstance(steps_raw, list) else []
                 )
+
+                # Reset the stagnation watchdog whenever the upstream produced
+                # progress — even if the SSE forwarder hasn't yet emitted a
+                # new event for it (we use the raw step count here).
+                if len(steps_list) != last_seen_step_count:
+                    last_step_change_at = now
+                    last_seen_step_count = len(steps_list)
 
                 # Emit progress event when steps change. We trim screenshots out
                 # of the SSE payload (they are served as separate JPEG endpoints)

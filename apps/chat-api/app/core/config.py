@@ -70,7 +70,18 @@ class Settings(BaseSettings):
     ux_journey_agent_timeout_seconds: float = 60.0
     # How long the inspect_website tool may keep polling before giving up
     # (caps the worst-case open SSE connection back to the browser).
-    ux_journey_inspect_total_timeout_seconds: float = 600.0
+    # Hard ceiling for a single inspect_website tool call (browser run + video
+    # transcode + JSON serialization). Lowered from 600 -> 360 because at 10 min
+    # users blame the chat, not the browser run; the LLM-suggested `max_steps`
+    # rarely exceeds 25 and even bloated 25-step runs finish in <4 min today.
+    ux_journey_inspect_total_timeout_seconds: float = 360.0
+    # Defensive timeout: if the upstream agent stops emitting new steps for
+    # this many seconds while still reporting status="running", we treat the
+    # run as stalled and break the polling loop with `success=None` plus an
+    # explanatory error. This keeps the chat from hanging indefinitely when
+    # the agent's worker task or browser process is wedged (we have observed
+    # browser-use occasionally looping past `max_steps` instead of stopping).
+    ux_journey_inspect_stagnation_seconds: float = 75.0
     # Default browser-step cap if the LLM doesn't supply one.
     ux_journey_inspect_default_max_steps: int = 12
     # Wait between poll iterations.
