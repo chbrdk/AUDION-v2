@@ -4,10 +4,13 @@ FROM python:3.12-slim-bookworm
 
 WORKDIR /app
 
-# System deps: browser-use/Playwright need Chromium and libs
+# System deps: browser-use/Playwright need Chromium and libs.
+# `ffmpeg` is used to transcode the Playwright WebM recording into a smooth, seekable MP4
+# (constant framerate, H.264 yuv420p, +faststart) that browsers can play without judder.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     ca-certificates \
+    ffmpeg \
     libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 \
     libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2 \
     fonts-liberation libasound2-plugins \

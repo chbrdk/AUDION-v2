@@ -624,6 +624,7 @@ export const MsqdxGlassChatPanel = ({ messages, systemPrompt }: MsqdxGlassChatPa
                             component="video"
                             controls
                             playsInline
+                            preload="auto"
                             src={message.uxJourney.videoUrl}
                             onLoadedMetadata={(e: React.SyntheticEvent<HTMLVideoElement>) => {
                               e.currentTarget.playbackRate = getUxJourneyVideoPlaybackRate();

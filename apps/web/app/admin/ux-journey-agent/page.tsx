@@ -192,6 +192,7 @@ export default function UxJourneyAgentAdminPage() {
               component="video"
               controls
               playsInline
+              preload="auto"
               src={API_ROUTES.uxJourneyAgentVideo(jobId)}
               onLoadedMetadata={(e: React.SyntheticEvent<HTMLVideoElement>) => {
                 e.currentTarget.playbackRate = getUxJourneyVideoPlaybackRate();

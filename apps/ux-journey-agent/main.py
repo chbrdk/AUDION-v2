@@ -1201,6 +1201,30 @@ async def run_agent(job_id: str, url: str, task: str, persona: dict[str, Any] | 
                 except Exception:
                     pass
 
+        # Transcode to smooth MP4 so the player can seek and avoid VFR-induced judder.
+        if video_path:
+            try:
+                src = Path(video_path)
+                smooth = VIDEO_BASE_DIR / f"{job_id}.smooth.mp4"
+                if await _transcode_to_smooth_mp4(src, smooth):
+                    final_dest = VIDEO_BASE_DIR / f"{job_id}.mp4"
+                    try:
+                        if final_dest.exists() and final_dest.resolve() != src.resolve():
+                            final_dest.unlink()
+                    except Exception:
+                        pass
+                    try:
+                        smooth.replace(final_dest)
+                        if src != final_dest and src.is_file():
+                            src.unlink(missing_ok=True)
+                        video_path = str(final_dest)
+                    except Exception:
+                        # Keep transcoded file at its temporary name if rename fails.
+                        video_path = str(smooth)
+            except Exception:
+                # Transcoding is best-effort; fall back to original recording.
+                pass
+
         result = {
             "jobId": job_id,
             "taskDescription": task,
@@ -1245,6 +1269,60 @@ async def run_agent(job_id: str, url: str, task: str, persona: dict[str, Any] | 
                 await browser.close()
             except Exception:
                 pass
+
+
+# Post-processing: Playwright records WebM with variable framerate and irregular keyframes.
+# Browsers (esp. Chrome, mobile Safari) play these jittery and seek poorly. Transcoding to
+# H.264 MP4 with constant framerate + +faststart yields smooth playback and instant seek.
+VIDEO_TRANSCODE_FPS = float(os.environ.get("UX_JOURNEY_VIDEO_FPS", "25"))
+VIDEO_TRANSCODE_CRF = int(os.environ.get("UX_JOURNEY_VIDEO_CRF", "23"))
+VIDEO_TRANSCODE_PRESET = os.environ.get("UX_JOURNEY_VIDEO_PRESET", "veryfast")
+VIDEO_TRANSCODE_DISABLED = (
+    os.environ.get("UX_JOURNEY_VIDEO_TRANSCODE", "1").strip().lower() in ("0", "false", "no")
+)
+
+
+async def _transcode_to_smooth_mp4(src: Path, dest: Path) -> bool:
+    """Re-encode ``src`` to a browser-friendly H.264 MP4 at ``dest``.
+
+    Returns True on success. On failure (ffmpeg missing / encode error) the caller falls
+    back to serving the original recording.
+    """
+    if VIDEO_TRANSCODE_DISABLED:
+        return False
+    if shutil.which("ffmpeg") is None:
+        return False
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    cmd = [
+        "ffmpeg",
+        "-y",
+        "-loglevel", "error",
+        "-i", str(src),
+        "-vf", f"fps={VIDEO_TRANSCODE_FPS},format=yuv420p",
+        "-c:v", "libx264",
+        "-preset", VIDEO_TRANSCODE_PRESET,
+        "-crf", str(VIDEO_TRANSCODE_CRF),
+        "-g", str(int(VIDEO_TRANSCODE_FPS * 2)),  # keyframe every ~2s for smooth seeking
+        "-pix_fmt", "yuv420p",
+        "-movflags", "+faststart",
+        "-an",  # no audio in Playwright recordings
+        str(dest),
+    ]
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE
+        )
+        _, stderr = await proc.communicate()
+        if proc.returncode == 0 and dest.is_file() and dest.stat().st_size > 0:
+            return True
+        # Best-effort log; do not raise — caller falls back to source file.
+        print(
+            f"ffmpeg transcode failed (rc={proc.returncode}) for {src}: {stderr[-1024:] if stderr else b''!r}",
+            flush=True,
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        print(f"ffmpeg transcode crashed for {src}: {exc!r}", flush=True)
+    return False
 
 
 def _pick_latest_file(paths: list[Path]) -> Path | None:
