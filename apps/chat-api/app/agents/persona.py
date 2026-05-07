@@ -347,14 +347,17 @@ class PersonaAgent:
                                 
                                 if tool_call_delta.id:
                                     tool_call["id"] = tool_call_delta.id
-                                    tool_call["id"] = tool_call_delta.id
-                                
+
                                 if tool_call_delta.function:
                                     if tool_call_delta.function.name:
                                         tool_call["name"] = tool_call_delta.function.name
-                                        tool_call["name"] = tool_call_delta.function.name
                                     if tool_call_delta.function.arguments:
-                                        tool_call["arguments"] += tool_call_delta.function.arguments
+                                        # OpenAI streams arguments JSON in many small chunks; we
+                                        # accumulate verbatim and parse once the call is finished.
+                                        # NOTE: this used to append twice — that double-write was
+                                        # the source of `json.JSONDecodeError: Expecting ':' delimiter`
+                                        # the moment a tool with non-trivial args (inspect_website)
+                                        # was actually called.
                                         tool_call["arguments"] += tool_call_delta.function.arguments
                     
                     # Check finish_reason to see if stream is complete
