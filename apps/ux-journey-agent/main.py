@@ -476,6 +476,28 @@ def _persona_policy_instruction(persona: dict[str, Any] | None) -> str:
     )
 
 
+def _smart_trim(text: str, *, limit: int, soft_floor_ratio: float = 0.6) -> str:
+    """
+    Hard-cap a user-facing reasoning snippet at `limit` chars without breaking
+    mid-word when possible. The card UI lays each accordion section out in 1–3
+    short lines, so anything beyond this cap is just visual noise.
+
+    `soft_floor_ratio` decides when we're willing to truncate at the last
+    whitespace vs. cutting mid-word — only if the whitespace is past
+    `soft_floor_ratio * limit`, otherwise we'd produce comically short clips.
+    """
+    if not text:
+        return text
+    s = text.strip()
+    if len(s) <= limit:
+        return s
+    clipped = s[: max(1, limit - 1)].rstrip()
+    last_space = clipped.rfind(" ")
+    if last_space > int(limit * soft_floor_ratio):
+        clipped = clipped[:last_space]
+    return clipped.rstrip(" ,;:.-") + "…"
+
+
 def _normalize_action_entry(entry: Any) -> tuple[str, str, str]:
     """Extract (action_label, target, result) from one action_history entry. Entry can be dict, list of dicts, or object."""
     action_label = "step"
@@ -487,10 +509,17 @@ def _normalize_action_entry(entry: Any) -> tuple[str, str, str]:
     # Handle list of dicts (e.g. [{'navigate': {...}, 'result': '...'}])
     if isinstance(raw, (list, tuple)) and len(raw) > 0:
         raw = raw[0]
+    # Caps: most action results are browser-use's own short status strings
+    # (e.g. "Navigated to https://…", "Clicked button at index 12"). The one
+    # exception is the final `done` step whose `text` IS the LLM's per-journey
+    # summary — the prompt now constrains it to ~4 sentences / 6 bullets, but
+    # we still safety-net it here. `_smart_trim` keeps word boundaries.
+    INTERMEDIATE_RESULT_CAP = 220   # status strings — short on purpose
+    DONE_RESULT_CAP = 600            # final summary — fits the card without scrolling
     if not isinstance(raw, dict):
         # May be an object with __dict__ or attributes
         res = getattr(raw, "result", None) or ""
-        result = str(res)[:500]
+        result = _smart_trim(str(res), limit=INTERMEDIATE_RESULT_CAP)
         return (getattr(raw, "name", str(raw))[:50] if hasattr(raw, "name") else str(raw)[:50], "", result)
     # Keys like 'navigate', 'click', 'done' with payload; plus 'result' or 'interacted_element'
     res = raw.get("result") or ""
@@ -500,7 +529,7 @@ def _normalize_action_entry(entry: Any) -> tuple[str, str, str]:
         url = pl.get("url", "")
         action_label = "navigate"
         target = url
-        result = (res or "")[:500]
+        result = _smart_trim(str(res or ""), limit=INTERMEDIATE_RESULT_CAP)
     elif "click" in raw:
         pl = raw["click"] or {}
         action_label = "click"
@@ -511,17 +540,17 @@ def _normalize_action_entry(entry: Any) -> tuple[str, str, str]:
             target = target or getattr(elem, "x_path", "") or str(pl.get("index", ""))
         else:
             target = str(pl.get("index", ""))
-        result = (res or "")[:500]
+        result = _smart_trim(str(res or ""), limit=INTERMEDIATE_RESULT_CAP)
     elif "done" in raw:
         pl = raw["done"] or {}
         action_label = "done"
         target = "—"
-        result = (pl.get("text") or res or "")[:1000]
+        result = _smart_trim(str(pl.get("text") or res or ""), limit=DONE_RESULT_CAP)
     else:
         key = next((k for k in raw if k not in ("result", "interacted_element")), "step")
         action_label = str(key)
         target = str(raw.get(key, ""))[:200] if isinstance(raw.get(key), dict) else ""
-        result = (res or "")[:500]
+        result = _smart_trim(str(res or ""), limit=INTERMEDIATE_RESULT_CAP)
     return (action_label, target, result)
 
 
@@ -579,14 +608,28 @@ def _history_to_steps(history: Any) -> list[dict[str, Any]]:
             if i < len(thoughts):
                 thinking = str(thoughts[i].get("thinking") or "").strip()
                 if thinking:
-                    step_entry["reasoning"] = thinking
+                    # Server-side safety net for `thinking`. The prompt asks for
+                    # ~280 chars; we accept up to ~320 to avoid clipping a
+                    # legitimate well-formed 2-sentence answer, but anything
+                    # beyond that is monologue and gets `…`.
+                    step_entry["reasoning"] = _smart_trim(thinking, limit=320)
                 structured = thoughts[i].get("structured")
                 if isinstance(structured, dict) and any(str(v or "").strip() for v in structured.values()):
-                    # Keep only known keys and bound length a bit.
+                    # The three structured sections each render as their own
+                    # accordion in the card UI. Caps mirror the per-field
+                    # brevity rule in the prompt with a small ~15% buffer so
+                    # we don't punish slightly-over-budget but still well-formed
+                    # outputs.
                     step_entry["reasoningMeta"] = {
-                        "evaluation_previous_goal": str(structured.get("evaluation_previous_goal") or "")[:4000] or None,
-                        "memory": str(structured.get("memory") or "")[:4000] or None,
-                        "next_goal": str(structured.get("next_goal") or "")[:4000] or None,
+                        "evaluation_previous_goal": _smart_trim(
+                            str(structured.get("evaluation_previous_goal") or ""), limit=160
+                        ) or None,
+                        "memory": _smart_trim(
+                            str(structured.get("memory") or ""), limit=180
+                        ) or None,
+                        "next_goal": _smart_trim(
+                            str(structured.get("next_goal") or ""), limit=160
+                        ) or None,
                     }
             steps.append(step_entry)
         if not steps and hasattr(history, "urls") and callable(history.urls):
@@ -1067,6 +1110,29 @@ async def run_agent(
         min_steps = int(os.environ.get("UX_JOURNEY_MIN_STEPS", "6"))
         german_instruction = (
             "WICHTIG: Formuliere alle deine Überlegungen und Gedanken (thinking/reasoning) ausschließlich auf Deutsch. "
+            # Unified brevity rule for ALL per-step LLM-controlled text fields.
+            # Without this, browser-use tends to produce 4–8 satzlange Reflexionen
+            # pro Step (Persona-Bezug, Beobachtung, Hypothese, Plan, Begründung,
+            # Risiko-Abwägung). Im Card-UI ist davon nur das Pointierte nützlich —
+            # alles andere macht die Accordion-Tiles unnötig hoch und treibt die
+            # Output-Tokens (= Latenz pro Step).
+            "WICHTIG: Halte ALLE Reasoning-Felder kompakt und ohne Wiederholung. "
+            "Konkret pro Feld:\n"
+            "- 'thinking': max. 2 Sätze, ~280 Zeichen. Format "
+            "'<beobachtung in halbsatz> → <handlung+begründung in halbsatz>'. "
+            "Kein 'Ich sehe…'/'Ich beobachte…'-Geplauder.\n"
+            "- 'evaluation_previous_goal': 1 Satz, ~140 Zeichen. Knappe Bewertung wie "
+            "'Erfolgreich: Cookie-Banner geschlossen' oder 'Teilweise: Suche zeigt 0 Treffer'. "
+            "Keine erneute Beschreibung der Aktion.\n"
+            "- 'memory': 1 Satz mit den wichtigsten Fakten für spätere Schritte, ~160 Zeichen. "
+            "Nur neue/relevante Erkenntnisse — KEIN Aufzählen aller bisherigen Schritte. "
+            "Kein Floskel-Auftakt wie 'Bisher habe ich…'.\n"
+            "- 'next_goal': 1 Satz, ~140 Zeichen. Konkretes nächstes Ziel + ggf. erwartetes Element, "
+            "z.B. 'Auf Service-Tab klicken, um Leistungen zu sehen'. Keine Begründung mit 3 Alternativen.\n"
+            "- 'done.text' (Final-Resultat): max. 4 kurze Sätze oder 6 Bulletpoints. "
+            "Fakten-fokussiert: Was wurde wirklich gesehen/gefunden, was nicht. Keine Zusammenfassung der Schritt-Reihenfolge — "
+            "nur das, was die Persona aus dem Besuch mitnimmt.\n"
+            "Persona-Bezug NUR, wenn er die Entscheidung tatsächlich beeinflusst — sonst weglassen. "
             "WICHTIG: Beende die Journey NICHT zu früh. Markiere erst dann als 'done'/'fertig', wenn du das Ziel wirklich erreicht hast "
             "UND es anhand sichtbarer UI-Indikatoren verifiziert hast (z.B. Bestätigungsseite, eindeutiger State, URL, Erfolgsmeldung). "
             f"WICHTIG: Beende NICHT vor mindestens {min_steps} Schritten. Wenn das Ziel früher erreicht wirkt, nutze die restlichen Schritte für "
