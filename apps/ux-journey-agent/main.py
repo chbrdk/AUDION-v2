@@ -65,6 +65,12 @@ _step_screenshot_counts: dict[str, int] = {}
 # correctly when an older fork build slips into production.
 _action_hook_counts: dict[str, int] = {}
 
+# Per-job wall-clock alignment between Playwright recording and step publications:
+# monotonic time when recording session starts (shortly after Browser launch).
+_recording_mono: dict[str, float] = {}
+# First time we observed each step index while the agent ran (monotonic), keyed by job_id → step_no.
+_step_first_seen_mono: dict[str, dict[int, float]] = {}
+
 
 def _agent_init_accepts_named_arg(sig: inspect.Signature, name: str) -> bool:
     """True if ``Agent(**{name: ...})`` is valid: explicit parameter or a ``**kwargs`` bucket."""
@@ -112,6 +118,11 @@ if UX_JOURNEY_SLOWMO > 32:
 def _slow(seconds: float) -> float:
     """Scale a pacing delay by UX_JOURNEY_SLOWMO (true slow-motion recording)."""
     return max(0.0, float(seconds) * UX_JOURNEY_SLOWMO)
+
+
+def _env_truthy(name: str, default: str = "1") -> bool:
+    v = (os.environ.get(name, default) or "").strip().lower()
+    return v not in ("0", "false", "no", "off", "")
 
 
 # ---------------------------------------------------------------------------
@@ -699,6 +710,225 @@ def _merge_step_screenshots(*, base_steps: list[dict[str, Any]], overlay_steps: 
         return base_steps
 
 
+def _steps_sidecar_path(job_id: str) -> Path:
+    """JSON snapshot of steps (+ reasoning timing) for ffmpeg finalize after restarts."""
+    return VIDEO_BASE_DIR / f"{job_id}.steps.json"
+
+
+def _annotate_steps_with_video_offsets(job_id: str, steps: list[dict[str, Any]]) -> None:
+    """Attach ``videoOffsetSec`` (seconds from recording start in the raw capture timeline)."""
+    rec = _recording_mono.get(job_id)
+    if rec is None:
+        return
+    seen = _step_first_seen_mono.get(job_id) or {}
+    for st in steps:
+        if not isinstance(st, dict):
+            continue
+        n = st.get("step")
+        if not isinstance(n, int):
+            continue
+        first_mono = seen.get(n)
+        if first_mono is not None:
+            st["videoOffsetSec"] = max(0.0, float(first_mono - rec))
+
+
+def _persist_steps_sidecar(job_id: str, steps: list[dict[str, Any]]) -> None:
+    """Persist steps so ``POST /video/finalize`` can burn subtitles without in-memory job state."""
+    try:
+        VIDEO_BASE_DIR.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "jobId": job_id,
+            "steps": steps,
+        }
+        _steps_sidecar_path(job_id).write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+    except Exception:
+        pass
+
+
+def _load_steps_sidecar(job_id: str) -> list[dict[str, Any]] | None:
+    p = _steps_sidecar_path(job_id)
+    try:
+        raw = json.loads(p.read_text(encoding="utf-8"))
+        steps = raw.get("steps")
+        return steps if isinstance(steps, list) else None
+    except Exception:
+        return None
+
+
+def _video_lower_third_body(step: dict[str, Any]) -> str:
+    """Pick concise on-screen text: reasoning → structured hints → action label."""
+    r = str(step.get("reasoning") or "").strip()
+    if not r:
+        rm = step.get("reasoningMeta")
+        if isinstance(rm, dict):
+            r = (
+                str(rm.get("next_goal") or "").strip()
+                or str(rm.get("memory") or "").strip()
+                or str(rm.get("evaluation_previous_goal") or "").strip()
+            )
+    if not r:
+        act = str(step.get("action") or "step")
+        tgt = str(step.get("target") or "").strip()
+        r = f"{act}: {tgt}" if tgt else act
+    return _smart_trim(r, limit=320)
+
+
+def _wrap_ass_lines(text: str, *, max_chars: int = 54, max_lines: int = 4) -> str:
+    """Word-wrap for ASS; returns escaped single-line with \\N breaks."""
+    words = text.replace("\r\n", "\n").replace("\r", "\n").split()
+    lines: list[str] = []
+    cur = ""
+    for w in words:
+        if len(w) > max_chars:
+            if cur:
+                lines.append(cur)
+                cur = ""
+            lines.append(_smart_trim(w, limit=max_chars))
+            if len(lines) >= max_lines:
+                break
+            continue
+        candidate = w if not cur else f"{cur} {w}"
+        if len(candidate) <= max_chars:
+            cur = candidate
+        else:
+            if cur:
+                lines.append(cur)
+            cur = w
+            if len(lines) >= max_lines:
+                break
+    if cur and len(lines) < max_lines:
+        lines.append(cur)
+    elif cur and lines:
+        tail = _smart_trim(lines[-1] + " " + cur, limit=max_chars + 24)
+        lines[-1] = tail
+    return "\\N".join(_escape_ass_chunk(line) for line in lines[:max_lines])
+
+
+def _escape_ass_chunk(s: str) -> str:
+    """Escape user text inside ASS Dialogue bodies."""
+    out = (
+        s.replace("\\", "\\\\")
+        .replace("{", "\\{")
+        .replace("}", "\\}")
+    )
+    return out
+
+
+def _format_ass_timestamp(total_seconds: float) -> str:
+    """H:MM:SS.cc used by SSA/ASS."""
+    t = max(0.0, float(total_seconds))
+    h = int(t // 3600)
+    m = int((t % 3600) // 60)
+    s = t % 60
+    whole = int(s)
+    cs = int(round((s - whole) * 100))
+    if cs >= 100:
+        cs = 0
+        whole += 1
+        if whole >= 60:
+            whole = 0
+            m += 1
+    return f"{h}:{m:02d}:{whole:02d}.{cs:02d}"
+
+
+async def _ffprobe_duration_seconds(path: Path) -> float | None:
+    if shutil.which("ffprobe") is None:
+        return None
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "ffprobe",
+            "-v",
+            "error",
+            "-show_entries",
+            "format=duration",
+            "-of",
+            "default=noprint_wrappers=1:nokey=1",
+            str(path),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.DEVNULL,
+        )
+        out, _ = await proc.communicate()
+        if proc.returncode != 0 or not out:
+            return None
+        return float(out.decode().strip())
+    except Exception:
+        return None
+
+
+def _write_reasoning_ass_file(
+    *,
+    dest_ass: Path,
+    steps: list[dict[str, Any]],
+    duration_raw_sec: float,
+    slowdown_eff: float,
+) -> bool:
+    """Build an ASS subtitle track timed on the *slowed* output timeline."""
+    timed: list[tuple[float, float, str]] = []
+    ordered = sorted(
+        (s for s in steps if isinstance(s, dict)),
+        key=lambda x: int(x.get("step") or 0),
+    )
+    offsets: list[tuple[float, dict[str, Any]]] = []
+    for st in ordered:
+        off = st.get("videoOffsetSec")
+        if isinstance(off, (int, float)):
+            offsets.append((float(off), st))
+        else:
+            continue
+    offsets.sort(key=lambda x: x[0])
+    dur_out = max(1.0, duration_raw_sec * slowdown_eff)
+    for i, (t_in, st) in enumerate(offsets):
+        start_out = max(0.0, t_in * slowdown_eff)
+        if i + 1 < len(offsets):
+            end_out = max(start_out + 0.35, offsets[i + 1][0] * slowdown_eff)
+        else:
+            end_out = max(start_out + 1.5, dur_out)
+        body = _video_lower_third_body(st)
+        if not body:
+            continue
+        # Title line + wrapped body
+        step_n = int(st.get("step") or i + 1)
+        title = _escape_ass_chunk(f"Schritt {step_n}")
+        wrapped = _wrap_ass_lines(body)
+        text = f"{title}\\N\\N{wrapped}"
+        timed.append((start_out, end_out, text))
+
+    if not timed:
+        return False
+
+    header = (
+        "[Script Info]\n"
+        "Title: CHECKION reasoning\n"
+        "ScriptType: v4.00+\n"
+        "WrapStyle: 0\n"
+        "PlayResX: 1920\n"
+        "PlayResY: 1080\n"
+        "\n"
+        "[V4+ Styles]\n"
+        "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, "
+        "BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, "
+        "BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n"
+        "Style: Default,Liberation Sans,20,&H00FFFFFF,&H000000FF,&H00000000,&H60000000,0,0,0,0,100,100,0,0,1,"
+        "3,2,2,64,64,54,1\n"
+        "\n"
+        "[Events]\n"
+        "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
+    )
+    lines_out = [header]
+    for start_out, end_out, text in timed:
+        lines_out.append(
+            f"Dialogue: 0,{_format_ass_timestamp(start_out)},{_format_ass_timestamp(end_out)},Default,,0,0,0,,{text}\n"
+        )
+    try:
+        dest_ass.write_text("".join(lines_out), encoding="utf-8")
+        return True
+    except Exception:
+        return False
+
+
 # Magic-byte signatures we sniff for the live / step-screenshot endpoints.
 # Order matters only insofar as none of these prefixes overlap; tested in the
 # order most likely to hit (PNG first because the Phase 4 fork hook captures
@@ -819,6 +1049,16 @@ async def _publish_partial_steps(
     try:
         steps_now = _history_to_steps(agent_instance.history)
         steps_now = steps_now[-60:]
+        mono_now = time.monotonic()
+        rec = _recording_mono.get(job_id)
+        if rec is not None:
+            per_job = _step_first_seen_mono.setdefault(job_id, {})
+            for st in steps_now:
+                if not isinstance(st, dict):
+                    continue
+                n = st.get("step")
+                if isinstance(n, int) and n not in per_job:
+                    per_job[n] = mono_now
         try:
             async with _jobs_lock:
                 prev = _jobs.get(job_id).result if job_id in _jobs and _jobs.get(job_id) else None
@@ -1292,6 +1532,7 @@ async def run_agent(
             browser = Browser(record_video_dir=video_dir)
         except TypeError:
             browser = Browser()
+        _recording_mono[job_id] = time.monotonic()
         # Prefer initial_url if supported; else bake URL into task. Instruct model to output reasoning in German.
         sig = inspect.signature(Agent.__init__)
         # Prompt-shaping to reduce premature "done" decisions.
@@ -1343,7 +1584,7 @@ async def run_agent(
             "Falls dir der Inhalt zu lang würde, kürze die Begründung oder den Persona-Bezug — aber NIE die konkreten Fakten. "
             "WICHTIG: Beende die Journey NICHT zu früh. Markiere erst dann als 'done'/'fertig', wenn du das Ziel wirklich erreicht hast "
             "UND es anhand sichtbarer UI-Indikatoren verifiziert hast (z.B. Bestätigungsseite, eindeutiger State, URL, Erfolgsmeldung). "
-            f            "WICHTIG: Beende NICHT vor mindestens {min_steps} Schritten. Wenn das Ziel früher erreicht wirkt, nutze die restlichen Schritte für "
+            f"WICHTIG: Beende NICHT vor mindestens {min_steps} Schritten. Wenn das Ziel früher erreicht wirkt, nutze die restlichen Schritte für "
             "Validierung (zurück/nach vorne, alternative Navigation, erneute Sichtprüfung), statt zu stoppen.\n"
             "CHECKION_NAVIGATION_ONLY:\n"
             "Nutze keine Websuche und keine Suchmaschinen (kein DuckDuckGo, Google, Bing). "
@@ -1712,6 +1953,7 @@ async def run_agent(
 
         # Map browser-use history to CHECKION result format
         steps = _history_to_steps(history)
+        _annotate_steps_with_video_offsets(job_id, steps)
         success = _history_success(history)
         screenshots = _history_screenshots(history)
 
@@ -1791,6 +2033,10 @@ async def run_agent(
                 # on a successful run means the running fork is older than
                 # 0.12.6+checkion.5 (no `on_action_end` in `multi_act`).
                 "actionHookCalls": _action_hook_counts.get(job_id, 0),
+                "videoSlowdownFactor": VIDEO_SLOWDOWN_FACTOR,
+                "videoCompoundSlowmo": UX_JOURNEY_VIDEO_COMPOUND_SLOWMO,
+                "effectiveVideoSlowdown": _effective_transcode_slowdown(),
+                "lowerThirdBurnIn": UX_JOURNEY_VIDEO_LOWER_THIRD,
             },
         }
         if persona and isinstance(persona, dict):
@@ -1821,6 +2067,13 @@ async def run_agent(
                     _jobs[job_id].error = "Run was cancelled before completion."
                 if video_path:
                     _jobs[job_id].video_path = video_path
+                try:
+                    _persist_steps_sidecar(job_id, result["steps"])
+                except Exception:
+                    pass
+
+        _recording_mono.pop(job_id, None)
+        _step_first_seen_mono.pop(job_id, None)
 
         # Heavy ffmpeg polish (H.264 + slow-motion): defer unless explicitly disabled.
         # Raw recording from Playwright is already on disk — GET /video serves it.
@@ -1831,6 +2084,8 @@ async def run_agent(
 
             asyncio.create_task(_finalize_bg())
     except Exception as e:
+        _recording_mono.pop(job_id, None)
+        _step_first_seen_mono.pop(job_id, None)
         async with _jobs_lock:
             if job_id in _jobs:
                 _jobs[job_id].status = "error"
@@ -1857,11 +2112,10 @@ VIDEO_TRANSCODE_DISABLED = (
 # Final video slow-motion factor applied during the smooth-MP4 transcode.
 # Multiplies presentation timestamps via ffmpeg `setpts=N*PTS`, which makes the
 # saved recording play back at 1/N of real-time speed *without* affecting how
-# fast the agent actually drove the browser. A factor of 8 turns a 30-second
-# raw run into a 4-minute review video where every page load, scroll, click
-# overlay and transition is visible at a calm pace. Clamped 1..64: at 1.0 the
-# filter is skipped entirely (free no-op); above 64 the file just becomes
-# tedious to scrub through.
+# fast the agent actually drove the browser. Default base factor 16 (env)
+# yields a substantially slower review clip than raw WebM; with compound mode
+# (``UX_JOURNEY_VIDEO_COMPOUND_SLOWMO``) the effective stretch also scales with
+# ``UX_JOURNEY_SLOWMO``. Clamped per-factor 1..64; effective slowdown capped at 128.
 #
 # NOTE: this filter only stretches existing frames in time. For a *smoother*
 # slow-motion (more real frames per second of content), bump ``UX_JOURNEY_SLOWMO``
@@ -1869,9 +2123,11 @@ VIDEO_TRANSCODE_DISABLED = (
 # captures more frames per page-load / scroll / click.
 def _parse_slowdown_factor(raw: str | None) -> float:
     try:
-        n = float(raw) if raw not in (None, "") else 8.0
+        # Default 16: pairs with UX_JOURNEY_SLOWMO≈2 → effective ~32× wall-clock stretch
+        # when compound mode is on — strong “review speed” without touching recording pacing alone.
+        n = float(raw) if raw not in (None, "") else 16.0
     except (TypeError, ValueError):
-        n = 8.0
+        n = 16.0
     if n < 1.0:
         return 1.0
     if n > 64.0:
@@ -1883,6 +2139,22 @@ VIDEO_SLOWDOWN_FACTOR = _parse_slowdown_factor(
     os.environ.get("UX_JOURNEY_VIDEO_SLOWDOWN_FACTOR")
 )
 
+# Multiply UX_JOURNEY_VIDEO_SLOWDOWN_FACTOR × UX_JOURNEY_SLOWMO for the ffmpeg pass so export
+# pacing tracks the same knob used during recording (single mental model). Cap avoids absurd files.
+UX_JOURNEY_VIDEO_COMPOUND_SLOWMO = _env_truthy("UX_JOURNEY_VIDEO_COMPOUND_SLOWMO", "1")
+
+# Burn per-step reasoning into the polished MP4 (ASS subtitles in lower third).
+UX_JOURNEY_VIDEO_LOWER_THIRD = _env_truthy("UX_JOURNEY_VIDEO_LOWER_THIRD", "1")
+
+
+def _effective_transcode_slowdown() -> float:
+    base = float(VIDEO_SLOWDOWN_FACTOR)
+    if UX_JOURNEY_VIDEO_COMPOUND_SLOWMO:
+        base *= float(UX_JOURNEY_SLOWMO)
+    # Final stretch factor applied via setpts; cap keeps scrubbing tolerable on very long runs.
+    return max(1.0, min(128.0, base))
+
+
 # Boot-time confirmation of effective video pacing knobs. These are module-level
 # constants — changing the env in Coolify after the container is running has
 # *no* effect until the service is restarted. If the values you see here don't
@@ -1890,6 +2162,9 @@ VIDEO_SLOWDOWN_FACTOR = _parse_slowdown_factor(
 print(
     f"ux-journey: video pacing config: SLOWMO={UX_JOURNEY_SLOWMO} "
     f"VIDEO_SLOWDOWN_FACTOR={VIDEO_SLOWDOWN_FACTOR} "
+    f"VIDEO_EFFECTIVE_SLOWDOWN={_effective_transcode_slowdown()} "
+    f"compound_slowmo={UX_JOURNEY_VIDEO_COMPOUND_SLOWMO} "
+    f"lower_third={UX_JOURNEY_VIDEO_LOWER_THIRD} "
     f"VIDEO_FPS={VIDEO_TRANSCODE_FPS} "
     f"VIDEO_TRANSCODE_DISABLED={VIDEO_TRANSCODE_DISABLED}",
     flush=True,
@@ -1901,10 +2176,6 @@ print(
 # UI) triggers ``POST /run/{id}/video/finalize`` to produce the polished MP4.
 # Set to false to restore the old fire-and-forget background finalization
 # (wastes CPU on every run that nobody watches).
-def _env_truthy(name: str, default: str = "1") -> bool:
-    v = (os.environ.get(name, default) or "").strip().lower()
-    return v not in ("0", "false", "no", "off", "")
-
 
 UX_JOURNEY_DEFER_VIDEO_FINALIZE = _env_truthy("UX_JOURNEY_DEFER_VIDEO_FINALIZE", "1")
 
@@ -1935,7 +2206,7 @@ async def _finalize_video(*, job_id: str, source_path: str) -> bool:
         if not src.is_file():
             return False
         smooth = VIDEO_BASE_DIR / f"{job_id}.smooth.mp4"
-        if not await _transcode_to_smooth_mp4(src, smooth):
+        if not await _transcode_to_smooth_mp4(src, smooth, job_id=job_id):
             return False
         final_dest = VIDEO_BASE_DIR / f"{job_id}.mp4"
         try:
@@ -1964,8 +2235,11 @@ async def _finalize_video(*, job_id: str, source_path: str) -> bool:
         return False
 
 
-async def _transcode_to_smooth_mp4(src: Path, dest: Path) -> bool:
+async def _transcode_to_smooth_mp4(src: Path, dest: Path, *, job_id: str | None = None) -> bool:
     """Re-encode ``src`` to a browser-friendly H.264 MP4 at ``dest``.
+
+    Applies ``_effective_transcode_slowdown()`` (not raw ``VIDEO_SLOWDOWN_FACTOR`` alone)
+    and optionally burns per-step reasoning subtitles when ``job_id`` resolves to a steps sidecar.
 
     Returns True on success. On failure (ffmpeg missing / encode error) the caller falls
     back to serving the original recording.
@@ -1975,20 +2249,37 @@ async def _transcode_to_smooth_mp4(src: Path, dest: Path) -> bool:
     if shutil.which("ffmpeg") is None:
         return False
     dest.parent.mkdir(parents=True, exist_ok=True)
-    # Build the video filter chain. With `VIDEO_SLOWDOWN_FACTOR > 1` we prepend
-    # `setpts=N*PTS` which stretches presentation timestamps so the entire clip
-    # plays back at 1/N speed. We then re-sample to the target fps so frames
-    # get duplicated smoothly (instead of leaving a jittery low-fps stream).
-    if VIDEO_SLOWDOWN_FACTOR > 1.0:
-        vf = (
-            f"setpts={VIDEO_SLOWDOWN_FACTOR:.4f}*PTS,"
-            f"fps={VIDEO_TRANSCODE_FPS},format=yuv420p"
-        )
-    else:
-        vf = f"fps={VIDEO_TRANSCODE_FPS},format=yuv420p"
+
+    eff = _effective_transcode_slowdown()
+    ass_path: Path | None = None
+    if job_id and UX_JOURNEY_VIDEO_LOWER_THIRD:
+        steps_sub = _load_steps_sidecar(job_id)
+        dur_raw = await _ffprobe_duration_seconds(src)
+        if steps_sub and dur_raw is not None and dur_raw > 0.1:
+            ass_tmp = VIDEO_BASE_DIR / f"{job_id}.reasoning.ass"
+            if _write_reasoning_ass_file(
+                dest_ass=ass_tmp,
+                steps=steps_sub,
+                duration_raw_sec=dur_raw,
+                slowdown_eff=eff,
+            ):
+                ass_path = ass_tmp
+
+    vf_parts: list[str] = []
+    if eff > 1.0:
+        vf_parts.append(f"setpts={eff:.6f}*PTS")
+    vf_parts.append(f"fps={VIDEO_TRANSCODE_FPS}")
+    vf_parts.append("format=yuv420p")
+    if ass_path is not None and ass_path.is_file():
+        # ffmpeg subtitles filter: escape ':' and '\' per platform
+            sub_posix = ass_path.resolve().as_posix()
+            vf_parts.append(f"subtitles={sub_posix}")
+
+    vf = ",".join(vf_parts)
     print(
         f"ux-journey: transcode src={src.name} -> {dest.name} "
-        f"slowdown={VIDEO_SLOWDOWN_FACTOR} fps={VIDEO_TRANSCODE_FPS} vf=\"{vf}\"",
+        f"effective_slowdown={eff:.4f} fps={VIDEO_TRANSCODE_FPS} vf=\"{vf}\" "
+        f"lower_third={'yes' if ass_path else 'no'}",
         flush=True,
     )
     cmd = [
@@ -2011,7 +2302,13 @@ async def _transcode_to_smooth_mp4(src: Path, dest: Path) -> bool:
             *cmd, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE
         )
         _, stderr = await proc.communicate()
-        if proc.returncode == 0 and dest.is_file() and dest.stat().st_size > 0:
+        ok = proc.returncode == 0 and dest.is_file() and dest.stat().st_size > 0
+        if ok and ass_path is not None:
+            try:
+                ass_path.unlink(missing_ok=True)
+            except Exception:
+                pass
+        if ok:
             return True
         # Best-effort log; do not raise — caller falls back to source file.
         print(
@@ -2255,7 +2552,7 @@ async def post_finalize_run_video(
                         _jobs[job_id].video_path = None
                 print(
                     f"ux-journey: force-finalize job={job_id} — re-transcoding with current settings "
-                    f"(SLOWDOWN_FACTOR={VIDEO_SLOWDOWN_FACTOR})",
+                    f"(effective_slowdown={_effective_transcode_slowdown():.4f})",
                     flush=True,
                 )
             else:
@@ -2294,7 +2591,7 @@ async def post_finalize_run_video(
 
         print(
             f"ux-journey: finalize job={job_id} starting transcode src={src} "
-            f"slowdown={VIDEO_SLOWDOWN_FACTOR}",
+            f"effective_slowdown={_effective_transcode_slowdown():.4f}",
             flush=True,
         )
         ok = await _finalize_video(job_id=job_id, source_path=src)
@@ -2383,6 +2680,10 @@ async def get_run_live_diag(job_id: str) -> dict[str, Any]:
         "stepScreenshotsOnDisk": step_files,
         "stepScreenshotsDir": str(step_dir),
         "envSlowmo": UX_JOURNEY_SLOWMO,
+        "videoSlowdownFactor": VIDEO_SLOWDOWN_FACTOR,
+        "videoCompoundSlowmo": UX_JOURNEY_VIDEO_COMPOUND_SLOWMO,
+        "effectiveVideoSlowdown": _effective_transcode_slowdown(),
+        "videoLowerThird": UX_JOURNEY_VIDEO_LOWER_THIRD,
         "envLiveFrameInterval": LIVE_FRAME_INTERVAL,
     }
 
