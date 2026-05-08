@@ -8,6 +8,82 @@ rebased cleanly.
 The version numbers follow the pattern `<upstream>+checkion.<patch>` (e.g.
 `0.12.6+checkion.1`). Bumping the upstream baseline resets the patch counter.
 
+## `0.12.6+checkion.4` (Phase 4 — first-class step pacing & screenshot hook)
+
+**Upstream baseline:** `browser-use==0.12.6` (commit
+`329c67f069427e928ff81ad52415efdca7692007`).
+
+**Goal:** finish absorbing the ad-hoc `_on_step_start` / live-frame polling
+machinery that lived in `apps/ux-journey-agent/main.py` into the agent
+itself, and expose a single, typed event-driven hook for per-step screenshots
+so callers can stream / persist / annotate frames without owning a polling
+loop.
+
+### Added (`Agent.__init__` parameters)
+
+- **`step_pacing_seconds: float = 0.0`** — sleep duration applied at the very
+  *start* of each `step()` call, before timing / context preparation. This is
+  the dedicated knob for "freeze the screen long enough for the recorder to
+  capture the pre-action state". Defaults to `0.0` so upstream-equivalent
+  behaviour is preserved when omitted.
+- **`action_slowdown_factor: float = 1.0`** — multiplier applied to
+  `step_pacing_seconds`. Lets callers pass a base pacing value and a global
+  slow-motion factor independently (useful for slow-mo recording: the
+  effective wait is `step_pacing_seconds × action_slowdown_factor`). Negative
+  / non-numeric values are clamped to a no-op so a typo in a config can never
+  freeze the agent.
+- **`on_screenshot: Callable[[Agent, str], Awaitable[None] | None] | None`** —
+  optional callback that fires immediately after `get_browser_state_summary`
+  returns a screenshot, receiving the agent and the base64-encoded PNG (the
+  same string that lives on `BrowserStateSummary.screenshot`). Sync or async
+  bodies are supported; exceptions are caught and logged at debug — they
+  never break the run. This replaces the polling-loop pattern callers used
+  to run separately to ship frames into a UI / disk / metrics pipeline.
+
+### Changed
+
+- **`Agent.step()`** sleeps `step_pacing_seconds × action_slowdown_factor`
+  at the top of the method, before the existing timing init. The wait does
+  *not* count against `step_timeout` — it is wall-clock instrumentation,
+  not agent work. `asyncio.CancelledError` propagates so a hot-cancel still
+  interrupts the sleep cleanly.
+- **`Agent._prepare_context`** invokes the `on_screenshot` callback inline
+  with the existing "got browser state with screenshot" branch, so the call
+  is fired exactly once per step (no double-fire on retried steps).
+
+### Removed (caller side)
+
+- `apps/ux-journey-agent/main.py` no longer defines a hand-rolled
+  `_on_step_start` hook — the constructor wires `STEP_START_DELAY_SECONDS`
+  + `UX_JOURNEY_SLOWMO` straight into the fork's pacing parameters. The
+  `_live_screenshot_loop` polling task is still in place for sub-step
+  preview frames (25 fps via CDP) but the new hook gives operators a
+  per-step, high-quality counterpart that fires synchronously with each
+  agent action — exposed via `result.forkHooks.screenshotHookCalls` so we
+  can verify the hook actually fires in production.
+
+### How to verify the patch is active
+
+After a run completes, the result payload now includes a `forkHooks` block:
+
+```json
+{
+  "forkHooks": {
+    "pacingSeconds": 3.5,
+    "slowdownFactor": 2.0,
+    "screenshotHookCalls": 14,
+    "liveStepFrames": false
+  }
+}
+```
+
+`screenshotHookCalls > 0` confirms the fork's `on_screenshot` hook fired.
+`screenshotHookCalls == 0` on a successful run means the running fork didn't
+expose `on_screenshot` (older build, or
+`Agent.__init__` not accepting it) — `_agent_init_accepts_named_arg`
+silently skips unknown kwargs to keep the runner forwards/backwards
+compatible.
+
 ## `0.12.6+checkion.3` (Phase 3 — persona DSL + reasoning language)
 
 **Upstream baseline:** `browser-use==0.12.6` (commit

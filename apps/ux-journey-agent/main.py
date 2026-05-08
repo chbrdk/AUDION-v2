@@ -36,6 +36,21 @@ STEP_SCREENSHOTS_BASE = Path(
 # If true, also embed data:image/jpeg;base64,... in JSON (large; can break proxies / payload limits).
 UX_JOURNEY_EMBED_SCREENSHOTS = (os.environ.get("UX_JOURNEY_EMBED_SCREENSHOTS", "0").strip().lower() in ("1", "true", "yes"))
 
+# Phase 4 hook: when the checkion-agent fork fires its `on_screenshot` callback
+# at the end of each agent step, we always count the frame for telemetry.
+# Setting this flag to 1/true ALSO pushes that base64-PNG step screenshot into
+# the live-frame cache used by the MJPEG live-stream endpoint. Default off
+# because the legacy live stream is hard-coded to `image/jpeg` — flipping this
+# on works in browsers (they sniff the actual bytes), but we're conservative
+# until the stream endpoint is content-type-aware.
+UX_JOURNEY_LIVE_STEP_FRAMES = (
+    os.environ.get("UX_JOURNEY_LIVE_STEP_FRAMES", "0").strip().lower() in ("1", "true", "yes")
+)
+# Per-job counter incremented in the `on_screenshot` callback. Surfaced in
+# the run result `forkHooks` block so we can verify the fork hook actually
+# fires in production runs (not just unit tests).
+_step_screenshot_counts: dict[str, int] = {}
+
 
 def _agent_init_accepts_named_arg(sig: inspect.Signature, name: str) -> bool:
     """True if ``Agent(**{name: ...})`` is valid: explicit parameter or a ``**kwargs`` bucket."""
@@ -1157,6 +1172,40 @@ async def run_agent(
             agent_kw["reasoning_language"] = "de"
         if _agent_init_accepts_named_arg(sig, "extend_system_message"):
             agent_kw["extend_system_message"] = checkion_brevity_extension
+
+        # checkion-agent Phase 4: step pacing & screenshot hook. The fork sleeps
+        # `step_pacing_seconds * action_slowdown_factor` at the start of each
+        # step (same effect as the legacy `_on_step_start` hook) and fires
+        # `on_screenshot(agent, b64_png)` right after capture (lets us push a
+        # high-quality frame into the live-stream cache without waiting for
+        # the polling loop's next tick). Falls back gracefully on older forks.
+        if _agent_init_accepts_named_arg(sig, "step_pacing_seconds"):
+            agent_kw["step_pacing_seconds"] = STEP_START_DELAY_SECONDS
+        if _agent_init_accepts_named_arg(sig, "action_slowdown_factor"):
+            agent_kw["action_slowdown_factor"] = UX_JOURNEY_SLOWMO
+
+        # Bind the screenshot callback only if the fork supports it. We close
+        # over `job_id` here (vs. reading from `agent.id`) so the cache keys
+        # stay aligned with the rest of main.py — the agent's internal id is
+        # a separate uuid that nothing else here knows about.
+        def _on_screenshot(_agent: Any, screenshot_b64: str) -> None:
+            try:
+                _step_screenshot_counts[job_id] = _step_screenshot_counts.get(job_id, 0) + 1
+                if UX_JOURNEY_LIVE_STEP_FRAMES and screenshot_b64:
+                    # browser-use captures PNG; the legacy `_live_frames` cache
+                    # is documented as JPEG bytes. Browsers sniff content
+                    # regardless, but the MJPEG endpoint (image/jpeg multipart
+                    # parts) won't be technically correct. Hence opt-in.
+                    raw = base64.b64decode(screenshot_b64)
+                    _live_frames[job_id] = (time.monotonic(), raw)
+            except Exception as exc:  # pragma: no cover - hook must never break runs
+                print(
+                    f"ux-journey: job={job_id} on_screenshot hook failed: {exc!r}",
+                    flush=True,
+                )
+
+        if _agent_init_accepts_named_arg(sig, "on_screenshot"):
+            agent_kw["on_screenshot"] = _on_screenshot
         # Cross-provider fallback so a single bad AgentOutput from the primary
         # (e.g. Claude returning `action` as a JSON-encoded string instead of a
         # list — Pydantic rejects it) can switch to the other provider.  We must
@@ -1305,10 +1354,11 @@ async def run_agent(
             except Exception:  # pragma: no cover - defensive
                 pass
 
-        async def _on_step_start(agent_instance: Any) -> None:
-            # Pause at the beginning of each step so the video shows the current state before the action runs
-            await asyncio.sleep(_slow(max(0, STEP_START_DELAY_SECONDS)))
-
+        # Step pacing is now first-class in checkion-agent (Phase 4) — see
+        # `Agent(step_pacing_seconds=..., action_slowdown_factor=...)` set on
+        # the constructor above. The hand-rolled `_on_step_start` hook this
+        # used to be is gone; the fork sleeps the same `_slow(STEP_START_DELAY_SECONDS)`
+        # at the start of every step, before timing / context prep.
         async def _on_step_end(agent_instance: Any) -> None:
             actions: list[Any] = []
             raw: Any = None
@@ -1452,6 +1502,7 @@ async def run_agent(
                     pass
             _live_agents.pop(job_id, None)
             _live_frames.pop(job_id, None)
+            _step_screenshot_counts.pop(job_id, None)
 
         # CRITICAL: close the browser *before* discovering / moving / transcoding the video.
         # Playwright only finalizes the WebM container (header, cues, EOF) when the browser is
@@ -1524,6 +1575,18 @@ async def run_agent(
             "screenshots": screenshots[:50],
             "llm": _llm_meta(),
             "personaPolicy": _persona_policy_dump(agent),
+            # Visibility into the Phase 4 fork hooks. `pacingSeconds` is the
+            # *base* (pre-slowmo) value handed to the constructor; effective
+            # wait per step = pacingSeconds × slowdownFactor. `screenshotHookCalls`
+            # is incremented every time the fork's `on_screenshot` actually fires
+            # — a 0 here on a successful run means the fork didn't pick up the
+            # hook (older checkion-agent build; check ``CHANGELOG.md``).
+            "forkHooks": {
+                "pacingSeconds": STEP_START_DELAY_SECONDS,
+                "slowdownFactor": UX_JOURNEY_SLOWMO,
+                "screenshotHookCalls": _step_screenshot_counts.get(job_id, 0),
+                "liveStepFrames": UX_JOURNEY_LIVE_STEP_FRAMES,
+            },
         }
         if persona and isinstance(persona, dict):
             result["persona"] = {

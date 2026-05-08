@@ -191,6 +191,24 @@ class Agent(Generic[Context, AgentStructuredOutput]):
 		# human names (`'German'`) are both accepted. ``None`` (default) =
 		# upstream behaviour (model picks the language).
 		reasoning_language: str | None = None,
+		# CHECKION-fork patch (Phase 4): step pacing for video / live-stream
+		# capture. When > 0, `step_pacing_seconds * action_slowdown_factor`
+		# seconds are slept at the *start* of each step (before context
+		# preparation) so the screen recorder always sees the current state
+		# before the next action runs. Both default to 0 / 1.0 = no pacing,
+		# upstream-equivalent behaviour.
+		step_pacing_seconds: float = 0.0,
+		action_slowdown_factor: float = 1.0,
+		# CHECKION-fork patch (Phase 4): screenshot hook. Fires after each
+		# per-step screenshot is captured (right after `get_browser_state_summary`).
+		# The callback receives the agent and the base64-encoded screenshot string
+		# (same format as `BrowserStateSummary.screenshot`). Sync or async.
+		# Replaces the polling loop CHECKION used to run separately.
+		on_screenshot: (
+			Callable[['Agent', str], Awaitable[None]]
+			| Callable[['Agent', str], None]
+			| None
+		) = None,
 		generate_gif: bool | str = False,
 		available_file_paths: list[str] | None = None,
 		include_attributes: list[str] | None = None,
@@ -418,6 +436,19 @@ class Agent(Generic[Context, AgentStructuredOutput]):
 		self.persona: PersonaContext | None = PersonaContext.coerce(persona)
 		self.persona_policy: PersonaPolicy = _derive_persona_policy(self.persona)
 		self.reasoning_language: str | None = reasoning_language
+
+		# Phase 4: pacing & screenshot hook. Clamp pacing values defensively
+		# (negative durations would silently turn into a no-op anyway, but the
+		# explicit max() makes the contract obvious to readers).
+		try:
+			self.step_pacing_seconds: float = max(0.0, float(step_pacing_seconds))
+		except (TypeError, ValueError):
+			self.step_pacing_seconds = 0.0
+		try:
+			self.action_slowdown_factor: float = max(0.0, float(action_slowdown_factor))
+		except (TypeError, ValueError):
+			self.action_slowdown_factor = 1.0
+		self.on_screenshot = on_screenshot
 
 		_extension_blocks: list[str] = []
 		if extend_system_message:
@@ -1069,6 +1100,20 @@ class Agent(Generic[Context, AgentStructuredOutput]):
 	@time_execution_async('--step')
 	async def step(self, step_info: AgentStepInfo | None = None) -> None:
 		"""Execute one step of the task"""
+		# CHECKION-fork patch (Phase 4): step pacing. Sleep BEFORE timing /
+		# context prep so the recorder captures the current state with a
+		# stable freeze-frame before the next action perturbs the DOM. We
+		# deliberately don't bill this against `step_timeout` — it's wall-
+		# clock instrumentation, not actual agent work.
+		effective_pacing = self.step_pacing_seconds * self.action_slowdown_factor
+		if effective_pacing > 0:
+			try:
+				await asyncio.sleep(effective_pacing)
+			except asyncio.CancelledError:
+				raise
+			except Exception as exc:  # pragma: no cover - defensive
+				self.logger.debug(f'step_pacing sleep failed (non-fatal): {exc!r}')
+
 		# Initialize timing first, before any exceptions can occur
 
 		self.step_start_time = time.time()
@@ -1134,6 +1179,20 @@ class Agent(Generic[Context, AgentStructuredOutput]):
 		)
 		if browser_state_summary.screenshot:
 			self.logger.debug(f'📸 Got browser state WITH screenshot, length: {len(browser_state_summary.screenshot)}')
+			# CHECKION-fork patch (Phase 4): fire the on_screenshot callback
+			# right after capture so callers can stream frames to a UI / file
+			# without polling. Errors in the callback never break the run —
+			# we want the agent to keep moving even if e.g. a websocket is
+			# closed or a downstream encoder is overloaded.
+			if self.on_screenshot is not None:
+				try:
+					result = self.on_screenshot(self, browser_state_summary.screenshot)
+					if inspect.iscoroutine(result):
+						await result
+				except asyncio.CancelledError:
+					raise
+				except Exception as exc:
+					self.logger.debug(f'on_screenshot callback raised (non-fatal): {exc!r}')
 		else:
 			self.logger.debug('📸 Got browser state WITHOUT screenshot')
 

@@ -89,7 +89,30 @@ See [`CHANGELOG.md`](./CHANGELOG.md) for the full per-version diff.
     `apps/ux-journey-agent/main.py` and moves the CHECKION-UI brevity
     rules from the task into `extend_system_message`.
 
-- **Future (planned):** structured logging, more first-class hooks
-  (`Agent(on_step_screenshot=...)`, `Agent(action_slowdown_factor=N)`).
+- **Phase 4 (`0.12.6+checkion.4`):** First-class step pacing & screenshot
+  hook.
+  - `Agent.__init__` accepts `step_pacing_seconds: float = 0.0` and
+    `action_slowdown_factor: float = 1.0`. The fork sleeps
+    `step_pacing_seconds × action_slowdown_factor` at the *start* of each
+    `step()` call so a screen recorder always captures the pre-action
+    state. Negative / non-numeric values clamp to a safe no-op.
+  - `Agent.__init__` accepts
+    `on_screenshot: Callable[[Agent, str], Awaitable[None] | None]` —
+    a sync-or-async callback that fires immediately after each per-step
+    screenshot is captured, receiving the agent and the base64-encoded
+    PNG. Hook errors are caught and logged at debug — they never break
+    the run.
+  - Replaces the hand-rolled `_on_step_start` hook in
+    `apps/ux-journey-agent/main.py`. The runner now passes the existing
+    `STEP_START_DELAY_SECONDS` and `UX_JOURNEY_SLOWMO` env values
+    straight into the constructor.
+  - The new `forkHooks` block in the run result payload reports
+    `screenshotHookCalls`, `pacingSeconds`, `slowdownFactor`, and
+    `liveStepFrames` so the operator can verify the hook fired and the
+    pacing matches the expected slow-mo level.
+
+- **Future (planned):** structured logging, browser-side action timing
+  hooks for sub-step instrumentation (e.g. per-click vs. per-scroll
+  pacing).
 
 See [`ATTRIBUTION.md`](./ATTRIBUTION.md) for upstream rebase notes.
