@@ -44,7 +44,8 @@ if a security advisory requires it.
 When rebasing:
 
 1. Clone upstream tag at the new version into a temporary directory.
-2. `diff -u` against `checkion_agent/` to spot upstream changes.
+2. `diff -u` against `apps/ux-journey-agent/checkion-agent/checkion_agent/`
+   to spot upstream changes.
 3. Re-apply local patches (see `CHANGELOG.md` for the full list).
 4. Run the full agent test suite from `apps/ux-journey-agent/` against the
    updated package.

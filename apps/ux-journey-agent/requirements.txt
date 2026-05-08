@@ -2,7 +2,7 @@
 # Python 3.11+
 #
 # The browser-automation library is now our soft fork `checkion-agent`,
-# vendored at `packages/checkion-agent` (forked from browser-use 0.12.6).
+# vendored at `./checkion-agent/` (forked from browser-use 0.12.6).
 # It is installed by the Dockerfile in a previous build step:
 #
 #     pip install /opt/checkion-agent[video]
@@ -12,7 +12,7 @@
 #
 # For local development:
 #     cd apps/ux-journey-agent
-#     pip install -e ../../packages/checkion-agent[video]
+#     pip install -e ./checkion-agent[video]
 #     pip install -r requirements.txt
 fastapi>=0.115.0
 uvicorn[standard]>=0.27.0

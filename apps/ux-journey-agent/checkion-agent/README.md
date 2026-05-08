@@ -7,17 +7,23 @@ at tag `0.12.6`.
 > See [`ATTRIBUTION.md`](./ATTRIBUTION.md) for the rationale behind the fork
 > and the upstream tracking strategy.
 
+## Layout
+
+The fork is vendored **inside the consuming app** (`apps/ux-journey-agent/`)
+because (a) the agent is currently the only consumer, and (b) keeping it under
+the app folder lets Coolify build with its default `Base Directory` setting —
+the build context already contains everything `pip install` needs.
+
+If a second app starts depending on this fork, hoist it back up to
+`packages/checkion-agent/` and update the Dockerfile's `COPY` accordingly.
+
 ## Install (development, editable from monorepo)
 
-`apps/ux-journey-agent/requirements.txt` references this package via a relative
-path:
-
 ```
-checkion-agent[video] @ file://./../../packages/checkion-agent
+cd apps/ux-journey-agent
+pip install -e ./checkion-agent[video]
+pip install -r requirements.txt
 ```
-
-So a normal `pip install -r requirements.txt` from the agent's directory
-installs the local source.
 
 ## Usage
 

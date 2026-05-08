@@ -188,16 +188,16 @@ services:
 
   # UX Journey Agent - Browser automation service (Playwright + LLM via checkion-agent)
   #
-  # Build context is the **repo root** so the Dockerfile can `COPY packages/checkion-agent`
-  # (our soft fork of browser-use 0.12.6 vendored at packages/checkion-agent/).
-  # If Coolify is configured to ignore docker-compose.yml and use the per-service
-  # Dockerfile path UI instead, the equivalent UI settings are:
-  #   - Base Directory: /  (not apps/ux-journey-agent)
-  #   - Dockerfile Location: apps/ux-journey-agent/Dockerfile
+  # The vendored `checkion-agent` soft fork (browser-use 0.12.6) lives **inside**
+  # this app folder at apps/ux-journey-agent/checkion-agent/, so the Docker
+  # build context is just the app folder — no monorepo-wide context needed.
+  # Coolify defaults work:
+  #   - Base Directory: apps/ux-journey-agent
+  #   - Dockerfile Location: Dockerfile
   ux-journey-agent:
     build:
-      context: .
-      dockerfile: apps/ux-journey-agent/Dockerfile
+      context: ./apps/ux-journey-agent
+      dockerfile: Dockerfile
     image: audion-ux-journey-agent
     pull_policy: never
     container_name: audion-ux-journey-agent
