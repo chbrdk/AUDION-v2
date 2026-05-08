@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import glob
+import inspect
 import json
 import os
 import shutil
@@ -34,6 +35,21 @@ STEP_SCREENSHOTS_BASE = Path(
 )
 # If true, also embed data:image/jpeg;base64,... in JSON (large; can break proxies / payload limits).
 UX_JOURNEY_EMBED_SCREENSHOTS = (os.environ.get("UX_JOURNEY_EMBED_SCREENSHOTS", "0").strip().lower() in ("1", "true", "yes"))
+
+
+def _agent_init_accepts_named_arg(sig: inspect.Signature, name: str) -> bool:
+    """True if ``Agent(**{name: ...})`` is valid: explicit parameter or a ``**kwargs`` bucket."""
+    if name in sig.parameters:
+        return True
+    return any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values())
+
+
+def _env_api_key_log_status(var_name: str) -> str:
+    """Non-secret presence check for API keys in env (length only, never the value)."""
+    v = (os.environ.get(var_name) or "").strip()
+    if not v:
+        return "absent"
+    return f"present (length {len(v)})"
 
 # Base pacing (seconds). Effective waits = these × UX_JOURNEY_SLOWMO. Defaults are tuned for readable video without extra env.
 STEP_START_DELAY_SECONDS = float(os.environ.get("UX_JOURNEY_STEP_START_DELAY_SECONDS", "3.5"))
@@ -1204,7 +1220,6 @@ async def run_agent(
         except TypeError:
             browser = Browser()
         # Prefer initial_url if supported; else bake URL into task. Instruct model to output reasoning in German.
-        import inspect
         sig = inspect.signature(Agent.__init__)
         # Prompt-shaping to reduce premature "done" decisions.
         # Note: max_steps only sets an upper bound; the agent can still stop early if it thinks it's done.
@@ -1262,21 +1277,21 @@ async def run_agent(
         agent_kw: dict[str, Any] = {"task": task_with_lang, "llm": llm, "browser": browser}
         # Cross-provider fallback so a single bad AgentOutput from the primary
         # (e.g. Claude returning `action` as a JSON-encoded string instead of a
-        # list — Pydantic rejects it and the run dies after 6 consecutive
-        # validation errors) doesn't kill the whole journey. Only attached if
-        # browser-use's Agent supports the kwarg AND a different-provider LLM
-        # is actually available.
+        # list — Pydantic rejects it) can switch to the other provider.  We must
+        # pass ``fallback_llm`` whenever the constructor accepts it *or* has
+        # ``**kwargs`` — some browser-use builds only expose optional params via
+        # ``**kwargs``, and ``"fallback_llm" in sig.parameters`` was false.
+        fallback_llm_obj: Any = None
         fallback_attached = False
-        fallback_signature_supported = "fallback_llm" in sig.parameters
-        if fallback_signature_supported:
+        can_pass_fallback = _agent_init_accepts_named_arg(sig, "fallback_llm")
+        if can_pass_fallback:
             try:
-                fallback_llm = _make_fallback_llm()
+                fallback_llm_obj = _make_fallback_llm()
             except Exception as exc:  # pragma: no cover - defensive
-                fallback_llm = None
                 print(f"ux-journey: fallback_llm not configured: {exc!r}", flush=True)
-            if fallback_llm is not None:
-                agent_kw["fallback_llm"] = fallback_llm
-                fallback_attached = True
+        if fallback_llm_obj is not None:
+            agent_kw["fallback_llm"] = fallback_llm_obj
+            fallback_attached = True
         # Surface LLM wiring at run start so the operator can spot a missing
         # OPENAI_API_KEY / outdated browser-use without grepping the code.
         # This is the only place we can be sure both `llm` and any fallback
@@ -1288,16 +1303,21 @@ async def run_agent(
             fb_label = f"{fb.get('provider')}/{fb.get('model')}" if isinstance(fb, dict) else "?"
             fallback_status = f"enabled ({fb_label})"
         else:
-            if not fallback_signature_supported:
-                fallback_status = "disabled (browser-use Agent has no `fallback_llm` param — upgrade browser-use)"
+            if not can_pass_fallback:
+                fallback_status = "disabled (browser-use Agent __init__ has no `fallback_llm` / `**kwargs` — upgrade browser-use)"
             elif _resolve_llm_provider() == "anthropic" and not os.environ.get("OPENAI_API_KEY"):
-                fallback_status = "disabled (set OPENAI_API_KEY for cross-provider recovery)"
+                fallback_status = "disabled (set OPENAI_API_KEY on *this* service for cross-provider recovery)"
             elif _resolve_llm_provider() == "openai" and not os.environ.get("ANTHROPIC_API_KEY"):
-                fallback_status = "disabled (set ANTHROPIC_API_KEY for cross-provider recovery)"
+                fallback_status = "disabled (set ANTHROPIC_API_KEY on *this* service for cross-provider recovery)"
             elif not _env_truthy("UX_JOURNEY_LLM_FALLBACK", "1"):
                 fallback_status = "disabled (UX_JOURNEY_LLM_FALLBACK=0)"
             else:
                 fallback_status = "disabled"
+        print(
+            f"ux-journey: job={job_id} ANTHROPIC_API_KEY={_env_api_key_log_status('ANTHROPIC_API_KEY')} "
+            f"OPENAI_API_KEY={_env_api_key_log_status('OPENAI_API_KEY')}",
+            flush=True,
+        )
         print(
             f"ux-journey: job={job_id} primary={primary_label} fallback_llm={fallback_status}",
             flush=True,
@@ -1310,7 +1330,7 @@ async def run_agent(
             max_failures_env = int(os.environ.get("UX_JOURNEY_MAX_FAILURES", "0"))
         except ValueError:
             max_failures_env = 0
-        if max_failures_env > 0 and "max_failures" in sig.parameters:
+        if max_failures_env > 0 and _agent_init_accepts_named_arg(sig, "max_failures"):
             agent_kw["max_failures"] = max_failures_env
         if "initial_url" in sig.parameters:
             agent_kw["initial_url"] = url
@@ -1328,6 +1348,22 @@ async def run_agent(
         if "use_vision" in sig.parameters:
             agent_kw["use_vision"] = True
         agent = Agent(**agent_kw)
+        # Some deployments swallow unknown kwargs; ensure fallback actually landed.
+        if fallback_llm_obj is not None and getattr(agent, "_fallback_llm", None) is None:
+            try:
+                setattr(agent, "_fallback_llm", fallback_llm_obj)
+                print(
+                    f"ux-journey: job={job_id} set agent._fallback_llm post-init (constructor did not retain it)",
+                    flush=True,
+                )
+            except Exception as exc:  # pragma: no cover - defensive
+                print(f"ux-journey: job={job_id} could not set _fallback_llm: {exc!r}", flush=True)
+        if fallback_llm_obj is not None:
+            fb_ok = getattr(agent, "_fallback_llm", None) is not None
+            print(
+                f"ux-journey: job={job_id} browser-use _fallback_llm={'OK' if fb_ok else 'STILL_MISSING'}",
+                flush=True,
+            )
         if hasattr(agent, "max_steps"):
             agent.max_steps = max_steps
         elif hasattr(agent, "max_actions"):
