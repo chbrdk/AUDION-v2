@@ -110,60 +110,130 @@ class RunResponse(BaseModel):
 # Browser-use agent runner (async, one job at a time per process)
 # ---------------------------------------------------------------------------
 
+def _resolve_llm_provider() -> str:
+    """Effective provider given env vars. One of: ``anthropic`` / ``openai`` / ``unknown``."""
+    raw = (os.environ.get("UX_JOURNEY_LLM_PROVIDER") or "auto").strip().lower()
+    if raw in ("claude", "anthropic"):
+        return "anthropic"
+    if raw == "openai":
+        return "openai"
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        return "anthropic"
+    if os.environ.get("OPENAI_API_KEY"):
+        return "openai"
+    return "unknown"
+
+
+def _build_anthropic_llm():
+    try:
+        from browser_use import ChatAnthropic
+    except ImportError:
+        from browser_use.llm.anthropic import ChatAnthropic
+    try:
+        max_tokens = int(os.environ.get("UX_JOURNEY_CLAUDE_MAX_TOKENS", "16384"))
+    except ValueError:
+        max_tokens = 16384
+    return ChatAnthropic(
+        model=os.environ.get("UX_JOURNEY_CLAUDE_MODEL", "claude-sonnet-4-6"),
+        temperature=0,
+        max_tokens=max_tokens,
+    )
+
+
+def _build_openai_llm():
+    try:
+        from browser_use import ChatOpenAI
+    except ImportError:
+        from browser_use.llm.openai import ChatOpenAI
+    return ChatOpenAI(
+        model=os.environ.get("UX_JOURNEY_OPENAI_MODEL", "gpt-4o"),
+        temperature=0,
+    )
+
+
 def _make_llm():
-    """Create LLM from env: Anthropic (ANTHROPIC_API_KEY) or OpenAI (OPENAI_API_KEY)."""
-    provider = (os.environ.get("UX_JOURNEY_LLM_PROVIDER") or "auto").strip().lower()
-    if provider in ("claude", "anthropic") and not os.environ.get("ANTHROPIC_API_KEY"):
+    """Create the primary LLM from env: Anthropic (ANTHROPIC_API_KEY) or OpenAI (OPENAI_API_KEY)."""
+    provider_raw = (os.environ.get("UX_JOURNEY_LLM_PROVIDER") or "auto").strip().lower()
+    if provider_raw in ("claude", "anthropic") and not os.environ.get("ANTHROPIC_API_KEY"):
         raise RuntimeError("UX_JOURNEY_LLM_PROVIDER=anthropic but ANTHROPIC_API_KEY is not set.")
-    if provider in ("openai",) and not os.environ.get("OPENAI_API_KEY"):
+    if provider_raw == "openai" and not os.environ.get("OPENAI_API_KEY"):
         raise RuntimeError("UX_JOURNEY_LLM_PROVIDER=openai but OPENAI_API_KEY is not set.")
 
-    if provider in ("claude", "anthropic") or (provider == "auto" and os.environ.get("ANTHROPIC_API_KEY")):
-        try:
-            from browser_use import ChatAnthropic
-        except ImportError:
-            from browser_use.llm.anthropic import ChatAnthropic
-        # Default: Sonnet 4.6 (model id `claude-sonnet-4-6`, dateless pinned
-        # snapshot per Anthropic's docs). Anthropic positions 4.6 as "best
-        # combination of speed and intelligence" — measurably faster per call
-        # than 4.0 (~25% lower TTFT in our internal benchmarks) while still
-        # rock-solid on browser-use's strict structured-output schema. We
-        # tried Haiku 4.5 for raw speed but it frequently emits AgentOutput
-        # without the required `action` field, which makes browser-use halt
-        # after 5 consecutive validation failures. `fallback_llm` only
-        # catches HTTP errors (429/5xx), not Pydantic validation fails, so
-        # there's no automatic recovery path with Haiku.
-        try:
-            max_tokens = int(os.environ.get("UX_JOURNEY_CLAUDE_MAX_TOKENS", "16384"))
-        except ValueError:
-            max_tokens = 16384
-        return ChatAnthropic(
-            model=os.environ.get("UX_JOURNEY_CLAUDE_MODEL", "claude-sonnet-4-6"),
-            temperature=0,
-            max_tokens=max_tokens,
-        )
-    if provider in ("openai",) or (provider == "auto" and os.environ.get("OPENAI_API_KEY")):
-        try:
-            from browser_use import ChatOpenAI
-        except ImportError:
-            from browser_use.llm.openai import ChatOpenAI
-        return ChatOpenAI(model=os.environ.get("UX_JOURNEY_OPENAI_MODEL", "gpt-4o"), temperature=0)
+    provider = _resolve_llm_provider()
+    if provider == "anthropic":
+        # Default: Sonnet 4.6 (model id `claude-sonnet-4-6`). 4.6 is faster per
+        # step than 4.0 and still solid on browser-use's strict structured
+        # AgentOutput schema. Failure mode we've seen in production: the model
+        # occasionally serialises the `action` field as a JSON-encoded string
+        # instead of a list (Pydantic then rejects it as `list_type`). With a
+        # different-provider fallback configured below, browser-use retries on
+        # the next step against the fallback model and the run continues
+        # instead of halting after 6 consecutive validation failures.
+        return _build_anthropic_llm()
+    if provider == "openai":
+        return _build_openai_llm()
     raise RuntimeError("Set ANTHROPIC_API_KEY or OPENAI_API_KEY for the agent LLM.")
 
 
-def _llm_meta() -> dict[str, str]:
+def _make_fallback_llm():
+    """
+    Build a *different-provider* LLM to hand to ``Agent(fallback_llm=...)``.
+
+    Recent ``browser-use`` versions invoke the fallback not only on transient
+    HTTP errors but also when the primary keeps producing AgentOutput that
+    fails Pydantic validation (e.g. ``action`` returned as a JSON string
+    instead of a list). Using the *same* provider as fallback is therefore
+    pointless — we deliberately cross over to the other provider, but only if
+    the user supplied a key for it. Returns ``None`` to leave fallback off
+    (single-provider deployment, or user explicitly opted out via
+    ``UX_JOURNEY_LLM_FALLBACK=0``).
+    """
+    if not _env_truthy("UX_JOURNEY_LLM_FALLBACK", "1"):
+        return None
+    provider = _resolve_llm_provider()
+    try:
+        if provider == "anthropic" and os.environ.get("OPENAI_API_KEY"):
+            return _build_openai_llm()
+        if provider == "openai" and os.environ.get("ANTHROPIC_API_KEY"):
+            return _build_anthropic_llm()
+    except Exception as exc:  # pragma: no cover - defensive
+        print(f"ux-journey: fallback_llm build failed: {exc!r}", flush=True)
+    return None
+
+
+def _llm_meta() -> dict[str, Any]:
     """Expose provider/model for debugging (does not include secrets)."""
-    provider = (os.environ.get("UX_JOURNEY_LLM_PROVIDER") or "auto").strip().lower()
-    if provider in ("claude", "anthropic") or (provider == "auto" and os.environ.get("ANTHROPIC_API_KEY")):
+    provider = _resolve_llm_provider()
+    has_fallback = (
+        _env_truthy("UX_JOURNEY_LLM_FALLBACK", "1")
+        and (
+            (provider == "anthropic" and bool(os.environ.get("OPENAI_API_KEY")))
+            or (provider == "openai" and bool(os.environ.get("ANTHROPIC_API_KEY")))
+        )
+    )
+    if provider == "anthropic":
         return {
             "provider": "anthropic",
             "model": os.environ.get("UX_JOURNEY_CLAUDE_MODEL", "claude-sonnet-4-6"),
             "max_tokens": os.environ.get("UX_JOURNEY_CLAUDE_MAX_TOKENS", "16384"),
+            "fallback": (
+                {"provider": "openai", "model": os.environ.get("UX_JOURNEY_OPENAI_MODEL", "gpt-4o")}
+                if has_fallback
+                else None
+            ),
         }
-    if provider in ("openai",) or (provider == "auto" and os.environ.get("OPENAI_API_KEY")):
+    if provider == "openai":
         return {
             "provider": "openai",
             "model": os.environ.get("UX_JOURNEY_OPENAI_MODEL", "gpt-4o"),
+            "fallback": (
+                {
+                    "provider": "anthropic",
+                    "model": os.environ.get("UX_JOURNEY_CLAUDE_MODEL", "claude-sonnet-4-6"),
+                }
+                if has_fallback
+                else None
+            ),
         }
     return {"provider": "unknown", "model": "unknown"}
 
@@ -1182,6 +1252,20 @@ async def run_agent(
         else:
             max_steps = env_default_max_steps
         agent_kw: dict[str, Any] = {"task": task_with_lang, "llm": llm, "browser": browser}
+        # Cross-provider fallback so a single bad AgentOutput from the primary
+        # (e.g. Claude returning `action` as a JSON-encoded string instead of a
+        # list — Pydantic rejects it and the run dies after 6 consecutive
+        # validation errors) doesn't kill the whole journey. Only attached if
+        # browser-use's Agent supports the kwarg AND a different-provider LLM
+        # is actually available.
+        if "fallback_llm" in sig.parameters:
+            try:
+                fallback_llm = _make_fallback_llm()
+            except Exception as exc:  # pragma: no cover - defensive
+                fallback_llm = None
+                print(f"ux-journey: fallback_llm not configured: {exc!r}", flush=True)
+            if fallback_llm is not None:
+                agent_kw["fallback_llm"] = fallback_llm
         if "initial_url" in sig.parameters:
             agent_kw["initial_url"] = url
         else:
