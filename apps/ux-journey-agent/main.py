@@ -485,6 +485,11 @@ def _smart_trim(text: str, *, limit: int, soft_floor_ratio: float = 0.6) -> str:
     `soft_floor_ratio` decides when we're willing to truncate at the last
     whitespace vs. cutting mid-word — only if the whitespace is past
     `soft_floor_ratio * limit`, otherwise we'd produce comically short clips.
+
+    Idempotent w.r.t. ellipsis: if the input already ends in `…` (or the
+    LLM-typed three-dot sequence `...`), we never append another one — that
+    would produce visually broken `……` / `…...` tails when a verbose model
+    output happens to also be over budget.
     """
     if not text:
         return text
@@ -495,7 +500,10 @@ def _smart_trim(text: str, *, limit: int, soft_floor_ratio: float = 0.6) -> str:
     last_space = clipped.rfind(" ")
     if last_space > int(limit * soft_floor_ratio):
         clipped = clipped[:last_space]
-    return clipped.rstrip(" ,;:.-") + "…"
+    clipped = clipped.rstrip(" ,;:.-…")
+    if clipped.endswith("..."):
+        clipped = clipped[:-3].rstrip(" ,;:.-")
+    return clipped + "…"
 
 
 def _normalize_action_entry(entry: Any) -> tuple[str, str, str]:
@@ -1133,6 +1141,15 @@ async def run_agent(
             "Fakten-fokussiert: Was wurde wirklich gesehen/gefunden, was nicht. Keine Zusammenfassung der Schritt-Reihenfolge — "
             "nur das, was die Persona aus dem Besuch mitnimmt.\n"
             "Persona-Bezug NUR, wenn er die Entscheidung tatsächlich beeinflusst — sonst weglassen. "
+            # Anti-cliffhanger rule. Without this, the LLM tends to use „neben…",
+            # „und mehr…", „etc." as a brevity hack — leaving the user with
+            # half-formed thoughts. We require complete sentences within the
+            # budget instead, with concrete examples when listing things.
+            "WICHTIG: Schreibe in ALLEN Feldern vollständige, abgeschlossene Sätze. "
+            "Verwende NIEMALS '…', '...', 'etc.', 'usw.', 'u. a.', 'und mehr' oder ähnliche Auslassungs-Marker als Platzhalter "
+            "für unausgesprochene Inhalte. Wenn du Beispiele aufzählst, nenne 2–3 KONKRETE Beispiele "
+            "(z. B. 'Automotive, Manufacturing, FinServ') — sonst lass die Aufzählung weg. "
+            "Falls dir das Zeichenbudget knapp wird, kürze stattdessen die Begründung oder lasse den Persona-Bezug weg. "
             "WICHTIG: Beende die Journey NICHT zu früh. Markiere erst dann als 'done'/'fertig', wenn du das Ziel wirklich erreicht hast "
             "UND es anhand sichtbarer UI-Indikatoren verifiziert hast (z.B. Bestätigungsseite, eindeutiger State, URL, Erfolgsmeldung). "
             f"WICHTIG: Beende NICHT vor mindestens {min_steps} Schritten. Wenn das Ziel früher erreicht wirkt, nutze die restlichen Schritte für "
