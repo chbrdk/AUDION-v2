@@ -1479,7 +1479,14 @@ async def run_agent(
         try:
             try:
                 try:
-                    history = await agent.run(on_step_start=_on_step_start, on_step_end=_on_step_end)
+                    # Phase 4: `on_step_start` is gone — the fork's
+                    # `step_pacing_seconds` parameter (set on the constructor
+                    # above) replaces the hand-rolled lead-in sleep. We still
+                    # pass `on_step_end` because it does CHECKION-specific work
+                    # (red click ring, slow scroll injection, partial-steps
+                    # publish) that doesn't fit a generic fork hook yet —
+                    # candidate for a future Phase 6 (per-action hooks).
+                    history = await agent.run(on_step_end=_on_step_end)
                 except TypeError:
                     history = await agent.run()
             except asyncio.CancelledError:
