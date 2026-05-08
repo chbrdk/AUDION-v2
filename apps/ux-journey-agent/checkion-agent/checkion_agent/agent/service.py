@@ -209,6 +209,35 @@ class Agent(Generic[Context, AgentStructuredOutput]):
 			| Callable[['Agent', str], None]
 			| None
 		) = None,
+		# CHECKION-fork patch (Phase 6): per-action hooks. `on_action_start`
+		# fires *before* an action is dispatched to `tools.act`, `on_action_end`
+		# fires *after* the action completed (success OR failure — when the
+		# action raises, `on_action_end` is skipped and the exception
+		# propagates as before, which keeps multi_act's existing failure
+		# semantics intact).
+		#
+		# Callback signatures:
+		#   on_action_start(agent, action_name, action_params)
+		#   on_action_end(agent, action_name, action_params, result)
+		#
+		# Where `action_name` is the registered tool name (e.g. `'click_element_by_index'`,
+		# `'scroll'`, `'go_to_url'`), `action_params` is the matching sub-dict
+		# from the AgentOutput (e.g. `{'index': 5}` or `{'down': True, 'amount': 100}`),
+		# and `result` is the `ActionResult` from `tools.act`.
+		#
+		# Both sync and async bodies are supported. Hook errors are caught
+		# and logged at debug — they never break a run, mirroring the
+		# `on_screenshot` contract.
+		on_action_start: (
+			Callable[['Agent', str, dict[str, Any]], Awaitable[None]]
+			| Callable[['Agent', str, dict[str, Any]], None]
+			| None
+		) = None,
+		on_action_end: (
+			Callable[['Agent', str, dict[str, Any], Any], Awaitable[None]]
+			| Callable[['Agent', str, dict[str, Any], Any], None]
+			| None
+		) = None,
 		generate_gif: bool | str = False,
 		available_file_paths: list[str] | None = None,
 		include_attributes: list[str] | None = None,
@@ -449,6 +478,13 @@ class Agent(Generic[Context, AgentStructuredOutput]):
 		except (TypeError, ValueError):
 			self.action_slowdown_factor = 1.0
 		self.on_screenshot = on_screenshot
+		# Phase 6: per-action hooks. Stored verbatim — sync / async tolerated
+		# at fire time via `inspect.iscoroutine`. We deliberately don't merge
+		# them into a single hook-list because callers typically only want
+		# one of the two (e.g. CHECKION uses on_action_end exclusively to
+		# replay clicks / scrolls in the recording).
+		self.on_action_start = on_action_start
+		self.on_action_end = on_action_end
 
 		_extension_blocks: list[str] = []
 		if extend_system_message:
@@ -2797,6 +2833,25 @@ class Agent(Generic[Context, AgentStructuredOutput]):
 			await self.close()
 
 	@observe_debug(ignore_input=True, ignore_output=True)
+	async def _fire_action_hook(self, hook: Any, *args: Any) -> None:
+		"""Phase 6: dispatch a per-action hook (sync or async) defensively.
+
+		Centralised so `multi_act` carries no try/except boilerplate around
+		each fire site. Errors in the hook are caught and logged at debug
+		level so a misbehaving hook can never abort the run; an explicit
+		``asyncio.CancelledError`` still propagates so a hot-cancel works.
+		"""
+		if hook is None:
+			return
+		try:
+			result = hook(*args)
+			if inspect.iscoroutine(result):
+				await result
+		except asyncio.CancelledError:
+			raise
+		except Exception as exc:  # pragma: no cover - defensive
+			self.logger.debug(f'action hook raised (non-fatal): {exc!r}')
+
 	@time_execution_async('--multi_act')
 	async def multi_act(self, actions: list[ActionModel]) -> list[ActionResult]:
 		"""Execute multiple actions with page-change guards.
@@ -2850,6 +2905,15 @@ class Agent(Generic[Context, AgentStructuredOutput]):
 				pre_action_url = await self.browser_session.get_current_page_url()
 				pre_action_focus = self.browser_session.agent_focus_target_id
 
+				# CHECKION-fork patch (Phase 6): action_params is the sub-dict
+				# the registered tool receives (e.g. {'index': 5}). Unknown
+				# action shapes fall back to the full action_data so callers
+				# always have *something* to inspect.
+				action_params = action_data.get(action_name) if isinstance(action_data, dict) else None
+				if not isinstance(action_params, dict):
+					action_params = action_data if isinstance(action_data, dict) else {}
+				await self._fire_action_hook(self.on_action_start, self, action_name, action_params)
+
 				result = await self.tools.act(
 					action=action,
 					browser_session=self.browser_session,
@@ -2859,6 +2923,11 @@ class Agent(Generic[Context, AgentStructuredOutput]):
 					available_file_paths=self.available_file_paths,
 					extraction_schema=self.extraction_schema,
 				)
+
+				# CHECKION-fork patch (Phase 6): fire on_action_end *after*
+				# tools.act returns, regardless of result.error. Hook receives
+				# the ActionResult so it can branch on success/error/done.
+				await self._fire_action_hook(self.on_action_end, self, action_name, action_params, result)
 
 				if result.error:
 					await self._demo_mode_log(

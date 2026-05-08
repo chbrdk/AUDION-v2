@@ -8,6 +8,92 @@ rebased cleanly.
 The version numbers follow the pattern `<upstream>+checkion.<patch>` (e.g.
 `0.12.6+checkion.1`). Bumping the upstream baseline resets the patch counter.
 
+## `0.12.6+checkion.5` (Phase 6 — per-action hooks)
+
+**Upstream baseline:** `browser-use==0.12.6` (commit
+`329c67f069427e928ff81ad52415efdca7692007`).
+
+**Goal:** finish moving the per-step CHECKION playback (red click ring +
+slow-scroll replay) out of the runner's `on_step_end` hook and into a
+generic, granular surface that fires once per *action*. Step-level hooks
+are too coarse: a single step can run multiple actions, the playback only
+makes sense for some action names (`click`, `scroll`), and the runner
+previously had to introspect `agent.history.action_history()` to figure
+out which sub-action to replay. A per-action hook handed the same data
+the tool just received removes that introspection entirely.
+
+### Added (`Agent.__init__` parameters)
+
+- **`on_action_start: Callable[[Agent, str, dict], Awaitable[None] | None] | None`** —
+  fires *before* an action is dispatched to `tools.act`. Receives the
+  agent, the registered tool name (e.g. `'click'`, `'scroll'`,
+  `'go_to_url'`), and the matching sub-dict from the AgentOutput
+  (e.g. `{'index': 5}` or `{'down': True, 'amount': 100}`). Sync or async.
+- **`on_action_end: Callable[[Agent, str, dict, ActionResult], Awaitable[None] | None] | None`** —
+  fires *after* `tools.act` returns. Receives the same trio plus the
+  resulting `ActionResult`, so callers can branch on `result.error`,
+  `result.is_done`, etc. Sync or async.
+
+Both hooks are dispatched through a private `Agent._fire_action_hook`
+helper that:
+
+- swallows ordinary exceptions (logged at debug; never breaks a run);
+- propagates `asyncio.CancelledError` so a hot-cancel still works;
+- accepts both sync and async callables via `inspect.iscoroutine`.
+
+### Changed
+
+- **`Agent.multi_act`** now calls
+  `self._fire_action_hook(self.on_action_start, ...)` directly before the
+  existing `tools.act(...)` call, and
+  `self._fire_action_hook(self.on_action_end, ..., result)` directly
+  after. Both fire with the *pre-action* `cached_selector_map` still
+  populated, so a hook that needs element bounds (e.g. CHECKION's
+  click-ring) can resolve them before the DOM mutates.
+- The hook fire sites are inside the existing per-action `try/except` in
+  `multi_act`. If the action itself raises, `on_action_end` is *skipped*
+  (mirrors Phase 4's `on_screenshot` contract: hook fires on success
+  paths only). A future caller that wants tear-down on failure can wire
+  `on_action_start` and a `result is None` branch in `on_action_end`
+  separately.
+
+### Removed (caller side)
+
+- `apps/ux-journey-agent/main.py` lost the ~110 LOC step-end playback
+  block from `_on_step_end` (history introspection + click-ring +
+  slow-scroll). The runner now defines:
+
+  ```python
+  async def _on_action_end(agent, action_name, params, result):
+      if action_name == 'click':
+          await _play_click_ring(agent, params)
+      elif action_name == 'scroll':
+          await _play_slow_scroll(agent, params)
+  ```
+
+  and wires it via late-attribute-set after `Agent(**agent_kw)` (the
+  closure references `_play_*` helpers that have to exist before the
+  agent is constructed for older fork builds where `on_action_end` is
+  not a constructor kwarg). `_on_step_end` now only handles step-level
+  work: settle pause + partial-steps publish.
+
+### How to verify the patch is active
+
+After a run completes, the result payload includes the per-action call
+count under `forkHooks.actionHookCalls`:
+
+```json
+{
+  "forkHooks": {
+    "actionHookCalls": 23
+  }
+}
+```
+
+A non-zero value with a successful run confirms the fork's `on_action_end`
+hook actually fired during `multi_act`. A 0 (with successful run + visible
+clicks) means the running fork is older than `0.12.6+checkion.5`.
+
 ## `0.12.6+checkion.4` (Phase 4 — first-class step pacing & screenshot hook)
 
 **Upstream baseline:** `browser-use==0.12.6` (commit

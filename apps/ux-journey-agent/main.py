@@ -39,17 +39,31 @@ UX_JOURNEY_EMBED_SCREENSHOTS = (os.environ.get("UX_JOURNEY_EMBED_SCREENSHOTS", "
 # Phase 4 hook: when the checkion-agent fork fires its `on_screenshot` callback
 # at the end of each agent step, we always count the frame for telemetry.
 # Setting this flag to 1/true ALSO pushes that base64-PNG step screenshot into
-# the live-frame cache used by the MJPEG live-stream endpoint. Default off
-# because the legacy live stream is hard-coded to `image/jpeg` — flipping this
-# on works in browsers (they sniff the actual bytes), but we're conservative
-# until the stream endpoint is content-type-aware.
+# the live-frame cache used by the MJPEG live-stream endpoint.
+#
+# Phase 5: default flipped to ON now that the live / step-screenshot endpoints
+# sniff the content-type from the first bytes (see `_sniff_image_content_type`).
+# Set to 0 to fall back to a JPEG-only live stream (CDP polling loop only).
 UX_JOURNEY_LIVE_STEP_FRAMES = (
-    os.environ.get("UX_JOURNEY_LIVE_STEP_FRAMES", "0").strip().lower() in ("1", "true", "yes")
+    os.environ.get("UX_JOURNEY_LIVE_STEP_FRAMES", "1").strip().lower() in ("1", "true", "yes")
+)
+# Phase 5: optional CDP polling loop. The legacy 25 fps polling loop produces
+# the smooth sub-step preview frames at the cost of constant CDP traffic +
+# decode CPU. With `UX_JOURNEY_LIVE_STEP_FRAMES=1` the on_screenshot hook
+# already pushes a hi-res frame per step, so operators who only need event-
+# driven previews can shut off the polling loop here. Default ON to preserve
+# the live UX (smooth video while the agent thinks).
+UX_JOURNEY_LIVE_POLLING_LOOP = (
+    os.environ.get("UX_JOURNEY_LIVE_POLLING_LOOP", "1").strip().lower() in ("1", "true", "yes")
 )
 # Per-job counter incremented in the `on_screenshot` callback. Surfaced in
 # the run result `forkHooks` block so we can verify the fork hook actually
 # fires in production runs (not just unit tests).
 _step_screenshot_counts: dict[str, int] = {}
+# Phase 6 counter: same idea as `_step_screenshot_counts`, but bumped from
+# the per-action `on_action_end` hook so we can prove the playback is wired
+# correctly when an older fork build slips into production.
+_action_hook_counts: dict[str, int] = {}
 
 
 def _agent_init_accepts_named_arg(sig: inspect.Signature, name: str) -> bool:
@@ -685,25 +699,106 @@ def _merge_step_screenshots(*, base_steps: list[dict[str, Any]], overlay_steps: 
         return base_steps
 
 
+# Magic-byte signatures we sniff for the live / step-screenshot endpoints.
+# Order matters only insofar as none of these prefixes overlap; tested in the
+# order most likely to hit (PNG first because the Phase 4 fork hook captures
+# PNG, JPEG second because the legacy CDP polling loop captures JPEG).
+_IMAGE_SIGNATURES: tuple[tuple[bytes, str, str], ...] = (
+    (b"\x89PNG\r\n\x1a\n", "image/png", "png"),
+    (b"\xff\xd8\xff", "image/jpeg", "jpg"),
+    (b"GIF87a", "image/gif", "gif"),
+    (b"GIF89a", "image/gif", "gif"),
+    (b"RIFF", "image/webp", "webp"),  # webp uses RIFF container; we accept it
+)
+
+
+def _sniff_image_content_type(data: bytes | None) -> str:
+    """Return the IANA media-type for the bytes, defaulting to image/jpeg.
+
+    This is the single source of truth for the live-frame / step-screenshot
+    endpoints; before Phase 5 they all hard-coded ``image/jpeg`` which broke
+    when the fork's `on_screenshot` hook started feeding PNG bytes through
+    `UX_JOURNEY_LIVE_STEP_FRAMES`. Default-to-jpeg keeps every legacy path
+    (CDP polling loop, ffmpeg-derived frames) byte-for-byte compatible.
+    """
+    if not data:
+        return "image/jpeg"
+    for sig, mime, _ext in _IMAGE_SIGNATURES:
+        if data.startswith(sig):
+            return mime
+    return "image/jpeg"
+
+
+def _image_extension_for_bytes(data: bytes | None) -> str:
+    """Pick a file extension matching the sniffed bytes ('jpg' fallback)."""
+    if not data:
+        return "jpg"
+    for sig, _mime, ext in _IMAGE_SIGNATURES:
+        if data.startswith(sig):
+            return ext
+    return "jpg"
+
+
+# Extensions we consider valid step-screenshot files on disk. Includes the
+# legacy `.jpg` (always written by the CDP polling loop) and the Phase 4
+# `.png` (written by the fork's `on_screenshot` hook when
+# `UX_JOURNEY_LIVE_STEP_FRAMES=1`).
+_STEP_SCREENSHOT_EXTENSIONS: tuple[str, ...] = ("jpg", "png")
+
+
 def _step_screenshot_path(job_id: str, step_no: int) -> Path:
-    return STEP_SCREENSHOTS_BASE / job_id / f"{step_no}.jpg"
+    """Path to the latest step screenshot, agnostic of file extension.
+
+    Looks for ``{n}.png`` first (Phase 4 hook output, lossless), then
+    ``{n}.jpg`` (legacy CDP polling loop). Returns the legacy `.jpg` path
+    even if no file exists yet, so callers that only do existence checks
+    or `.write_bytes()` keep working — the caller is responsible for
+    writing the right extension via `_step_screenshot_write_path`.
+    """
+    base = STEP_SCREENSHOTS_BASE / job_id
+    for ext in ("png", "jpg"):
+        candidate = base / f"{step_no}.{ext}"
+        if candidate.is_file():
+            return candidate
+    return base / f"{step_no}.jpg"
+
+
+def _step_screenshot_write_path(job_id: str, step_no: int, data: bytes) -> Path:
+    """Path to write the step screenshot to, picking the extension from
+    the bytes' magic signature so the file extension and content stay in
+    sync. Removes any pre-existing copy at the *other* extension to avoid
+    a stale file shadowing the fresh one in `_step_screenshot_path`."""
+    base = STEP_SCREENSHOTS_BASE / job_id
+    ext = _image_extension_for_bytes(data)
+    target = base / f"{step_no}.{ext}"
+    for other_ext in _STEP_SCREENSHOT_EXTENSIONS:
+        if other_ext == ext:
+            continue
+        stale = base / f"{step_no}.{other_ext}"
+        if stale.is_file():
+            try:
+                stale.unlink()
+            except OSError:
+                pass
+    return target
 
 
 def _latest_step_screenshot_bytes(job_id: str) -> bytes | None:
-    """Newest per-step JPEG on disk (same dir as GET .../step/{n}/screenshot)."""
+    """Newest per-step screenshot on disk, regardless of `.jpg` / `.png`."""
     d = STEP_SCREENSHOTS_BASE / job_id
     if not d.is_dir():
         return None
     best: Path | None = None
     best_n = -1
-    for p in d.glob("*.jpg"):
-        try:
-            n = int(p.stem)
-        except ValueError:
-            continue
-        if n > best_n:
-            best_n = n
-            best = p
+    for ext in _STEP_SCREENSHOT_EXTENSIONS:
+        for p in d.glob(f"*.{ext}"):
+            try:
+                n = int(p.stem)
+            except ValueError:
+                continue
+            if n > best_n:
+                best_n = n
+                best = p
     if best and best.is_file():
         try:
             return best.read_bytes()
@@ -733,27 +828,33 @@ async def _publish_partial_steps(
         except Exception:
             pass
 
-        jpeg: bytes | None = None
+        # Phase 5: variable name kept as `image_bytes` to avoid the misleading
+        # `jpeg` from the pre-PNG era — a Phase 4 hook fed PNG into
+        # `_live_frames` is now possible whenever `UX_JOURNEY_LIVE_STEP_FRAMES=1`.
+        image_bytes: bytes | None = None
         frame = _live_frames.get(job_id)
         if frame and isinstance(frame, tuple) and len(frame) == 2:
-            jpeg = frame[1]
-        if not jpeg:
-            jpeg = await _capture_live_frame(agent_instance)
+            image_bytes = frame[1]
+        if not image_bytes:
+            image_bytes = await _capture_live_frame(agent_instance)
 
-        if jpeg:
-            _live_frames[job_id] = (time.monotonic(), jpeg)
+        if image_bytes:
+            _live_frames[job_id] = (time.monotonic(), image_bytes)
 
-        if jpeg and steps_now:
+        if image_bytes and steps_now:
             last = steps_now[-1]
             step_num = last.get("step")
             if isinstance(step_num, int):
-                out = _step_screenshot_path(job_id, step_num)
+                out = _step_screenshot_write_path(job_id, step_num, image_bytes)
                 out.parent.mkdir(parents=True, exist_ok=True)
-                out.write_bytes(jpeg)
+                out.write_bytes(image_bytes)
                 rel = f"/run/{job_id}/step/{step_num}/screenshot"
                 last["screenshotUrl"] = rel
                 if UX_JOURNEY_EMBED_SCREENSHOTS:
-                    last["screenshot"] = f"data:image/jpeg;base64,{base64.b64encode(jpeg).decode('ascii')}"
+                    mime = _sniff_image_content_type(image_bytes)
+                    last["screenshot"] = (
+                        f"data:{mime};base64,{base64.b64encode(image_bytes).decode('ascii')}"
+                    )
                 else:
                     last.pop("screenshot", None)
 
@@ -992,6 +1093,120 @@ async def _live_screenshot_loop(job_id: str) -> None:
         await asyncio.sleep(LIVE_FRAME_INTERVAL * UX_JOURNEY_SLOWMO)
 
 
+# ---------------------------------------------------------------------------
+# Phase 6: per-action playback helpers (red click ring + slow scroll replay).
+# These live above `run_agent` because they're pure browser-side animations
+# fired from the fork's generic `on_action_end` hook — no agent / job state
+# needs to leak in. The CDP send-glue is brittle across browser-use versions
+# (older builds expose `cdp.send`, newer ones `cdp.cdp_client.send`), hence
+# `_eval_js_via_cdp` is the only place that knows which shape we hit.
+# ---------------------------------------------------------------------------
+
+
+async def _eval_js_via_cdp(agent_instance: Any, js: str) -> bool:
+    """Run a one-shot Runtime.evaluate via whatever CDP shape the session
+    exposes. Returns True on a successful dispatch (the eval itself is
+    fire-and-forget for animation purposes); never raises so callers can
+    treat playback as best-effort."""
+    try:
+        session = await agent_instance.browser_session.get_or_create_cdp_session()
+    except Exception:
+        return False
+    if not session:
+        return False
+    try:
+        if hasattr(session, "cdp_client"):
+            send = getattr(session.cdp_client, "send", None)
+            if send and hasattr(send, "Runtime"):
+                await send.Runtime.evaluate(expression=js, session_id=session.session_id)
+                return True
+        if hasattr(session, "send") and hasattr(session.send, "Runtime"):
+            await session.send.Runtime.evaluate(expression=js, session_id=session.session_id)
+            return True
+    except Exception:
+        return False
+    return False
+
+
+async def _play_click_ring(agent_instance: Any, params: dict[str, Any]) -> None:
+    """Render a fading red ring at the click coordinates so the recording
+    shows where the agent clicked. We resolve coordinates in this priority:
+
+    1. ``params['coordinate_x']`` / ``coordinate_y`` — `click` action when
+       called in coordinate mode (no DOM lookup needed).
+    2. ``params['index']`` → look up the bounds in the pre-action selector
+       map. The fork freshens this map on every step, so a click at index N
+       always maps to the same node the model saw.
+
+    A missing / stale element silently no-ops — UI playback is never
+    allowed to degrade run reliability.
+    """
+    cx: float | None = None
+    cy: float | None = None
+    cox = params.get("coordinate_x")
+    coy = params.get("coordinate_y")
+    if isinstance(cox, (int, float)) and isinstance(coy, (int, float)):
+        cx, cy = float(cox), float(coy)
+    else:
+        idx = params.get("index")
+        if isinstance(idx, int):
+            try:
+                summary = agent_instance.browser_session._cached_browser_state_summary
+                node = summary.dom_state.selector_map.get(idx) if summary and summary.dom_state else None
+                bounds = getattr(node, "bounds", None) if node is not None else None
+            except Exception:
+                bounds = None
+            if bounds is not None:
+                bx = float(getattr(bounds, "x", 0))
+                by = float(getattr(bounds, "y", 0))
+                bw = float(getattr(bounds, "width", 0))
+                bh = float(getattr(bounds, "height", 0))
+                cx = bx + bw / 2
+                cy = by + bh / 2
+
+    if cx is None or cy is None:
+        return  # nothing to render — no coordinates and no element bounds
+
+    radius = 24
+    circle_hold = _slow(CLICK_CIRCLE_VISIBLE_SECONDS)
+    ms = int(circle_hold * 1000)
+    js = (
+        "(function(){var el=document.getElementById('agent-click-ring');"
+        "if(el)el.remove();el=document.createElement('div');el.id='agent-click-ring';"
+        f"el.style.cssText='position:fixed;left:{cx - radius}px;top:{cy - radius}px;"
+        f"width:{radius * 2}px;height:{radius * 2}px;border-radius:50%;border:4px solid #e53935;"
+        "pointer-events:none;z-index:2147483647;box-shadow:0 0 0 2px rgba(229,57,53,0.5);';"
+        f"document.body.appendChild(el);setTimeout(function(){{el.remove();}},{ms});}})();"
+    )
+    if await _eval_js_via_cdp(agent_instance, js):
+        await asyncio.sleep(circle_hold)
+
+
+async def _play_slow_scroll(agent_instance: Any, _params: dict[str, Any]) -> None:
+    """Replay a step-based slow scroll (down then back up) so the live
+    stream shows movement instead of jumping. Uses the same JS pattern as
+    pre-Phase-6 — only the dispatch surface changed."""
+    duration_sec = max(1.0, _slow(SCROLL_VISIBLE_SECONDS))
+    interval_ms = 40  # 25 fps
+    total_px = 80
+    steps = max(1, int((duration_sec * 1000) / interval_ms))
+    step_px = total_px / steps
+    template = (
+        "(function(){"
+        f"var iv={interval_ms}, n={steps}, step={step_px}, c=0;"
+        "function run(){ window.scrollBy(0,DIR*step); c++; if(c<n) setTimeout(run,iv); }"
+        "run();"
+        "})();"
+    )
+    forward_js = template.replace("DIR", "1")
+    backward_js = template.replace("DIR", "-1")
+
+    if await _eval_js_via_cdp(agent_instance, forward_js):
+        await asyncio.sleep(duration_sec)
+    if await _eval_js_via_cdp(agent_instance, backward_js):
+        await asyncio.sleep(duration_sec)
+
+
 async def _history_watcher_loop(
     *,
     job_id: str,
@@ -1206,6 +1421,14 @@ async def run_agent(
 
         if _agent_init_accepts_named_arg(sig, "on_screenshot"):
             agent_kw["on_screenshot"] = _on_screenshot
+        # Phase 6: `on_action_end` is wired *after* `Agent(**agent_kw)` is
+        # constructed (search for "agent.on_action_end" further down) — the
+        # callback closes over `_play_click_ring` / `_play_slow_scroll`
+        # which are module-level, but the closure itself is defined inside
+        # the `_on_step_end` / `_on_action_end` block and would otherwise
+        # be NameErrored at construction time. Late-attribute-set is also
+        # graceful-degradation-friendly: an older fork build that ignores
+        # the attribute simply doesn't fire it.
         # Cross-provider fallback so a single bad AgentOutput from the primary
         # (e.g. Claude returning `action` as a JSON-encoded string instead of a
         # list — Pydantic rejects it) can switch to the other provider.  We must
@@ -1359,104 +1582,19 @@ async def run_agent(
         # the constructor above. The hand-rolled `_on_step_start` hook this
         # used to be is gone; the fork sleeps the same `_slow(STEP_START_DELAY_SECONDS)`
         # at the start of every step, before timing / context prep.
+        #
+        # Phase 6: Click-ring overlay and slow-scroll replay are now per-action
+        # work, fired from `on_action_end` directly after the matching tool
+        # ran. `_on_step_end` only handles step-level work (settle pause +
+        # partial publish). The browser-use ``on_step_end`` hook signature is
+        # ``async (agent) -> None``; we keep that contract.
         async def _on_step_end(agent_instance: Any) -> None:
-            actions: list[Any] = []
-            raw: Any = None
-            try:
-                actions = list(agent_instance.history.action_history()) if hasattr(agent_instance.history, "action_history") and callable(agent_instance.history.action_history) else []
-            except Exception:
-                pass
-            # 1) Try to show red circle at last click position (visible in the recording)
-            try:
-                if actions:
-                    last_entry = actions[-1]
-                    raw = last_entry[0] if isinstance(last_entry, (list, tuple)) and len(last_entry) > 0 else last_entry
-                    if isinstance(raw, dict) and raw.get("interacted_element"):
-                        elem = raw["interacted_element"]
-                        if hasattr(elem, "bounds") and elem.bounds is not None:
-                            b = elem.bounds
-                            cx = getattr(b, "x", 0) + getattr(b, "width", 0) / 2
-                            cy = getattr(b, "y", 0) + getattr(b, "height", 0) / 2
-                            radius = 24
-                            circle_hold = _slow(CLICK_CIRCLE_VISIBLE_SECONDS)
-                            ms = int(circle_hold * 1000)
-                            js = (
-                                f"(function(){{var el=document.getElementById('agent-click-ring');"
-                                f"if(el)el.remove();el=document.createElement('div');el.id='agent-click-ring';"
-                                f"el.style.cssText='position:fixed;left:{cx - radius}px;top:{cy - radius}px;"
-                                f"width:{radius*2}px;height:{radius*2}px;border-radius:50%;border:4px solid #e53935;"
-                                f"pointer-events:none;z-index:2147483647;box-shadow:0 0 0 2px rgba(229,57,53,0.5);';"
-                                f"document.body.appendChild(el);setTimeout(function(){{el.remove();}},{ms});}})();"
-                            )
-                            cdp = await agent_instance.browser_session.get_or_create_cdp_session()
-                            if cdp:
-                                if hasattr(cdp, "cdp_client"):
-                                    send = getattr(cdp.cdp_client, "send", None)
-                                    if send and hasattr(send, "Runtime"):
-                                        await send.Runtime.evaluate(expression=js, session_id=cdp.session_id)
-                                elif hasattr(cdp, "send"):
-                                    send = cdp.send
-                                    if hasattr(send, "Runtime"):
-                                        await send.Runtime.evaluate(expression=js, session_id=cdp.session_id)
-                            await asyncio.sleep(circle_hold)
-            except Exception:
-                pass
-            # 2) If last action was scroll, run a very slow step-based scroll so the live stream always captures it
-            try:
-                if not raw and actions:
-                    last_entry = actions[-1]
-                    raw = last_entry[0] if isinstance(last_entry, (list, tuple)) and len(last_entry) > 0 else last_entry
-                if actions and isinstance(raw, dict) and "scroll" in raw:
-                    cdp = await agent_instance.browser_session.get_or_create_cdp_session()
-                    if cdp:
-                        # Step-based scroll: move in small steps at ~25 fps so each frame shows movement
-                        duration_sec = max(1.0, _slow(SCROLL_VISIBLE_SECONDS))
-                        interval_ms = 40  # 25 fps
-                        total_px = 80
-                        steps = max(1, int((duration_sec * 1000) / interval_ms))
-                        step_px = total_px / steps
-                        js = (
-                            "(function(){"
-                            "var d=%(duration)s, iv=%(interval)s, total=%(total)s, n=%(steps)s, step=%(step)s, c=0;"
-                            "function run(){ window.scrollBy(0,step); c++; if(c<n) setTimeout(run,iv); }"
-                            "run();"
-                            "})();"
-                        ) % {
-                            "duration": duration_sec,
-                            "interval": interval_ms,
-                            "total": total_px,
-                            "steps": steps,
-                            "step": step_px,
-                        }
-                        if hasattr(cdp, "cdp_client") and hasattr(cdp.cdp_client, "send") and hasattr(cdp.cdp_client.send, "Runtime"):
-                            await cdp.cdp_client.send.Runtime.evaluate(expression=js, session_id=cdp.session_id)
-                        elif hasattr(cdp, "send") and hasattr(cdp.send, "Runtime"):
-                            await cdp.send.Runtime.evaluate(expression=js, session_id=cdp.session_id)
-                        await asyncio.sleep(duration_sec)
-                        # Scroll back slowly as well so the stream captures the return
-                        js_back = (
-                            "(function(){"
-                            "var iv=%(interval)s, total=%(total)s, n=%(steps)s, step=%(step)s, c=0;"
-                            "function run(){ window.scrollBy(0,-step); c++; if(c<n) setTimeout(run,iv); }"
-                            "run();"
-                            "})();"
-                        ) % {
-                            "interval": interval_ms,
-                            "total": total_px,
-                            "steps": steps,
-                            "step": step_px,
-                        }
-                        if hasattr(cdp, "cdp_client") and hasattr(cdp.cdp_client, "send") and hasattr(cdp.cdp_client.send, "Runtime"):
-                            await cdp.cdp_client.send.Runtime.evaluate(expression=js_back, session_id=cdp.session_id)
-                        elif hasattr(cdp, "send") and hasattr(cdp.send, "Runtime"):
-                            await cdp.send.Runtime.evaluate(expression=js_back, session_id=cdp.session_id)
-                        await asyncio.sleep(duration_sec)
-            except Exception:
-                pass
-            # 3) Pause so the video clearly shows the state before the next step
+            # Pause so the video clearly shows the post-action state before
+            # the next step's pacing sleep kicks in. We subtract the
+            # click-ring hold so a click → settle sequence doesn't double-pad.
             await asyncio.sleep(_slow(max(0.5, STEP_DELAY_SECONDS - CLICK_CIRCLE_VISIBLE_SECONDS)))
 
-            # After UI settles (circle/scroll/delays), publish steps + screenshot file + lightweight JSON.
+            # After UI settles, publish steps + screenshot file + lightweight JSON.
             await _publish_partial_steps(
                 job_id=job_id,
                 agent_instance=agent_instance,
@@ -1465,8 +1603,51 @@ async def run_agent(
                 persona=persona,
             )
 
+        async def _on_action_end(
+            agent_instance: Any,
+            action_name: str,
+            action_params: dict[str, Any],
+            _result: Any,
+        ) -> None:
+            """Phase 6: per-action playback helpers wired through the fork's
+            generic ``on_action_end`` hook.
+
+            We branch on the registered tool name (``'click'``, ``'scroll'``):
+            anything else is a no-op so adding new browser-use tools in a
+            future upstream upgrade can never break the agent — the unknown
+            action just runs without playback. Each branch wraps its own
+            try/except so a failure in one playback (e.g. CDP closed during
+            a navigation) never breaks the rest of the run."""
+            _action_hook_counts[job_id] = _action_hook_counts.get(job_id, 0) + 1
+            try:
+                if action_name == "click":
+                    await _play_click_ring(agent_instance, action_params)
+                elif action_name == "scroll":
+                    await _play_slow_scroll(agent_instance, action_params)
+            except Exception:  # pragma: no cover - hooks must never break runs
+                pass
+
+        # Late-attribute-set wiring for the Phase 6 hook. Falls through silently
+        # on older fork builds that don't read `self.on_action_end` from
+        # `multi_act` — the `forkHooks.actionHookCalls` field below stays at 0,
+        # so an operator can spot the version mismatch in the run result.
+        if _agent_init_accepts_named_arg(sig, "on_action_end") or hasattr(agent, "on_action_end"):
+            try:
+                agent.on_action_end = _on_action_end
+            except Exception as exc:  # pragma: no cover - defensive
+                print(
+                    f"ux-journey: job={job_id} on_action_end wireup failed: {exc!r}",
+                    flush=True,
+                )
+
         _live_agents[job_id] = agent
-        screenshot_task = asyncio.create_task(_live_screenshot_loop(job_id))
+        # Phase 5: gated polling loop. When off, the only source of live frames
+        # is the Phase 4 fork hook (one frame per agent step). The MJPEG /live
+        # endpoint still works — it just paces at the agent's step cadence
+        # instead of 25 fps.
+        screenshot_task: asyncio.Task[None] | None = None
+        if UX_JOURNEY_LIVE_POLLING_LOOP:
+            screenshot_task = asyncio.create_task(_live_screenshot_loop(job_id))
         history_watcher_task = asyncio.create_task(
             _history_watcher_loop(
                 job_id=job_id,
@@ -1501,7 +1682,10 @@ async def run_agent(
                 except Exception:
                     pass
         finally:
-            for bg in (screenshot_task, history_watcher_task):
+            background_tasks: list[asyncio.Task[None]] = [history_watcher_task]
+            if screenshot_task is not None:
+                background_tasks.append(screenshot_task)
+            for bg in background_tasks:
                 bg.cancel()
                 try:
                     await bg
@@ -1510,6 +1694,7 @@ async def run_agent(
             _live_agents.pop(job_id, None)
             _live_frames.pop(job_id, None)
             _step_screenshot_counts.pop(job_id, None)
+            _action_hook_counts.pop(job_id, None)
 
         # CRITICAL: close the browser *before* discovering / moving / transcoding the video.
         # Playwright only finalizes the WebM container (header, cues, EOF) when the browser is
@@ -1593,6 +1778,16 @@ async def run_agent(
                 "slowdownFactor": UX_JOURNEY_SLOWMO,
                 "screenshotHookCalls": _step_screenshot_counts.get(job_id, 0),
                 "liveStepFrames": UX_JOURNEY_LIVE_STEP_FRAMES,
+                # Phase 5: visibility into which live-frame source(s) ran for
+                # this job. `pollingLoop=false, screenshotHookCalls>0` is the
+                # Phase 4 hook running solo; both true is the default mixed
+                # mode; both false means /live was 404 the whole run.
+                "livePollingLoop": UX_JOURNEY_LIVE_POLLING_LOOP,
+                # Phase 6: per-action playback hook firings. Should be ≥
+                # `len(steps)` for typical click/scroll-heavy journeys; a 0
+                # on a successful run means the running fork is older than
+                # 0.12.6+checkion.5 (no `on_action_end` in `multi_act`).
+                "actionHookCalls": _action_hook_counts.get(job_id, 0),
             },
         }
         if persona and isinstance(persona, dict):
@@ -1969,13 +2164,26 @@ async def get_run(job_id: str) -> dict[str, Any]:
 
 @app.get("/run/{job_id}/step/{step_no}/screenshot")
 async def get_step_screenshot(job_id: str, step_no: int) -> FileResponse:
-    """JPEG captured after each agent step (see _publish_partial_steps)."""
+    """Image captured after each agent step (see _publish_partial_steps).
+
+    Phase 5: content-type is sniffed from the file's first bytes so the same
+    endpoint serves either the legacy `.jpg` from the CDP polling loop or the
+    `.png` from the Phase 4 fork hook. Browsers were tolerant of the old
+    hard-coded `image/jpeg` mismatch but devtools / curl / any caching proxy
+    were not.
+    """
     path = _step_screenshot_path(job_id, step_no)
     if not path.is_file():
         raise HTTPException(status_code=404, detail="Screenshot not found")
+    head = b""
+    try:
+        with path.open("rb") as fh:
+            head = fh.read(16)
+    except OSError:
+        pass
     return FileResponse(
         str(path),
-        media_type="image/jpeg",
+        media_type=_sniff_image_content_type(head),
         headers={"Cache-Control": "no-store"},
     )
 
@@ -2156,7 +2364,10 @@ async def get_run_live_diag(job_id: str) -> dict[str, Any]:
     step_files: list[str] = []
     if step_dir.is_dir():
         try:
-            step_files = sorted(p.name for p in step_dir.glob("*.jpg"))
+            collected: list[str] = []
+            for ext in _STEP_SCREENSHOT_EXTENSIONS:
+                collected.extend(p.name for p in step_dir.glob(f"*.{ext}"))
+            step_files = sorted(collected)
         except Exception:
             step_files = []
 
@@ -2186,43 +2397,57 @@ async def get_run_live_diag(job_id: str) -> dict[str, Any]:
 
 @app.get("/run/{job_id}/live")
 async def get_run_live(job_id: str) -> Response:
-    """Return the latest live viewport frame (JPEG) while the job is running."""
-    frame = _live_frames.get(job_id)
-    jpeg_bytes: bytes | None = frame[1] if frame else None
+    """Return the latest live viewport frame while the job is running.
 
-    if not jpeg_bytes:
+    Phase 5: media-type is sniffed from the first bytes (PNG vs JPEG).
+    Source frames come from either the CDP polling loop (always JPEG) or
+    the Phase 4 fork hook (always PNG when ``UX_JOURNEY_LIVE_STEP_FRAMES=1``).
+    """
+    frame = _live_frames.get(job_id)
+    frame_bytes: bytes | None = frame[1] if frame else None
+
+    if not frame_bytes:
         agent = _live_agents.get(job_id)
         if agent:
             captured = await _capture_live_frame(agent)
             if captured:
-                jpeg_bytes = captured
+                frame_bytes = captured
                 _live_frames[job_id] = (time.monotonic(), captured)
 
-    if not jpeg_bytes:
-        jpeg_bytes = _latest_step_screenshot_bytes(job_id)
+    if not frame_bytes:
+        frame_bytes = _latest_step_screenshot_bytes(job_id)
 
-    if not jpeg_bytes:
+    if not frame_bytes:
         raise HTTPException(status_code=404, detail="No live frame")
     return Response(
-        content=jpeg_bytes,
-        media_type="image/jpeg",
+        content=frame_bytes,
+        media_type=_sniff_image_content_type(frame_bytes),
         headers={"Cache-Control": "no-store"},
     )
 
 
 async def _mjpeg_stream_generator(job_id: str):
-    """Yield MJPEG parts (boundary + headers + jpeg) while the job is running."""
+    """Yield multipart/x-mixed-replace parts while the job is running.
+
+    Phase 5: each part carries an inline-sniffed Content-Type, so a stream
+    that mixes legacy CDP JPEGs and fork-hook PNGs stays RFC-correct. The
+    boundary name is kept as ``frame`` for backwards-compat with any client
+    that hard-coded it; only the per-part content-type changes.
+    """
     while job_id in _live_agents:
         frame = _live_frames.get(job_id)
         if frame:
-            _, jpeg_bytes = frame
+            _, frame_bytes = frame
+            content_type = _sniff_image_content_type(frame_bytes).encode("ascii")
             part = (
                 b"--"
                 + MJPEG_BOUNDARY
-                + b"\r\nContent-Type: image/jpeg\r\nContent-Length: "
-                + str(len(jpeg_bytes)).encode()
+                + b"\r\nContent-Type: "
+                + content_type
+                + b"\r\nContent-Length: "
+                + str(len(frame_bytes)).encode()
                 + b"\r\n\r\n"
-                + jpeg_bytes
+                + frame_bytes
                 + b"\r\n"
             )
             yield part

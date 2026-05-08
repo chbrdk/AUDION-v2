@@ -89,6 +89,26 @@ See [`CHANGELOG.md`](./CHANGELOG.md) for the full per-version diff.
     `apps/ux-journey-agent/main.py` and moves the CHECKION-UI brevity
     rules from the task into `extend_system_message`.
 
+- **Phase 6 (`0.12.6+checkion.5`):** Per-action hooks.
+  - `Agent.__init__` accepts
+    `on_action_start: Callable[[Agent, str, dict], Awaitable[None] | None]`
+    and
+    `on_action_end: Callable[[Agent, str, dict, ActionResult], Awaitable[None] | None]`.
+    Both fire from inside `multi_act` — `on_action_start` before
+    `tools.act`, `on_action_end` after. Receive the registered tool name
+    (e.g. `'click'`, `'scroll'`) and the matching action sub-dict.
+  - The action sub-dict is the *same* shape the tool's param model
+    receives, so a click in coordinate-mode arrives as
+    `{'coordinate_x': 100, 'coordinate_y': 200}` and an index click as
+    `{'index': 5}` — no introspection of `agent.history` needed in the
+    runner.
+  - Hook errors are caught and logged at debug; `asyncio.CancelledError`
+    propagates so a hot-cancel still works.
+  - Replaces the ~110 LOC `agent.history.action_history()`-walking
+    block in `_on_step_end` of `apps/ux-journey-agent/main.py`. The
+    runner now defines a tiny `_on_action_end` that dispatches to
+    `_play_click_ring` / `_play_slow_scroll` based on the action name.
+
 - **Phase 4 (`0.12.6+checkion.4`):** First-class step pacing & screenshot
   hook.
   - `Agent.__init__` accepts `step_pacing_seconds: float = 0.0` and
@@ -111,8 +131,7 @@ See [`CHANGELOG.md`](./CHANGELOG.md) for the full per-version diff.
     `liveStepFrames` so the operator can verify the hook fired and the
     pacing matches the expected slow-mo level.
 
-- **Future (planned):** structured logging, browser-side action timing
-  hooks for sub-step instrumentation (e.g. per-click vs. per-scroll
-  pacing).
+- **Future (planned):** structured logging, dependency-pinning lockfile
+  for reproducible Coolify builds.
 
 See [`ATTRIBUTION.md`](./ATTRIBUTION.md) for upstream rebase notes.
