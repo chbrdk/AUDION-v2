@@ -17,8 +17,15 @@ const resolvePath = (params: { path?: string[] }) => params.path?.join("/") ?? "
 const shouldStreamResponse = (path: string) =>
   path.endsWith("/live/stream") || path.endsWith("/video");
 
-const forward = async (request: NextRequest, target: string, opts: { stream: boolean }) => {
-  const { stream } = opts;
+/** ffmpeg finalize can run for many minutes; live/video streams already use 5m. */
+const resolveForwardTimeoutMs = (path: string, stream: boolean) => {
+  if (stream) return 5 * 60_000;
+  if (path.endsWith("/video/finalize")) return 15 * 60_000;
+  return 60_000;
+};
+
+const forward = async (request: NextRequest, target: string, opts: { stream: boolean; path: string }) => {
+  const { stream, path } = opts;
   const token = getAuthTokenFromRequest(request);
   const body =
     request.method === "GET" || request.method === "HEAD" ? undefined : await request.text();
@@ -41,8 +48,7 @@ const forward = async (request: NextRequest, target: string, opts: { stream: boo
         },
         body,
       },
-      // Live/video may take longer than JSON endpoints.
-      stream ? 5 * 60_000 : 60_000
+      resolveForwardTimeoutMs(path, stream)
     );
   } catch (err) {
     const { message, code, hint } = describePersonaUpstreamFetchError(err);
@@ -93,7 +99,7 @@ export async function GET(
   const resolved = await params;
   const path = resolvePath(resolved);
   const target = buildTargetUrl(request, path);
-  return forward(request, target, { stream: shouldStreamResponse(path) });
+  return forward(request, target, { stream: shouldStreamResponse(path), path });
 }
 
 export async function POST(
@@ -103,6 +109,6 @@ export async function POST(
   const resolved = await params;
   const path = resolvePath(resolved);
   const target = buildTargetUrl(request, path);
-  return forward(request, target, { stream: shouldStreamResponse(path) });
+  return forward(request, target, { stream: shouldStreamResponse(path), path });
 }
 

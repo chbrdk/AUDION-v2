@@ -12,6 +12,7 @@ import glob
 import json
 import os
 import shutil
+import threading
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -1451,13 +1452,14 @@ async def run_agent(
                 if video_path:
                     _jobs[job_id].video_path = video_path
 
-        # Background polish step: smooth-MP4 transcode. Does NOT block the
-        # status flip above; the chat-api / frontend already see "complete"
-        # by the time this runs. On success we replace the served file at
-        # the same logical path, so a player that reloads the video after
-        # this finishes gets the smoother variant for free.
-        if video_path:
-            asyncio.create_task(_finalize_video(job_id=job_id, source_path=video_path))
+        # Heavy ffmpeg polish (H.264 + slow-motion): defer unless explicitly disabled.
+        # Raw recording from Playwright is already on disk — GET /video serves it.
+        if video_path and not UX_JOURNEY_DEFER_VIDEO_FINALIZE:
+
+            async def _finalize_bg() -> None:
+                await _finalize_video(job_id=job_id, source_path=video_path)
+
+            asyncio.create_task(_finalize_bg())
     except Exception as e:
         async with _jobs_lock:
             if job_id in _jobs:
@@ -1506,24 +1508,48 @@ VIDEO_SLOWDOWN_FACTOR = _parse_slowdown_factor(
     os.environ.get("UX_JOURNEY_VIDEO_SLOWDOWN_FACTOR")
 )
 
+# When true (default), the heavy ffmpeg pass (H.264 + optional slow-motion) does
+# NOT start automatically at the end of a run. The raw WebM/MP4 from Playwright
+# is still available via GET /run/{id}/video immediately; the user (or the chat
+# UI) triggers ``POST /run/{id}/video/finalize`` to produce the polished MP4.
+# Set to false to restore the old fire-and-forget background finalization
+# (wastes CPU on every run that nobody watches).
+def _env_truthy(name: str, default: str = "1") -> bool:
+    v = (os.environ.get(name, default) or "").strip().lower()
+    return v not in ("0", "false", "no", "off", "")
 
-async def _finalize_video(*, job_id: str, source_path: str) -> None:
+
+UX_JOURNEY_DEFER_VIDEO_FINALIZE = _env_truthy("UX_JOURNEY_DEFER_VIDEO_FINALIZE", "1")
+
+_finalize_locks: dict[str, asyncio.Lock] = {}
+_finalize_locks_mutex = threading.Lock()
+
+
+def _get_finalize_lock(job_id: str) -> asyncio.Lock:
+    """One asyncio.Lock per job so concurrent POST /video/finalize are serialized."""
+    with _finalize_locks_mutex:
+        if job_id not in _finalize_locks:
+            _finalize_locks[job_id] = asyncio.Lock()
+        return _finalize_locks[job_id]
+
+
+async def _finalize_video(*, job_id: str, source_path: str) -> bool:
     """
-    Background polish for a finished journey: re-encode the raw recording to a
-    smooth seekable MP4. Runs AFTER the job's status has already flipped to
-    "complete", so any latency here is invisible to the chat. On success we
-    swap the served file at the conventional `{job_id}.mp4` location and update
-    `_jobs[job_id].video_path`; on failure we silently keep the raw recording.
+    Re-encode the raw recording to a smooth seekable MP4 (+ optional slow-motion).
+    On success, swaps `_jobs[job_id].video_path` to the final file.
 
-    We don't raise — this is best-effort polish. Logging the failure is enough.
+    Returns True if a playable output file is now referenced by the job; False
+    if transcoding was skipped/failed (caller keeps serving the raw recording).
+
+    Does not raise — best-effort polish.
     """
     try:
         src = Path(source_path)
         if not src.is_file():
-            return
+            return False
         smooth = VIDEO_BASE_DIR / f"{job_id}.smooth.mp4"
         if not await _transcode_to_smooth_mp4(src, smooth):
-            return
+            return False
         final_dest = VIDEO_BASE_DIR / f"{job_id}.mp4"
         try:
             if final_dest.exists() and final_dest.resolve() != src.resolve():
@@ -1543,10 +1569,12 @@ async def _finalize_video(*, job_id: str, source_path: str) -> None:
         async with _jobs_lock:
             if job_id in _jobs:
                 _jobs[job_id].video_path = new_path
+        return True
     except Exception as exc:
         # Best-effort polish; log so it surfaces in the structured agent logs
         # but never propagate into the (already-completed) job state.
         print(f"video.finalize: job={job_id} error={exc}", flush=True)
+        return False
 
 
 async def _transcode_to_smooth_mp4(src: Path, dest: Path) -> bool:
@@ -1756,6 +1784,77 @@ async def get_step_screenshot(job_id: str, step_no: int) -> FileResponse:
         media_type="image/jpeg",
         headers={"Cache-Control": "no-store"},
     )
+
+
+async def _resolve_recording_path_for_finalize(job_id: str) -> str | None:
+    """Return an on-disk recording path to feed into ffmpeg, or None."""
+    async with _jobs_lock:
+        job = _jobs.get(job_id)
+        vp = job.video_path if job else None
+    if vp and Path(vp).is_file():
+        return vp
+    for ext in ("webm", "mp4"):
+        candidate = VIDEO_BASE_DIR / f"{job_id}.{ext}"
+        try:
+            if candidate.is_file() and candidate.stat().st_size > 1024:
+                return str(candidate)
+        except OSError:
+            continue
+    return None
+
+
+@app.post("/run/{job_id}/video/finalize")
+async def post_finalize_run_video(job_id: str) -> dict[str, Any]:
+    """
+    On-demand ffmpeg polish: smooth MP4 + configured slow-motion.
+
+    Idempotent: if ``{job_id}.mp4`` already exists in ``VIDEO_BASE_DIR``, returns
+    ``already_finalized`` immediately. When transcoding is disabled or ffmpeg is
+    missing, returns ``skipped`` — the client should still play the raw WebM via
+    GET /run/{jobId}/video.
+    """
+    lock = _get_finalize_lock(job_id)
+    async with lock:
+        async with _jobs_lock:
+            job = _jobs.get(job_id)
+        if job is None:
+            raise HTTPException(status_code=404, detail="Job not found")
+        if job.status == "running":
+            raise HTTPException(status_code=400, detail="Job is still running")
+
+        final_mp4 = VIDEO_BASE_DIR / f"{job_id}.mp4"
+        if final_mp4.is_file() and final_mp4.stat().st_size > 1024:
+            async with _jobs_lock:
+                if job_id in _jobs:
+                    _jobs[job_id].video_path = str(final_mp4)
+            return {
+                "status": "already_finalized",
+                "videoUrl": f"/run/{job_id}/video",
+                "mediaType": "video/mp4",
+            }
+
+        src = await _resolve_recording_path_for_finalize(job_id)
+        if not src:
+            raise HTTPException(status_code=404, detail="No recording found for this job")
+
+        if VIDEO_TRANSCODE_DISABLED or shutil.which("ffmpeg") is None:
+            return {
+                "status": "skipped",
+                "reason": "transcode_unavailable",
+                "videoUrl": f"/run/{job_id}/video",
+                "message": "ffmpeg unavailable or transcoding disabled — use raw recording.",
+            }
+
+        ok = await _finalize_video(job_id=job_id, source_path=src)
+        async with _jobs_lock:
+            out_path = _jobs[job_id].video_path if job_id in _jobs else None
+        suffix = Path(out_path).suffix.lower() if out_path else ""
+        media = "video/mp4" if suffix == ".mp4" else "video/webm"
+        return {
+            "status": "completed" if ok else "failed",
+            "videoUrl": f"/run/{job_id}/video",
+            "mediaType": media,
+        }
 
 
 @app.get("/run/{job_id}/video")

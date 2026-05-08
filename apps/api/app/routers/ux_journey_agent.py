@@ -84,6 +84,41 @@ async def cancel_run(
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to reach UX Journey Agent service.") from exc
 
 
+@router.post("/run/{job_id}/video/finalize")
+async def finalize_run_video(
+    job_id: str,
+    current_user: User = Depends(get_current_user),
+) -> JSONResponse:
+    """
+    Trigger ffmpeg polish (H.264 + optional slow-motion) on the agent.
+
+    Transcoding can take several minutes; the proxy uses a generous timeout so the
+    client does not abort before the upstream finishes.
+    """
+    del current_user  # auth only
+    base, timeout = _agent_base_url_or_503()
+    url = f"{base}/run/{job_id}/video/finalize"
+    finalize_timeout = max(timeout, 900.0)
+    try:
+        async with httpx.AsyncClient(timeout=finalize_timeout, follow_redirects=True) as client:
+            res = await client.post(url)
+        if res.status_code == 404:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job or recording not found")
+        if res.status_code >= 400:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"UX Journey Agent error ({res.status_code}).",
+            )
+        return JSONResponse(content=res.json(), media_type=res.headers.get("content-type", "application/json"))
+    except httpx.TimeoutException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            detail="UX Journey Agent video finalize timed out.",
+        ) from exc
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to reach UX Journey Agent service.") from exc
+
+
 @router.get("/run/{job_id}")
 async def get_run(
     job_id: str,

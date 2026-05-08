@@ -6,7 +6,6 @@ import { MsqdxButton, MsqdxCard, MsqdxFormField, MsqdxTypography } from "@msqdx/
 
 import { API_ROUTES, withNextBasePath } from "../../../lib/api-routes";
 import { getUxJourneyVideoPlaybackRate } from "../../../lib/ux-journey-playback";
-import { UxJourneyLivePoll } from "../../../components/ux-journey-live-poll";
 import { ChatMessageMarkdown } from "../../../components/chat/chat-message-markdown";
 import { normalizeReasoningText } from "../../../lib/normalize-reasoning-text";
 import { useI18n } from "../../../components/i18n/i18n-provider";
@@ -38,6 +37,7 @@ type AgentRunResponse = {
     success?: boolean;
     taskDescription?: string;
     siteDomain?: string;
+    videoUrl?: string;
   };
   error?: string;
 };
@@ -51,6 +51,11 @@ export default function UxJourneyAgentAdminPage() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AgentRunResponse | null>(null);
   const [starting, setStarting] = useState(false);
+  const [videoRevealed, setVideoRevealed] = useState(false);
+  const [videoFinalizeBusy, setVideoFinalizeBusy] = useState(false);
+  const [videoFinalizeError, setVideoFinalizeError] = useState<string | null>(null);
+  const [videoPolishFailed, setVideoPolishFailed] = useState(false);
+  const [videoCacheKey, setVideoCacheKey] = useState(1);
 
   const steps = useMemo(() => result?.result?.steps ?? [], [result?.result?.steps]);
 
@@ -72,6 +77,10 @@ export default function UxJourneyAgentAdminPage() {
       }
       setJobId(data.jobId);
       setStatus("running");
+      setVideoRevealed(false);
+      setVideoFinalizeError(null);
+      setVideoPolishFailed(false);
+      setVideoCacheKey(1);
     } catch (e) {
       setStatus("error");
       setError(e instanceof Error ? e.message : "Network error");
@@ -79,6 +88,36 @@ export default function UxJourneyAgentAdminPage() {
       setStarting(false);
     }
   }, [url, task]);
+
+  const loadRecordedVideo = useCallback(async () => {
+    if (!jobId) return;
+    setVideoFinalizeError(null);
+    setVideoPolishFailed(false);
+    setVideoFinalizeBusy(true);
+    try {
+      const res = await fetch(API_ROUTES.uxJourneyAgentVideoFinalize(jobId), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+      const raw = (await res.json().catch(() => ({}))) as { status?: string; detail?: unknown };
+      if (!res.ok) {
+        setVideoFinalizeError(
+          typeof raw.detail === "string" ? raw.detail : t("chat.uxJourney.videoFinalizeError"),
+        );
+        return;
+      }
+      if (raw.status === "failed") {
+        setVideoPolishFailed(true);
+      }
+      setVideoCacheKey(Date.now());
+      setVideoRevealed(true);
+    } catch (e) {
+      setVideoFinalizeError(e instanceof Error ? e.message : t("chat.uxJourney.videoFinalizeError"));
+    } finally {
+      setVideoFinalizeBusy(false);
+    }
+  }, [jobId, t]);
 
   useEffect(() => {
     if (!jobId || status !== "running") return;
@@ -127,7 +166,7 @@ export default function UxJourneyAgentAdminPage() {
         {t("nav.uxJourneyAgent")}
       </MsqdxTypography>
       <MsqdxTypography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
-        Start a browser-based UX journey run (URL + natural language task). View live stream while running, and video/steps after completion.
+        Start a browser-based UX journey run (URL + natural language task). Steps appear after completion; optionally load a screen recording — no live preview during the run.
       </MsqdxTypography>
 
       <MsqdxCard variant="flat" sx={{ p: 2, mb: 2 }}>
@@ -177,10 +216,9 @@ export default function UxJourneyAgentAdminPage() {
 
       {jobId && status === "running" && (
         <MsqdxCard variant="flat" sx={{ p: 2, mb: 2 }}>
-          <MsqdxTypography variant="subtitle2" sx={{ mb: 1 }}>
-            Live view
+          <MsqdxTypography variant="body2" sx={{ color: "text.secondary", fontStyle: "italic" }}>
+            {t("chat.uxJourney.runningNoLive")}
           </MsqdxTypography>
-          <UxJourneyLivePoll jobId={jobId} maxWidth={960} />
         </MsqdxCard>
       )}
 
@@ -188,19 +226,52 @@ export default function UxJourneyAgentAdminPage() {
         <>
           <MsqdxCard variant="flat" sx={{ p: 2, mb: 2 }}>
             <MsqdxTypography variant="subtitle2" sx={{ mb: 1 }}>
-              Video
+              {t("chat.uxJourney.videoOfferTitle")}
             </MsqdxTypography>
-            <Box
-              component="video"
-              controls
-              playsInline
-              preload="auto"
-              src={API_ROUTES.uxJourneyAgentVideo(jobId)}
-              onLoadedMetadata={(e: React.SyntheticEvent<HTMLVideoElement>) => {
-                e.currentTarget.playbackRate = getUxJourneyVideoPlaybackRate();
-              }}
-              sx={{ width: "100%", maxWidth: 960, borderRadius: 1, display: "block", backgroundColor: "#000" }}
-            />
+            {result?.result?.videoUrl ? (
+              !videoRevealed ? (
+                <>
+                  <MsqdxTypography variant="body2" sx={{ color: "text.secondary", mb: 1.5 }}>
+                    {t("chat.uxJourney.videoOfferHint")}
+                  </MsqdxTypography>
+                  {videoFinalizeError ? (
+                    <MsqdxTypography variant="body2" sx={{ color: "error.main", mb: 1 }}>
+                      {videoFinalizeError}
+                    </MsqdxTypography>
+                  ) : null}
+                  <MsqdxButton
+                    variant="outlined"
+                    disabled={videoFinalizeBusy}
+                    onClick={() => void loadRecordedVideo()}
+                  >
+                    {videoFinalizeBusy ? t("chat.uxJourney.videoFinalizeBusy") : t("chat.uxJourney.videoShow")}
+                  </MsqdxButton>
+                </>
+              ) : (
+                <>
+                  {videoPolishFailed ? (
+                    <MsqdxTypography variant="body2" sx={{ color: "warning.main", mb: 1 }}>
+                      {t("chat.uxJourney.videoPolishFailed")}
+                    </MsqdxTypography>
+                  ) : null}
+                  <Box
+                    component="video"
+                    controls
+                    playsInline
+                    preload="metadata"
+                    src={`${API_ROUTES.uxJourneyAgentVideo(jobId)}?v=${videoCacheKey}`}
+                  onLoadedMetadata={(e: React.SyntheticEvent<HTMLVideoElement>) => {
+                    e.currentTarget.playbackRate = getUxJourneyVideoPlaybackRate();
+                  }}
+                  sx={{ width: "100%", maxWidth: 960, borderRadius: 1, display: "block", backgroundColor: "#000" }}
+                  />
+                </>
+              )
+            ) : (
+              <MsqdxTypography variant="body2" sx={{ color: "text.secondary", fontStyle: "italic" }}>
+                {t("chat.uxJourney.videoUnavailable")}
+              </MsqdxTypography>
+            )}
           </MsqdxCard>
 
           <MsqdxCard variant="flat" sx={{ p: 2 }}>

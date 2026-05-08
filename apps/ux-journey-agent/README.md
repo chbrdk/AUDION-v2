@@ -6,7 +6,8 @@ Browser agent service for CHECKION: runs autonomous navigation tasks (URL + natu
 
 - **POST /run** – Body: `{ "url": "https://example.com", "task": "Find product X and add to cart" }` → `{ "jobId": "uuid" }`
 - **GET /run/{jobId}** – Returns `{ "status": "running"|"complete"|"error", "result?: { steps, success, ... }" }`
-- **GET /run/{jobId}/video** – Recorded journey video (when available).
+- **GET /run/{jobId}/video** – Recorded journey video (when available). Serves the raw Playwright WebM (or MP4) immediately after the run.
+- **POST /run/{jobId}/video/finalize** – On-demand ffmpeg polish (smooth H.264 MP4 + configured slow-motion). Idempotent; returns JSON `{ "status": "completed"|"skipped"|"already_finalized"|"failed", ... }`. When **`UX_JOURNEY_DEFER_VIDEO_FINALIZE`** is enabled (default), this is the step that performs heavy transcoding instead of doing it automatically at the end of the run.
 - **GET /run/{jobId}/live** – Latest viewport frame (JPEG) while the job is running; 404 when no frame.
 - **GET /health** – `{ "status": "ok" }`
 
@@ -26,6 +27,8 @@ Browser agent service for CHECKION: runs autonomous navigation tasks (URL + natu
 | `UX_JOURNEY_CLICK_CIRCLE_VISIBLE_SECONDS` | no | Base click-ring visibility (default **3.5** s, then × slowmo) |
 | `UX_JOURNEY_SCROLL_VISIBLE_SECONDS` | no | Base slow-scroll duration per direction (default **7.0** s, then × slowmo) |
 | `UX_JOURNEY_VIDEO_SLOWDOWN_FACTOR` | no | Final-video slow-motion multiplier applied during the smooth-MP4 transcode via ffmpeg `setpts=N*PTS` (default **`8`** = play back at 1/8 real-time speed). Slows the saved recording without affecting the agent's actual run time. Clamped 1..16; `1` disables the filter. |
+| `UX_JOURNEY_DEFER_VIDEO_FINALIZE` | no | When **`1`** (default), the ffmpeg polish pass does **not** run automatically when the journey finishes — call **`POST /run/{jobId}/video/finalize`** when you want the smooth MP4. Set **`0`** to restore background finalization at end of run (uses CPU on every run). |
+| `UX_JOURNEY_VIDEO_TRANSCODE` | no | Set **`0`** to disable H.264 transcoding entirely (no ffmpeg polish). Default **`1`** (transcode enabled when ffmpeg is available). |
 | `UX_JOURNEY_LIVE_FRAME_INTERVAL` | no | Seconds between live/MJPEG frames (default 0.04 = 25 fps). Lower value = higher fps. |
 | `PORT` | no | HTTP port (default 8320) |
 

@@ -36,6 +36,9 @@ export const API_ROUTES = {
   uxJourneyAgentLiveStream: (jobId: string) =>
     withNextBasePath(`/api/ux-journey-agent/run/${encodeURIComponent(jobId)}/live/stream`),
   uxJourneyAgentVideo: (jobId: string) => withNextBasePath(`/api/ux-journey-agent/run/${encodeURIComponent(jobId)}/video`),
+  /** POST: optional ffmpeg polish before playback (proxied to agent). Can take minutes. */
+  uxJourneyAgentVideoFinalize: (jobId: string) =>
+    withNextBasePath(`/api/ux-journey-agent/run/${encodeURIComponent(jobId)}/video/finalize`),
   /** GET: JPEG after each step (agent serves `/run/{jobId}/step/{n}/screenshot`; Next proxies here). */
   uxJourneyAgentStepScreenshot: (jobId: string, stepNo: number) =>
     withNextBasePath(`/api/ux-journey-agent/run/${encodeURIComponent(jobId)}/step/${stepNo}/screenshot`),
