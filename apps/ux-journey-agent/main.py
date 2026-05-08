@@ -1266,7 +1266,9 @@ async def run_agent(
         # validation errors) doesn't kill the whole journey. Only attached if
         # browser-use's Agent supports the kwarg AND a different-provider LLM
         # is actually available.
-        if "fallback_llm" in sig.parameters:
+        fallback_attached = False
+        fallback_signature_supported = "fallback_llm" in sig.parameters
+        if fallback_signature_supported:
             try:
                 fallback_llm = _make_fallback_llm()
             except Exception as exc:  # pragma: no cover - defensive
@@ -1274,6 +1276,42 @@ async def run_agent(
                 print(f"ux-journey: fallback_llm not configured: {exc!r}", flush=True)
             if fallback_llm is not None:
                 agent_kw["fallback_llm"] = fallback_llm
+                fallback_attached = True
+        # Surface LLM wiring at run start so the operator can spot a missing
+        # OPENAI_API_KEY / outdated browser-use without grepping the code.
+        # This is the only place we can be sure both `llm` and any fallback
+        # have been instantiated successfully.
+        meta = _llm_meta()
+        primary_label = f"{meta.get('provider')}/{meta.get('model')}"
+        if fallback_attached:
+            fb = meta.get("fallback") if isinstance(meta, dict) else None
+            fb_label = f"{fb.get('provider')}/{fb.get('model')}" if isinstance(fb, dict) else "?"
+            fallback_status = f"enabled ({fb_label})"
+        else:
+            if not fallback_signature_supported:
+                fallback_status = "disabled (browser-use Agent has no `fallback_llm` param — upgrade browser-use)"
+            elif _resolve_llm_provider() == "anthropic" and not os.environ.get("OPENAI_API_KEY"):
+                fallback_status = "disabled (set OPENAI_API_KEY for cross-provider recovery)"
+            elif _resolve_llm_provider() == "openai" and not os.environ.get("ANTHROPIC_API_KEY"):
+                fallback_status = "disabled (set ANTHROPIC_API_KEY for cross-provider recovery)"
+            elif not _env_truthy("UX_JOURNEY_LLM_FALLBACK", "1"):
+                fallback_status = "disabled (UX_JOURNEY_LLM_FALLBACK=0)"
+            else:
+                fallback_status = "disabled"
+        print(
+            f"ux-journey: job={job_id} primary={primary_label} fallback_llm={fallback_status}",
+            flush=True,
+        )
+        # Allow operators to widen browser-use's default retry budget for
+        # transient AgentOutput validation hiccups (default 6). Useful when
+        # the primary occasionally serialises `action` as a JSON-string for
+        # one or two consecutive calls but recovers on its own.
+        try:
+            max_failures_env = int(os.environ.get("UX_JOURNEY_MAX_FAILURES", "0"))
+        except ValueError:
+            max_failures_env = 0
+        if max_failures_env > 0 and "max_failures" in sig.parameters:
+            agent_kw["max_failures"] = max_failures_env
         if "initial_url" in sig.parameters:
             agent_kw["initial_url"] = url
         else:
@@ -1294,6 +1332,13 @@ async def run_agent(
             agent.max_steps = max_steps
         elif hasattr(agent, "max_actions"):
             agent.max_actions = max_steps
+        # Some browser-use builds only expose max_failures as an attribute,
+        # not a constructor kwarg — set it after construction as a fallback.
+        if max_failures_env > 0 and hasattr(agent, "max_failures"):
+            try:
+                agent.max_failures = max_failures_env
+            except Exception:  # pragma: no cover - defensive
+                pass
 
         async def _on_step_start(agent_instance: Any) -> None:
             # Pause at the beginning of each step so the video shows the current state before the action runs
