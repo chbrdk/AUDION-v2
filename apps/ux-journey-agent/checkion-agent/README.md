@@ -40,14 +40,23 @@ The public surface mirrors upstream `browser-use==0.12.6` 1:1 in **Phase B**
 
 ## What changes vs. upstream
 
-- **Phase B (this commit):** Mechanical rename `browser_use` → `checkion_agent`.
-  No behavior changes. Code is byte-for-byte identical to upstream `0.12.6`
-  except for the package import path. License and copyright headers are
-  preserved.
+See [`CHANGELOG.md`](./CHANGELOG.md) for the full per-version diff.
 
-- **Phase 1 (planned):** Tolerant `AgentOutput` validators for known model
-  failure modes (`action`-as-string, trailing chars). Replaces the
-  `_repair_*` wrapper currently in `apps/ux-journey-agent/main.py`.
+- **Phase B (`0.12.6+checkion.0`):** Mechanical rename `browser_use` →
+  `checkion_agent`. No behavior changes. Code is byte-for-byte identical to
+  upstream `0.12.6` except for the package import path. License and copyright
+  headers are preserved.
+
+- **Phase 1 (`0.12.6+checkion.1`):** Tolerant `AgentOutput` parsing baked in.
+  - `model_validator(mode='before')` on `AgentOutput` coerces `action` from
+    string-list / string-dict / single-dict into the canonical list shape.
+  - `ChatOpenAI.ainvoke` recovers from trailing-character /
+    markdown-preamble failures around `model_validate_json`.
+  - `ChatAnthropic.ainvoke` extends its existing string-`_input` recovery
+    branch with the same balanced-object slicing.
+  - All gated by `CHECKION_AGENT_TOLERANT_PARSING` (default `1`).
+  - Replaces the ~300 LOC `_repair_*` / `_maybe_wrap_llm_class` stack from
+    `apps/ux-journey-agent/main.py`.
 
 - **Phase 2 (planned):** First-class hooks — `Agent(persona=...)`,
   `Agent(on_step_screenshot=...)`, `Agent(action_slowdown_factor=N)`.

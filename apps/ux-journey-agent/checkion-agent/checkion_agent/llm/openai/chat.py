@@ -11,6 +11,7 @@ from openai.types.shared_params.reasoning_effort import ReasoningEffort
 from openai.types.shared_params.response_format_json_schema import JSONSchema, ResponseFormatJSONSchema
 from pydantic import BaseModel
 
+from checkion_agent.agent._tolerant_parsing import parse_json_with_recovery, tolerant_parsing_enabled
 from checkion_agent.llm.base import BaseChatModel
 from checkion_agent.llm.exceptions import ModelProviderError, ModelRateLimitError
 from checkion_agent.llm.messages import BaseMessage
@@ -281,7 +282,23 @@ class ChatOpenAI(BaseChatModel):
 
 				usage = self._get_usage(response)
 
-				parsed = output_format.model_validate_json(choice.message.content)
+				try:
+					parsed = output_format.model_validate_json(choice.message.content)
+				except Exception as primary_exc:
+					# CHECKION-fork patch (vs. upstream browser-use 0.12.6).
+					# Some OpenAI variants occasionally emit JSON with markdown
+					# preamble or trailing characters after the closing brace,
+					# which `model_validate_json` rejects via Pydantic's
+					# `json_invalid` / `trailing characters`. Try to recover the
+					# first balanced `{...}` substring and validate that — the
+					# AgentOutput model_validator handles any remaining
+					# normalisation (e.g. action-as-string-list).
+					if not tolerant_parsing_enabled():
+						raise
+					recovered = parse_json_with_recovery(choice.message.content)
+					if recovered is None:
+						raise primary_exc
+					parsed = output_format.model_validate(recovered)
 
 				return ChatInvokeCompletion(
 					completion=parsed,

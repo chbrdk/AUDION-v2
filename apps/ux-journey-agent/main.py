@@ -52,321 +52,13 @@ def _env_api_key_log_status(var_name: str) -> str:
     return f"present (length {len(v)})"
 
 
-def _llm_repair_json_enabled() -> bool:
-    """Best-effort normalization of browser-use ``AgentOutput`` JSON before Pydantic sees it.
-
-    Default **OFF** since we pin ``browser-use==0.12.6``, which ships the
-    upstream fix for the two failure modes this wrapper used to paper over:
-
-    1. ``action`` returned as a JSON-encoded *string* (e.g. ``'[{"done": ...}]'``)
-       instead of a real list — Pydantic ``list_type`` error. Upstream
-       PR #4529 ("fix anthropic action field double-serialization").
-    2. Trailing characters after the closing ``}``.
-
-    Code is kept so an operator can re-enable it via
-    ``UX_JOURNEY_LLM_REPAIR_JSON=1`` if a *new* model variant (e.g. a small
-    OpenAI model) re-introduces the same family of bug before upstream catches
-    it. Plan is to delete the entire ``_repair_*`` stack in Fork-Phase-1 once
-    we've confirmed 0.12.6 is stable across our model matrix.
-    """
-    v = (os.environ.get("UX_JOURNEY_LLM_REPAIR_JSON") or "0").strip().lower()
-    return v in ("1", "true", "yes", "on")
-
-
-def _extract_balanced_json_object(text: str) -> str | None:
-    """
-    Return the first top-level `{ ... }` substring with balanced braces,
-    respecting JSON double-quoted strings (so `{` inside strings are ignored).
-    """
-    start = text.find("{")
-    if start < 0:
-        return None
-    depth = 0
-    in_str = False
-    esc = False
-    i = start
-    n = len(text)
-    while i < n:
-        c = text[i]
-        if in_str:
-            if esc:
-                esc = False
-            elif c == "\\":
-                esc = True
-            elif c == '"':
-                in_str = False
-            i += 1
-            continue
-        if c == '"':
-            in_str = True
-        elif c == "{":
-            depth += 1
-        elif c == "}":
-            depth -= 1
-            if depth == 0:
-                return text[start : i + 1]
-        i += 1
-    return None
-
-
-def _repair_agent_output_dict(d: dict[str, Any]) -> dict[str, Any]:
-    """
-    Common production failure: ``action`` is a JSON *string* containing a list
-    (``'[{...}]'``) instead of a real list — Pydantic ``list_type`` error.
-
-    Also handles the inverse: ``action`` is a single dict (not wrapped in a
-    list), which Pydantic's strict ``list_type`` rejects. We promote it to a
-    one-element list.
-    """
-    out: dict[str, Any] = dict(d)
-    act = out.get("action")
-    if isinstance(act, str):
-        t = act.strip()
-        if t.startswith("["):
-            try:
-                parsed = json.loads(t)
-            except (json.JSONDecodeError, TypeError, ValueError):
-                pass
-            else:
-                if isinstance(parsed, list):
-                    out["action"] = parsed
-                    print(
-                        "ux-journey: repair_json: coerced action(str) -> list "
-                        f"(items={len(parsed)})",
-                        flush=True,
-                    )
-        elif t.startswith("{"):
-            try:
-                parsed = json.loads(t)
-            except (json.JSONDecodeError, TypeError, ValueError):
-                pass
-            else:
-                if isinstance(parsed, dict):
-                    out["action"] = [parsed]
-                    print(
-                        "ux-journey: repair_json: coerced action(str-dict) -> [dict]",
-                        flush=True,
-                    )
-    elif isinstance(act, dict):
-        out["action"] = [act]
-        print(
-            "ux-journey: repair_json: coerced action(dict) -> [dict]",
-            flush=True,
-        )
-    return out
-
-
-def _repair_json_text(text: str) -> str:
-    """
-    Parse browser-use model output as JSON, fix known issues, re-encode.
-    If parsing fails, return ``text`` unchanged.
-
-    Tolerates preamble before the JSON object (markdown ``code fences``,
-    ``Here is the result:`` chatter, etc.) — anything that isn't the first
-    balanced ``{...}`` block is dropped. browser-use only cares about the
-    AgentOutput object anyway.
-    """
-    s = (text or "").strip()
-    if not s:
-        return text
-    obj: Any = None
-    if s.startswith("{"):
-        try:
-            obj = json.loads(s)
-        except json.JSONDecodeError:
-            obj = None
-    if obj is None:
-        chunk = _extract_balanced_json_object(s)
-        if not chunk:
-            return text
-        try:
-            obj = json.loads(chunk)
-        except (json.JSONDecodeError, TypeError, ValueError):
-            return text
-    if not isinstance(obj, dict):
-        return text
-    fixed = _repair_agent_output_dict(obj)
-    try:
-        return json.dumps(fixed, ensure_ascii=False)
-    except (TypeError, ValueError):
-        return text
-
-
-def _message_with_updated_content(msg: Any, new_content: Any) -> Any:
-    """Return a copy of ``msg`` with ``content`` replaced (LangChain / Pydantic compatible)."""
-    if hasattr(msg, "model_copy"):
-        try:
-            return msg.model_copy(update={"content": new_content})
-        except Exception:
-            pass
-    if hasattr(msg, "copy"):
-        try:
-            return msg.copy(update={"content": new_content})  # type: ignore[call-arg]
-        except Exception:
-            pass
-    try:
-        clone = type(msg)(content=new_content)  # type: ignore[misc]
-        for attr in ("id", "response_metadata", "usage_metadata"):
-            if hasattr(msg, attr):
-                try:
-                    setattr(clone, attr, getattr(msg, attr))
-                except Exception:
-                    pass
-        return clone
-    except Exception:
-        return msg
-
-
-def _repair_tool_calls(tcs: Any) -> tuple[Any, bool]:
-    """
-    LangChain assistant messages can carry ``tool_calls=[{name, args, ...}]``
-    where ``args`` is sometimes a JSON-encoded string instead of a dict —
-    same family of bug as the AgentOutput issue. Fix in place; the structure
-    is the same shape browser-use's ``AgentOutput.action`` expects.
-    """
-    if not isinstance(tcs, list) or not tcs:
-        return tcs, False
-    changed = False
-    out: list[Any] = []
-    for tc in tcs:
-        if isinstance(tc, dict):
-            args = tc.get("args")
-            if isinstance(args, str):
-                t = args.strip()
-                if t.startswith("{") or t.startswith("["):
-                    try:
-                        parsed = json.loads(t)
-                    except (json.JSONDecodeError, TypeError, ValueError):
-                        out.append(tc)
-                        continue
-                    new_tc = {**tc, "args": parsed}
-                    out.append(new_tc)
-                    changed = True
-                    continue
-        out.append(tc)
-    return out, changed
-
-
-def _repair_ai_message(msg: Any) -> Any:
-    """Apply `_repair_json_text` to string / text-part assistant content + tool_calls."""
-    try:
-        new_msg = msg
-        content = getattr(msg, "content", None)
-        if isinstance(content, str):
-            fixed = _repair_json_text(content)
-            if fixed != content:
-                new_msg = _message_with_updated_content(new_msg, fixed)
-        elif isinstance(content, list):
-            out_parts: list[Any] = []
-            changed = False
-            for part in content:
-                if isinstance(part, dict) and part.get("type") == "text":
-                    t = part.get("text")
-                    if isinstance(t, str):
-                        ft = _repair_json_text(t)
-                        if ft != t:
-                            out_parts.append({**part, "text": ft})
-                            changed = True
-                            continue
-                out_parts.append(part)
-            if changed:
-                new_msg = _message_with_updated_content(new_msg, out_parts)
-        # tool_calls path: browser-use sometimes drives the LLM via tool-calling
-        # mode (LangChain's structured-output binding). The JSON-as-string bug
-        # surfaces there as ``tool_calls[0].args = '{"...": "..."}'`` instead
-        # of a dict.
-        tool_calls = getattr(new_msg, "tool_calls", None)
-        if tool_calls is not None:
-            fixed_tcs, tcs_changed = _repair_tool_calls(tool_calls)
-            if tcs_changed:
-                try:
-                    setattr(new_msg, "tool_calls", fixed_tcs)
-                    print(
-                        f"ux-journey: repair_json: normalized tool_calls "
-                        f"(count={len(fixed_tcs) if isinstance(fixed_tcs, list) else 0})",
-                        flush=True,
-                    )
-                except Exception:
-                    pass
-        return new_msg
-    except Exception as exc:  # pragma: no cover - defensive
-        print(f"ux-journey: LLM JSON repair failed (pass-through): {exc!r}", flush=True)
-        return msg
-
-
-_REPAIR_SUBCLASS_CACHE: dict[type, type] = {}
-
-
-def _build_repairing_chat_model_subclass(base: type) -> type:
-    """
-    Build (and cache) a subclass of ``base`` whose ``ainvoke``/``invoke`` post-process
-    the returned assistant message with `_repair_ai_message`. Stays a real subclass so
-    ``isinstance(llm, base)`` checks and Pydantic schema discovery keep working.
-
-    Critically, we do NOT specify a metaclass: ``ChatAnthropic`` / ``ChatOpenAI`` are
-    Pydantic models whose metaclass is ``pydantic._internal._model_construction.ModelMetaclass``.
-    Forcing our own ``type`` subclass as metaclass triggers
-    ``TypeError: metaclass conflict``. Letting Python infer the metaclass from the
-    base class is what makes a regular ``class Foo(ChatAnthropic): ...`` declaration
-    work — we just do that dynamically here.
-    """
-    cached = _REPAIR_SUBCLASS_CACHE.get(base)
-    if cached is not None:
-        return cached
-    base_ainvoke = getattr(base, "ainvoke", None)
-    base_invoke = getattr(base, "invoke", None)
-
-    async def _ainvoke(self: Any, *args: Any, **kwargs: Any) -> Any:
-        if base_ainvoke is None:
-            raise RuntimeError(f"{base.__name__} has no ainvoke()")
-        msg = await base_ainvoke(self, *args, **kwargs)
-        return _repair_ai_message(msg)
-
-    def _invoke(self: Any, *args: Any, **kwargs: Any) -> Any:
-        if base_invoke is None:
-            raise RuntimeError(f"{base.__name__} has no invoke()")
-        msg = base_invoke(self, *args, **kwargs)
-        return _repair_ai_message(msg)
-
-    namespace: dict[str, Any] = {
-        "ainvoke": _ainvoke,
-        "invoke": _invoke,
-        "__module__": __name__,
-        "__qualname__": f"{base.__name__}WithJSONRepair",
-        "_ux_journey_json_repair_active": True,
-    }
-    # Use the base's own metaclass (Pydantic's ModelMetaclass for ChatAnthropic /
-    # ChatOpenAI) so the dynamically-built subclass goes through the same model
-    # construction path as a literal `class Foo(ChatAnthropic): pass`.
-    meta = type(base)
-    subclass = meta(f"{base.__name__}WithJSONRepair", (base,), namespace)
-    _REPAIR_SUBCLASS_CACHE[base] = subclass
-    return subclass
-
-
-def _maybe_wrap_llm_class(base: type) -> type:
-    """Return ``base`` (or a JSON-repairing subclass) depending on the env flag."""
-    if not _llm_repair_json_enabled():
-        print(
-            f"ux-journey: LLM JSON repair DISABLED (UX_JOURNEY_LLM_REPAIR_JSON=0); "
-            f"using base class {base.__name__} as-is",
-            flush=True,
-        )
-        return base
-    try:
-        wrapped = _build_repairing_chat_model_subclass(base)
-        print(
-            f"ux-journey: LLM JSON repair ACTIVE — wrapping {base.__name__} as {wrapped.__name__}",
-            flush=True,
-        )
-        return wrapped
-    except Exception as exc:  # pragma: no cover - defensive
-        print(
-            f"ux-journey: LLM JSON repair subclass build FAILED for {base.__name__}: {exc!r} "
-            f"(continuing with base class — bug may resurface)",
-            flush=True,
-        )
-        return base
+# Tolerant JSON parsing for AgentOutput is now first-class in checkion-agent
+# itself (`apps/ux-journey-agent/checkion-agent/checkion_agent/agent/_tolerant_parsing.py`).
+# It runs by default and is gated by `CHECKION_AGENT_TOLERANT_PARSING=1` (env;
+# set `=0` to fall back to strict upstream-equivalent parsing for A/B testing).
+# The legacy ~300 LOC `_repair_*` / `_maybe_wrap_llm_class` / dynamic-subclass
+# stack that used to live here — papering over the same bugs from outside the
+# library — was removed in fork-Phase-1.
 
 # Base pacing (seconds). Effective waits = these × UX_JOURNEY_SLOWMO. Defaults are tuned for readable video without extra env.
 STEP_START_DELAY_SECONDS = float(os.environ.get("UX_JOURNEY_STEP_START_DELAY_SECONDS", "3.5"))
@@ -469,8 +161,7 @@ def _build_anthropic_llm():
         max_tokens = int(os.environ.get("UX_JOURNEY_CLAUDE_MAX_TOKENS", "16384"))
     except ValueError:
         max_tokens = 16384
-    cls = _maybe_wrap_llm_class(ChatAnthropic)
-    return cls(
+    return ChatAnthropic(
         model=os.environ.get("UX_JOURNEY_CLAUDE_MODEL", "claude-sonnet-4-6"),
         temperature=0,
         max_tokens=max_tokens,
@@ -492,8 +183,7 @@ def _build_openai_llm():
     # output for the AgentOutput schema. Operators who want to test a newer
     # model can override via `UX_JOURNEY_OPENAI_MODEL` (e.g. `gpt-5.4-mini`,
     # `gpt-5.4-nano`, `gpt-5.4`, `gpt-5.5`).
-    cls = _maybe_wrap_llm_class(ChatOpenAI)
-    return cls(
+    return ChatOpenAI(
         model=os.environ.get("UX_JOURNEY_OPENAI_MODEL", "gpt-4o"),
         temperature=0,
     )
@@ -549,6 +239,17 @@ def _make_fallback_llm():
     return None
 
 
+def _checkion_tolerant_parsing_enabled() -> bool:
+    """Mirror of `checkion_agent.agent._tolerant_parsing.tolerant_parsing_enabled`.
+
+    Read directly from env so the meta endpoint stays decoupled from the
+    fork's import path; values must stay in sync with the fork's default
+    (`1` / on).
+    """
+    v = (os.environ.get("CHECKION_AGENT_TOLERANT_PARSING") or "1").strip().lower()
+    return v in ("1", "true", "yes", "on")
+
+
 def _llm_meta() -> dict[str, Any]:
     """Expose provider/model for debugging (does not include secrets)."""
     provider = _resolve_llm_provider()
@@ -559,12 +260,13 @@ def _llm_meta() -> dict[str, Any]:
             or (provider == "openai" and bool(os.environ.get("ANTHROPIC_API_KEY")))
         )
     )
+    tolerant = _checkion_tolerant_parsing_enabled()
     if provider == "anthropic":
         return {
             "provider": "anthropic",
             "model": os.environ.get("UX_JOURNEY_CLAUDE_MODEL", "claude-sonnet-4-6"),
             "max_tokens": os.environ.get("UX_JOURNEY_CLAUDE_MAX_TOKENS", "16384"),
-            "repairJson": _llm_repair_json_enabled(),
+            "tolerantParsing": tolerant,
             "fallback": (
                 {"provider": "openai", "model": os.environ.get("UX_JOURNEY_OPENAI_MODEL", "gpt-4o")}
                 if has_fallback
@@ -575,7 +277,7 @@ def _llm_meta() -> dict[str, Any]:
         return {
             "provider": "openai",
             "model": os.environ.get("UX_JOURNEY_OPENAI_MODEL", "gpt-4o"),
-            "repairJson": _llm_repair_json_enabled(),
+            "tolerantParsing": tolerant,
             "fallback": (
                 {
                     "provider": "anthropic",
@@ -585,7 +287,7 @@ def _llm_meta() -> dict[str, Any]:
                 else None
             ),
         }
-    return {"provider": "unknown", "model": "unknown", "repairJson": _llm_repair_json_enabled()}
+    return {"provider": "unknown", "model": "unknown", "tolerantParsing": tolerant}
 
 
 def _decode_repr_escapes(value: str) -> str:
@@ -1541,12 +1243,6 @@ async def run_agent(
 
     try:
         llm = _make_llm()
-        if _llm_repair_json_enabled():
-            print(
-                f"ux-journey: job={job_id} UX_JOURNEY_LLM_REPAIR_JSON=1 "
-                "(best-effort AgentOutput JSON repair after each LLM call)",
-                flush=True,
-            )
         try:
             browser = Browser(record_video_dir=video_dir)
         except TypeError:

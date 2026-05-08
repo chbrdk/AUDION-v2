@@ -19,6 +19,7 @@ from anthropic.types.tool_choice_tool_param import ToolChoiceToolParam
 from httpx import Timeout
 from pydantic import BaseModel
 
+from checkion_agent.agent._tolerant_parsing import parse_json_with_recovery, tolerant_parsing_enabled
 from checkion_agent.llm.anthropic.serializer import AnthropicMessageSerializer
 from checkion_agent.llm.base import BaseChatModel
 from checkion_agent.llm.exceptions import ModelProviderError, ModelRateLimitError
@@ -226,7 +227,16 @@ class ChatAnthropic(BaseChatModel):
 							# If validation fails, try to fix common model output issues
 							_input = content_block.input
 							if isinstance(_input, str):
-								_input = json.loads(_input)
+								# CHECKION-fork patch: tolerate trailing characters /
+								# markdown preamble when the model emits the tool
+								# input as a raw JSON string. parse_json_with_recovery
+								# extracts the first balanced object; falls through
+								# to plain json.loads if the patch is disabled.
+								if tolerant_parsing_enabled():
+									recovered = parse_json_with_recovery(_input)
+									_input = recovered if recovered is not None else json.loads(_input)
+								else:
+									_input = json.loads(_input)
 							elif isinstance(_input, dict):
 								# Model sometimes double-serializes fields
 								for key, value in _input.items():

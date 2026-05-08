@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, create_model
 from typing_extensions import TypeVar
 from uuid_extensions import uuid7str
 
+from checkion_agent.agent._tolerant_parsing import coerce_action_field, tolerant_parsing_enabled
 from checkion_agent.agent.message_manager.views import MessageManagerState
 from checkion_agent.browser.views import BrowserStateHistory
 from checkion_agent.dom.views import DEFAULT_INCLUDE_ATTRIBUTES, DOMInteractedElement, DOMSelectorMap
@@ -397,6 +398,22 @@ class AgentOutput(BaseModel):
 		...,
 		json_schema_extra={'min_items': 1},  # Ensure at least one action is provided
 	)
+
+	@model_validator(mode='before')
+	@classmethod
+	def _checkion_coerce_action(cls, data: Any) -> Any:
+		# CHECKION-fork patch (vs. upstream browser-use 0.12.6).
+		# Several models occasionally emit ``action`` as a JSON-encoded string or
+		# as a single dict instead of a list — see _tolerant_parsing.coerce_action_field
+		# for the full failure-mode catalogue. Coerce here, before the standard
+		# list-of-ActionModel validator runs, so we never raise list_type for the
+		# known shapes. Strict upstream behaviour can be restored with
+		# CHECKION_AGENT_TOLERANT_PARSING=0.
+		if not isinstance(data, dict):
+			return data
+		if not tolerant_parsing_enabled():
+			return data
+		return coerce_action_field(data)
 
 	@classmethod
 	def model_json_schema(cls, **kwargs):
