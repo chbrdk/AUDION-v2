@@ -8,6 +8,38 @@ rebased cleanly.
 The version numbers follow the pattern `<upstream>+checkion.<patch>` (e.g.
 `0.12.6+checkion.1`). Bumping the upstream baseline resets the patch counter.
 
+## `0.12.6+checkion.6` (Disable external web search by default)
+
+**Upstream baseline:** `browser-use==0.12.6` (commit
+`329c67f069427e928ff81ad52415efdca7692007`).
+
+**Goal:** UX Journey runs must not drift into DuckDuckGo / Google / Bing via
+the stock ``search`` browser action — that breaks reproducible audits on a
+fixed origin and sends traffic to third-party search engines.
+
+### Added
+
+- **`checkion_agent.agent.checkion_feature_flags.web_search_enabled()`** —
+  reads ``CHECKION_AGENT_WEB_SEARCH`` (default **`0`** / off). When ``False``,
+  ``Agent.__init__`` calls ``self.tools.exclude_action('search')`` after
+  tools are wired — same mechanism as screenshot exclusion, so custom
+  ``tools=`` / ``controller=`` instances lose ``search`` too.
+
+### Changed
+
+- **`Agent.__init__`**: after the existing screenshot exclusion block,
+  unconditionally excludes ``search`` when ``web_search_enabled()`` is false.
+
+### Caller side (`apps/ux-journey-agent/main.py`)
+
+- **`extend_system_message`** gains a short ``CHECKION_NAVIGATION_ONLY``
+  paragraph (defense in depth — the primary enforcement is tool removal).
+
+### How to restore upstream behaviour
+
+Set ``CHECKION_AGENT_WEB_SEARCH=1`` in the service environment (tests,
+integrations that genuinely need the search tool).
+
 ## `0.12.6+checkion.5` (Phase 6 — per-action hooks)
 
 **Upstream baseline:** `browser-use==0.12.6` (commit

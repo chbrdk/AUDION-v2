@@ -274,7 +274,23 @@
       "starting": "Browser-Agent startet…",
       "deniedNote": "Die Persona darf diese Seite nicht live besuchen. Sie antwortet stattdessen aus eigenem Wissen.",
       "confirmPromptFallback": "Soll ich **{url}** live im Browser besuchen?",
-      "thisPage": "diese Seite"
+      "thisPage": "diese Seite",
+      "personaFingerprint": {
+        "title": "Verhaltensprofil",
+        "subtitle": "Abgeleitete Merkmale für diese Journey (0–100). Gestricheltes Hexagon = neutraler Referenzwert 50.",
+        "ariaSummary": "Persona-Verhaltensprofil: {summary}",
+        "heuristicsHeading": "Navigations-Heuristiken",
+        "showAll": "Alle anzeigen",
+        "showLess": "Weniger",
+        "dim": {
+          "risk_aversion": "Risikosensibilität",
+          "time_pressure": "Zeitdruck",
+          "exploration": "Exploration",
+          "detail_orientation": "Detailtiefe",
+          "trust_skepticism": "Vertrauen",
+          "accessibility_need": "Barrierefreiheit"
+        }
+      }
     },
     "moodboardTitle": "Moodboard",
     "moodboardDrawerHint": "Kurzauswahl — das vollständige Moodboard siehst du über dem Chat.",

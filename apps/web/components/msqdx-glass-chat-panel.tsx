@@ -29,6 +29,7 @@ import {
 import { useI18n } from "./i18n/i18n-provider";
 import { withNextBasePath, API_ROUTES } from "../lib/api-routes";
 import { getUxJourneyVideoPlaybackRate } from "../lib/ux-journey-playback";
+import { PersonaBehaviorFingerprint } from "./persona/persona-behavior-fingerprint";
 
 type Message = {
   id: string;
@@ -1057,45 +1058,12 @@ export const MsqdxGlassChatPanel = ({
                       ) : null}
 
                       {message.uxJourney.personaPolicy?.dimensions ? (
-                        <Box
-                          sx={{
-                            mt: 0.25,
-                            p: 1,
-                            borderRadius: 2,
-                            border: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-                            backgroundColor: alpha(theme.palette.background.paper, 0.35),
-                          }}
-                        >
-                          <Typography variant="caption" sx={{ display: "block", mb: 0.5, color: "text.secondary" }}>
-                            Persona behavior policy
-                          </Typography>
-                          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
-                            {Object.entries(message.uxJourney.personaPolicy.dimensions)
-                              .slice(0, 6)
-                              .map(([k, v]) => (
-                                <Box
-                                  key={k}
-                                  sx={{
-                                    px: 1,
-                                    py: 0.25,
-                                    borderRadius: 999,
-                                    border: `1px solid ${alpha(theme.palette.divider, 0.7)}`,
-                                    backgroundColor: alpha(theme.palette.background.paper, 0.55),
-                                  }}
-                                >
-                                  <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                                    {k}: {Number(v).toFixed(2)}
-                                  </Typography>
-                                </Box>
-                              ))}
-                          </Box>
-                          {Array.isArray(message.uxJourney.personaPolicy.heuristics) &&
-                          message.uxJourney.personaPolicy.heuristics.length ? (
-                            <Typography variant="body2" sx={{ mt: 0.75, whiteSpace: "pre-wrap", color: "text.secondary" }}>
-                              {message.uxJourney.personaPolicy.heuristics.slice(0, 4).map((h) => `• ${h}`).join("\n")}
-                            </Typography>
-                          ) : null}
-                        </Box>
+                        <PersonaBehaviorFingerprint
+                          policy={message.uxJourney.personaPolicy}
+                          personaLabel={message.personaName}
+                          t={t}
+                          compact
+                        />
                       ) : null}
 
                       {message.uxJourney.status === "running" && message.uxJourney.jobId ? (

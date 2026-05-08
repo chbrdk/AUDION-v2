@@ -274,7 +274,23 @@
       "starting": "Starting browser agent…",
       "deniedNote": "This persona may not visit that site live. It will answer from its own knowledge instead.",
       "confirmPromptFallback": "Should I visit **{url}** live in the browser?",
-      "thisPage": "this page"
+      "thisPage": "this page",
+      "personaFingerprint": {
+        "title": "Behavior profile",
+        "subtitle": "Derived traits for this journey (0–100). Dashed hexagon = neutral baseline at 50.",
+        "ariaSummary": "Persona behavior profile: {summary}",
+        "heuristicsHeading": "Navigation heuristics",
+        "showAll": "Show all",
+        "showLess": "Show less",
+        "dim": {
+          "risk_aversion": "Risk-aware",
+          "time_pressure": "Time pressure",
+          "exploration": "Exploration",
+          "detail_orientation": "Detail focus",
+          "trust_skepticism": "Trust",
+          "accessibility_need": "Accessibility"
+        }
+      }
     },
     "moodboardTitle": "Moodboard",
     "moodboardDrawerHint": "Preview — the full moodboard appears above the chat.",

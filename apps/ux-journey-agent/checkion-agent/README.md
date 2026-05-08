@@ -109,6 +109,13 @@ See [`CHANGELOG.md`](./CHANGELOG.md) for the full per-version diff.
     runner now defines a tiny `_on_action_end` that dispatches to
     `_play_click_ring` / `_play_slow_scroll` based on the action name.
 
+- **`0.12.6+checkion.6` — external web search off by default:**
+  - ``CHECKION_AGENT_WEB_SEARCH`` (default **`0`**) gates the upstream
+    ``search`` tool that navigates to DuckDuckGo / Google / Bing. When
+    disabled, ``Agent.__init__`` calls ``tools.exclude_action('search')``
+    so the LLM schema never exposes that action — UX audits stay on the
+    operator-supplied origin only.
+
 - **Phase 4 (`0.12.6+checkion.4`):** First-class step pacing & screenshot
   hook.
   - `Agent.__init__` accepts `step_pacing_seconds: float = 0.0` and

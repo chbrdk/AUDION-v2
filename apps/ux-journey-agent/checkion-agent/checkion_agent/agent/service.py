@@ -23,6 +23,7 @@ from checkion_agent.agent.cloud_events import (
 	CreateAgentTaskEvent,
 	UpdateAgentTaskEvent,
 )
+from checkion_agent.agent.checkion_feature_flags import web_search_enabled
 from checkion_agent.agent.message_manager.utils import save_conversation
 from checkion_agent.llm.base import BaseChatModel
 from checkion_agent.llm.exceptions import ModelProviderError, ModelRateLimitError
@@ -387,6 +388,13 @@ class Agent(Generic[Context, AgentStructuredOutput]):
 		# Enforce screenshot exclusion when use_vision != 'auto', even if user passed custom tools
 		if use_vision != 'auto':
 			self.tools.exclude_action('screenshot')
+
+		# CHECKION-fork: DuckDuckGo / Google / Bing web search is disabled by default.
+		# The ``search`` tool navigates to third-party search engines — incompatible
+		# with reproducible UX audits on a fixed origin. Operators enable upstream
+		# behaviour with CHECKION_AGENT_WEB_SEARCH=1 (tests, integrations).
+		if not web_search_enabled():
+			self.tools.exclude_action('search')
 
 		# Enable coordinate clicking for models that support it
 		model_name = getattr(llm, 'model', '').lower()

@@ -1343,8 +1343,11 @@ async def run_agent(
             "Falls dir der Inhalt zu lang würde, kürze die Begründung oder den Persona-Bezug — aber NIE die konkreten Fakten. "
             "WICHTIG: Beende die Journey NICHT zu früh. Markiere erst dann als 'done'/'fertig', wenn du das Ziel wirklich erreicht hast "
             "UND es anhand sichtbarer UI-Indikatoren verifiziert hast (z.B. Bestätigungsseite, eindeutiger State, URL, Erfolgsmeldung). "
-            f"WICHTIG: Beende NICHT vor mindestens {min_steps} Schritten. Wenn das Ziel früher erreicht wirkt, nutze die restlichen Schritte für "
+            f            "WICHTIG: Beende NICHT vor mindestens {min_steps} Schritten. Wenn das Ziel früher erreicht wirkt, nutze die restlichen Schritte für "
             "Validierung (zurück/nach vorne, alternative Navigation, erneute Sichtprüfung), statt zu stoppen.\n"
+            "CHECKION_NAVIGATION_ONLY:\n"
+            "Nutze keine Websuche und keine Suchmaschinen (kein DuckDuckGo, Google, Bing). "
+            "Bleibe auf der im Auftrag genannten Ziel-URL und ihren internen Links — keine generischen Web-Suchen.\n"
         )
         # Task is now JUST the task — no language pinning, no brevity rules,
         # no persona stuffing. Reasoning language is handled by the fork
