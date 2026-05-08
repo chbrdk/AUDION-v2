@@ -36,9 +36,18 @@ export const API_ROUTES = {
   uxJourneyAgentLiveStream: (jobId: string) =>
     withNextBasePath(`/api/ux-journey-agent/run/${encodeURIComponent(jobId)}/live/stream`),
   uxJourneyAgentVideo: (jobId: string) => withNextBasePath(`/api/ux-journey-agent/run/${encodeURIComponent(jobId)}/video`),
-  /** POST: optional ffmpeg polish before playback (proxied to agent). Can take minutes. */
-  uxJourneyAgentVideoFinalize: (jobId: string) =>
-    withNextBasePath(`/api/ux-journey-agent/run/${encodeURIComponent(jobId)}/video/finalize`),
+  /**
+   * POST: optional ffmpeg polish before playback (proxied to agent). Can take minutes.
+   * When ``force`` is true the upstream re-transcodes even if a polished MP4 already
+   * exists — operator escape hatch for "I changed `UX_JOURNEY_VIDEO_SLOWDOWN_FACTOR`
+   * / `UX_JOURNEY_SLOWMO` and want the cached MP4 regenerated".
+   */
+  uxJourneyAgentVideoFinalize: (jobId: string, opts?: { force?: boolean }) =>
+    withNextBasePath(
+      `/api/ux-journey-agent/run/${encodeURIComponent(jobId)}/video/finalize${
+        opts?.force ? "?force=1" : ""
+      }`,
+    ),
   /** GET: JPEG after each step (agent serves `/run/{jobId}/step/{n}/screenshot`; Next proxies here). */
   uxJourneyAgentStepScreenshot: (jobId: string, stepNo: number) =>
     withNextBasePath(`/api/ux-journey-agent/run/${encodeURIComponent(jobId)}/step/${stepNo}/screenshot`),

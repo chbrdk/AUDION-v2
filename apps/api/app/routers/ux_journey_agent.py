@@ -87,6 +87,7 @@ async def cancel_run(
 @router.post("/run/{job_id}/video/finalize")
 async def finalize_run_video(
     job_id: str,
+    force: bool = False,
     current_user: User = Depends(get_current_user),
 ) -> JSONResponse:
     """
@@ -94,14 +95,20 @@ async def finalize_run_video(
 
     Transcoding can take several minutes; the proxy uses a generous timeout so the
     client does not abort before the upstream finishes.
+
+    Pass ``?force=1`` to make the upstream re-transcode even if a polished MP4
+    already exists. Use this when ``UX_JOURNEY_VIDEO_SLOWDOWN_FACTOR`` /
+    ``UX_JOURNEY_SLOWMO`` were changed and the operator wants the cached MP4
+    re-rendered with the new pacing.
     """
     del current_user  # auth only
     base, timeout = _agent_base_url_or_503()
     url = f"{base}/run/{job_id}/video/finalize"
     finalize_timeout = max(timeout, 900.0)
+    params: dict[str, str] | None = {"force": "1"} if force else None
     try:
         async with httpx.AsyncClient(timeout=finalize_timeout, follow_redirects=True) as client:
-            res = await client.post(url)
+            res = await client.post(url, params=params)
         if res.status_code == 404:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job or recording not found")
         if res.status_code >= 400:

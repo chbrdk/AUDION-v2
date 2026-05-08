@@ -1959,6 +1959,18 @@ VIDEO_SLOWDOWN_FACTOR = _parse_slowdown_factor(
     os.environ.get("UX_JOURNEY_VIDEO_SLOWDOWN_FACTOR")
 )
 
+# Boot-time confirmation of effective video pacing knobs. These are module-level
+# constants — changing the env in Coolify after the container is running has
+# *no* effect until the service is restarted. If the values you see here don't
+# match what you set in Coolify, the deploy didn't pick up the env change.
+print(
+    f"ux-journey: video pacing config: SLOWMO={UX_JOURNEY_SLOWMO} "
+    f"VIDEO_SLOWDOWN_FACTOR={VIDEO_SLOWDOWN_FACTOR} "
+    f"VIDEO_FPS={VIDEO_TRANSCODE_FPS} "
+    f"VIDEO_TRANSCODE_DISABLED={VIDEO_TRANSCODE_DISABLED}",
+    flush=True,
+)
+
 # When true (default), the heavy ffmpeg pass (H.264 + optional slow-motion) does
 # NOT start automatically at the end of a run. The raw WebM/MP4 from Playwright
 # is still available via GET /run/{id}/video immediately; the user (or the chat
@@ -2050,6 +2062,11 @@ async def _transcode_to_smooth_mp4(src: Path, dest: Path) -> bool:
         )
     else:
         vf = f"fps={VIDEO_TRANSCODE_FPS},format=yuv420p"
+    print(
+        f"ux-journey: transcode src={src.name} -> {dest.name} "
+        f"slowdown={VIDEO_SLOWDOWN_FACTOR} fps={VIDEO_TRANSCODE_FPS} vf=\"{vf}\"",
+        flush=True,
+    )
     cmd = [
         "ffmpeg",
         "-y",
@@ -2255,14 +2272,24 @@ async def _resolve_recording_path_for_finalize(job_id: str) -> str | None:
 
 
 @app.post("/run/{job_id}/video/finalize")
-async def post_finalize_run_video(job_id: str) -> dict[str, Any]:
+async def post_finalize_run_video(
+    job_id: str,
+    force: bool = False,
+) -> dict[str, Any]:
     """
     On-demand ffmpeg polish: smooth MP4 + configured slow-motion.
 
-    Idempotent: if ``{job_id}.mp4`` already exists in ``VIDEO_BASE_DIR``, returns
-    ``already_finalized`` immediately. When transcoding is disabled or ffmpeg is
-    missing, returns ``skipped`` — the client should still play the raw WebM via
-    GET /run/{jobId}/video.
+    Idempotent by default: if ``{job_id}.mp4`` already exists in
+    ``VIDEO_BASE_DIR``, returns ``already_finalized`` immediately so a chat-UI
+    button click doesn't burn CPU on every poll.
+
+    Pass ``?force=1`` to delete the existing polished file and re-run the
+    transcode. This is the operator escape hatch for "I changed
+    UX_JOURNEY_VIDEO_SLOWDOWN_FACTOR / SLOWMO and want the old MP4 regenerated
+    with the new settings" — without forcing a fresh agent run.
+
+    When transcoding is disabled or ffmpeg is missing, returns ``skipped`` —
+    the client should still play the raw WebM via GET /run/{jobId}/video.
     """
     lock = _get_finalize_lock(job_id)
     async with lock:
@@ -2275,20 +2302,52 @@ async def post_finalize_run_video(job_id: str) -> dict[str, Any]:
 
         final_mp4 = VIDEO_BASE_DIR / f"{job_id}.mp4"
         if final_mp4.is_file() and final_mp4.stat().st_size > 1024:
-            async with _jobs_lock:
-                if job_id in _jobs:
-                    _jobs[job_id].video_path = str(final_mp4)
-            return {
-                "status": "already_finalized",
-                "videoUrl": f"/run/{job_id}/video",
-                "mediaType": "video/mp4",
-            }
+            if force:
+                # Operator wants new pacing settings applied: drop the old MP4
+                # and fall through to the regular transcode path. We also clear
+                # ``video_path`` so the resolver re-discovers the raw recording.
+                try:
+                    final_mp4.unlink()
+                except Exception as exc:  # pragma: no cover - best effort
+                    print(
+                        f"ux-journey: force-finalize: could not delete {final_mp4}: {exc!r}",
+                        flush=True,
+                    )
+                async with _jobs_lock:
+                    if job_id in _jobs and _jobs[job_id].video_path == str(final_mp4):
+                        _jobs[job_id].video_path = None
+                print(
+                    f"ux-journey: force-finalize job={job_id} — re-transcoding with current settings "
+                    f"(SLOWDOWN_FACTOR={VIDEO_SLOWDOWN_FACTOR})",
+                    flush=True,
+                )
+            else:
+                async with _jobs_lock:
+                    if job_id in _jobs:
+                        _jobs[job_id].video_path = str(final_mp4)
+                print(
+                    f"ux-journey: finalize job={job_id} already_finalized "
+                    f"(file exists, size={final_mp4.stat().st_size}). "
+                    f"Pass ?force=1 to re-transcode with current settings.",
+                    flush=True,
+                )
+                return {
+                    "status": "already_finalized",
+                    "videoUrl": f"/run/{job_id}/video",
+                    "mediaType": "video/mp4",
+                }
 
         src = await _resolve_recording_path_for_finalize(job_id)
         if not src:
             raise HTTPException(status_code=404, detail="No recording found for this job")
 
         if VIDEO_TRANSCODE_DISABLED or shutil.which("ffmpeg") is None:
+            print(
+                f"ux-journey: finalize job={job_id} skipped — "
+                f"VIDEO_TRANSCODE_DISABLED={VIDEO_TRANSCODE_DISABLED} "
+                f"ffmpeg_present={shutil.which('ffmpeg') is not None}",
+                flush=True,
+            )
             return {
                 "status": "skipped",
                 "reason": "transcode_unavailable",
@@ -2296,11 +2355,21 @@ async def post_finalize_run_video(job_id: str) -> dict[str, Any]:
                 "message": "ffmpeg unavailable or transcoding disabled — use raw recording.",
             }
 
+        print(
+            f"ux-journey: finalize job={job_id} starting transcode src={src} "
+            f"slowdown={VIDEO_SLOWDOWN_FACTOR}",
+            flush=True,
+        )
         ok = await _finalize_video(job_id=job_id, source_path=src)
         async with _jobs_lock:
             out_path = _jobs[job_id].video_path if job_id in _jobs else None
         suffix = Path(out_path).suffix.lower() if out_path else ""
         media = "video/mp4" if suffix == ".mp4" else "video/webm"
+        print(
+            f"ux-journey: finalize job={job_id} {'completed' if ok else 'failed'} "
+            f"out={out_path} media={media}",
+            flush=True,
+        )
         return {
             "status": "completed" if ok else "failed",
             "videoUrl": f"/run/{job_id}/video",
