@@ -220,26 +220,26 @@ class _RepairingLLMWrapper:
         else:
             setattr(object.__getattribute__(self, "_inner"), name, value)
 
-    async def ainvoke(self, input: Any, config: Any = None, **kwargs: Any) -> Any:
+    async def ainvoke(self, *args: Any, **kwargs: Any) -> Any:
         inner = object.__getattribute__(self, "_inner")
         ainvoke_fn = getattr(inner, "ainvoke", None)
         if ainvoke_fn is not None:
-            msg = await ainvoke_fn(input, config=config, **kwargs)
+            msg = await ainvoke_fn(*args, **kwargs)
         else:
             import asyncio
 
             invoke_sync = getattr(inner, "invoke", None)
             if invoke_sync is None:
                 raise RuntimeError("inner LLM has neither ainvoke() nor invoke()")
-            msg = await asyncio.to_thread(invoke_sync, input, config=config, **kwargs)
+            msg = await asyncio.to_thread(invoke_sync, *args, **kwargs)
         return _repair_ai_message(msg)
 
-    def invoke(self, input: Any, config: Any = None, **kwargs: Any) -> Any:
+    def invoke(self, *args: Any, **kwargs: Any) -> Any:
         inner = object.__getattribute__(self, "_inner")
         fn = getattr(inner, "invoke", None)
         if fn is None:
             raise RuntimeError("inner LLM has no invoke()")
-        msg = fn(input, config=config, **kwargs)
+        msg = fn(*args, **kwargs)
         return _repair_ai_message(msg)
 
 
