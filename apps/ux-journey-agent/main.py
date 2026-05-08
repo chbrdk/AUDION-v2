@@ -200,10 +200,6 @@ def _repair_ai_message(msg: Any) -> Any:
         return msg
 
 
-class _RepairingChatModelMeta(type):
-    """No-op marker metaclass; lets us cache subclasses keyed on the original."""
-
-
 _REPAIR_SUBCLASS_CACHE: dict[type, type] = {}
 
 
@@ -212,6 +208,13 @@ def _build_repairing_chat_model_subclass(base: type) -> type:
     Build (and cache) a subclass of ``base`` whose ``ainvoke``/``invoke`` post-process
     the returned assistant message with `_repair_ai_message`. Stays a real subclass so
     ``isinstance(llm, base)`` checks and Pydantic schema discovery keep working.
+
+    Critically, we do NOT specify a metaclass: ``ChatAnthropic`` / ``ChatOpenAI`` are
+    Pydantic models whose metaclass is ``pydantic._internal._model_construction.ModelMetaclass``.
+    Forcing our own ``type`` subclass as metaclass triggers
+    ``TypeError: metaclass conflict``. Letting Python infer the metaclass from the
+    base class is what makes a regular ``class Foo(ChatAnthropic): ...`` declaration
+    work — we just do that dynamically here.
     """
     cached = _REPAIR_SUBCLASS_CACHE.get(base)
     if cached is not None:
@@ -238,9 +241,11 @@ def _build_repairing_chat_model_subclass(base: type) -> type:
         "__qualname__": f"{base.__name__}WithJSONRepair",
         "_ux_journey_json_repair_active": True,
     }
-    subclass = _RepairingChatModelMeta(  # type: ignore[misc]
-        f"{base.__name__}WithJSONRepair", (base,), namespace
-    )
+    # Use the base's own metaclass (Pydantic's ModelMetaclass for ChatAnthropic /
+    # ChatOpenAI) so the dynamically-built subclass goes through the same model
+    # construction path as a literal `class Foo(ChatAnthropic): pass`.
+    meta = type(base)
+    subclass = meta(f"{base.__name__}WithJSONRepair", (base,), namespace)
     _REPAIR_SUBCLASS_CACHE[base] = subclass
     return subclass
 
