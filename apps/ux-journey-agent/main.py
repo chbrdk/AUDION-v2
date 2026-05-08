@@ -2009,12 +2009,27 @@ async def run_agent(
                         flush=True,
                     )
                 else:
+                    # IMPORTANT: keep the raw recording at `{jobId}.raw.{ext}`,
+                    # NOT at `{jobId}.{ext}`. The polished MP4 produced by
+                    # ``_finalize_video`` claims `{jobId}.mp4`, and the finalize
+                    # endpoint uses presence of that exact path as the
+                    # "already_finalized" signal. Without this naming split the
+                    # raw Playwright MP4 (browser-use 0.12.6+ writes `.mp4`
+                    # natively) shadows the polished one — finalize short-circuits,
+                    # slow-mo + lower-third + voice-over never run, and the
+                    # browser plays a moov-incomplete clip that looks like
+                    # "1 second" even though the file is 2 MB.
                     suffix = found_path.suffix.lower()  # ".mp4" | ".webm"
-                    dest = VIDEO_BASE_DIR / f"{job_id}{suffix}"
+                    dest = VIDEO_BASE_DIR / f"{job_id}.raw{suffix}"
                     try:
                         VIDEO_BASE_DIR.mkdir(parents=True, exist_ok=True)
                         shutil.move(str(found_path), str(dest))
                         video_path = str(dest)
+                        print(
+                            f"video: moved raw recording job={job_id} -> {dest.name} "
+                            f"size={dest.stat().st_size if dest.is_file() else 0}",
+                            flush=True,
+                        )
                     except Exception:
                         # Best-effort: if move fails, fall back to serving from original location.
                         video_path = str(found_path)
@@ -2300,8 +2315,12 @@ async def _finalize_video(*, job_id: str, source_path: str) -> bool:
         new_path: str
         try:
             smooth.replace(final_dest)
-            if src != final_dest and src.is_file():
-                src.unlink(missing_ok=True)
+            # NOTE: deliberately *do not* unlink the raw recording. ``?force=1``
+            # re-finalize needs it to re-render with new pacing / voice / subs
+            # settings. Disk cost is one extra MP4 per job; persistence volume
+            # is sized for that. Pre-rename legacy jobs (where src == final_dest)
+            # are skipped — that's the only path where deleting would corrupt
+            # the polished file.
             new_path = str(final_dest)
         except Exception:
             # Rename failed — keep the smooth file at its temp name so it's
@@ -2947,13 +2966,34 @@ async def get_step_screenshot(job_id: str, step_no: int) -> FileResponse:
 
 
 async def _resolve_recording_path_for_finalize(job_id: str) -> str | None:
-    """Return an on-disk recording path to feed into ffmpeg, or None."""
+    """Return the on-disk *raw* recording path to feed into ffmpeg, or None.
+
+    We deliberately do NOT pick `{jobId}.mp4` here — that's the polished output
+    of a previous finalize. Re-feeding it into the transcode loses quality and
+    re-applies the slow-motion factor a second time. We only walk the
+    `{jobId}.raw.*` siblings (or — for legacy jobs from the pre-`raw` naming
+    scheme — accept ``job.video_path`` directly).
+    """
+    # Legacy: jobs created before the `.raw.*` rename keep video_path pointing
+    # to `{jobId}.mp4` / `.webm`. Honor that so historic re-finalize keeps working.
     async with _jobs_lock:
         job = _jobs.get(job_id)
         vp = job.video_path if job else None
-    if vp and Path(vp).is_file():
-        return vp
-    for ext in ("webm", "mp4"):
+    if vp:
+        p = Path(vp)
+        # Accept anything that ISN'T the canonical polished path.
+        if p.is_file() and p.name != f"{job_id}.mp4":
+            return vp
+    # Preferred sources, newest convention first.
+    for ext in ("mp4", "webm"):
+        candidate = VIDEO_BASE_DIR / f"{job_id}.raw.{ext}"
+        try:
+            if candidate.is_file() and candidate.stat().st_size > 1024:
+                return str(candidate)
+        except OSError:
+            continue
+    # Legacy fallback (jobs that ran before the rename and never finalized).
+    for ext in ("webm",):
         candidate = VIDEO_BASE_DIR / f"{job_id}.{ext}"
         try:
             if candidate.is_file() and candidate.stat().st_size > 1024:
@@ -2969,19 +3009,27 @@ async def post_finalize_run_video(
     force: bool = False,
 ) -> dict[str, Any]:
     """
-    On-demand ffmpeg polish: smooth MP4 + configured slow-motion.
+    On-demand ffmpeg polish: smooth MP4 + slow-motion + lower-third + voice-over.
+
+    File layout (post-run):
+      * ``{jobId}.raw.mp4`` / ``{jobId}.raw.webm`` — original Playwright capture.
+      * ``{jobId}.mp4``                            — polished output of this endpoint.
 
     Idempotent by default: if ``{job_id}.mp4`` already exists in
     ``VIDEO_BASE_DIR``, returns ``already_finalized`` immediately so a chat-UI
-    button click doesn't burn CPU on every poll.
+    button click doesn't burn CPU on every poll. The polished file always lives
+    at the ``.mp4`` path *without* the ``.raw.`` segment — that's how we tell
+    "Playwright wrote this" apart from "we transcoded this with current
+    SLOWMO / SLOWDOWN_FACTOR / VOICEOVER settings".
 
     Pass ``?force=1`` to delete the existing polished file and re-run the
-    transcode. This is the operator escape hatch for "I changed
-    UX_JOURNEY_VIDEO_SLOWDOWN_FACTOR / SLOWMO and want the old MP4 regenerated
-    with the new settings" — without forcing a fresh agent run.
+    transcode against the raw sidecar. This is the operator escape hatch for
+    "I changed pacing / voice / subtitles and want the old polished MP4
+    regenerated with the new settings" — without forcing a fresh agent run.
+    Refuses (HTTP 409) on legacy jobs that have no raw sidecar.
 
     When transcoding is disabled or ffmpeg is missing, returns ``skipped`` —
-    the client should still play the raw WebM via GET /run/{jobId}/video.
+    the client should still play the raw recording via GET /run/{jobId}/video.
     """
     lock = _get_finalize_lock(job_id)
     async with lock:
@@ -2995,6 +3043,24 @@ async def post_finalize_run_video(
         final_mp4 = VIDEO_BASE_DIR / f"{job_id}.mp4"
         if final_mp4.is_file() and final_mp4.stat().st_size > 1024:
             if force:
+                # Refuse to delete the polished MP4 unless we still have a raw
+                # sidecar to retry from. Otherwise the request would silently
+                # nuke the only recording the user has — happens on legacy jobs
+                # from before the `.raw.*` rename.
+                has_raw = any(
+                    (VIDEO_BASE_DIR / f"{job_id}.raw.{ext}").is_file()
+                    for ext in ("mp4", "webm")
+                )
+                if not has_raw:
+                    raise HTTPException(
+                        status_code=409,
+                        detail=(
+                            "Cannot force re-finalize: no raw recording sidecar "
+                            "(`{jobId}.raw.{ext}`) found. This is a legacy job from "
+                            "before the raw/polished split — re-run the journey "
+                            "to produce a new raw recording."
+                        ),
+                    )
                 # Operator wants new pacing settings applied: drop the old MP4
                 # and fall through to the regular transcode path. We also clear
                 # ``video_path`` so the resolver re-discovers the raw recording.
@@ -3071,7 +3137,15 @@ async def post_finalize_run_video(
 
 @app.get("/run/{job_id}/video")
 async def get_run_video(job_id: str) -> FileResponse:
-    """Return the recorded journey video (MP4 or WebM). Serves from memory or from VIDEO_BASE_DIR (persistent volume)."""
+    """Return the journey video (polished MP4 if available, else raw recording).
+
+    Serving order:
+      1. ``job.video_path`` from the in-memory state (set by run_agent / finalize).
+      2. ``{jobId}.mp4`` — the polished output (slow-mo + lower-third + voice-over).
+      3. ``{jobId}.raw.mp4`` / ``{jobId}.raw.webm`` — the raw Playwright capture.
+         Useful while finalize is still pending or has been disabled.
+      4. ``{jobId}.mp4`` / ``{jobId}.webm`` — pre-rename legacy jobs.
+    """
     video_path: str | None = None
     async with _jobs_lock:
         job = _jobs.get(job_id)
@@ -3079,9 +3153,15 @@ async def get_run_video(job_id: str) -> FileResponse:
             video_path = job.video_path
     if not video_path:
         for ext in ("mp4", "webm"):
-            candidate = VIDEO_BASE_DIR / f"{job_id}.{ext}"
-            if candidate.is_file():
-                video_path = str(candidate)
+            polished = VIDEO_BASE_DIR / f"{job_id}.{ext}"
+            if polished.is_file():
+                video_path = str(polished)
+                break
+    if not video_path:
+        for ext in ("mp4", "webm"):
+            raw_candidate = VIDEO_BASE_DIR / f"{job_id}.raw.{ext}"
+            if raw_candidate.is_file():
+                video_path = str(raw_candidate)
                 break
     if not video_path:
         raise HTTPException(status_code=404, detail="Video not found")
