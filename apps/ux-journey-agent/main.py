@@ -1067,10 +1067,19 @@ async def run_agent(
         # Prompt-shaping to reduce premature "done" decisions.
         # Note: max_steps only sets an upper bound; the agent can still stop early if it thinks it's done.
         min_steps = int(os.environ.get("UX_JOURNEY_MIN_STEPS", "6"))
-        german_instruction = (
-            "WICHTIG: Formuliere alle deine Überlegungen und Gedanken (thinking/reasoning) ausschließlich auf Deutsch. "
+        # CHECKION reasoning extension. With checkion-agent Phase 3:
+        # - language is set via `Agent(reasoning_language='de')` — clean,
+        #   one-line block injected into the system prompt by the fork.
+        # - the brevity / format / completion rules below are CHECKION-UI-
+        #   specific and stay in the *app*, but they move from the task into
+        #   `extend_system_message`. That puts them in the system prompt
+        #   (sent every step, naturally cached) instead of the user message.
+        # The persona block is automatically rendered last by the fork via
+        # `Agent(persona=persona_dict)` — see checkion-agent CHANGELOG Phase 2.
+        checkion_brevity_extension = (
+            "CHECKION_BREVITY_AND_COMPLETION:\n"
             # Unified brevity rule for ALL per-step LLM-controlled text fields.
-            # Without this, browser-use tends to produce 4–8 satzlange Reflexionen
+            # Without this, the agent tends to produce 4–8 satzlange Reflexionen
             # pro Step (Persona-Bezug, Beobachtung, Hypothese, Plan, Begründung,
             # Risiko-Abwägung). Im Card-UI ist davon nur das Pointierte nützlich —
             # alles andere macht die Accordion-Tiles unnötig hoch und treibt die
@@ -1105,14 +1114,13 @@ async def run_agent(
             "WICHTIG: Beende die Journey NICHT zu früh. Markiere erst dann als 'done'/'fertig', wenn du das Ziel wirklich erreicht hast "
             "UND es anhand sichtbarer UI-Indikatoren verifiziert hast (z.B. Bestätigungsseite, eindeutiger State, URL, Erfolgsmeldung). "
             f"WICHTIG: Beende NICHT vor mindestens {min_steps} Schritten. Wenn das Ziel früher erreicht wirkt, nutze die restlichen Schritte für "
-            "Validierung (zurück/nach vorne, alternative Navigation, erneute Sichtprüfung), statt zu stoppen. "
+            "Validierung (zurück/nach vorne, alternative Navigation, erneute Sichtprüfung), statt zu stoppen.\n"
         )
-        # Persona moved out of the task prompt: with checkion-agent Phase 2,
-        # `Agent(persona=...)` accepts the typed/dict payload and merges it
-        # into `extend_system_message`, so the persona block lives in the
-        # *system* prompt (sent every step) instead of the task (sent once).
-        # See checkion-agent/checkion_agent/agent/persona.py for the renderer.
-        task_with_lang = german_instruction + task
+        # Task is now JUST the task — no language pinning, no brevity rules,
+        # no persona stuffing. Reasoning language is handled by the fork
+        # via `reasoning_language='de'`; brevity / completion rules go in
+        # via `extend_system_message`; persona via `persona=`.
+        task_with_lang = task
         # Per-request override (from chat-api / direct callers) wins over the
         # process-wide env default. Hard cap is configurable via
         # ``UX_JOURNEY_MAX_STEPS_CAP`` (default 150) so deep journeys don't
@@ -1140,6 +1148,15 @@ async def run_agent(
         # if checkion-agent ever drops the parameter.
         if persona and isinstance(persona, dict) and _agent_init_accepts_named_arg(sig, "persona"):
             agent_kw["persona"] = persona
+        # checkion-agent Phase 3: pin reasoning language & feed CHECKION-UI brevity
+        # rules into the system prompt (instead of the task). Both fall back
+        # gracefully when the fork doesn't expose the parameter — `extend_system_message`
+        # is a stock browser-use kwarg available since 0.10.x, so the brevity
+        # block lands in the right place even on older forks.
+        if _agent_init_accepts_named_arg(sig, "reasoning_language"):
+            agent_kw["reasoning_language"] = "de"
+        if _agent_init_accepts_named_arg(sig, "extend_system_message"):
+            agent_kw["extend_system_message"] = checkion_brevity_extension
         # Cross-provider fallback so a single bad AgentOutput from the primary
         # (e.g. Claude returning `action` as a JSON-encoded string instead of a
         # list — Pydantic rejects it) can switch to the other provider.  We must

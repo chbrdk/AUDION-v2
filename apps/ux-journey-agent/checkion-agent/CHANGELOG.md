@@ -8,6 +8,81 @@ rebased cleanly.
 The version numbers follow the pattern `<upstream>+checkion.<patch>` (e.g.
 `0.12.6+checkion.1`). Bumping the upstream baseline resets the patch counter.
 
+## `0.12.6+checkion.3` (Phase 3 — persona DSL + reasoning language)
+
+**Upstream baseline:** `browser-use==0.12.6` (commit
+`329c67f069427e928ff81ad52415efdca7692007`).
+
+**Goal:** give persona designers explicit knobs (instead of relying on
+keyword scoring of free-form prose) and let callers pin the reasoning
+language without having to author a German preamble in their task. Together
+they finish moving everything that affects *how* the agent reasons out of
+the user-message task and into the cacheable system-prompt prefix.
+
+### Added (`PersonaContext` DSL fields)
+
+`PersonaContext` now accepts four new optional fields. All keep the
+camelCase aliases CHECKION's persona records use, so coercion from a plain
+JSON `dict` still works without remapping.
+
+- **`dimension_overrides`** (alias `dimensionOverrides`): `dict[str, Any]`
+  mapping any of the six dimension names (`risk_aversion`, `time_pressure`,
+  `exploration`, `detail_orientation`, `trust_skepticism`,
+  `accessibility_need`) to a value in `[0, 1]`. Wins over the keyword-scored
+  value for the same dimension, and the heuristics are derived from the
+  *post-override* dimensions, so an explicit `risk_aversion=0.9` produces
+  the high-risk-aversion heuristics even when the prose is neutral.
+  Unknown keys / non-numeric values are filtered (logged at debug) instead
+  of rejecting the persona record.
+- **`dos`**: `list[str]` — explicit `ALWAYS: ...` bullets. Capped at 8.
+- **`donts`**: `list[str]` — explicit `NEVER: ...` bullets. Capped at 8.
+- **`extra_instructions`** (alias `extraInstructions`): `str` — free-form
+  trailing block, capped at 1000 chars.
+
+### Added (`Agent(reasoning_language=...)`)
+
+- New `Agent.__init__(reasoning_language: str | None = None)` parameter.
+  Accepts ISO-639 codes (`'de'`, `'en'`, `'fr'`, ...) and human names
+  (`'German'`, `'English'`, ...). Renders a small `REASONING_LANGUAGE:`
+  block into the system prompt that pins the language for the AgentOutput
+  reasoning fields (`thinking`, `evaluation_previous_goal`, `memory`,
+  `next_goal`, `done.text`) while explicitly *exempting* selectors / URLs
+  / quoted page content (translating those would degrade element
+  detection).
+- `self.reasoning_language` is stored on the agent instance for telemetry.
+
+### Changed (system-prompt assembly)
+
+`Agent.__init__` now assembles `extend_system_message` in this fixed order
+(stable for prompt-cache hashing):
+
+1. Caller-supplied `extend_system_message` (free-form, may change per call).
+2. `REASONING_LANGUAGE:` block (small, stable per persona/run).
+3. `PERSONA_CONTEXT:` + `PERSONA_BEHAVIOR_POLICY:` + `PERSONA_DSL:` +
+   `PERSONA_EXTRA_INSTRUCTIONS:` + `INSTRUCTION:` (large, stable per persona).
+
+The renderer skips empty sections cleanly, so a persona without DSL fields
+collapses to the Phase-2 layout.
+
+### Removed (caller side)
+
+- `apps/ux-journey-agent/main.py` lost the German-language pinning line
+  from its `german_instruction` block. The block was renamed to
+  `checkion_brevity_extension` and is now passed via
+  `Agent(extend_system_message=...)` (instead of being prepended to the
+  task), so the brevity / completion rules also live in the system prompt.
+- `task` is now just the task — language pinning, brevity rules, persona
+  context, and reasoning constraints are all owned by the system prompt.
+
+### Compatibility / regression guard
+
+- `Agent.__init__` defaults: `reasoning_language=None` (off),
+  all new persona DSL fields `None` (off). Callers that don't pass them get
+  the Phase 2 behaviour byte-for-byte.
+- `_apply_dimension_overrides` filters bad input silently, so a persona
+  record with a typoed override key or a stringified value won't fail
+  validation — it just falls back to the keyword score for that dimension.
+
 ## `0.12.6+checkion.2` (Phase 2 — first-class persona)
 
 **Upstream baseline:** `browser-use==0.12.6` (commit

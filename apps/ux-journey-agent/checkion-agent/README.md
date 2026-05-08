@@ -72,7 +72,24 @@ See [`CHANGELOG.md`](./CHANGELOG.md) for the full per-version diff.
   - Replaces the ~165 LOC `_persona_*` keyword-scoring scaffolding from
     `apps/ux-journey-agent/main.py`.
 
-- **Phase 3 (planned):** Persona-DSL, German-reasoning prompts as built-in,
-  structured logging.
+- **Phase 3 (`0.12.6+checkion.3`):** Persona DSL + reasoning language.
+  - `PersonaContext` gains four optional DSL fields:
+    `dimension_overrides`, `dos`, `donts`, `extra_instructions` — explicit
+    knobs that override / extend the keyword-derived behaviour. Persona
+    designers can now author behaviour directly instead of hoping the
+    German keyword catalogue catches their prose.
+  - New `Agent(reasoning_language='de'|'en'|...)` parameter renders a
+    small `REASONING_LANGUAGE:` block into the system prompt that pins the
+    language for the AgentOutput reasoning fields (selectors, URLs and
+    quoted page content stay in their original language).
+  - System-prompt extension is now assembled in a fixed, cache-friendly
+    order: caller's `extend_system_message` → reasoning-language block →
+    persona block.
+  - Replaces the German-language pinning line in
+    `apps/ux-journey-agent/main.py` and moves the CHECKION-UI brevity
+    rules from the task into `extend_system_message`.
+
+- **Future (planned):** structured logging, more first-class hooks
+  (`Agent(on_step_screenshot=...)`, `Agent(action_slowdown_factor=N)`).
 
 See [`ATTRIBUTION.md`](./ATTRIBUTION.md) for upstream rebase notes.

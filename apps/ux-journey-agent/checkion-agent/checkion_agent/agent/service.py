@@ -47,6 +47,7 @@ from checkion_agent.agent.persona import (
 	PersonaContext,
 	PersonaPolicy,
 	derive_policy as _derive_persona_policy,
+	render_reasoning_language_block as _render_reasoning_language_block,
 	render_system_prompt_block as _render_persona_system_prompt_block,
 )
 from checkion_agent.agent.prompts import SystemPrompt
@@ -182,6 +183,14 @@ class Agent(Generic[Context, AgentStructuredOutput]):
 		# rather than once in the initial task. See `checkion_agent.agent.persona`.
 		# Accepts a `PersonaContext`, a plain `dict`, or `None`.
 		persona: PersonaContext | dict[str, Any] | None = None,
+		# CHECKION-fork patch (Phase 3): pin the language used for the
+		# AgentOutput reasoning fields (`thinking`, `evaluation_previous_goal`,
+		# `memory`, `next_goal`, `done.text`). Renders a small system-prompt
+		# block; selectors / URLs / quoted page content stay in their
+		# original language. ISO-639 codes (`'de'`, `'en'`, `'fr'`, ...) and
+		# human names (`'German'`) are both accepted. ``None`` (default) =
+		# upstream behaviour (model picks the language).
+		reasoning_language: str | None = None,
 		generate_gif: bool | str = False,
 		available_file_paths: list[str] | None = None,
 		include_attributes: list[str] | None = None,
@@ -396,19 +405,30 @@ class Agent(Generic[Context, AgentStructuredOutput]):
 		if isinstance(message_compaction, bool):
 			message_compaction = MessageCompactionSettings(enabled=message_compaction)
 
-		# CHECKION-fork patch: render the typed persona payload into a system-prompt
-		# block and merge with whatever `extend_system_message` the caller passed
-		# (the persona block goes last so caller-provided trailing text is preserved
-		# above it — flip the order if you'd rather have the caller's text last).
+		# CHECKION-fork patch: assemble the system-prompt extension in this fixed
+		# order, so the prefix stays cacheable (Anthropic's prompt cache hashes
+		# the prefix character-by-character):
+		#
+		#   1. caller-supplied `extend_system_message` (free-form, may change per call)
+		#   2. reasoning_language block (small, stable per persona/run)
+		#   3. persona block (large, stable per persona)
+		#
 		# `self.persona` and `self.persona_policy` stay accessible for telemetry /
 		# UI consumers that want to surface the derived dimensions.
 		self.persona: PersonaContext | None = PersonaContext.coerce(persona)
 		self.persona_policy: PersonaPolicy = _derive_persona_policy(self.persona)
+		self.reasoning_language: str | None = reasoning_language
+
+		_extension_blocks: list[str] = []
+		if extend_system_message:
+			_extension_blocks.append(extend_system_message)
+		_lang_block = _render_reasoning_language_block(reasoning_language)
+		if _lang_block:
+			_extension_blocks.append(_lang_block)
 		_persona_block = _render_persona_system_prompt_block(self.persona)
 		if _persona_block:
-			extend_system_message = (
-				f'{extend_system_message}\n\n{_persona_block}' if extend_system_message else _persona_block
-			)
+			_extension_blocks.append(_persona_block)
+		extend_system_message = '\n\n'.join(_extension_blocks) if _extension_blocks else None
 
 		self.settings = AgentSettings(
 			use_vision=use_vision,

@@ -97,6 +97,25 @@ class PersonaContext(BaseModel):
 	without remapping. ``id`` / ``name`` / ``headline`` / ``system_prompt``
 	are the headline metadata; ``profile`` carries the structured fields
 	that drive the derived policy.
+
+	**Phase 3 (DSL fields):** four optional fields let persona designers
+	override the keyword-derived behaviour explicitly, instead of relying
+	on prose-based scoring:
+
+	- ``dimension_overrides`` — map any of the six dimension names
+	  (``risk_aversion``, ``time_pressure``, ``exploration``,
+	  ``detail_orientation``, ``trust_skepticism``, ``accessibility_need``)
+	  to a value in ``[0, 1]``. Wins over the keyword score when both
+	  produce a number for the same dimension. Useful when a persona's
+	  prose doesn't match the German keyword catalogue but the designer
+	  wants a clear behavioural slant.
+	- ``dos`` / ``donts`` — explicit bullet lists rendered into the
+	  ``BEHAVIOR_POLICY`` block as ``- ALWAYS: ...`` / ``- NEVER: ...``.
+	  Same shape as the auto-derived heuristics so the model treats them
+	  identically. Capped at 8 items each to keep the prompt cacheable.
+	- ``extra_instructions`` — a free-form trailing block appended at the
+	  bottom of the persona block. Use for one-off, persona-specific notes
+	  (e.g. "this persona avoids any product over €500"). Cap: 1000 chars.
 	"""
 
 	model_config = ConfigDict(extra='allow', populate_by_name=True)
@@ -106,6 +125,13 @@ class PersonaContext(BaseModel):
 	headline: str | None = None
 	system_prompt: str | None = Field(default=None, alias='systemPrompt')
 	profile: PersonaProfile | None = None
+	# Permissive type — `_apply_dimension_overrides` filters non-numeric /
+	# unknown-key entries at runtime so a single bad value doesn't reject
+	# the whole persona record at coercion time.
+	dimension_overrides: dict[str, Any] | None = Field(default=None, alias='dimensionOverrides')
+	dos: list[str] | None = None
+	donts: list[str] | None = None
+	extra_instructions: str | None = Field(default=None, alias='extraInstructions')
 
 	@classmethod
 	def coerce(cls, value: Any) -> PersonaContext | None:
@@ -231,6 +257,46 @@ def _score_keywords(text: str, positives: list[str], negatives: list[str] | None
 # ---------------------------------------------------------------------------
 
 
+_DIMENSION_NAMES: tuple[str, ...] = (
+	'risk_aversion',
+	'time_pressure',
+	'exploration',
+	'detail_orientation',
+	'trust_skepticism',
+	'accessibility_need',
+)
+
+
+def _apply_dimension_overrides(
+	scored: dict[str, float],
+	overrides: dict[str, float] | None,
+) -> dict[str, float]:
+	"""Merge explicit ``dimension_overrides`` over keyword-scored values.
+
+	Override values are clamped to [0, 1] and rounded to 2 decimal places to
+	stay consistent with the scored output. Unknown keys are ignored (logged
+	at debug level) so a typo in a persona record doesn't silently break a
+	run.
+	"""
+	if not overrides:
+		return scored
+	merged = dict(scored)
+	for key, value in overrides.items():
+		if key not in _DIMENSION_NAMES:
+			logger.debug('PersonaContext.dimension_overrides: ignoring unknown key %r', key)
+			continue
+		try:
+			fv = float(value)
+		except (TypeError, ValueError):
+			logger.debug(
+				'PersonaContext.dimension_overrides: ignoring non-numeric value for %r: %r',
+				key, value,
+			)
+			continue
+		merged[key] = round(max(0.0, min(1.0, fv)), 2)
+	return merged
+
+
 def derive_policy(persona: PersonaContext | None) -> PersonaPolicy:
 	"""Derive a ``PersonaPolicy`` from a ``PersonaContext`` (or neutral default).
 
@@ -238,6 +304,12 @@ def derive_policy(persona: PersonaContext | None) -> PersonaPolicy:
 	at 0.5, no heuristics) — equivalent to running the agent without any
 	persona context. The function is pure: same input → same output, no
 	side effects, no env reads.
+
+	**Phase 3:** if ``persona.dimension_overrides`` is set, those values
+	replace the keyword-scored ones for the matching dimension names.
+	Heuristics are still derived from the *final* (post-override)
+	dimensions, so an override of ``risk_aversion=0.9`` produces the
+	high-risk-aversion heuristics even if the prose was neutral.
 	"""
 	if persona is None:
 		return PersonaPolicy(dimensions=PersonaDimensions(), heuristics=[])
@@ -294,14 +366,16 @@ def derive_policy(persona: PersonaContext | None) -> PersonaPolicy:
 		negatives=['egal', 'unwichtig'],
 	)
 
-	dims = PersonaDimensions(
-		risk_aversion=round(risk_aversion, 2),
-		time_pressure=round(time_pressure, 2),
-		exploration=round(exploration, 2),
-		detail_orientation=round(detail_orientation, 2),
-		trust_skepticism=round(trust_skepticism, 2),
-		accessibility_need=round(accessibility_need, 2),
-	)
+	scored = {
+		'risk_aversion': round(risk_aversion, 2),
+		'time_pressure': round(time_pressure, 2),
+		'exploration': round(exploration, 2),
+		'detail_orientation': round(detail_orientation, 2),
+		'trust_skepticism': round(trust_skepticism, 2),
+		'accessibility_need': round(accessibility_need, 2),
+	}
+	merged = _apply_dimension_overrides(scored, persona.dimension_overrides)
+	dims = PersonaDimensions(**merged)
 
 	heuristics: list[str] = []
 
@@ -344,6 +418,31 @@ def derive_policy(persona: PersonaContext | None) -> PersonaPolicy:
 # (Anthropic's prompt cache works best on stable, repeated prefixes).
 _MAX_SYSTEM_PROMPT_CHARS = 2000
 _MAX_PROFILE_JSON_CHARS = 4000
+_MAX_EXTRA_INSTRUCTIONS_CHARS = 1000
+_MAX_DSL_LIST_ITEMS = 8
+
+
+def _clean_bullet_list(items: list[str] | None, *, cap: int = _MAX_DSL_LIST_ITEMS) -> list[str]:
+	"""Strip / dedupe / cap a list of persona-DSL bullet strings.
+
+	Used for ``dos`` / ``donts`` / ``heuristics`` — same shape, same caps,
+	consistent prompt rendering. Order is preserved.
+	"""
+	if not items:
+		return []
+	seen: set[str] = set()
+	out: list[str] = []
+	for raw in items:
+		if not isinstance(raw, str):
+			continue
+		s = raw.strip()
+		if not s or s in seen:
+			continue
+		seen.add(s)
+		out.append(s)
+		if len(out) >= cap:
+			break
+	return out
 
 
 def render_system_prompt_block(persona: PersonaContext | None) -> str:
@@ -353,6 +452,18 @@ def render_system_prompt_block(persona: PersonaContext | None) -> str:
 	the caller can append it unconditionally without a guard. The output
 	starts and ends with single newlines so it composes cleanly with
 	``extend_system_message`` strings the caller may have already prepared.
+
+	**Phase 3 layout:** the rendered block has up to four sections, in this
+	stable order:
+
+	1. ``PERSONA_CONTEXT:`` — id / name / headline / systemPrompt / profile
+	2. ``PERSONA_BEHAVIOR_POLICY:`` — dimensions + navigation_heuristics
+	3. ``PERSONA_DSL:`` — explicit dos / donts (only if at least one is set)
+	4. ``PERSONA_EXTRA_INSTRUCTIONS:`` — free-form trailing block (only if set)
+
+	The order is intentionally stable so the model has a predictable layout
+	to attend to — and so Anthropic's prompt cache treats unchanged
+	persona records as a stable prefix.
 	"""
 	if persona is None or not persona_instructions_enabled():
 		return ''
@@ -386,7 +497,10 @@ def render_system_prompt_block(persona: PersonaContext | None) -> str:
 			f'accessibility_need={dims.accessibility_need}',
 		]
 	)
-	hs = [h for h in policy.heuristics if isinstance(h, str) and h.strip()][:8]
+	hs = _clean_bullet_list(policy.heuristics)
+	dos = _clean_bullet_list(persona.dos)
+	donts = _clean_bullet_list(persona.donts)
+	extra = (persona.extra_instructions or '').strip()[:_MAX_EXTRA_INSTRUCTIONS_CHARS]
 
 	parts: list[str | None] = [
 		'PERSONA_CONTEXT:',
@@ -402,6 +516,19 @@ def render_system_prompt_block(persona: PersonaContext | None) -> str:
 	if hs:
 		parts.append('- navigation_heuristics:')
 		parts.extend([f'  - {h}' for h in hs])
+
+	if dos or donts:
+		parts.extend(['', 'PERSONA_DSL:'])
+		if dos:
+			parts.append('- dos:')
+			parts.extend([f'  - ALWAYS: {d}' for d in dos])
+		if donts:
+			parts.append('- donts:')
+			parts.extend([f'  - NEVER: {d}' for d in donts])
+
+	if extra:
+		parts.extend(['', 'PERSONA_EXTRA_INSTRUCTIONS:', extra])
+
 	parts.extend(
 		[
 			'',
@@ -411,3 +538,65 @@ def render_system_prompt_block(persona: PersonaContext | None) -> str:
 	)
 	body = '\n'.join([p for p in parts if p is not None])
 	return body.strip() + '\n'
+
+
+# ---------------------------------------------------------------------------
+# Reasoning language (Phase 3)
+# ---------------------------------------------------------------------------
+
+# Friendly name shown in the prompt for common ISO-639 codes / human names.
+# Anything not in this map is used as-is (e.g. ``Agent(reasoning_language='French')``
+# renders as ``Reason in French``).
+_REASONING_LANGUAGE_LABELS: dict[str, str] = {
+	'de': 'German',
+	'de-DE': 'German',
+	'deutsch': 'German',
+	'german': 'German',
+	'en': 'English',
+	'en-US': 'English',
+	'en-GB': 'English',
+	'english': 'English',
+	'fr': 'French',
+	'french': 'French',
+	'es': 'Spanish',
+	'spanish': 'Spanish',
+	'it': 'Italian',
+	'italian': 'Italian',
+	'pt': 'Portuguese',
+	'portuguese': 'Portuguese',
+	'nl': 'Dutch',
+	'dutch': 'Dutch',
+}
+
+
+def render_reasoning_language_block(language: str | None) -> str:
+	"""Render the system-prompt block that pins the model's reasoning language.
+
+	Returns ``''`` for ``None`` / empty / unrecognised inputs so callers can
+	append unconditionally. The block targets the AgentOutput reasoning
+	fields (``thinking`` / ``evaluation_previous_goal`` / ``memory`` /
+	``next_goal`` / ``done.text``) — i.e. anything the *user* of the agent
+	will read — without forcing the model to translate UI labels or quoted
+	page content (which would degrade element-detection accuracy).
+	"""
+	if not language:
+		return ''
+	key = language.strip()
+	if not key:
+		return ''
+	label = _REASONING_LANGUAGE_LABELS.get(key.lower(), key)
+	return (
+		'REASONING_LANGUAGE:\n'
+		f'- IMPORTANT: Phrase ALL of your reasoning fields (thinking, evaluation_previous_goal, '
+		f'memory, next_goal, done.text) in {label}. Keep selectors, URLs, element labels, and '
+		f'quoted page content in their original language.\n'
+	)
+
+
+# Combined with `from __future__ import annotations` Pydantic needs an explicit
+# model_rebuild call before the first model_validate, otherwise it reports
+# "PersonaContext is not fully defined" because the forward-reference for
+# `PersonaProfile` hasn't been resolved yet.
+PersonaContext.model_rebuild()
+PersonaPolicy.model_rebuild()
+

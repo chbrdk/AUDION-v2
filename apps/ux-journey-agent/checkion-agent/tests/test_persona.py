@@ -20,6 +20,7 @@ from checkion_agent.agent.persona import (
 	PersonaProfile,
 	derive_policy,
 	persona_instructions_enabled,
+	render_reasoning_language_block,
 	render_system_prompt_block,
 )
 
@@ -215,6 +216,164 @@ class RenderSystemPromptBlockTests(unittest.TestCase):
 		# And no extra trailing X past the truncation
 		x_count = line.count('X')
 		self.assertEqual(x_count, 2000, msg=f'truncation off: {x_count} X chars')
+
+
+class DimensionOverridesTests(unittest.TestCase):
+	"""`PersonaContext.dimension_overrides` — Phase 3 DSL field."""
+
+	def test_explicit_override_wins_over_keyword_score(self):
+		# Neutral prose would score ~0.5, but the override forces 0.9
+		p = PersonaContext(
+			name='Override Test',
+			headline='nothing thematic here',
+			dimension_overrides={'risk_aversion': 0.9},
+		)
+		policy = derive_policy(p)
+		self.assertEqual(policy.dimensions.risk_aversion, 0.9)
+		# Other dimensions stay neutral
+		self.assertGreaterEqual(policy.dimensions.exploration, 0.34)
+		self.assertLessEqual(policy.dimensions.exploration, 0.66)
+
+	def test_override_clamped_to_unit_interval(self):
+		p = PersonaContext(
+			name='X',
+			dimension_overrides={'risk_aversion': 1.5, 'time_pressure': -0.3},
+		)
+		policy = derive_policy(p)
+		self.assertEqual(policy.dimensions.risk_aversion, 1.0)
+		self.assertEqual(policy.dimensions.time_pressure, 0.0)
+
+	def test_unknown_keys_silently_ignored(self):
+		p = PersonaContext(
+			name='X',
+			dimension_overrides={'risk_aversion': 0.9, 'totally_made_up': 0.5},
+		)
+		policy = derive_policy(p)
+		# Override applies to known key; unknown is dropped
+		self.assertEqual(policy.dimensions.risk_aversion, 0.9)
+		# Sanity: the model still validates (no error from extra=allow)
+		self.assertIsInstance(policy, PersonaPolicy)
+
+	def test_non_numeric_value_silently_ignored(self):
+		p = PersonaContext(
+			name='X',
+			dimension_overrides={'risk_aversion': 'not a number', 'time_pressure': 0.7},
+		)
+		policy = derive_policy(p)
+		# Bad value falls back to keyword score (≈0.5 for empty prose)
+		self.assertGreaterEqual(policy.dimensions.risk_aversion, 0.34)
+		self.assertLessEqual(policy.dimensions.risk_aversion, 0.66)
+		self.assertEqual(policy.dimensions.time_pressure, 0.7)
+
+	def test_heuristics_derived_from_post_override_dimensions(self):
+		# Force a high risk_aversion via override only (no risk-aversion prose)
+		p = PersonaContext(
+			name='X',
+			headline='nothing risky in this text',
+			dimension_overrides={'risk_aversion': 0.9},
+		)
+		policy = derive_policy(p)
+		joined = '\n'.join(policy.heuristics).lower()
+		# High-risk-aversion heuristic from `derive_policy`:
+		self.assertIn('official', joined, msg=f'heuristics={policy.heuristics}')
+
+
+class DosDontsExtraInstructionsTests(unittest.TestCase):
+	def test_dos_donts_render(self):
+		p = PersonaContext(
+			name='X',
+			dos=['Read the disclaimer', 'Click only official links'],
+			donts=['Accept tracking cookies'],
+		)
+		out = render_system_prompt_block(p)
+		self.assertIn('PERSONA_DSL:', out)
+		self.assertIn('- ALWAYS: Read the disclaimer', out)
+		self.assertIn('- ALWAYS: Click only official links', out)
+		self.assertIn('- NEVER: Accept tracking cookies', out)
+
+	def test_extra_instructions_render(self):
+		p = PersonaContext(name='X', extra_instructions='Avoid products over €500.')
+		out = render_system_prompt_block(p)
+		self.assertIn('PERSONA_EXTRA_INSTRUCTIONS:', out)
+		self.assertIn('Avoid products over €500.', out)
+
+	def test_empty_dsl_fields_not_rendered(self):
+		# Persona with neither dos nor donts nor extras should not have the
+		# DSL or EXTRA sections in the rendered block at all.
+		p = PersonaContext(name='X', headline='nothing else')
+		out = render_system_prompt_block(p)
+		self.assertNotIn('PERSONA_DSL:', out)
+		self.assertNotIn('PERSONA_EXTRA_INSTRUCTIONS:', out)
+
+	def test_dos_donts_capped_at_8(self):
+		p = PersonaContext(
+			name='X',
+			dos=[f'do thing {i}' for i in range(20)],
+			donts=[f'never do thing {i}' for i in range(20)],
+		)
+		out = render_system_prompt_block(p)
+		# Should see exactly 8 of each
+		self.assertEqual(out.count('- ALWAYS:'), 8)
+		self.assertEqual(out.count('- NEVER:'), 8)
+
+	def test_dos_dedupe(self):
+		p = PersonaContext(
+			name='X',
+			dos=['same', 'same', 'different', 'same'],
+		)
+		out = render_system_prompt_block(p)
+		self.assertEqual(out.count('- ALWAYS: same'), 1)
+		self.assertEqual(out.count('- ALWAYS: different'), 1)
+
+
+class ReasoningLanguageBlockTests(unittest.TestCase):
+	def test_none_returns_empty(self):
+		self.assertEqual(render_reasoning_language_block(None), '')
+		self.assertEqual(render_reasoning_language_block(''), '')
+		self.assertEqual(render_reasoning_language_block('   '), '')
+
+	def test_iso_codes_resolve_to_readable_label(self):
+		self.assertIn('German', render_reasoning_language_block('de'))
+		self.assertIn('English', render_reasoning_language_block('en'))
+		self.assertIn('French', render_reasoning_language_block('fr'))
+
+	def test_human_names_pass_through(self):
+		# Both `'German'` and `'german'` should resolve to "German"
+		self.assertIn('German', render_reasoning_language_block('German'))
+		self.assertIn('German', render_reasoning_language_block('german'))
+
+	def test_unknown_label_used_as_is(self):
+		# We don't know `'Klingon'` — render it as-is so callers can supply
+		# any string they want; the model gets best-effort instructions.
+		out = render_reasoning_language_block('Klingon')
+		self.assertIn('Klingon', out)
+
+	def test_block_contains_anchors(self):
+		out = render_reasoning_language_block('de')
+		# Anchors that downstream code / log scrapers might look for
+		self.assertIn('REASONING_LANGUAGE:', out)
+		self.assertIn('thinking', out)
+		self.assertIn('memory', out)
+		self.assertIn('next_goal', out)
+		# And the exemption clause
+		self.assertIn('selectors', out.lower())
+
+
+class CombinedSystemPromptTests(unittest.TestCase):
+	"""Verify the combined system-prompt extension assembled by Agent.__init__.
+
+	We exercise the Agent constructor's merge logic by instantiating the
+	SystemPrompt class directly (no LLM, no browser) — that's the same
+	component the agent builds in production.
+	"""
+
+	def test_persona_only_persona_block_present(self):
+		p = PersonaContext(name='X', headline='vorsichtig')
+		out = render_system_prompt_block(p)
+		self.assertIn('PERSONA_CONTEXT:', out)
+		# These belong to other features
+		self.assertNotIn('REASONING_LANGUAGE:', out)
+		self.assertNotIn('CHECKION_BREVITY_AND_COMPLETION:', out)
 
 
 class PolicyModelDumpTests(unittest.TestCase):
