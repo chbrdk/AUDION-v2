@@ -161,16 +161,18 @@ def _build_openai_llm():
         from browser_use import ChatOpenAI
     except ImportError:
         from browser_use.llm.openai import ChatOpenAI
-    # Default: GPT-5.4 mini (released 2026-03-17) — same family as the
-    # primary's quality bracket but ~2× faster and ~6× cheaper than 5.4 full.
-    # Mini, not nano: nano is OpenAI-positioned for classification / extraction
-    # / simple coding, and our actual use-case here is *recovering* a strict
-    # browser-use AgentOutput structured-output schema after the primary
-    # serialised it incorrectly. Override via UX_JOURNEY_OPENAI_MODEL if you
-    # want gpt-5.4-nano (cheaper, OK if Claude rarely needs the fallback) or
-    # gpt-5.4 / gpt-5.5 (stronger, more expensive).
+    # Default: GPT-4o. We deliberately do NOT default to the newer GPT-5.4
+    # family (mini/nano/full): in production we observed `gpt-5.4-mini`
+    # producing AgentOutput JSON with trailing characters (e.g. one extra
+    # closing brace), which browser-use rejects via Pydantic and then halts
+    # after 6 consecutive failures — fully defeating the point of the
+    # fallback. GPT-4o has been the canonical example in browser-use's own
+    # `fallback_model.py` since 2024 and reliably emits clean structured
+    # output for the AgentOutput schema. Operators who want to test a newer
+    # model can override via `UX_JOURNEY_OPENAI_MODEL` (e.g. `gpt-5.4-mini`,
+    # `gpt-5.4-nano`, `gpt-5.4`, `gpt-5.5`).
     return ChatOpenAI(
-        model=os.environ.get("UX_JOURNEY_OPENAI_MODEL", "gpt-5.4-mini"),
+        model=os.environ.get("UX_JOURNEY_OPENAI_MODEL", "gpt-4o"),
         temperature=0,
     )
 
@@ -241,7 +243,7 @@ def _llm_meta() -> dict[str, Any]:
             "model": os.environ.get("UX_JOURNEY_CLAUDE_MODEL", "claude-sonnet-4-6"),
             "max_tokens": os.environ.get("UX_JOURNEY_CLAUDE_MAX_TOKENS", "16384"),
             "fallback": (
-                {"provider": "openai", "model": os.environ.get("UX_JOURNEY_OPENAI_MODEL", "gpt-5.4-mini")}
+                {"provider": "openai", "model": os.environ.get("UX_JOURNEY_OPENAI_MODEL", "gpt-4o")}
                 if has_fallback
                 else None
             ),
@@ -249,7 +251,7 @@ def _llm_meta() -> dict[str, Any]:
     if provider == "openai":
         return {
             "provider": "openai",
-            "model": os.environ.get("UX_JOURNEY_OPENAI_MODEL", "gpt-5.4-mini"),
+            "model": os.environ.get("UX_JOURNEY_OPENAI_MODEL", "gpt-4o"),
             "fallback": (
                 {
                     "provider": "anthropic",
