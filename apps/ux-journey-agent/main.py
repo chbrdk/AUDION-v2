@@ -1749,6 +1749,14 @@ async def run_agent(
         # Force per-step screenshots so history.screenshots() always has data the live preview can serve.
         if "use_vision" in sig.parameters:
             agent_kw["use_vision"] = True
+        # CHECKION runs do not consume browser-use's `Judge` verdict — and on long
+        # journeys the judge call sends the entire history + screenshots to the
+        # primary LLM, regularly blowing through the 200k/272k context window
+        # ("Judge trace failed: Input tokens exceed the configured limit"). The
+        # error is caught internally but pollutes logs and burns tokens.
+        # Default OFF; flip ``CHECKION_AGENT_USE_JUDGE=1`` to restore upstream.
+        if _agent_init_accepts_named_arg(sig, "use_judge"):
+            agent_kw["use_judge"] = _env_truthy("CHECKION_AGENT_USE_JUDGE", "0")
         agent = Agent(**agent_kw)
         # Some deployments swallow unknown kwargs; ensure fallback actually landed.
         if fallback_llm_obj is not None and getattr(agent, "_fallback_llm", None) is None:
@@ -1942,7 +1950,7 @@ async def run_agent(
             _action_hook_counts.pop(job_id, None)
 
         # CRITICAL: close the browser *before* discovering / moving / transcoding the video.
-        # Playwright only finalizes the WebM container (header, cues, EOF) when the browser is
+        # Playwright only finalizes the WebM/MP4 container (header, cues, EOF) when the browser is
         # closed. Moving or feeding ffmpeg a still-open recording produces a 0-second / unplayable
         # file in the UI even though the run looks "complete".
         if browser is not None:
@@ -1960,8 +1968,32 @@ async def run_agent(
 
         # `domain` already computed above for partial progress updates.
 
+        # Wait until Playwright's `[video_recorder]` finishes flushing the file.
+        # Empirically the recording is written *after* `await browser.close()`
+        # returns — so racing straight into the move yields the infamous 1-sec
+        # clip. We poll the byte sum for a quiet window before publishing.
+        try:
+            stable, recorded_bytes = await _wait_for_recording_stable(video_dir)
+        except Exception as exc:
+            stable, recorded_bytes = (False, 0)
+            print(
+                f"video: stability poll crashed for job={job_id}: {exc!r} — moving on best-effort",
+                flush=True,
+            )
+        if not stable:
+            print(
+                f"video: stability poll timed out for job={job_id} bytes={recorded_bytes} — "
+                f"file may be partial; will attempt move anyway",
+                flush=True,
+            )
+        else:
+            print(
+                f"video: recording stable for job={job_id} bytes={recorded_bytes}",
+                flush=True,
+            )
+
         # Move recorded video to a known path.
-        # Playwright often writes WebM in nested folders; we search recursively and pick the newest file.
+        # Playwright often writes WebM/MP4 in nested folders; we search recursively and pick the newest file.
         video_path: str | None = None
         try:
             found_path = _find_recorded_video_file(video_dir)
@@ -2046,6 +2078,7 @@ async def run_agent(
                 "voiceoverVoice": UX_JOURNEY_VOICEOVER_VOICE,
                 "voiceoverLang": UX_JOURNEY_VOICEOVER_LANG,
                 "voiceoverMaxTempo": UX_JOURNEY_VOICEOVER_MAX_TEMPO,
+                "useJudge": _env_truthy("CHECKION_AGENT_USE_JUDGE", "0"),
             },
         }
         if persona and isinstance(persona, dict):
@@ -2213,6 +2246,8 @@ print(
     f"voiceover_model={UX_JOURNEY_VOICEOVER_MODEL} "
     f"voiceover_voice={UX_JOURNEY_VOICEOVER_VOICE} "
     f"voiceover_max_tempo={UX_JOURNEY_VOICEOVER_MAX_TEMPO} "
+    f"voiceover_openai_key={'present' if os.environ.get('OPENAI_API_KEY') else 'absent'} "
+    f"use_judge={_env_truthy('CHECKION_AGENT_USE_JUDGE', '0')} "
     f"VIDEO_FPS={VIDEO_TRANSCODE_FPS} "
     f"VIDEO_TRANSCODE_DISABLED={VIDEO_TRANSCODE_DISABLED}",
     flush=True,
@@ -2429,6 +2464,14 @@ async def _synthesize_step_voiceovers(
     if not (UX_JOURNEY_VIDEO_VOICEOVER and steps):
         return []
     if not (os.environ.get("OPENAI_API_KEY") or "").strip():
+        # Surface this exactly once per job so operators see *why* the polished MP4
+        # came out silent — easy to confuse with a synth failure otherwise.
+        print(
+            f"ux-journey: voiceover skipped job={job_id} — UX_JOURNEY_VIDEO_VOICEOVER is on but "
+            f"OPENAI_API_KEY is not set. Set it on the agent service container or flip "
+            f"UX_JOURNEY_VIDEO_VOICEOVER=0 to silence this message.",
+            flush=True,
+        )
         return []
     if shutil.which("ffmpeg") is None:
         return []
@@ -2494,17 +2537,32 @@ async def _synthesize_step_voiceovers(
             step_no=step_n,
         )
 
+    print(
+        f"ux-journey: voiceover synth job={job_id} steps={len(ordered_with_offset)} "
+        f"model={UX_JOURNEY_VOICEOVER_MODEL} voice={UX_JOURNEY_VOICEOVER_VOICE} "
+        f"max_tempo={UX_JOURNEY_VOICEOVER_MAX_TEMPO} concurrency={UX_JOURNEY_VOICEOVER_CONCURRENCY}",
+        flush=True,
+    )
     tasks = [
         _build_clip(i, t_in, st) for i, (t_in, st) in enumerate(ordered_with_offset)
     ]
     raw_results = await asyncio.gather(*tasks, return_exceptions=True)
     clips: list[_VoiceoverClip] = []
+    failures = 0
     for r in raw_results:
         if isinstance(r, _VoiceoverClip):
             clips.append(r)
         elif isinstance(r, Exception):
+            failures += 1
             print(f"ux-journey: voiceover clip task failed: {r!r}", flush=True)
+        else:
+            # ``None`` means the step had no spoken text or synth returned False — already logged.
+            failures += 1
     clips.sort(key=lambda c: c.delay_ms)
+    print(
+        f"ux-journey: voiceover synth done job={job_id} ok={len(clips)} skipped_or_failed={failures}",
+        flush=True,
+    )
     return clips
 
 
@@ -2679,6 +2737,71 @@ def _find_recorded_video_file(video_dir: str) -> Path | None:
     except Exception:
         return None
     return _pick_latest_file(candidates)
+
+
+def _scan_recording_total_bytes(video_dir: str) -> tuple[int, int]:
+    """Return ``(total_size_bytes, file_count)`` for all `*.mp4` / `*.webm` under ``video_dir``.
+
+    Used by ``_wait_for_recording_stable`` to decide when Playwright finished
+    flushing a recording. Even if browser-use writes to a temp file then renames,
+    the total byte sum across the dir stops growing once the writer is done.
+    """
+    base = Path(video_dir)
+    if not base.is_dir():
+        return (0, 0)
+    total = 0
+    n = 0
+    try:
+        for p in base.rglob("*"):
+            if not p.is_file():
+                continue
+            ext = p.suffix.lower()
+            if ext not in (".mp4", ".webm"):
+                continue
+            try:
+                total += p.stat().st_size
+                n += 1
+            except OSError:
+                continue
+    except Exception:
+        return (total, n)
+    return (total, n)
+
+
+async def _wait_for_recording_stable(
+    video_dir: str,
+    *,
+    timeout_sec: float = 20.0,
+    poll_interval_sec: float = 0.4,
+    quiet_window_sec: float = 1.5,
+    min_size_bytes: int = 32 * 1024,
+) -> tuple[bool, int]:
+    """Poll until the recording dir's byte sum stops growing.
+
+    Playwright's ``[video_recorder]`` finalises the MP4/WebM *after*
+    ``Browser.close()`` returns — moving the file too early produces the
+    notorious 1-second clip. We watch the dir for `quiet_window_sec` of no-byte-
+    delta, gated by `timeout_sec` so a hard hang in Playwright doesn't block
+    the run forever.
+
+    Returns ``(stable, last_size_bytes)``. ``stable=False`` means we hit the
+    timeout while bytes were still growing — caller can still try the move
+    (some file is better than none) but should log a warning.
+    """
+    deadline = time.monotonic() + timeout_sec
+    last_size = -1
+    last_change = time.monotonic()
+    while True:
+        size, _ = _scan_recording_total_bytes(video_dir)
+        now = time.monotonic()
+        if size != last_size:
+            last_size = size
+            last_change = now
+        elif size >= min_size_bytes and (now - last_change) >= quiet_window_sec:
+            return (True, size)
+        if now >= deadline:
+            return (False, last_size)
+        await asyncio.sleep(poll_interval_sec)
 
 # ---------------------------------------------------------------------------
 # FastAPI app
