@@ -270,11 +270,14 @@ LIVE_FRAME_INTERVAL = float(os.environ.get("UX_JOURNEY_LIVE_FRAME_INTERVAL", "0.
 
 # Global slow-motion factor for *recording*. Default 2 = ~2× longer pacing in the Playwright video at 1× playback.
 # Override with UX_JOURNEY_SLOWMO=1 for snappier runs, or higher for more extreme slow-mo.
+# Higher values record more *real* frames per action (Playwright captures at constant fps), which
+# is what produces a smooth review video. This is the right knob if the final video looks too fast,
+# rather than ``UX_JOURNEY_VIDEO_SLOWDOWN_FACTOR`` which only stretches existing frames in time.
 UX_JOURNEY_SLOWMO = float(os.environ.get("UX_JOURNEY_SLOWMO", os.environ.get("UX_JOURNEY_SLOWMO_MULTIPLIER", "2")))
 if UX_JOURNEY_SLOWMO < 0.25:
     UX_JOURNEY_SLOWMO = 0.25
-if UX_JOURNEY_SLOWMO > 12:
-    UX_JOURNEY_SLOWMO = 12.0
+if UX_JOURNEY_SLOWMO > 32:
+    UX_JOURNEY_SLOWMO = 32.0
 
 
 def _slow(seconds: float) -> float:
@@ -1488,13 +1491,24 @@ async def run_agent(
         persona_instr = _persona_instruction(persona)
         task_with_lang = german_instruction + persona_instr + task
         # Per-request override (from chat-api / direct callers) wins over the
-        # process-wide env default. Clamp to a sensible 3..30 window — values
-        # outside that range usually indicate a confused LLM, not intent.
-        env_default_max_steps = int(os.environ.get("UX_JOURNEY_MAX_STEPS", "25"))
+        # process-wide env default. Hard cap is configurable via
+        # ``UX_JOURNEY_MAX_STEPS_CAP`` (default 150) so deep journeys don't
+        # silently get clipped to a tiny window. Lower bound of 3 keeps a
+        # confused LLM from triggering a 1-step run.
+        try:
+            env_default_max_steps = int(os.environ.get("UX_JOURNEY_MAX_STEPS", "50"))
+        except ValueError:
+            env_default_max_steps = 50
+        try:
+            max_steps_cap = int(os.environ.get("UX_JOURNEY_MAX_STEPS_CAP", "150"))
+        except ValueError:
+            max_steps_cap = 150
+        if max_steps_cap < 3:
+            max_steps_cap = 3
         if isinstance(max_steps_override, int) and max_steps_override > 0:
-            max_steps = max(3, min(30, max_steps_override))
+            max_steps = max(3, min(max_steps_cap, max_steps_override))
         else:
-            max_steps = env_default_max_steps
+            max_steps = max(3, min(max_steps_cap, env_default_max_steps))
         agent_kw: dict[str, Any] = {"task": task_with_lang, "llm": llm, "browser": browser}
         # Cross-provider fallback so a single bad AgentOutput from the primary
         # (e.g. Claude returning `action` as a JSON-encoded string instead of a
@@ -1883,9 +1897,14 @@ VIDEO_TRANSCODE_DISABLED = (
 # saved recording play back at 1/N of real-time speed *without* affecting how
 # fast the agent actually drove the browser. A factor of 8 turns a 30-second
 # raw run into a 4-minute review video where every page load, scroll, click
-# overlay and transition is visible at a calm pace. Clamped 1..16: at 1.0 the
-# filter is skipped entirely (free no-op); above 16 the file just becomes
+# overlay and transition is visible at a calm pace. Clamped 1..64: at 1.0 the
+# filter is skipped entirely (free no-op); above 64 the file just becomes
 # tedious to scrub through.
+#
+# NOTE: this filter only stretches existing frames in time. For a *smoother*
+# slow-motion (more real frames per second of content), bump ``UX_JOURNEY_SLOWMO``
+# instead, which adds wait time during the actual recording so Playwright
+# captures more frames per page-load / scroll / click.
 def _parse_slowdown_factor(raw: str | None) -> float:
     try:
         n = float(raw) if raw not in (None, "") else 8.0
@@ -1893,8 +1912,8 @@ def _parse_slowdown_factor(raw: str | None) -> float:
         n = 8.0
     if n < 1.0:
         return 1.0
-    if n > 16.0:
-        return 16.0
+    if n > 64.0:
+        return 64.0
     return n
 
 
