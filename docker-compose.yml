@@ -186,6 +186,55 @@ services:
       start_period: 30s
     restart: unless-stopped
 
+  # UX Journey Agent - Browser automation service (Playwright + LLM via checkion-agent)
+  #
+  # Build context is the **repo root** so the Dockerfile can `COPY packages/checkion-agent`
+  # (our soft fork of browser-use 0.12.6 vendored at packages/checkion-agent/).
+  # If Coolify is configured to ignore docker-compose.yml and use the per-service
+  # Dockerfile path UI instead, the equivalent UI settings are:
+  #   - Base Directory: /  (not apps/ux-journey-agent)
+  #   - Dockerfile Location: apps/ux-journey-agent/Dockerfile
+  ux-journey-agent:
+    build:
+      context: .
+      dockerfile: apps/ux-journey-agent/Dockerfile
+    image: audion-ux-journey-agent
+    pull_policy: never
+    container_name: audion-ux-journey-agent
+    ports:
+      - "8320:8320"
+    environment:
+      # LLM provider routing (see apps/ux-journey-agent/README.md)
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - UX_JOURNEY_LLM_PROVIDER=${UX_JOURNEY_LLM_PROVIDER:-auto}
+      - UX_JOURNEY_CLAUDE_MODEL=${UX_JOURNEY_CLAUDE_MODEL:-claude-sonnet-4-6}
+      - UX_JOURNEY_OPENAI_MODEL=${UX_JOURNEY_OPENAI_MODEL:-gpt-4o}
+      - UX_JOURNEY_LLM_FALLBACK=${UX_JOURNEY_LLM_FALLBACK:-1}
+      - UX_JOURNEY_LLM_REPAIR_JSON=${UX_JOURNEY_LLM_REPAIR_JSON:-0}
+      - UX_JOURNEY_MAX_FAILURES=${UX_JOURNEY_MAX_FAILURES:-}
+      - UX_JOURNEY_CLAUDE_MAX_TOKENS=${UX_JOURNEY_CLAUDE_MAX_TOKENS:-16384}
+      # Pacing / video pipeline
+      - UX_JOURNEY_MAX_STEPS=${UX_JOURNEY_MAX_STEPS:-50}
+      - UX_JOURNEY_MAX_STEPS_CAP=${UX_JOURNEY_MAX_STEPS_CAP:-150}
+      - UX_JOURNEY_SLOWMO=${UX_JOURNEY_SLOWMO:-2}
+      - UX_JOURNEY_VIDEO_SLOWDOWN_FACTOR=${UX_JOURNEY_VIDEO_SLOWDOWN_FACTOR:-8}
+      - UX_JOURNEY_VIDEO_TRANSCODE=${UX_JOURNEY_VIDEO_TRANSCODE:-1}
+      - UX_JOURNEY_DEFER_VIDEO_FINALIZE=${UX_JOURNEY_DEFER_VIDEO_FINALIZE:-1}
+      - UX_JOURNEY_VIDEO_DIR=/data/journey-videos
+      - PORT=8320
+    volumes:
+      # Persistent volume for recorded videos so they survive container rebuilds.
+      # Matches UX_JOURNEY_VIDEO_DIR above.
+      - ux-journey-videos:/data/journey-videos
+    healthcheck:
+      test: [ "CMD-SHELL", "python3 -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8320/health\")'" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
   # Celery Beat - Scheduled Tasks
   celery-beat:
     build:
@@ -211,3 +260,4 @@ networks:
 
 volumes:
   audion-data:
+  ux-journey-videos:
