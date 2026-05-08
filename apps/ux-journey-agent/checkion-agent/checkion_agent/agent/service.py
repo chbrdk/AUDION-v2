@@ -43,6 +43,12 @@ from checkion_agent.agent.judge import construct_judge_messages
 from checkion_agent.agent.message_manager.service import (
 	MessageManager,
 )
+from checkion_agent.agent.persona import (
+	PersonaContext,
+	PersonaPolicy,
+	derive_policy as _derive_persona_policy,
+	render_system_prompt_block as _render_persona_system_prompt_block,
+)
 from checkion_agent.agent.prompts import SystemPrompt
 from checkion_agent.agent.views import (
 	ActionResult,
@@ -169,6 +175,13 @@ class Agent(Generic[Context, AgentStructuredOutput]):
 		max_failures: int = 5,
 		override_system_message: str | None = None,
 		extend_system_message: str | None = None,
+		# CHECKION-fork patch: typed persona payload. When set, a persona block
+		# (PERSONA_CONTEXT + PERSONA_BEHAVIOR_POLICY + INSTRUCTION) is rendered
+		# from the structured fields and merged into `extend_system_message`,
+		# so the persona is in the *system* prompt — present at every step,
+		# rather than once in the initial task. See `checkion_agent.agent.persona`.
+		# Accepts a `PersonaContext`, a plain `dict`, or `None`.
+		persona: PersonaContext | dict[str, Any] | None = None,
 		generate_gif: bool | str = False,
 		available_file_paths: list[str] | None = None,
 		include_attributes: list[str] | None = None,
@@ -382,6 +395,20 @@ class Agent(Generic[Context, AgentStructuredOutput]):
 
 		if isinstance(message_compaction, bool):
 			message_compaction = MessageCompactionSettings(enabled=message_compaction)
+
+		# CHECKION-fork patch: render the typed persona payload into a system-prompt
+		# block and merge with whatever `extend_system_message` the caller passed
+		# (the persona block goes last so caller-provided trailing text is preserved
+		# above it — flip the order if you'd rather have the caller's text last).
+		# `self.persona` and `self.persona_policy` stay accessible for telemetry /
+		# UI consumers that want to surface the derived dimensions.
+		self.persona: PersonaContext | None = PersonaContext.coerce(persona)
+		self.persona_policy: PersonaPolicy = _derive_persona_policy(self.persona)
+		_persona_block = _render_persona_system_prompt_block(self.persona)
+		if _persona_block:
+			extend_system_message = (
+				f'{extend_system_message}\n\n{_persona_block}' if extend_system_message else _persona_block
+			)
 
 		self.settings = AgentSettings(
 			use_vision=use_vision,

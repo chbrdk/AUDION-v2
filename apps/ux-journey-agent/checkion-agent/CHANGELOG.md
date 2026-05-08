@@ -8,6 +8,82 @@ rebased cleanly.
 The version numbers follow the pattern `<upstream>+checkion.<patch>` (e.g.
 `0.12.6+checkion.1`). Bumping the upstream baseline resets the patch counter.
 
+## `0.12.6+checkion.2` (Phase 2 — first-class persona)
+
+**Upstream baseline:** `browser-use==0.12.6` (commit
+`329c67f069427e928ff81ad52415efdca7692007`).
+
+**Goal:** make persona records a typed input that drives the system prompt,
+instead of forcing every caller to stringify the persona into the user-side
+task. The user-message-stuffing approach worked but was lossy in two ways:
+the persona only landed once (the initial task), and the model started
+"forgetting" it as the conversation grew. With the persona in the system
+prompt, it is sent on *every* step — naturally cached by Anthropic's prompt
+cache, and continually present in the model's attention.
+
+### Added
+
+- **`checkion_agent.agent.persona`** — new module:
+  - `PersonaProfile`, `PersonaContext` — Pydantic models that accept the
+    CHECKION persona JSON shape (camelCase aliases:
+    `systemPrompt`, `painPoints`, `communicationStyle`). `PersonaContext.coerce`
+    accepts a `dict | PersonaContext | None`.
+  - `PersonaDimensions`, `PersonaPolicy` — typed policy: six 0..1 dimensions
+    (`risk_aversion`, `time_pressure`, `exploration`, `detail_orientation`,
+    `trust_skepticism`, `accessibility_need`) and a list of actionable
+    navigation heuristics derived from them.
+  - `derive_policy(persona) -> PersonaPolicy` — pure function, no env reads,
+    same input → same output.
+  - `render_system_prompt_block(persona) -> str` — pure function, returns the
+    `PERSONA_CONTEXT` + `PERSONA_BEHAVIOR_POLICY` + `INSTRUCTION` block.
+  - `persona_instructions_enabled()` — reads
+    `CHECKION_AGENT_PERSONA_INSTRUCTIONS` (default `1` / on); set `=0` to
+    disable the auto-injection (caller can still build the block themselves
+    via `extend_system_message`).
+
+### Changed
+
+- **`Agent.__init__`** (`checkion_agent/agent/service.py`):
+  - Accepts a new keyword-only `persona: PersonaContext | dict | None`.
+  - When set, runs `PersonaContext.coerce(...)` and merges
+    `render_system_prompt_block(...)` into `extend_system_message`. Caller-
+    supplied `extend_system_message` is preserved and rendered *above* the
+    persona block.
+  - Stores the resolved persona on `self.persona` and the derived policy on
+    `self.persona_policy` for telemetry / UI consumers.
+
+### Removed (caller side)
+
+- `apps/ux-journey-agent/main.py` lost ~165 LOC of persona scaffolding:
+  `_persona_instruction`, `_persona_policy_instruction`, `_persona_policy`,
+  `_text_blob_from_persona`, `_score_keywords`. The agent runner now does:
+
+  ```python
+  agent = Agent(task=..., llm=..., persona=persona_dict, ...)
+  ```
+
+  …and reads `agent.persona_policy.model_dump()` directly for the result
+  payload (instead of re-deriving the policy locally).
+
+### Behavioural change to be aware of
+
+The persona block now lives in the **system prompt**, not the user prompt.
+Two consequences:
+
+1. The model sees the persona block *every step*, not just at task setup.
+   Expect persona-flavoured reasoning to be more consistent across long
+   journeys — this is the change you want.
+2. Anthropic's prompt cache will treat the persona as part of the cacheable
+   prefix. The first request per persona is slightly longer; subsequent
+   requests benefit from cache hits.
+
+### Regression guard
+
+`Agent.persona` and `Agent.persona_policy` are `None` / a neutral default
+when no persona is passed, so all existing callers that don't supply a
+persona keep their pre-Phase-2 behaviour (`PersonaPolicy(dimensions={...0.5},
+heuristics=[])`).
+
 ## `0.12.6+checkion.1` (Phase 1 — tolerant AgentOutput parsing)
 
 **Upstream baseline:** `browser-use==0.12.6` (commit

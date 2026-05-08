@@ -58,8 +58,19 @@ See [`CHANGELOG.md`](./CHANGELOG.md) for the full per-version diff.
   - Replaces the ~300 LOC `_repair_*` / `_maybe_wrap_llm_class` stack from
     `apps/ux-journey-agent/main.py`.
 
-- **Phase 2 (planned):** First-class hooks — `Agent(persona=...)`,
-  `Agent(on_step_screenshot=...)`, `Agent(action_slowdown_factor=N)`.
+- **Phase 2 (`0.12.6+checkion.2`):** First-class persona.
+  - New module `checkion_agent.agent.persona` exposes `PersonaContext`,
+    `PersonaProfile`, `PersonaDimensions`, `PersonaPolicy`, plus the pure
+    functions `derive_policy(persona)` and `render_system_prompt_block(persona)`.
+  - `Agent.__init__` accepts a `persona: PersonaContext | dict | None` kwarg.
+    The fork renders the typed payload into the **system** prompt (via
+    `extend_system_message`), so the persona is sent on every step instead
+    of once in the initial task.
+  - `agent.persona` and `agent.persona_policy` are accessible after
+    construction for telemetry / UI consumers.
+  - Gated by `CHECKION_AGENT_PERSONA_INSTRUCTIONS` (default `1`).
+  - Replaces the ~165 LOC `_persona_*` keyword-scoring scaffolding from
+    `apps/ux-journey-agent/main.py`.
 
 - **Phase 3 (planned):** Persona-DSL, German-reasoning prompts as built-in,
   structured logging.

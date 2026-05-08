@@ -394,213 +394,28 @@ def _extract_structured_model_output(text: str) -> dict[str, str] | None:
     return None
 
 
-def _persona_instruction(persona: dict[str, Any] | None) -> str:
-    """Build a short instruction block from persona context (bounded length)."""
-    if not persona or not isinstance(persona, dict):
-        return ""
+# Persona handling moved to checkion-agent (Phase 2): the typed PersonaContext +
+# derived PersonaPolicy now live in checkion_agent.agent.persona, and Agent
+# accepts a `persona=...` kwarg that renders the system-prompt block automatically.
+# The 5 helpers that used to live here (_persona_instruction,
+# _persona_policy_instruction, _persona_policy, _text_blob_from_persona,
+# _score_keywords) are gone — see CHANGELOG.md in the fork.
+
+
+def _persona_policy_dump(agent: Any) -> dict[str, Any] | None:
+    """Best-effort `agent.persona_policy.model_dump()` for the result payload.
+
+    Returns ``None`` when the fork is too old (no `persona_policy` attribute)
+    so the legacy clients see the field disappear gracefully — they used to
+    read it as the keyword-scored policy and it remains the same shape.
+    """
+    policy = getattr(agent, "persona_policy", None)
+    if policy is None:
+        return None
     try:
-        persona_id = str(persona.get("id") or "").strip()
-        name = str(persona.get("name") or "").strip()
-        headline = str(persona.get("headline") or "").strip()
-        profile = persona.get("profile")
-        system_prompt = str(persona.get("systemPrompt") or "").strip()
-
-        profile_json = ""
-        if isinstance(profile, dict):
-            slim = {
-                k: profile.get(k)
-                for k in (
-                    "bio",
-                    "location",
-                    "values",
-                    "interests",
-                    "traits",
-                    "painPoints",
-                    "goals",
-                    "communicationStyle",
-                )
-                if k in profile
-            }
-            profile_json = json.dumps(slim, ensure_ascii=False)[:4000]
-
-        prompt_part = system_prompt[:2000] if system_prompt else ""
-
-        parts = [
-            "PERSONA_CONTEXT:",
-            f"- id: {persona_id}" if persona_id else None,
-            f"- name: {name}" if name else None,
-            f"- headline: {headline}" if headline else None,
-            f"- systemPrompt: {prompt_part}" if prompt_part else None,
-            f"- profile: {profile_json}" if profile_json else None,
-            _persona_policy_instruction(persona),
-            "INSTRUCTION: Execute the task as if you were this persona. Base choices, attention, and actions on the persona context above.",
-        ]
-        text = "\n".join([p for p in parts if p])
-        return (text.strip() + "\n\n") if text.strip() else ""
-    except Exception:
-        return ""
-
-
-def _text_blob_from_persona(persona: dict[str, Any]) -> str:
-    """Create a single text blob from persona fields for keyword scoring."""
-    chunks: list[str] = []
-    for k in ("name", "headline", "systemPrompt"):
-        v = persona.get(k)
-        if isinstance(v, str) and v.strip():
-            chunks.append(v.strip())
-    profile = persona.get("profile")
-    if isinstance(profile, dict):
-        for k in ("bio", "values", "interests", "traits", "painPoints", "goals", "communicationStyle", "location"):
-            v = profile.get(k)
-            if isinstance(v, str) and v.strip():
-                chunks.append(v.strip())
-            elif isinstance(v, list):
-                chunks.extend([str(x).strip() for x in v if str(x).strip()])
-            elif isinstance(v, dict):
-                try:
-                    chunks.append(json.dumps(v, ensure_ascii=False))
-                except Exception:
-                    pass
-    return "\n".join(chunks).lower()
-
-
-def _score_keywords(text: str, positives: list[str], negatives: list[str] | None = None) -> float:
-    """
-    Very small deterministic heuristic score in [0,1].
-    positives increase score, negatives decrease score.
-    """
-    if not text:
-        return 0.5
-    pos = sum(1 for w in positives if w in text)
-    neg = sum(1 for w in (negatives or []) if w in text)
-    raw = pos - neg
-    # squash into [0,1] without needing numpy
-    if raw >= 4:
-        return 1.0
-    if raw <= -4:
-        return 0.0
-    return max(0.0, min(1.0, 0.5 + (raw * 0.12)))
-
-
-def _persona_policy(persona: dict[str, Any] | None) -> dict[str, Any]:
-    """
-    Derive a navigation behavior policy from persona context.
-    Dimensions are intentionally coarse but actionable for navigation choices.
-    """
-    if not persona or not isinstance(persona, dict):
-        return {
-            "dimensions": {
-                "risk_aversion": 0.5,
-                "time_pressure": 0.5,
-                "exploration": 0.5,
-                "detail_orientation": 0.5,
-                "trust_skepticism": 0.5,
-                "accessibility_need": 0.5,
-            },
-            "heuristics": [],
-        }
-
-    text = _text_blob_from_persona(persona)
-
-    risk_aversion = _score_keywords(
-        text,
-        positives=["vorsichtig", "risk", "risiko", "sicher", "sicherheit", "skept", "misstrau", "datenschutz", "privacy", "vermeidet", "genau", "gründlich"],
-        negatives=["mutig", "experimentier", "impuls", "spontan", "draufgänger"],
-    )
-    time_pressure = _score_keywords(
-        text,
-        positives=["schnell", "zeitdruck", "effizient", "kurz", "sofort", "dringend", "quick", "fast"],
-        negatives=["geduldig", "in ruhe", "ausführlich", "genießen", "entspannt", "slow"],
-    )
-    exploration = _score_keywords(
-        text,
-        positives=["neugierig", "entdecken", "explor", "inspir", "stöbern", "ausprobieren", "varianten", "vergleich"],
-        negatives=["ziel", "goal", "fokuss", "direkt", "straight", "nur das nötigste"],
-    )
-    detail_orientation = _score_keywords(
-        text,
-        positives=["detail", "zahlen", "daten", "spezifikation", "belege", "fakten", "gründlich", "analyse", "vergleich", "kriterien"],
-        negatives=["oberflächlich", "gefühlt", "intuition", "kurz"],
-    )
-    trust_skepticism = _score_keywords(
-        text,
-        positives=["skept", "misstrau", "nachweis", "quelle", "bewertungen", "reviews", "garantie", "agb", "bedingungen", "impressum"],
-        negatives=["vertrau", "markenloyal", "loyal", "fan"],
-    )
-    accessibility_need = _score_keywords(
-        text,
-        positives=["barriere", "accessib", "screenreader", "seh", "hör", "motor", "einfach", "klar", "groß", "kontrast"],
-        negatives=["egal", "unwichtig"],
-    )
-
-    dims = {
-        "risk_aversion": round(risk_aversion, 2),
-        "time_pressure": round(time_pressure, 2),
-        "exploration": round(exploration, 2),
-        "detail_orientation": round(detail_orientation, 2),
-        "trust_skepticism": round(trust_skepticism, 2),
-        "accessibility_need": round(accessibility_need, 2),
-    }
-
-    heuristics: list[str] = []
-    # Risk aversion
-    if risk_aversion >= 0.66:
-        heuristics.append("Prefer official navigation (menu/footer) over ads or unknown external links.")
-        heuristics.append("Avoid suspicious popups; dismiss cookie banners safely; do not sign up unless required.")
-    elif risk_aversion <= 0.34:
-        heuristics.append("Willing to try alternative paths quickly if the first route is blocked.")
-
-    # Time pressure
-    if time_pressure >= 0.66:
-        heuristics.append("Optimize for speed: use site search, direct model pages, and shortest path to the answer.")
-    elif time_pressure <= 0.34:
-        heuristics.append("Take time to scan the page; read labels carefully before clicking.")
-
-    # Exploration vs goal-driven
-    if exploration >= 0.66:
-        heuristics.append("Explore 2–3 candidate paths before committing; compare options.")
-    elif exploration <= 0.34:
-        heuristics.append("Stay goal-driven: pick one most likely path and follow it end-to-end.")
-
-    # Detail orientation
-    if detail_orientation >= 0.66:
-        heuristics.append("Prefer detailed sources (spec sheets, configurator, FAQs) over marketing pages.")
-    elif detail_orientation <= 0.34:
-        heuristics.append("Prefer summaries; avoid deep dives unless necessary.")
-
-    # Trust / skepticism
-    if trust_skepticism >= 0.66:
-        heuristics.append("Verify claims via official pages and cross-check key facts when possible.")
-
-    # Accessibility
-    if accessibility_need >= 0.66:
-        heuristics.append("Prefer simple flows, high-contrast pages, and avoid complex interactions when alternatives exist.")
-
-    return {"dimensions": dims, "heuristics": heuristics[:12]}
-
-
-def _persona_policy_instruction(persona: dict[str, Any] | None) -> str:
-    """
-    Insert a concise, actionable policy into the prompt to cause *behavioral* differences
-    in navigation based on persona psychology.
-    """
-    policy = _persona_policy(persona)
-    dims = policy.get("dimensions") if isinstance(policy, dict) else None
-    heuristics = policy.get("heuristics") if isinstance(policy, dict) else None
-    if not isinstance(dims, dict):
-        return ""
-
-    dim_line = ", ".join([f"{k}={dims.get(k)}" for k in ("risk_aversion", "time_pressure", "exploration", "detail_orientation", "trust_skepticism", "accessibility_need")])
-    hs = [h for h in (heuristics or []) if isinstance(h, str) and h.strip()]
-    hs = hs[:8]
-    hs_block = "\n".join([f"- {h}" for h in hs]) if hs else ""
-
-    return (
-        "PERSONA_BEHAVIOR_POLICY:\n"
-        f"- dimensions: {dim_line}\n"
-        + ("- navigation_heuristics:\n" + hs_block + "\n" if hs_block else "")
-        + "INSTRUCTION: When choosing actions, explicitly let the policy influence your choices. In your thinking, mention which dimension(s) drove the decision (e.g., risk_aversion, time_pressure).\n"
-    )
+        return policy.model_dump(by_alias=False)
+    except Exception:  # pragma: no cover - defensive
+        return None
 
 
 def _smart_trim(text: str, *, limit: int, soft_floor_ratio: float = 0.6) -> str:
@@ -1292,8 +1107,12 @@ async def run_agent(
             f"WICHTIG: Beende NICHT vor mindestens {min_steps} Schritten. Wenn das Ziel früher erreicht wirkt, nutze die restlichen Schritte für "
             "Validierung (zurück/nach vorne, alternative Navigation, erneute Sichtprüfung), statt zu stoppen. "
         )
-        persona_instr = _persona_instruction(persona)
-        task_with_lang = german_instruction + persona_instr + task
+        # Persona moved out of the task prompt: with checkion-agent Phase 2,
+        # `Agent(persona=...)` accepts the typed/dict payload and merges it
+        # into `extend_system_message`, so the persona block lives in the
+        # *system* prompt (sent every step) instead of the task (sent once).
+        # See checkion-agent/checkion_agent/agent/persona.py for the renderer.
+        task_with_lang = german_instruction + task
         # Per-request override (from chat-api / direct callers) wins over the
         # process-wide env default. Hard cap is configurable via
         # ``UX_JOURNEY_MAX_STEPS_CAP`` (default 150) so deep journeys don't
@@ -1314,6 +1133,13 @@ async def run_agent(
         else:
             max_steps = max(3, min(max_steps_cap, env_default_max_steps))
         agent_kw: dict[str, Any] = {"task": task_with_lang, "llm": llm, "browser": browser}
+        # checkion-agent Phase 2: hand the typed persona to the Agent. The fork
+        # accepts a dict and coerces it via PersonaContext.coerce(); fields it
+        # doesn't understand are ignored. We pass it whenever the constructor
+        # accepts the kwarg (or **kwargs) so the same code path keeps working
+        # if checkion-agent ever drops the parameter.
+        if persona and isinstance(persona, dict) and _agent_init_accepts_named_arg(sig, "persona"):
+            agent_kw["persona"] = persona
         # Cross-provider fallback so a single bad AgentOutput from the primary
         # (e.g. Claude returning `action` as a JSON-encoded string instead of a
         # list — Pydantic rejects it) can switch to the other provider.  We must
@@ -1361,44 +1187,9 @@ async def run_agent(
             f"ux-journey: job={job_id} primary={primary_label} fallback_llm={fallback_status}",
             flush=True,
         )
-        # Persona snapshot: confirms the persona context is actually reaching the
-        # agent and shows the *derived* behavior policy that gets injected into
-        # the prompt. Useful when debugging "is the agent actually role-playing
-        # the persona?" — if dimensions are all 0.5 the persona text was too
-        # generic for keyword scoring; if heuristics=0 the agent will fall back
-        # to neutral navigation.
-        try:
-            if isinstance(persona, dict) and persona:
-                pname = str(persona.get("name") or "").strip() or "(unnamed)"
-                pid = str(persona.get("id") or "").strip() or "(no-id)"
-                policy = _persona_policy(persona)
-                dims = policy.get("dimensions") if isinstance(policy, dict) else {}
-                hs = policy.get("heuristics") if isinstance(policy, dict) else []
-                dim_summary = " ".join(
-                    f"{k.split('_')[0]}={dims.get(k):.2f}"
-                    for k in (
-                        "risk_aversion",
-                        "time_pressure",
-                        "exploration",
-                        "detail_orientation",
-                        "trust_skepticism",
-                        "accessibility_need",
-                    )
-                    if isinstance(dims.get(k), (int, float))
-                )
-                print(
-                    f"ux-journey: job={job_id} persona=\"{pname}\" id={pid} "
-                    f"dimensions=[{dim_summary}] heuristics={len(hs) if isinstance(hs, list) else 0}",
-                    flush=True,
-                )
-            else:
-                print(
-                    f"ux-journey: job={job_id} persona=<none> (no persona context received — "
-                    f"agent runs as neutral default user)",
-                    flush=True,
-                )
-        except Exception as exc:  # pragma: no cover - logging must not break runs
-            print(f"ux-journey: job={job_id} persona logging failed: {exc!r}", flush=True)
+        # Persona logging is now done *after* the Agent is constructed, so we
+        # can read the canonical PersonaPolicy that the fork derived (instead
+        # of re-deriving it locally). See _log_persona_snapshot() below.
         # Allow operators to widen browser-use's default retry budget for
         # transient AgentOutput validation hiccups (default 6). Useful when
         # the primary occasionally serialises `action` as a JSON-string for
@@ -1445,6 +1236,50 @@ async def run_agent(
             agent.max_steps = max_steps
         elif hasattr(agent, "max_actions"):
             agent.max_actions = max_steps
+
+        # Persona snapshot: read the canonical PersonaPolicy that the fork
+        # derived from the persona record. Useful when debugging "is the agent
+        # actually role-playing the persona?" — if dimensions are all 0.5 the
+        # persona text was too generic for keyword scoring; if heuristics=0 the
+        # agent falls back to neutral navigation. With checkion-agent < Phase 2
+        # (or when CHECKION_AGENT_PERSONA_INSTRUCTIONS=0) the attributes don't
+        # exist, so we fall back gracefully.
+        try:
+            agent_persona = getattr(agent, "persona", None)
+            agent_policy = getattr(agent, "persona_policy", None)
+            if agent_persona is not None and agent_policy is not None:
+                pname = (getattr(agent_persona, "name", None) or "").strip() or "(unnamed)"
+                pid = (getattr(agent_persona, "id", None) or "").strip() or "(no-id)"
+                dims_obj = getattr(agent_policy, "dimensions", None)
+                hs = getattr(agent_policy, "heuristics", None) or []
+                if dims_obj is not None:
+                    dim_summary = " ".join(
+                        f"{k.split('_')[0]}={getattr(dims_obj, k):.2f}"
+                        for k in (
+                            "risk_aversion",
+                            "time_pressure",
+                            "exploration",
+                            "detail_orientation",
+                            "trust_skepticism",
+                            "accessibility_need",
+                        )
+                        if hasattr(dims_obj, k)
+                    )
+                else:
+                    dim_summary = "(no dimensions)"
+                print(
+                    f"ux-journey: job={job_id} persona=\"{pname}\" id={pid} "
+                    f"dimensions=[{dim_summary}] heuristics={len(hs)}",
+                    flush=True,
+                )
+            else:
+                print(
+                    f"ux-journey: job={job_id} persona=<none> (no persona context received — "
+                    f"agent runs as neutral default user)",
+                    flush=True,
+                )
+        except Exception as exc:  # pragma: no cover - logging must not break runs
+            print(f"ux-journey: job={job_id} persona logging failed: {exc!r}", flush=True)
         # Some browser-use builds only expose max_failures as an attribute,
         # not a constructor kwarg — set it after construction as a fallback.
         if max_failures_env > 0 and hasattr(agent, "max_failures"):
@@ -1671,7 +1506,7 @@ async def run_agent(
             "success": success,
             "screenshots": screenshots[:50],
             "llm": _llm_meta(),
-            "personaPolicy": _persona_policy(persona),
+            "personaPolicy": _persona_policy_dump(agent),
         }
         if persona and isinstance(persona, dict):
             result["persona"] = {
