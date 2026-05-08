@@ -200,53 +200,60 @@ def _repair_ai_message(msg: Any) -> Any:
         return msg
 
 
-class _RepairingLLMWrapper:
+class _RepairingChatModelMeta(type):
+    """No-op marker metaclass; lets us cache subclasses keyed on the original."""
+
+
+_REPAIR_SUBCLASS_CACHE: dict[type, type] = {}
+
+
+def _build_repairing_chat_model_subclass(base: type) -> type:
     """
-    Delegates to a browser-use / LangChain chat model and post-processes assistant
-    messages so malformed AgentOutput JSON has a chance to pass validation.
+    Build (and cache) a subclass of ``base`` whose ``ainvoke``/``invoke`` post-process
+    the returned assistant message with `_repair_ai_message`. Stays a real subclass so
+    ``isinstance(llm, base)`` checks and Pydantic schema discovery keep working.
     """
+    cached = _REPAIR_SUBCLASS_CACHE.get(base)
+    if cached is not None:
+        return cached
+    base_ainvoke = getattr(base, "ainvoke", None)
+    base_invoke = getattr(base, "invoke", None)
 
-    __slots__ = ("_inner",)
-
-    def __init__(self, inner: Any) -> None:
-        object.__setattr__(self, "_inner", inner)
-
-    def __getattr__(self, name: str) -> Any:
-        return getattr(object.__getattribute__(self, "_inner"), name)
-
-    def __setattr__(self, name: str, value: Any) -> None:
-        if name == "_inner":
-            object.__setattr__(self, name, value)
-        else:
-            setattr(object.__getattribute__(self, "_inner"), name, value)
-
-    async def ainvoke(self, *args: Any, **kwargs: Any) -> Any:
-        inner = object.__getattribute__(self, "_inner")
-        ainvoke_fn = getattr(inner, "ainvoke", None)
-        if ainvoke_fn is not None:
-            msg = await ainvoke_fn(*args, **kwargs)
-        else:
-            import asyncio
-
-            invoke_sync = getattr(inner, "invoke", None)
-            if invoke_sync is None:
-                raise RuntimeError("inner LLM has neither ainvoke() nor invoke()")
-            msg = await asyncio.to_thread(invoke_sync, *args, **kwargs)
+    async def _ainvoke(self: Any, *args: Any, **kwargs: Any) -> Any:
+        if base_ainvoke is None:
+            raise RuntimeError(f"{base.__name__} has no ainvoke()")
+        msg = await base_ainvoke(self, *args, **kwargs)
         return _repair_ai_message(msg)
 
-    def invoke(self, *args: Any, **kwargs: Any) -> Any:
-        inner = object.__getattribute__(self, "_inner")
-        fn = getattr(inner, "invoke", None)
-        if fn is None:
-            raise RuntimeError("inner LLM has no invoke()")
-        msg = fn(*args, **kwargs)
+    def _invoke(self: Any, *args: Any, **kwargs: Any) -> Any:
+        if base_invoke is None:
+            raise RuntimeError(f"{base.__name__} has no invoke()")
+        msg = base_invoke(self, *args, **kwargs)
         return _repair_ai_message(msg)
 
+    namespace: dict[str, Any] = {
+        "ainvoke": _ainvoke,
+        "invoke": _invoke,
+        "__module__": __name__,
+        "__qualname__": f"{base.__name__}WithJSONRepair",
+        "_ux_journey_json_repair_active": True,
+    }
+    subclass = _RepairingChatModelMeta(  # type: ignore[misc]
+        f"{base.__name__}WithJSONRepair", (base,), namespace
+    )
+    _REPAIR_SUBCLASS_CACHE[base] = subclass
+    return subclass
 
-def _maybe_wrap_llm_repair(llm: Any) -> Any:
-    if not _llm_repair_json_enabled() or llm is None:
-        return llm
-    return _RepairingLLMWrapper(llm)
+
+def _maybe_wrap_llm_class(base: type) -> type:
+    """Return ``base`` (or a JSON-repairing subclass) depending on the env flag."""
+    if not _llm_repair_json_enabled():
+        return base
+    try:
+        return _build_repairing_chat_model_subclass(base)
+    except Exception as exc:  # pragma: no cover - defensive
+        print(f"ux-journey: LLM JSON repair subclass build failed: {exc!r}", flush=True)
+        return base
 
 # Base pacing (seconds). Effective waits = these × UX_JOURNEY_SLOWMO. Defaults are tuned for readable video without extra env.
 STEP_START_DELAY_SECONDS = float(os.environ.get("UX_JOURNEY_STEP_START_DELAY_SECONDS", "3.5"))
@@ -346,12 +353,12 @@ def _build_anthropic_llm():
         max_tokens = int(os.environ.get("UX_JOURNEY_CLAUDE_MAX_TOKENS", "16384"))
     except ValueError:
         max_tokens = 16384
-    llm = ChatAnthropic(
+    cls = _maybe_wrap_llm_class(ChatAnthropic)
+    return cls(
         model=os.environ.get("UX_JOURNEY_CLAUDE_MODEL", "claude-sonnet-4-6"),
         temperature=0,
         max_tokens=max_tokens,
     )
-    return _maybe_wrap_llm_repair(llm)
 
 
 def _build_openai_llm():
@@ -369,11 +376,11 @@ def _build_openai_llm():
     # output for the AgentOutput schema. Operators who want to test a newer
     # model can override via `UX_JOURNEY_OPENAI_MODEL` (e.g. `gpt-5.4-mini`,
     # `gpt-5.4-nano`, `gpt-5.4`, `gpt-5.5`).
-    llm = ChatOpenAI(
+    cls = _maybe_wrap_llm_class(ChatOpenAI)
+    return cls(
         model=os.environ.get("UX_JOURNEY_OPENAI_MODEL", "gpt-4o"),
         temperature=0,
     )
-    return _maybe_wrap_llm_repair(llm)
 
 
 def _make_llm():
