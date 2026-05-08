@@ -1557,6 +1557,44 @@ async def run_agent(
             f"ux-journey: job={job_id} primary={primary_label} fallback_llm={fallback_status}",
             flush=True,
         )
+        # Persona snapshot: confirms the persona context is actually reaching the
+        # agent and shows the *derived* behavior policy that gets injected into
+        # the prompt. Useful when debugging "is the agent actually role-playing
+        # the persona?" — if dimensions are all 0.5 the persona text was too
+        # generic for keyword scoring; if heuristics=0 the agent will fall back
+        # to neutral navigation.
+        try:
+            if isinstance(persona, dict) and persona:
+                pname = str(persona.get("name") or "").strip() or "(unnamed)"
+                pid = str(persona.get("id") or "").strip() or "(no-id)"
+                policy = _persona_policy(persona)
+                dims = policy.get("dimensions") if isinstance(policy, dict) else {}
+                hs = policy.get("heuristics") if isinstance(policy, dict) else []
+                dim_summary = " ".join(
+                    f"{k.split('_')[0]}={dims.get(k):.2f}"
+                    for k in (
+                        "risk_aversion",
+                        "time_pressure",
+                        "exploration",
+                        "detail_orientation",
+                        "trust_skepticism",
+                        "accessibility_need",
+                    )
+                    if isinstance(dims.get(k), (int, float))
+                )
+                print(
+                    f"ux-journey: job={job_id} persona=\"{pname}\" id={pid} "
+                    f"dimensions=[{dim_summary}] heuristics={len(hs) if isinstance(hs, list) else 0}",
+                    flush=True,
+                )
+            else:
+                print(
+                    f"ux-journey: job={job_id} persona=<none> (no persona context received — "
+                    f"agent runs as neutral default user)",
+                    flush=True,
+                )
+        except Exception as exc:  # pragma: no cover - logging must not break runs
+            print(f"ux-journey: job={job_id} persona logging failed: {exc!r}", flush=True)
         # Allow operators to widen browser-use's default retry budget for
         # transient AgentOutput validation hiccups (default 6). Useful when
         # the primary occasionally serialises `action` as a JSON-string for
