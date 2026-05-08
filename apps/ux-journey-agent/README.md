@@ -25,6 +25,7 @@ Browser agent service for CHECKION: runs autonomous navigation tasks (URL + natu
 | `UX_JOURNEY_STEP_DELAY_SECONDS` | no | Base tail pause after step (default **3.0** s, then × slowmo) |
 | `UX_JOURNEY_CLICK_CIRCLE_VISIBLE_SECONDS` | no | Base click-ring visibility (default **3.5** s, then × slowmo) |
 | `UX_JOURNEY_SCROLL_VISIBLE_SECONDS` | no | Base slow-scroll duration per direction (default **7.0** s, then × slowmo) |
+| `UX_JOURNEY_VIDEO_SLOWDOWN_FACTOR` | no | Final-video slow-motion multiplier applied during the smooth-MP4 transcode via ffmpeg `setpts=N*PTS` (default **`8`** = play back at 1/8 real-time speed). Slows the saved recording without affecting the agent's actual run time. Clamped 1..16; `1` disables the filter. |
 | `UX_JOURNEY_LIVE_FRAME_INTERVAL` | no | Seconds between live/MJPEG frames (default 0.04 = 25 fps). Lower value = higher fps. |
 | `PORT` | no | HTTP port (default 8320) |
 

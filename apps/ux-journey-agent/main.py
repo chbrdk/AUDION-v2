@@ -1450,6 +1450,30 @@ VIDEO_TRANSCODE_DISABLED = (
     os.environ.get("UX_JOURNEY_VIDEO_TRANSCODE", "1").strip().lower() in ("0", "false", "no")
 )
 
+# Final video slow-motion factor applied during the smooth-MP4 transcode.
+# Multiplies presentation timestamps via ffmpeg `setpts=N*PTS`, which makes the
+# saved recording play back at 1/N of real-time speed *without* affecting how
+# fast the agent actually drove the browser. A factor of 8 turns a 30-second
+# raw run into a 4-minute review video where every page load, scroll, click
+# overlay and transition is visible at a calm pace. Clamped 1..16: at 1.0 the
+# filter is skipped entirely (free no-op); above 16 the file just becomes
+# tedious to scrub through.
+def _parse_slowdown_factor(raw: str | None) -> float:
+    try:
+        n = float(raw) if raw not in (None, "") else 8.0
+    except (TypeError, ValueError):
+        n = 8.0
+    if n < 1.0:
+        return 1.0
+    if n > 16.0:
+        return 16.0
+    return n
+
+
+VIDEO_SLOWDOWN_FACTOR = _parse_slowdown_factor(
+    os.environ.get("UX_JOURNEY_VIDEO_SLOWDOWN_FACTOR")
+)
+
 
 async def _finalize_video(*, job_id: str, source_path: str) -> None:
     """
@@ -1504,12 +1528,23 @@ async def _transcode_to_smooth_mp4(src: Path, dest: Path) -> bool:
     if shutil.which("ffmpeg") is None:
         return False
     dest.parent.mkdir(parents=True, exist_ok=True)
+    # Build the video filter chain. With `VIDEO_SLOWDOWN_FACTOR > 1` we prepend
+    # `setpts=N*PTS` which stretches presentation timestamps so the entire clip
+    # plays back at 1/N speed. We then re-sample to the target fps so frames
+    # get duplicated smoothly (instead of leaving a jittery low-fps stream).
+    if VIDEO_SLOWDOWN_FACTOR > 1.0:
+        vf = (
+            f"setpts={VIDEO_SLOWDOWN_FACTOR:.4f}*PTS,"
+            f"fps={VIDEO_TRANSCODE_FPS},format=yuv420p"
+        )
+    else:
+        vf = f"fps={VIDEO_TRANSCODE_FPS},format=yuv420p"
     cmd = [
         "ffmpeg",
         "-y",
         "-loglevel", "error",
         "-i", str(src),
-        "-vf", f"fps={VIDEO_TRANSCODE_FPS},format=yuv420p",
+        "-vf", vf,
         "-c:v", "libx264",
         "-preset", VIDEO_TRANSCODE_PRESET,
         "-crf", str(VIDEO_TRANSCODE_CRF),
