@@ -522,8 +522,12 @@ def _normalize_action_entry(entry: Any) -> tuple[str, str, str]:
     # exception is the final `done` step whose `text` IS the LLM's per-journey
     # summary — the prompt now constrains it to ~4 sentences / 6 bullets, but
     # we still safety-net it here. `_smart_trim` keeps word boundaries.
-    INTERMEDIATE_RESULT_CAP = 220   # status strings — short on purpose
-    DONE_RESULT_CAP = 600            # final summary — fits the card without scrolling
+    # Caps were bumped after observing that 220/600 cut legitimate fact-dense
+    # results (page-content snippets browser-use captured, multi-line success
+    # confirmations, etc.). New values still keep the cards readable but stop
+    # truncating mid-list.
+    INTERMEDIATE_RESULT_CAP = 480   # browser-use status messages occasionally include captured page content
+    DONE_RESULT_CAP = 1200           # final summary — multi-paragraph + bullet lists fit cleanly
     if not isinstance(raw, dict):
         # May be an object with __dict__ or attributes
         res = getattr(raw, "result", None) or ""
@@ -616,27 +620,33 @@ def _history_to_steps(history: Any) -> list[dict[str, Any]]:
             if i < len(thoughts):
                 thinking = str(thoughts[i].get("thinking") or "").strip()
                 if thinking:
-                    # Server-side safety net for `thinking`. The prompt asks for
-                    # ~280 chars; we accept up to ~320 to avoid clipping a
-                    # legitimate well-formed 2-sentence answer, but anything
-                    # beyond that is monologue and gets `…`.
-                    step_entry["reasoning"] = _smart_trim(thinking, limit=320)
+                    # Server-side safety net for `thinking`. Generous so we only
+                    # trip on real LLM monologues (>3–4 sentences), not on
+                    # legitimate dense reasoning. The prompt does the actual
+                    # brevity work; this is just a guardrail.
+                    step_entry["reasoning"] = _smart_trim(thinking, limit=600)
                 structured = thoughts[i].get("structured")
                 if isinstance(structured, dict) and any(str(v or "").strip() for v in structured.values()):
-                    # The three structured sections each render as their own
-                    # accordion in the card UI. Caps mirror the per-field
-                    # brevity rule in the prompt with a small ~15% buffer so
-                    # we don't punish slightly-over-budget but still well-formed
-                    # outputs.
+                    # Caps for the structured sections. Earlier we used 140–180
+                    # which was clipping legitimate fact-dense content (specs,
+                    # dimensions, element IDs the LLM stored for re-use). New
+                    # values give the LLM enough room to capture concrete
+                    # evidence without surrendering "Card stays compact" —
+                    # all three render as their own accordion that the user
+                    # opens on demand.
                     step_entry["reasoningMeta"] = {
                         "evaluation_previous_goal": _smart_trim(
-                            str(structured.get("evaluation_previous_goal") or ""), limit=160
+                            str(structured.get("evaluation_previous_goal") or ""), limit=420
                         ) or None,
+                        # Memory is the most info-dense field by design — it
+                        # accumulates reusable facts across steps. We give it
+                        # the most headroom so spec sheets / dimensions / IDs
+                        # never get truncated mid-list.
                         "memory": _smart_trim(
-                            str(structured.get("memory") or ""), limit=180
+                            str(structured.get("memory") or ""), limit=720
                         ) or None,
                         "next_goal": _smart_trim(
-                            str(structured.get("next_goal") or ""), limit=160
+                            str(structured.get("next_goal") or ""), limit=360
                         ) or None,
                     }
             steps.append(step_entry)
@@ -1124,19 +1134,20 @@ async def run_agent(
             # Risiko-Abwägung). Im Card-UI ist davon nur das Pointierte nützlich —
             # alles andere macht die Accordion-Tiles unnötig hoch und treibt die
             # Output-Tokens (= Latenz pro Step).
-            "WICHTIG: Halte ALLE Reasoning-Felder kompakt und ohne Wiederholung. "
-            "Konkret pro Feld:\n"
-            "- 'thinking': max. 2 Sätze, ~280 Zeichen. Format "
+            "WICHTIG: Halte ALLE Reasoning-Felder KOMPAKT und ohne Wiederholung — aber NIE auf Kosten konkreter Fakten. "
+            "Wenn du Specs (Zahlen, Maße, IDs, URLs) nennst, sind die wichtiger als Brevity: lieber den vollständigen "
+            "Fakten-Satz, als ihn mitten in einer Aufzählung abbrechen. Konkret pro Feld:\n"
+            "- 'thinking': 1–3 knackige Sätze. Format "
             "'<beobachtung in halbsatz> → <handlung+begründung in halbsatz>'. "
             "Kein 'Ich sehe…'/'Ich beobachte…'-Geplauder.\n"
-            "- 'evaluation_previous_goal': 1 Satz, ~140 Zeichen. Knappe Bewertung wie "
-            "'Erfolgreich: Cookie-Banner geschlossen' oder 'Teilweise: Suche zeigt 0 Treffer'. "
+            "- 'evaluation_previous_goal': 1–2 Sätze. Knappe Bewertung wie "
+            "'Erfolgreich: Cookie-Banner geschlossen' oder 'Teilweise: Suche zeigt 0 Treffer, Filter werden ignoriert'. "
             "Keine erneute Beschreibung der Aktion.\n"
-            "- 'memory': 1 Satz mit den wichtigsten Fakten für spätere Schritte, ~160 Zeichen. "
+            "- 'memory': Konkrete Fakten für spätere Schritte (1–3 Sätze), inkl. Zahlen/Maße/IDs wenn relevant. "
             "Nur neue/relevante Erkenntnisse — KEIN Aufzählen aller bisherigen Schritte. "
             "Kein Floskel-Auftakt wie 'Bisher habe ich…'.\n"
-            "- 'next_goal': 1 Satz, ~140 Zeichen. Konkretes nächstes Ziel + ggf. erwartetes Element, "
-            "z.B. 'Auf Service-Tab klicken, um Leistungen zu sehen'. Keine Begründung mit 3 Alternativen.\n"
+            "- 'next_goal': 1–2 Sätze. Konkretes nächstes Ziel + erwartetes Element/Selektor, "
+            "z.B. 'Auf Service-Tab klicken (Index 12), um Leistungen zu sehen'. Keine Begründung mit 3 Alternativen.\n"
             "- 'done.text' (Final-Resultat): max. 4 kurze Sätze oder 6 Bulletpoints. "
             "Fakten-fokussiert: Was wurde wirklich gesehen/gefunden, was nicht. Keine Zusammenfassung der Schritt-Reihenfolge — "
             "nur das, was die Persona aus dem Besuch mitnimmt.\n"
@@ -1148,8 +1159,8 @@ async def run_agent(
             "WICHTIG: Schreibe in ALLEN Feldern vollständige, abgeschlossene Sätze. "
             "Verwende NIEMALS '…', '...', 'etc.', 'usw.', 'u. a.', 'und mehr' oder ähnliche Auslassungs-Marker als Platzhalter "
             "für unausgesprochene Inhalte. Wenn du Beispiele aufzählst, nenne 2–3 KONKRETE Beispiele "
-            "(z. B. 'Automotive, Manufacturing, FinServ') — sonst lass die Aufzählung weg. "
-            "Falls dir das Zeichenbudget knapp wird, kürze stattdessen die Begründung oder lasse den Persona-Bezug weg. "
+            "(z. B. 'Automotive, Manufacturing, FinServ') oder lass die Aufzählung weg. "
+            "Falls dir der Inhalt zu lang würde, kürze die Begründung oder den Persona-Bezug — aber NIE die konkreten Fakten. "
             "WICHTIG: Beende die Journey NICHT zu früh. Markiere erst dann als 'done'/'fertig', wenn du das Ziel wirklich erreicht hast "
             "UND es anhand sichtbarer UI-Indikatoren verifiziert hast (z.B. Bestätigungsseite, eindeutiger State, URL, Erfolgsmeldung). "
             f"WICHTIG: Beende NICHT vor mindestens {min_steps} Schritten. Wenn das Ziel früher erreicht wirkt, nutze die restlichen Schritte für "
