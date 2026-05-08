@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import glob
+import hashlib
 import inspect
 import json
 import os
@@ -2037,6 +2038,14 @@ async def run_agent(
                 "videoCompoundSlowmo": UX_JOURNEY_VIDEO_COMPOUND_SLOWMO,
                 "effectiveVideoSlowdown": _effective_transcode_slowdown(),
                 "lowerThirdBurnIn": UX_JOURNEY_VIDEO_LOWER_THIRD,
+                "voiceoverEnabled": (
+                    UX_JOURNEY_VIDEO_VOICEOVER
+                    and bool(os.environ.get("OPENAI_API_KEY"))
+                ),
+                "voiceoverModel": UX_JOURNEY_VOICEOVER_MODEL,
+                "voiceoverVoice": UX_JOURNEY_VOICEOVER_VOICE,
+                "voiceoverLang": UX_JOURNEY_VOICEOVER_LANG,
+                "voiceoverMaxTempo": UX_JOURNEY_VOICEOVER_MAX_TEMPO,
             },
         }
         if persona and isinstance(persona, dict):
@@ -2146,6 +2155,41 @@ UX_JOURNEY_VIDEO_COMPOUND_SLOWMO = _env_truthy("UX_JOURNEY_VIDEO_COMPOUND_SLOWMO
 # Burn per-step reasoning into the polished MP4 (ASS subtitles in lower third).
 UX_JOURNEY_VIDEO_LOWER_THIRD = _env_truthy("UX_JOURNEY_VIDEO_LOWER_THIRD", "1")
 
+# Voice-over: synthesise the same per-step text via OpenAI TTS at finalize time
+# and mix it into the polished MP4 with `adelay` + `amix`. Delay per clip is
+# `videoOffsetSec × effectiveSlowdown × 1000` ms — identical timing math to the
+# lower-third subs, so audio and burnt text track the *same* moment in the
+# slowed export. We only enable this when an `OPENAI_API_KEY` is present (the
+# TTS endpoint requires it); the env flag is the explicit kill switch.
+UX_JOURNEY_VIDEO_VOICEOVER = _env_truthy("UX_JOURNEY_VIDEO_VOICEOVER", "1")
+# `gpt-4o-mini-tts` is the current cheap-but-good model; `tts-1` works as a
+# fallback if the operator pins an older API key.
+UX_JOURNEY_VOICEOVER_MODEL = os.environ.get("UX_JOURNEY_VOICEOVER_MODEL", "gpt-4o-mini-tts")
+UX_JOURNEY_VOICEOVER_VOICE = os.environ.get("UX_JOURNEY_VOICEOVER_VOICE", "alloy")
+UX_JOURNEY_VOICEOVER_LANG = os.environ.get("UX_JOURNEY_VOICEOVER_LANG", "de")
+try:
+    UX_JOURNEY_VOICEOVER_MAX_CHARS = max(40, int(os.environ.get("UX_JOURNEY_VOICEOVER_MAX_CHARS", "220") or "220"))
+except ValueError:
+    UX_JOURNEY_VOICEOVER_MAX_CHARS = 220
+try:
+    # Single `atempo` filter accepts 0.5..2.0; we keep things conservative so
+    # the synthesised speech still sounds natural even when fitted into a tight slot.
+    UX_JOURNEY_VOICEOVER_MAX_TEMPO = max(1.0, min(1.8, float(os.environ.get("UX_JOURNEY_VOICEOVER_MAX_TEMPO", "1.4") or "1.4")))
+except ValueError:
+    UX_JOURNEY_VOICEOVER_MAX_TEMPO = 1.4
+try:
+    UX_JOURNEY_VOICEOVER_CONCURRENCY = max(1, min(16, int(os.environ.get("UX_JOURNEY_VOICEOVER_CONCURRENCY", "6") or "6")))
+except ValueError:
+    UX_JOURNEY_VOICEOVER_CONCURRENCY = 6
+# Minimum gap (sec, output timeline) we leave between consecutive voice clips so
+# the next thought doesn't crash into the previous one even when atempo is at the cap.
+try:
+    UX_JOURNEY_VOICEOVER_MIN_GAP_SEC = max(0.0, float(os.environ.get("UX_JOURNEY_VOICEOVER_MIN_GAP_SEC", "0.25") or "0.25"))
+except ValueError:
+    UX_JOURNEY_VOICEOVER_MIN_GAP_SEC = 0.25
+# Per-job count (set during finalize); surfaced as forkHooks/diagnostics.
+_voiceover_clip_counts: dict[str, int] = {}
+
 
 def _effective_transcode_slowdown() -> float:
     base = float(VIDEO_SLOWDOWN_FACTOR)
@@ -2165,6 +2209,10 @@ print(
     f"VIDEO_EFFECTIVE_SLOWDOWN={_effective_transcode_slowdown()} "
     f"compound_slowmo={UX_JOURNEY_VIDEO_COMPOUND_SLOWMO} "
     f"lower_third={UX_JOURNEY_VIDEO_LOWER_THIRD} "
+    f"voiceover={UX_JOURNEY_VIDEO_VOICEOVER} "
+    f"voiceover_model={UX_JOURNEY_VOICEOVER_MODEL} "
+    f"voiceover_voice={UX_JOURNEY_VOICEOVER_VOICE} "
+    f"voiceover_max_tempo={UX_JOURNEY_VOICEOVER_MAX_TEMPO} "
     f"VIDEO_FPS={VIDEO_TRANSCODE_FPS} "
     f"VIDEO_TRANSCODE_DISABLED={VIDEO_TRANSCODE_DISABLED}",
     flush=True,
@@ -2235,6 +2283,231 @@ async def _finalize_video(*, job_id: str, source_path: str) -> bool:
         return False
 
 
+# ---------------------------------------------------------------------------
+# Voice-over (per-step TTS, mixed into the polished MP4 timeline)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class _VoiceoverClip:
+    """One TTS clip ready for ffmpeg's filter_complex."""
+
+    path: Path
+    delay_ms: int
+    duration_sec: float
+    tempo_applied: float  # 1.0 = unchanged, >1.0 = sped up to fit the slot
+    step_no: int
+
+
+def _voiceover_text_for_step(step: dict[str, Any], *, max_chars: int) -> str:
+    """Pick the line(s) we want spoken: same source as the lower third, capped harder
+    so synth output reliably fits the per-step slot. We prepend "Schritt N." so the
+    listener has a stable orientation even when the body is brief."""
+    body = _video_lower_third_body(step)
+    body = _smart_trim(body, limit=max_chars)
+    if not body:
+        return ""
+    step_n = step.get("step")
+    prefix = f"Schritt {int(step_n)}. " if isinstance(step_n, int) else ""
+    return (prefix + body).strip()
+
+
+def _voiceover_text_hash(text: str) -> str:
+    """Stable cache key (model + voice + lang + text). Lets `?force=1` re-finalize
+    skip TTS calls when the run produced the same per-step bodies."""
+    h = hashlib.sha256()
+    h.update(UX_JOURNEY_VOICEOVER_MODEL.encode("utf-8", errors="ignore"))
+    h.update(b"|")
+    h.update(UX_JOURNEY_VOICEOVER_VOICE.encode("utf-8", errors="ignore"))
+    h.update(b"|")
+    h.update(UX_JOURNEY_VOICEOVER_LANG.encode("utf-8", errors="ignore"))
+    h.update(b"|")
+    h.update(text.encode("utf-8", errors="ignore"))
+    return h.hexdigest()[:16]
+
+
+def _voiceover_cache_dir(job_id: str) -> Path:
+    return VIDEO_BASE_DIR / f"{job_id}-voiceover"
+
+
+async def _synthesize_one_voiceover(text: str, dest_mp3: Path) -> bool:
+    """Synthesise `text` to `dest_mp3` via OpenAI TTS. Returns True on success.
+
+    Uses the official `openai` SDK already pulled in by checkion-agent. We stream
+    the response straight to disk so big inputs don't sit in RAM.
+    """
+    api_key = (os.environ.get("OPENAI_API_KEY") or "").strip()
+    if not api_key or not text:
+        return False
+    try:
+        from openai import AsyncOpenAI  # local import: keeps cold-start cheap
+    except ImportError:
+        print("ux-journey: voiceover skipped — `openai` package not installed", flush=True)
+        return False
+
+    client = AsyncOpenAI(api_key=api_key)
+    dest_mp3.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        async with client.audio.speech.with_streaming_response.create(
+            model=UX_JOURNEY_VOICEOVER_MODEL,
+            voice=UX_JOURNEY_VOICEOVER_VOICE,
+            input=text,
+            response_format="mp3",
+        ) as response:
+            await response.stream_to_file(str(dest_mp3))
+        return dest_mp3.is_file() and dest_mp3.stat().st_size > 0
+    except Exception as exc:  # pragma: no cover - network / quota
+        print(
+            f"ux-journey: voiceover synth failed model={UX_JOURNEY_VOICEOVER_MODEL} "
+            f"voice={UX_JOURNEY_VOICEOVER_VOICE} err={exc!r}",
+            flush=True,
+        )
+        return False
+
+
+def _atempo_chain_filter(ratio: float) -> str:
+    """Compose `atempo=` filters for `ratio`. A single `atempo` accepts only
+    0.5..2.0 — for our cap (≤1.8) one filter is always enough, but we keep the
+    chain composer for safety."""
+    if 0.5 <= ratio <= 2.0:
+        return f"atempo={ratio:.4f}"
+    parts: list[str] = []
+    r = float(ratio)
+    while r > 2.0:
+        parts.append("atempo=2.0")
+        r /= 2.0
+    while r < 0.5:
+        parts.append("atempo=0.5")
+        r *= 2.0
+    parts.append(f"atempo={r:.4f}")
+    return ",".join(parts)
+
+
+async def _atempo_audio(src_mp3: Path, dest_mp3: Path, tempo: float) -> bool:
+    """Re-render `src_mp3` at `tempo`× speed (preserves pitch). Used when the raw
+    TTS overflows its slot in the slowed video and we need to fit it back in."""
+    if shutil.which("ffmpeg") is None:
+        return False
+    af = _atempo_chain_filter(tempo)
+    cmd = [
+        "ffmpeg",
+        "-y",
+        "-loglevel", "error",
+        "-i", str(src_mp3),
+        "-filter:a", af,
+        "-vn",
+        "-acodec", "libmp3lame",
+        "-q:a", "3",
+        str(dest_mp3),
+    ]
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE
+        )
+        _, stderr = await proc.communicate()
+        if proc.returncode == 0 and dest_mp3.is_file() and dest_mp3.stat().st_size > 0:
+            return True
+        print(
+            f"ux-journey: voiceover atempo failed (rc={proc.returncode}) "
+            f"src={src_mp3.name} tempo={tempo:.3f}: {stderr[-512:] if stderr else b''!r}",
+            flush=True,
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        print(f"ux-journey: voiceover atempo crashed src={src_mp3.name}: {exc!r}", flush=True)
+    return False
+
+
+async def _synthesize_step_voiceovers(
+    *,
+    job_id: str,
+    steps: list[dict[str, Any]],
+    eff_slowdown: float,
+    duration_raw_sec: float,
+) -> list[_VoiceoverClip]:
+    """Per-step TTS with slot-aware time-stretching. Returns clips ready to be
+    fed into ffmpeg as `-i <path>` plus matching `adelay` filter entries."""
+    if not (UX_JOURNEY_VIDEO_VOICEOVER and steps):
+        return []
+    if not (os.environ.get("OPENAI_API_KEY") or "").strip():
+        return []
+    if shutil.which("ffmpeg") is None:
+        return []
+
+    ordered_with_offset: list[tuple[float, dict[str, Any]]] = []
+    for st in steps:
+        if not isinstance(st, dict):
+            continue
+        off = st.get("videoOffsetSec")
+        if isinstance(off, (int, float)):
+            ordered_with_offset.append((float(off), st))
+    ordered_with_offset.sort(key=lambda pair: pair[0])
+    if not ordered_with_offset:
+        return []
+
+    dur_out = max(1.0, duration_raw_sec * eff_slowdown)
+    cache_dir = _voiceover_cache_dir(job_id)
+    cache_dir.mkdir(parents=True, exist_ok=True)
+
+    sem = asyncio.Semaphore(UX_JOURNEY_VOICEOVER_CONCURRENCY)
+
+    async def _build_clip(idx: int, t_in: float, st: dict[str, Any]) -> _VoiceoverClip | None:
+        text = _voiceover_text_for_step(st, max_chars=UX_JOURNEY_VOICEOVER_MAX_CHARS)
+        if not text:
+            return None
+        step_n = int(st.get("step") or idx + 1)
+        # Slot in the *output* timeline (after setpts slowdown).
+        start_out = max(0.0, t_in * eff_slowdown)
+        if idx + 1 < len(ordered_with_offset):
+            next_start = ordered_with_offset[idx + 1][0] * eff_slowdown
+        else:
+            next_start = dur_out
+        slot = max(0.5, next_start - start_out - UX_JOURNEY_VOICEOVER_MIN_GAP_SEC)
+        cache_key = _voiceover_text_hash(text)
+        raw_mp3 = cache_dir / f"step-{step_n:03d}-{cache_key}.raw.mp3"
+        if not raw_mp3.is_file() or raw_mp3.stat().st_size == 0:
+            async with sem:
+                ok = await _synthesize_one_voiceover(text, raw_mp3)
+            if not ok:
+                return None
+        raw_dur = await _ffprobe_duration_seconds(raw_mp3) or 0.0
+        if raw_dur <= 0.05:
+            return None
+        # Decide on tempo. Stay at 1.0 if it already fits.
+        tempo = 1.0
+        clip_path = raw_mp3
+        if raw_dur > slot:
+            tempo = min(UX_JOURNEY_VOICEOVER_MAX_TEMPO, raw_dur / slot)
+            if tempo > 1.001:
+                fitted_mp3 = cache_dir / f"step-{step_n:03d}-{cache_key}.x{tempo:.3f}.mp3"
+                if not fitted_mp3.is_file() or fitted_mp3.stat().st_size == 0:
+                    if not await _atempo_audio(raw_mp3, fitted_mp3, tempo):
+                        # Atempo failure: accept slight overlap rather than dropping the clip.
+                        tempo = 1.0
+                if tempo > 1.001 and fitted_mp3.is_file():
+                    clip_path = fitted_mp3
+        final_dur = await _ffprobe_duration_seconds(clip_path) or raw_dur / max(1.0, tempo)
+        return _VoiceoverClip(
+            path=clip_path,
+            delay_ms=int(round(start_out * 1000.0)),
+            duration_sec=final_dur,
+            tempo_applied=tempo,
+            step_no=step_n,
+        )
+
+    tasks = [
+        _build_clip(i, t_in, st) for i, (t_in, st) in enumerate(ordered_with_offset)
+    ]
+    raw_results = await asyncio.gather(*tasks, return_exceptions=True)
+    clips: list[_VoiceoverClip] = []
+    for r in raw_results:
+        if isinstance(r, _VoiceoverClip):
+            clips.append(r)
+        elif isinstance(r, Exception):
+            print(f"ux-journey: voiceover clip task failed: {r!r}", flush=True)
+    clips.sort(key=lambda c: c.delay_ms)
+    return clips
+
+
 async def _transcode_to_smooth_mp4(src: Path, dest: Path, *, job_id: str | None = None) -> bool:
     """Re-encode ``src`` to a browser-friendly H.264 MP4 at ``dest``.
 
@@ -2251,52 +2524,114 @@ async def _transcode_to_smooth_mp4(src: Path, dest: Path, *, job_id: str | None 
     dest.parent.mkdir(parents=True, exist_ok=True)
 
     eff = _effective_transcode_slowdown()
-    ass_path: Path | None = None
-    if job_id and UX_JOURNEY_VIDEO_LOWER_THIRD:
+    dur_raw = await _ffprobe_duration_seconds(src)
+    steps_sub: list[dict[str, Any]] | None = None
+    if job_id:
         steps_sub = _load_steps_sidecar(job_id)
-        dur_raw = await _ffprobe_duration_seconds(src)
-        if steps_sub and dur_raw is not None and dur_raw > 0.1:
-            ass_tmp = VIDEO_BASE_DIR / f"{job_id}.reasoning.ass"
-            if _write_reasoning_ass_file(
-                dest_ass=ass_tmp,
-                steps=steps_sub,
-                duration_raw_sec=dur_raw,
-                slowdown_eff=eff,
-            ):
-                ass_path = ass_tmp
 
-    vf_parts: list[str] = []
+    ass_path: Path | None = None
+    if job_id and UX_JOURNEY_VIDEO_LOWER_THIRD and steps_sub and dur_raw and dur_raw > 0.1:
+        ass_tmp = VIDEO_BASE_DIR / f"{job_id}.reasoning.ass"
+        if _write_reasoning_ass_file(
+            dest_ass=ass_tmp,
+            steps=steps_sub,
+            duration_raw_sec=dur_raw,
+            slowdown_eff=eff,
+        ):
+            ass_path = ass_tmp
+
+    voice_clips: list[_VoiceoverClip] = []
+    if job_id and UX_JOURNEY_VIDEO_VOICEOVER and steps_sub and dur_raw and dur_raw > 0.1:
+        voice_clips = await _synthesize_step_voiceovers(
+            job_id=job_id,
+            steps=steps_sub,
+            eff_slowdown=eff,
+            duration_raw_sec=dur_raw,
+        )
+        if job_id is not None:
+            _voiceover_clip_counts[job_id] = len(voice_clips)
+
+    # Build the *video* filter chain. We compose it once and decide downstream
+    # whether to feed it via `-vf` (no audio mux) or `filter_complex` (with TTS).
+    video_chain_parts: list[str] = []
     if eff > 1.0:
-        vf_parts.append(f"setpts={eff:.6f}*PTS")
-    vf_parts.append(f"fps={VIDEO_TRANSCODE_FPS}")
-    vf_parts.append("format=yuv420p")
+        video_chain_parts.append(f"setpts={eff:.6f}*PTS")
+    video_chain_parts.append(f"fps={VIDEO_TRANSCODE_FPS}")
+    video_chain_parts.append("format=yuv420p")
     if ass_path is not None and ass_path.is_file():
-        # ffmpeg subtitles filter: escape ':' and '\' per platform
-            sub_posix = ass_path.resolve().as_posix()
-            vf_parts.append(f"subtitles={sub_posix}")
+        sub_posix = ass_path.resolve().as_posix()
+        video_chain_parts.append(f"subtitles={sub_posix}")
+    video_chain = ",".join(video_chain_parts)
 
-    vf = ",".join(vf_parts)
     print(
         f"ux-journey: transcode src={src.name} -> {dest.name} "
-        f"effective_slowdown={eff:.4f} fps={VIDEO_TRANSCODE_FPS} vf=\"{vf}\" "
-        f"lower_third={'yes' if ass_path else 'no'}",
+        f"effective_slowdown={eff:.4f} fps={VIDEO_TRANSCODE_FPS} "
+        f"video_chain=\"{video_chain}\" "
+        f"lower_third={'yes' if ass_path else 'no'} "
+        f"voiceover_clips={len(voice_clips)}",
         flush=True,
     )
-    cmd = [
+
+    cmd: list[str] = [
         "ffmpeg",
         "-y",
         "-loglevel", "error",
         "-i", str(src),
-        "-vf", vf,
-        "-c:v", "libx264",
-        "-preset", VIDEO_TRANSCODE_PRESET,
-        "-crf", str(VIDEO_TRANSCODE_CRF),
-        "-g", str(int(VIDEO_TRANSCODE_FPS * 2)),  # keyframe every ~2s for smooth seeking
-        "-pix_fmt", "yuv420p",
-        "-movflags", "+faststart",
-        "-an",  # no audio in Playwright recordings
-        str(dest),
     ]
+
+    if voice_clips:
+        # Each TTS clip becomes its own input stream so we can `adelay` it
+        # individually, then `amix` everything into one mono master track.
+        for clip in voice_clips:
+            cmd.extend(["-i", str(clip.path)])
+        filter_parts: list[str] = [f"[0:v]{video_chain}[v]"]
+        a_labels: list[str] = []
+        for i, clip in enumerate(voice_clips):
+            in_label = f"[{i + 1}:a]"
+            out_label = f"[a{i + 1}]"
+            # `adelay=Lms|Rms` — same value for both channels keeps the source
+            # mono/stereo agnostic; `all=1` would also work but isn't supported
+            # on all ffmpeg builds, so we stick with the explicit pair form.
+            ad = clip.delay_ms
+            filter_parts.append(f"{in_label}adelay={ad}|{ad}{out_label}")
+            a_labels.append(out_label)
+        if len(a_labels) == 1:
+            filter_parts.append(f"{a_labels[0]}anull[a]")
+        else:
+            filter_parts.append(
+                "".join(a_labels)
+                + f"amix=inputs={len(a_labels)}:duration=longest:dropout_transition=0[a]"
+            )
+        filter_complex = ";".join(filter_parts)
+        cmd.extend([
+            "-filter_complex", filter_complex,
+            "-map", "[v]",
+            "-map", "[a]",
+            "-c:v", "libx264",
+            "-preset", VIDEO_TRANSCODE_PRESET,
+            "-crf", str(VIDEO_TRANSCODE_CRF),
+            "-g", str(int(VIDEO_TRANSCODE_FPS * 2)),
+            "-pix_fmt", "yuv420p",
+            "-c:a", "aac",
+            "-b:a", "128k",
+            "-ar", "44100",
+            "-movflags", "+faststart",
+            "-shortest",
+            str(dest),
+        ])
+    else:
+        cmd.extend([
+            "-vf", video_chain,
+            "-c:v", "libx264",
+            "-preset", VIDEO_TRANSCODE_PRESET,
+            "-crf", str(VIDEO_TRANSCODE_CRF),
+            "-g", str(int(VIDEO_TRANSCODE_FPS * 2)),
+            "-pix_fmt", "yuv420p",
+            "-movflags", "+faststart",
+            "-an",
+            str(dest),
+        ])
+
     try:
         proc = await asyncio.create_subprocess_exec(
             *cmd, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE
@@ -2684,6 +3019,14 @@ async def get_run_live_diag(job_id: str) -> dict[str, Any]:
         "videoCompoundSlowmo": UX_JOURNEY_VIDEO_COMPOUND_SLOWMO,
         "effectiveVideoSlowdown": _effective_transcode_slowdown(),
         "videoLowerThird": UX_JOURNEY_VIDEO_LOWER_THIRD,
+        "videoVoiceover": (
+            UX_JOURNEY_VIDEO_VOICEOVER and bool(os.environ.get("OPENAI_API_KEY"))
+        ),
+        "videoVoiceoverModel": UX_JOURNEY_VOICEOVER_MODEL,
+        "videoVoiceoverVoice": UX_JOURNEY_VOICEOVER_VOICE,
+        "videoVoiceoverLang": UX_JOURNEY_VOICEOVER_LANG,
+        "videoVoiceoverMaxTempo": UX_JOURNEY_VOICEOVER_MAX_TEMPO,
+        "videoVoiceoverClips": _voiceover_clip_counts.get(job_id),
         "envLiveFrameInterval": LIVE_FRAME_INTERVAL,
     }
 
