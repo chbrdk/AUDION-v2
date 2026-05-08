@@ -51,6 +51,203 @@ def _env_api_key_log_status(var_name: str) -> str:
         return "absent"
     return f"present (length {len(v)})"
 
+
+def _llm_repair_json_enabled() -> bool:
+    """Best-effort normalization of browser-use ``AgentOutput`` JSON before Pydantic sees it."""
+    v = (os.environ.get("UX_JOURNEY_LLM_REPAIR_JSON") or "0").strip().lower()
+    return v in ("1", "true", "yes")
+
+
+def _extract_balanced_json_object(text: str) -> str | None:
+    """
+    Return the first top-level `{ ... }` substring with balanced braces,
+    respecting JSON double-quoted strings (so `{` inside strings are ignored).
+    """
+    start = text.find("{")
+    if start < 0:
+        return None
+    depth = 0
+    in_str = False
+    esc = False
+    i = start
+    n = len(text)
+    while i < n:
+        c = text[i]
+        if in_str:
+            if esc:
+                esc = False
+            elif c == "\\":
+                esc = True
+            elif c == '"':
+                in_str = False
+            i += 1
+            continue
+        if c == '"':
+            in_str = True
+        elif c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start : i + 1]
+        i += 1
+    return None
+
+
+def _repair_agent_output_dict(d: dict[str, Any]) -> dict[str, Any]:
+    """
+    Common production failure: ``action`` is a JSON *string* containing a list
+    (``'[{...}]'``) instead of a real list — Pydantic ``list_type`` error.
+    """
+    out: dict[str, Any] = dict(d)
+    act = out.get("action")
+    if isinstance(act, str):
+        t = act.strip()
+        if t.startswith("["):
+            try:
+                parsed = json.loads(t)
+            except (json.JSONDecodeError, TypeError, ValueError):
+                pass
+            else:
+                if isinstance(parsed, list):
+                    out["action"] = parsed
+    return out
+
+
+def _repair_json_text(text: str) -> str:
+    """
+    Parse browser-use model output as JSON, fix known issues, re-encode.
+    If parsing fails, return ``text`` unchanged.
+    """
+    s = (text or "").strip()
+    if not s or not s.lstrip().startswith("{"):
+        return text
+    obj: Any = None
+    try:
+        obj = json.loads(s)
+    except json.JSONDecodeError:
+        chunk = _extract_balanced_json_object(s)
+        if not chunk:
+            return text
+        try:
+            obj = json.loads(chunk)
+        except (json.JSONDecodeError, TypeError, ValueError):
+            return text
+    if not isinstance(obj, dict):
+        return text
+    fixed = _repair_agent_output_dict(obj)
+    try:
+        return json.dumps(fixed, ensure_ascii=False)
+    except (TypeError, ValueError):
+        return text
+
+
+def _message_with_updated_content(msg: Any, new_content: Any) -> Any:
+    """Return a copy of ``msg`` with ``content`` replaced (LangChain / Pydantic compatible)."""
+    if hasattr(msg, "model_copy"):
+        try:
+            return msg.model_copy(update={"content": new_content})
+        except Exception:
+            pass
+    if hasattr(msg, "copy"):
+        try:
+            return msg.copy(update={"content": new_content})  # type: ignore[call-arg]
+        except Exception:
+            pass
+    try:
+        clone = type(msg)(content=new_content)  # type: ignore[misc]
+        for attr in ("id", "response_metadata", "usage_metadata"):
+            if hasattr(msg, attr):
+                try:
+                    setattr(clone, attr, getattr(msg, attr))
+                except Exception:
+                    pass
+        return clone
+    except Exception:
+        return msg
+
+
+def _repair_ai_message(msg: Any) -> Any:
+    """Apply `_repair_json_text` to string / text-part assistant content."""
+    try:
+        content = getattr(msg, "content", None)
+        if content is None:
+            return msg
+        if isinstance(content, str):
+            fixed = _repair_json_text(content)
+            if fixed == content:
+                return msg
+            return _message_with_updated_content(msg, fixed)
+        if isinstance(content, list):
+            out_parts: list[Any] = []
+            changed = False
+            for part in content:
+                if isinstance(part, dict) and part.get("type") == "text":
+                    t = part.get("text")
+                    if isinstance(t, str):
+                        ft = _repair_json_text(t)
+                        if ft != t:
+                            out_parts.append({**part, "text": ft})
+                            changed = True
+                            continue
+                out_parts.append(part)
+            if not changed:
+                return msg
+            return _message_with_updated_content(msg, out_parts)
+        return msg
+    except Exception as exc:  # pragma: no cover - defensive
+        print(f"ux-journey: LLM JSON repair failed (pass-through): {exc!r}", flush=True)
+        return msg
+
+
+class _RepairingLLMWrapper:
+    """
+    Delegates to a browser-use / LangChain chat model and post-processes assistant
+    messages so malformed AgentOutput JSON has a chance to pass validation.
+    """
+
+    __slots__ = ("_inner",)
+
+    def __init__(self, inner: Any) -> None:
+        object.__setattr__(self, "_inner", inner)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(object.__getattribute__(self, "_inner"), name)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        if name == "_inner":
+            object.__setattr__(self, name, value)
+        else:
+            setattr(object.__getattribute__(self, "_inner"), name, value)
+
+    async def ainvoke(self, input: Any, config: Any = None, **kwargs: Any) -> Any:
+        inner = object.__getattribute__(self, "_inner")
+        ainvoke_fn = getattr(inner, "ainvoke", None)
+        if ainvoke_fn is not None:
+            msg = await ainvoke_fn(input, config=config, **kwargs)
+        else:
+            import asyncio
+
+            invoke_sync = getattr(inner, "invoke", None)
+            if invoke_sync is None:
+                raise RuntimeError("inner LLM has neither ainvoke() nor invoke()")
+            msg = await asyncio.to_thread(invoke_sync, input, config=config, **kwargs)
+        return _repair_ai_message(msg)
+
+    def invoke(self, input: Any, config: Any = None, **kwargs: Any) -> Any:
+        inner = object.__getattribute__(self, "_inner")
+        fn = getattr(inner, "invoke", None)
+        if fn is None:
+            raise RuntimeError("inner LLM has no invoke()")
+        msg = fn(input, config=config, **kwargs)
+        return _repair_ai_message(msg)
+
+
+def _maybe_wrap_llm_repair(llm: Any) -> Any:
+    if not _llm_repair_json_enabled() or llm is None:
+        return llm
+    return _RepairingLLMWrapper(llm)
+
 # Base pacing (seconds). Effective waits = these × UX_JOURNEY_SLOWMO. Defaults are tuned for readable video without extra env.
 STEP_START_DELAY_SECONDS = float(os.environ.get("UX_JOURNEY_STEP_START_DELAY_SECONDS", "3.5"))
 STEP_DELAY_SECONDS = float(os.environ.get("UX_JOURNEY_STEP_DELAY_SECONDS", "3.0"))
@@ -149,11 +346,12 @@ def _build_anthropic_llm():
         max_tokens = int(os.environ.get("UX_JOURNEY_CLAUDE_MAX_TOKENS", "16384"))
     except ValueError:
         max_tokens = 16384
-    return ChatAnthropic(
+    llm = ChatAnthropic(
         model=os.environ.get("UX_JOURNEY_CLAUDE_MODEL", "claude-sonnet-4-6"),
         temperature=0,
         max_tokens=max_tokens,
     )
+    return _maybe_wrap_llm_repair(llm)
 
 
 def _build_openai_llm():
@@ -171,10 +369,11 @@ def _build_openai_llm():
     # output for the AgentOutput schema. Operators who want to test a newer
     # model can override via `UX_JOURNEY_OPENAI_MODEL` (e.g. `gpt-5.4-mini`,
     # `gpt-5.4-nano`, `gpt-5.4`, `gpt-5.5`).
-    return ChatOpenAI(
+    llm = ChatOpenAI(
         model=os.environ.get("UX_JOURNEY_OPENAI_MODEL", "gpt-4o"),
         temperature=0,
     )
+    return _maybe_wrap_llm_repair(llm)
 
 
 def _make_llm():
@@ -242,6 +441,7 @@ def _llm_meta() -> dict[str, Any]:
             "provider": "anthropic",
             "model": os.environ.get("UX_JOURNEY_CLAUDE_MODEL", "claude-sonnet-4-6"),
             "max_tokens": os.environ.get("UX_JOURNEY_CLAUDE_MAX_TOKENS", "16384"),
+            "repairJson": _llm_repair_json_enabled(),
             "fallback": (
                 {"provider": "openai", "model": os.environ.get("UX_JOURNEY_OPENAI_MODEL", "gpt-4o")}
                 if has_fallback
@@ -252,6 +452,7 @@ def _llm_meta() -> dict[str, Any]:
         return {
             "provider": "openai",
             "model": os.environ.get("UX_JOURNEY_OPENAI_MODEL", "gpt-4o"),
+            "repairJson": _llm_repair_json_enabled(),
             "fallback": (
                 {
                     "provider": "anthropic",
@@ -261,7 +462,7 @@ def _llm_meta() -> dict[str, Any]:
                 else None
             ),
         }
-    return {"provider": "unknown", "model": "unknown"}
+    return {"provider": "unknown", "model": "unknown", "repairJson": _llm_repair_json_enabled()}
 
 
 def _decode_repr_escapes(value: str) -> str:
@@ -1217,6 +1418,12 @@ async def run_agent(
 
     try:
         llm = _make_llm()
+        if _llm_repair_json_enabled():
+            print(
+                f"ux-journey: job={job_id} UX_JOURNEY_LLM_REPAIR_JSON=1 "
+                "(best-effort AgentOutput JSON repair after each LLM call)",
+                flush=True,
+            )
         try:
             browser = Browser(record_video_dir=video_dir)
         except TypeError:
