@@ -53,9 +53,24 @@ def _env_api_key_log_status(var_name: str) -> str:
 
 
 def _llm_repair_json_enabled() -> bool:
-    """Best-effort normalization of browser-use ``AgentOutput`` JSON before Pydantic sees it."""
+    """Best-effort normalization of browser-use ``AgentOutput`` JSON before Pydantic sees it.
+
+    Default **OFF** since we pin ``browser-use==0.12.6``, which ships the
+    upstream fix for the two failure modes this wrapper used to paper over:
+
+    1. ``action`` returned as a JSON-encoded *string* (e.g. ``'[{"done": ...}]'``)
+       instead of a real list — Pydantic ``list_type`` error. Upstream
+       PR #4529 ("fix anthropic action field double-serialization").
+    2. Trailing characters after the closing ``}``.
+
+    Code is kept so an operator can re-enable it via
+    ``UX_JOURNEY_LLM_REPAIR_JSON=1`` if a *new* model variant (e.g. a small
+    OpenAI model) re-introduces the same family of bug before upstream catches
+    it. Plan is to delete the entire ``_repair_*`` stack in Fork-Phase-1 once
+    we've confirmed 0.12.6 is stable across our model matrix.
+    """
     v = (os.environ.get("UX_JOURNEY_LLM_REPAIR_JSON") or "0").strip().lower()
-    return v in ("1", "true", "yes")
+    return v in ("1", "true", "yes", "on")
 
 
 def _extract_balanced_json_object(text: str) -> str | None:
@@ -98,6 +113,10 @@ def _repair_agent_output_dict(d: dict[str, Any]) -> dict[str, Any]:
     """
     Common production failure: ``action`` is a JSON *string* containing a list
     (``'[{...}]'``) instead of a real list — Pydantic ``list_type`` error.
+
+    Also handles the inverse: ``action`` is a single dict (not wrapped in a
+    list), which Pydantic's strict ``list_type`` rejects. We promote it to a
+    one-element list.
     """
     out: dict[str, Any] = dict(d)
     act = out.get("action")
@@ -111,6 +130,29 @@ def _repair_agent_output_dict(d: dict[str, Any]) -> dict[str, Any]:
             else:
                 if isinstance(parsed, list):
                     out["action"] = parsed
+                    print(
+                        "ux-journey: repair_json: coerced action(str) -> list "
+                        f"(items={len(parsed)})",
+                        flush=True,
+                    )
+        elif t.startswith("{"):
+            try:
+                parsed = json.loads(t)
+            except (json.JSONDecodeError, TypeError, ValueError):
+                pass
+            else:
+                if isinstance(parsed, dict):
+                    out["action"] = [parsed]
+                    print(
+                        "ux-journey: repair_json: coerced action(str-dict) -> [dict]",
+                        flush=True,
+                    )
+    elif isinstance(act, dict):
+        out["action"] = [act]
+        print(
+            "ux-journey: repair_json: coerced action(dict) -> [dict]",
+            flush=True,
+        )
     return out
 
 
@@ -118,14 +160,22 @@ def _repair_json_text(text: str) -> str:
     """
     Parse browser-use model output as JSON, fix known issues, re-encode.
     If parsing fails, return ``text`` unchanged.
+
+    Tolerates preamble before the JSON object (markdown ``code fences``,
+    ``Here is the result:`` chatter, etc.) — anything that isn't the first
+    balanced ``{...}`` block is dropped. browser-use only cares about the
+    AgentOutput object anyway.
     """
     s = (text or "").strip()
-    if not s or not s.lstrip().startswith("{"):
+    if not s:
         return text
     obj: Any = None
-    try:
-        obj = json.loads(s)
-    except json.JSONDecodeError:
+    if s.startswith("{"):
+        try:
+            obj = json.loads(s)
+        except json.JSONDecodeError:
+            obj = None
+    if obj is None:
         chunk = _extract_balanced_json_object(s)
         if not chunk:
             return text
@@ -167,18 +217,46 @@ def _message_with_updated_content(msg: Any, new_content: Any) -> Any:
         return msg
 
 
+def _repair_tool_calls(tcs: Any) -> tuple[Any, bool]:
+    """
+    LangChain assistant messages can carry ``tool_calls=[{name, args, ...}]``
+    where ``args`` is sometimes a JSON-encoded string instead of a dict —
+    same family of bug as the AgentOutput issue. Fix in place; the structure
+    is the same shape browser-use's ``AgentOutput.action`` expects.
+    """
+    if not isinstance(tcs, list) or not tcs:
+        return tcs, False
+    changed = False
+    out: list[Any] = []
+    for tc in tcs:
+        if isinstance(tc, dict):
+            args = tc.get("args")
+            if isinstance(args, str):
+                t = args.strip()
+                if t.startswith("{") or t.startswith("["):
+                    try:
+                        parsed = json.loads(t)
+                    except (json.JSONDecodeError, TypeError, ValueError):
+                        out.append(tc)
+                        continue
+                    new_tc = {**tc, "args": parsed}
+                    out.append(new_tc)
+                    changed = True
+                    continue
+        out.append(tc)
+    return out, changed
+
+
 def _repair_ai_message(msg: Any) -> Any:
-    """Apply `_repair_json_text` to string / text-part assistant content."""
+    """Apply `_repair_json_text` to string / text-part assistant content + tool_calls."""
     try:
+        new_msg = msg
         content = getattr(msg, "content", None)
-        if content is None:
-            return msg
         if isinstance(content, str):
             fixed = _repair_json_text(content)
-            if fixed == content:
-                return msg
-            return _message_with_updated_content(msg, fixed)
-        if isinstance(content, list):
+            if fixed != content:
+                new_msg = _message_with_updated_content(new_msg, fixed)
+        elif isinstance(content, list):
             out_parts: list[Any] = []
             changed = False
             for part in content:
@@ -191,10 +269,26 @@ def _repair_ai_message(msg: Any) -> Any:
                             changed = True
                             continue
                 out_parts.append(part)
-            if not changed:
-                return msg
-            return _message_with_updated_content(msg, out_parts)
-        return msg
+            if changed:
+                new_msg = _message_with_updated_content(new_msg, out_parts)
+        # tool_calls path: browser-use sometimes drives the LLM via tool-calling
+        # mode (LangChain's structured-output binding). The JSON-as-string bug
+        # surfaces there as ``tool_calls[0].args = '{"...": "..."}'`` instead
+        # of a dict.
+        tool_calls = getattr(new_msg, "tool_calls", None)
+        if tool_calls is not None:
+            fixed_tcs, tcs_changed = _repair_tool_calls(tool_calls)
+            if tcs_changed:
+                try:
+                    setattr(new_msg, "tool_calls", fixed_tcs)
+                    print(
+                        f"ux-journey: repair_json: normalized tool_calls "
+                        f"(count={len(fixed_tcs) if isinstance(fixed_tcs, list) else 0})",
+                        flush=True,
+                    )
+                except Exception:
+                    pass
+        return new_msg
     except Exception as exc:  # pragma: no cover - defensive
         print(f"ux-journey: LLM JSON repair failed (pass-through): {exc!r}", flush=True)
         return msg
@@ -253,11 +347,25 @@ def _build_repairing_chat_model_subclass(base: type) -> type:
 def _maybe_wrap_llm_class(base: type) -> type:
     """Return ``base`` (or a JSON-repairing subclass) depending on the env flag."""
     if not _llm_repair_json_enabled():
+        print(
+            f"ux-journey: LLM JSON repair DISABLED (UX_JOURNEY_LLM_REPAIR_JSON=0); "
+            f"using base class {base.__name__} as-is",
+            flush=True,
+        )
         return base
     try:
-        return _build_repairing_chat_model_subclass(base)
+        wrapped = _build_repairing_chat_model_subclass(base)
+        print(
+            f"ux-journey: LLM JSON repair ACTIVE — wrapping {base.__name__} as {wrapped.__name__}",
+            flush=True,
+        )
+        return wrapped
     except Exception as exc:  # pragma: no cover - defensive
-        print(f"ux-journey: LLM JSON repair subclass build failed: {exc!r}", flush=True)
+        print(
+            f"ux-journey: LLM JSON repair subclass build FAILED for {base.__name__}: {exc!r} "
+            f"(continuing with base class — bug may resurface)",
+            flush=True,
+        )
         return base
 
 # Base pacing (seconds). Effective waits = these × UX_JOURNEY_SLOWMO. Defaults are tuned for readable video without extra env.

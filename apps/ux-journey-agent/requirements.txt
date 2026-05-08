@@ -1,7 +1,17 @@
 # UX Journey Agent for CHECKION – Browser Use + Claude
 # Python 3.11+ (browser-use requirement)
 # [video] enables browser-use's built-in MP4 screen recording
+#
+# browser-use is pinned to 0.12.6 (released 2026-04-02) because it ships:
+#   * fix: Anthropic `action` field double-serialization (our `list_type` bug)
+#   * fix: stale history + stuck step counter on timeout (our cancel-flow path)
+#   * perf: O(n²) bottlenecks in DOM capture removed
+#   * security: litellm removed from core deps (supply chain attack on
+#     litellm 1.82.7/8 was patched out by removing the dep entirely; we still
+#     install it on demand if a future ChatLiteLLM provider is added)
+# Bumping past 0.12.6 should be a deliberate decision — re-test the cancel
+# flow + a Claude run before merging an upgrade.
 fastapi>=0.115.0
 uvicorn[standard]>=0.27.0
-browser-use[video]>=0.11.0
+browser-use[video]==0.12.6
 playwright>=1.40.0
