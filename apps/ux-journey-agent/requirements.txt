@@ -1,17 +1,19 @@
-# UX Journey Agent for CHECKION – Browser Use + Claude
-# Python 3.11+ (browser-use requirement)
-# [video] enables browser-use's built-in MP4 screen recording
+# UX Journey Agent for CHECKION
+# Python 3.11+
 #
-# browser-use is pinned to 0.12.6 (released 2026-04-02) because it ships:
-#   * fix: Anthropic `action` field double-serialization (our `list_type` bug)
-#   * fix: stale history + stuck step counter on timeout (our cancel-flow path)
-#   * perf: O(n²) bottlenecks in DOM capture removed
-#   * security: litellm removed from core deps (supply chain attack on
-#     litellm 1.82.7/8 was patched out by removing the dep entirely; we still
-#     install it on demand if a future ChatLiteLLM provider is added)
-# Bumping past 0.12.6 should be a deliberate decision — re-test the cancel
-# flow + a Claude run before merging an upgrade.
+# The browser-automation library is now our soft fork `checkion-agent`,
+# vendored at `packages/checkion-agent` (forked from browser-use 0.12.6).
+# It is installed by the Dockerfile in a previous build step:
+#
+#     pip install /opt/checkion-agent[video]
+#
+# So this requirements.txt only lists the *app-specific* extras on top of
+# what checkion-agent already pulls in (FastAPI, uvicorn, playwright pin).
+#
+# For local development:
+#     cd apps/ux-journey-agent
+#     pip install -e ../../packages/checkion-agent[video]
+#     pip install -r requirements.txt
 fastapi>=0.115.0
 uvicorn[standard]>=0.27.0
-browser-use[video]==0.12.6
 playwright>=1.40.0

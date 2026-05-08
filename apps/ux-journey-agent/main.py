@@ -462,9 +462,9 @@ def _resolve_llm_provider() -> str:
 
 def _build_anthropic_llm():
     try:
-        from browser_use import ChatAnthropic
+        from checkion_agent import ChatAnthropic
     except ImportError:
-        from browser_use.llm.anthropic import ChatAnthropic
+        from checkion_agent.llm.anthropic import ChatAnthropic
     try:
         max_tokens = int(os.environ.get("UX_JOURNEY_CLAUDE_MAX_TOKENS", "16384"))
     except ValueError:
@@ -479,9 +479,9 @@ def _build_anthropic_llm():
 
 def _build_openai_llm():
     try:
-        from browser_use import ChatOpenAI
+        from checkion_agent import ChatOpenAI
     except ImportError:
-        from browser_use.llm.openai import ChatOpenAI
+        from checkion_agent.llm.openai import ChatOpenAI
     # Default: GPT-4o. We deliberately do NOT default to the newer GPT-5.4
     # family (mini/nano/full): in production we observed `gpt-5.4-mini`
     # producing AgentOutput JSON with trailing characters (e.g. one extra
@@ -1514,7 +1514,7 @@ async def run_agent(
     max_steps_override: int | None = None,
 ) -> None:
     try:
-        from browser_use import Agent, Browser
+        from checkion_agent import Agent, Browser
     except ImportError as e:
         async with _jobs_lock:
             j = _jobs.get(job_id)

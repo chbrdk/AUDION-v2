@@ -1,6 +1,6 @@
 # UX Journey Agent (CHECKION Monorepo)
 
-Browser agent service for CHECKION: runs autonomous navigation tasks (URL + natural language goal) using [browser-use](https://github.com/browser-use/browser-use) (Playwright + LLM).
+Browser agent service for CHECKION: runs autonomous navigation tasks (URL + natural language goal) using **`checkion-agent`** — a CHECKION-internal soft fork of [browser-use](https://github.com/browser-use/browser-use) (Playwright + LLM), vendored at [`packages/checkion-agent/`](../../packages/checkion-agent/). See [`packages/checkion-agent/ATTRIBUTION.md`](../../packages/checkion-agent/ATTRIBUTION.md) for the rationale and upstream tracking strategy.
 
 ## API
 
@@ -40,7 +40,10 @@ Browser agent service for CHECKION: runs autonomous navigation tasks (URL + natu
 ## Local run
 
 ```bash
-cd ux-journey-agent
+# Install the vendored checkion-agent fork (editable so local edits picked up)
+pip install -e packages/checkion-agent[video]
+# App-specific deps
+cd apps/ux-journey-agent
 pip install -r requirements.txt
 python -m playwright install chromium
 export ANTHROPIC_API_KEY=sk-ant-...
@@ -58,10 +61,24 @@ python -m unittest test_live -v
 
 ## Docker (Coolify)
 
-- **Build context:** `ux-journey-agent` (root directory of this service).
-- **Dockerfile path:** `Dockerfile`.
-- **Port:** 8320.
-- **Env:** `ANTHROPIC_API_KEY` (or `OPENAI_API_KEY`). Optionally `UX_JOURNEY_MAX_STEPS`, `UX_JOURNEY_VIDEO_DIR`.
+> **⚠️ Build-context change (Phase B fork rollout):**
+> The `checkion-agent` fork is vendored at `packages/checkion-agent/`, so the
+> Docker build now needs **the repo root** as build context (not just this
+> service's folder). In Coolify update the service config:
+>
+> - **Base Directory:** `/` *(repo root, was: `apps/ux-journey-agent`)*
+> - **Dockerfile Location:** `apps/ux-journey-agent/Dockerfile`
+> - **Port:** `8320`
+> - **Env:** `ANTHROPIC_API_KEY` (or `OPENAI_API_KEY`). Optionally
+>   `UX_JOURNEY_MAX_STEPS`, `UX_JOURNEY_VIDEO_DIR`.
+>
+> Without this change the build fails with `COPY packages/checkion-agent: no such file or directory` because the old context was scoped to the app folder.
+>
+> Local equivalent:
+>
+> ```bash
+> docker build -f apps/ux-journey-agent/Dockerfile -t ux-journey-agent .
+> ```
 
 ### Persistent videos (Shared Volume)
 
