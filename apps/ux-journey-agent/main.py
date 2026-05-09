@@ -833,20 +833,32 @@ def _load_steps_sidecar(job_id: str) -> list[dict[str, Any]] | None:
 
 
 def _video_lower_third_body(step: dict[str, Any]) -> str:
-    """Pick concise on-screen text: reasoning → structured hints → action label."""
+    """Pick concise on-screen text for the polished video.
+
+    Strict preference for the persona-voice ``reasoning`` field (= the
+    ``thinking`` Think-Aloud line written by the prompt). Internal bookkeeping
+    (``next_goal``, ``memory``, ``evaluation_previous_goal``) is **not**
+    user-facing and only used as a last-ditch fallback for steps where the
+    LLM produced no narration at all (very rare, mostly for the implicit
+    "navigate to start URL" step).
+    """
     r = str(step.get("reasoning") or "").strip()
-    if not r:
-        rm = step.get("reasoningMeta")
-        if isinstance(rm, dict):
-            r = (
-                str(rm.get("next_goal") or "").strip()
-                or str(rm.get("memory") or "").strip()
-                or str(rm.get("evaluation_previous_goal") or "").strip()
-            )
-    if not r:
-        act = str(step.get("action") or "step")
-        tgt = str(step.get("target") or "").strip()
-        r = f"{act}: {tgt}" if tgt else act
+    if r:
+        return _smart_trim(r, limit=320)
+    rm = step.get("reasoningMeta")
+    if isinstance(rm, dict):
+        # Only `next_goal` is shaped as a sentence; the others are internal
+        # bookkeeping fragments that often read as bot-speak ("Index 12") and
+        # would clash with the Think-Aloud tone of the rest of the video. Use
+        # them strictly as a last resort for the very first / very last
+        # synthetic steps where no `thinking` was produced.
+        for key in ("next_goal", "memory", "evaluation_previous_goal"):
+            v = str(rm.get(key) or "").strip()
+            if v:
+                return _smart_trim(v, limit=320)
+    act = str(step.get("action") or "step")
+    tgt = str(step.get("target") or "").strip()
+    r = f"{act}: {tgt}" if tgt else act
     return _smart_trim(r, limit=320)
 
 
@@ -1660,31 +1672,49 @@ async def run_agent(
         # The persona block is automatically rendered last by the fork via
         # `Agent(persona=persona_dict)` — see checkion-agent CHANGELOG Phase 2.
         checkion_brevity_extension = (
-            "CHECKION_BREVITY_AND_COMPLETION:\n"
-            # Unified brevity rule for ALL per-step LLM-controlled text fields.
-            # Without this, the agent tends to produce 4–8 satzlange Reflexionen
-            # pro Step (Persona-Bezug, Beobachtung, Hypothese, Plan, Begründung,
-            # Risiko-Abwägung). Im Card-UI ist davon nur das Pointierte nützlich —
-            # alles andere macht die Accordion-Tiles unnötig hoch und treibt die
-            # Output-Tokens (= Latenz pro Step).
-            "WICHTIG: Halte ALLE Reasoning-Felder KOMPAKT und ohne Wiederholung — aber NIE auf Kosten konkreter Fakten. "
-            "Wenn du Specs (Zahlen, Maße, IDs, URLs) nennst, sind die wichtiger als Brevity: lieber den vollständigen "
-            "Fakten-Satz, als ihn mitten in einer Aufzählung abbrechen. Konkret pro Feld:\n"
-            "- 'thinking': 1–3 knackige Sätze. Format "
-            "'<beobachtung in halbsatz> → <handlung+begründung in halbsatz>'. "
-            "Kein 'Ich sehe…'/'Ich beobachte…'-Geplauder.\n"
-            "- 'evaluation_previous_goal': 1–2 Sätze. Knappe Bewertung wie "
-            "'Erfolgreich: Cookie-Banner geschlossen' oder 'Teilweise: Suche zeigt 0 Treffer, Filter werden ignoriert'. "
-            "Keine erneute Beschreibung der Aktion.\n"
-            "- 'memory': Konkrete Fakten für spätere Schritte (1–3 Sätze), inkl. Zahlen/Maße/IDs wenn relevant. "
-            "Nur neue/relevante Erkenntnisse — KEIN Aufzählen aller bisherigen Schritte. "
-            "Kein Floskel-Auftakt wie 'Bisher habe ich…'.\n"
-            "- 'next_goal': 1–2 Sätze. Konkretes nächstes Ziel + erwartetes Element/Selektor, "
-            "z.B. 'Auf Service-Tab klicken (Index 12), um Leistungen zu sehen'. Keine Begründung mit 3 Alternativen.\n"
-            "- 'done.text' (Final-Resultat): max. 4 kurze Sätze oder 6 Bulletpoints. "
-            "Fakten-fokussiert: Was wurde wirklich gesehen/gefunden, was nicht. Keine Zusammenfassung der Schritt-Reihenfolge — "
-            "nur das, was die Persona aus dem Besuch mitnimmt.\n"
-            "Persona-Bezug NUR, wenn er die Entscheidung tatsächlich beeinflusst — sonst weglassen. "
+            "CHECKION_THINK_ALOUD_UND_INTERNES:\n"
+            # The `thinking` field is **the** user-facing artefact: it lands as
+            # voice-over (TTS) and lower-third subtitle on the polished review
+            # video, AND as the prominent reasoning text in the step card. The
+            # other three structured fields are *internal* bookkeeping that the
+            # browser-use schema requires; we keep them short so they don't
+            # double-bill output tokens or drown the card UI.
+            "ROLLENBILD: Du bist die Persona, die in einem moderierten UX-Research-Interview "
+            "vor einem Bildschirm sitzt und 'laut denkt' (Think-Aloud). Du erklärst, was du auf "
+            "der Seite GERADE SIEHST, was du als Nächstes anklicken/lesen/scrollen willst und WARUM "
+            "— aus deiner Perspektive, nicht aus der eines Browsing-Bots.\n"
+            "WICHTIG für 'thinking' (= Voice-Over + Untertitel im Review-Video): \n"
+            "- 1–3 vollständige Sätze, ERSTE PERSON, PRÄSENS, sprich, als säßest du im Usability-Test.\n"
+            "- Struktur: <was ich sehe> → <was ich tun will> → <warum> (das 'warum' ist die Begründung).\n"
+            "- Beispiele für gewünschten Ton:\n"
+            "    'Ganz oben fällt mir das Menü 'Leistungen' auf — das interessiert mich am meisten, "
+            "ich klicke da rein, weil ich konkret verstehen will, was die anbieten.'\n"
+            "    'Hier wird viel mit Buzzwords wie 'Transformation' geworben, das sagt mir zu wenig. "
+            "Ich scrolle weiter, ob unten konkrete Cases oder Branchen kommen.'\n"
+            "    'Auf der Karriereseite probiere ich die Suche mit 'Werkstudent' — wenn da nichts kommt, "
+            "gehe ich zurück und schaue manuell durch die Liste.'\n"
+            "- KEINE Bot-Sprache wie 'Ich navigiere zur URL', 'Ich klicke Index 12', 'Element-Selektor', "
+            "'Aktion ausführen'. Das Index/Selektor-Detail gehört in 'next_goal' (siehe unten), nicht ins Voice-Over.\n"
+            "- KEIN 'Ich werde gleich/jetzt…' im rückblickenden Sinn — du beschreibst die Handlung, "
+            "während sie passiert (Think-Aloud). Beispiel STATT 'Ich werde auf Services klicken' lieber "
+            "'Ich gehe auf Services rein, weil…'.\n"
+            "- Persona-Bezug einfließen lassen, wo er die Entscheidung wirklich treibt "
+            "(z. B. 'Als IT-Leitung will ich zuerst sehen, ob ihr DSGVO/On-Prem könnt…'). Sonst weglassen — "
+            "kein Floskel-Anfang wie 'Als <Rolle> mit <Branche>...' bei jedem Schritt.\n"
+            "INTERNE FELDER (so kurz wie möglich, NICHT user-facing — landen NICHT im Video, nur im Card-UI als optionales Detail):\n"
+            "- 'evaluation_previous_goal': 1 Satz, neutrale Bewertung des letzten Schritts. "
+            "Bsp: 'Klick auf Services hat funktioniert; Übersicht ist sichtbar.' / 'Suche liefert 0 Treffer.' "
+            "Keine Wiederholung der Aktion. Beim ersten Schritt darf das leer/'-' sein.\n"
+            "- 'memory': NUR konkrete, später wieder nutzbare Fakten (Zahlen, Maße, IDs, URLs, "
+            "Branchen-Listen, Preise). Stichpunktartig, max. 2 kurze Sätze. KEINE Reflexion, KEINE Persona-Sprache, "
+            "KEIN Aufzählen aller bisherigen Schritte. Wenn nichts Neues anfällt: leer lassen.\n"
+            "- 'next_goal': 1 Satz im Bot-Stil — konkretes Element + Index/Selektor + erwarteter Effekt, "
+            "z. B. 'Auf Service-Tab klicken (Index 12), um Leistungen zu sehen'. Diese Zeile ist die "
+            "*Hand-Off*-Anweisung für deine eigene nächste Aktion, NICHT der Persona-Text.\n"
+            "WICHTIG für 'done.text' (Final-Reflexion am Ende der Journey): "
+            "Erste Person, Persona-Stimme, max. 4 kurze Sätze oder 6 Bulletpoints. "
+            "'Was nehme ich aus diesem Besuch mit?' Faktenfokussiert: Was hat überzeugt, was war unklar, "
+            "was hätte ich gebraucht. KEINE Zusammenfassung der Schrittreihenfolge.\n"
             # Anti-cliffhanger rule. Without this, the LLM tends to use „neben…",
             # „und mehr…", „etc." as a brevity hack — leaving the user with
             # half-formed thoughts. We require complete sentences within the
@@ -1693,7 +1723,8 @@ async def run_agent(
             "Verwende NIEMALS '…', '...', 'etc.', 'usw.', 'u. a.', 'und mehr' oder ähnliche Auslassungs-Marker als Platzhalter "
             "für unausgesprochene Inhalte. Wenn du Beispiele aufzählst, nenne 2–3 KONKRETE Beispiele "
             "(z. B. 'Automotive, Manufacturing, FinServ') oder lass die Aufzählung weg. "
-            "Falls dir der Inhalt zu lang würde, kürze die Begründung oder den Persona-Bezug — aber NIE die konkreten Fakten. "
+            "Falls dir der Inhalt zu lang würde, kürze die Begründung — aber NIE die konkreten Fakten.\n"
+            "CHECKION_COMPLETION:\n"
             "WICHTIG: Beende die Journey NICHT zu früh. Markiere erst dann als 'done'/'fertig', wenn du das Ziel wirklich erreicht hast "
             "UND es anhand sichtbarer UI-Indikatoren verifiziert hast (z.B. Bestätigungsseite, eindeutiger State, URL, Erfolgsmeldung). "
             f"WICHTIG: Beende NICHT vor mindestens {min_steps} Schritten. Wenn das Ziel früher erreicht wirkt, nutze die restlichen Schritte für "
@@ -2394,6 +2425,17 @@ try:
     UX_JOURNEY_VIDEO_SCENE_TAIL_SEC = max(0.0, float(os.environ.get("UX_JOURNEY_VIDEO_SCENE_TAIL_SEC", "2.5") or "2.5"))
 except ValueError:
     UX_JOURNEY_VIDEO_SCENE_TAIL_SEC = 2.5
+# When True, treat ``videoOffsetSec[N]`` as the *end* of step N's action
+# (= the moment step N first appears in ``agent.history`` after the action
+# committed). The scene for step N is then ``[offset[N-1] | 0, offset[N])``,
+# i.e. the slice that actually shows step N being executed (cursor moves,
+# click, scroll, page settles), so it lines up with the per-step Think-Aloud
+# voice-over and lower-third subtitle.
+#
+# With this off (legacy behaviour), the scene for step N was
+# ``[offset[N], offset[N+1])`` — which is the *next* step's action with the
+# *previous* step's reasoning narrated over it (off-by-one).
+UX_JOURNEY_VIDEO_SCENE_END_OFFSETS = _env_truthy("UX_JOURNEY_VIDEO_SCENE_END_OFFSETS", "1")
 # Hard floor on per-segment scale: prevents speeding a scene below 10% of
 # real-time (= 10x speedup) where motion becomes a blur. If the voice is short
 # but the raw segment is long, we'd otherwise compress, e.g., 30s of scrolling
@@ -2525,16 +2567,17 @@ class _VoiceoverClip:
 
 
 def _voiceover_text_for_step(step: dict[str, Any], *, max_chars: int) -> str:
-    """Pick the line(s) we want spoken: same source as the lower third, capped harder
-    so synth output reliably fits the per-step slot. We prepend "Schritt N." so the
-    listener has a stable orientation even when the body is brief."""
+    """Pick the line(s) we want spoken.
+
+    Same source as the lower third (= persona Think-Aloud ``reasoning``),
+    capped harder so synth output reliably fits the per-step slot. We do
+    **not** prepend "Schritt N." — that wording fights the UX-research
+    interview tone we want and also duplicates the lower-third badge that
+    already shows the step number on screen.
+    """
     body = _video_lower_third_body(step)
     body = _smart_trim(body, limit=max_chars)
-    if not body:
-        return ""
-    step_n = step.get("step")
-    prefix = f"Schritt {int(step_n)}. " if isinstance(step_n, int) else ""
-    return (prefix + body).strip()
+    return body.strip()
 
 
 def _voiceover_text_hash(text: str) -> str:
@@ -2845,13 +2888,18 @@ def _build_scene_plan(
         ]
 
     first_offset = max(0.0, ordered[0][0])
-    if first_offset > 0.5 and UX_JOURNEY_VIDEO_SCENE_LEAD_IN_SEC > 0.05:
-        # Lead-in slice. We don't try to scale this against any voice — there's
-        # no narration before step 1 — but we always cap to LEAD_IN_SEC so the
-        # page-load doesn't dominate the output if the agent's first action
-        # came late. Skipped entirely when LEAD_IN_SEC is 0 (current default):
-        # the polished video then starts at the first real step instead of the
-        # browser's empty about:blank tab.
+    # Lead-in segment. We only emit one when:
+    #   - the legacy "start-of-step" offset interpretation is in force AND
+    #   - LEAD_IN_SEC > 0 AND
+    #   - there's actually unaccounted raw footage before step 1.
+    # In the new "end-of-step" interpretation (default ON), step 1's segment
+    # already extends from raw 0 → offset[step1], so a separate lead-in would
+    # double-count those frames.
+    if (
+        not UX_JOURNEY_VIDEO_SCENE_END_OFFSETS
+        and first_offset > 0.5
+        and UX_JOURNEY_VIDEO_SCENE_LEAD_IN_SEC > 0.05
+    ):
         target = min(UX_JOURNEY_VIDEO_SCENE_LEAD_IN_SEC, max(0.5, first_offset))
         segments.append(
             _SceneSegment(
@@ -2865,8 +2913,17 @@ def _build_scene_plan(
         )
 
     for i, (t_in, st) in enumerate(ordered):
-        src_start = t_in
-        src_end = ordered[i + 1][0] if i + 1 < len(ordered) else duration_raw_sec
+        if UX_JOURNEY_VIDEO_SCENE_END_OFFSETS:
+            # ``offset[N]`` = end of step N (history-grew moment). Segment N
+            # spans [offset[N-1] | 0, offset[N]) — the slice the cursor +
+            # action of step N is actually visible in.
+            src_start = ordered[i - 1][0] if i > 0 else 0.0
+            src_end = t_in
+        else:
+            # Legacy: ``offset[N]`` = start of step N. Segment N spans
+            # [offset[N], offset[N+1]).
+            src_start = t_in
+            src_end = ordered[i + 1][0] if i + 1 < len(ordered) else duration_raw_sec
         if src_end - src_start <= 0.05:
             # Two steps at virtually the same offset — merge by skipping this
             # zero-duration slice. The next step still gets its own scene.
@@ -2902,10 +2959,16 @@ def _build_scene_plan(
             )
         )
 
-    # Optional tail (post-last-step). The per-step loop already covered
-    # `last_step_offset → raw_dur`, so this is only added when no per-step
-    # segment touched the end (rare, but happens if the final step had an
-    # offset == raw_dur and got skipped above).
+    # Optional tail (post-last-step).
+    #
+    # - End-of-step interpretation (default): the per-step loop spans up to
+    #   ``offset[lastStep]``, so the slice ``[offset[lastStep], raw_dur]``
+    #   (the agent's "after the last action — page settled / done.text"
+    #   moment) is uncovered and we add a short tail segment for it.
+    # - Legacy (start-of-step): the per-step loop already covers up to
+    #   ``raw_dur`` for the last step, so the tail is only added when no
+    #   per-step segment touched the end (e.g. the final step had an offset
+    #   == raw_dur and got skipped above).
     last_covered_end = segments[-1].src_end_sec if segments else 0.0
     if duration_raw_sec - last_covered_end > 0.5 and UX_JOURNEY_VIDEO_SCENE_TAIL_SEC > 0.0:
         segments.append(
