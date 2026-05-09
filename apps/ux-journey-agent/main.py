@@ -2084,6 +2084,14 @@ async def run_agent(
                 "videoSlowdownFactor": VIDEO_SLOWDOWN_FACTOR,
                 "videoCompoundSlowmo": UX_JOURNEY_VIDEO_COMPOUND_SLOWMO,
                 "effectiveVideoSlowdown": _effective_transcode_slowdown(),
+                # Per-scene dynamic pacing: each step's segment in the polished
+                # video is time-stretched (or compressed) to match the duration
+                # of its TTS clip. Replaces the uniform setpts factor when on.
+                "videoDynamicPacing": UX_JOURNEY_VIDEO_DYNAMIC_PACING,
+                "videoSceneMinSec": UX_JOURNEY_VIDEO_SCENE_MIN_SEC,
+                "videoSceneMaxSec": UX_JOURNEY_VIDEO_SCENE_MAX_SEC,
+                "videoSceneVoicePadSec": UX_JOURNEY_VIDEO_SCENE_VOICE_PAD_SEC,
+                "videoSceneMinScale": UX_JOURNEY_VIDEO_SCENE_MIN_SCALE,
                 "lowerThirdBurnIn": UX_JOURNEY_VIDEO_LOWER_THIRD,
                 "voiceoverEnabled": (
                     UX_JOURNEY_VIDEO_VOICEOVER
@@ -2238,6 +2246,46 @@ except ValueError:
 # Per-job count (set during finalize); surfaced as forkHooks/diagnostics.
 _voiceover_clip_counts: dict[str, int] = {}
 
+# ---------------------------------------------------------------------------
+# Dynamic per-scene pacing
+# ---------------------------------------------------------------------------
+# Instead of stretching the *whole* recording uniformly via ``setpts={eff}*PTS``
+# (which produced 50-minute review clips for 5-step runs), we slice the raw
+# capture at each ``videoOffsetSec`` boundary and re-time every slice
+# individually so its output duration matches the per-step TTS clip. Net
+# result: scene length ≈ voice length + a small pad. Steps with no voice
+# fall back to a min-scene floor so the screen still has a moment of breathing.
+UX_JOURNEY_VIDEO_DYNAMIC_PACING = _env_truthy("UX_JOURNEY_VIDEO_DYNAMIC_PACING", "1")
+try:
+    UX_JOURNEY_VIDEO_SCENE_MIN_SEC = max(0.5, float(os.environ.get("UX_JOURNEY_VIDEO_SCENE_MIN_SEC", "2.5") or "2.5"))
+except ValueError:
+    UX_JOURNEY_VIDEO_SCENE_MIN_SEC = 2.5
+try:
+    UX_JOURNEY_VIDEO_SCENE_MAX_SEC = max(5.0, float(os.environ.get("UX_JOURNEY_VIDEO_SCENE_MAX_SEC", "60.0") or "60.0"))
+except ValueError:
+    UX_JOURNEY_VIDEO_SCENE_MAX_SEC = 60.0
+try:
+    UX_JOURNEY_VIDEO_SCENE_VOICE_PAD_SEC = max(0.0, float(os.environ.get("UX_JOURNEY_VIDEO_SCENE_VOICE_PAD_SEC", "0.5") or "0.5"))
+except ValueError:
+    UX_JOURNEY_VIDEO_SCENE_VOICE_PAD_SEC = 0.5
+try:
+    UX_JOURNEY_VIDEO_SCENE_LEAD_IN_SEC = max(0.0, float(os.environ.get("UX_JOURNEY_VIDEO_SCENE_LEAD_IN_SEC", "1.5") or "1.5"))
+except ValueError:
+    UX_JOURNEY_VIDEO_SCENE_LEAD_IN_SEC = 1.5
+try:
+    UX_JOURNEY_VIDEO_SCENE_TAIL_SEC = max(0.0, float(os.environ.get("UX_JOURNEY_VIDEO_SCENE_TAIL_SEC", "2.5") or "2.5"))
+except ValueError:
+    UX_JOURNEY_VIDEO_SCENE_TAIL_SEC = 2.5
+# Hard floor on per-segment scale: prevents speeding a scene below 10% of
+# real-time (= 10x speedup) where motion becomes a blur. If the voice is short
+# but the raw segment is long, we'd otherwise compress, e.g., 30s of scrolling
+# into 1.5s. Floor keeps scrolls and clicks visible at the cost of a slight
+# voice-vs-scene mismatch (voice ends earlier than the scene).
+try:
+    UX_JOURNEY_VIDEO_SCENE_MIN_SCALE = max(0.05, min(1.0, float(os.environ.get("UX_JOURNEY_VIDEO_SCENE_MIN_SCALE", "0.1") or "0.1")))
+except ValueError:
+    UX_JOURNEY_VIDEO_SCENE_MIN_SCALE = 0.1
+
 
 def _effective_transcode_slowdown() -> float:
     base = float(VIDEO_SLOWDOWN_FACTOR)
@@ -2263,6 +2311,11 @@ print(
     f"voiceover_max_tempo={UX_JOURNEY_VOICEOVER_MAX_TEMPO} "
     f"voiceover_openai_key={'present' if os.environ.get('OPENAI_API_KEY') else 'absent'} "
     f"use_judge={_env_truthy('CHECKION_AGENT_USE_JUDGE', '0')} "
+    f"dynamic_pacing={UX_JOURNEY_VIDEO_DYNAMIC_PACING} "
+    f"scene_min={UX_JOURNEY_VIDEO_SCENE_MIN_SEC}s "
+    f"scene_max={UX_JOURNEY_VIDEO_SCENE_MAX_SEC}s "
+    f"scene_voice_pad={UX_JOURNEY_VIDEO_SCENE_VOICE_PAD_SEC}s "
+    f"scene_min_scale={UX_JOURNEY_VIDEO_SCENE_MIN_SCALE} "
     f"VIDEO_FPS={VIDEO_TRANSCODE_FPS} "
     f"VIDEO_TRANSCODE_DISABLED={VIDEO_TRANSCODE_DISABLED}",
     flush=True,
@@ -2477,9 +2530,18 @@ async def _synthesize_step_voiceovers(
     steps: list[dict[str, Any]],
     eff_slowdown: float,
     duration_raw_sec: float,
+    apply_slot_atempo: bool = True,
 ) -> list[_VoiceoverClip]:
-    """Per-step TTS with slot-aware time-stretching. Returns clips ready to be
-    fed into ffmpeg as `-i <path>` plus matching `adelay` filter entries."""
+    """Per-step TTS. Returns clips ready to be fed into ffmpeg.
+
+    ``apply_slot_atempo``:
+      - ``True`` (uniform-pacing path): cap each clip's duration by the slot
+        length on the *slowed* output timeline, time-stretching the voice with
+        ``atempo`` (≤ ``UX_JOURNEY_VOICEOVER_MAX_TEMPO``) so it fits.
+      - ``False`` (dynamic-pacing path): leave the voice at natural tempo. The
+        scene length will be derived *from* the clip duration in
+        ``_build_scene_plan`` — atempo would defeat the whole point.
+    """
     if not (UX_JOURNEY_VIDEO_VOICEOVER and steps):
         return []
     if not (os.environ.get("OPENAI_API_KEY") or "").strip():
@@ -2534,10 +2596,11 @@ async def _synthesize_step_voiceovers(
         raw_dur = await _ffprobe_duration_seconds(raw_mp3) or 0.0
         if raw_dur <= 0.05:
             return None
-        # Decide on tempo. Stay at 1.0 if it already fits.
+        # Decide on tempo. Stay at 1.0 if it already fits OR if dynamic pacing
+        # is on (in which case the scene matches the voice, not the other way around).
         tempo = 1.0
         clip_path = raw_mp3
-        if raw_dur > slot:
+        if apply_slot_atempo and raw_dur > slot:
             tempo = min(UX_JOURNEY_VOICEOVER_MAX_TEMPO, raw_dur / slot)
             if tempo > 1.001:
                 fitted_mp3 = cache_dir / f"step-{step_n:03d}-{cache_key}.x{tempo:.3f}.mp3"
@@ -2550,6 +2613,9 @@ async def _synthesize_step_voiceovers(
         final_dur = await _ffprobe_duration_seconds(clip_path) or raw_dur / max(1.0, tempo)
         return _VoiceoverClip(
             path=clip_path,
+            # In dynamic-pacing mode the caller will recompute delay_ms from the
+            # cumulative scene plan — this initial value is just a placeholder
+            # tied to the (uniform) eff slowdown for backwards compat.
             delay_ms=int(round(start_out * 1000.0)),
             duration_sec=final_dur,
             tempo_applied=tempo,
@@ -2585,6 +2651,224 @@ async def _synthesize_step_voiceovers(
     return clips
 
 
+@dataclass
+class _SceneSegment:
+    """One contiguous slice of the raw recording with its target output length.
+
+    Built by ``_build_scene_plan`` from the ordered step offsets and (optional)
+    per-step voice clips. Consumed by both the dynamic ffmpeg filter graph and
+    the dynamic ASS subtitle writer.
+    """
+
+    src_start_sec: float
+    src_end_sec: float
+    target_out_sec: float  # how long this segment should play in the output
+    step: dict[str, Any] | None  # None = lead-in / standalone tail
+    voice: _VoiceoverClip | None
+    label: str  # 'lead-in' | f'step-{n}' | 'tail' — purely for diagnostics
+
+    @property
+    def src_dur_sec(self) -> float:
+        return max(0.0, self.src_end_sec - self.src_start_sec)
+
+    @property
+    def scale(self) -> float:
+        d = self.src_dur_sec
+        if d <= 0.001:
+            return 1.0
+        return self.target_out_sec / d
+
+
+def _build_scene_plan(
+    *,
+    steps: list[dict[str, Any]],
+    voice_clips: list[_VoiceoverClip],
+    duration_raw_sec: float,
+) -> list[_SceneSegment]:
+    """Slice the raw timeline at each ``videoOffsetSec`` boundary and decide,
+    per slice, how long it should play in the output.
+
+    Rules per per-step segment:
+      * ``target = clamp(MIN, voice_dur + voice_pad, MAX)`` if a voice clip exists
+      * ``target = MIN_SCENE`` otherwise (no audio to anchor against)
+      * ``scale = target / src_dur`` is *floored* at ``MIN_SCALE`` so even a long
+        scrolling sequence with a 2-word voice doesn't compress into invisibility.
+
+    A short lead-in segment (raw 0 → first step offset) is included if non-trivial,
+    so the page-load moment is visible. A tail segment (last step offset → raw end)
+    is appended when the recording continues past the final step's offset — keeps
+    the closing frame on screen briefly.
+    """
+    voice_by_step = {c.step_no: c for c in voice_clips}
+
+    ordered: list[tuple[float, dict[str, Any]]] = []
+    for st in steps:
+        if not isinstance(st, dict):
+            continue
+        off = st.get("videoOffsetSec")
+        if isinstance(off, (int, float)):
+            ordered.append((float(off), st))
+    ordered.sort(key=lambda pair: pair[0])
+
+    segments: list[_SceneSegment] = []
+    if not ordered:
+        # Pathological case (no offsets at all). Just play the whole raw clip
+        # at realtime — at least the user sees something instead of a 50-min
+        # unrolled blank.
+        return [
+            _SceneSegment(
+                src_start_sec=0.0,
+                src_end_sec=duration_raw_sec,
+                target_out_sec=duration_raw_sec,
+                step=None,
+                voice=None,
+                label="full",
+            )
+        ]
+
+    first_offset = max(0.0, ordered[0][0])
+    if first_offset > 0.5:
+        # Lead-in slice. We don't try to scale this against any voice — there's
+        # no narration before step 1 — but we always cap to LEAD_IN_SEC so the
+        # page-load doesn't dominate the output if the agent's first action
+        # came late.
+        target = min(UX_JOURNEY_VIDEO_SCENE_LEAD_IN_SEC, max(0.5, first_offset))
+        segments.append(
+            _SceneSegment(
+                src_start_sec=0.0,
+                src_end_sec=first_offset,
+                target_out_sec=target,
+                step=None,
+                voice=None,
+                label="lead-in",
+            )
+        )
+
+    for i, (t_in, st) in enumerate(ordered):
+        src_start = t_in
+        src_end = ordered[i + 1][0] if i + 1 < len(ordered) else duration_raw_sec
+        if src_end - src_start <= 0.05:
+            # Two steps at virtually the same offset — merge by skipping this
+            # zero-duration slice. The next step still gets its own scene.
+            continue
+        step_n = int(st.get("step") or i + 1)
+        voice = voice_by_step.get(step_n)
+        if voice is not None and voice.duration_sec > 0.1:
+            target = max(
+                UX_JOURNEY_VIDEO_SCENE_MIN_SEC,
+                voice.duration_sec + UX_JOURNEY_VIDEO_SCENE_VOICE_PAD_SEC,
+            )
+        else:
+            target = UX_JOURNEY_VIDEO_SCENE_MIN_SEC
+        target = min(UX_JOURNEY_VIDEO_SCENE_MAX_SEC, target)
+
+        # Enforce the speedup floor: if the raw segment is much longer than the
+        # target (= heavy speedup), pull the target back up so motion stays
+        # readable. This is the only knob that prevents 30s of slow-scrolling
+        # being crammed into a 1s blur.
+        src_dur = src_end - src_start
+        min_target_for_scale = src_dur * UX_JOURNEY_VIDEO_SCENE_MIN_SCALE
+        if target < min_target_for_scale:
+            target = min(UX_JOURNEY_VIDEO_SCENE_MAX_SEC, min_target_for_scale)
+
+        segments.append(
+            _SceneSegment(
+                src_start_sec=src_start,
+                src_end_sec=src_end,
+                target_out_sec=target,
+                step=st,
+                voice=voice,
+                label=f"step-{step_n}",
+            )
+        )
+
+    # Optional tail (post-last-step). The per-step loop already covered
+    # `last_step_offset → raw_dur`, so this is only added when no per-step
+    # segment touched the end (rare, but happens if the final step had an
+    # offset == raw_dur and got skipped above).
+    last_covered_end = segments[-1].src_end_sec if segments else 0.0
+    if duration_raw_sec - last_covered_end > 0.5 and UX_JOURNEY_VIDEO_SCENE_TAIL_SEC > 0.0:
+        segments.append(
+            _SceneSegment(
+                src_start_sec=last_covered_end,
+                src_end_sec=duration_raw_sec,
+                target_out_sec=UX_JOURNEY_VIDEO_SCENE_TAIL_SEC,
+                step=None,
+                voice=None,
+                label="tail",
+            )
+        )
+
+    return segments
+
+
+def _segment_cumulative_starts(segments: list[_SceneSegment]) -> list[float]:
+    """Return the *output*-timeline start of each segment (segment 0 starts at 0)."""
+    out: list[float] = []
+    cursor = 0.0
+    for seg in segments:
+        out.append(cursor)
+        cursor += seg.target_out_sec
+    return out
+
+
+def _write_reasoning_ass_file_dynamic(
+    *,
+    dest_ass: Path,
+    segments: list[_SceneSegment],
+    cumulative_starts: list[float],
+) -> bool:
+    """ASS subtitle writer for the dynamic-pacing path. Each segment with an
+    attached step gets a Dialogue line spanning the whole segment in the
+    *output* timeline. No global slowdown factor needed — segments already
+    encode their final duration.
+    """
+    timed: list[tuple[float, float, dict[str, Any]]] = []
+    for seg, start_out in zip(segments, cumulative_starts):
+        if seg.step is None:
+            continue
+        end_out = start_out + seg.target_out_sec
+        timed.append((start_out, end_out, seg.step))
+    if not timed:
+        return False
+
+    header = (
+        "[Script Info]\n"
+        "Title: CHECKION reasoning (dynamic)\n"
+        "ScriptType: v4.00+\n"
+        "WrapStyle: 0\n"
+        "PlayResX: 1920\n"
+        "PlayResY: 1080\n"
+        "\n"
+        "[V4+ Styles]\n"
+        "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, "
+        "BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, "
+        "BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n"
+        "Style: Default,Liberation Sans,20,&H00FFFFFF,&H000000FF,&H00000000,&H60000000,0,0,0,0,100,100,0,0,1,"
+        "3,2,2,64,64,54,1\n"
+        "\n"
+        "[Events]\n"
+        "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
+    )
+    lines = [header]
+    for start_out, end_out, st in timed:
+        body = _video_lower_third_body(st)
+        if not body:
+            continue
+        step_n = st.get("step")
+        title = _escape_ass_chunk(f"Schritt {int(step_n)}" if isinstance(step_n, int) else "Schritt")
+        wrapped = _wrap_ass_lines(body)
+        text = f"{title}\\N\\N{wrapped}"
+        lines.append(
+            f"Dialogue: 0,{_format_ass_timestamp(start_out)},{_format_ass_timestamp(end_out)},Default,,0,0,0,,{text}\n"
+        )
+    try:
+        dest_ass.write_text("".join(lines), encoding="utf-8")
+        return True
+    except Exception:
+        return False
+
+
 async def _transcode_to_smooth_mp4(src: Path, dest: Path, *, job_id: str | None = None) -> bool:
     """Re-encode ``src`` to a browser-friendly H.264 MP4 at ``dest``.
 
@@ -2606,6 +2890,40 @@ async def _transcode_to_smooth_mp4(src: Path, dest: Path, *, job_id: str | None 
     if job_id:
         steps_sub = _load_steps_sidecar(job_id)
 
+    # Decide between the dynamic per-scene path and the legacy uniform setpts path.
+    # Dynamic requires: feature flag on, sidecar steps with offsets, valid raw duration.
+    use_dynamic = bool(
+        job_id
+        and UX_JOURNEY_VIDEO_DYNAMIC_PACING
+        and steps_sub
+        and dur_raw
+        and dur_raw > 0.1
+        and any(isinstance(s, dict) and isinstance(s.get("videoOffsetSec"), (int, float)) for s in steps_sub)
+    )
+
+    voice_clips: list[_VoiceoverClip] = []
+    if job_id and UX_JOURNEY_VIDEO_VOICEOVER and steps_sub and dur_raw and dur_raw > 0.1:
+        voice_clips = await _synthesize_step_voiceovers(
+            job_id=job_id,
+            steps=steps_sub,
+            eff_slowdown=eff,
+            duration_raw_sec=dur_raw,
+            apply_slot_atempo=not use_dynamic,
+        )
+        if job_id is not None:
+            _voiceover_clip_counts[job_id] = len(voice_clips)
+
+    if use_dynamic:
+        return await _transcode_dynamic(
+            src=src,
+            dest=dest,
+            job_id=job_id,
+            steps=steps_sub or [],
+            voice_clips=voice_clips,
+            duration_raw_sec=float(dur_raw or 0.0),
+        )
+
+    # ----- Legacy uniform path (no dynamic pacing) -----
     ass_path: Path | None = None
     if job_id and UX_JOURNEY_VIDEO_LOWER_THIRD and steps_sub and dur_raw and dur_raw > 0.1:
         ass_tmp = VIDEO_BASE_DIR / f"{job_id}.reasoning.ass"
@@ -2616,17 +2934,6 @@ async def _transcode_to_smooth_mp4(src: Path, dest: Path, *, job_id: str | None 
             slowdown_eff=eff,
         ):
             ass_path = ass_tmp
-
-    voice_clips: list[_VoiceoverClip] = []
-    if job_id and UX_JOURNEY_VIDEO_VOICEOVER and steps_sub and dur_raw and dur_raw > 0.1:
-        voice_clips = await _synthesize_step_voiceovers(
-            job_id=job_id,
-            steps=steps_sub,
-            eff_slowdown=eff,
-            duration_raw_sec=dur_raw,
-        )
-        if job_id is not None:
-            _voiceover_clip_counts[job_id] = len(voice_clips)
 
     # Build the *video* filter chain. We compose it once and decide downstream
     # whether to feed it via `-vf` (no audio mux) or `filter_complex` (with TTS).
@@ -2642,7 +2949,7 @@ async def _transcode_to_smooth_mp4(src: Path, dest: Path, *, job_id: str | None 
 
     print(
         f"ux-journey: transcode src={src.name} -> {dest.name} "
-        f"effective_slowdown={eff:.4f} fps={VIDEO_TRANSCODE_FPS} "
+        f"mode=uniform effective_slowdown={eff:.4f} fps={VIDEO_TRANSCODE_FPS} "
         f"video_chain=\"{video_chain}\" "
         f"lower_third={'yes' if ass_path else 'no'} "
         f"voiceover_clips={len(voice_clips)}",
@@ -2657,8 +2964,6 @@ async def _transcode_to_smooth_mp4(src: Path, dest: Path, *, job_id: str | None 
     ]
 
     if voice_clips:
-        # Each TTS clip becomes its own input stream so we can `adelay` it
-        # individually, then `amix` everything into one mono master track.
         for clip in voice_clips:
             cmd.extend(["-i", str(clip.path)])
         filter_parts: list[str] = [f"[0:v]{video_chain}[v]"]
@@ -2666,9 +2971,6 @@ async def _transcode_to_smooth_mp4(src: Path, dest: Path, *, job_id: str | None 
         for i, clip in enumerate(voice_clips):
             in_label = f"[{i + 1}:a]"
             out_label = f"[a{i + 1}]"
-            # `adelay=Lms|Rms` — same value for both channels keeps the source
-            # mono/stereo agnostic; `all=1` would also work but isn't supported
-            # on all ffmpeg builds, so we stick with the explicit pair form.
             ad = clip.delay_ms
             filter_parts.append(f"{in_label}adelay={ad}|{ad}{out_label}")
             a_labels.append(out_label)
@@ -2729,6 +3031,193 @@ async def _transcode_to_smooth_mp4(src: Path, dest: Path, *, job_id: str | None 
         )
     except Exception as exc:  # pragma: no cover - defensive
         print(f"ffmpeg transcode crashed for {src}: {exc!r}", flush=True)
+    return False
+
+
+async def _transcode_dynamic(
+    *,
+    src: Path,
+    dest: Path,
+    job_id: str | None,
+    steps: list[dict[str, Any]],
+    voice_clips: list[_VoiceoverClip],
+    duration_raw_sec: float,
+) -> bool:
+    """Per-scene dynamic-pacing transcode.
+
+    Builds a filter_complex of the form::
+
+      [0:v]split=N[in0][in1]...;
+      [in0]trim=Sa:Ea,setpts=(PTS-STARTPTS)*scale_a,fps=...,format=yuv420p[seg0];
+      [in1]trim=Sb:Eb,setpts=(PTS-STARTPTS)*scale_b,fps=...,format=yuv420p[seg1];
+      ...
+      [seg0][seg1]...concat=n=N:v=1:a=0[vcat];
+      [vcat]subtitles=PATH[v];
+      [k:a]adelay=Dk|Dk[ak]; ...; amix=inputs=K:duration=longest[a]
+
+    Each segment's scale is computed from ``_build_scene_plan`` so that its
+    output duration equals the matching TTS clip length (clamped to MIN/MAX).
+    Voice clips keep their natural tempo; their adelay timestamps are placed
+    against the *cumulative* output starts so they sync to the now-non-uniform
+    video.
+    """
+    plan = _build_scene_plan(
+        steps=steps,
+        voice_clips=voice_clips,
+        duration_raw_sec=duration_raw_sec,
+    )
+    if not plan:
+        return False
+    cumulative_starts = _segment_cumulative_starts(plan)
+    total_out_sec = sum(seg.target_out_sec for seg in plan)
+
+    ass_path: Path | None = None
+    if job_id and UX_JOURNEY_VIDEO_LOWER_THIRD:
+        ass_tmp = VIDEO_BASE_DIR / f"{job_id}.reasoning.ass"
+        if _write_reasoning_ass_file_dynamic(
+            dest_ass=ass_tmp,
+            segments=plan,
+            cumulative_starts=cumulative_starts,
+        ):
+            ass_path = ass_tmp
+
+    # ---------- video filter graph ----------
+    n_segs = len(plan)
+    split_outputs = "".join(f"[in{i}]" for i in range(n_segs))
+    parts: list[str] = [f"[0:v]split={n_segs}{split_outputs}"]
+    seg_labels: list[str] = []
+    for i, seg in enumerate(plan):
+        # ffmpeg's trim accepts seconds with millisecond precision; clamp the
+        # end at the raw duration to be safe (slightly off-by-one offsets at
+        # the tail boundary occasionally happen).
+        s = max(0.0, seg.src_start_sec)
+        e = min(duration_raw_sec, max(s + 0.05, seg.src_end_sec))
+        scale = seg.scale
+        # 0.001 floor on scale prevents PTS=0 segments which ffmpeg rejects
+        # with "Invalid PTS".
+        if scale < 0.001:
+            scale = 0.001
+        out_label = f"[seg{i}]"
+        parts.append(
+            f"[in{i}]trim=start={s:.4f}:end={e:.4f},"
+            f"setpts=(PTS-STARTPTS)*{scale:.6f},"
+            f"fps={VIDEO_TRANSCODE_FPS},format=yuv420p{out_label}"
+        )
+        seg_labels.append(out_label)
+    concat_inputs = "".join(seg_labels)
+    parts.append(f"{concat_inputs}concat=n={n_segs}:v=1:a=0[vcat]")
+    if ass_path is not None and ass_path.is_file():
+        sub_posix = ass_path.resolve().as_posix()
+        parts.append(f"[vcat]subtitles={sub_posix}[v]")
+        v_out = "[v]"
+    else:
+        # Even without subtitles we keep an explicit [v] map so the audio path
+        # below doesn't have to special-case the label.
+        parts.append("[vcat]null[v]")
+        v_out = "[v]"
+
+    # ---------- audio mix (with cumulative offsets) ----------
+    a_labels: list[str] = []
+    for i, seg in enumerate(plan):
+        if seg.voice is None:
+            continue
+        # The voice clip plays at the segment's cumulative output start.
+        delay_ms = int(round(cumulative_starts[i] * 1000.0))
+        # Inputs are added in iteration order: [0:*] is the source video, then
+        # one extra `-i clip.path` per segment that has a voice clip. So the
+        # next clip's input index is len(a_labels) + 1.
+        idx = len(a_labels) + 1
+        in_label = f"[{idx}:a]"
+        out_label = f"[a{idx}]"
+        parts.append(f"{in_label}adelay={delay_ms}|{delay_ms}{out_label}")
+        a_labels.append(out_label)
+    a_out: str | None = None
+    if a_labels:
+        if len(a_labels) == 1:
+            parts.append(f"{a_labels[0]}anull[a]")
+        else:
+            parts.append(
+                "".join(a_labels)
+                + f"amix=inputs={len(a_labels)}:duration=longest:dropout_transition=0[a]"
+            )
+        a_out = "[a]"
+
+    filter_complex = ";".join(parts)
+
+    print(
+        f"ux-journey: transcode src={src.name} -> {dest.name} "
+        f"mode=dynamic segments={n_segs} total_out={total_out_sec:.2f}s "
+        f"raw={duration_raw_sec:.2f}s "
+        f"voice_clips={len(voice_clips)} "
+        f"lower_third={'yes' if ass_path else 'no'}",
+        flush=True,
+    )
+    # Dump segment plan once at start so we can audit pacing decisions in logs
+    # without rebuilding state. Useful when a step looks too fast or too slow.
+    for i, seg in enumerate(plan):
+        v_dur = seg.voice.duration_sec if seg.voice else 0.0
+        print(
+            f"  seg[{i:02d}] {seg.label:>10s} src=[{seg.src_start_sec:6.2f}..{seg.src_end_sec:6.2f}]"
+            f" ({seg.src_dur_sec:5.2f}s) -> out={seg.target_out_sec:5.2f}s"
+            f" scale={seg.scale:6.3f} voice={v_dur:5.2f}s",
+            flush=True,
+        )
+
+    cmd: list[str] = [
+        "ffmpeg",
+        "-y",
+        "-loglevel", "error",
+        "-i", str(src),
+    ]
+    for seg in plan:
+        if seg.voice is not None:
+            cmd.extend(["-i", str(seg.voice.path)])
+
+    cmd.extend([
+        "-filter_complex", filter_complex,
+        "-map", v_out,
+    ])
+    if a_out is not None:
+        cmd.extend(["-map", a_out])
+    cmd.extend([
+        "-c:v", "libx264",
+        "-preset", VIDEO_TRANSCODE_PRESET,
+        "-crf", str(VIDEO_TRANSCODE_CRF),
+        "-g", str(int(VIDEO_TRANSCODE_FPS * 2)),
+        "-pix_fmt", "yuv420p",
+        "-movflags", "+faststart",
+    ])
+    if a_out is not None:
+        cmd.extend([
+            "-c:a", "aac",
+            "-b:a", "128k",
+            "-ar", "44100",
+            "-shortest",
+        ])
+    else:
+        cmd.append("-an")
+    cmd.append(str(dest))
+
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE
+        )
+        _, stderr = await proc.communicate()
+        ok = proc.returncode == 0 and dest.is_file() and dest.stat().st_size > 0
+        if ok and ass_path is not None:
+            try:
+                ass_path.unlink(missing_ok=True)
+            except Exception:
+                pass
+        if ok:
+            return True
+        print(
+            f"ffmpeg dynamic transcode failed (rc={proc.returncode}) for {src}: "
+            f"{stderr[-2048:] if stderr else b''!r}",
+            flush=True,
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        print(f"ffmpeg dynamic transcode crashed for {src}: {exc!r}", flush=True)
     return False
 
 
@@ -3221,6 +3710,11 @@ async def get_run_live_diag(job_id: str) -> dict[str, Any]:
         "videoSlowdownFactor": VIDEO_SLOWDOWN_FACTOR,
         "videoCompoundSlowmo": UX_JOURNEY_VIDEO_COMPOUND_SLOWMO,
         "effectiveVideoSlowdown": _effective_transcode_slowdown(),
+        "videoDynamicPacing": UX_JOURNEY_VIDEO_DYNAMIC_PACING,
+        "videoSceneMinSec": UX_JOURNEY_VIDEO_SCENE_MIN_SEC,
+        "videoSceneMaxSec": UX_JOURNEY_VIDEO_SCENE_MAX_SEC,
+        "videoSceneVoicePadSec": UX_JOURNEY_VIDEO_SCENE_VOICE_PAD_SEC,
+        "videoSceneMinScale": UX_JOURNEY_VIDEO_SCENE_MIN_SCALE,
         "videoLowerThird": UX_JOURNEY_VIDEO_LOWER_THIRD,
         "videoVoiceover": (
             UX_JOURNEY_VIDEO_VOICEOVER and bool(os.environ.get("OPENAI_API_KEY"))
