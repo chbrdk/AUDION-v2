@@ -796,7 +796,7 @@ export const MsqdxGlassChatPanel = ({
                   {/* Persona reply — skip duplicating the confirm prompt: stream content and
                       `tool_proposed.promptText` are usually the same; rendering both stacks
                       duplicate <p>/<em> blocks. The proposed card is the canonical UI. */}
-                  {showPersonaMarkdownBody(message) ? (
+                  {showPersonaMarkdownBody(message) && !message.uxJourney ? (
                     <ChatMessageMarkdown content={message.content} />
                   ) : null}
 
@@ -846,7 +846,7 @@ export const MsqdxGlassChatPanel = ({
                         display: "flex",
                         flexDirection: "column",
                         gap: 1,
-                        mt: showPersonaMarkdownBody(message) || message.reasoning?.trim() ? 1 : 0,
+                        mt: message.reasoning?.trim() || (showPersonaMarkdownBody(message) && !message.uxJourney) ? 1 : 0,
                         p: 1.25,
                         borderRadius: 2,
                         border: `1px solid ${alpha(theme.palette.divider, 0.7)}`,
@@ -1072,99 +1072,8 @@ export const MsqdxGlassChatPanel = ({
                         </Typography>
                       ) : null}
 
-                      {/* Screen recording: optional opt-in after the run (no live MJPEG during running).
-                          Recording is still captured server-side; we only defer loading the asset in the browser. */}
-                      {(message.uxJourney.status === "complete" || message.uxJourney.status === "error") &&
-                      message.uxJourney.jobId ? (
-                        <Box sx={{ mt: 0.5 }}>
-                          {message.uxJourney.videoUrl ? (
-                            !uxJourneyVideoRevealed[message.id] ? (
-                              <Box
-                                sx={{
-                                  p: 1.25,
-                                  borderRadius: 2,
-                                  border: `1px dashed ${alpha(theme.palette.divider, 0.65)}`,
-                                  backgroundColor: alpha(theme.palette.background.paper, 0.35),
-                                }}
-                              >
-                                <Typography variant="caption" sx={{ display: "block", mb: 0.5, fontWeight: 600, color: "text.primary" }}>
-                                  {t("chat.uxJourney.videoOfferTitle")}
-                                </Typography>
-                                <Typography variant="caption" sx={{ display: "block", mb: 1, color: "text.secondary" }}>
-                                  {t("chat.uxJourney.videoOfferHint")}
-                                </Typography>
-                                {uxJourneyVideoFinalizeError[message.id] ? (
-                                  <Typography variant="caption" sx={{ display: "block", mb: 1, color: "error.main" }}>
-                                    {uxJourneyVideoFinalizeError[message.id]}
-                                  </Typography>
-                                ) : null}
-                                <Button
-                                  size="small"
-                                  variant="outlined"
-                                  startIcon={
-                                    uxJourneyVideoFinalizeBusy[message.id] ? (
-                                      <CircularProgress size={14} color="inherit" />
-                                    ) : (
-                                      <MsqdxIcon name="videocam" customSize={18} />
-                                    )
-                                  }
-                                  disabled={!!uxJourneyVideoFinalizeBusy[message.id]}
-                                  onClick={() => {
-                                    const jid = message.uxJourney?.jobId;
-                                    if (jid) void requestUxJourneyVideoAndReveal(message.id, jid);
-                                  }}
-                                  sx={{ textTransform: "none", borderRadius: 999 }}
-                                >
-                                  {uxJourneyVideoFinalizeBusy[message.id]
-                                    ? t("chat.uxJourney.videoFinalizeBusy")
-                                    : message.uxJourney.status === "error"
-                                      ? t("chat.uxJourney.videoShowPartial")
-                                      : t("chat.uxJourney.videoShow")}
-                                </Button>
-                              </Box>
-                            ) : (
-                              <Box>
-                                <Typography variant="caption" sx={{ display: "block", mb: 0.5, color: "text.secondary" }}>
-                                  {message.uxJourney.status === "error"
-                                    ? t("chat.uxJourney.videoPartial")
-                                    : t("chat.uxJourney.video")}
-                                </Typography>
-                                {uxJourneyVideoPolishFailed[message.id] ? (
-                                  <Typography variant="caption" sx={{ display: "block", mb: 0.5, color: "warning.main" }}>
-                                    {t("chat.uxJourney.videoPolishFailed")}
-                                  </Typography>
-                                ) : null}
-                                <Box
-                                  component="video"
-                                  controls
-                                  playsInline
-                                  preload="metadata"
-                                  src={`${message.uxJourney.videoUrl}${message.uxJourney.videoUrl.includes("?") ? "&" : "?"}v=${uxJourneyVideoCacheKey[message.id] ?? 1}`}
-                                  onLoadedMetadata={(e: React.SyntheticEvent<HTMLVideoElement>) => {
-                                    e.currentTarget.playbackRate = getUxJourneyVideoPlaybackRate();
-                                  }}
-                                  sx={{
-                                    width: "100%",
-                                    maxWidth: 720,
-                                    borderRadius: 2,
-                                    border: `1px solid ${alpha(theme.palette.divider, 0.7)}`,
-                                    backgroundColor: "#000",
-                                    display: "block",
-                                  }}
-                                />
-                              </Box>
-                            )
-                          ) : (
-                            <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontStyle: "italic" }}>
-                              {t("chat.uxJourney.videoUnavailable")}
-                            </Typography>
-                          )}
-                        </Box>
-                      ) : null}
-
                       {/* --- Steps drill-down. Hidden during the proposed/approved/denied
-                          phases (no steps yet / no value), and default-collapsed once the
-                          run is complete so the persona summary above stays the focus. --- */}
+                          phases (no steps yet / no value). Persona reply + recording follow below. --- */}
                       {message.uxJourney.status !== "proposed" &&
                       message.uxJourney.status !== "approved" &&
                       message.uxJourney.status !== "denied" ? (
@@ -1444,6 +1353,113 @@ export const MsqdxGlassChatPanel = ({
                         )}
                           </AccordionDetails>
                         </Accordion>
+                      ) : null}
+
+                      {showPersonaMarkdownBody(message) ? (
+                        <Box
+                          sx={{
+                            mt: 1.5,
+                            pt: 1.5,
+                            borderTop: `1px solid ${alpha(theme.palette.divider, 0.55)}`,
+                          }}
+                        >
+                          <Typography
+                            variant="caption"
+                            sx={{ ...uxJourneyStepLabelSx, color: "text.secondary", display: "block", mb: 0.75 }}
+                          >
+                            {t("chat.uxJourney.personaReply")}
+                          </Typography>
+                          <ChatMessageMarkdown content={message.content} />
+                        </Box>
+                      ) : null}
+
+                      {/* Screen recording: optional opt-in after the run (no live MJPEG during running). */}
+                      {(message.uxJourney.status === "complete" || message.uxJourney.status === "error") &&
+                      message.uxJourney.jobId ? (
+                        <Box sx={{ mt: 1.5 }}>
+                          {message.uxJourney.videoUrl ? (
+                            !uxJourneyVideoRevealed[message.id] ? (
+                              <Box
+                                sx={{
+                                  p: 1.25,
+                                  borderRadius: 2,
+                                  border: `1px dashed ${alpha(theme.palette.divider, 0.65)}`,
+                                  backgroundColor: alpha(theme.palette.background.paper, 0.35),
+                                }}
+                              >
+                                <Typography variant="caption" sx={{ display: "block", mb: 0.5, fontWeight: 600, color: "text.primary" }}>
+                                  {t("chat.uxJourney.videoOfferTitle")}
+                                </Typography>
+                                <Typography variant="caption" sx={{ display: "block", mb: 1, color: "text.secondary" }}>
+                                  {t("chat.uxJourney.videoOfferHint")}
+                                </Typography>
+                                {uxJourneyVideoFinalizeError[message.id] ? (
+                                  <Typography variant="caption" sx={{ display: "block", mb: 1, color: "error.main" }}>
+                                    {uxJourneyVideoFinalizeError[message.id]}
+                                  </Typography>
+                                ) : null}
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  startIcon={
+                                    uxJourneyVideoFinalizeBusy[message.id] ? (
+                                      <CircularProgress size={14} color="inherit" />
+                                    ) : (
+                                      <MsqdxIcon name="videocam" customSize={18} />
+                                    )
+                                  }
+                                  disabled={!!uxJourneyVideoFinalizeBusy[message.id]}
+                                  onClick={() => {
+                                    const jid = message.uxJourney?.jobId;
+                                    if (jid) void requestUxJourneyVideoAndReveal(message.id, jid);
+                                  }}
+                                  sx={{ textTransform: "none", borderRadius: 999 }}
+                                >
+                                  {uxJourneyVideoFinalizeBusy[message.id]
+                                    ? t("chat.uxJourney.videoFinalizeBusy")
+                                    : message.uxJourney.status === "error"
+                                      ? t("chat.uxJourney.videoShowPartial")
+                                      : t("chat.uxJourney.videoShow")}
+                                </Button>
+                              </Box>
+                            ) : (
+                              <Box>
+                                <Typography variant="caption" sx={{ display: "block", mb: 0.5, color: "text.secondary" }}>
+                                  {message.uxJourney.status === "error"
+                                    ? t("chat.uxJourney.videoPartial")
+                                    : t("chat.uxJourney.video")}
+                                </Typography>
+                                {uxJourneyVideoPolishFailed[message.id] ? (
+                                  <Typography variant="caption" sx={{ display: "block", mb: 0.5, color: "warning.main" }}>
+                                    {t("chat.uxJourney.videoPolishFailed")}
+                                  </Typography>
+                                ) : null}
+                                <Box
+                                  component="video"
+                                  controls
+                                  playsInline
+                                  preload="metadata"
+                                  src={`${message.uxJourney.videoUrl}${message.uxJourney.videoUrl.includes("?") ? "&" : "?"}v=${uxJourneyVideoCacheKey[message.id] ?? 1}`}
+                                  onLoadedMetadata={(e: React.SyntheticEvent<HTMLVideoElement>) => {
+                                    e.currentTarget.playbackRate = getUxJourneyVideoPlaybackRate();
+                                  }}
+                                  sx={{
+                                    width: "100%",
+                                    maxWidth: 720,
+                                    borderRadius: 2,
+                                    border: `1px solid ${alpha(theme.palette.divider, 0.7)}`,
+                                    backgroundColor: "#000",
+                                    display: "block",
+                                  }}
+                                />
+                              </Box>
+                            )
+                          ) : (
+                            <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontStyle: "italic" }}>
+                              {t("chat.uxJourney.videoUnavailable")}
+                            </Typography>
+                          )}
+                        </Box>
                       ) : null}
 
                       {message.uxJourney.error ? (
