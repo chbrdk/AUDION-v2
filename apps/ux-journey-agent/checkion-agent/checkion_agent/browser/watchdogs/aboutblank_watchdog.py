@@ -1,5 +1,6 @@
 """About:blank watchdog for managing about:blank tabs with DVD screensaver."""
 
+import os
 from typing import TYPE_CHECKING, ClassVar
 
 from bubus import BaseEvent
@@ -19,6 +20,22 @@ from checkion_agent.browser.watchdog_base import BaseWatchdog
 
 if TYPE_CHECKING:
 	pass
+
+
+def _dvd_overlay_enabled() -> bool:
+	"""Whether the bouncing-logo overlay should be injected on about:blank tabs.
+
+	The overlay is a debugging aid for headed browser sessions ("the browser is
+	alive, just waiting for the agent"). In our headless recordings it is pure
+	noise: it shows up at the start of every video as a black screen with a
+	bouncing browser-use logo until the agent issues the first navigation,
+	which can take several seconds while the LLM plans step 1.
+
+	Default is OFF. Opt back in by setting CHECKION_BROWSER_LOADING_OVERLAY
+	to a truthy value (1/true/yes/on) on the agent service container.
+	"""
+	val = os.environ.get('CHECKION_BROWSER_LOADING_OVERLAY', '').strip().lower()
+	return val in ('1', 'true', 'yes', 'on')
 
 
 class AboutBlankWatchdog(BaseWatchdog):
@@ -133,7 +150,16 @@ class AboutBlankWatchdog(BaseWatchdog):
 		"""
 		Injects a DVD screensaver-style bouncing logo loading animation overlay into the target using CDP.
 		This is used to visually indicate that the browser is setting up or waiting.
+
+		Disabled by default in CHECKION (see ``_dvd_overlay_enabled``). Set
+		``CHECKION_BROWSER_LOADING_OVERLAY=1`` to opt back in for debugging.
 		"""
+		if not _dvd_overlay_enabled():
+			# Still emit the "shown" event so any test fixtures or downstream
+			# subscribers that wait on it don't hang. The overlay just isn't
+			# painted.
+			self.event_bus.dispatch(AboutBlankDVDScreensaverShownEvent(target_id=target_id))
+			return
 		try:
 			# Create temporary session for this target without switching focus
 			temp_session = await self.browser_session.get_or_create_cdp_session(target_id, focus=False)

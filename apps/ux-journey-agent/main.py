@@ -2380,9 +2380,16 @@ try:
 except ValueError:
     UX_JOURNEY_VIDEO_SCENE_VOICE_PAD_SEC = 0.5
 try:
-    UX_JOURNEY_VIDEO_SCENE_LEAD_IN_SEC = max(0.0, float(os.environ.get("UX_JOURNEY_VIDEO_SCENE_LEAD_IN_SEC", "1.5") or "1.5"))
+    # Default 0: skip the lead-in slice entirely. The lead-in showed raw
+    # `0..videoOffsetSec[step1]` of the recording — historically that captured
+    # the bouncing browser-use DVD-screensaver overlay on about:blank (now
+    # disabled by default) plus an empty white about:blank tab while the LLM
+    # planned step 1. Both are pure noise; the user wants the polished video
+    # to start when the agent actually does something. Set a positive value to
+    # opt back in (1.5 was the old default).
+    UX_JOURNEY_VIDEO_SCENE_LEAD_IN_SEC = max(0.0, float(os.environ.get("UX_JOURNEY_VIDEO_SCENE_LEAD_IN_SEC", "0") or "0"))
 except ValueError:
-    UX_JOURNEY_VIDEO_SCENE_LEAD_IN_SEC = 1.5
+    UX_JOURNEY_VIDEO_SCENE_LEAD_IN_SEC = 0.0
 try:
     UX_JOURNEY_VIDEO_SCENE_TAIL_SEC = max(0.0, float(os.environ.get("UX_JOURNEY_VIDEO_SCENE_TAIL_SEC", "2.5") or "2.5"))
 except ValueError:
@@ -2838,11 +2845,13 @@ def _build_scene_plan(
         ]
 
     first_offset = max(0.0, ordered[0][0])
-    if first_offset > 0.5:
+    if first_offset > 0.5 and UX_JOURNEY_VIDEO_SCENE_LEAD_IN_SEC > 0.05:
         # Lead-in slice. We don't try to scale this against any voice — there's
         # no narration before step 1 — but we always cap to LEAD_IN_SEC so the
         # page-load doesn't dominate the output if the agent's first action
-        # came late.
+        # came late. Skipped entirely when LEAD_IN_SEC is 0 (current default):
+        # the polished video then starts at the first real step instead of the
+        # browser's empty about:blank tab.
         target = min(UX_JOURNEY_VIDEO_SCENE_LEAD_IN_SEC, max(0.5, first_offset))
         segments.append(
             _SceneSegment(

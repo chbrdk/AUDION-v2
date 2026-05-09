@@ -42,7 +42,8 @@ Browser agent service for CHECKION: runs autonomous navigation tasks (URL + natu
 | `UX_JOURNEY_VIDEO_SCENE_MIN_SEC` | no | Minimum output length for any per-scene segment (default **`2.5`**). Applies to lead-in / tail / steps without voice. |
 | `UX_JOURNEY_VIDEO_SCENE_MAX_SEC` | no | Cap on per-scene output length (default **`60.0`**). Prevents a chatty step (long reasoning → long TTS) from monopolising the polished MP4. |
 | `UX_JOURNEY_VIDEO_SCENE_VOICE_PAD_SEC` | no | Extra silence appended to a scene after the voice clip ends (default **`0.5`**). Prevents the next voice line from crashing into the previous one. |
-| `UX_JOURNEY_VIDEO_SCENE_LEAD_IN_SEC` | no | Output length of the optional lead-in segment (raw `0..videoOffsetSec[step1]`) when the agent's first action came late (default **`1.5`**). |
+| `UX_JOURNEY_VIDEO_SCENE_LEAD_IN_SEC` | no | Output length of the optional lead-in segment (raw `0..videoOffsetSec[step1]`) when the agent's first action came late. **Default `0` — lead-in skipped.** The lead-in used to capture the bouncing browser-use DVD-screensaver overlay on `about:blank` plus the empty white tab while the LLM planned step 1. The overlay is now disabled by default (`CHECKION_BROWSER_LOADING_OVERLAY=0`), and the lead-in itself is off so the polished video starts at the agent's first real action. Set a positive value (e.g. `1.5`) to opt back in. |
+| `CHECKION_BROWSER_LOADING_OVERLAY` | no | Set to `1` to re-enable the upstream browser-use „DVD screensaver" overlay (bouncing `cf.browser-use.com/logo.svg` on every `about:blank` tab). Default **OFF** because in headless recordings the overlay just shows up at the start of every video as a black screen with a bouncing logo until the agent issues its first navigation. |
 | `UX_JOURNEY_VIDEO_SCENE_TAIL_SEC` | no | Output length of the optional tail segment (raw `lastStepOffset..rawEnd`) when the recording extends past the final step (default **`2.5`**). |
 | `UX_JOURNEY_VIDEO_SCENE_MIN_SCALE` | no | Hard floor on per-segment scale (default **`0.1`**, range 0.05..1.0). When a step's raw segment is much longer than its TTS (e.g. 30 s of slow scrolling but 4 s of voice), the scale would be 0.13 → blurred motion. The floor pulls the target output length back up so motion stays readable, at the cost of the voice ending before the scene does. |
 | `UX_JOURNEY_VIDEO_SLOWDOWN_FACTOR` | no | Legacy: base ffmpeg slow-motion multiplier during smooth-MP4 transcode via `setpts=N*PTS` (default **`16`**). Used **only** when **`UX_JOURNEY_VIDEO_DYNAMIC_PACING=0`**. The **effective** stretch in the legacy path also applies **`UX_JOURNEY_VIDEO_COMPOUND_SLOWMO`** (see below). Clamped **1..64** for this factor alone; combined effective slowdown is capped at **128**. |
@@ -60,6 +61,16 @@ Browser agent service for CHECKION: runs autonomous navigation tasks (URL + natu
 | `UX_JOURNEY_VIDEO_TRANSCODE` | no | Set **`0`** to disable H.264 transcoding entirely (no ffmpeg polish). Default **`1`** (transcode enabled when ffmpeg is available). |
 | `UX_JOURNEY_LIVE_FRAME_INTERVAL` | no | Seconds between live/MJPEG frames (default 0.04 = 25 fps). Lower value = higher fps. |
 | `PORT` | no | HTTP port (default 8320) |
+
+## Video finalize: real motion vs. still fallbacks
+
+The polished MP4 is **not** a slideshow of step screenshots. With **`UX_JOURNEY_VIDEO_DYNAMIC_PACING=1`** (default), finalize does **step-by-step work on the real Playwright screen recording** (`{jobId}.raw.*`):
+
+1. **Scene boundaries** come from per-step `videoOffsetSec` in `{jobId}.steps.json` (monotonic “first seen” vs. recording start, linearly rescaled if the raw file’s duration and that clock ever diverge).
+2. For each scene, **ffmpeg** cuts a time window from the **same raw file** and re-times it so the on-screen **clicks, scrolls, and page motion** stay visible; output length follows the TTS for that step (plus `UX_JOURNEY_VIDEO_SCENE_VOICE_PAD_SEC` and the min/max scene caps). Voice clips are synthesized per step, then **delayed and mixed** on a final pass after **concat** of the per-scene MP4s.
+3. A **single extracted frame** is used only as a **last-resort** when a planned slice is degenerate (no decodable video in that window) — that path exists so concat + audio don’t desync. Normal runs should never “look like PowerPoint”.
+
+With **`UX_JOURNEY_VIDEO_DYNAMIC_PACING=0`**, finalize falls back to the **legacy uniform** path: one `setpts` stretch over the **entire** raw recording (plus subtitle/voice timing derived from that slowdown). That preserves motion too, but long journeys become unwieldy wall-clock length compared to dynamic pacing.
 
 ## Local run
 
