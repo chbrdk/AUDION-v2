@@ -1685,22 +1685,27 @@ async def run_agent(
             "— aus deiner Perspektive, nicht aus der eines Browsing-Bots.\n"
             "WICHTIG für 'thinking' (= Voice-Over + Untertitel im Review-Video): \n"
             "- 1–3 vollständige Sätze, ERSTE PERSON, PRÄSENS, sprich, als säßest du im Usability-Test.\n"
-            "- Struktur: <was ich sehe> → <was ich tun will> → <warum> (das 'warum' ist die Begründung).\n"
-            "- Beispiele für gewünschten Ton:\n"
-            "    'Ganz oben fällt mir das Menü 'Leistungen' auf — das interessiert mich am meisten, "
-            "ich klicke da rein, weil ich konkret verstehen will, was die anbieten.'\n"
-            "    'Hier wird viel mit Buzzwords wie 'Transformation' geworben, das sagt mir zu wenig. "
-            "Ich scrolle weiter, ob unten konkrete Cases oder Branchen kommen.'\n"
-            "    'Auf der Karriereseite probiere ich die Suche mit 'Werkstudent' — wenn da nichts kommt, "
-            "gehe ich zurück und schaue manuell durch die Liste.'\n"
+            "- BENENNE die Aktion, die du gerade ausführst, EXPLIZIT mit aktivem Verb: "
+            "'Ich klicke …', 'Ich scrolle …', 'Ich tippe … ein', 'Ich wähle … aus', 'Ich öffne …', "
+            "'Ich gehe zurück …'. NICHT 'Ich werde …' / 'Ich möchte …' / 'Als Nächstes …' — "
+            "sondern Präsens-Aktion, die das Video gerade zeigt.\n"
+            "- Struktur: <was ich sehe> → <was ich tue (mit aktivem Verb)> → <warum>. "
+            "'Warum' ist die Begründung aus deiner Sicht (Bedürfnis, Hypothese, Zweifel).\n"
+            "- Beispiele für gewünschten Ton (genau dieser Stil):\n"
+            "    'Ganz oben fällt mir das Menü Leistungen auf — ich klicke da drauf, weil ich "
+            "konkret wissen will, was die anbieten.'\n"
+            "    'Die Startseite ist mir zu vage mit Buzzwords wie Transformation; ich scrolle weiter "
+            "nach unten, um konkrete Cases oder Branchen zu finden.'\n"
+            "    'Im Header sehe ich keinen Karriere-Eintrag, also klicke ich auf das Burger-Menü "
+            "rechts oben, weil dort meistens die Sub-Navigation versteckt ist.'\n"
+            "    'Ich tippe in die Suche Werkstudent ein und drücke Enter, um zu prüfen, ob "
+            "es überhaupt solche Stellen gibt.'\n"
             "- KEINE Bot-Sprache wie 'Ich navigiere zur URL', 'Ich klicke Index 12', 'Element-Selektor', "
-            "'Aktion ausführen'. Das Index/Selektor-Detail gehört in 'next_goal' (siehe unten), nicht ins Voice-Over.\n"
-            "- KEIN 'Ich werde gleich/jetzt…' im rückblickenden Sinn — du beschreibst die Handlung, "
-            "während sie passiert (Think-Aloud). Beispiel STATT 'Ich werde auf Services klicken' lieber "
-            "'Ich gehe auf Services rein, weil…'.\n"
+            "'Aktion ausführen', 'das DOM-Element …'. Das Index/Selektor-Detail gehört in 'next_goal' "
+            "(siehe unten), nicht ins Voice-Over.\n"
             "- Persona-Bezug einfließen lassen, wo er die Entscheidung wirklich treibt "
-            "(z. B. 'Als IT-Leitung will ich zuerst sehen, ob ihr DSGVO/On-Prem könnt…'). Sonst weglassen — "
-            "kein Floskel-Anfang wie 'Als <Rolle> mit <Branche>...' bei jedem Schritt.\n"
+            "(z. B. 'Als IT-Leitung achte ich darauf, ob DSGVO/On-Prem erwähnt wird…'). Sonst weglassen — "
+            "kein Floskel-Anfang wie 'Als <Rolle> mit <Branche>…' bei jedem Schritt.\n"
             "INTERNE FELDER (so kurz wie möglich, NICHT user-facing — landen NICHT im Video, nur im Card-UI als optionales Detail):\n"
             "- 'evaluation_previous_goal': 1 Satz, neutrale Bewertung des letzten Schritts. "
             "Bsp: 'Klick auf Services hat funktioniert; Übersicht ist sichtbar.' / 'Suche liefert 0 Treffer.' "
@@ -2375,6 +2380,18 @@ try:
     UX_JOURNEY_VOICEOVER_MAX_TEMPO = max(1.0, min(1.8, float(os.environ.get("UX_JOURNEY_VOICEOVER_MAX_TEMPO", "1.4") or "1.4")))
 except ValueError:
     UX_JOURNEY_VOICEOVER_MAX_TEMPO = 1.4
+# Synthesis-time speed for OpenAI TTS. 1.0 = natural, ~1.15 = noticeably
+# brisker but still natural, ~1.3 starts to feel rushed for German vowels.
+# Range is the OpenAI-supported 0.25..4.0; we clamp to 0.5..2.0 to stay
+# well inside the "still understandable" band. This is applied at synth
+# time (so cache keys reflect it via ``_voiceover_text_hash``) — separate
+# from the post-synth ``atempo`` filter ``UX_JOURNEY_VOICEOVER_MAX_TEMPO``
+# which is only used in the legacy uniform-pacing path to fit a clip into
+# its slot.
+try:
+    UX_JOURNEY_VOICEOVER_SPEED = max(0.5, min(2.0, float(os.environ.get("UX_JOURNEY_VOICEOVER_SPEED", "1.15") or "1.15")))
+except ValueError:
+    UX_JOURNEY_VOICEOVER_SPEED = 1.15
 try:
     UX_JOURNEY_VOICEOVER_CONCURRENCY = max(1, min(16, int(os.environ.get("UX_JOURNEY_VOICEOVER_CONCURRENCY", "6") or "6")))
 except ValueError:
@@ -2425,17 +2442,37 @@ try:
     UX_JOURNEY_VIDEO_SCENE_TAIL_SEC = max(0.0, float(os.environ.get("UX_JOURNEY_VIDEO_SCENE_TAIL_SEC", "2.5") or "2.5"))
 except ValueError:
     UX_JOURNEY_VIDEO_SCENE_TAIL_SEC = 2.5
-# When True, treat ``videoOffsetSec[N]`` as the *end* of step N's action
-# (= the moment step N first appears in ``agent.history`` after the action
-# committed). The scene for step N is then ``[offset[N-1] | 0, offset[N])``,
-# i.e. the slice that actually shows step N being executed (cursor moves,
-# click, scroll, page settles), so it lines up with the per-step Think-Aloud
-# voice-over and lower-third subtitle.
+# Empirically, ``videoOffsetSec[N]`` (the moment step N first appears in
+# ``agent.history``) is closer to the **start** of step N's pacing/work block
+# than to its end — flipping to "end-of-step" produced a clearly visible
+# off-by-one in the *opposite* direction (voice/overlay one scene too late
+# vs. the visible action). Default OFF; keep the env knob so we can A/B if
+# upstream changes its history-commit timing.
 #
-# With this off (legacy behaviour), the scene for step N was
-# ``[offset[N], offset[N+1])`` — which is the *next* step's action with the
-# *previous* step's reasoning narrated over it (off-by-one).
-UX_JOURNEY_VIDEO_SCENE_END_OFFSETS = _env_truthy("UX_JOURNEY_VIDEO_SCENE_END_OFFSETS", "1")
+# - 0 (default, legacy): scene N = ``[offset[N], offset[N+1])`` — captures
+#   step N's pacing delay + planning + action + tail. Voice plays at scene
+#   start (during the pacing delay) — fine because the pacing delay screen is
+#   either the previous step's settled page (which the persona is *now*
+#   narrating about) or the page about to be acted on. ``VOICE_DELAY_SEC``
+#   (see below) lets you shift voice further into the scene if you want it
+#   to align with the visible action instead of the planning beat.
+# - 1: scene N = ``[offset[N-1] | 0, offset[N])``.
+UX_JOURNEY_VIDEO_SCENE_END_OFFSETS = _env_truthy("UX_JOURNEY_VIDEO_SCENE_END_OFFSETS", "0")
+# Output-timeline delay added to every voice clip *inside its own scene*
+# (positive = voice starts later in the scene; 0 = voice starts at scene
+# start). Use a small positive value to push the voice past the per-step
+# pacing-delay screen and onto the visible action — empirically 1.0..1.5 s
+# tracks the click/scroll for the default ``UX_JOURNEY_STEP_START_DELAY_SECONDS``
+# of 3.5 s × ``UX_JOURNEY_SLOWMO`` of 2.0 (= 7 s of pacing) once the dynamic
+# pacing has compressed the slice. The delay is *clamped* to leave at least
+# 0.5 s of voice within the scene so a chatty step can't push its voice
+# entirely past the next scene boundary.
+try:
+    UX_JOURNEY_VIDEO_VOICE_DELAY_SEC = max(
+        0.0, float(os.environ.get("UX_JOURNEY_VIDEO_VOICE_DELAY_SEC", "0.0") or "0.0")
+    )
+except ValueError:
+    UX_JOURNEY_VIDEO_VOICE_DELAY_SEC = 0.0
 # Hard floor on per-segment scale: prevents speeding a scene below 10% of
 # real-time (= 10x speedup) where motion becomes a blur. If the voice is short
 # but the raw segment is long, we'd otherwise compress, e.g., 30s of scrolling
@@ -2581,14 +2618,21 @@ def _voiceover_text_for_step(step: dict[str, Any], *, max_chars: int) -> str:
 
 
 def _voiceover_text_hash(text: str) -> str:
-    """Stable cache key (model + voice + lang + text). Lets `?force=1` re-finalize
-    skip TTS calls when the run produced the same per-step bodies."""
+    """Stable cache key (model + voice + lang + speed + text).
+
+    Lets ``?force=1`` re-finalize skip TTS calls when the run produced the
+    same per-step bodies *and* the same synth parameters. ``speed`` is part
+    of the key so flipping ``UX_JOURNEY_VOICEOVER_SPEED`` invalidates the
+    cache instead of silently keeping the old-tempo clips.
+    """
     h = hashlib.sha256()
     h.update(UX_JOURNEY_VOICEOVER_MODEL.encode("utf-8", errors="ignore"))
     h.update(b"|")
     h.update(UX_JOURNEY_VOICEOVER_VOICE.encode("utf-8", errors="ignore"))
     h.update(b"|")
     h.update(UX_JOURNEY_VOICEOVER_LANG.encode("utf-8", errors="ignore"))
+    h.update(b"|")
+    h.update(f"speed={UX_JOURNEY_VOICEOVER_SPEED:.4f}".encode("ascii"))
     h.update(b"|")
     h.update(text.encode("utf-8", errors="ignore"))
     return h.hexdigest()[:16]
@@ -2615,15 +2659,50 @@ async def _synthesize_one_voiceover(text: str, dest_mp3: Path) -> bool:
 
     client = AsyncOpenAI(api_key=api_key)
     dest_mp3.parent.mkdir(parents=True, exist_ok=True)
+    # Build the create() kwargs and add ``speed`` only when it differs from
+    # 1.0 — older `openai` SDKs that don't yet expose the parameter on
+    # ``audio.speech.with_streaming_response.create`` would otherwise fail
+    # at import-time with a TypeError.
+    create_kwargs: dict[str, Any] = {
+        "model": UX_JOURNEY_VOICEOVER_MODEL,
+        "voice": UX_JOURNEY_VOICEOVER_VOICE,
+        "input": text,
+        "response_format": "mp3",
+    }
+    if abs(UX_JOURNEY_VOICEOVER_SPEED - 1.0) > 0.001:
+        create_kwargs["speed"] = float(UX_JOURNEY_VOICEOVER_SPEED)
     try:
-        async with client.audio.speech.with_streaming_response.create(
-            model=UX_JOURNEY_VOICEOVER_MODEL,
-            voice=UX_JOURNEY_VOICEOVER_VOICE,
-            input=text,
-            response_format="mp3",
-        ) as response:
+        async with client.audio.speech.with_streaming_response.create(**create_kwargs) as response:
             await response.stream_to_file(str(dest_mp3))
         return dest_mp3.is_file() and dest_mp3.stat().st_size > 0
+    except TypeError as exc:
+        # SDK doesn't support ``speed=`` yet — retry without it. The synth
+        # will be at default tempo; surface a one-time warning so operators
+        # know the env knob isn't taking effect.
+        if "speed" in create_kwargs:
+            create_kwargs.pop("speed", None)
+            print(
+                f"ux-journey: voiceover speed={UX_JOURNEY_VOICEOVER_SPEED} ignored "
+                f"(openai SDK does not accept the kwarg): {exc!r}",
+                flush=True,
+            )
+            try:
+                async with client.audio.speech.with_streaming_response.create(**create_kwargs) as response:
+                    await response.stream_to_file(str(dest_mp3))
+                return dest_mp3.is_file() and dest_mp3.stat().st_size > 0
+            except Exception as exc2:
+                print(
+                    f"ux-journey: voiceover synth failed (no-speed retry) model={UX_JOURNEY_VOICEOVER_MODEL} "
+                    f"voice={UX_JOURNEY_VOICEOVER_VOICE} err={exc2!r}",
+                    flush=True,
+                )
+                return False
+        print(
+            f"ux-journey: voiceover synth failed (TypeError) model={UX_JOURNEY_VOICEOVER_MODEL} "
+            f"voice={UX_JOURNEY_VOICEOVER_VOICE} err={exc!r}",
+            flush=True,
+        )
+        return False
     except Exception as exc:  # pragma: no cover - network / quota
         print(
             f"ux-journey: voiceover synth failed model={UX_JOURNEY_VOICEOVER_MODEL} "
@@ -3548,7 +3627,17 @@ async def _transcode_dynamic(
     for i, seg in enumerate(plan):
         if seg.voice is None:
             continue
-        delay_ms = int(round(cumulative_actual[i] * 1000.0))
+        # Base anchor: start of segment i in the OUTPUT timeline. We can shift
+        # the voice further into its own scene (so it overlaps the visible
+        # action instead of the pacing-delay still frame) via
+        # ``UX_JOURNEY_VIDEO_VOICE_DELAY_SEC``. The shift is *clamped* to leave
+        # at least 0.5 s of voice within this scene so a chatty step can't
+        # push its narration past the next scene boundary entirely.
+        scene_dur = actual_durations[i] if i < len(actual_durations) else seg.target_out_sec
+        v_dur = max(0.0, float(seg.voice.duration_sec))
+        max_in_scene_shift = max(0.0, scene_dur - max(0.5, v_dur))
+        shift_sec = min(UX_JOURNEY_VIDEO_VOICE_DELAY_SEC, max_in_scene_shift)
+        delay_ms = int(round((cumulative_actual[i] + shift_sec) * 1000.0))
         in_label = f"[{audio_input_idx}:a]"
         out_label = f"[a{audio_input_idx}]"
         parts.append(f"{in_label}adelay={delay_ms}|{delay_ms}{out_label}")
