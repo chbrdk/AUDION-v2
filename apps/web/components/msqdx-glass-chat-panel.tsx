@@ -12,6 +12,7 @@ import {
   Dialog,
   IconButton,
   Stack,
+  type Theme,
   Tooltip,
   Typography,
   useTheme,
@@ -369,7 +370,7 @@ const UX_OBSERVATION_CATEGORY_ICON: Record<UxObservationCategory, string> = {
  * theming flows through; we fall back to fixed greens/reds otherwise.
  */
 function uxObservationTone(
-  theme: ReturnType<typeof useTheme>,
+  theme: Theme,
   polarity: number,
   severity: "low" | "medium" | "high",
 ): { fg: string; bg: string; border: string } {
