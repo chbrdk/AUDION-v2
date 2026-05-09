@@ -3034,6 +3034,160 @@ async def _transcode_to_smooth_mp4(src: Path, dest: Path, *, job_id: str | None 
     return False
 
 
+async def _encode_dynamic_segment(
+    *,
+    src: Path,
+    dest: Path,
+    seg: _SceneSegment,
+    raw_dur: float,
+) -> tuple[bool, float]:
+    """Render one ``_SceneSegment`` to its own intermediate MP4.
+
+    Why a separate ffmpeg pass per segment instead of a giant ``filter_complex``
+    with split+trim+concat? On real Playwright captures (variable framerate
+    WebM/MP4 with sparse keyframes) the in-graph approach silently produces
+    near-empty front segments — the user sees only the last scene because all
+    earlier segments collapsed to a few duplicate frames and ffmpeg's audio
+    ``amix=duration=longest`` then holds the last video frame to fill the
+    audio length. Cutting per-segment with ``-ss / -to`` (+ ``-accurate_seek``)
+    forces ffmpeg to decode-and-re-encode the slice cleanly, which makes the
+    concat demuxer downstream a no-brainer.
+
+    Returns ``(ok, actual_out_dur_sec)``. ``actual_out_dur_sec`` is queried
+    via ffprobe after the encode so the caller can detect drift between the
+    planned ``target_out_sec`` and what actually landed on disk (e.g. when the
+    last ~30ms of a scene get dropped because the source had no frames there).
+    """
+    s = max(0.0, seg.src_start_sec)
+    one_frame_sec = 1.0 / float(VIDEO_TRANSCODE_FPS)
+    # Clamp the slice end to the raw duration. We add a one-frame safety
+    # margin so an off-by-one timestamp on the source side doesn't truncate
+    # the slice to zero.
+    e = min(raw_dur, max(s + one_frame_sec, seg.src_end_sec))
+    if e - s < one_frame_sec:
+        # Genuinely zero-duration source — synthesize a still by holding the
+        # frame at `s` for `target_out_sec`. Cheaper than re-running through
+        # the full transcode pipeline and keeps the concat list aligned with
+        # the audio adelay schedule.
+        return await _encode_still_segment(src=src, dest=dest, src_time=s, out_dur=seg.target_out_sec)
+
+    scale = max(0.001, seg.scale)
+    # Target frame count for this segment in the *output* timeline. Using
+    # `-frames:v` is the unambiguous way to bound the output: ``-t`` after
+    # ``-i`` is an output-side time limit which gets confusing once setpts
+    # changes the wall-clock duration of each frame. ``-frames:v N`` simply
+    # writes N frames and stops, regardless of how setpts re-times them.
+    target_frames = max(1, int(round(seg.target_out_sec * VIDEO_TRANSCODE_FPS)))
+
+    cmd: list[str] = [
+        "ffmpeg",
+        "-y",
+        "-loglevel", "error",
+        # Input-side seek with `-accurate_seek` (the default since ffmpeg 2.x):
+        # fast-seeks to the nearest keyframe before `s`, then decodes forward
+        # and discards frames so the first emitted frame is exactly at PTS=s.
+        # Single-step seek is plenty accurate for our cadence and avoids the
+        # output-side `-ss` interaction with setpts.
+        "-accurate_seek",
+        "-ss", f"{s:.4f}",
+        "-i", str(src),
+        # `(PTS-STARTPTS)*scale` resets each segment's PTS to start at 0 — the
+        # concat *demuxer* doesn't strictly require this (it stamps with its
+        # own clock), but it does make per-segment ffprobe duration reads
+        # match the wall-clock playback length, which is what we use to
+        # rebase the audio adelay schedule downstream.
+        "-vf",
+        f"setpts=(PTS-STARTPTS)*{scale:.6f},fps={VIDEO_TRANSCODE_FPS},format=yuv420p",
+        # Bound the output to exactly `target_frames` frames; setpts re-timed
+        # them so playback duration = target_frames / VIDEO_TRANSCODE_FPS.
+        "-frames:v", str(target_frames),
+        "-c:v", "libx264",
+        "-preset", VIDEO_TRANSCODE_PRESET,
+        "-crf", str(VIDEO_TRANSCODE_CRF),
+        "-pix_fmt", "yuv420p",
+        # Force CFR — concat-demuxer requires identical timing across segments,
+        # any VFR slice would break the join.
+        "-vsync", "cfr",
+        # Tight GOP per segment: 25-frame keyframes (≈1s) keep concat-demuxer
+        # joins clean and let downstream players seek inside short scenes.
+        "-g", str(VIDEO_TRANSCODE_FPS),
+        "-an",
+        str(dest),
+    ]
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE
+        )
+        _, stderr = await proc.communicate()
+        if proc.returncode != 0 or not dest.is_file() or dest.stat().st_size == 0:
+            print(
+                f"ffmpeg segment encode failed (rc={proc.returncode}) seg={seg.label}: "
+                f"{stderr[-1024:] if stderr else b''!r}",
+                flush=True,
+            )
+            return (False, 0.0)
+    except Exception as exc:  # pragma: no cover - defensive
+        print(f"ffmpeg segment encode crashed seg={seg.label}: {exc!r}", flush=True)
+        return (False, 0.0)
+    actual = await _ffprobe_duration_seconds(dest) or 0.0
+    return (True, actual)
+
+
+async def _encode_still_segment(*, src: Path, dest: Path, src_time: float, out_dur: float) -> tuple[bool, float]:
+    """Hold a single frame from ``src`` at ``src_time`` for ``out_dur`` seconds.
+
+    Used when a segment's source slice is degenerate (zero-duration). The
+    pipeline still needs *something* concat-able at this position so audio
+    timing stays aligned; a still frame is the least-bad fallback.
+    """
+    cmd = [
+        "ffmpeg", "-y", "-loglevel", "error",
+        "-accurate_seek",
+        "-ss", f"{max(0.0, src_time - 0.05):.4f}",
+        "-i", str(src),
+        "-vframes", "1",
+        "-vf", f"scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p",
+        "-q:v", "2",
+        str(dest.with_suffix(".still.png")),
+    ]
+    try:
+        proc = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE)
+        _, stderr = await proc.communicate()
+        if proc.returncode != 0:
+            return (False, 0.0)
+    except Exception:
+        return (False, 0.0)
+    still_png = dest.with_suffix(".still.png")
+    cmd2 = [
+        "ffmpeg", "-y", "-loglevel", "error",
+        "-loop", "1",
+        "-t", f"{max(0.04, out_dur):.4f}",
+        "-i", str(still_png),
+        "-vf", f"fps={VIDEO_TRANSCODE_FPS},format=yuv420p",
+        "-c:v", "libx264",
+        "-preset", VIDEO_TRANSCODE_PRESET,
+        "-crf", str(VIDEO_TRANSCODE_CRF),
+        "-pix_fmt", "yuv420p",
+        "-vsync", "cfr",
+        "-an",
+        str(dest),
+    ]
+    try:
+        proc = await asyncio.create_subprocess_exec(*cmd2, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE)
+        _, stderr = await proc.communicate()
+        ok = proc.returncode == 0 and dest.is_file() and dest.stat().st_size > 0
+    except Exception:
+        ok = False
+    try:
+        still_png.unlink(missing_ok=True)
+    except Exception:
+        pass
+    if not ok:
+        return (False, 0.0)
+    actual = await _ffprobe_duration_seconds(dest) or 0.0
+    return (True, actual)
+
+
 async def _transcode_dynamic(
     *,
     src: Path,
@@ -3043,23 +3197,26 @@ async def _transcode_dynamic(
     voice_clips: list[_VoiceoverClip],
     duration_raw_sec: float,
 ) -> bool:
-    """Per-scene dynamic-pacing transcode.
+    """Per-scene dynamic-pacing transcode using **demuxer concat**.
 
-    Builds a filter_complex of the form::
+    Pipeline:
 
-      [0:v]split=N[in0][in1]...;
-      [in0]trim=Sa:Ea,setpts=(PTS-STARTPTS)*scale_a,fps=...,format=yuv420p[seg0];
-      [in1]trim=Sb:Eb,setpts=(PTS-STARTPTS)*scale_b,fps=...,format=yuv420p[seg1];
-      ...
-      [seg0][seg1]...concat=n=N:v=1:a=0[vcat];
-      [vcat]subtitles=PATH[v];
-      [k:a]adelay=Dk|Dk[ak]; ...; amix=inputs=K:duration=longest[a]
+    1. Build a scene plan from step offsets and voice clips
+       (``_build_scene_plan``).
+    2. For each segment, render it to its own intermediate MP4 with the
+       correct ``setpts`` factor — separate ffmpeg invocation per segment so
+       seek-accuracy issues on Playwright VFR captures can't corrupt the
+       result. Re-probe the actual output duration to detect drift.
+    3. Write a concat list (``file 'segment_X.mp4'`` per line).
+    4. Final ffmpeg: read the concat list as a single video stream, mix in
+       per-segment voice clips at their cumulative output offsets, burn ASS
+       subtitles, mux to ``dest``.
 
-    Each segment's scale is computed from ``_build_scene_plan`` so that its
-    output duration equals the matching TTS clip length (clamped to MIN/MAX).
-    Voice clips keep their natural tempo; their adelay timestamps are placed
-    against the *cumulative* output starts so they sync to the now-non-uniform
-    video.
+    Why not single-pass ``filter_complex`` with split+trim+concat? Tested
+    in the wild — on real Playwright captures the in-graph approach silently
+    drops the front segments, leaving the user staring at the last scene
+    only. Demuxer-concat is bulletproof at the cost of N extra short ffmpeg
+    invocations.
     """
     plan = _build_scene_plan(
         steps=steps,
@@ -3068,69 +3225,142 @@ async def _transcode_dynamic(
     )
     if not plan:
         return False
-    cumulative_starts = _segment_cumulative_starts(plan)
-    total_out_sec = sum(seg.target_out_sec for seg in plan)
 
+    print(
+        f"ux-journey: transcode src={src.name} -> {dest.name} "
+        f"mode=dynamic segments={len(plan)} "
+        f"raw={duration_raw_sec:.2f}s "
+        f"voice_clips={len(voice_clips)} ",
+        flush=True,
+    )
+    for i, seg in enumerate(plan):
+        v_dur = seg.voice.duration_sec if seg.voice else 0.0
+        print(
+            f"  seg[{i:02d}] {seg.label:>10s} src=[{seg.src_start_sec:6.2f}..{seg.src_end_sec:6.2f}]"
+            f" ({seg.src_dur_sec:5.2f}s) -> out={seg.target_out_sec:5.2f}s"
+            f" scale={seg.scale:6.3f} voice={v_dur:5.2f}s",
+            flush=True,
+        )
+
+    # ---------- per-segment intermediates ----------
+    work_dir_base = job_id if job_id else f"adhoc-{int(time.time())}"
+    work_dir = VIDEO_BASE_DIR / f".{work_dir_base}.dynamic"
+    try:
+        # Wipe any leftovers from a previous (possibly crashed) finalize so a
+        # stale partial segment can't end up in the new concat list.
+        if work_dir.exists():
+            for stale in work_dir.iterdir():
+                try:
+                    stale.unlink()
+                except OSError:
+                    pass
+        work_dir.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        print(f"ux-journey: dynamic transcode could not prepare work_dir={work_dir}: {exc!r}", flush=True)
+        return False
+
+    seg_paths: list[Path] = []
+    actual_durations: list[float] = []
+    for i, seg in enumerate(plan):
+        seg_path = work_dir / f"seg_{i:03d}.mp4"
+        ok, actual = await _encode_dynamic_segment(
+            src=src, dest=seg_path, seg=seg, raw_dur=duration_raw_sec
+        )
+        if not ok:
+            _cleanup_work_dir(work_dir)
+            return False
+        seg_paths.append(seg_path)
+        actual_durations.append(actual)
+        print(
+            f"  seg[{i:02d}] encoded -> {seg_path.name} actual={actual:.3f}s "
+            f"(target={seg.target_out_sec:.3f}s, drift={actual - seg.target_out_sec:+.3f}s)",
+            flush=True,
+        )
+
+    # Re-base the cumulative starts on the *actual* segment durations so audio
+    # adelays match what the concat demuxer will produce, not what we asked
+    # for. Drift is usually <50ms per segment but adds up across 10+ scenes.
+    cumulative_actual: list[float] = []
+    cursor = 0.0
+    for d in actual_durations:
+        cumulative_actual.append(cursor)
+        cursor += d
+    total_out_sec = cursor
+
+    # ---------- subtitle file (re-timed against actual cumulative starts) ----------
     ass_path: Path | None = None
     if job_id and UX_JOURNEY_VIDEO_LOWER_THIRD:
         ass_tmp = VIDEO_BASE_DIR / f"{job_id}.reasoning.ass"
+        # Build a synthetic plan with target_out replaced by actual_out so the
+        # subtitle writer's cumulative-start math lines up with the demuxer's
+        # output.
+        adjusted_plan = [
+            _SceneSegment(
+                src_start_sec=p.src_start_sec,
+                src_end_sec=p.src_end_sec,
+                target_out_sec=actual_durations[i],
+                step=p.step,
+                voice=p.voice,
+                label=p.label,
+            )
+            for i, p in enumerate(plan)
+        ]
         if _write_reasoning_ass_file_dynamic(
             dest_ass=ass_tmp,
-            segments=plan,
-            cumulative_starts=cumulative_starts,
+            segments=adjusted_plan,
+            cumulative_starts=cumulative_actual,
         ):
             ass_path = ass_tmp
 
-    # ---------- video filter graph ----------
-    n_segs = len(plan)
-    split_outputs = "".join(f"[in{i}]" for i in range(n_segs))
-    parts: list[str] = [f"[0:v]split={n_segs}{split_outputs}"]
-    seg_labels: list[str] = []
-    for i, seg in enumerate(plan):
-        # ffmpeg's trim accepts seconds with millisecond precision; clamp the
-        # end at the raw duration to be safe (slightly off-by-one offsets at
-        # the tail boundary occasionally happen).
-        s = max(0.0, seg.src_start_sec)
-        e = min(duration_raw_sec, max(s + 0.05, seg.src_end_sec))
-        scale = seg.scale
-        # 0.001 floor on scale prevents PTS=0 segments which ffmpeg rejects
-        # with "Invalid PTS".
-        if scale < 0.001:
-            scale = 0.001
-        out_label = f"[seg{i}]"
-        parts.append(
-            f"[in{i}]trim=start={s:.4f}:end={e:.4f},"
-            f"setpts=(PTS-STARTPTS)*{scale:.6f},"
-            f"fps={VIDEO_TRANSCODE_FPS},format=yuv420p{out_label}"
-        )
-        seg_labels.append(out_label)
-    concat_inputs = "".join(seg_labels)
-    parts.append(f"{concat_inputs}concat=n={n_segs}:v=1:a=0[vcat]")
+    # ---------- concat list ----------
+    list_file = work_dir / "concat.txt"
+    try:
+        # ffmpeg concat-demuxer accepts POSIX-style absolute paths; quoting
+        # rule: single-quote each path, escape internal single-quotes by
+        # closing-and-reopening the quote.
+        list_lines = []
+        for p in seg_paths:
+            posix = p.resolve().as_posix().replace("'", r"'\''")
+            list_lines.append(f"file '{posix}'")
+        list_file.write_text("\n".join(list_lines) + "\n", encoding="utf-8")
+    except OSError as exc:
+        print(f"ux-journey: failed to write concat list: {exc!r}", flush=True)
+        _cleanup_work_dir(work_dir)
+        return False
+
+    # ---------- final pass: concat demuxer + audio mix + subtitles ----------
+    cmd: list[str] = [
+        "ffmpeg",
+        "-y",
+        "-loglevel", "error",
+        # Input #0: video stream from the concat demuxer.
+        "-f", "concat",
+        "-safe", "0",
+        "-i", str(list_file),
+    ]
+    for seg in plan:
+        if seg.voice is not None:
+            cmd.extend(["-i", str(seg.voice.path)])
+
+    parts: list[str] = []
     if ass_path is not None and ass_path.is_file():
         sub_posix = ass_path.resolve().as_posix()
-        parts.append(f"[vcat]subtitles={sub_posix}[v]")
+        parts.append(f"[0:v]subtitles={sub_posix}[v]")
         v_out = "[v]"
     else:
-        # Even without subtitles we keep an explicit [v] map so the audio path
-        # below doesn't have to special-case the label.
-        parts.append("[vcat]null[v]")
-        v_out = "[v]"
+        v_out = "0:v"
 
-    # ---------- audio mix (with cumulative offsets) ----------
     a_labels: list[str] = []
+    audio_input_idx = 1
     for i, seg in enumerate(plan):
         if seg.voice is None:
             continue
-        # The voice clip plays at the segment's cumulative output start.
-        delay_ms = int(round(cumulative_starts[i] * 1000.0))
-        # Inputs are added in iteration order: [0:*] is the source video, then
-        # one extra `-i clip.path` per segment that has a voice clip. So the
-        # next clip's input index is len(a_labels) + 1.
-        idx = len(a_labels) + 1
-        in_label = f"[{idx}:a]"
-        out_label = f"[a{idx}]"
+        delay_ms = int(round(cumulative_actual[i] * 1000.0))
+        in_label = f"[{audio_input_idx}:a]"
+        out_label = f"[a{audio_input_idx}]"
         parts.append(f"{in_label}adelay={delay_ms}|{delay_ms}{out_label}")
         a_labels.append(out_label)
+        audio_input_idx += 1
     a_out: str | None = None
     if a_labels:
         if len(a_labels) == 1:
@@ -3142,41 +3372,9 @@ async def _transcode_dynamic(
             )
         a_out = "[a]"
 
-    filter_complex = ";".join(parts)
-
-    print(
-        f"ux-journey: transcode src={src.name} -> {dest.name} "
-        f"mode=dynamic segments={n_segs} total_out={total_out_sec:.2f}s "
-        f"raw={duration_raw_sec:.2f}s "
-        f"voice_clips={len(voice_clips)} "
-        f"lower_third={'yes' if ass_path else 'no'}",
-        flush=True,
-    )
-    # Dump segment plan once at start so we can audit pacing decisions in logs
-    # without rebuilding state. Useful when a step looks too fast or too slow.
-    for i, seg in enumerate(plan):
-        v_dur = seg.voice.duration_sec if seg.voice else 0.0
-        print(
-            f"  seg[{i:02d}] {seg.label:>10s} src=[{seg.src_start_sec:6.2f}..{seg.src_end_sec:6.2f}]"
-            f" ({seg.src_dur_sec:5.2f}s) -> out={seg.target_out_sec:5.2f}s"
-            f" scale={seg.scale:6.3f} voice={v_dur:5.2f}s",
-            flush=True,
-        )
-
-    cmd: list[str] = [
-        "ffmpeg",
-        "-y",
-        "-loglevel", "error",
-        "-i", str(src),
-    ]
-    for seg in plan:
-        if seg.voice is not None:
-            cmd.extend(["-i", str(seg.voice.path)])
-
-    cmd.extend([
-        "-filter_complex", filter_complex,
-        "-map", v_out,
-    ])
+    if parts:
+        cmd.extend(["-filter_complex", ";".join(parts)])
+    cmd.extend(["-map", v_out])
     if a_out is not None:
         cmd.extend(["-map", a_out])
     cmd.extend([
@@ -3198,6 +3396,13 @@ async def _transcode_dynamic(
         cmd.append("-an")
     cmd.append(str(dest))
 
+    print(
+        f"ux-journey: dynamic concat-demuxer pass -> {dest.name} "
+        f"total_planned={total_out_sec:.2f}s segments={len(seg_paths)} "
+        f"voice_inputs={audio_input_idx - 1} subtitles={'yes' if ass_path else 'no'}",
+        flush=True,
+    )
+
     try:
         proc = await asyncio.create_subprocess_exec(
             *cmd, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE
@@ -3209,16 +3414,33 @@ async def _transcode_dynamic(
                 ass_path.unlink(missing_ok=True)
             except Exception:
                 pass
-        if ok:
-            return True
-        print(
-            f"ffmpeg dynamic transcode failed (rc={proc.returncode}) for {src}: "
-            f"{stderr[-2048:] if stderr else b''!r}",
-            flush=True,
-        )
+        if not ok:
+            print(
+                f"ffmpeg dynamic-final transcode failed (rc={proc.returncode}) for {src}: "
+                f"{stderr[-2048:] if stderr else b''!r}",
+                flush=True,
+            )
     except Exception as exc:  # pragma: no cover - defensive
-        print(f"ffmpeg dynamic transcode crashed for {src}: {exc!r}", flush=True)
-    return False
+        print(f"ffmpeg dynamic-final transcode crashed for {src}: {exc!r}", flush=True)
+        ok = False
+    finally:
+        _cleanup_work_dir(work_dir)
+    return ok
+
+
+def _cleanup_work_dir(work_dir: Path) -> None:
+    """Best-effort wipe of the per-job dynamic-transcode scratch directory."""
+    if not work_dir.exists():
+        return
+    try:
+        for p in work_dir.iterdir():
+            try:
+                p.unlink()
+            except OSError:
+                pass
+        work_dir.rmdir()
+    except OSError:
+        pass
 
 
 def _pick_latest_file(paths: list[Path]) -> Path | None:
