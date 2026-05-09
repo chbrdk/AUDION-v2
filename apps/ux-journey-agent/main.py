@@ -728,7 +728,14 @@ def _steps_sidecar_path(job_id: str) -> Path:
 
 
 def _annotate_steps_with_video_offsets(job_id: str, steps: list[dict[str, Any]]) -> None:
-    """Attach ``videoOffsetSec`` (seconds from recording start in the raw capture timeline)."""
+    """Attach ``videoOffsetSec`` for UX finalize timing.
+
+    **Implementation detail:** this is currently ``first_seen_monotonic - recording_mark_monotonic``
+    — i.e. wall-ish elapsed time while the agent loop runs, **not** guaranteed to match the
+    Playwright encoder's PTS timeline (browser startup skew, bursty steps, container duration
+    quirks). Finalize therefore runs :func:`_normalize_steps_video_offsets_for_duration` when
+    ``max(offset)`` exceeds ``ffprobe(duration)`` so scene cuts always stay inside the file.
+    """
     rec = _recording_mono.get(job_id)
     if rec is None:
         return
@@ -742,6 +749,61 @@ def _annotate_steps_with_video_offsets(job_id: str, steps: list[dict[str, Any]])
         first_mono = seen.get(n)
         if first_mono is not None:
             st["videoOffsetSec"] = max(0.0, float(first_mono - rec))
+
+
+def _normalize_steps_video_offsets_for_duration(
+    steps: list[dict[str, Any]],
+    duration_raw_sec: float,
+    *,
+    job_id: str | None = None,
+) -> tuple[list[dict[str, Any]], float]:
+    """Linearly rescale ``videoOffsetSec`` into ``[0, duration_raw_sec]`` when needed.
+
+    Sidecar offsets come from monotonic clock deltas (see
+    ``_annotate_steps_with_video_offsets``). The raw MP4 duration from
+    ``ffprobe`` is the encoder timeline — the two can diverge by orders of
+    magnitude (e.g. ``raw=1.27s`` while offsets run to ``~180s``). Without
+    scaling, ``_build_scene_plan`` produces ``src_start > src_end`` after
+    clamping to the file, ``ffmpeg`` seeks past EOF, and the first segment
+    encodes as ~0.36s instead of the requested wall-clock — finalize then
+    fails on a later segment or on the concat pass.
+
+    When ``max(videoOffsetSec) <= duration_raw_sec + epsilon``, returns a
+    shallow copy of ``steps`` unchanged and factor ``1.0``. Otherwise each
+    offset is multiplied by ``duration_raw_sec / max_offset``.
+    """
+    jid = f" job={job_id}" if job_id else ""
+    eps = 0.12
+    if duration_raw_sec <= eps or not steps:
+        return ([dict(s) if isinstance(s, dict) else s for s in steps], 1.0)
+    max_off = 0.0
+    for st in steps:
+        if not isinstance(st, dict):
+            continue
+        v = st.get("videoOffsetSec")
+        if isinstance(v, (int, float)):
+            max_off = max(max_off, float(v))
+    if max_off <= 0.0:
+        return ([dict(s) if isinstance(s, dict) else s for s in steps], 1.0)
+    if max_off <= duration_raw_sec + eps:
+        return ([dict(s) if isinstance(s, dict) else s for s in steps], 1.0)
+    k = duration_raw_sec / max_off
+    out: list[dict[str, Any]] = []
+    for st in steps:
+        if not isinstance(st, dict):
+            out.append(st)
+            continue
+        cp = dict(st)
+        vo = cp.get("videoOffsetSec")
+        if isinstance(vo, (int, float)):
+            cp["videoOffsetSec"] = float(vo) * k
+        out.append(cp)
+    print(
+        f"ux-journey: videoOffsetSec rescaled by {k:.6f} to match ffprobe duration "
+        f"{duration_raw_sec:.2f}s (max_offset was {max_off:.2f}s — monotonic ≠ video){jid}",
+        flush=True,
+    )
+    return (out, k)
 
 
 def _persist_steps_sidecar(job_id: str, steps: list[dict[str, Any]]) -> None:
@@ -3107,25 +3169,32 @@ async def _encode_dynamic_segment(
     planned ``target_out_sec`` and what actually landed on disk (e.g. when the
     last ~30ms of a scene get dropped because the source had no frames there).
     """
-    s = max(0.0, seg.src_start_sec)
     one_frame_sec = 1.0 / float(VIDEO_TRANSCODE_FPS)
-    # Clamp the slice end to the raw duration. We add a one-frame safety
-    # margin so an off-by-one timestamp on the source side doesn't truncate
-    # the slice to zero.
-    e = min(raw_dur, max(s + one_frame_sec, seg.src_end_sec))
-    if e - s < one_frame_sec:
-        # Genuinely zero-duration source — synthesize a still by holding the
-        # frame at `s` for `target_out_sec`. Cheaper than re-running through
-        # the full transcode pipeline and keeps the concat list aligned with
-        # the audio adelay schedule.
-        return await _encode_still_segment(src=src, dest=dest, src_time=s, out_dur=seg.target_out_sec)
+    s0 = float(seg.src_start_sec)
+    e0 = float(seg.src_end_sec)
+    if e0 < s0:
+        s0, e0 = e0, s0
+    # Clamp to the real file — scene-plan boundaries may still exceed ``raw_dur``
+    # before normalization runs on older sidecars.
+    s = max(0.0, min(s0, raw_dur))
+    e = max(s0, e0)
+    e = min(max(e, s + one_frame_sec), raw_dur)
+    s = min(s, e - one_frame_sec)
+    s = max(0.0, s)
+    phys_dur = e - s
+    if phys_dur < one_frame_sec * 0.5:
+        still_t = min(max(0.0, s0), max(0.0, raw_dur - one_frame_sec))
+        return await _encode_still_segment(
+            src=src, dest=dest, src_time=still_t, out_dur=seg.target_out_sec
+        )
 
-    scale = max(0.001, seg.scale)
-    # Target frame count for this segment in the *output* timeline. Using
-    # `-frames:v` is the unambiguous way to bound the output: ``-t`` after
-    # ``-i`` is an output-side time limit which gets confusing once setpts
-    # changes the wall-clock duration of each frame. ``-frames:v N`` simply
-    # writes N frames and stops, regardless of how setpts re-times them.
+    # CRITICAL: derive setpts scale from the **physical** slice ``phys_dur``,
+    # not ``seg.scale``. The plan's scale used logical ``src_end-src_start``
+    # before clamping to ``raw_dur``. After clamp, e.g. lead-in ``[0, 5.53)``
+    # becomes ``[0, 1.27)`` — re-using the old scale under-stretches (~0.36s out).
+    scale_eff = max(0.001, float(seg.target_out_sec) / phys_dur)
+
+    # Target frame count for this segment in the *output* timeline.
     target_frames = max(1, int(round(seg.target_out_sec * VIDEO_TRANSCODE_FPS)))
 
     cmd: list[str] = [
@@ -3146,7 +3215,7 @@ async def _encode_dynamic_segment(
         # match the wall-clock playback length, which is what we use to
         # rebase the audio adelay schedule downstream.
         "-vf",
-        f"setpts=(PTS-STARTPTS)*{scale:.6f},fps={VIDEO_TRANSCODE_FPS},format=yuv420p",
+        f"setpts=(PTS-STARTPTS)*{scale_eff:.6f},fps={VIDEO_TRANSCODE_FPS},format=yuv420p",
         # Bound the output to exactly `target_frames` frames; setpts re-timed
         # them so playback duration = target_frames / VIDEO_TRANSCODE_FPS.
         "-frames:v", str(target_frames),
@@ -3267,8 +3336,11 @@ async def _transcode_dynamic(
     only. Demuxer-concat is bulletproof at the cost of N extra short ffmpeg
     invocations.
     """
+    norm_steps, _off_k = _normalize_steps_video_offsets_for_duration(
+        steps, duration_raw_sec, job_id=job_id
+    )
     plan = _build_scene_plan(
-        steps=steps,
+        steps=norm_steps,
         voice_clips=voice_clips,
         duration_raw_sec=duration_raw_sec,
     )
