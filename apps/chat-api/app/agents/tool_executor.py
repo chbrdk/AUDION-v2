@@ -474,8 +474,21 @@ class ToolExecutor:
         final_result: Dict[str, Any] = {}
         final_error: str | None = None
         last_emitted_step_count = -1
+        # Two heartbeat sources, whichever moved most recently resets the
+        # stagnation watchdog:
+        #   1. ``last_step_change_at`` — wall-clock of the last *new step* the
+        #      agent published. Coarse but reliable (browser-use only updates
+        #      its history when a step *finishes*).
+        #   2. ``last_heartbeat_change_at`` — wall-clock of the last change
+        #      to the agent's ``lastObservedAt`` field. Fine-grained: ticks
+        #      every time the screenshot loop captures a frame or the history
+        #      watcher polls ``agent.history``, even mid-step. Lets a slow LLM
+        #      plan call (60-120s typical for multi-action steps) survive
+        #      without tripping the cancel.
         last_step_change_at = time.monotonic()
         last_seen_step_count = 0
+        last_heartbeat_change_at = time.monotonic()
+        last_heartbeat_value: str | None = None
         # Snapshot of the most recent successful poll. We keep this around so
         # that early-break paths (timeout / stagnation / 404) can still hand a
         # partial result (steps + maybe videoUrl) to the LLM and the chat UI,
@@ -496,16 +509,23 @@ class ToolExecutor:
                     break
 
                 # Stagnation watchdog: if the upstream agent stopped producing
-                # new steps but never flipped its status, we declare it stalled
-                # so the chat can recover. We only arm the watchdog after at
+                # new steps AND its ``lastObservedAt`` heartbeat hasn't ticked
+                # in `stagnation_budget` seconds either, declare it stalled so
+                # the chat can recover. We only arm the watchdog after at
                 # least one step has been observed (a fresh run with 0 steps
                 # for the first 30s is normal page-load latency, not a stall).
-                if (
-                    last_seen_step_count > 0
-                    and (now - last_step_change_at) >= stagnation_budget
-                ):
+                idle_steps = now - last_step_change_at
+                idle_heartbeat = now - last_heartbeat_change_at
+                # Effective idle time = min of the two; the watchdog fires
+                # only when *both* signals have gone quiet for the budget.
+                # In practice the heartbeat ticks every ~1s during a run, so
+                # the only time the heartbeat goes silent for >180s is when
+                # the agent task is genuinely wedged.
+                idle_for = min(idle_steps, idle_heartbeat)
+                if last_seen_step_count > 0 and idle_for >= stagnation_budget:
                     final_error = (
-                        f"inspect_website stalled — no new steps for {int(stagnation_budget)}s "
+                        f"inspect_website stalled — no new steps for {int(idle_steps)}s "
+                        f"and no agent heartbeat for {int(idle_heartbeat)}s "
                         f"after step {last_seen_step_count}. The browser agent is likely stuck."
                     )
                     logger.warning(
@@ -513,6 +533,8 @@ class ToolExecutor:
                         job_id=job_id,
                         last_step=last_seen_step_count,
                         stagnation_s=stagnation_budget,
+                        idle_steps_s=idle_steps,
+                        idle_heartbeat_s=idle_heartbeat,
                     )
                     break
 
@@ -558,12 +580,22 @@ class ToolExecutor:
                     latest_result_obj = result_obj
                     latest_status_str = status_str
 
-                # Reset the stagnation watchdog whenever the upstream produced
-                # progress — even if the SSE forwarder hasn't yet emitted a
-                # new event for it (we use the raw step count here).
+                # Reset the step-count side of the watchdog whenever the
+                # upstream produced progress — even if the SSE forwarder
+                # hasn't yet emitted a new event for it (we use the raw step
+                # count here).
                 if len(steps_list) != last_seen_step_count:
                     last_step_change_at = now
                     last_seen_step_count = len(steps_list)
+                # Reset the heartbeat side of the watchdog whenever the
+                # upstream's ``lastObservedAt`` value changed since the last
+                # poll. The agent ticks this every ~1s while alive (history
+                # watcher loop + screenshot loop), so a fresh value here is a
+                # solid liveness signal even when no new step published yet.
+                heartbeat_now = data.get("lastObservedAt") if isinstance(data, dict) else None
+                if isinstance(heartbeat_now, str) and heartbeat_now != last_heartbeat_value:
+                    last_heartbeat_change_at = now
+                    last_heartbeat_value = heartbeat_now
 
                 # Emit progress event when steps change. We trim screenshots out
                 # of the SSE payload (they are served as separate JPEG endpoints)
@@ -618,9 +650,26 @@ class ToolExecutor:
         # and dramatically improves the user-visible recovery: instead of an
         # empty error card, they get steps + a short clip of what happened.
         if final_error and base_url:
+            # Log the *reason* we're cancelling so the upstream agent's
+            # "Run was cancelled before completion" surface message can be
+            # cross-referenced with the chat-api side. Without this it is
+            # impossible to tell from the agent's logs whether a cancel came
+            # from the user, the watchdog, or the hard timeout.
+            logger.info(
+                "tool_executor.inspect_website.cancel_initiated",
+                job_id=job_id,
+                reason=final_error,
+            )
             try:
                 async with httpx.AsyncClient(timeout=15.0) as cancel_client:
-                    cancel_res = await cancel_client.post(f"{base_url}/run/{job_id}/cancel")
+                    cancel_res = await cancel_client.post(
+                        f"{base_url}/run/{job_id}/cancel",
+                        # Forward the watchdog / timeout reason so the agent's
+                        # job-state error field reflects the *real* cause
+                        # instead of the generic
+                        # "Run was cancelled before completion." default.
+                        params={"reason": final_error[:500]},
+                    )
                 if cancel_res.status_code < 400:
                     logger.info(
                         "tool_executor.inspect_website.cancel_ok",

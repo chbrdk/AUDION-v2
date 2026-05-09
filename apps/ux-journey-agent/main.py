@@ -149,6 +149,17 @@ class JobState:
     # it observes is intentional and it should still finalize the recording
     # (instead of bubbling out as a hard failure).
     cancel_requested: bool = False
+    # Wall-clock ISO-8601 timestamp updated whenever the agent shows *any*
+    # sign of life — either a new browser-use history entry (counted by the
+    # history watcher loop) or a new step screenshot from the fork hook.
+    # Read by chat-api's stagnation watchdog so a long mid-step LLM call
+    # (no new step yet, but the screenshot hook already fired with a fresh
+    # frame) does NOT trip the cancel. Cleared with the rest of the job.
+    last_observed_at: str | None = None
+    # Same instant as ``last_observed_at`` but in monotonic seconds — used
+    # internally to compute idle deltas without timezone math. Not exposed
+    # over the API.
+    last_observed_mono: float | None = None
 
 _jobs: dict[str, JobState] = {}
 _jobs_lock = asyncio.Lock()
@@ -1319,7 +1330,14 @@ async def _capture_live_frame(agent: Any) -> bytes | None:
 
 
 async def _live_screenshot_loop(job_id: str) -> None:
-    """Background task: capture viewport at LIVE_FRAME_INTERVAL and store in _live_frames."""
+    """Background task: capture viewport at LIVE_FRAME_INTERVAL and store in _live_frames.
+
+    Also bumps the job heartbeat (``last_observed_at``) on every successful
+    capture — so chat-api's stagnation watchdog sees a fresh signal even when
+    the agent is wedged inside a single multi-action step (the per-step
+    history hook only fires when the *whole* step ends, which can be 60-120s
+    later for a multi-action step with a slow LLM plan call).
+    """
     while job_id in _live_agents:
         try:
             agent = _live_agents.get(job_id)
@@ -1327,6 +1345,7 @@ async def _live_screenshot_loop(job_id: str) -> None:
                 jpeg = await _capture_live_frame(agent)
                 if jpeg:
                     _live_frames[job_id] = (time.monotonic(), jpeg)
+                    await _bump_heartbeat(job_id)
         except asyncio.CancelledError:
             break
         except Exception:
@@ -1448,6 +1467,27 @@ async def _play_slow_scroll(agent_instance: Any, _params: dict[str, Any]) -> Non
         await asyncio.sleep(duration_sec)
 
 
+async def _bump_heartbeat(job_id: str) -> None:
+    """Stamp ``JobState.last_observed_at`` with the current wall-clock time.
+
+    Surfaced over ``GET /run/{jobId}`` so chat-api's stagnation watchdog can
+    distinguish "agent silently wedged for 3 minutes" from "agent legitimately
+    burning real time on a long LLM call mid-step". The latter still ticks the
+    heartbeat from the live screenshot hook / live frame cache update, the
+    former leaves it frozen.
+
+    The function is intentionally cheap (no I/O, only a dict + datetime)
+    so callers can fire it on any pipeline event without budget concerns.
+    """
+    now_iso = datetime.now(timezone.utc).isoformat()
+    now_mono = time.monotonic()
+    async with _jobs_lock:
+        job = _jobs.get(job_id)
+        if job is not None:
+            job.last_observed_at = now_iso
+            job.last_observed_mono = now_mono
+
+
 async def _history_watcher_loop(
     *,
     job_id: str,
@@ -1460,12 +1500,21 @@ async def _history_watcher_loop(
     Independent of browser-use's ``on_step_end`` hook (which may not fire on every
     version) – ensures the UI keeps receiving steps + screenshots even when the
     callback API differs.
+
+    Doubles as the *heartbeat* source: every time we observe a non-empty
+    history (regardless of whether it grew), we bump ``last_observed_at`` so
+    chat-api's stagnation watchdog sees a fresh signal even when the agent is
+    mid-LLM-call within a single step.
     """
     last_seen = -1
     while job_id in _live_agents:
         try:
             agent = _live_agents.get(job_id)
             if agent is not None:
+                # Any sign the agent is alive — even an unchanged history —
+                # counts as a heartbeat. The expensive partial-publish branch
+                # below only fires when the step count actually grew.
+                await _bump_heartbeat(job_id)
                 history = getattr(agent, "history", None)
                 length: int = 0
                 if history is not None:
@@ -3553,8 +3602,21 @@ async def start_run(body: RunRequest) -> RunResponse:
         raise HTTPException(status_code=400, detail="url must be http(s)")
 
     job_id = str(uuid.uuid4())
+    now_iso = datetime.now(timezone.utc).isoformat()
+    now_mono = time.monotonic()
     async with _jobs_lock:
-        _jobs[job_id] = JobState(job_id=job_id, status="running", url=url, task=task, persona=body.persona)
+        _jobs[job_id] = JobState(
+            job_id=job_id,
+            status="running",
+            url=url,
+            task=task,
+            persona=body.persona,
+            # Seed the heartbeat with creation time so chat-api's stagnation
+            # watchdog has a non-null reference point even before the first
+            # screenshot / history-watcher tick lands (~1s after start).
+            last_observed_at=now_iso,
+            last_observed_mono=now_mono,
+        )
 
     # Keep a reference to the running task so `POST /run/{jobId}/cancel` can
     # signal it. Without this, a stalled browser-use loop is unkillable from
@@ -3569,7 +3631,7 @@ async def start_run(body: RunRequest) -> RunResponse:
 
 
 @app.post("/run/{job_id}/cancel")
-async def cancel_run(job_id: str) -> dict[str, Any]:
+async def cancel_run(job_id: str, reason: str | None = None) -> dict[str, Any]:
     """
     Force-cancel a running journey: signals the agent task, waits briefly for
     its `finally` blocks to close the browser (which finalizes the WebM
@@ -3578,6 +3640,13 @@ async def cancel_run(job_id: str) -> dict[str, Any]:
 
     Idempotent: calling this on a job that's already terminal (or unknown)
     just reports the current status without doing anything destructive.
+
+    The optional ``reason`` query parameter is preserved on the job's error
+    field (replaces the generic "Run was cancelled before completion." message)
+    so the chat UI can show *why* the cancel happened: stagnation watchdog,
+    hard timeout, manual user cancel from the journey card, etc. Caller is
+    responsible for keeping the message short and human-readable — it lands
+    verbatim in the chat bubble.
     """
     async with _jobs_lock:
         job = _jobs.get(job_id)
@@ -3593,6 +3662,10 @@ async def cancel_run(job_id: str) -> dict[str, Any]:
         }
 
     job.cancel_requested = True
+    if reason:
+        # Stash the caller's explanation now; ``run_agent`` will preserve it
+        # over the default cancellation message when it builds the result.
+        job.error = reason.strip()[:500]
     task = job.run_task
     cancel_signalled = False
     if task is not None and not task.done():
@@ -3647,6 +3720,13 @@ async def get_run(job_id: str) -> dict[str, Any]:
         out["result"] = job.result
     if job.error:
         out["error"] = job.error
+    # Heartbeat: any caller polling this endpoint can use ``lastObservedAt``
+    # as a liveness signal that ticks faster than ``status`` transitions.
+    # Specifically chat-api's stagnation watchdog reads it to avoid cancelling
+    # a run that is mid-LLM-call within a single multi-action step (the
+    # step-count granular signal would falsely look stalled for 60-120s).
+    if job.last_observed_at is not None:
+        out["lastObservedAt"] = job.last_observed_at
     return out
 
 
@@ -3894,11 +3974,16 @@ async def get_run_live_diag(job_id: str) -> dict[str, Any]:
     """
     job_known = False
     job_status: str | None = None
+    last_observed_at: str | None = None
+    last_observed_age_sec: float | None = None
     async with _jobs_lock:
         job = _jobs.get(job_id)
         if job is not None:
             job_known = True
             job_status = job.status
+            last_observed_at = job.last_observed_at
+            if job.last_observed_mono is not None:
+                last_observed_age_sec = max(0.0, time.monotonic() - job.last_observed_mono)
 
     has_live_agent = job_id in _live_agents
     cached_frame = _live_frames.get(job_id)
@@ -3926,6 +4011,11 @@ async def get_run_live_diag(job_id: str) -> dict[str, Any]:
         "hasLiveAgent": has_live_agent,
         "hasCachedFrame": cached_frame is not None,
         "cachedFrameAgeSeconds": cached_age_seconds,
+        # Heartbeat — chat-api's stagnation watchdog reads ``lastObservedAt``
+        # via /run/{jobId}; this diag endpoint includes the derived "how
+        # long ago" so an operator can eyeball whether the agent is wedged.
+        "lastObservedAt": last_observed_at,
+        "lastObservedAgeSeconds": last_observed_age_sec,
         "stepScreenshotsOnDisk": step_files,
         "stepScreenshotsDir": str(step_dir),
         "envSlowmo": UX_JOURNEY_SLOWMO,

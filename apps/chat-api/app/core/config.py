@@ -71,17 +71,23 @@ class Settings(BaseSettings):
     # How long the inspect_website tool may keep polling before giving up
     # (caps the worst-case open SSE connection back to the browser).
     # Hard ceiling for a single inspect_website tool call (browser run + video
-    # transcode + JSON serialization). Lowered from 600 -> 360 because at 10 min
-    # users blame the chat, not the browser run; the LLM-suggested `max_steps`
-    # rarely exceeds 25 and even bloated 25-step runs finish in <4 min today.
-    ux_journey_inspect_total_timeout_seconds: float = 360.0
-    # Defensive timeout: if the upstream agent stops emitting new steps for
-    # this many seconds while still reporting status="running", we treat the
-    # run as stalled and break the polling loop with `success=None` plus an
+    # transcode + JSON serialization). Bumped 360 -> 900 once dynamic per-scene
+    # pacing landed on the upstream agent: per-step real wall-clock time grew
+    # because slow-scroll / click-ring annotations now run at recording time
+    # and multi-action steps (find_elements + extract + LLM-plan) routinely
+    # take 60-120s. Twenty-step audits used to fit in <4 min, now typically
+    # land at 6-10 min.
+    ux_journey_inspect_total_timeout_seconds: float = 900.0
+    # Defensive timeout: if the upstream agent's heartbeat (``lastObservedAt``
+    # on the job state, falling back to step-count on older agents) has not
+    # advanced for this many seconds while status="running", we treat the run
+    # as stalled and break the polling loop with `success=None` plus an
     # explanatory error. This keeps the chat from hanging indefinitely when
-    # the agent's worker task or browser process is wedged (we have observed
-    # browser-use occasionally looping past `max_steps` instead of stopping).
-    ux_journey_inspect_stagnation_seconds: float = 75.0
+    # the agent's worker task or browser process is wedged. Bumped 75 -> 180
+    # for the same reason as the total-timeout above: a slow LLM mid-plan
+    # (especially with the OpenAI fallback active and a 200k+ token context)
+    # can legitimately take 80-120s before the agent surfaces any new step.
+    ux_journey_inspect_stagnation_seconds: float = 180.0
     # Default browser-step cap if the LLM doesn't supply one.
     ux_journey_inspect_default_max_steps: int = 12
     # Wait between poll iterations.
