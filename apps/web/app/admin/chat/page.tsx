@@ -248,6 +248,8 @@ type Message = {
     personaPolicy?: any;
     steps?: any[];
     lastProgressAt?: number;
+    /** UX-research scorecard returned at terminal status (see ux-journey-agent docs). */
+    scorecard?: any;
     pendingDecision?: {
       callId: string;
       promptText?: string | null;
@@ -474,6 +476,7 @@ function AdminChatPageContent() {
                   success?: boolean | null;
                   steps?: any[];
                   videoUrl?: string;
+                  scorecard?: any;
                 };
               };
               if (cancelled) return;
@@ -510,6 +513,10 @@ function AdminChatPageContent() {
                             stepsTotal: Array.isArray(result.steps)
                               ? result.steps.length
                               : msg.uxJourney?.stepsTotal,
+                            scorecard:
+                              result.scorecard && typeof result.scorecard === "object"
+                                ? result.scorecard
+                                : msg.uxJourney?.scorecard,
                           },
                         }
                       : msg,
@@ -1963,6 +1970,10 @@ function AdminChatPageContent() {
                           ? API_ROUTES.uxJourneyAgentVideo(jobId)
                           : m.uxJourney?.videoUrl,
                         error: typeof parsedData.error === "string" ? parsedData.error : null,
+                        scorecard:
+                          parsedData.scorecard && typeof parsedData.scorecard === "object"
+                            ? parsedData.scorecard
+                            : m.uxJourney?.scorecard,
                       },
                     }
                   : m,

@@ -70,3 +70,8 @@ class ToolCompletedEvent(_ToolEventBase):
     success: Optional[bool] = None
     video_url: Optional[str] = None
     error: Optional[str] = None
+    # UX-research scorecard produced by the agent on terminal status (per-
+    # category aggregation + Friction/Persona-Fit/Coverage). Optional: older
+    # agent builds and steps with no observations return ``None`` and the
+    # chat panel just renders the per-step cards as before.
+    scorecard: Optional[Dict[str, Any]] = None

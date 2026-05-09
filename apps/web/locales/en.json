@@ -291,6 +291,41 @@
           "trust_skepticism": "Trust",
           "accessibility_need": "Accessibility"
         }
+      },
+      "observations": {
+        "label": "Observations",
+        "fixPrefix": "Wish:",
+        "category": {
+          "layout": "Layout",
+          "visual": "Visual",
+          "typography": "Typography",
+          "copy": "Copy",
+          "affordance": "Affordance",
+          "navigation": "Navigation",
+          "info_density": "Density",
+          "trust": "Trust",
+          "performance": "Performance",
+          "persona_fit": "Persona fit"
+        },
+        "severity": {
+          "low": "low",
+          "medium": "medium",
+          "high": "high"
+        }
+      },
+      "scorecard": {
+        "title": "UX scorecard",
+        "frictionScore": "Friction",
+        "personaFitScore": "Persona fit",
+        "perCategory": "By category",
+        "strengths": "Strengths",
+        "weaknesses": "Weaknesses",
+        "quotes": "Voices",
+        "atStep": "Step {step}",
+        "coverage": {
+          "reached": "Goal reached",
+          "notReached": "Goal not reached"
+        }
       }
     },
     "moodboardTitle": "Moodboard",

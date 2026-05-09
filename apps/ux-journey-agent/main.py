@@ -13,6 +13,7 @@ import hashlib
 import inspect
 import json
 import os
+import re
 import shutil
 import threading
 import time
@@ -401,6 +402,130 @@ def _extract_thinking_text(text: str) -> str:
     return s
 
 
+# ---------------------------------------------------------------------------
+# Per-step UX observations (Phase: scorecard)
+# ---------------------------------------------------------------------------
+# The persona is asked (see ``CHECKION_OBSERVATIONS`` in the system prompt) to
+# optionally append a delimited JSON block to its `thinking` field whenever
+# something on the page strikes it as notable — positively or negatively.
+# We extract those observations here, validate each entry against a strict
+# allow-list (so a malformed LLM payload can't crash the run or pollute the
+# scorecard), and strip the block from the visible narration so the
+# user-facing reasoning text stays clean.
+_OBSERVATIONS_BLOCK_RE = re.compile(
+    r"<<OBSERVATIONS>>\s*(?P<json>.*?)\s*<<\/OBSERVATIONS>>",
+    flags=re.DOTALL,
+)
+_OBSERVATION_CATEGORIES: tuple[str, ...] = (
+    "layout",
+    "visual",
+    "typography",
+    "copy",
+    "affordance",
+    "navigation",
+    "info_density",
+    "trust",
+    "performance",
+    "persona_fit",
+)
+_OBSERVATION_SEVERITIES: tuple[str, ...] = ("low", "medium", "high")
+_OBSERVATION_POLARITIES: tuple[int, ...] = (-2, -1, 1, 2)
+_OBSERVATION_NOTE_LIMIT = 320
+_OBSERVATION_FIX_LIMIT = 240
+_OBSERVATIONS_PER_STEP_CAP = 2
+
+
+def _strip_observations_block(text: str) -> str:
+    """Remove every ``<<OBSERVATIONS>>...<</OBSERVATIONS>>`` block from ``text``.
+
+    Tolerates multiple blocks in the same string (rare; some models like to
+    re-emit them on retries) and collapses any whitespace runs left behind.
+    """
+    if not text or "<<OBSERVATIONS>>" not in text:
+        return text
+    cleaned = _OBSERVATIONS_BLOCK_RE.sub("", text)
+    # Collapse 3+ consecutive newlines that the strip can produce when the
+    # block sat on its own line.
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned).strip()
+    return cleaned
+
+
+def _coerce_observation_entry(raw: Any) -> dict[str, Any] | None:
+    """Validate one parsed observation dict; return ``None`` if it's not usable.
+
+    We're deliberately strict: any unknown category/severity/polarity drops
+    the entry. A partially-valid LLM payload should not bleed garbage into
+    the scorecard — silent rejection is preferred to a fuzzy half-match.
+    """
+    if not isinstance(raw, dict):
+        return None
+    category = str(raw.get("category") or "").strip().lower()
+    if category not in _OBSERVATION_CATEGORIES:
+        return None
+    severity = str(raw.get("severity") or "").strip().lower()
+    if severity not in _OBSERVATION_SEVERITIES:
+        return None
+    pol_raw = raw.get("polarity")
+    try:
+        polarity = int(pol_raw) if pol_raw is not None else None
+    except (TypeError, ValueError):
+        polarity = None
+    if polarity not in _OBSERVATION_POLARITIES:
+        return None
+    note = str(raw.get("note") or "").strip()
+    if not note:
+        return None
+    out: dict[str, Any] = {
+        "category": category,
+        "polarity": polarity,
+        "severity": severity,
+        "note": _smart_trim(note, limit=_OBSERVATION_NOTE_LIMIT),
+    }
+    fix = str(raw.get("fix") or "").strip()
+    if fix:
+        out["fix"] = _smart_trim(fix, limit=_OBSERVATION_FIX_LIMIT)
+    return out
+
+
+def _extract_observations(thinking_text: str) -> tuple[list[dict[str, Any]], int]:
+    """Pull validated ``StepObservation`` dicts out of ``thinking_text``.
+
+    Returns ``(observations, invalid_count)`` so the caller can log how many
+    entries the LLM emitted vs. how many survived validation. ``observations``
+    is capped at ``_OBSERVATIONS_PER_STEP_CAP`` even if the LLM emitted more,
+    so a chatty step can't blow up the card UI.
+    """
+    if not thinking_text or "<<OBSERVATIONS>>" not in thinking_text:
+        return ([], 0)
+    obs: list[dict[str, Any]] = []
+    invalid = 0
+    for match in _OBSERVATIONS_BLOCK_RE.finditer(thinking_text):
+        payload = (match.group("json") or "").strip()
+        if not payload:
+            continue
+        try:
+            decoded = json.loads(payload)
+        except json.JSONDecodeError:
+            invalid += 1
+            continue
+        if isinstance(decoded, dict):
+            decoded = [decoded]
+        if not isinstance(decoded, list):
+            invalid += 1
+            continue
+        for entry in decoded:
+            coerced = _coerce_observation_entry(entry)
+            if coerced is None:
+                invalid += 1
+                continue
+            obs.append(coerced)
+            if len(obs) >= _OBSERVATIONS_PER_STEP_CAP:
+                break
+        if len(obs) >= _OBSERVATIONS_PER_STEP_CAP:
+            break
+    return (obs[:_OBSERVATIONS_PER_STEP_CAP], invalid)
+
+
 def _extract_structured_model_output(text: str) -> dict[str, str] | None:
     """
     Try to extract structured fields from browser-use flattened outputs.
@@ -555,9 +680,70 @@ def _normalize_action_entry(entry: Any) -> tuple[str, str, str]:
     else:
         key = next((k for k in raw if k not in ("result", "interacted_element")), "step")
         action_label = str(key)
-        target = str(raw.get(key, ""))[:200] if isinstance(raw.get(key), dict) else ""
+        target = _humanize_action_payload(key, raw.get(key))
         result = _smart_trim(str(res or ""), limit=INTERMEDIATE_RESULT_CAP)
     return (action_label, target, result)
+
+
+def _humanize_action_payload(action_key: str, payload: Any) -> str:
+    """Convert an action's raw payload to a short human-readable string.
+
+    The chat card renders ``step.target`` directly as a bold sentence under
+    the step header. Without this humanisation, scroll/keys/input/wait/etc.
+    actions produce ugly Python-dict reprs like ``{'down': True, 'pages': 0.3}``
+    in the UI. Anything we don't recognise returns ``""`` so the card just
+    skips the target row entirely instead of leaking internals.
+    """
+    if not isinstance(payload, dict):
+        return ""
+    key = (action_key or "").lower()
+    try:
+        if "scroll" in key:
+            # browser-use 0.12.x emits ``scroll`` with ``{down: bool, pages: float}``;
+            # older/legacy ``scroll_down`` / ``scroll_up`` come without the down flag.
+            down = payload.get("down")
+            if down is None:
+                if "down" in key:
+                    down = True
+                elif "up" in key:
+                    down = False
+            pages = payload.get("pages")
+            direction = "nach unten" if down else "nach oben" if down is False else ""
+            if isinstance(pages, (int, float)) and pages > 0:
+                p = float(pages)
+                if abs(p - round(p)) < 0.05:
+                    pages_text = f"{int(round(p))} Seite" + ("n" if round(p) != 1 else "")
+                else:
+                    pages_text = f"{p:.1f} Seiten"
+                return f"{pages_text} {direction}".strip()
+            return direction or ""
+        if key in ("input_text", "type", "type_text"):
+            text = str(payload.get("text") or "").strip()
+            return f"„{_smart_trim(text, limit=80)}“" if text else ""
+        if key in ("send_keys", "press_key", "keyboard"):
+            keys = payload.get("keys") or payload.get("key") or ""
+            return str(keys)[:80] if keys else ""
+        if key in ("wait",):
+            sec = payload.get("seconds") or payload.get("ms")
+            if isinstance(sec, (int, float)) and sec > 0:
+                if "ms" in payload and not payload.get("seconds"):
+                    return f"{int(sec)} ms"
+                return f"{float(sec):.1f}s"
+            return ""
+        if key in ("go_back", "go_forward"):
+            return ""
+        if key in ("switch_tab",):
+            idx = payload.get("page_id") or payload.get("index")
+            return f"Tab {idx}" if idx is not None else ""
+        if key in ("upload_file",):
+            return str(payload.get("path") or "")[:160]
+        # Hover / focus / select etc. — fall through to first textual value.
+        for v in payload.values():
+            if isinstance(v, str) and v.strip():
+                return _smart_trim(v.strip(), limit=160)
+    except Exception:
+        return ""
+    return ""
 
 
 def _get_model_thoughts(history: Any) -> list[dict[str, Any]]:
@@ -614,11 +800,26 @@ def _history_to_steps(history: Any) -> list[dict[str, Any]]:
             if i < len(thoughts):
                 thinking = str(thoughts[i].get("thinking") or "").strip()
                 if thinking:
+                    # Pull out the optional <<OBSERVATIONS>> block BEFORE we
+                    # cap or persist `thinking` — otherwise the cap would
+                    # truncate a half-block and the parser would silently
+                    # drop everything. The cleaned thinking (without the
+                    # block) becomes user-facing `reasoning`.
+                    observations, invalid_obs = _extract_observations(thinking)
+                    cleaned_thinking = _strip_observations_block(thinking)
+                    if observations:
+                        step_entry["observations"] = observations
+                    if observations or invalid_obs:
+                        print(
+                            f"ux-journey: step {step_num} observations parsed={len(observations)} "
+                            f"invalid={invalid_obs}",
+                            flush=True,
+                        )
                     # Server-side safety net for `thinking`. Generous so we only
                     # trip on real LLM monologues (>3–4 sentences), not on
                     # legitimate dense reasoning. The prompt does the actual
                     # brevity work; this is just a guardrail.
-                    step_entry["reasoning"] = _smart_trim(thinking, limit=600)
+                    step_entry["reasoning"] = _smart_trim(cleaned_thinking, limit=600)
                 structured = thoughts[i].get("structured")
                 if isinstance(structured, dict) and any(str(v or "").strip() for v in structured.values()):
                     # Caps for the structured sections. Earlier we used 140–180
@@ -804,6 +1005,368 @@ def _normalize_steps_video_offsets_for_duration(
         flush=True,
     )
     return (out, k)
+
+
+# ---------------------------------------------------------------------------
+# Journey scorecard (deterministic aggregation + small end-of-run LLM call)
+# ---------------------------------------------------------------------------
+UX_JOURNEY_SCORECARD = _env_truthy("UX_JOURNEY_SCORECARD", "1")
+try:
+    UX_JOURNEY_SCORECARD_QUOTES_MIN = max(0, min(8, int(os.environ.get("UX_JOURNEY_SCORECARD_QUOTES_MIN", "3") or "3")))
+except ValueError:
+    UX_JOURNEY_SCORECARD_QUOTES_MIN = 3
+try:
+    UX_JOURNEY_SCORECARD_QUOTES_MAX = max(
+        UX_JOURNEY_SCORECARD_QUOTES_MIN,
+        min(8, int(os.environ.get("UX_JOURNEY_SCORECARD_QUOTES_MAX", "5") or "5")),
+    )
+except ValueError:
+    UX_JOURNEY_SCORECARD_QUOTES_MAX = 5
+_SEVERITY_WEIGHT = {"low": 1, "medium": 2, "high": 3}
+
+
+def _collect_observations(steps: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Flatten ``[{step, observation}, ...]`` from every per-step entry.
+
+    Adds ``step`` (number) and ``stepIndex`` (0-based) to each observation
+    so the aggregation can keep a back-reference for "found in step 3"-style
+    UI labels without the consumer having to walk both arrays in parallel.
+    """
+    out: list[dict[str, Any]] = []
+    for st in steps or []:
+        if not isinstance(st, dict):
+            continue
+        obs_list = st.get("observations") or []
+        if not isinstance(obs_list, list):
+            continue
+        step_num = st.get("step")
+        if not isinstance(step_num, int):
+            continue
+        for o in obs_list:
+            if not isinstance(o, dict):
+                continue
+            out.append({**o, "step": step_num})
+    return out
+
+
+def _journey_quotes_picker(steps: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Pick 3..5 verbatim Think-Aloud sentences as UX-research-style quotes.
+
+    Heuristic: prefer ``reasoning`` entries that contain a justification
+    marker (``weil``/``damit``/``deshalb``/``denn``) — those are the lines
+    where the persona explains *why* she clicks. Fall back to any non-empty
+    reasoning if the heuristic returns too few.
+    """
+    candidates_strong: list[tuple[int, str]] = []
+    candidates_any: list[tuple[int, str]] = []
+    for st in steps or []:
+        if not isinstance(st, dict):
+            continue
+        step_num = st.get("step")
+        reasoning = str(st.get("reasoning") or "").strip()
+        if not isinstance(step_num, int) or not reasoning:
+            continue
+        first_sent = reasoning.split("\n", 1)[0].strip()
+        first_sent = re.split(r"(?<=[.!?])\s+", first_sent, maxsplit=1)[0].strip()
+        if not first_sent:
+            first_sent = reasoning
+        first_sent = _smart_trim(first_sent, limit=240)
+        lower = first_sent.lower()
+        if any(token in lower for token in (" weil ", " damit ", " deshalb ", " denn ", "weil ich", "damit ich")):
+            candidates_strong.append((step_num, first_sent))
+        candidates_any.append((step_num, first_sent))
+
+    chosen: list[dict[str, Any]] = []
+    seen_steps: set[int] = set()
+    for step_num, text in candidates_strong:
+        if step_num in seen_steps:
+            continue
+        chosen.append({"step": step_num, "text": text})
+        seen_steps.add(step_num)
+        if len(chosen) >= UX_JOURNEY_SCORECARD_QUOTES_MAX:
+            break
+    if len(chosen) < UX_JOURNEY_SCORECARD_QUOTES_MIN:
+        for step_num, text in candidates_any:
+            if step_num in seen_steps:
+                continue
+            chosen.append({"step": step_num, "text": text})
+            seen_steps.add(step_num)
+            if len(chosen) >= UX_JOURNEY_SCORECARD_QUOTES_MAX:
+                break
+    return chosen[:UX_JOURNEY_SCORECARD_QUOTES_MAX]
+
+
+def _per_category_aggregate(observations: list[dict[str, Any]]) -> dict[str, dict[str, float]]:
+    """Build the ``perCategory`` block — keys for ALL known categories so the
+    UI can render a complete table even when most categories had no flags.
+    """
+    out: dict[str, dict[str, float]] = {
+        cat: {"flags": 0, "weighted": 0.0, "avgPolarity": 0.0, "positives": 0, "negatives": 0}
+        for cat in _OBSERVATION_CATEGORIES
+    }
+    sums: dict[str, dict[str, float]] = {
+        cat: {"polarity": 0.0, "weighted": 0.0} for cat in _OBSERVATION_CATEGORIES
+    }
+    for obs in observations:
+        cat = obs.get("category")
+        if cat not in out:
+            continue
+        polarity = int(obs.get("polarity") or 0)
+        sev_w = _SEVERITY_WEIGHT.get(str(obs.get("severity") or ""), 1)
+        out[cat]["flags"] = float(out[cat]["flags"]) + 1.0
+        sums[cat]["polarity"] += float(polarity)
+        sums[cat]["weighted"] += float(polarity) * float(sev_w)
+        if polarity > 0:
+            out[cat]["positives"] = float(out[cat]["positives"]) + 1.0
+        elif polarity < 0:
+            out[cat]["negatives"] = float(out[cat]["negatives"]) + 1.0
+    for cat, agg in out.items():
+        n = max(1.0, float(agg["flags"]))
+        agg["avgPolarity"] = round(sums[cat]["polarity"] / n, 3) if agg["flags"] else 0.0
+        agg["weighted"] = round(sums[cat]["weighted"] / n, 3) if agg["flags"] else 0.0
+        agg["flags"] = int(agg["flags"])
+        agg["positives"] = int(agg["positives"])
+        agg["negatives"] = int(agg["negatives"])
+    return out
+
+
+def _top_strengths_and_weaknesses(
+    observations: list[dict[str, Any]],
+    *,
+    limit: int = 3,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Pick the most ``severity * |polarity|``-impactful flags, split by sign."""
+    def _impact(o: dict[str, Any]) -> float:
+        sev_w = _SEVERITY_WEIGHT.get(str(o.get("severity") or ""), 1)
+        pol = abs(int(o.get("polarity") or 0))
+        return sev_w * pol
+
+    pos = sorted(
+        (o for o in observations if int(o.get("polarity") or 0) > 0),
+        key=_impact,
+        reverse=True,
+    )
+    neg = sorted(
+        (o for o in observations if int(o.get("polarity") or 0) < 0),
+        key=_impact,
+        reverse=True,
+    )
+
+    def _pack(o: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "category": o.get("category"),
+            "polarity": int(o.get("polarity") or 0),
+            "severity": o.get("severity"),
+            "quote": o.get("note"),
+            "fix": o.get("fix"),
+            "step": o.get("step"),
+        }
+
+    return ([_pack(o) for o in pos[:limit]], [_pack(o) for o in neg[:limit]])
+
+
+def _scorecard_done_text(steps: list[dict[str, Any]]) -> str:
+    """Best-effort extraction of the agent's final ``done.text`` summary."""
+    for st in reversed(steps or []):
+        if not isinstance(st, dict):
+            continue
+        if str(st.get("action") or "").lower() == "done":
+            text = str(st.get("result") or "").strip()
+            if text:
+                return text
+    return ""
+
+
+async def _llm_scorecard_extras(
+    *,
+    persona: dict[str, Any] | None,
+    task: str,
+    domain: str,
+    observations: list[dict[str, Any]],
+    done_text: str,
+    quotes: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    """One small LLM round-trip for ``frictionScore`` / ``personaFitScore`` /
+    ``coverage`` — fields that need a holistic judgement instead of a
+    deterministic count of flags. Returns ``None`` on any failure (no key,
+    network, malformed JSON) so the rest of the scorecard still renders.
+    """
+    if not UX_JOURNEY_SCORECARD:
+        return None
+
+    obs_brief = [
+        {
+            "step": o.get("step"),
+            "category": o.get("category"),
+            "polarity": o.get("polarity"),
+            "severity": o.get("severity"),
+            "note": o.get("note"),
+        }
+        for o in observations[:30]
+    ]
+    quote_brief = [{"step": q.get("step"), "text": q.get("text")} for q in quotes]
+
+    persona_summary = ""
+    if isinstance(persona, dict):
+        bits: list[str] = []
+        for key in ("name", "role", "industry", "seniority", "goal"):
+            v = persona.get(key)
+            if isinstance(v, str) and v.strip():
+                bits.append(f"{key}={v.strip()}")
+        persona_summary = "; ".join(bits)
+
+    system_prompt = (
+        "Du bist ein UX-Research-Analyst. Du erhaeltst eine Persona, eine Aufgabe, "
+        "eine Liste validierter Beobachtungen und 3-5 woertliche Persona-Zitate aus "
+        "einem Think-Aloud-Lauf auf einer Website. Beurteile holistisch:\n"
+        "- frictionScore: 0..10 (0 = absolut friktionslos, 10 = die Persona haette aufgegeben).\n"
+        "- personaFitScore: 0..10 (0 = die Seite wirkt fuer eine andere Zielgruppe gemacht, "
+        "10 = exakt fuer diese Persona).\n"
+        "- coverage.goalReached: bool (hat die Persona ihr Aufgabenziel erreicht?).\n"
+        "- coverage.gap: 1 Satz, was gefehlt hat oder unklar war (auch wenn das Ziel erreicht wurde).\n"
+        "Antworte AUSSCHLIESSLICH mit kompaktem JSON: "
+        "{\"frictionScore\":int,\"personaFitScore\":int,"
+        "\"coverage\":{\"goalReached\":bool,\"gap\":string}}. "
+        "Keine Markdown-Codefences, kein zusaetzlicher Text."
+    )
+    user_payload = json.dumps(
+        {
+            "persona": persona_summary or None,
+            "task": task,
+            "siteDomain": domain,
+            "observations": obs_brief,
+            "quotes": quote_brief,
+            "doneText": done_text or None,
+        },
+        ensure_ascii=False,
+    )
+
+    api_key_openai = (os.environ.get("OPENAI_API_KEY") or "").strip()
+    api_key_anthropic = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
+
+    raw_text: str | None = None
+    if api_key_openai:
+        try:
+            from openai import AsyncOpenAI
+
+            client = AsyncOpenAI(api_key=api_key_openai)
+            model = os.environ.get("UX_JOURNEY_OPENAI_MODEL", "gpt-4o")
+            resp = await client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_payload},
+                ],
+                temperature=0.2,
+                response_format={"type": "json_object"},
+            )
+            raw_text = (resp.choices[0].message.content or "").strip()
+        except Exception as exc:  # pragma: no cover - network/quota
+            print(f"ux-journey: scorecard LLM (openai) failed err={exc!r}", flush=True)
+            raw_text = None
+    if raw_text is None and api_key_anthropic:
+        try:
+            from anthropic import AsyncAnthropic
+
+            client = AsyncAnthropic(api_key=api_key_anthropic)
+            model = os.environ.get("UX_JOURNEY_CLAUDE_MODEL", "claude-sonnet-4-6")
+            resp = await client.messages.create(
+                model=model,
+                max_tokens=400,
+                temperature=0.2,
+                system=system_prompt,
+                messages=[{"role": "user", "content": user_payload}],
+            )
+            chunks: list[str] = []
+            for block in getattr(resp, "content", []) or []:
+                txt = getattr(block, "text", None)
+                if isinstance(txt, str):
+                    chunks.append(txt)
+            raw_text = "".join(chunks).strip()
+        except Exception as exc:  # pragma: no cover - network/quota
+            print(f"ux-journey: scorecard LLM (anthropic) failed err={exc!r}", flush=True)
+            raw_text = None
+    if not raw_text:
+        return None
+
+    # Strip a possible ```json ... ``` fence the model added in spite of instructions.
+    fenced = re.match(r"^```(?:json)?\s*(?P<body>.*?)\s*```$", raw_text, flags=re.DOTALL)
+    if fenced:
+        raw_text = fenced.group("body")
+    try:
+        parsed = json.loads(raw_text)
+    except json.JSONDecodeError as exc:
+        print(f"ux-journey: scorecard LLM JSON decode failed err={exc!r}", flush=True)
+        return None
+    if not isinstance(parsed, dict):
+        return None
+
+    def _clamp_int(value: Any, lo: int, hi: int) -> int | None:
+        try:
+            v = int(round(float(value)))
+        except (TypeError, ValueError):
+            return None
+        return max(lo, min(hi, v))
+
+    friction = _clamp_int(parsed.get("frictionScore"), 0, 10)
+    persona_fit = _clamp_int(parsed.get("personaFitScore"), 0, 10)
+    cov_raw = parsed.get("coverage") or {}
+    if not isinstance(cov_raw, dict):
+        cov_raw = {}
+    goal_reached = bool(cov_raw.get("goalReached")) if "goalReached" in cov_raw else None
+    gap = str(cov_raw.get("gap") or "").strip()
+
+    if friction is None and persona_fit is None and goal_reached is None and not gap:
+        return None
+    return {
+        "frictionScore": friction,
+        "personaFitScore": persona_fit,
+        "coverage": {
+            "goalReached": goal_reached,
+            "gap": _smart_trim(gap, limit=240) if gap else None,
+        },
+    }
+
+
+async def _build_scorecard(
+    *,
+    steps: list[dict[str, Any]],
+    persona: dict[str, Any] | None,
+    task: str,
+    domain: str,
+) -> dict[str, Any] | None:
+    """Assemble the ``JourneyScorecard`` for ``result['scorecard']``.
+
+    Returns ``None`` when the journey produced neither observations nor a
+    ``done.text`` we could quote — in that case the chat panel renders just
+    the per-step cards as before, with no scorecard block.
+    """
+    observations = _collect_observations(steps)
+    quotes = _journey_quotes_picker(steps)
+    done_text = _scorecard_done_text(steps)
+    if not observations and not quotes and not done_text:
+        return None
+
+    per_category = _per_category_aggregate(observations)
+    strengths, weaknesses = _top_strengths_and_weaknesses(observations, limit=3)
+    extras = await _llm_scorecard_extras(
+        persona=persona,
+        task=task,
+        domain=domain,
+        observations=observations,
+        done_text=done_text,
+        quotes=quotes,
+    )
+    scorecard: dict[str, Any] = {
+        "perCategory": per_category,
+        "topStrengths": strengths,
+        "topWeaknesses": weaknesses,
+        "quotes": quotes,
+        "totalObservations": len(observations),
+    }
+    if extras:
+        scorecard.update(extras)
+    return scorecard
 
 
 def _persist_steps_sidecar(job_id: str, steps: list[dict[str, Any]]) -> None:
@@ -1737,6 +2300,49 @@ async def run_agent(
             "CHECKION_NAVIGATION_ONLY:\n"
             "Nutze keine Websuche und keine Suchmaschinen (kein DuckDuckGo, Google, Bing). "
             "Bleibe auf der im Auftrag genannten Ziel-URL und ihren internen Links — keine generischen Web-Suchen.\n"
+            "CHECKION_OBSERVATIONS:\n"
+            # Optional UX-research flags emitted INSIDE `thinking` as a delimited
+            # JSON block. The post-processor extracts these into a structured
+            # `step.observations` array and strips the block from the visible
+            # narration. We piggyback on `thinking` (vs. forking AgentOutput)
+            # so the browser-use schema stays untouched. See main.py
+            # `_extract_observations` / `_strip_observations_block` for the
+            # parser; see README "Per-step observations & journey scorecard"
+            # for product semantics.
+            "Wenn dir bei DIESEM Schritt etwas an der Seite WIRKLICH auffaellt — "
+            "positiv oder negativ — kannst du am Ende von 'thinking' OPTIONAL einen "
+            "abgegrenzten JSON-Block anhaengen. Wenn nichts auffaellig ist: BLOCK WEGLASSEN. "
+            "Erfinde keine Beobachtungen, nur damit der Block voll ist.\n"
+            "Format (genau diese Marker, JSON-Array, max. 2 Eintraege pro Schritt):\n"
+            "<<OBSERVATIONS>>[{\"category\":\"copy\",\"polarity\":-1,\"severity\":\"low\","
+            "\"note\":\"Buzzwords wie 'Transformation' ohne konkrete Cases — fuer mich zu vage.\","
+            "\"fix\":\"1-2 Beispielprojekte mit Branche und Zahl direkt im Hero.\"}]<</OBSERVATIONS>>\n"
+            "Felder pro Eintrag:\n"
+            "- 'category' (PFLICHT): einer von 'layout' (Hierarchie/Whitespace/Aufmerksamkeit), "
+            "'visual' (Farbe/Bildsprache/Markenlook), 'typography' (Schriftgroessen/Lesbarkeit), "
+            "'copy' (Texttiefe/Tonalitaet/Buzzwords), 'affordance' (sieht man wo zu klicken ist?), "
+            "'navigation' (finde ich was ich suche?), 'info_density' (zu viel/zu wenig auf einmal), "
+            "'trust' (Cases/Logos/DSGVO/Proof Points), 'performance' (Ladegefuehl/Layout-Shift), "
+            "'persona_fit' (passt das zu meiner Rolle/Branche?).\n"
+            "- 'polarity' (PFLICHT): -2 (klares Negativ), -1 (leichtes Negativ), 1 (leichtes Plus), "
+            "2 (klares Plus). KEIN 0 — wenn du keinen Eindruck hast, lass den Eintrag weg.\n"
+            "- 'severity' (PFLICHT): 'low' (kosmetisch), 'medium' (bremst Persona aus), "
+            "'high' (blockiert das Aufgabenziel).\n"
+            "- 'note' (PFLICHT): 1 vollstaendiger Satz aus Persona-Sicht — was du siehst, "
+            "warum es dich stoert/begeistert. Persona-Stimme, nicht Bot-Stil.\n"
+            "- 'fix' (OPTIONAL): 1 Satz, was du als Persona dir gewuenscht haettest. "
+            "Konkret (Inhalt/Element), keine Generalvorschlaege wie 'besseres Design'.\n"
+            "Beispiele fuer guten Ton:\n"
+            "  {\"category\":\"affordance\",\"polarity\":-1,\"severity\":\"medium\","
+            "\"note\":\"Die Karten am Footer sehen wie statische Bilder aus, nicht klickbar — "
+            "ich haette das nicht ausprobiert.\",\"fix\":\"Hover-State + 'mehr erfahren'-Pfeil "
+            "auf den Karten.\"}\n"
+            "  {\"category\":\"trust\",\"polarity\":2,\"severity\":\"medium\","
+            "\"note\":\"Drei konkrete Kunden mit Logo und Branche im Hero — das gibt mir "
+            "sofort einen Anker als IT-Leitung.\"}\n"
+            "Strenge Regeln: gueltiges JSON, KEINE Trailing-Kommas, KEINE Kommentare, "
+            "KEINE zusaetzlichen Felder. Bei Format-Zweifeln BLOCK WEGLASSEN — der Parser "
+            "verwirft sonst stillschweigend.\n"
         )
         # Task is now JUST the task — no language pinning, no brevity rules,
         # no persona stuffing. Reasoning language is handled by the fork
@@ -2113,6 +2719,21 @@ async def run_agent(
         success = _history_success(history)
         screenshots = _history_screenshots(history)
 
+        # Journey scorecard (per-category aggregation + optional end-of-run
+        # LLM call for friction/persona-fit/coverage). Best-effort: never
+        # raise into the run loop, just log and skip if the LLM step fails.
+        scorecard: dict[str, Any] | None = None
+        try:
+            scorecard = await _build_scorecard(
+                steps=steps,
+                persona=persona,
+                task=task,
+                domain=domain,
+            )
+        except Exception as exc:
+            print(f"ux-journey: scorecard build failed for job={job_id} err={exc!r}", flush=True)
+            scorecard = None
+
         # `domain` already computed above for partial progress updates.
 
         # Wait until Playwright's `[video_recorder]` finishes flushing the file.
@@ -2256,6 +2877,8 @@ async def run_agent(
                 "id": persona.get("id"),
                 "name": persona.get("name"),
             }
+        if scorecard:
+            result["scorecard"] = scorecard
         if video_path:
             result["videoUrl"] = f"/run/{job_id}/video"
         if cancelled:

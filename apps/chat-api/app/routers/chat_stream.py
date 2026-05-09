@@ -135,20 +135,17 @@ def _event_to_sse_chunks(
             + "\n\n"
         )
     elif isinstance(event, ToolCompletedEvent):
-        chunks.append(
-            "data: "
-            + json.dumps(
-                {
-                    "type": "tool_completed",
-                    "tool": event.tool,
-                    "jobId": event.job_id,
-                    "success": event.success,
-                    "videoUrl": event.video_url,
-                    "error": event.error,
-                }
-            )
-            + "\n\n"
-        )
+        completed_payload: Dict[str, Any] = {
+            "type": "tool_completed",
+            "tool": event.tool,
+            "jobId": event.job_id,
+            "success": event.success,
+            "videoUrl": event.video_url,
+            "error": event.error,
+        }
+        if event.scorecard is not None:
+            completed_payload["scorecard"] = event.scorecard
+        chunks.append("data: " + json.dumps(completed_payload) + "\n\n")
     elif isinstance(event, ThinkingEvent):
         if hasattr(event, "status") and event.status and "error" in event.status.lower():
             error_msg = event.status.replace("Error generating response: ", "")

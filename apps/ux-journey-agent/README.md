@@ -63,7 +63,65 @@ Browser agent service for CHECKION: runs autonomous navigation tasks (URL + natu
 | `UX_JOURNEY_DEFER_VIDEO_FINALIZE` | no | When **`1`** (default), the ffmpeg polish pass does **not** run automatically when the journey finishes — call **`POST /run/{jobId}/video/finalize`** when you want the smooth MP4. Set **`0`** to restore background finalization at end of run (uses CPU on every run). |
 | `UX_JOURNEY_VIDEO_TRANSCODE` | no | Set **`0`** to disable H.264 transcoding entirely (no ffmpeg polish). Default **`1`** (transcode enabled when ffmpeg is available). |
 | `UX_JOURNEY_LIVE_FRAME_INTERVAL` | no | Seconds between live/MJPEG frames (default 0.04 = 25 fps). Lower value = higher fps. |
+| `UX_JOURNEY_SCORECARD` | no | When **`1`** (default), the agent runs a small end-of-run LLM call to compute `frictionScore`, `personaFitScore`, and `coverage` for the journey scorecard. Set **`0`** to keep only the deterministic, server-side aggregation (`perCategory`, `topStrengths`, `topWeaknesses`, `quotes`) and skip the extra LLM round-trip — useful when the token budget is tight or `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` is intentionally not set in the agent's environment. |
+| `UX_JOURNEY_SCORECARD_QUOTES_MIN` | no | Minimum number of verbatim think-aloud quotes the deterministic picker tries to surface (default **`3`**, clamped 0..8). |
+| `UX_JOURNEY_SCORECARD_QUOTES_MAX` | no | Hard cap on quotes returned for the scorecard (default **`5`**, clamped 0..8). The picker prefers sentences that contain a justification marker (`weil`, `damit`, `deshalb`, `denn`) and falls back to any first-sentence reasoning if not enough strong candidates exist. |
 | `PORT` | no | HTTP port (default 8320) |
+
+## Per-step observations & journey scorecard
+
+End-of-run, the agent attaches an optional **scorecard** alongside `steps`/`success` on `GET /run/{jobId}` and forwards it to the chat panel. The scorecard is built from **per-step UX-research observations** that the persona LLM emits inside its `thinking` field, and from a small, optional follow-up LLM call that judges the run holistically.
+
+### How the persona is triggered
+
+The `CHECKION_OBSERVATIONS` block in the system prompt (see `_persona_instruction` extension in `main.py`) tells the persona that, **at the end of `thinking`**, she may **optionally** append a delimited JSON block:
+
+```text
+<<OBSERVATIONS>>[{"category":"copy","polarity":-1,"severity":"low","note":"...","fix":"..."}]<</OBSERVATIONS>>
+```
+
+Hard rules baked into the prompt:
+
+- **Maximum 2 entries per step.** "Nothing notable" → omit the block.
+- Polarity is **only** `-2 / -1 / +1 / +2` (no `0`, no fractional values).
+- Strict allow-lists for `category` and `severity`; unknown values cause silent drop in the parser.
+- Persona-voice `note` (1 sentence). `fix` is optional but encouraged.
+
+### What the parser does (server-side, deterministic)
+
+`_extract_observations` finds the block, JSON-decodes each entry, validates against the schema, caps the result at 2 entries, and `_strip_observations_block` removes the block from `step.reasoning` so the user-facing think-aloud stays clean. **Any malformed entry is dropped silently** — a chatty LLM payload cannot crash the run or pollute the scorecard. Per-step logs:
+
+```text
+ux-journey: step 4 observations parsed=1 invalid=0
+```
+
+### Schema (one observation)
+
+| Field | Required | Allowed values |
+|---|---|---|
+| `category` | yes | `layout`, `visual`, `typography`, `copy`, `affordance`, `navigation`, `info_density`, `trust`, `performance`, `persona_fit` |
+| `polarity` | yes | `-2`, `-1`, `1`, `2` |
+| `severity` | yes | `low`, `medium`, `high` |
+| `note` | yes | 1 persona-voice sentence (clamped to 320 chars) |
+| `fix` | no  | 1 sentence (clamped to 240 chars) |
+
+### Scorecard fields (`result.scorecard`)
+
+| Field | Source | Notes |
+|---|---|---|
+| `perCategory[cat] = { flags, weighted, avgPolarity, positives, negatives }` | server (deterministic) | All 10 categories present; flags=0 entries are still keyed so the UI can render a complete table. `weighted` weights polarity by severity (`low=1`, `medium=2`, `high=3`). |
+| `topStrengths[<=3]` | server (deterministic) | Sorted by `severity * |polarity|` descending; positive polarity only. Carries `step` reference + `quote` (= `note`). |
+| `topWeaknesses[<=3]` | server (deterministic) | Same ranking; negative polarity only. Carries optional `fix`. |
+| `quotes[3..5]` | server (heuristic) | First sentence per step that contains a justification marker (`weil`, `damit`, `deshalb`, `denn`) — falls back to any first sentence to hit the minimum count. Configurable via `UX_JOURNEY_SCORECARD_QUOTES_MIN/MAX`. |
+| `frictionScore` (0..10) | LLM (optional) | One small JSON-mode call (OpenAI preferred, Anthropic fallback). Off when `UX_JOURNEY_SCORECARD=0` or no API key. Clamped server-side. |
+| `personaFitScore` (0..10) | LLM (optional) | Same call; clamped server-side. |
+| `coverage = { goalReached, gap }` | LLM (optional) | `goalReached` is `true`/`false`/`null`; `gap` is one sentence and may be present even on success. |
+| `totalObservations` | server | Convenience count of all parsed observations across steps. |
+
+### Wiring & UI
+
+- The chat-api (`tool_executor.py`) passes `observations` through inside each step on every progress event and forwards the terminal `scorecard` on `tool_completed`.
+- The chat panel (`msqdx-glass-chat-panel.tsx`) renders observation chips per step (icon + category + polarity + severity dots, click toggles inline note/fix) and a scorecard block between the persona reply and the video (KPI tiles, coverage row, per-category bars, strengths/weaknesses/quotes accordions).
 
 ## Video finalize: real motion vs. still fallbacks
 

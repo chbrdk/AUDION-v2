@@ -704,6 +704,7 @@ class ToolExecutor:
             [s for s in steps_final_raw if isinstance(s, dict)] if isinstance(steps_final_raw, list) else []
         )
         video_url_rel = final_result.get("videoUrl") if isinstance(final_result, dict) else None
+        scorecard_obj = final_result.get("scorecard") if isinstance(final_result, dict) else None
 
         if send_event is not None:
             try:
@@ -714,6 +715,7 @@ class ToolExecutor:
                         success=success if isinstance(success, bool) else None,
                         video_url=video_url_rel if isinstance(video_url_rel, str) else None,
                         error=final_error,
+                        scorecard=scorecard_obj if isinstance(scorecard_obj, dict) else None,
                     )
                 )
             except Exception as exc:
@@ -783,7 +785,7 @@ def _build_confirm_prompt(*, url: str, task: str, persona_name: str | None) -> s
 
 def _compact_step_for_sse(step: Dict[str, Any]) -> Dict[str, Any]:
     """Trim a single step entry to fields the chat panel renders."""
-    return {
+    payload: Dict[str, Any] = {
         "step": step.get("step"),
         "action": step.get("action"),
         "target": step.get("target"),
@@ -793,6 +795,13 @@ def _compact_step_for_sse(step: Dict[str, Any]) -> Dict[str, Any]:
         "screenshotUrl": step.get("screenshotUrl") or step.get("screenshot_url"),
         "timestamp": step.get("timestamp"),
     }
+    # Per-step UX observations (Phase: scorecard). Pass through ONLY when the
+    # upstream agent produced validated entries — never invent or normalize
+    # here, the agent's `_extract_observations` is the single source of truth.
+    obs = step.get("observations")
+    if isinstance(obs, list) and obs:
+        payload["observations"] = obs
+    return payload
 
 
 def _truncate(value: Any, limit: int) -> str | None:

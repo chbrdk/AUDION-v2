@@ -86,9 +86,102 @@ type Message = {
         memory?: string | null;
         next_goal?: string | null;
       } | null;
+      /**
+       * UX-research observations the persona flagged for this step. Each
+       * observation is one structured note (category + polarity + severity
+       * + 1-sentence note + optional fix). Most steps will have 0 entries —
+       * only steps where something actually stood out get flagged.
+       */
+      observations?: Array<{
+        category:
+          | "layout"
+          | "visual"
+          | "typography"
+          | "copy"
+          | "affordance"
+          | "navigation"
+          | "info_density"
+          | "trust"
+          | "performance"
+          | "persona_fit";
+        polarity: -2 | -1 | 1 | 2;
+        severity: "low" | "medium" | "high";
+        note: string;
+        fix?: string;
+      }>;
       result?: string | null;
       timestamp?: string;
     }>;
+    /**
+     * Aggregated UX-research scorecard for the entire journey. Set on the
+     * terminal `tool_completed` event by chat-api (sourced from the
+     * agent's run result). Absent on running journeys and on legacy
+     * journeys whose agent didn't emit a scorecard.
+     */
+    scorecard?: {
+      perCategory?: Partial<
+        Record<
+          | "layout"
+          | "visual"
+          | "typography"
+          | "copy"
+          | "affordance"
+          | "navigation"
+          | "info_density"
+          | "trust"
+          | "performance"
+          | "persona_fit",
+          {
+            flags?: number;
+            weighted?: number;
+            avgPolarity?: number;
+            positives?: number;
+            negatives?: number;
+          }
+        >
+      >;
+      topStrengths?: Array<{
+        category?:
+          | "layout"
+          | "visual"
+          | "typography"
+          | "copy"
+          | "affordance"
+          | "navigation"
+          | "info_density"
+          | "trust"
+          | "performance"
+          | "persona_fit";
+        polarity?: number;
+        severity?: "low" | "medium" | "high";
+        quote?: string | null;
+        fix?: string | null;
+        step?: number;
+      }>;
+      topWeaknesses?: Array<{
+        category?:
+          | "layout"
+          | "visual"
+          | "typography"
+          | "copy"
+          | "affordance"
+          | "navigation"
+          | "info_density"
+          | "trust"
+          | "performance"
+          | "persona_fit";
+        polarity?: number;
+        severity?: "low" | "medium" | "high";
+        quote?: string | null;
+        fix?: string | null;
+        step?: number;
+      }>;
+      quotes?: Array<{ step?: number; text?: string }>;
+      frictionScore?: number | null;
+      personaFitScore?: number | null;
+      coverage?: { goalReached?: boolean | null; gap?: string | null } | null;
+      totalObservations?: number;
+    };
     /**
      * Pending human-in-the-loop confirmation. Present while `status === "proposed"`
      * (and briefly after the user clicks until the SSE state transitions).
@@ -228,6 +321,97 @@ function statusPillStyle(status: UxJourneyStatus | undefined): {
   }
 }
 
+/* ------------------------------------------------------------------------ */
+/* UX-research observations & journey scorecard — view helpers              */
+/* ------------------------------------------------------------------------ */
+
+type UxObservationCategory = NonNullable<
+  NonNullable<NonNullable<Message["uxJourney"]>["steps"]>[number]["observations"]
+>[number]["category"];
+
+type UxObservation = NonNullable<
+  NonNullable<NonNullable<Message["uxJourney"]>["steps"]>[number]["observations"]
+>[number];
+
+const UX_OBSERVATION_CATEGORIES: UxObservationCategory[] = [
+  "layout",
+  "visual",
+  "typography",
+  "copy",
+  "affordance",
+  "navigation",
+  "info_density",
+  "trust",
+  "performance",
+  "persona_fit",
+];
+
+/** MsqdxIcon name used for each observation category — picks a glyph that
+ * reads at chip size (16px). Falls back to a neutral icon if a future
+ * category id leaks through unhandled. */
+const UX_OBSERVATION_CATEGORY_ICON: Record<UxObservationCategory, string> = {
+  layout: "dashboard",
+  visual: "palette",
+  typography: "format_size",
+  copy: "subject",
+  affordance: "ads_click",
+  navigation: "alt_route",
+  info_density: "view_compact",
+  trust: "verified",
+  performance: "speed",
+  persona_fit: "person",
+};
+
+/**
+ * Tone color for an observation chip. Positive polarities render in green,
+ * negative in red, with a subtle gradient (light/dark) for severity. Theme
+ * `palette.success` / `palette.error` is honored when present so brand
+ * theming flows through; we fall back to fixed greens/reds otherwise.
+ */
+function uxObservationTone(
+  theme: ReturnType<typeof useTheme>,
+  polarity: number,
+  severity: "low" | "medium" | "high",
+): { fg: string; bg: string; border: string } {
+  const positive = polarity > 0;
+  const baseHex = positive
+    ? theme.palette.success?.main || "#16a34a"
+    : theme.palette.error?.main || "#dc2626";
+  const bgAlpha = severity === "high" ? 0.22 : severity === "medium" ? 0.16 : 0.1;
+  const borderAlpha = severity === "high" ? 0.55 : severity === "medium" ? 0.42 : 0.3;
+  return {
+    fg: baseHex,
+    bg: alpha(baseHex, bgAlpha),
+    border: alpha(baseHex, borderAlpha),
+  };
+}
+
+/** "Hoch / Mittel / Niedrig" indicator: 1..3 filled dots. */
+function UxObservationSeverityDots({
+  severity,
+  color,
+}: {
+  severity: "low" | "medium" | "high";
+  color: string;
+}) {
+  const filled = severity === "high" ? 3 : severity === "medium" ? 2 : 1;
+  return (
+    <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.25, ml: 0.5 }}>
+      {[0, 1, 2].map((i) => (
+        <Box
+          key={i}
+          sx={{
+            width: 4,
+            height: 4,
+            borderRadius: "50%",
+            backgroundColor: i < filled ? color : alpha(color, 0.25),
+          }}
+        />
+      ))}
+    </Box>
+  );
+}
+
 export const MsqdxGlassChatPanel = ({
   messages,
   systemPrompt,
@@ -257,6 +441,12 @@ export const MsqdxGlassChatPanel = ({
   const [uxJourneyVideoPolishFailed, setUxJourneyVideoPolishFailed] = useState<Record<string, boolean>>({});
   /** Cache-bust query on `<video src>` after finalize so the browser refetches. */
   const [uxJourneyVideoCacheKey, setUxJourneyVideoCacheKey] = useState<Record<string, number>>({});
+  /**
+   * Per-step "this observation chip is expanded" state. Key is
+   * `<messageId>::<stepNum>::<obsIndex>`. Click on a chip toggles the
+   * inline expander (full note + fix).
+   */
+  const [uxObservationOpen, setUxObservationOpen] = useState<Record<string, boolean>>({});
 
   const requestUxJourneyVideoAndReveal = useCallback(
     async (messageId: string, jobId: string) => {
@@ -1343,6 +1533,156 @@ export const MsqdxGlassChatPanel = ({
                                     </AccordionDetails>
                                   </Accordion>
                                 ) : null}
+
+                                {/* UX-research observation chips (per step). */}
+                                {Array.isArray(s.observations) && s.observations.length > 0 ? (
+                                  <Box
+                                    sx={{
+                                      mt: 0.75,
+                                      pt: 0.75,
+                                      borderTop: `1px dashed ${alpha(theme.palette.divider, 0.45)}`,
+                                    }}
+                                  >
+                                    <Typography
+                                      variant="caption"
+                                      sx={{
+                                        ...uxJourneyStepLabelSx,
+                                        display: "block",
+                                        mb: 0.5,
+                                      }}
+                                    >
+                                      {t("chat.uxJourney.observations.label")}
+                                    </Typography>
+                                    <Box
+                                      sx={{
+                                        display: "flex",
+                                        flexWrap: "wrap",
+                                        gap: 0.5,
+                                      }}
+                                    >
+                                      {s.observations.map((obs: UxObservation, obsIdx: number) => {
+                                        const tone = uxObservationTone(theme, obs.polarity, obs.severity);
+                                        const iconName =
+                                          UX_OBSERVATION_CATEGORY_ICON[obs.category] || "help_outline";
+                                        const chipKey = `${message.id}::${s.step ?? "x"}::${obsIdx}`;
+                                        const expanded = !!uxObservationOpen[chipKey];
+                                        const polarityLabel =
+                                          obs.polarity > 0
+                                            ? `+${obs.polarity}`
+                                            : `${obs.polarity}`;
+                                        const categoryLabel = t(
+                                          `chat.uxJourney.observations.category.${obs.category}`,
+                                        );
+                                        const severityLabel = t(
+                                          `chat.uxJourney.observations.severity.${obs.severity}`,
+                                        );
+                                        const tooltipBody = (
+                                          <Box sx={{ p: 0.25, maxWidth: 280 }}>
+                                            <Typography variant="caption" sx={{ fontWeight: 700, display: "block", mb: 0.25 }}>
+                                              {categoryLabel} · {polarityLabel} · {severityLabel}
+                                            </Typography>
+                                            <Typography variant="caption" sx={{ display: "block", whiteSpace: "pre-wrap" }}>
+                                              {obs.note}
+                                            </Typography>
+                                            {obs.fix ? (
+                                              <Typography
+                                                variant="caption"
+                                                sx={{ display: "block", mt: 0.5, color: alpha("#fff", 0.85) }}
+                                              >
+                                                {t("chat.uxJourney.observations.fixPrefix")} {obs.fix}
+                                              </Typography>
+                                            ) : null}
+                                          </Box>
+                                        );
+                                        return (
+                                          <Box key={chipKey} sx={{ display: "inline-flex", flexDirection: "column" }}>
+                                            <Tooltip title={tooltipBody} placement="top" arrow>
+                                              <Box
+                                                role="button"
+                                                tabIndex={0}
+                                                onClick={() =>
+                                                  setUxObservationOpen((prev) => ({
+                                                    ...prev,
+                                                    [chipKey]: !prev[chipKey],
+                                                  }))
+                                                }
+                                                onKeyDown={(e) => {
+                                                  if (e.key === "Enter" || e.key === " ") {
+                                                    e.preventDefault();
+                                                    setUxObservationOpen((prev) => ({
+                                                      ...prev,
+                                                      [chipKey]: !prev[chipKey],
+                                                    }));
+                                                  }
+                                                }}
+                                                sx={{
+                                                  display: "inline-flex",
+                                                  alignItems: "center",
+                                                  gap: 0.5,
+                                                  px: 0.75,
+                                                  py: 0.25,
+                                                  borderRadius: 999,
+                                                  cursor: "pointer",
+                                                  border: `1px solid ${tone.border}`,
+                                                  backgroundColor: tone.bg,
+                                                  color: tone.fg,
+                                                  fontSize: "0.6875rem",
+                                                  fontFamily: MSQDX_TYPOGRAPHY.fontFamily.mono,
+                                                  fontWeight: 600,
+                                                  letterSpacing: 0.3,
+                                                  transition: "background-color 120ms ease",
+                                                  "&:hover": { backgroundColor: alpha(tone.fg, 0.22) },
+                                                  "&:focus-visible": {
+                                                    outline: `2px solid ${alpha(tone.fg, 0.55)}`,
+                                                    outlineOffset: 1,
+                                                  },
+                                                }}
+                                                aria-expanded={expanded}
+                                                aria-label={`${categoryLabel} ${polarityLabel} ${severityLabel}`}
+                                              >
+                                                <MsqdxIcon name={iconName} customSize={14} />
+                                                <span>{categoryLabel}</span>
+                                                <span style={{ opacity: 0.85 }}>{polarityLabel}</span>
+                                                <UxObservationSeverityDots severity={obs.severity} color={tone.fg} />
+                                              </Box>
+                                            </Tooltip>
+                                            {expanded ? (
+                                              <Box
+                                                sx={{
+                                                  mt: 0.5,
+                                                  ml: 0.25,
+                                                  px: 1,
+                                                  py: 0.75,
+                                                  borderRadius: 1.5,
+                                                  border: `1px solid ${tone.border}`,
+                                                  backgroundColor: alpha(tone.fg, 0.06),
+                                                  maxWidth: 360,
+                                                }}
+                                              >
+                                                <Typography variant="caption" sx={{ display: "block", color: "text.primary" }}>
+                                                  {obs.note}
+                                                </Typography>
+                                                {obs.fix ? (
+                                                  <Typography
+                                                    variant="caption"
+                                                    sx={{
+                                                      display: "block",
+                                                      mt: 0.5,
+                                                      color: "text.secondary",
+                                                      fontStyle: "italic",
+                                                    }}
+                                                  >
+                                                    {t("chat.uxJourney.observations.fixPrefix")} {obs.fix}
+                                                  </Typography>
+                                                ) : null}
+                                              </Box>
+                                            ) : null}
+                                          </Box>
+                                        );
+                                      })}
+                                    </Box>
+                                  </Box>
+                                ) : null}
                               </Box>
                             ))}
                           </Box>
@@ -1372,6 +1712,374 @@ export const MsqdxGlassChatPanel = ({
                           <ChatMessageMarkdown content={message.content} />
                         </Box>
                       ) : null}
+
+                      {/* UX-research scorecard (KPIs + per-category bars + strengths/weaknesses). */}
+                      {message.uxJourney.scorecard
+                        ? (() => {
+                            const sc = message.uxJourney!.scorecard!;
+                            const friction = typeof sc.frictionScore === "number" ? sc.frictionScore : null;
+                            const fit = typeof sc.personaFitScore === "number" ? sc.personaFitScore : null;
+                            const coverage = sc.coverage ?? null;
+                            const strengths = Array.isArray(sc.topStrengths) ? sc.topStrengths : [];
+                            const weaknesses = Array.isArray(sc.topWeaknesses) ? sc.topWeaknesses : [];
+                            const quotes = Array.isArray(sc.quotes) ? sc.quotes : [];
+                            const perCategory = sc.perCategory ?? {};
+                            // Filter perCategory to entries with at least one flag — empty categories
+                            // would render empty bars and waste vertical space.
+                            const categoryRows = UX_OBSERVATION_CATEGORIES
+                              .map((cat) => ({ cat, agg: perCategory[cat] }))
+                              .filter((r) => r.agg && (r.agg.flags ?? 0) > 0);
+                            const hasAnything =
+                              friction !== null ||
+                              fit !== null ||
+                              coverage !== null ||
+                              categoryRows.length > 0 ||
+                              strengths.length > 0 ||
+                              weaknesses.length > 0 ||
+                              quotes.length > 0;
+                            if (!hasAnything) return null;
+                            const kpiTile = (label: string, value: number | null, isFriction: boolean) => {
+                              const v = value ?? 0;
+                              const tonePos = !isFriction ? v >= 7 : v <= 3;
+                              const toneNeg = !isFriction ? v <= 3 : v >= 7;
+                              const color = tonePos
+                                ? theme.palette.success?.main || "#16a34a"
+                                : toneNeg
+                                  ? theme.palette.error?.main || "#dc2626"
+                                  : theme.palette.warning?.main || "#ca8a04";
+                              return (
+                                <Box
+                                  key={label}
+                                  sx={{
+                                    flex: 1,
+                                    minWidth: 120,
+                                    p: 1,
+                                    borderRadius: 1.5,
+                                    border: `1px solid ${alpha(color, 0.45)}`,
+                                    backgroundColor: alpha(color, 0.12),
+                                  }}
+                                >
+                                  <Typography
+                                    variant="caption"
+                                    sx={{
+                                      ...uxJourneyStepLabelSx,
+                                      color: alpha(color, 0.95),
+                                      display: "block",
+                                      mb: 0.25,
+                                    }}
+                                  >
+                                    {label}
+                                  </Typography>
+                                  <Typography
+                                    sx={{
+                                      fontSize: "1.5rem",
+                                      lineHeight: 1.1,
+                                      fontWeight: 700,
+                                      color,
+                                      fontFamily: MSQDX_TYPOGRAPHY.fontFamily.mono,
+                                    }}
+                                  >
+                                    {value === null ? "—" : `${v}/10`}
+                                  </Typography>
+                                </Box>
+                              );
+                            };
+                            return (
+                              <Box
+                                sx={{
+                                  mt: 1.5,
+                                  pt: 1.5,
+                                  borderTop: `1px solid ${alpha(theme.palette.divider, 0.55)}`,
+                                }}
+                              >
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    ...uxJourneyStepLabelSx,
+                                    color: "text.secondary",
+                                    display: "block",
+                                    mb: 0.75,
+                                  }}
+                                >
+                                  {t("chat.uxJourney.scorecard.title")}
+                                </Typography>
+
+                                {/* KPI tiles */}
+                                {friction !== null || fit !== null ? (
+                                  <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 1 }}>
+                                    {kpiTile(t("chat.uxJourney.scorecard.frictionScore"), friction, true)}
+                                    {kpiTile(t("chat.uxJourney.scorecard.personaFitScore"), fit, false)}
+                                  </Box>
+                                ) : null}
+
+                                {/* Coverage line */}
+                                {coverage ? (
+                                  <Box
+                                    sx={{
+                                      display: "flex",
+                                      alignItems: "flex-start",
+                                      gap: 0.75,
+                                      px: 1,
+                                      py: 0.75,
+                                      mb: 1,
+                                      borderRadius: 1.5,
+                                      backgroundColor: alpha(
+                                        coverage.goalReached
+                                          ? theme.palette.success?.main || "#16a34a"
+                                          : theme.palette.error?.main || "#dc2626",
+                                        0.1,
+                                      ),
+                                      border: `1px solid ${alpha(
+                                        coverage.goalReached
+                                          ? theme.palette.success?.main || "#16a34a"
+                                          : theme.palette.error?.main || "#dc2626",
+                                        0.4,
+                                      )}`,
+                                    }}
+                                  >
+                                    <MsqdxIcon
+                                      name={coverage.goalReached ? "check_circle" : "cancel"}
+                                      customSize={16}
+                                    />
+                                    <Box sx={{ flex: 1 }}>
+                                      <Typography variant="caption" sx={{ display: "block", fontWeight: 600 }}>
+                                        {coverage.goalReached
+                                          ? t("chat.uxJourney.scorecard.coverage.reached")
+                                          : t("chat.uxJourney.scorecard.coverage.notReached")}
+                                      </Typography>
+                                      {coverage.gap ? (
+                                        <Typography variant="caption" sx={{ display: "block", color: "text.secondary" }}>
+                                          {coverage.gap}
+                                        </Typography>
+                                      ) : null}
+                                    </Box>
+                                  </Box>
+                                ) : null}
+
+                                {/* Per-category bars */}
+                                {categoryRows.length > 0 ? (
+                                  <Box sx={{ mb: 1 }}>
+                                    <Typography
+                                      variant="caption"
+                                      sx={{ ...uxJourneyStepLabelSx, color: "text.secondary", display: "block", mb: 0.5 }}
+                                    >
+                                      {t("chat.uxJourney.scorecard.perCategory")}
+                                    </Typography>
+                                    <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+                                      {categoryRows.map(({ cat, agg }) => {
+                                        const positives = agg!.positives ?? 0;
+                                        const negatives = agg!.negatives ?? 0;
+                                        const flags = agg!.flags ?? 0;
+                                        const total = Math.max(1, positives + negatives);
+                                        const negPct = (negatives / total) * 100;
+                                        const posPct = (positives / total) * 100;
+                                        const greenC = theme.palette.success?.main || "#16a34a";
+                                        const redC = theme.palette.error?.main || "#dc2626";
+                                        return (
+                                          <Box
+                                            key={cat}
+                                            sx={{ display: "flex", alignItems: "center", gap: 0.75 }}
+                                          >
+                                            <Box
+                                              sx={{
+                                                display: "inline-flex",
+                                                alignItems: "center",
+                                                gap: 0.4,
+                                                minWidth: 110,
+                                                fontSize: "0.7rem",
+                                                fontFamily: MSQDX_TYPOGRAPHY.fontFamily.mono,
+                                                color: "text.secondary",
+                                              }}
+                                            >
+                                              <MsqdxIcon name={UX_OBSERVATION_CATEGORY_ICON[cat]} customSize={12} />
+                                              <span>{t(`chat.uxJourney.observations.category.${cat}`)}</span>
+                                            </Box>
+                                            <Box
+                                              sx={{
+                                                position: "relative",
+                                                flex: 1,
+                                                height: 8,
+                                                borderRadius: 999,
+                                                backgroundColor: alpha(theme.palette.divider, 0.35),
+                                                overflow: "hidden",
+                                                display: "flex",
+                                              }}
+                                            >
+                                              <Box
+                                                sx={{
+                                                  width: `${negPct}%`,
+                                                  backgroundColor: redC,
+                                                }}
+                                              />
+                                              <Box
+                                                sx={{
+                                                  width: `${posPct}%`,
+                                                  backgroundColor: greenC,
+                                                }}
+                                              />
+                                            </Box>
+                                            <Box sx={{ minWidth: 30, textAlign: "right" }}>
+                                              <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                                                {flags}
+                                              </Typography>
+                                            </Box>
+                                          </Box>
+                                        );
+                                      })}
+                                    </Box>
+                                  </Box>
+                                ) : null}
+
+                                {/* Strengths */}
+                                {strengths.length > 0 ? (
+                                  <Accordion
+                                    disableGutters
+                                    elevation={0}
+                                    sx={{
+                                      bgcolor: "transparent",
+                                      "&:before": { display: "none" },
+                                    }}
+                                  >
+                                    <AccordionSummary
+                                      expandIcon={<MsqdxIcon name="expand_more" customSize={16} />}
+                                      sx={{ px: 0, minHeight: 32, "& .MuiAccordionSummary-content": { my: 0 } }}
+                                    >
+                                      <Typography variant="caption" sx={uxJourneyStepLabelSx}>
+                                        {t("chat.uxJourney.scorecard.strengths")} ({strengths.length})
+                                      </Typography>
+                                    </AccordionSummary>
+                                    <AccordionDetails sx={{ px: 0, pt: 0 }}>
+                                      <Stack spacing={0.5}>
+                                        {strengths.map((s, i) => (
+                                          <Box
+                                            key={`s-${i}`}
+                                            sx={{
+                                              p: 0.75,
+                                              borderRadius: 1,
+                                              borderLeft: `3px solid ${theme.palette.success?.main || "#16a34a"}`,
+                                              backgroundColor: alpha(theme.palette.success?.main || "#16a34a", 0.08),
+                                            }}
+                                          >
+                                            <Typography variant="caption" sx={{ display: "block", fontWeight: 600 }}>
+                                              {s.category ? t(`chat.uxJourney.observations.category.${s.category}`) : ""}
+                                              {typeof s.step === "number" ? ` · ${t("chat.uxJourney.scorecard.atStep", { step: s.step })}` : ""}
+                                            </Typography>
+                                            {s.quote ? (
+                                              <Typography variant="caption" sx={{ display: "block" }}>
+                                                {s.quote}
+                                              </Typography>
+                                            ) : null}
+                                          </Box>
+                                        ))}
+                                      </Stack>
+                                    </AccordionDetails>
+                                  </Accordion>
+                                ) : null}
+
+                                {/* Weaknesses */}
+                                {weaknesses.length > 0 ? (
+                                  <Accordion
+                                    disableGutters
+                                    elevation={0}
+                                    sx={{
+                                      bgcolor: "transparent",
+                                      "&:before": { display: "none" },
+                                    }}
+                                  >
+                                    <AccordionSummary
+                                      expandIcon={<MsqdxIcon name="expand_more" customSize={16} />}
+                                      sx={{ px: 0, minHeight: 32, "& .MuiAccordionSummary-content": { my: 0 } }}
+                                    >
+                                      <Typography variant="caption" sx={uxJourneyStepLabelSx}>
+                                        {t("chat.uxJourney.scorecard.weaknesses")} ({weaknesses.length})
+                                      </Typography>
+                                    </AccordionSummary>
+                                    <AccordionDetails sx={{ px: 0, pt: 0 }}>
+                                      <Stack spacing={0.5}>
+                                        {weaknesses.map((w, i) => (
+                                          <Box
+                                            key={`w-${i}`}
+                                            sx={{
+                                              p: 0.75,
+                                              borderRadius: 1,
+                                              borderLeft: `3px solid ${theme.palette.error?.main || "#dc2626"}`,
+                                              backgroundColor: alpha(theme.palette.error?.main || "#dc2626", 0.08),
+                                            }}
+                                          >
+                                            <Typography variant="caption" sx={{ display: "block", fontWeight: 600 }}>
+                                              {w.category ? t(`chat.uxJourney.observations.category.${w.category}`) : ""}
+                                              {typeof w.step === "number" ? ` · ${t("chat.uxJourney.scorecard.atStep", { step: w.step })}` : ""}
+                                            </Typography>
+                                            {w.quote ? (
+                                              <Typography variant="caption" sx={{ display: "block" }}>
+                                                {w.quote}
+                                              </Typography>
+                                            ) : null}
+                                            {w.fix ? (
+                                              <Typography
+                                                variant="caption"
+                                                sx={{ display: "block", mt: 0.25, color: "text.secondary", fontStyle: "italic" }}
+                                              >
+                                                {t("chat.uxJourney.observations.fixPrefix")} {w.fix}
+                                              </Typography>
+                                            ) : null}
+                                          </Box>
+                                        ))}
+                                      </Stack>
+                                    </AccordionDetails>
+                                  </Accordion>
+                                ) : null}
+
+                                {/* Quotes */}
+                                {quotes.length > 0 ? (
+                                  <Accordion
+                                    disableGutters
+                                    elevation={0}
+                                    sx={{
+                                      bgcolor: "transparent",
+                                      "&:before": { display: "none" },
+                                    }}
+                                  >
+                                    <AccordionSummary
+                                      expandIcon={<MsqdxIcon name="expand_more" customSize={16} />}
+                                      sx={{ px: 0, minHeight: 32, "& .MuiAccordionSummary-content": { my: 0 } }}
+                                    >
+                                      <Typography variant="caption" sx={uxJourneyStepLabelSx}>
+                                        {t("chat.uxJourney.scorecard.quotes")} ({quotes.length})
+                                      </Typography>
+                                    </AccordionSummary>
+                                    <AccordionDetails sx={{ px: 0, pt: 0 }}>
+                                      <Stack spacing={0.5}>
+                                        {quotes.map((q, i) => (
+                                          <Box
+                                            key={`q-${i}`}
+                                            sx={{
+                                              p: 0.75,
+                                              borderRadius: 1,
+                                              borderLeft: `3px solid ${alpha(theme.palette.divider, 0.7)}`,
+                                              backgroundColor: alpha(theme.palette.background.paper, 0.4),
+                                            }}
+                                          >
+                                            {typeof q.step === "number" ? (
+                                              <Typography variant="caption" sx={{ display: "block", fontWeight: 600, color: "text.secondary" }}>
+                                                {t("chat.uxJourney.scorecard.atStep", { step: q.step })}
+                                              </Typography>
+                                            ) : null}
+                                            {q.text ? (
+                                              <Typography variant="caption" sx={{ display: "block", fontStyle: "italic" }}>
+                                                {`„${q.text}“`}
+                                              </Typography>
+                                            ) : null}
+                                          </Box>
+                                        ))}
+                                      </Stack>
+                                    </AccordionDetails>
+                                  </Accordion>
+                                ) : null}
+                              </Box>
+                            );
+                          })()
+                        : null}
 
                       {/* Screen recording: optional opt-in after the run (no live MJPEG during running). */}
                       {(message.uxJourney.status === "complete" || message.uxJourney.status === "error") &&

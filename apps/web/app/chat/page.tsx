@@ -108,6 +108,62 @@ type Moodboard = {
   tiles: MoodboardTile[];
 };
 
+type UxJourneyObservationCategory =
+  | "layout"
+  | "visual"
+  | "typography"
+  | "copy"
+  | "affordance"
+  | "navigation"
+  | "info_density"
+  | "trust"
+  | "performance"
+  | "persona_fit";
+
+type UxJourneyObservation = {
+  category: UxJourneyObservationCategory;
+  polarity: -2 | -1 | 1 | 2;
+  severity: "low" | "medium" | "high";
+  note: string;
+  fix?: string;
+};
+
+type UxJourneyScorecard = {
+  perCategory?: Partial<
+    Record<
+      UxJourneyObservationCategory,
+      {
+        flags?: number;
+        weighted?: number;
+        avgPolarity?: number;
+        positives?: number;
+        negatives?: number;
+      }
+    >
+  >;
+  topStrengths?: Array<{
+    category?: UxJourneyObservationCategory;
+    polarity?: number;
+    severity?: "low" | "medium" | "high";
+    quote?: string | null;
+    fix?: string | null;
+    step?: number;
+  }>;
+  topWeaknesses?: Array<{
+    category?: UxJourneyObservationCategory;
+    polarity?: number;
+    severity?: "low" | "medium" | "high";
+    quote?: string | null;
+    fix?: string | null;
+    step?: number;
+  }>;
+  quotes?: Array<{ step?: number; text?: string }>;
+  frictionScore?: number | null;
+  personaFitScore?: number | null;
+  coverage?: { goalReached?: boolean | null; gap?: string | null } | null;
+  totalObservations?: number;
+};
+
 type UxJourneyStep = {
   step?: number;
   action?: string;
@@ -120,6 +176,7 @@ type UxJourneyStep = {
     memory?: string | null;
     next_goal?: string | null;
   } | null;
+  observations?: UxJourneyObservation[];
   result?: string | null;
   timestamp?: string;
 };
@@ -133,6 +190,7 @@ type UxJourneyPayload = {
   stepsTotal?: number;
   steps?: UxJourneyStep[];
   lastProgressAt?: number;
+  scorecard?: UxJourneyScorecard;
   pendingDecision?: {
     callId: string;
     promptText?: string | null;
@@ -330,6 +388,7 @@ function ChatSharePageContent() {
                   success?: boolean | null;
                   steps?: UxJourneyStep[];
                   videoUrl?: string;
+                  scorecard?: UxJourneyScorecard;
                 };
               };
               if (cancelled) return;
@@ -359,6 +418,10 @@ function ChatSharePageContent() {
                     stepsTotal: Array.isArray(result.steps)
                       ? result.steps.length
                       : undefined,
+                    scorecard:
+                      result.scorecard && typeof result.scorecard === "object"
+                        ? (result.scorecard as UxJourneyScorecard)
+                        : undefined,
                   }),
                 );
               } else if (Array.isArray(result.steps) && result.steps.length > 0) {
@@ -941,6 +1004,7 @@ function ChatSharePageContent() {
               stepsTotal?: number;
               success?: boolean | null;
               videoUrl?: string | null;
+              scorecard?: UxJourneyScorecard;
             };
             if (parsed.type === "delta" && parsed.delta) {
               enqueueDelta(personaMsgId, parsed.delta);
@@ -1034,6 +1098,10 @@ function ChatSharePageContent() {
                     ? API_ROUTES.uxJourneyAgentVideo(jobId)
                     : undefined,
                   error: errMsg,
+                  scorecard:
+                    parsed.scorecard && typeof parsed.scorecard === "object"
+                      ? parsed.scorecard
+                      : undefined,
                 }),
               );
             } else if (parsed.type === "error") {
