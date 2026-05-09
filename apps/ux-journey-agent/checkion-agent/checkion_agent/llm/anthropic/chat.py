@@ -19,7 +19,11 @@ from anthropic.types.tool_choice_tool_param import ToolChoiceToolParam
 from httpx import Timeout
 from pydantic import BaseModel
 
-from checkion_agent.agent._tolerant_parsing import parse_json_with_recovery, tolerant_parsing_enabled
+from checkion_agent.agent._tolerant_parsing import (
+	coerce_action_field,
+	parse_json_with_recovery,
+	tolerant_parsing_enabled,
+)
 from checkion_agent.llm.anthropic.serializer import AnthropicMessageSerializer
 from checkion_agent.llm.base import BaseChatModel
 from checkion_agent.llm.exceptions import ModelProviderError, ModelRateLimitError
@@ -216,7 +220,11 @@ class ChatAnthropic(BaseChatModel):
 				# Extract the tool use block
 				for content_block in response.content:
 					if hasattr(content_block, 'type') and content_block.type == 'tool_use':
-						# Parse the tool input as the structured output
+						# Parse the tool input as the structured output. The
+						# AgentOutput model_validator(mode='before') (CHECKION
+						# patch) already coerces ``action`` from str/dict to
+						# list when ``content_block.input`` is a dict — so the
+						# happy path here is *one* model_validate call.
 						try:
 							return ChatInvokeCompletion(
 								completion=output_format.model_validate(content_block.input),
@@ -224,29 +232,41 @@ class ChatAnthropic(BaseChatModel):
 								stop_reason=response.stop_reason,
 							)
 						except Exception as e:
-							# If validation fails, try to fix common model output issues
+							# Recovery path: if the AgentOutput validator
+							# couldn't coerce (e.g. action is a JSON-string
+							# whose inner JSON has raw control chars in a
+							# multi-line markdown text), normalise the dict
+							# *here* with the same lenient helper, then retry
+							# the validate. We keep the upstream behaviour for
+							# str / non-dict inputs as a fallback.
 							_input = content_block.input
 							if isinstance(_input, str):
 								# CHECKION-fork patch: tolerate trailing characters /
 								# markdown preamble when the model emits the tool
 								# input as a raw JSON string. parse_json_with_recovery
-								# extracts the first balanced object; falls through
-								# to plain json.loads if the patch is disabled.
+								# extracts the first balanced object and parses it
+								# with the lenient strategy stack.
 								if tolerant_parsing_enabled():
 									recovered = parse_json_with_recovery(_input)
 									_input = recovered if recovered is not None else json.loads(_input)
 								else:
 									_input = json.loads(_input)
 							elif isinstance(_input, dict):
-								# Model sometimes double-serializes fields
-								for key, value in _input.items():
-									if isinstance(value, str) and value.startswith(('[', '{')):
-										try:
-											_input[key] = json.loads(value)
-										except json.JSONDecodeError:
-											cleaned = value.replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
+								# Run our centralised coerce. Handles
+								#   - action as JSON-encoded string (list / dict)
+								#   - action as a single dict (wrap into list)
+								#   - inner JSON with raw \n / \r / \t / control chars
+								if tolerant_parsing_enabled():
+									_input = coerce_action_field(dict(_input))
+								else:
+									# Strict path: only do the upstream-compat
+									# best-effort double-deserialise of every
+									# str-valued field that smells like JSON.
+									_input = dict(_input)
+									for key, value in _input.items():
+										if isinstance(value, str) and value.startswith(('[', '{')):
 											try:
-												_input[key] = json.loads(cleaned)
+												_input[key] = json.loads(value)
 											except json.JSONDecodeError:
 												pass
 							else:

@@ -115,6 +115,24 @@ class CoerceActionFieldTests(unittest.TestCase):
 		out = coerce_action_field({'action': 'this is not json at all'})
 		self.assertEqual(out['action'], 'this is not json at all')
 
+	def test_action_with_raw_newlines_in_text(self):
+		# Real production failure: the model emits a multi-line markdown text
+		# inside ``done.text`` *without* escaping the literal newlines. Strict
+		# json.loads rejects this; the lenient pass (control-char escape) must
+		# recover it. This is the exact shape that produced the
+		# `ModelProviderError: Input should be a valid list ... input_type=str`
+		# in the field logs even though the agent had clearly produced a
+		# structurally correct list-of-actions.
+		raw = '[{"done": {"text": "**Antrag**\nWir haben einen Antrag.\n", "success": true}}]'
+		out = coerce_action_field({'action': raw})
+		self.assertEqual(out['action'][0]['done']['success'], True)
+		self.assertIn('\n', out['action'][0]['done']['text'])
+
+	def test_action_with_raw_tabs_and_carriage_returns(self):
+		raw = '[{"done": {"text": "row1\trow2\r\nrow3", "success": true}}]'
+		out = coerce_action_field({'action': raw})
+		self.assertEqual(out['action'][0]['done']['text'], 'row1\trow2\r\nrow3')
+
 	def test_other_fields_preserved(self):
 		out = coerce_action_field(
 			{
@@ -158,6 +176,16 @@ class ParseJsonWithRecoveryTests(unittest.TestCase):
 	def test_array_top_level_returns_none(self):
 		# We only recover top-level *objects* (AgentOutput is a dict).
 		self.assertIsNone(parse_json_with_recovery('[1, 2, 3]'))
+
+	def test_object_with_raw_newlines_in_string_value(self):
+		# Same shape as the production error but at the *outer* JSON: the
+		# model emitted the AgentOutput as JSON with a multi-line memory /
+		# next_goal field. Lenient strategy must recover.
+		s = '{"memory": "line1\nline2\nline3", "action": []}'
+		out = parse_json_with_recovery(s)
+		self.assertIsNotNone(out)
+		assert out is not None  # narrow for type checkers
+		self.assertIn('\n', out['memory'])
 
 
 class IntegrationWithAgentOutputTests(unittest.TestCase):

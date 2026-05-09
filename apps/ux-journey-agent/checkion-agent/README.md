@@ -116,6 +116,23 @@ See [`CHANGELOG.md`](./CHANGELOG.md) for the full per-version diff.
     so the LLM schema never exposes that action — UX audits stay on the
     operator-supplied origin only.
 
+- **`0.12.6+checkion.7` — lenient JSON parsing for action-strings with
+  raw control chars:**
+  - Fixes runs halting at ``ModelProviderError: 1 validation error for
+    AgentOutput / action / Input should be a valid list ...
+    input_type=str`` when the model emits a structurally correct
+    ``action`` JSON list/dict whose string values contain raw ``\n`` /
+    ``\r`` / ``\t`` (typical for multi-line markdown inside ``done.text``).
+  - ``coerce_action_field`` and ``parse_json_with_recovery`` now use a
+    three-pass loader: strict ``json.loads`` → escape-control-chars →
+    ``json.loads(strict=False)``.
+  - Anthropic and OpenAI provider modules route their recovery branches
+    through the same coerce helper so the lenient stack runs whether
+    the AgentOutput model_validator caught the case first or not.
+  - WARNING-level log when coercion bails so the operator sees *why* the
+    upstream ``list_type`` error survived. Kill-switch unchanged
+    (``CHECKION_AGENT_TOLERANT_PARSING=0``).
+
 - **Phase 4 (`0.12.6+checkion.4`):** First-class step pacing & screenshot
   hook.
   - `Agent.__init__` accepts `step_pacing_seconds: float = 0.0` and

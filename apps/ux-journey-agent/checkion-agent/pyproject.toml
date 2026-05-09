@@ -5,7 +5,7 @@ authors = [
     { name = "CHECKION" },
     { name = "Gregor Zunic" },
 ]
-version = "0.12.6+checkion.6"
+version = "0.12.6+checkion.7"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.11,<4.0"

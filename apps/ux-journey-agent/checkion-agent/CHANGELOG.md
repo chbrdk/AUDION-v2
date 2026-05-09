@@ -8,6 +8,68 @@ rebased cleanly.
 The version numbers follow the pattern `<upstream>+checkion.<patch>` (e.g.
 `0.12.6+checkion.1`). Bumping the upstream baseline resets the patch counter.
 
+## `0.12.6+checkion.7` (Lenient JSON parsing for action-string with raw control chars)
+
+**Upstream baseline:** `browser-use==0.12.6` (commit
+`329c67f069427e928ff81ad52415efdca7692007`).
+
+**Goal:** Stop losing journey runs to ``ModelProviderError: 1 validation
+error for AgentOutput / action / Input should be a valid list ...
+input_type=str`` when the model's ``action`` payload is structurally a
+JSON list/dict but contains *raw* ``\n`` / ``\r`` / ``\t`` (or other
+control chars) inside string values. The most common trigger is a
+multi-line markdown body inside ``done.text`` — strict ``json.loads``
+rejects it even though the intent is unambiguous, both primary and
+fallback hit the same parse path, and the run halts at
+``Result failed N/M times``.
+
+### Added
+
+- **`checkion_agent.agent._tolerant_parsing._lenient_json_loads(text)`** —
+  three-pass JSON loader: strict ``json.loads`` → ``json.loads`` after
+  escaping ``\n`` / ``\r`` / ``\t`` → ``json.loads(strict=False)``. Used
+  by both ``coerce_action_field`` (the action-as-JSON-string recovery) and
+  ``parse_json_with_recovery`` (the OpenAI / generic recovery branch).
+- WARNING-level logging when ``coerce_action_field`` *attempts but fails*
+  to coerce an ``action`` string. Previously the bail was silent at debug
+  level, leaving operators staring at the upstream ``list_type`` error
+  with no clue why the patch didn't kick in.
+
+### Changed
+
+- **`coerce_action_field`** now uses ``_lenient_json_loads`` for both the
+  list-string and dict-string branches. Coverage matrix grew from 3 to 4
+  failure modes (added: structural list/dict with raw control chars).
+- **`checkion_agent.llm.anthropic.chat`** recovery path: when the first
+  ``output_format.model_validate(content_block.input)`` fails and
+  ``content_block.input`` is a *dict*, route through
+  ``coerce_action_field`` instead of the ad-hoc per-key
+  double-deserialise loop. Unifies the two recovery code-paths so the
+  same lenient strategy stack runs whether the AgentOutput
+  ``model_validator(mode='before')`` already covered the case or not.
+- **`checkion_agent.llm.openai.chat`** recovery path: after
+  ``parse_json_with_recovery`` produces a dict, explicitly run
+  ``coerce_action_field`` before ``output_format.model_validate``. Closes
+  the gap where the outer object parses cleanly but ``recovered['action']``
+  is a JSON-string with control chars (the dict path bypassed the
+  AgentOutput validator's coercion when the validator was inherited via
+  ``create_model`` and the dynamic action-list type was the trigger for
+  the original failure).
+
+### Tests
+
+- ``tests/test_tolerant_parsing.py``: added
+  ``test_action_with_raw_newlines_in_text``,
+  ``test_action_with_raw_tabs_and_carriage_returns``, and
+  ``test_object_with_raw_newlines_in_string_value`` — these are the
+  reproduction shapes from the field log.
+
+### How to restore upstream behaviour
+
+Set ``CHECKION_AGENT_TOLERANT_PARSING=0`` (existing kill-switch).
+Disables every coercion path including the new lenient JSON loader,
+forcing the same strict ``json.loads`` browser-use 0.12.6 ships.
+
 ## `0.12.6+checkion.6` (Disable external web search by default)
 
 **Upstream baseline:** `browser-use==0.12.6` (commit
