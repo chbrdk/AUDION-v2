@@ -928,6 +928,11 @@ def _steps_sidecar_path(job_id: str) -> Path:
     return VIDEO_BASE_DIR / f"{job_id}.steps.json"
 
 
+def _scorecard_sidecar_path(job_id: str) -> Path:
+    """JSON snapshot of the journey scorecard so ``GET /run/{jobId}`` can restore it after a process restart."""
+    return VIDEO_BASE_DIR / f"{job_id}.scorecard.json"
+
+
 def _annotate_steps_with_video_offsets(job_id: str, steps: list[dict[str, Any]]) -> None:
     """Attach ``videoOffsetSec`` for UX finalize timing.
 
@@ -1622,6 +1627,49 @@ def _load_steps_sidecar(job_id: str) -> list[dict[str, Any]] | None:
         return steps if isinstance(steps, list) else None
     except Exception:
         return None
+
+
+def _persist_scorecard_sidecar(job_id: str, scorecard: dict[str, Any]) -> None:
+    """Persist scorecard next to steps so cold ``GET /run/{jobId}`` after restart still returns KPIs + per-category ratings."""
+    try:
+        VIDEO_BASE_DIR.mkdir(parents=True, exist_ok=True)
+        payload = {"jobId": job_id, "scorecard": scorecard}
+        _scorecard_sidecar_path(job_id).write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+    except Exception:
+        pass
+
+
+def _load_scorecard_sidecar(job_id: str) -> dict[str, Any] | None:
+    p = _scorecard_sidecar_path(job_id)
+    try:
+        raw = json.loads(p.read_text(encoding="utf-8"))
+        sc = raw.get("scorecard")
+        return sc if isinstance(sc, dict) else None
+    except Exception:
+        return None
+
+
+def _cold_recover_run_response(job_id: str) -> dict[str, Any] | None:
+    """Rebuild a minimal ``GET /run/{jobId}`` payload from disk when the in-memory job store was cleared (restart / new replica).
+
+    Returns ``None`` if neither steps nor scorecard sidecars exist — genuine unknown jobs still 404.
+    """
+    steps = _load_steps_sidecar(job_id)
+    scorecard = _load_scorecard_sidecar(job_id)
+    if steps is None and scorecard is None:
+        return None
+    result: dict[str, Any] = {"jobId": job_id, "steps": steps if steps is not None else []}
+    if scorecard is not None:
+        result["scorecard"] = scorecard
+    return {
+        "status": "complete",
+        "jobId": job_id,
+        "result": result,
+        "coldRecovered": True,
+    }
 
 
 def _video_lower_third_body(step: dict[str, Any]) -> str:
@@ -3135,6 +3183,11 @@ async def run_agent(
                     _persist_steps_sidecar(job_id, result["steps"])
                 except Exception:
                     pass
+                if isinstance(result.get("scorecard"), dict):
+                    try:
+                        _persist_scorecard_sidecar(job_id, result["scorecard"])
+                    except Exception:
+                        pass
 
         _recording_mono.pop(job_id, None)
         _step_first_seen_mono.pop(job_id, None)
@@ -4794,25 +4847,31 @@ async def _safe_await(task: Any) -> None:
 async def get_run(job_id: str) -> dict[str, Any]:
     async with _jobs_lock:
         job = _jobs.get(job_id)
-    if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+    if job:
+        out: dict[str, Any] = {
+            "status": job.status,
+            "jobId": job_id,
+        }
+        if job.result:
+            merged = dict(job.result)
+            # After restart the in-memory ``result`` is gone, but when the job is still
+            # alive we occasionally see partial payloads; scorecard sidecar back-fills
+            # if the merge-with-prev-steps path dropped it.
+            if not merged.get("scorecard"):
+                disk_sc = _load_scorecard_sidecar(job_id)
+                if disk_sc is not None:
+                    merged["scorecard"] = disk_sc
+            out["result"] = merged
+        if job.error:
+            out["error"] = job.error
+        if job.last_observed_at is not None:
+            out["lastObservedAt"] = job.last_observed_at
+        return out
 
-    out: dict[str, Any] = {
-        "status": job.status,
-        "jobId": job_id,
-    }
-    if job.result:
-        out["result"] = job.result
-    if job.error:
-        out["error"] = job.error
-    # Heartbeat: any caller polling this endpoint can use ``lastObservedAt``
-    # as a liveness signal that ticks faster than ``status`` transitions.
-    # Specifically chat-api's stagnation watchdog reads it to avoid cancelling
-    # a run that is mid-LLM-call within a single multi-action step (the
-    # step-count granular signal would falsely look stalled for 60-120s).
-    if job.last_observed_at is not None:
-        out["lastObservedAt"] = job.last_observed_at
-    return out
+    cold = _cold_recover_run_response(job_id)
+    if cold is not None:
+        return cold
+    raise HTTPException(status_code=404, detail="Job not found")
 
 
 @app.get("/run/{job_id}/step/{step_no}/screenshot")

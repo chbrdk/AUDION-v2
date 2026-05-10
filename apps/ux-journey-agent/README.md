@@ -127,6 +127,10 @@ The end-of-run LLM call covers two responsibilities at once: the holistic KPIs (
 - The chat panel (`msqdx-glass-chat-panel.tsx`) renders observation chips per step (icon + category + polarity + severity dots, click toggles inline note/fix) and a scorecard block between the persona reply and the video.
 - The scorecard shows a **per-category −5…+5 scale**: every dimension renders as a row with a coloured score dot positioned on a red→neutral→green track. The displayed score is `clamp(weighted, -5, +5)` where `weighted = sum(polarity * severityWeight) / count`; categories the persona did not flag are still shown but dimmed and labelled "—" so the absence of signal is visible. KPI tiles (Friction / Persona-Fit, both 0–10) and a coverage row sit above the per-category list, with strengths/weaknesses/quotes in collapsible accordions below.
 
+### Sidecars on disk (`UX_JOURNEY_VIDEO_DIR`)
+
+At run end the agent writes **`{jobId}.steps.json`** (steps + offsets for finalize) and, when a scorecard was produced, **`{jobId}.scorecard.json`**. After a process restart the in-memory `_jobs` map is empty, but **`GET /run/{jobId}`** can still return `status: complete` and a rebuilt `result` (steps + scorecard) when either sidecar exists — response includes **`coldRecovered: true`**. Unknown jobs with no sidecars still **404**.
+
 ## Video finalize: real motion vs. still fallbacks
 
 The polished MP4 is **not** a slideshow of step screenshots. With **`UX_JOURNEY_VIDEO_DYNAMIC_PACING=1`** (default), finalize does **step-by-step work on the real Playwright screen recording** (`{jobId}.raw.*`):

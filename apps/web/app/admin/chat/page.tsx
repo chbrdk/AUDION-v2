@@ -729,6 +729,10 @@ function AdminChatPageContent() {
         if (st === "complete" || hasFinalResult) {
           setUxJourneyStatus("complete");
           const steps = Array.isArray(data?.result?.steps) ? data.result.steps : [];
+          const scorecard =
+            data?.result?.scorecard && typeof data.result.scorecard === "object"
+              ? data.result.scorecard
+              : undefined;
           const videoUrl = API_ROUTES.uxJourneyAgentVideo(uxJourneyJobId);
           const statusUrl = API_ROUTES.uxJourneyAgentStatus(uxJourneyJobId);
           const personaPolicy = data?.result?.personaPolicy;
@@ -745,6 +749,7 @@ function AdminChatPageContent() {
                 stepsTotal: steps.length,
                 steps: steps.slice(0, 20),
                 personaPolicy,
+                scorecard,
                 error: null,
               },
             },
@@ -767,6 +772,7 @@ function AdminChatPageContent() {
                     stepsPreview: steps.slice(0, 20),
                     videoUrl,
                     statusUrl,
+                    ...(scorecard ? { scorecard } : {}),
                   },
                 }),
               });
