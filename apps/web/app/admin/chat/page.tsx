@@ -258,6 +258,17 @@ type Message = {
       submitting?: boolean;
     };
     error?: string | null;
+    /**
+     * Persona/task/site captured when the run was started, so the polling
+     * fallback and the SSE tool-completed handler can persist a row to the
+     * persona-admin UX-journey history even when the user has since switched
+     * personas or reloaded the chat.
+     */
+    personaId?: string;
+    task?: string;
+    siteUrl?: string;
+    /** True after the run has been recorded in `persona_ux_journey_runs`. */
+    historyPersisted?: boolean;
   };
 };
 
@@ -427,6 +438,52 @@ function AdminChatPageContent() {
   // effect read the live state without re-binding when messages change.
   const messagesRef = useRef<Message[]>([]);
   messagesRef.current = messages;
+  // Mirror of `activePersonaId` — used as a fallback target persona when a
+  // UX-journey message itself does not carry one (e.g. legacy in-flight
+  // bubbles from older builds).
+  const activePersonaIdRef = useRef<string | undefined>(activePersonaId);
+  activePersonaIdRef.current = activePersonaId;
+
+  /**
+   * Persist a UX-journey agent run as a `persona_ux_journey_runs` row so it
+   * shows up on the persona admin "UX journey history" timeline. Safe to call
+   * multiple times — the API upserts on `(persona_id, job_id)`.
+   */
+  const persistPersonaUxJourneyRun = useCallback(
+    async (input: {
+      personaId?: string | null;
+      jobId: string;
+      task?: string | null;
+      siteUrl?: string | null;
+      success?: boolean | null;
+      stepsCount?: number | null;
+      scorecard?: Record<string, unknown> | null;
+    }): Promise<boolean> => {
+      const personaId = input.personaId || activePersonaIdRef.current || "";
+      if (!personaId || !input.jobId) return false;
+      try {
+        const body: Record<string, unknown> = { jobId: input.jobId };
+        if (typeof input.task === "string" && input.task.trim()) body.task = input.task.trim();
+        if (typeof input.siteUrl === "string" && input.siteUrl.trim()) body.siteUrl = input.siteUrl.trim();
+        if (input.success === true || input.success === false) body.success = input.success;
+        if (typeof input.stepsCount === "number") body.stepsCount = input.stepsCount;
+        if (input.scorecard && typeof input.scorecard === "object") body.scorecard = input.scorecard;
+        const res = await fetch(
+          buildApiUrl(`/api/persona-admin/${encodeURIComponent(personaId)}/ux-journey-runs`),
+          {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          },
+        );
+        return res.ok;
+      } catch {
+        return false;
+      }
+    },
+    [],
+  );
   const personaMenuOpen = Boolean(personaMenuAnchor);
   const previousInputRef = useRef("");
   const speechSessionActiveRef = useRef(false);
@@ -491,6 +548,13 @@ function AdminChatPageContent() {
                 success === true ||
                 success === false;
               if (isTerminal) {
+                const finalSteps = Array.isArray(result.steps)
+                  ? result.steps
+                  : m.uxJourney?.steps ?? [];
+                const finalScorecard =
+                  result.scorecard && typeof result.scorecard === "object"
+                    ? (result.scorecard as Record<string, unknown>)
+                    : (m.uxJourney?.scorecard as Record<string, unknown> | undefined) ?? null;
                 setMessages((prev) =>
                   prev.map((msg) =>
                     msg.id === m.id
@@ -513,15 +577,40 @@ function AdminChatPageContent() {
                             stepsTotal: Array.isArray(result.steps)
                               ? result.steps.length
                               : msg.uxJourney?.stepsTotal,
-                            scorecard:
-                              result.scorecard && typeof result.scorecard === "object"
-                                ? result.scorecard
-                                : msg.uxJourney?.scorecard,
+                            scorecard: finalScorecard ?? msg.uxJourney?.scorecard,
+                            historyPersisted: msg.uxJourney?.historyPersisted,
                           },
                         }
                       : msg,
                   ),
                 );
+                if (!m.uxJourney?.historyPersisted) {
+                  const ok = await persistPersonaUxJourneyRun({
+                    personaId: m.uxJourney?.personaId,
+                    jobId,
+                    task: m.uxJourney?.task ?? null,
+                    siteUrl: m.uxJourney?.siteUrl ?? m.uxJourney?.url ?? null,
+                    success:
+                      success === true ? true : success === false || !!errStr ? false : null,
+                    stepsCount: Array.isArray(finalSteps) ? finalSteps.length : null,
+                    scorecard: finalScorecard,
+                  });
+                  if (ok) {
+                    setMessages((prev) =>
+                      prev.map((msg) =>
+                        msg.id === m.id
+                          ? {
+                              ...msg,
+                              uxJourney: {
+                                ...(msg.uxJourney ?? { jobId }),
+                                historyPersisted: true,
+                              },
+                            }
+                          : msg,
+                      ),
+                    );
+                  }
+                }
               } else if (Array.isArray(result.steps) && result.steps.length > 0) {
                 const fresh = result.steps;
                 setMessages((prev) =>
@@ -557,7 +646,7 @@ function AdminChatPageContent() {
       cancelled = true;
       clearTimeout(startTimer);
     };
-  }, []);
+  }, [persistPersonaUxJourneyRun]);
 
   const {
     recording: whisperRecording,
@@ -656,6 +745,9 @@ function AdminChatPageContent() {
             liveUrl,
             stepsTotal: 0,
             steps: [],
+            personaId: activePersonaId,
+            task,
+            siteUrl: url,
           },
         },
       ]);
@@ -780,32 +872,34 @@ function AdminChatPageContent() {
           } catch {
             // never block UI
           }
-          try {
-            if (activePersonaId) {
-              await fetch(
-                buildApiUrl(`/api/persona-admin/${encodeURIComponent(activePersonaId)}/ux-journey-runs`),
-                {
-                  method: "POST",
-                  credentials: "include",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    jobId: uxJourneyJobId,
-                    task: uxJourneyTask.trim() || undefined,
-                    siteUrl: normalizeUxJourneyUrl(uxJourneyUrl) || undefined,
-                    success:
-                      data?.result?.success === true
-                        ? true
-                        : data?.result?.success === false
-                          ? false
-                          : undefined,
-                    stepsCount: steps.length,
-                    ...(scorecard ? { scorecard } : {}),
-                  }),
-                },
-              );
-            }
-          } catch {
-            // never block UI
+          await persistPersonaUxJourneyRun({
+            personaId: activePersonaId,
+            jobId: uxJourneyJobId,
+            task: uxJourneyTask.trim() || null,
+            siteUrl: normalizeUxJourneyUrl(uxJourneyUrl) || null,
+            success:
+              data?.result?.success === true
+                ? true
+                : data?.result?.success === false
+                  ? false
+                  : null,
+            stepsCount: steps.length,
+            scorecard: scorecard ?? null,
+          });
+          if (uxJourneyStartMessageId) {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === uxJourneyStartMessageId
+                  ? {
+                      ...m,
+                      uxJourney: {
+                        ...(m.uxJourney ?? { jobId: uxJourneyJobId }),
+                        historyPersisted: true,
+                      },
+                    }
+                  : m,
+              ),
+            );
           }
           return;
         }
@@ -835,6 +929,7 @@ function AdminChatPageContent() {
     uxJourneyTask,
     uxJourneyUrl,
     normalizeUxJourneyUrl,
+    persistPersonaUxJourneyRun,
   ]);
   const personaChipData = useMemo(
     () =>
@@ -1934,6 +2029,10 @@ function AdminChatPageContent() {
             // renders the existing live card (same shape as the manual dialog).
             const jobId: string = parsedData.jobId;
             const url: string | undefined = parsedData.url;
+            const taskFromTool =
+              typeof parsedData.task === "string" && parsedData.task.trim()
+                ? parsedData.task.trim()
+                : undefined;
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === personaMessageId
@@ -1950,6 +2049,13 @@ function AdminChatPageContent() {
                         // Decision actioned; clear the confirm CTA state.
                         pendingDecision: undefined,
                         lastProgressAt: Date.now(),
+                        personaId: m.uxJourney?.personaId ?? activePersonaIdRef.current,
+                        task:
+                          m.uxJourney?.task ??
+                          taskFromTool ??
+                          m.uxJourney?.pendingDecision?.task ??
+                          undefined,
+                        siteUrl: m.uxJourney?.siteUrl ?? url ?? undefined,
                       },
                     }
                   : m,
@@ -1999,28 +2105,67 @@ function AdminChatPageContent() {
             // error message.
             const finalStatus: "running" | "complete" | "error" =
               errStr || parsedData.success === false ? "error" : "complete";
+            const finalScorecard =
+              parsedData.scorecard && typeof parsedData.scorecard === "object"
+                ? (parsedData.scorecard as Record<string, unknown>)
+                : null;
+            const stepsCount =
+              typeof parsedData.stepsTotal === "number"
+                ? parsedData.stepsTotal
+                : Array.isArray(parsedData.steps)
+                  ? parsedData.steps.length
+                  : null;
+            let snapshot: Message["uxJourney"] | undefined;
             setMessages((prev) =>
-              prev.map((m) =>
-                m.id === personaMessageId
-                  ? {
-                      ...m,
-                      uxJourney: {
-                        ...(m.uxJourney ?? { jobId }),
-                        jobId,
-                        status: finalStatus,
-                        videoUrl: parsedData.videoUrl
-                          ? API_ROUTES.uxJourneyAgentVideo(jobId)
-                          : m.uxJourney?.videoUrl,
-                        error: typeof parsedData.error === "string" ? parsedData.error : null,
-                        scorecard:
-                          parsedData.scorecard && typeof parsedData.scorecard === "object"
-                            ? parsedData.scorecard
-                            : m.uxJourney?.scorecard,
-                      },
-                    }
-                  : m,
-              ),
+              prev.map((m) => {
+                if (m.id !== personaMessageId) return m;
+                snapshot = m.uxJourney;
+                return {
+                  ...m,
+                  uxJourney: {
+                    ...(m.uxJourney ?? { jobId }),
+                    jobId,
+                    status: finalStatus,
+                    videoUrl: parsedData.videoUrl
+                      ? API_ROUTES.uxJourneyAgentVideo(jobId)
+                      : m.uxJourney?.videoUrl,
+                    error: typeof parsedData.error === "string" ? parsedData.error : null,
+                    scorecard: finalScorecard ?? m.uxJourney?.scorecard,
+                  },
+                };
+              }),
             );
+            if (!snapshot?.historyPersisted) {
+              const ok = await persistPersonaUxJourneyRun({
+                personaId: snapshot?.personaId ?? activePersonaIdRef.current,
+                jobId,
+                task: snapshot?.task ?? null,
+                siteUrl: snapshot?.siteUrl ?? snapshot?.url ?? null,
+                success:
+                  parsedData.success === true
+                    ? true
+                    : parsedData.success === false || !!errStr
+                      ? false
+                      : null,
+                stepsCount,
+                scorecard: finalScorecard,
+              });
+              if (ok) {
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === personaMessageId
+                      ? {
+                          ...m,
+                          uxJourney: {
+                            ...(m.uxJourney ?? { jobId }),
+                            historyPersisted: true,
+                          },
+                        }
+                      : m,
+                  ),
+                );
+              }
+            }
           } else if (parsedData.type === "sources") {
             const normalizedSources = (parsedData.sources || []).map((source: any, index: number) => ({
               chunk_id: source.chunk_id ?? `chunk-${index}`,
