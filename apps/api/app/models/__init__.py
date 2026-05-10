@@ -354,6 +354,33 @@ class Persona(Base):
     audit_logs = relationship("PersonaAuditLog", back_populates="persona", cascade="all, delete-orphan")
     documents = relationship("Document", back_populates="persona")
     moodboards = relationship("PersonaMoodboard", back_populates="persona", cascade="all, delete-orphan")
+    ux_journey_runs = relationship(
+        "PersonaUxJourneyRun",
+        back_populates="persona",
+        cascade="all, delete-orphan",
+    )
+
+
+class PersonaUxJourneyRun(Base):
+    """Recorded browser UX-journey agent runs for a persona (timeline on persona admin)."""
+
+    __tablename__ = "persona_ux_journey_runs"
+    __table_args__ = (
+        UniqueConstraint("persona_id", "job_id", name="uq_persona_ux_journey_runs_persona_job"),
+        {"schema": "audion"},
+    )
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    persona_id = Column(UUID(as_uuid=True), ForeignKey("audion.personas.id", ondelete="CASCADE"), nullable=False)
+    job_id = Column(String(80), nullable=False)
+    task = Column(Text, nullable=True)
+    site_url = Column(Text, nullable=True)
+    success = Column(Boolean, nullable=True)
+    steps_count = Column(Integer, nullable=True)
+    scorecard = Column(JSONB, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    persona = relationship("Persona", back_populates="ux_journey_runs")
 
 
 class PersonaMoodboard(Base):

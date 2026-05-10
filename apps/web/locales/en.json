@@ -634,6 +634,13 @@
     "noTargetGroupDetailHint": "Assign a target group in the Metadata section to improve suggestions and alignment.",
     "ensureChatPromptTooltip": "Rebuilds the chat prompt from profile and metadata so conversations match this persona.",
     "thisPersona": "this persona",
+    "uxJourneyHistory": "UX journey history",
+    "uxJourneyHistoryEmpty": "No browser UX journeys recorded for this persona yet. Start one from the admin chat.",
+    "uxJourneyRunVideo": "Video",
+    "uxJourneyRunSteps": "{count} steps",
+    "uxJourneyRunJob": "Job",
+    "uxJourneyRunSuccess": "OK",
+    "uxJourneyRunFailed": "Fail",
     "statuses": {
       "draft": "Draft",
       "published": "Published",

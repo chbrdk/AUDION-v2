@@ -261,6 +261,28 @@ class MoodboardTilePatchRequest(BaseModel):
     locked: bool | None = None
 
 
+class PersonaUxJourneyRunItem(BaseModel):
+    """One persisted UX-journey agent run linked to a persona."""
+
+    id: str = Field(..., description="Row id (UUID).")
+    jobId: str = Field(..., description="UX-journey-agent job id.")
+    task: str | None = Field(default=None, description="Task text shown when the run was started.")
+    siteUrl: str | None = Field(default=None, description="Target site URL.")
+    success: bool | None = Field(default=None, description="Agent-reported success flag when completed.")
+    stepsCount: int | None = Field(default=None, description="Number of recorded steps.")
+    scorecard: Dict[str, Any] | None = Field(default=None, description="Aggregated scorecard JSON when available.")
+    createdAt: datetime = Field(..., description="When this row was first recorded (UTC).")
+
+
+class PersonaUxJourneyRunUpsert(BaseModel):
+    jobId: str = Field(..., min_length=1, description="UX-journey-agent job id.")
+    task: str | None = None
+    siteUrl: str | None = None
+    success: bool | None = None
+    stepsCount: int | None = None
+    scorecard: Dict[str, Any] | None = None
+
+
 class PersonaMetadata(BaseModel):
     personaId: str = Field(..., description="Unique persona identifier (UUID).")
     projectId: str = Field(..., description="Project identifier the persona belongs to.")

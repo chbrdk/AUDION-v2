@@ -780,6 +780,33 @@ function AdminChatPageContent() {
           } catch {
             // never block UI
           }
+          try {
+            if (activePersonaId) {
+              await fetch(
+                buildApiUrl(`/api/persona-admin/${encodeURIComponent(activePersonaId)}/ux-journey-runs`),
+                {
+                  method: "POST",
+                  credentials: "include",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    jobId: uxJourneyJobId,
+                    task: uxJourneyTask.trim() || undefined,
+                    siteUrl: normalizeUxJourneyUrl(uxJourneyUrl) || undefined,
+                    success:
+                      data?.result?.success === true
+                        ? true
+                        : data?.result?.success === false
+                          ? false
+                          : undefined,
+                    stepsCount: steps.length,
+                    ...(scorecard ? { scorecard } : {}),
+                  }),
+                },
+              );
+            }
+          } catch {
+            // never block UI
+          }
           return;
         }
         if (st === "error") {
@@ -799,7 +826,16 @@ function AdminChatPageContent() {
     return () => {
       cancelled = true;
     };
-  }, [uxJourneyJobId, uxJourneyStatus, uxJourneyStartMessageId, personaDisplayName]);
+  }, [
+    uxJourneyJobId,
+    uxJourneyStatus,
+    uxJourneyStartMessageId,
+    personaDisplayName,
+    activePersonaId,
+    uxJourneyTask,
+    uxJourneyUrl,
+    normalizeUxJourneyUrl,
+  ]);
   const personaChipData = useMemo(
     () =>
       [

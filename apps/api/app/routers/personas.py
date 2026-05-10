@@ -23,6 +23,7 @@ from ..models import (
     PersonaMoodboard,
     PersonaMoodboardTile,
     PersonaPrompt as PersonaPromptModel,
+    PersonaUxJourneyRun,
     ProcessingJob,
     TargetGroup,
     User,
@@ -46,6 +47,8 @@ from ..schemas import (
     PersonaResponse,
     PersonaTranslateFieldsRequest,
     PersonaTranslateFieldsResponse,
+    PersonaUxJourneyRunItem,
+    PersonaUxJourneyRunUpsert,
 )
 from ..services.ai_assist import AiAssistService
 from ..services.auth import get_current_user
@@ -131,6 +134,20 @@ def _serialize_moodboard_tile(tile: PersonaMoodboardTile, *, persona_id: UUID, p
         locked=bool(tile.locked),
         createdAt=tile.created_at,
         updatedAt=tile.updated_at,
+    )
+
+
+def _serialize_persona_ux_journey_run(row: PersonaUxJourneyRun) -> PersonaUxJourneyRunItem:
+    sc = row.scorecard if isinstance(row.scorecard, dict) else None
+    return PersonaUxJourneyRunItem(
+        id=str(row.id),
+        jobId=str(row.job_id or "").strip(),
+        task=row.task,
+        siteUrl=row.site_url,
+        success=row.success,
+        stepsCount=row.steps_count,
+        scorecard=sc,
+        createdAt=row.created_at,
     )
 
 
@@ -2130,3 +2147,81 @@ def delete_moodboard_tile_admin(tile_id: str, session: Session = Depends(get_db)
     _get_persona_or_404(session, str(mb.persona_id))
     session.execute(delete(PersonaMoodboardTile).where(PersonaMoodboardTile.id == tile_uuid))
     session.commit()
+
+
+@persona_admin_router.get(
+    "/{persona_id}/ux-journey-runs",
+    response_model=list[PersonaUxJourneyRunItem],
+    summary="List UX-journey agent runs recorded for this persona (admin)",
+)
+def list_persona_ux_journey_runs_admin(
+    persona_id: str,
+    session: Session = Depends(get_db),
+    limit: int = Query(100, ge=1, le=200),
+) -> list[PersonaUxJourneyRunItem]:
+    persona = _get_persona_or_404(session, persona_id)
+    rows = (
+        session.scalars(
+            select(PersonaUxJourneyRun)
+            .where(PersonaUxJourneyRun.persona_id == persona.id)
+            .order_by(PersonaUxJourneyRun.created_at.desc())
+            .limit(limit)
+        )
+        .all()
+    )
+    return [_serialize_persona_ux_journey_run(r) for r in rows]
+
+
+@persona_admin_router.post(
+    "/{persona_id}/ux-journey-runs",
+    response_model=PersonaUxJourneyRunItem,
+    summary="Upsert a UX-journey agent run for this persona (admin)",
+)
+def upsert_persona_ux_journey_run_admin(
+    persona_id: str,
+    body: PersonaUxJourneyRunUpsert,
+    session: Session = Depends(get_db),
+) -> PersonaUxJourneyRunItem:
+    persona = _get_persona_or_404(session, persona_id)
+    job_id = body.jobId.strip()
+    if not job_id:
+        raise HTTPException(status_code=400, detail="jobId is required")
+
+    existing = session.scalar(
+        select(PersonaUxJourneyRun).where(
+            PersonaUxJourneyRun.persona_id == persona.id,
+            PersonaUxJourneyRun.job_id == job_id,
+        )
+    )
+    score_payload = body.scorecard if isinstance(body.scorecard, dict) else None
+
+    if existing:
+        if body.task is not None:
+            existing.task = body.task
+        if body.siteUrl is not None:
+            existing.site_url = body.siteUrl
+        if body.success is not None:
+            existing.success = body.success
+        if body.stepsCount is not None:
+            existing.steps_count = body.stepsCount
+        if score_payload is not None:
+            existing.scorecard = score_payload
+        session.add(existing)
+        session.commit()
+        session.refresh(existing)
+        return _serialize_persona_ux_journey_run(existing)
+
+    row = PersonaUxJourneyRun(
+        id=uuid4(),
+        persona_id=persona.id,
+        job_id=job_id,
+        task=body.task,
+        site_url=body.siteUrl,
+        success=body.success,
+        steps_count=body.stepsCount,
+        scorecard=score_payload,
+    )
+    session.add(row)
+    session.commit()
+    session.refresh(row)
+    return _serialize_persona_ux_journey_run(row)

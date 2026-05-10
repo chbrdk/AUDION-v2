@@ -30,14 +30,17 @@ import {
   DialogTitle,
   FormControlLabel,
   LinearProgress,
+  Stack,
   TextField,
   Tooltip,
+  Chip,
 } from "@mui/material";
 import { mirrorFillStringPair } from "../lib/bilingual-mirror";
 import { translatePersonaAdminFields } from "../lib/persona-translate-fields";
 import { alignProfileDeToEnProfile } from "../lib/persona-profile-de-shape";
 import { mergeCommunicationStyle, mergeEnProfileWithDeTranslation } from "../lib/persona-profile-bilingual-save";
 import { buildApiUrl } from "../app/api/_lib/backend";
+import { API_ROUTES } from "../lib/api-routes";
 import { normalizePersonaListResponse } from "../lib/persona-list-normalize";
 import { THEME_ACCENT } from "../lib/theme-accent";
 import { withOutputLocale } from "../lib/ai-output-locale";
@@ -105,6 +108,18 @@ type Moodboard = {
   active: boolean;
   styleKeywords?: string[];
   tiles: MoodboardTile[];
+};
+
+/** Persisted UX-journey agent runs (`persona_ux_journey_runs`). */
+type PersonaUxJourneyRunRow = {
+  id: string;
+  jobId: string;
+  task?: string | null;
+  siteUrl?: string | null;
+  success?: boolean | null;
+  stepsCount?: number | null;
+  scorecard?: Record<string, unknown> | null;
+  createdAt: string;
 };
 
 type PersonaSaveUpdates =
@@ -258,6 +273,9 @@ export const MsqdxGlassPersonaAdminPanel = ({
   const [moodboardLoading, setMoodboardLoading] = useState(false);
   const [moodboardPending, setMoodboardPending] = useState(false);
   const [moodboardError, setMoodboardError] = useState<string | null>(null);
+  const [uxJourneyRuns, setUxJourneyRuns] = useState<PersonaUxJourneyRunRow[]>([]);
+  const [uxJourneyRunsLoading, setUxJourneyRunsLoading] = useState(false);
+  const [uxJourneyRunsError, setUxJourneyRunsError] = useState<string | null>(null);
   const [tileDialogOpen, setTileDialogOpen] = useState(false);
   const [activeTile, setActiveTile] = useState<MoodboardTile | null>(null);
   const [tileEditCaption, setTileEditCaption] = useState("");
@@ -453,6 +471,33 @@ export const MsqdxGlassPersonaAdminPanel = ({
     if (!selectedId) return;
     void loadMoodboard(selectedId);
   }, [selectedId, loadMoodboard]);
+
+  const loadUxJourneyRuns = useCallback(async (personaId: string) => {
+    setUxJourneyRunsLoading(true);
+    setUxJourneyRunsError(null);
+    try {
+      const res = await fetch(buildApiUrl(`/api/persona-admin/${personaId}/ux-journey-runs`), {
+        credentials: "include",
+        cache: "no-store",
+      });
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        throw new Error(txt || `HTTP ${res.status}`);
+      }
+      const data = (await res.json()) as PersonaUxJourneyRunRow[];
+      setUxJourneyRuns(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setUxJourneyRunsError(e instanceof Error ? e.message : "Failed to load UX journeys");
+      setUxJourneyRuns([]);
+    } finally {
+      setUxJourneyRunsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!selectedId) return;
+    void loadUxJourneyRuns(selectedId);
+  }, [selectedId, loadUxJourneyRuns]);
 
   const pollMoodboardUntilReady = useCallback(
     (personaId: string) => {
@@ -2483,6 +2528,105 @@ export const MsqdxGlassPersonaAdminPanel = ({
                 formatDate={formatDate}
                 notify={notify}
               />
+
+              {/* Card: UX journey history — Full Width */}
+              <Box sx={{ gridColumn: "1 / -1" }}>
+                <MsqdxDashboardCard
+                  id="ux-journey-history"
+                  title={t("personaAdmin.uxJourneyHistory")}
+                  icon="travel_explore"
+                  iconColor={{ color: THEME_ACCENT.color }}
+                  expanded={isAccordionExpanded("ux-journey-history")}
+                  onToggle={toggleAccordion}
+                >
+                  <Box sx={{ pt: 1 }}>
+                    {uxJourneyRunsError && (
+                      <Alert severity="warning" sx={{ mb: 2 }}>
+                        {uxJourneyRunsError}
+                      </Alert>
+                    )}
+                    {uxJourneyRunsLoading ? (
+                      <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+                        …
+                      </MsqdxTypography>
+                    ) : uxJourneyRuns.length === 0 ? (
+                      <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+                        {t("personaAdmin.uxJourneyHistoryEmpty")}
+                      </MsqdxTypography>
+                    ) : (
+                      <Stack spacing={1.25}>
+                        {uxJourneyRuns.map((run) => {
+                          const taskPreview =
+                            run.task && run.task.length > 140 ? `${run.task.slice(0, 137)}…` : run.task ?? "";
+                          const videoHref = API_ROUTES.uxJourneyAgentVideo(run.jobId);
+                          return (
+                            <Box
+                              key={run.id}
+                              sx={{
+                                border: "1px solid",
+                                borderColor: "divider",
+                                borderRadius: 1,
+                                p: 1.25,
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 0.75,
+                              }}
+                            >
+                              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1, flexWrap: "wrap" }}>
+                                <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
+                                  {formatDate(run.createdAt)}
+                                </MsqdxTypography>
+                                <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, flexWrap: "wrap" }}>
+                                  {typeof run.stepsCount === "number" ? (
+                                    <Chip size="small" label={t("personaAdmin.uxJourneyRunSteps", { count: run.stepsCount })} variant="outlined" />
+                                  ) : null}
+                                  {run.success === true ? (
+                                    <Chip size="small" label={t("personaAdmin.uxJourneyRunSuccess")} color="success" variant="outlined" />
+                                  ) : run.success === false ? (
+                                    <Chip size="small" label={t("personaAdmin.uxJourneyRunFailed")} color="error" variant="outlined" />
+                                  ) : null}
+                                  <a
+                                    href={videoHref}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}
+                                  >
+                                    <MsqdxButton
+                                      component="span"
+                                      size="small"
+                                      variant="outlined"
+                                      brandColor="green"
+                                      startIcon={<MsqdxIcon name="movie" customSize={16} />}
+                                    >
+                                      {t("personaAdmin.uxJourneyRunVideo")}
+                                    </MsqdxButton>
+                                  </a>
+                                </Box>
+                              </Box>
+                              {taskPreview ? (
+                                <MsqdxTypography variant="body2" weight="medium">
+                                  {taskPreview}
+                                </MsqdxTypography>
+                              ) : null}
+                              <MsqdxTypography variant="caption" sx={{ color: "text.secondary", wordBreak: "break-all" }}>
+                                {t("personaAdmin.uxJourneyRunJob")}: {run.jobId}
+                                {run.siteUrl ? (
+                                  <>
+                                    {" · "}
+                                    <Box component="span" sx={{ fontWeight: 600 }}>
+                                      {run.siteUrl}
+                                    </Box>
+                                  </>
+                                ) : null}
+                              </MsqdxTypography>
+                            </Box>
+                          );
+                        })}
+                      </Stack>
+                    )}
+                  </Box>
+                </MsqdxDashboardCard>
+              </Box>
 
               {/* Card: Moodboard - Full Width */}
               <Box sx={{ gridColumn: "1 / -1" }}>

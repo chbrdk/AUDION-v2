@@ -634,6 +634,13 @@
     "noTargetGroupDetailHint": "Weise im Bereich „Metadaten“ eine Zielgruppe zu – das verbessert Vorschläge und Ausrichtung.",
     "ensureChatPromptTooltip": "Baut den Chat-Prompt aus Profil und Metadaten neu auf, damit die Konversation zur Persona passt.",
     "thisPersona": "diese Persona",
+    "uxJourneyHistory": "UX-Journey-Verlauf",
+    "uxJourneyHistoryEmpty": "Noch keine Browser-UX-Journeys für diese Persona. Starte einen im Admin-Chat.",
+    "uxJourneyRunVideo": "Video",
+    "uxJourneyRunSteps": "{count} Schritte",
+    "uxJourneyRunJob": "Job",
+    "uxJourneyRunSuccess": "OK",
+    "uxJourneyRunFailed": "Fehler",
     "statuses": {
       "draft": "Entwurf",
       "published": "Veröffentlicht",
