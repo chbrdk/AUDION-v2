@@ -138,9 +138,43 @@ type Message = {
             avgPolarity?: number;
             positives?: number;
             negatives?: number;
+            /**
+             * LLM-derived holistic rating for this category, averaged from
+             * the per-step ratings produced by the end-of-run scorecard
+             * call. Range -5..+5, ``undefined`` if the LLM call failed or
+             * was disabled. Takes precedence over ``weighted`` when present.
+             */
+            score?: number | null;
+            /** Number of steps that produced a numeric rating for this category. */
+            stepsRated?: number;
+            /** 1-sentence LLM rationale explaining the aggregated score. */
+            rationale?: string;
           }
         >
       >;
+      /**
+       * Raw per-step ratings emitted by the end-of-run LLM call. Forwarded
+       * for power-user drill-downs; the chat panel itself only consumes
+       * the aggregated ``perCategory[*].score``.
+       */
+      perStepRatings?: Array<{
+        step?: number;
+        ratings?: Partial<
+          Record<
+            | "layout"
+            | "visual"
+            | "typography"
+            | "copy"
+            | "affordance"
+            | "navigation"
+            | "info_density"
+            | "trust"
+            | "performance"
+            | "persona_fit",
+            number
+          >
+        >;
+      }>;
       topStrengths?: Array<{
         category?:
           | "layout"
@@ -1726,30 +1760,48 @@ export const MsqdxGlassChatPanel = ({
                             const quotes = Array.isArray(sc.quotes) ? sc.quotes : [];
                             const perCategory = sc.perCategory ?? {};
                             // Always render ALL 10 categories so the user can see the full
-                            // -5..+5 scale per dimension, including the ones the persona did
-                            // NOT flag — that absence is itself signal ("nothing notable about
-                            // typography on this site"). Empty rows render dimmed.
-                            //
-                            // Per-category score = clamp(weighted, -5, 5) where weighted is the
-                            // server-side `sum(polarity * severityWeight) / count`. With
-                            // polarity ∈ {-2,-1,1,2} and severity weight ∈ {1,2,3} the raw
-                            // weighted value sits in [-6, +6]; we clamp to the user-facing
-                            // [-5, +5] visual scale (the original product spec).
+                            // -5..+5 scale per dimension. Source of truth for the dot
+                            // position (in priority order):
+                            //   1. agg.score        — LLM end-of-run holistic rating, averaged
+                            //                         across all steps. Always present unless
+                            //                         the LLM call failed/was disabled.
+                            //   2. clamp(weighted)  — observation-driven aggregate. Only kicks
+                            //                         in if the LLM call didn't produce a value.
+                            //   3. — / 0            — no data at all; row renders dimmed.
                             const categoryRows = UX_OBSERVATION_CATEGORIES.map((cat) => {
                               const agg = perCategory[cat];
                               const flags = agg?.flags ?? 0;
                               const weighted = typeof agg?.weighted === "number" ? agg.weighted : 0;
-                              const score = Math.max(-5, Math.min(5, weighted));
+                              const llmScore =
+                                agg && typeof agg.score === "number" ? agg.score : null;
+                              const stepsRated = agg?.stepsRated ?? 0;
+                              const hasLlmScore = llmScore !== null;
+                              const fallbackScore = Math.max(-5, Math.min(5, weighted));
+                              const score = hasLlmScore
+                                ? Math.max(-5, Math.min(5, llmScore as number))
+                                : fallbackScore;
+                              const hasData = hasLlmScore || flags > 0;
                               const positives = agg?.positives ?? 0;
                               const negatives = agg?.negatives ?? 0;
-                              return { cat, flags, score, positives, negatives };
+                              const rationale = agg?.rationale ?? null;
+                              return {
+                                cat,
+                                flags,
+                                score,
+                                hasData,
+                                hasLlmScore,
+                                stepsRated,
+                                positives,
+                                negatives,
+                                rationale,
+                              };
                             });
-                            const flaggedCategoryCount = categoryRows.filter((r) => r.flags > 0).length;
+                            const ratedCategoryCount = categoryRows.filter((r) => r.hasData).length;
                             const hasAnything =
                               friction !== null ||
                               fit !== null ||
                               coverage !== null ||
-                              flaggedCategoryCount > 0 ||
+                              ratedCategoryCount > 0 ||
                               strengths.length > 0 ||
                               weaknesses.length > 0 ||
                               quotes.length > 0;
@@ -1895,29 +1947,60 @@ export const MsqdxGlassChatPanel = ({
                                     </Typography>
                                   </Box>
                                   <Box sx={{ display: "flex", flexDirection: "column", gap: 0.6 }}>
-                                    {categoryRows.map(({ cat, flags, score, positives, negatives }) => {
+                                    {categoryRows.map(({ cat, flags, score, hasData, hasLlmScore, stepsRated, positives, negatives, rationale }) => {
                                       const greenC = theme.palette.success?.main || "#16a34a";
                                       const redC = theme.palette.error?.main || "#dc2626";
-                                      const dotColor =
-                                        flags === 0
-                                          ? alpha(theme.palette.text.secondary, 0.4)
-                                          : score > 0
-                                            ? greenC
-                                            : score < 0
-                                              ? redC
-                                              : alpha(theme.palette.text.secondary, 0.55);
+                                      const dotColor = !hasData
+                                        ? alpha(theme.palette.text.secondary, 0.4)
+                                        : score > 0
+                                          ? greenC
+                                          : score < 0
+                                            ? redC
+                                            : alpha(theme.palette.text.secondary, 0.55);
                                       const dotPct = ((score + 5) / 10) * 100;
-                                      const scoreLabel =
-                                        flags === 0
-                                          ? "—"
-                                          : `${score > 0 ? "+" : score < 0 ? "" : "±"}${score
-                                              .toFixed(1)
-                                              .replace(/\.0$/, "")}`;
-                                      const rowOpacity = flags === 0 ? 0.4 : 1;
-                                      const labelTooltip =
-                                        flags === 0
-                                          ? t("chat.uxJourney.scorecard.noFlags")
-                                          : `${positives} +  ·  ${negatives} −`;
+                                      const scoreLabel = !hasData
+                                        ? "—"
+                                        : `${score > 0 ? "+" : score < 0 ? "" : "±"}${score
+                                            .toFixed(1)
+                                            .replace(/\.0$/, "")}`;
+                                      const rowOpacity = hasData ? 1 : 0.4;
+                                      // Tooltip priority:
+                                      //   - LLM rationale (1 sentence) when present — that's
+                                      //     the holistic "why this score" answer the user
+                                      //     actually wants.
+                                      //   - Otherwise, observation breakdown (X+ · Y−) so the
+                                      //     count-driven fallback is still legible.
+                                      //   - Otherwise, "no observation".
+                                      let labelTooltip: React.ReactNode;
+                                      if (rationale) {
+                                        labelTooltip = (
+                                          <Box sx={{ p: 0.25, maxWidth: 320 }}>
+                                            <Typography variant="caption" sx={{ display: "block", whiteSpace: "pre-wrap" }}>
+                                              {rationale}
+                                            </Typography>
+                                            {hasLlmScore && stepsRated > 0 ? (
+                                              <Typography
+                                                variant="caption"
+                                                sx={{ display: "block", mt: 0.5, opacity: 0.75 }}
+                                              >
+                                                {t("chat.uxJourney.scorecard.basedOnSteps", { n: stepsRated })}
+                                              </Typography>
+                                            ) : null}
+                                            {flags > 0 ? (
+                                              <Typography
+                                                variant="caption"
+                                                sx={{ display: "block", mt: 0.25, opacity: 0.75 }}
+                                              >
+                                                {`${positives} +  ·  ${negatives} −`}
+                                              </Typography>
+                                            ) : null}
+                                          </Box>
+                                        );
+                                      } else if (flags > 0) {
+                                        labelTooltip = `${positives} +  ·  ${negatives} −`;
+                                      } else {
+                                        labelTooltip = t("chat.uxJourney.scorecard.noFlags");
+                                      }
                                       return (
                                         <Box
                                           key={cat}
@@ -1980,12 +2063,12 @@ export const MsqdxGlassChatPanel = ({
                                                   top: "50%",
                                                   left: `${dotPct}%`,
                                                   transform: "translate(-50%, -50%)",
-                                                  width: flags === 0 ? 6 : 10,
-                                                  height: flags === 0 ? 6 : 10,
+                                                  width: hasData ? 10 : 6,
+                                                  height: hasData ? 10 : 6,
                                                   borderRadius: "50%",
                                                   backgroundColor: dotColor,
                                                   border: `2px solid ${theme.palette.background.paper}`,
-                                                  boxShadow: flags === 0 ? "none" : `0 0 0 1px ${dotColor}`,
+                                                  boxShadow: hasData ? `0 0 0 1px ${dotColor}` : "none",
                                                 }}
                                               />
                                             </Box>
@@ -2003,14 +2086,13 @@ export const MsqdxGlassChatPanel = ({
                                             <Typography
                                               variant="caption"
                                               sx={{
-                                                color:
-                                                  flags === 0
-                                                    ? "text.secondary"
-                                                    : score > 0
-                                                      ? greenC
-                                                      : score < 0
-                                                        ? redC
-                                                        : "text.secondary",
+                                                color: !hasData
+                                                  ? "text.secondary"
+                                                  : score > 0
+                                                    ? greenC
+                                                    : score < 0
+                                                      ? redC
+                                                      : "text.secondary",
                                                 fontFamily: MSQDX_TYPOGRAPHY.fontFamily.mono,
                                                 fontWeight: 600,
                                                 minWidth: 28,

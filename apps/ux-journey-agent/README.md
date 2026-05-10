@@ -109,14 +109,17 @@ ux-journey: step 4 observations parsed=1 invalid=0
 
 | Field | Source | Notes |
 |---|---|---|
-| `perCategory[cat] = { flags, weighted, avgPolarity, positives, negatives }` | server (deterministic) | All 10 categories present; flags=0 entries are still keyed so the UI can render a complete table. `weighted` weights polarity by severity (`low=1`, `medium=2`, `high=3`). |
+| `perCategory[cat] = { flags, weighted, avgPolarity, positives, negatives, score?, stepsRated?, rationale? }` | server (deterministic) + LLM | All 10 categories present; flags=0 entries are still keyed so the UI can render a complete table. `weighted` weights observation polarity by severity (`low=1`, `medium=2`, `high=3`). `score` (range `[-5, +5]`) is the LLM end-of-run rating averaged across all steps that produced a numeric value for this category, `stepsRated` is the contributing step count, and `rationale` is a 1-sentence LLM explanation surfaced as a tooltip. The frontend uses `score` for the dot position when present, and falls back to `clamp(weighted, -5, +5)` only when the LLM call failed or was disabled. |
 | `topStrengths[<=3]` | server (deterministic) | Sorted by `severity * |polarity|` descending; positive polarity only. Carries `step` reference + `quote` (= `note`). |
 | `topWeaknesses[<=3]` | server (deterministic) | Same ranking; negative polarity only. Carries optional `fix`. |
 | `quotes[3..5]` | server (heuristic) | First sentence per step that contains a justification marker (`weil`, `damit`, `deshalb`, `denn`) — falls back to any first sentence to hit the minimum count. Configurable via `UX_JOURNEY_SCORECARD_QUOTES_MIN/MAX`. |
-| `frictionScore` (0..10) | LLM (optional) | One small JSON-mode call (OpenAI preferred, Anthropic fallback). Off when `UX_JOURNEY_SCORECARD=0` or no API key. Clamped server-side. |
+| `frictionScore` (0..10) | LLM (optional) | Single end-of-run JSON-mode call (OpenAI preferred, Anthropic fallback). Off when `UX_JOURNEY_SCORECARD=0` or no API key. Clamped server-side. |
 | `personaFitScore` (0..10) | LLM (optional) | Same call; clamped server-side. |
 | `coverage = { goalReached, gap }` | LLM (optional) | `goalReached` is `true`/`false`/`null`; `gap` is one sentence and may be present even on success. |
+| `perStepRatings` | LLM | Raw per-step rating array — every step rated on every one of the 10 UX categories on `[-5, +5]`. The agent averages these into `perCategory[*].score` server-side; the array itself is forwarded to the chat panel for power-user drill-downs. |
 | `totalObservations` | server | Convenience count of all parsed observations across steps. |
+
+The end-of-run LLM call covers two responsibilities at once: the holistic KPIs (Friction / Persona-Fit / coverage) and the per-step / per-category ratings that fill the −5…+5 scale even on runs where the persona didn't flag much in the inline `<<OBSERVATIONS>>` blocks. This avoids the previous "every category at zero because nothing was flagged" failure mode.
 
 ### Wiring & UI
 

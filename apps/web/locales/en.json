@@ -320,6 +320,7 @@
         "perCategory": "By category",
         "scaleHint": "−5 ◀ neutral ▶ +5",
         "noFlags": "No observation",
+        "basedOnSteps": "Aggregated across {n} step(s)",
         "strengths": "Strengths",
         "weaknesses": "Weaknesses",
         "quotes": "Voices",

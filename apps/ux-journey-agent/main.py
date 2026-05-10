@@ -1177,22 +1177,93 @@ def _scorecard_done_text(steps: list[dict[str, Any]]) -> str:
     return ""
 
 
+def _aggregate_per_step_ratings(
+    per_step_ratings: list[dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    """Average LLM-emitted per-step `-5..+5` ratings into a per-category roll-up.
+
+    Returns one entry per category (all 10), each carrying:
+    - ``score``: ``round(mean, 2)`` clamped to ``[-5, +5]`` — ``None`` if the
+      LLM didn't rate that category in any step.
+    - ``stepsRated``: how many steps contributed a numeric value. The UI uses
+      this to decide whether the row is "real data" vs. a fallback row.
+
+    Robust to malformed entries: missing keys, non-numeric values, and
+    out-of-range numbers are silently dropped per cell — we never raise into
+    the run loop, only ever omit data.
+    """
+    samples: dict[str, list[float]] = {cat: [] for cat in _OBSERVATION_CATEGORIES}
+    for entry in per_step_ratings or []:
+        if not isinstance(entry, dict):
+            continue
+        ratings = entry.get("ratings")
+        if not isinstance(ratings, dict):
+            continue
+        for cat, val in ratings.items():
+            if cat not in samples:
+                continue
+            try:
+                v = float(val)
+            except (TypeError, ValueError):
+                continue
+            if v != v:  # NaN guard
+                continue
+            samples[cat].append(max(-5.0, min(5.0, v)))
+    out: dict[str, dict[str, Any]] = {}
+    for cat in _OBSERVATION_CATEGORIES:
+        lst = samples[cat]
+        if lst:
+            out[cat] = {"score": round(sum(lst) / len(lst), 2), "stepsRated": len(lst)}
+        else:
+            out[cat] = {"score": None, "stepsRated": 0}
+    return out
+
+
 async def _llm_scorecard_extras(
     *,
     persona: dict[str, Any] | None,
     task: str,
     domain: str,
+    steps: list[dict[str, Any]],
     observations: list[dict[str, Any]],
     done_text: str,
     quotes: list[dict[str, Any]],
 ) -> dict[str, Any] | None:
-    """One small LLM round-trip for ``frictionScore`` / ``personaFitScore`` /
-    ``coverage`` — fields that need a holistic judgement instead of a
-    deterministic count of flags. Returns ``None`` on any failure (no key,
-    network, malformed JSON) so the rest of the scorecard still renders.
+    """End-of-run UX rating call.
+
+    Produces:
+    - ``frictionScore`` / ``personaFitScore`` (0..10) — overall KPIs.
+    - ``coverage`` ({goalReached, gap}) — task completion check.
+    - ``perStepRatings`` — every step rated on every one of the 10 UX
+      categories on a `-5..+5` scale. Server-side averaged per category by
+      :func:`_aggregate_per_step_ratings` so we always have a defensible
+      score per dimension instead of "stayed at zero because nobody flagged
+      that category" gaps.
+    - ``perCategoryRationale`` — 1 sentence per category explaining the
+      aggregated rating; surfaced as a tooltip in the UI.
+
+    Returns ``None`` on any failure (no API key, network, malformed JSON);
+    callers fall back to the deterministic observation aggregate so the
+    scorecard still renders.
     """
     if not UX_JOURNEY_SCORECARD:
         return None
+
+    # Per-step transcript: action + target + reasoning for the LLM to ground
+    # its ratings. Cap to 30 steps and trim long fields to keep the prompt
+    # token-budget bounded on long journeys.
+    step_brief: list[dict[str, Any]] = []
+    for st in (steps or [])[:30]:
+        if not isinstance(st, dict):
+            continue
+        step_brief.append(
+            {
+                "step": st.get("step"),
+                "action": st.get("action"),
+                "target": _smart_trim(str(st.get("target") or ""), limit=160),
+                "reasoning": _smart_trim(str(st.get("reasoning") or ""), limit=300),
+            }
+        )
 
     obs_brief = [
         {
@@ -1215,28 +1286,64 @@ async def _llm_scorecard_extras(
                 bits.append(f"{key}={v.strip()}")
         persona_summary = "; ".join(bits)
 
+    cat_csv = ", ".join(_OBSERVATION_CATEGORIES)
     system_prompt = (
         "Du bist ein UX-Research-Analyst. Du erhaeltst eine Persona, eine Aufgabe, "
-        "eine Liste validierter Beobachtungen und 3-5 woertliche Persona-Zitate aus "
-        "einem Think-Aloud-Lauf auf einer Website. Beurteile holistisch:\n"
-        "- frictionScore: 0..10 (0 = absolut friktionslos, 10 = die Persona haette aufgegeben).\n"
-        "- personaFitScore: 0..10 (0 = die Seite wirkt fuer eine andere Zielgruppe gemacht, "
-        "10 = exakt fuer diese Persona).\n"
-        "- coverage.goalReached: bool (hat die Persona ihr Aufgabenziel erreicht?).\n"
-        "- coverage.gap: 1 Satz, was gefehlt hat oder unklar war (auch wenn das Ziel erreicht wurde).\n"
-        "Antworte AUSSCHLIESSLICH mit kompaktem JSON: "
-        "{\"frictionScore\":int,\"personaFitScore\":int,"
-        "\"coverage\":{\"goalReached\":bool,\"gap\":string}}. "
-        "Keine Markdown-Codefences, kein zusaetzlicher Text."
+        "die komplette Schritt-fuer-Schritt-Journey eines Think-Aloud-Laufs (mit "
+        "Aktion + Reasoning pro Schritt), eine Liste validierter Beobachtungen "
+        "und 3-5 woertliche Persona-Zitate.\n"
+        "\n"
+        "AUFGABE: Bewerte die Journey wie ein UX-Researcher.\n"
+        "\n"
+        "1) Bewerte JEDEN Schritt auf ALLEN 10 UX-Kategorien auf einer Skala -5..+5.\n"
+        f"   Kategorien (genau diese Reihenfolge in 'ratings'): {cat_csv}.\n"
+        "   Anker:\n"
+        "   -5 = blockierend (verhindert Aufgabenziel),\n"
+        "   -3 = stoert spuerbar,\n"
+        "   -1 = leichtes Negativ,\n"
+        "    0 = neutral oder nicht beobachtbar in diesem Schritt,\n"
+        "   +1 = leichtes Plus,\n"
+        "   +3 = klar positiv,\n"
+        "   +5 = vorbildlich (Best-in-Class fuer diese Persona).\n"
+        "   Bewerte streng aus Persona-Sicht: was fuer Persona X mittel ist, "
+        "   kann fuer Persona Y stark sein. Setze 0 nur wenn die Kategorie auf "
+        "   diesem Screenshot wirklich kein Eindruck war.\n"
+        "\n"
+        "2) Liefere fuer JEDE der 10 Kategorien EINEN Satz Rationale, der die "
+        "   ueber alle Schritte aggregierte Bewertung begruendet (verweise ggf. "
+        "   auf Schritte/Beobachtungen).\n"
+        "\n"
+        "3) Liefere die KPIs: frictionScore (0..10, hoeher = mehr Friktion), "
+        "   personaFitScore (0..10, hoeher = besserer Fit), "
+        "   coverage.goalReached (bool), coverage.gap (1 Satz, was gefehlt hat).\n"
+        "\n"
+        "STRENG: Antworte AUSSCHLIESSLICH mit kompaktem JSON in genau diesem Format:\n"
+        "{"
+        '"frictionScore":int,'
+        '"personaFitScore":int,'
+        '"coverage":{"goalReached":bool,"gap":string},'
+        '"perStepRatings":['
+        '{"step":int,"ratings":{'
+        '"layout":int,"visual":int,"typography":int,"copy":int,"affordance":int,'
+        '"navigation":int,"info_density":int,"trust":int,"performance":int,"persona_fit":int'
+        "}}"
+        "],"
+        '"perCategoryRationale":{'
+        '"layout":string,"visual":string,"typography":string,"copy":string,"affordance":string,'
+        '"navigation":string,"info_density":string,"trust":string,"performance":string,"persona_fit":string'
+        "}}\n"
+        "Keine Markdown-Codefences, kein zusaetzlicher Text. ALLE 10 Kategorien "
+        "muessen in JEDER ratings-Map und in perCategoryRationale vorhanden sein."
     )
     user_payload = json.dumps(
         {
             "persona": persona_summary or None,
-            "task": task,
+            "task": _smart_trim(task or "", limit=500),
             "siteDomain": domain,
+            "steps": step_brief,
             "observations": obs_brief,
             "quotes": quote_brief,
-            "doneText": done_text or None,
+            "doneText": _smart_trim(done_text or "", limit=400) or None,
         },
         ensure_ascii=False,
     )
@@ -1272,7 +1379,9 @@ async def _llm_scorecard_extras(
             model = os.environ.get("UX_JOURNEY_CLAUDE_MODEL", "claude-sonnet-4-6")
             resp = await client.messages.create(
                 model=model,
-                max_tokens=400,
+                # Larger budget than before — perStepRatings + rationale is
+                # ~10 categories * (number per step + ~120 chars per rationale).
+                max_tokens=2400,
                 temperature=0.2,
                 system=system_prompt,
                 messages=[{"role": "user", "content": user_payload}],
@@ -1316,8 +1425,36 @@ async def _llm_scorecard_extras(
     goal_reached = bool(cov_raw.get("goalReached")) if "goalReached" in cov_raw else None
     gap = str(cov_raw.get("gap") or "").strip()
 
-    if friction is None and persona_fit is None and goal_reached is None and not gap:
+    per_step_ratings_raw = parsed.get("perStepRatings")
+    if not isinstance(per_step_ratings_raw, list):
+        per_step_ratings_raw = []
+    per_category_agg = _aggregate_per_step_ratings(per_step_ratings_raw)
+
+    rationale_raw = parsed.get("perCategoryRationale")
+    if not isinstance(rationale_raw, dict):
+        rationale_raw = {}
+    rationale_clean: dict[str, str] = {}
+    for cat in _OBSERVATION_CATEGORIES:
+        v = rationale_raw.get(cat)
+        if isinstance(v, str) and v.strip():
+            rationale_clean[cat] = _smart_trim(v.strip(), limit=240)
+
+    have_any_score = any(v.get("score") is not None for v in per_category_agg.values())
+
+    if (
+        friction is None
+        and persona_fit is None
+        and goal_reached is None
+        and not gap
+        and not have_any_score
+        and not rationale_clean
+    ):
         return None
+    print(
+        f"ux-journey: scorecard LLM ratings parsed={sum(1 for v in per_category_agg.values() if v.get('score') is not None)}/10 "
+        f"steps_rated={len(per_step_ratings_raw)} friction={friction} fit={persona_fit}",
+        flush=True,
+    )
     return {
         "frictionScore": friction,
         "personaFitScore": persona_fit,
@@ -1325,6 +1462,11 @@ async def _llm_scorecard_extras(
             "goalReached": goal_reached,
             "gap": _smart_trim(gap, limit=240) if gap else None,
         },
+        "perCategoryLLM": per_category_agg,
+        "perCategoryRationale": rationale_clean,
+        "perStepRatings": [
+            entry for entry in per_step_ratings_raw if isinstance(entry, dict)
+        ],
     }
 
 
@@ -1337,14 +1479,19 @@ async def _build_scorecard(
 ) -> dict[str, Any] | None:
     """Assemble the ``JourneyScorecard`` for ``result['scorecard']``.
 
-    Returns ``None`` when the journey produced neither observations nor a
-    ``done.text`` we could quote — in that case the chat panel renders just
-    the per-step cards as before, with no scorecard block.
+    Returns ``None`` when the journey is empty — no steps with reasoning
+    AND no done.text. Otherwise we always build a scorecard, even when the
+    persona didn't flag any observations: the end-of-run LLM rating call
+    fills the per-category roll-up so we don't get a "every category at 0"
+    output from a sparse-observation run.
     """
     observations = _collect_observations(steps)
     quotes = _journey_quotes_picker(steps)
     done_text = _scorecard_done_text(steps)
-    if not observations and not quotes and not done_text:
+    has_reasoning = any(
+        isinstance(s, dict) and (s.get("reasoning") or "").strip() for s in (steps or [])
+    )
+    if not has_reasoning and not done_text and not observations:
         return None
 
     per_category = _per_category_aggregate(observations)
@@ -1353,10 +1500,38 @@ async def _build_scorecard(
         persona=persona,
         task=task,
         domain=domain,
+        steps=steps,
         observations=observations,
         done_text=done_text,
         quotes=quotes,
     )
+
+    # Merge LLM per-category ratings + rationale into the deterministic block.
+    # We keep the `flags`/`weighted`/etc. counts intact so the strengths/
+    # weaknesses tables (which are observation-driven) stay accurate, and
+    # add `score` (LLM holistic, -5..+5) plus `rationale` so the UI's
+    # per-category scale dot reflects a defensible value even when the
+    # persona produced zero observations for that category.
+    perCategoryLLM = (extras or {}).pop("perCategoryLLM", None) if extras else None
+    perCategoryRationale = (extras or {}).pop("perCategoryRationale", None) if extras else None
+    if isinstance(perCategoryLLM, dict):
+        for cat, llm_agg in perCategoryLLM.items():
+            target = per_category.get(cat)
+            if not isinstance(target, dict) or not isinstance(llm_agg, dict):
+                continue
+            score = llm_agg.get("score")
+            steps_rated = llm_agg.get("stepsRated")
+            if isinstance(score, (int, float)):
+                target["score"] = score
+            if isinstance(steps_rated, int):
+                target["stepsRated"] = steps_rated
+    if isinstance(perCategoryRationale, dict):
+        for cat, rationale in perCategoryRationale.items():
+            target = per_category.get(cat)
+            if not isinstance(target, dict) or not isinstance(rationale, str):
+                continue
+            target["rationale"] = rationale
+
     scorecard: dict[str, Any] = {
         "perCategory": per_category,
         "topStrengths": strengths,
@@ -1365,6 +1540,9 @@ async def _build_scorecard(
         "totalObservations": len(observations),
     }
     if extras:
+        # The remaining extras are KPIs + coverage + raw perStepRatings.
+        # We forward perStepRatings so a power-user UI can later drill into
+        # which step pulled a category up or down.
         scorecard.update(extras)
     return scorecard
 
