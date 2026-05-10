@@ -1182,17 +1182,32 @@ def _aggregate_per_step_ratings(
 ) -> dict[str, dict[str, Any]]:
     """Average LLM-emitted per-step `-5..+5` ratings into a per-category roll-up.
 
+    KEY: zero ratings are EXCLUDED from the score. The system prompt defines
+    ``0`` as "neutral or not observable in this step", so a step that had no
+    impression on a given category should not dilute the score of steps that
+    did. Without this filter, scores regress sharply toward zero on long
+    journeys — e.g. an 8-step run where 2 steps rated Typography ``+2 / +1``
+    and 6 steps rated it ``0`` would mean ``+0.4``, vastly under-stating the
+    actual ``+1.5`` salient signal. We saw exactly this band ("everything
+    sits in [-0.1, +0.5]") in the field before this fix.
+
     Returns one entry per category (all 10), each carrying:
-    - ``score``: ``round(mean, 2)`` clamped to ``[-5, +5]`` — ``None`` if the
-      LLM didn't rate that category in any step.
-    - ``stepsRated``: how many steps contributed a numeric value. The UI uses
-      this to decide whether the row is "real data" vs. a fallback row.
+
+    - ``score``: ``round(mean(non_zero), 2)`` clamped to ``[-5, +5]``.
+      ``None`` if the LLM didn't rate that category in any step.
+      ``0.0`` only if the LLM explicitly rated it neutral in every step
+      (``stepsRated > 0`` but ``salientStepsRated == 0``) — that's a
+      different signal from "never rated" and we keep both visible.
+    - ``stepsRated``: total number of numeric ratings, incl. zeros. Coverage.
+    - ``salientStepsRated``: non-zero count — the score's denominator. The
+      UI uses this in the tooltip ("aggregated from N salient step(s)").
 
     Robust to malformed entries: missing keys, non-numeric values, and
-    out-of-range numbers are silently dropped per cell — we never raise into
-    the run loop, only ever omit data.
+    out-of-range numbers are silently dropped per cell — we never raise
+    into the run loop, only ever omit data.
     """
-    samples: dict[str, list[float]] = {cat: [] for cat in _OBSERVATION_CATEGORIES}
+    samples_all: dict[str, list[float]] = {cat: [] for cat in _OBSERVATION_CATEGORIES}
+    samples_salient: dict[str, list[float]] = {cat: [] for cat in _OBSERVATION_CATEGORIES}
     for entry in per_step_ratings or []:
         if not isinstance(entry, dict):
             continue
@@ -1200,7 +1215,7 @@ def _aggregate_per_step_ratings(
         if not isinstance(ratings, dict):
             continue
         for cat, val in ratings.items():
-            if cat not in samples:
+            if cat not in samples_all:
                 continue
             try:
                 v = float(val)
@@ -1208,14 +1223,36 @@ def _aggregate_per_step_ratings(
                 continue
             if v != v:  # NaN guard
                 continue
-            samples[cat].append(max(-5.0, min(5.0, v)))
+            v = max(-5.0, min(5.0, v))
+            samples_all[cat].append(v)
+            if abs(v) > 1e-6:
+                samples_salient[cat].append(v)
     out: dict[str, dict[str, Any]] = {}
     for cat in _OBSERVATION_CATEGORIES:
-        lst = samples[cat]
-        if lst:
-            out[cat] = {"score": round(sum(lst) / len(lst), 2), "stepsRated": len(lst)}
+        all_lst = samples_all[cat]
+        salient = samples_salient[cat]
+        if salient:
+            out[cat] = {
+                "score": round(sum(salient) / len(salient), 2),
+                "stepsRated": len(all_lst),
+                "salientStepsRated": len(salient),
+            }
+        elif all_lst:
+            # Every step rated this category 0 — that IS signal ("the persona
+            # never had any impression here, neither + nor −"). Distinct from
+            # the "never rated" case below; we keep `stepsRated > 0` so the
+            # UI can still treat the row as data-bearing.
+            out[cat] = {
+                "score": 0.0,
+                "stepsRated": len(all_lst),
+                "salientStepsRated": 0,
+            }
         else:
-            out[cat] = {"score": None, "stepsRated": 0}
+            out[cat] = {
+                "score": None,
+                "stepsRated": 0,
+                "salientStepsRated": 0,
+            }
     return out
 
 
@@ -1301,13 +1338,27 @@ async def _llm_scorecard_extras(
         "   -5 = blockierend (verhindert Aufgabenziel),\n"
         "   -3 = stoert spuerbar,\n"
         "   -1 = leichtes Negativ,\n"
-        "    0 = neutral oder nicht beobachtbar in diesem Schritt,\n"
+        "    0 = NICHT beobachtbar in diesem Schritt (siehe unten),\n"
         "   +1 = leichtes Plus,\n"
         "   +3 = klar positiv,\n"
         "   +5 = vorbildlich (Best-in-Class fuer diese Persona).\n"
         "   Bewerte streng aus Persona-Sicht: was fuer Persona X mittel ist, "
-        "   kann fuer Persona Y stark sein. Setze 0 nur wenn die Kategorie auf "
-        "   diesem Screenshot wirklich kein Eindruck war.\n"
+        "   kann fuer Persona Y stark sein.\n"
+        "\n"
+        "   WICHTIG zur Skalennutzung — KEIN HEDGING:\n"
+        "   - Sei MUTIG mit der Skala. Vermeide chronisches ±1, wenn die Sache\n"
+        "     spuerbar ist. Spuerbares Plus/Minus → ±2 oder ±3. Ueberzeugendes\n"
+        "     Plus/Minus → ±4 oder ±5.\n"
+        "   - 0 ist NICHT der Default. Setze 0 NUR, wenn die Kategorie in\n"
+        "     diesem Schritt objektiv nicht beobachtbar ist (z.B. 'performance'\n"
+        "     bei einem reinen Klick ohne Lade-Wartezeit; 'typography' bei\n"
+        "     einem reinen Scroll-Schritt der nur Whitespace zeigt).\n"
+        "   - Wenn du zwischen 0 und ±1 schwankst, entscheide dich fuer ±1.\n"
+        "     Persona-Eindruecke sind selten exakt neutral.\n"
+        "   - Aggregation am Ende: der Server mittelt nur die NICHT-NULL\n"
+        "     Bewertungen pro Kategorie. Das heisst: wenn du in 6 von 8\n"
+        "     Schritten 0 setzt und in 2 Schritten +3, ist das Endergebnis +3\n"
+        "     (nicht +0.75). Setze 0 also bewusst.\n"
         "\n"
         "2) Liefere fuer JEDE der 10 Kategorien EINEN Satz Rationale, der die "
         "   ueber alle Schritte aggregierte Bewertung begruendet (verweise ggf. "

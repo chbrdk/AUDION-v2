@@ -145,8 +145,14 @@ type Message = {
              * was disabled. Takes precedence over ``weighted`` when present.
              */
             score?: number | null;
-            /** Number of steps that produced a numeric rating for this category. */
+            /** Number of steps that produced any numeric rating (incl. zeros). */
             stepsRated?: number;
+            /**
+             * Number of steps with a non-zero rating — these are the
+             * actual contributors to the displayed score (zero ratings
+             * mean "not observable" and are excluded from the average).
+             */
+            salientStepsRated?: number;
             /** 1-sentence LLM rationale explaining the aggregated score. */
             rationale?: string;
           }
@@ -1775,6 +1781,13 @@ export const MsqdxGlassChatPanel = ({
                               const llmScore =
                                 agg && typeof agg.score === "number" ? agg.score : null;
                               const stepsRated = agg?.stepsRated ?? 0;
+                              // Salient = non-zero LLM ratings = actual signal contributors.
+                              // Falls back to total `stepsRated` for older agent payloads
+                              // that didn't emit `salientStepsRated` yet.
+                              const salientStepsRated =
+                                typeof agg?.salientStepsRated === "number"
+                                  ? agg.salientStepsRated
+                                  : stepsRated;
                               const hasLlmScore = llmScore !== null;
                               const fallbackScore = Math.max(-5, Math.min(5, weighted));
                               const score = hasLlmScore
@@ -1791,6 +1804,7 @@ export const MsqdxGlassChatPanel = ({
                                 hasData,
                                 hasLlmScore,
                                 stepsRated,
+                                salientStepsRated,
                                 positives,
                                 negatives,
                                 rationale,
@@ -1947,7 +1961,7 @@ export const MsqdxGlassChatPanel = ({
                                     </Typography>
                                   </Box>
                                   <Box sx={{ display: "flex", flexDirection: "column", gap: 0.6 }}>
-                                    {categoryRows.map(({ cat, flags, score, hasData, hasLlmScore, stepsRated, positives, negatives, rationale }) => {
+                                    {categoryRows.map(({ cat, flags, score, hasData, hasLlmScore, stepsRated, salientStepsRated, positives, negatives, rationale }) => {
                                       const greenC = theme.palette.success?.main || "#16a34a";
                                       const redC = theme.palette.error?.main || "#dc2626";
                                       const dotColor = !hasData
@@ -1978,12 +1992,24 @@ export const MsqdxGlassChatPanel = ({
                                             <Typography variant="caption" sx={{ display: "block", whiteSpace: "pre-wrap" }}>
                                               {rationale}
                                             </Typography>
-                                            {hasLlmScore && stepsRated > 0 ? (
+                                            {hasLlmScore && salientStepsRated > 0 ? (
                                               <Typography
                                                 variant="caption"
                                                 sx={{ display: "block", mt: 0.5, opacity: 0.75 }}
                                               >
-                                                {t("chat.uxJourney.scorecard.basedOnSteps", { n: stepsRated })}
+                                                {t("chat.uxJourney.scorecard.basedOnSteps", {
+                                                  n: salientStepsRated,
+                                                  total: stepsRated,
+                                                })}
+                                              </Typography>
+                                            ) : hasLlmScore && stepsRated > 0 ? (
+                                              <Typography
+                                                variant="caption"
+                                                sx={{ display: "block", mt: 0.5, opacity: 0.75 }}
+                                              >
+                                                {t("chat.uxJourney.scorecard.allNeutral", {
+                                                  total: stepsRated,
+                                                })}
                                               </Typography>
                                             ) : null}
                                             {flags > 0 ? (
