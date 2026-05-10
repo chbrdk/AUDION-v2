@@ -318,6 +318,8 @@
         "frictionScore": "Friction",
         "personaFitScore": "Persona fit",
         "perCategory": "By category",
+        "scaleHint": "−5 ◀ neutral ▶ +5",
+        "noFlags": "No observation",
         "strengths": "Strengths",
         "weaknesses": "Weaknesses",
         "quotes": "Voices",

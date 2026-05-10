@@ -1725,16 +1725,31 @@ export const MsqdxGlassChatPanel = ({
                             const weaknesses = Array.isArray(sc.topWeaknesses) ? sc.topWeaknesses : [];
                             const quotes = Array.isArray(sc.quotes) ? sc.quotes : [];
                             const perCategory = sc.perCategory ?? {};
-                            // Filter perCategory to entries with at least one flag — empty categories
-                            // would render empty bars and waste vertical space.
-                            const categoryRows = UX_OBSERVATION_CATEGORIES
-                              .map((cat) => ({ cat, agg: perCategory[cat] }))
-                              .filter((r) => r.agg && (r.agg.flags ?? 0) > 0);
+                            // Always render ALL 10 categories so the user can see the full
+                            // -5..+5 scale per dimension, including the ones the persona did
+                            // NOT flag — that absence is itself signal ("nothing notable about
+                            // typography on this site"). Empty rows render dimmed.
+                            //
+                            // Per-category score = clamp(weighted, -5, 5) where weighted is the
+                            // server-side `sum(polarity * severityWeight) / count`. With
+                            // polarity ∈ {-2,-1,1,2} and severity weight ∈ {1,2,3} the raw
+                            // weighted value sits in [-6, +6]; we clamp to the user-facing
+                            // [-5, +5] visual scale (the original product spec).
+                            const categoryRows = UX_OBSERVATION_CATEGORIES.map((cat) => {
+                              const agg = perCategory[cat];
+                              const flags = agg?.flags ?? 0;
+                              const weighted = typeof agg?.weighted === "number" ? agg.weighted : 0;
+                              const score = Math.max(-5, Math.min(5, weighted));
+                              const positives = agg?.positives ?? 0;
+                              const negatives = agg?.negatives ?? 0;
+                              return { cat, flags, score, positives, negatives };
+                            });
+                            const flaggedCategoryCount = categoryRows.filter((r) => r.flags > 0).length;
                             const hasAnything =
                               friction !== null ||
                               fit !== null ||
                               coverage !== null ||
-                              categoryRows.length > 0 ||
+                              flaggedCategoryCount > 0 ||
                               strengths.length > 0 ||
                               weaknesses.length > 0 ||
                               quotes.length > 0;
@@ -1857,79 +1872,169 @@ export const MsqdxGlassChatPanel = ({
                                   </Box>
                                 ) : null}
 
-                                {/* Per-category bars */}
-                                {categoryRows.length > 0 ? (
-                                  <Box sx={{ mb: 1 }}>
+                                {/* Per-category scale (-5..+5). Always renders all 10
+                                    categories — empty rows are dimmed so the user can see
+                                    which dimensions the persona did NOT flag at all. */}
+                                <Box sx={{ mb: 1 }}>
+                                  <Box sx={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", mb: 0.5 }}>
                                     <Typography
                                       variant="caption"
-                                      sx={{ ...uxJourneyStepLabelSx, color: "text.secondary", display: "block", mb: 0.5 }}
+                                      sx={{ ...uxJourneyStepLabelSx, color: "text.secondary" }}
                                     >
                                       {t("chat.uxJourney.scorecard.perCategory")}
                                     </Typography>
-                                    <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-                                      {categoryRows.map(({ cat, agg }) => {
-                                        const positives = agg!.positives ?? 0;
-                                        const negatives = agg!.negatives ?? 0;
-                                        const flags = agg!.flags ?? 0;
-                                        const total = Math.max(1, positives + negatives);
-                                        const negPct = (negatives / total) * 100;
-                                        const posPct = (positives / total) * 100;
-                                        const greenC = theme.palette.success?.main || "#16a34a";
-                                        const redC = theme.palette.error?.main || "#dc2626";
-                                        return (
+                                    <Typography
+                                      variant="caption"
+                                      sx={{
+                                        color: "text.secondary",
+                                        fontFamily: MSQDX_TYPOGRAPHY.fontFamily.mono,
+                                        fontSize: "0.65rem",
+                                      }}
+                                    >
+                                      {t("chat.uxJourney.scorecard.scaleHint")}
+                                    </Typography>
+                                  </Box>
+                                  <Box sx={{ display: "flex", flexDirection: "column", gap: 0.6 }}>
+                                    {categoryRows.map(({ cat, flags, score, positives, negatives }) => {
+                                      const greenC = theme.palette.success?.main || "#16a34a";
+                                      const redC = theme.palette.error?.main || "#dc2626";
+                                      const dotColor =
+                                        flags === 0
+                                          ? alpha(theme.palette.text.secondary, 0.4)
+                                          : score > 0
+                                            ? greenC
+                                            : score < 0
+                                              ? redC
+                                              : alpha(theme.palette.text.secondary, 0.55);
+                                      const dotPct = ((score + 5) / 10) * 100;
+                                      const scoreLabel =
+                                        flags === 0
+                                          ? "—"
+                                          : `${score > 0 ? "+" : score < 0 ? "" : "±"}${score
+                                              .toFixed(1)
+                                              .replace(/\.0$/, "")}`;
+                                      const rowOpacity = flags === 0 ? 0.4 : 1;
+                                      const labelTooltip =
+                                        flags === 0
+                                          ? t("chat.uxJourney.scorecard.noFlags")
+                                          : `${positives} +  ·  ${negatives} −`;
+                                      return (
+                                        <Box
+                                          key={cat}
+                                          sx={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 0.75,
+                                            opacity: rowOpacity,
+                                          }}
+                                        >
                                           <Box
-                                            key={cat}
-                                            sx={{ display: "flex", alignItems: "center", gap: 0.75 }}
+                                            sx={{
+                                              display: "inline-flex",
+                                              alignItems: "center",
+                                              gap: 0.4,
+                                              minWidth: 120,
+                                              fontSize: "0.7rem",
+                                              fontFamily: MSQDX_TYPOGRAPHY.fontFamily.mono,
+                                              color: "text.secondary",
+                                            }}
                                           >
-                                            <Box
-                                              sx={{
-                                                display: "inline-flex",
-                                                alignItems: "center",
-                                                gap: 0.4,
-                                                minWidth: 110,
-                                                fontSize: "0.7rem",
-                                                fontFamily: MSQDX_TYPOGRAPHY.fontFamily.mono,
-                                                color: "text.secondary",
-                                              }}
-                                            >
-                                              <MsqdxIcon name={UX_OBSERVATION_CATEGORY_ICON[cat]} customSize={12} />
-                                              <span>{t(`chat.uxJourney.observations.category.${cat}`)}</span>
-                                            </Box>
+                                            <MsqdxIcon name={UX_OBSERVATION_CATEGORY_ICON[cat]} customSize={12} />
+                                            <span>{t(`chat.uxJourney.observations.category.${cat}`)}</span>
+                                          </Box>
+                                          <Tooltip title={labelTooltip} placement="top">
                                             <Box
                                               sx={{
                                                 position: "relative",
                                                 flex: 1,
-                                                height: 8,
-                                                borderRadius: 999,
-                                                backgroundColor: alpha(theme.palette.divider, 0.35),
-                                                overflow: "hidden",
+                                                height: 14,
                                                 display: "flex",
+                                                alignItems: "center",
                                               }}
                                             >
+                                              {/* Track with gradient -5(red) → 0(neutral) → +5(green) */}
                                               <Box
                                                 sx={{
-                                                  width: `${negPct}%`,
-                                                  backgroundColor: redC,
+                                                  position: "absolute",
+                                                  inset: 0,
+                                                  borderRadius: 999,
+                                                  backgroundImage: `linear-gradient(to right, ${alpha(redC, 0.3)} 0%, ${alpha(theme.palette.divider, 0.45)} 50%, ${alpha(greenC, 0.3)} 100%)`,
+                                                  border: `1px solid ${alpha(theme.palette.divider, 0.45)}`,
                                                 }}
                                               />
+                                              {/* Center (zero) tick */}
                                               <Box
                                                 sx={{
-                                                  width: `${posPct}%`,
-                                                  backgroundColor: greenC,
+                                                  position: "absolute",
+                                                  left: "50%",
+                                                  top: -1,
+                                                  bottom: -1,
+                                                  width: "1px",
+                                                  backgroundColor: alpha(theme.palette.text.secondary, 0.45),
+                                                }}
+                                              />
+                                              {/* Score dot */}
+                                              <Box
+                                                sx={{
+                                                  position: "absolute",
+                                                  top: "50%",
+                                                  left: `${dotPct}%`,
+                                                  transform: "translate(-50%, -50%)",
+                                                  width: flags === 0 ? 6 : 10,
+                                                  height: flags === 0 ? 6 : 10,
+                                                  borderRadius: "50%",
+                                                  backgroundColor: dotColor,
+                                                  border: `2px solid ${theme.palette.background.paper}`,
+                                                  boxShadow: flags === 0 ? "none" : `0 0 0 1px ${dotColor}`,
                                                 }}
                                               />
                                             </Box>
-                                            <Box sx={{ minWidth: 30, textAlign: "right" }}>
-                                              <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                                                {flags}
-                                              </Typography>
-                                            </Box>
+                                          </Tooltip>
+                                          <Box
+                                            sx={{
+                                              minWidth: 56,
+                                              textAlign: "right",
+                                              display: "flex",
+                                              alignItems: "center",
+                                              justifyContent: "flex-end",
+                                              gap: 0.5,
+                                            }}
+                                          >
+                                            <Typography
+                                              variant="caption"
+                                              sx={{
+                                                color:
+                                                  flags === 0
+                                                    ? "text.secondary"
+                                                    : score > 0
+                                                      ? greenC
+                                                      : score < 0
+                                                        ? redC
+                                                        : "text.secondary",
+                                                fontFamily: MSQDX_TYPOGRAPHY.fontFamily.mono,
+                                                fontWeight: 600,
+                                                minWidth: 28,
+                                              }}
+                                            >
+                                              {scoreLabel}
+                                            </Typography>
+                                            <Typography
+                                              variant="caption"
+                                              sx={{
+                                                color: "text.secondary",
+                                                fontFamily: MSQDX_TYPOGRAPHY.fontFamily.mono,
+                                                fontSize: "0.65rem",
+                                                minWidth: 16,
+                                              }}
+                                            >
+                                              {flags > 0 ? `(${flags})` : ""}
+                                            </Typography>
                                           </Box>
-                                        );
-                                      })}
-                                    </Box>
+                                        </Box>
+                                      );
+                                    })}
                                   </Box>
-                                ) : null}
+                                </Box>
 
                                 {/* Strengths */}
                                 {strengths.length > 0 ? (

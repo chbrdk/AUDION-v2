@@ -121,7 +121,8 @@ ux-journey: step 4 observations parsed=1 invalid=0
 ### Wiring & UI
 
 - The chat-api (`tool_executor.py`) passes `observations` through inside each step on every progress event and forwards the terminal `scorecard` on `tool_completed`.
-- The chat panel (`msqdx-glass-chat-panel.tsx`) renders observation chips per step (icon + category + polarity + severity dots, click toggles inline note/fix) and a scorecard block between the persona reply and the video (KPI tiles, coverage row, per-category bars, strengths/weaknesses/quotes accordions).
+- The chat panel (`msqdx-glass-chat-panel.tsx`) renders observation chips per step (icon + category + polarity + severity dots, click toggles inline note/fix) and a scorecard block between the persona reply and the video.
+- The scorecard shows a **per-category −5…+5 scale**: every dimension renders as a row with a coloured score dot positioned on a red→neutral→green track. The displayed score is `clamp(weighted, -5, +5)` where `weighted = sum(polarity * severityWeight) / count`; categories the persona did not flag are still shown but dimmed and labelled "—" so the absence of signal is visible. KPI tiles (Friction / Persona-Fit, both 0–10) and a coverage row sit above the per-category list, with strengths/weaknesses/quotes in collapsible accordions below.
 
 ## Video finalize: real motion vs. still fallbacks
 
