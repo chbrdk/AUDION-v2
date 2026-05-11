@@ -377,6 +377,43 @@ def init_db():
         except Exception as e:
             logger.warning(f"Projects/target_groups ORM column ensure failed: {e}")
 
+        # 2c-bis. Ensure persona_ux_journey_runs exists (Migration 20260510 might not run on legacy stamps).
+        try:
+            with engine.connect() as conn:
+                per_tbl = conn.execute(
+                    text(
+                        "SELECT EXISTS (SELECT 1 FROM information_schema.tables "
+                        "WHERE table_schema = 'audion' AND table_name = 'personas')"
+                    )
+                ).scalar()
+                if per_tbl:
+                    conn.execute(
+                        text(
+                            "CREATE TABLE IF NOT EXISTS audion.persona_ux_journey_runs ("
+                            "id UUID PRIMARY KEY, "
+                            "persona_id UUID NOT NULL REFERENCES audion.personas(id) ON DELETE CASCADE, "
+                            "job_id VARCHAR(80) NOT NULL, "
+                            "task TEXT, "
+                            "site_url TEXT, "
+                            "success BOOLEAN, "
+                            "steps_count INTEGER, "
+                            "scorecard JSONB, "
+                            "created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT now(), "
+                            "CONSTRAINT uq_persona_ux_journey_runs_persona_job "
+                            "UNIQUE (persona_id, job_id))"
+                        )
+                    )
+                    conn.execute(
+                        text(
+                            "CREATE INDEX IF NOT EXISTS ix_persona_ux_journey_runs_persona_id "
+                            "ON audion.persona_ux_journey_runs (persona_id)"
+                        )
+                    )
+                    conn.commit()
+                    logger.info("Ensured persona_ux_journey_runs table (UX-journey history).")
+        except Exception as e:
+            logger.warning(f"persona_ux_journey_runs ensure failed: {e}")
+
         # 2d. Persona bilingual ORM columns when 20260417_persona_bilingual_de was not applied (legacy stamp).
         try:
             with engine.connect() as conn:
