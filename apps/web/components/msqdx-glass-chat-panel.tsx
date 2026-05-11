@@ -260,6 +260,12 @@ type MsqdxGlassChatPanelProps = {
    * persona will then react to (and, if approved, browse).
    */
   onInspectWebsite?: (params: { messageId: string; url: string }) => void;
+  /**
+   * Called when the user clicks "Convert to journey" on a completed UX-run
+   * bubble. The page owns the conversion request + post-success state update;
+   * when omitted, the CTA is hidden.
+   */
+  onUxJourneyConvert?: (params: { messageId: string }) => void;
 };
 
 /** Embedded data URL or agent-relative `screenshotUrl` (proxied via `/api/ux-journey-agent`). */
@@ -458,6 +464,7 @@ export const MsqdxGlassChatPanel = ({
   systemPrompt,
   onUxJourneyDecision,
   onInspectWebsite,
+  onUxJourneyConvert,
 }: MsqdxGlassChatPanelProps) => {
   const bottomRef = useRef<HTMLDivElement>(null);
   /**
@@ -2381,6 +2388,45 @@ export const MsqdxGlassChatPanel = ({
                               {t("chat.uxJourney.videoUnavailable")}
                             </Typography>
                           )}
+                        </Box>
+                      ) : null}
+
+                      {message.uxJourney.status === "complete" && onUxJourneyConvert ? (
+                        <Box sx={{ mt: 1, display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                          {(message.uxJourney as { derivedJourneyId?: string }).derivedJourneyId ? (
+                            <Button
+                              component="a"
+                              href={`/admin/journeys/${encodeURIComponent((message.uxJourney as { derivedJourneyId?: string }).derivedJourneyId ?? "")}`}
+                              size="small"
+                              variant="outlined"
+                              startIcon={<MsqdxIcon name="map" customSize={16} />}
+                              sx={{ textTransform: "none", borderRadius: 999 }}
+                            >
+                              {t("chat.uxJourney.convertOpenJourney")}
+                            </Button>
+                          ) : (
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              startIcon={
+                                (message.uxJourney as { converting?: boolean }).converting ? (
+                                  <CircularProgress size={14} color="inherit" />
+                                ) : (
+                                  <MsqdxIcon name="auto_awesome" customSize={16} />
+                                )
+                              }
+                              disabled={Boolean((message.uxJourney as { converting?: boolean }).converting)}
+                              onClick={() => onUxJourneyConvert({ messageId: message.id })}
+                              sx={{ textTransform: "none", borderRadius: 999 }}
+                            >
+                              {t("chat.uxJourney.convertCta")}
+                            </Button>
+                          )}
+                          {(message.uxJourney as { convertError?: string }).convertError ? (
+                            <Typography variant="caption" sx={{ color: "error.main" }}>
+                              {(message.uxJourney as { convertError?: string }).convertError}
+                            </Typography>
+                          ) : null}
                         </Box>
                       ) : null}
 

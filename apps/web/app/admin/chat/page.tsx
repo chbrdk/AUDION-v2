@@ -269,6 +269,14 @@ type Message = {
     siteUrl?: string;
     /** True after the run has been recorded in `persona_ux_journey_runs`. */
     historyPersisted?: boolean;
+    /** Optional: db row id, set once we know the persona_ux_journey_runs.id. */
+    runRowId?: string;
+    /** Optional: structured Customer Journey id derived from this run. */
+    derivedJourneyId?: string;
+    /** True while a conversion is in flight to drive the UX. */
+    converting?: boolean;
+    /** Last conversion error message (display in the bubble). */
+    convertError?: string;
   };
 };
 
@@ -458,9 +466,9 @@ function AdminChatPageContent() {
       success?: boolean | null;
       stepsCount?: number | null;
       scorecard?: Record<string, unknown> | null;
-    }): Promise<boolean> => {
+    }): Promise<{ ok: boolean; runId?: string; derivedJourneyId?: string | null }> => {
       const personaId = input.personaId || activePersonaIdRef.current || "";
-      if (!personaId || !input.jobId) return false;
+      if (!personaId || !input.jobId) return { ok: false };
       try {
         const body: Record<string, unknown> = { jobId: input.jobId };
         if (typeof input.task === "string" && input.task.trim()) body.task = input.task.trim();
@@ -477,9 +485,15 @@ function AdminChatPageContent() {
             body: JSON.stringify(body),
           },
         );
-        return res.ok;
+        if (!res.ok) return { ok: false };
+        try {
+          const data = (await res.json()) as { id?: string; derivedJourneyId?: string | null };
+          return { ok: true, runId: data?.id, derivedJourneyId: data?.derivedJourneyId ?? null };
+        } catch {
+          return { ok: true };
+        }
       } catch {
-        return false;
+        return { ok: false };
       }
     },
     [],
@@ -585,7 +599,7 @@ function AdminChatPageContent() {
                   ),
                 );
                 if (!m.uxJourney?.historyPersisted) {
-                  const ok = await persistPersonaUxJourneyRun({
+                  const persistResult = await persistPersonaUxJourneyRun({
                     personaId: m.uxJourney?.personaId,
                     jobId,
                     task: m.uxJourney?.task ?? null,
@@ -595,7 +609,7 @@ function AdminChatPageContent() {
                     stepsCount: Array.isArray(finalSteps) ? finalSteps.length : null,
                     scorecard: finalScorecard,
                   });
-                  if (ok) {
+                  if (persistResult.ok) {
                     setMessages((prev) =>
                       prev.map((msg) =>
                         msg.id === m.id
@@ -604,6 +618,9 @@ function AdminChatPageContent() {
                               uxJourney: {
                                 ...(msg.uxJourney ?? { jobId }),
                                 historyPersisted: true,
+                                runRowId: persistResult.runId ?? msg.uxJourney?.runRowId,
+                                derivedJourneyId:
+                                  persistResult.derivedJourneyId ?? msg.uxJourney?.derivedJourneyId,
                               },
                             }
                           : msg,
@@ -872,7 +889,7 @@ function AdminChatPageContent() {
           } catch {
             // never block UI
           }
-          await persistPersonaUxJourneyRun({
+          const persistResult = await persistPersonaUxJourneyRun({
             personaId: activePersonaId,
             jobId: uxJourneyJobId,
             task: uxJourneyTask.trim() || null,
@@ -894,7 +911,10 @@ function AdminChatPageContent() {
                       ...m,
                       uxJourney: {
                         ...(m.uxJourney ?? { jobId: uxJourneyJobId }),
-                        historyPersisted: true,
+                        historyPersisted: persistResult.ok ? true : m.uxJourney?.historyPersisted,
+                        runRowId: persistResult.runId ?? m.uxJourney?.runRowId,
+                        derivedJourneyId:
+                          persistResult.derivedJourneyId ?? m.uxJourney?.derivedJourneyId,
                       },
                     }
                   : m,
@@ -1087,6 +1107,88 @@ function AdminChatPageContent() {
 
   /** Approve/Deny click from a `tool_proposed` confirm CTA (admin chat).
    *  Mirrors apps/web/app/chat/page.tsx — see comment there for the lifecycle. */
+  const handleUxJourneyConvert = useCallback(
+    async ({ messageId }: { messageId: string }) => {
+      const msg = messagesRef.current.find((m) => m.id === messageId);
+      const uj = msg?.uxJourney;
+      if (!uj?.jobId) return;
+      if (uj.derivedJourneyId) {
+        return;
+      }
+      const personaId = uj.personaId ?? activePersonaIdRef.current;
+      if (!personaId) return;
+
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId
+            ? { ...m, uxJourney: { ...(m.uxJourney ?? { jobId: uj.jobId }), converting: true, convertError: undefined } }
+            : m,
+        ),
+      );
+
+      try {
+        const orgId =
+          typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+            ? crypto.randomUUID()
+            : `org-${Math.random().toString(36).slice(2)}-${Date.now().toString(36)}`;
+        const res = await fetch(buildApiUrl("/api/journeys/from-ux-run"), {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            personaUxJourneyRunId: uj.runRowId || undefined,
+            jobId: uj.jobId,
+            personaId,
+            mode: "ai",
+            journeyType: "ux_audit",
+            organizationId: orgId,
+            journeyName: uj.task ? `UX-Run: ${uj.task.slice(0, 80)}` : undefined,
+          }),
+        });
+        if (!res.ok) {
+          throw new Error(`Conversion failed (${res.status})`);
+        }
+        const data = (await res.json()) as { journey?: { id?: string } };
+        const journeyId = data.journey?.id;
+        if (!journeyId) {
+          throw new Error("Missing journey id in response");
+        }
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === messageId
+              ? {
+                  ...m,
+                  uxJourney: {
+                    ...(m.uxJourney ?? { jobId: uj.jobId }),
+                    converting: false,
+                    derivedJourneyId: journeyId,
+                    convertError: undefined,
+                  },
+                }
+              : m,
+          ),
+        );
+      } catch (err) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === messageId
+              ? {
+                  ...m,
+                  uxJourney: {
+                    ...(m.uxJourney ?? { jobId: uj.jobId }),
+                    converting: false,
+                    convertError:
+                      err instanceof Error ? err.message : t("chat.uxJourney.convertError"),
+                  },
+                }
+              : m,
+          ),
+        );
+      }
+    },
+    [t],
+  );
+
   const handleUxJourneyDecision = async ({
     messageId,
     callId,
@@ -2136,7 +2238,7 @@ function AdminChatPageContent() {
               }),
             );
             if (!snapshot?.historyPersisted) {
-              const ok = await persistPersonaUxJourneyRun({
+              const persistResult = await persistPersonaUxJourneyRun({
                 personaId: snapshot?.personaId ?? activePersonaIdRef.current,
                 jobId,
                 task: snapshot?.task ?? null,
@@ -2150,7 +2252,7 @@ function AdminChatPageContent() {
                 stepsCount,
                 scorecard: finalScorecard,
               });
-              if (ok) {
+              if (persistResult.ok) {
                 setMessages((prev) =>
                   prev.map((m) =>
                     m.id === personaMessageId
@@ -2159,6 +2261,9 @@ function AdminChatPageContent() {
                           uxJourney: {
                             ...(m.uxJourney ?? { jobId }),
                             historyPersisted: true,
+                            runRowId: persistResult.runId ?? m.uxJourney?.runRowId,
+                            derivedJourneyId:
+                              persistResult.derivedJourneyId ?? m.uxJourney?.derivedJourneyId,
                           },
                         }
                       : m,
@@ -3488,6 +3593,7 @@ function AdminChatPageContent() {
                   systemPrompt={currentSystemPrompt}
                   onUxJourneyDecision={handleUxJourneyDecision}
                   onInspectWebsite={handleInspectHintClick}
+                  onUxJourneyConvert={handleUxJourneyConvert}
                 />
               </Box>
             )}

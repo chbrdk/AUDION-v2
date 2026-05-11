@@ -640,6 +640,86 @@ templates:
         description: description
         phases: phases
 
+  - template_id: journey.from_ux_run
+    label: Journey From UX-Run
+    description: "Convert a UX-journey-agent browser walkthrough (steps, observations, scorecard) into a structured Customer Journey."
+    category: journey
+    tags: ["journey", "ux_run", "conversion"]
+    default_provider: openai
+    default_model: gpt-5.4-mini
+    cache_prefix_last_variable: scorecard_summary
+    prompt: |
+      LANGUAGE: All human-readable strings in the JSON (journey name, description, phase names, phase descriptions, element "content") must be written exclusively in ${generated_text_locale_name}. Keep JSON keys, "element_type", "expected_emotion" tokens and "duration_unit" values in English as specified.
+
+      You are a senior UX researcher. A persona walked through a website (real browser session). Below you find:
+      - the persona summary
+      - the task the persona was trying to complete
+      - the target site URL
+      - an aggregated UX scorecard (KPIs, per-category ratings, strengths/weaknesses)
+      - a step-by-step transcript (action + target + reasoning) of what happened
+      - validated step observations (positive/negative findings per UX category)
+
+      Your job: turn this walkthrough into a structured Customer Journey with logical PHASES (3-6 phases), so that the team can map it back to their journey workflow.
+
+      PERSONA:
+      ${persona_summary}
+
+      TASK: ${task}
+      SITE: ${site_url}
+      JOURNEY TYPE: ${journey_type}
+
+      SCORECARD (aggregated):
+      ${scorecard_summary}
+
+      STEP TRANSCRIPT:
+      ${steps_brief}
+
+      OBSERVATIONS:
+      ${observations_brief}
+
+      Phase rules:
+      - Cluster consecutive steps by intent / URL section (e.g. "Discover", "Compare", "Configure", "Checkout").
+      - 3-6 phases total, each with a phase_order (1-based), name (max 50 chars), description (1-2 sentences).
+      - expected_emotion MUST be one of: frustrated, anxious, neutral, hopeful, satisfied, delighted. Derive from observations + scorecard for that phase.
+      - emotion_intensity: float between 0.0 and 1.0.
+      - duration_unit always "minutes" unless the task implies otherwise.
+
+      Element rules per phase:
+      - Convert step actions into element_type "action".
+      - Use observed user reasoning as element_type "thought" (short, first-person if locale allows).
+      - Negative observations (polarity < 0) become element_type "pain_point".
+      - Positive observations (polarity > 0) become element_type "opportunity".
+      - Step targets representing UI touchpoints (URLs, key elements) become element_type "touchpoint".
+      - Include 3-8 elements per phase total; keep "content" concise (one sentence each).
+
+      Output STRICT JSON:
+      {
+        "name": "string",
+        "description": "string",
+        "phases": [
+          {
+            "name": "string",
+            "description": "string",
+            "phase_order": 1,
+            "expected_duration_min": 1,
+            "expected_duration_max": 5,
+            "duration_unit": "minutes",
+            "expected_emotion": "neutral",
+            "emotion_intensity": 0.5,
+            "elements": [
+              { "element_type": "action", "content": "string", "element_order": 1 }
+            ]
+          }
+        ]
+      }
+    output:
+      mode: json
+      key: null
+      item_fields:
+        name: name
+        description: description
+        phases: phases
+
   - template_id: journey.phase.name
     label: Phase Name Suggestion
     description: "Generate a concise, user-focused name for a journey phase."

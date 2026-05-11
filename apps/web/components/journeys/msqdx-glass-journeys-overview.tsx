@@ -11,6 +11,7 @@ import { buildApiUrl } from "../../app/api/_lib/backend";
 import { ADMIN_ROUTES } from "../../lib/routes";
 import { useProject } from "../projects/project-provider";
 import { useI18n } from "../i18n/i18n-provider";
+import { MsqdxGlassConvertUxRunDialog } from "./msqdx-glass-convert-ux-run-dialog";
 
 export type MsqdxGlassJourneysOverviewProps = {
   initialJourneys: JourneyResponse[];
@@ -53,6 +54,20 @@ export function MsqdxGlassJourneysOverview({ initialJourneys }: MsqdxGlassJourne
   const [createOrgId, setCreateOrgId] = useState<string>(() => generateUUID());
   const [previewPersonas, setPreviewPersonas] = useState<{ id: string; name: string }[]>([]);
 
+  type UxRunPickerRow = {
+    id: string;
+    jobId: string;
+    task?: string | null;
+    siteUrl?: string | null;
+    createdAt?: string;
+    derivedJourneyId?: string | null;
+  };
+  const [createFromUxOpen, setCreateFromUxOpen] = useState(false);
+  const [selectedPersonaIdForUx, setSelectedPersonaIdForUx] = useState<string | null>(null);
+  const [uxRunsForPersona, setUxRunsForPersona] = useState<UxRunPickerRow[]>([]);
+  const [loadingUxRuns, setLoadingUxRuns] = useState(false);
+  const [convertRunOpen, setConvertRunOpen] = useState<UxRunPickerRow | null>(null);
+
   const refresh = async (projectId: string | null) => {
     setLoading(true);
     setError(null);
@@ -90,6 +105,32 @@ export function MsqdxGlassJourneysOverview({ initialJourneys }: MsqdxGlassJourne
       })
       .catch(() => setPreviewPersonas([]));
   }, [activeProjectId]);
+
+  useEffect(() => {
+    if (!selectedPersonaIdForUx) {
+      setUxRunsForPersona([]);
+      return;
+    }
+    let cancelled = false;
+    setLoadingUxRuns(true);
+    void fetch(
+      buildApiUrl(`/api/persona-admin/${encodeURIComponent(selectedPersonaIdForUx)}/ux-journey-runs`),
+      { cache: "no-store" },
+    )
+      .then((res) => (res.ok ? res.json() : []))
+      .then((rows: UxRunPickerRow[]) => {
+        if (!cancelled) setUxRunsForPersona(Array.isArray(rows) ? rows : []);
+      })
+      .catch(() => {
+        if (!cancelled) setUxRunsForPersona([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingUxRuns(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPersonaIdForUx]);
 
   const items = useMemo(() => journeys ?? [], [journeys]);
 
@@ -144,6 +185,127 @@ export function MsqdxGlassJourneysOverview({ initialJourneys }: MsqdxGlassJourne
           alignItems: "start",
         }}
       >
+        {/* Create from UX-run */}
+        {!createFromUxOpen ? (
+          <MsqdxMoleculeCard
+            variant="flat"
+            borderRadius="button"
+            clickable
+            hoverable
+            onClick={() => setCreateFromUxOpen(true)}
+            title={t("journeys.convertFromUxRun.createFromUxRunTab")}
+            titleVariant="h6"
+            subtitle={t("journeys.convertFromUxRun.subtitle")}
+            headerActions={<MsqdxIcon name="auto_awesome" customSize={22} style={{ color: accent }} />}
+            sx={{
+              minHeight: 140,
+              border: "2px dashed",
+              borderColor: accent,
+              "& .MuiTypography-h6": { color: accent },
+            }}
+          />
+        ) : (
+          <MsqdxMoleculeCard
+            variant="flat"
+            borderRadius="button"
+            title={t("journeys.convertFromUxRun.createFromUxRunTab")}
+            titleVariant="h6"
+            sx={{
+              minHeight: 140,
+              border: "1px solid",
+              borderColor: accent,
+              "& .MuiTypography-h6": { color: accent },
+            }}
+            actions={(
+              <MsqdxButton
+                variant="text"
+                size="small"
+                type="button"
+                onClick={() => {
+                  setCreateFromUxOpen(false);
+                  setSelectedPersonaIdForUx(null);
+                }}
+                sx={{ color: accent }}
+              >
+                {t("common.cancel")}
+              </MsqdxButton>
+            )}
+          >
+            <Stack spacing={1.5}>
+              <MsqdxSelect
+                label={t("journeys.convertFromUxRun.selectPersona")}
+                value={selectedPersonaIdForUx ?? ""}
+                onChange={(event: any) => setSelectedPersonaIdForUx(event.target.value || null)}
+                options={previewPersonas.map((p) => ({ value: p.id, label: p.name || p.id }))}
+                size="small"
+              />
+              {selectedPersonaIdForUx && loadingUxRuns ? (
+                <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
+                  {t("journeys.convertFromUxRun.loadingRuns")}
+                </MsqdxTypography>
+              ) : null}
+              {selectedPersonaIdForUx && !loadingUxRuns && uxRunsForPersona.length === 0 ? (
+                <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
+                  {t("journeys.convertFromUxRun.noRunsForPersona")}
+                </MsqdxTypography>
+              ) : null}
+              {uxRunsForPersona.length > 0 ? (
+                <Stack spacing={0.5}>
+                  {uxRunsForPersona.map((row) => (
+                    <Box
+                      key={row.id}
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        border: "1px solid",
+                        borderColor: "divider",
+                        borderRadius: 1,
+                        p: 1,
+                      }}
+                    >
+                      <Box sx={{ minWidth: 0 }}>
+                        <MsqdxTypography variant="body2" weight="medium">
+                          {row.task ? row.task.slice(0, 60) : row.jobId}
+                        </MsqdxTypography>
+                        {row.siteUrl ? (
+                          <MsqdxTypography
+                            variant="caption"
+                            sx={{ color: "text.secondary", wordBreak: "break-all", display: "block" }}
+                          >
+                            {row.siteUrl}
+                          </MsqdxTypography>
+                        ) : null}
+                      </Box>
+                      {row.derivedJourneyId ? (
+                        <MsqdxButton
+                          variant="outlined"
+                          size="small"
+                          type="button"
+                          onClick={() => router.push(ADMIN_ROUTES.journeyDetail(row.derivedJourneyId!))}
+                          sx={{ borderColor: accent, color: accent }}
+                        >
+                          {t("personaAdmin.openDerivedJourney")}
+                        </MsqdxButton>
+                      ) : (
+                        <MsqdxButton
+                          variant="outlined"
+                          size="small"
+                          type="button"
+                          onClick={() => setConvertRunOpen(row)}
+                          sx={{ borderColor: accent, color: accent }}
+                        >
+                          {t("journeys.convertFromUxRun.cta")}
+                        </MsqdxButton>
+                      )}
+                    </Box>
+                  ))}
+                </Stack>
+              ) : null}
+            </Stack>
+          </MsqdxMoleculeCard>
+        )}
+
         {/* Create Journey */}
         {!showCreate ? (
           <MsqdxMoleculeCard
@@ -373,6 +535,30 @@ export function MsqdxGlassJourneysOverview({ initialJourneys }: MsqdxGlassJourne
           )}
         </Box>
       )}
+
+      <MsqdxGlassConvertUxRunDialog
+        open={Boolean(convertRunOpen)}
+        onClose={() => setConvertRunOpen(null)}
+        personaId={selectedPersonaIdForUx ?? null}
+        runId={convertRunOpen?.id ?? null}
+        jobId={convertRunOpen?.jobId ?? null}
+        organizationId={createOrgId}
+        projectId={activeProjectId ?? null}
+        defaultName={
+          convertRunOpen?.task ? `UX-Run: ${convertRunOpen.task.slice(0, 80)}` : undefined
+        }
+        alreadyConverted={Boolean(convertRunOpen?.derivedJourneyId)}
+        derivedJourneyId={convertRunOpen?.derivedJourneyId ?? null}
+        onSuccess={({ journeyId }) => {
+          if (selectedPersonaIdForUx) {
+            setUxRunsForPersona((rows) =>
+              rows.map((r) => (r.id === convertRunOpen?.id ? { ...r, derivedJourneyId: journeyId } : r)),
+            );
+          }
+          void refresh(activeProjectId ?? null);
+          router.push(ADMIN_ROUTES.journeyDetail(journeyId));
+        }}
+      />
     </Box>
   );
 }

@@ -139,6 +139,7 @@ def _serialize_moodboard_tile(tile: PersonaMoodboardTile, *, persona_id: UUID, p
 
 def _serialize_persona_ux_journey_run(row: PersonaUxJourneyRun) -> PersonaUxJourneyRunItem:
     sc = row.scorecard if isinstance(row.scorecard, dict) else None
+    derived = getattr(row, "derived_journey_id", None)
     return PersonaUxJourneyRunItem(
         id=str(row.id),
         jobId=str(row.job_id or "").strip(),
@@ -148,6 +149,7 @@ def _serialize_persona_ux_journey_run(row: PersonaUxJourneyRun) -> PersonaUxJour
         stepsCount=row.steps_count,
         scorecard=sc,
         createdAt=row.created_at,
+        derivedJourneyId=str(derived) if derived else None,
     )
 
 
@@ -2324,3 +2326,63 @@ def upsert_persona_ux_journey_run_admin(
             _log.exception("persona_ux_journey_runs.upsert.failed persona_id=%s", persona_id)
             raise
     return _serialize_persona_ux_journey_run(row)
+
+
+@persona_admin_router.post(
+    "/{persona_id}/ux-journey-runs/{run_id}/convert",
+    summary="Convenience: convert this UX-run into a Customer-Journey (admin)",
+    description=(
+        "Forwards to `POST /journeys/from-ux-run`. Pre-fills `personaUxJourneyRunId` "
+        "and `personaId` so the persona-admin UI does not have to know about the "
+        "journey-mapper route."
+    ),
+)
+async def convert_persona_ux_journey_run_admin(
+    persona_id: str,
+    run_id: str,
+    body: dict = Body(default_factory=dict),
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    force: bool = Query(False),
+):
+    from .journeys_from_ux_runs import create_journey_from_ux_run
+    from ..schemas import JourneyFromUxRunRequest
+
+    persona = _get_persona_or_404(session, persona_id)
+    try:
+        run_uuid = UUID(run_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid run id") from exc
+    row = session.scalar(
+        select(PersonaUxJourneyRun).where(
+            PersonaUxJourneyRun.id == run_uuid,
+            PersonaUxJourneyRun.persona_id == persona.id,
+        )
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="UX-journey run not found")
+
+    organization_id = (
+        body.get("organizationId")
+        if isinstance(body, dict)
+        else None
+    ) or str(getattr(current_user, "id", ""))
+
+    payload = JourneyFromUxRunRequest(
+        personaUxJourneyRunId=str(row.id),
+        jobId=row.job_id,
+        personaId=str(persona.id),
+        mode=(body.get("mode") if isinstance(body, dict) else None) or "ai",
+        journeyName=body.get("journeyName") if isinstance(body, dict) else None,
+        journeyType=(body.get("journeyType") if isinstance(body, dict) else None) or "ux_audit",
+        targetGroupId=body.get("targetGroupId") if isinstance(body, dict) else None,
+        projectId=(body.get("projectId") if isinstance(body, dict) else None) or str(persona.project_id),
+        organizationId=organization_id,
+        locale=body.get("locale") if isinstance(body, dict) else None,
+    )
+    return await create_journey_from_ux_run(
+        body=payload,
+        session=session,
+        current_user=current_user,
+        force=force,
+    )

@@ -409,8 +409,42 @@ def init_db():
                             "ON audion.persona_ux_journey_runs (persona_id)"
                         )
                     )
+                    # Backlink columns for "convert UX-run to Customer-Journey"
+                    # (migration 20260512_journeys_from_ux_runs). Idempotent so
+                    # legacy DBs that skipped the migration still self-heal.
+                    conn.execute(
+                        text(
+                            "ALTER TABLE audion.persona_ux_journey_runs "
+                            "ADD COLUMN IF NOT EXISTS derived_journey_id UUID"
+                        )
+                    )
+                    conn.execute(
+                        text(
+                            "CREATE INDEX IF NOT EXISTS ix_persona_ux_journey_runs_derived_journey_id "
+                            "ON audion.persona_ux_journey_runs (derived_journey_id)"
+                        )
+                    )
+                    j_tbl = conn.execute(
+                        text(
+                            "SELECT EXISTS (SELECT 1 FROM information_schema.tables "
+                            "WHERE table_schema = 'audion' AND table_name = 'journeys')"
+                        )
+                    ).scalar()
+                    if j_tbl:
+                        conn.execute(
+                            text(
+                                "ALTER TABLE audion.journeys "
+                                "ADD COLUMN IF NOT EXISTS source_ux_journey_run_id UUID"
+                            )
+                        )
+                        conn.execute(
+                            text(
+                                "CREATE INDEX IF NOT EXISTS ix_journeys_source_ux_journey_run_id "
+                                "ON audion.journeys (source_ux_journey_run_id)"
+                            )
+                        )
                     conn.commit()
-                    logger.info("Ensured persona_ux_journey_runs table (UX-journey history).")
+                    logger.info("Ensured persona_ux_journey_runs table + journey backlinks.")
         except Exception as e:
             logger.warning(f"persona_ux_journey_runs ensure failed: {e}")
 

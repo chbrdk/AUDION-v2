@@ -272,6 +272,10 @@ class PersonaUxJourneyRunItem(BaseModel):
     stepsCount: int | None = Field(default=None, description="Number of recorded steps.")
     scorecard: Dict[str, Any] | None = Field(default=None, description="Aggregated scorecard JSON when available.")
     createdAt: datetime = Field(..., description="When this row was first recorded (UTC).")
+    derivedJourneyId: str | None = Field(
+        default=None,
+        description="ID of the Customer-Journey this run was converted into (NULL until the user clicks 'Convert').",
+    )
 
 
 class PersonaUxJourneyRunUpsert(BaseModel):
@@ -281,6 +285,67 @@ class PersonaUxJourneyRunUpsert(BaseModel):
     success: bool | None = None
     stepsCount: int | None = None
     scorecard: Dict[str, Any] | None = None
+
+
+class JourneyFromUxRunRequest(BaseModel):
+    """Request body for converting a UX-journey-agent run into a Customer-Journey."""
+
+    personaUxJourneyRunId: str | None = Field(
+        default=None,
+        description="Optional: persona_ux_journey_runs row id. One of personaUxJourneyRunId/jobId required.",
+    )
+    jobId: str | None = Field(
+        default=None,
+        description="Optional: UX-agent jobId (falls back to fetching live state when no row exists).",
+    )
+    personaId: str | None = Field(
+        default=None,
+        description="Persona id. Required when only jobId is provided.",
+    )
+    mode: str = Field(
+        default="ai",
+        description="Conversion strategy: 'ai' (default, LLM-based phase clustering) or 'deterministic' (URL-path cluster).",
+    )
+    journeyName: str | None = Field(default=None, description="Override name for the new journey.")
+    journeyType: str | None = Field(
+        default="ux_audit",
+        description="Free-form journey type token (e.g. 'ux_audit', 'discovery').",
+    )
+    targetGroupId: str | None = Field(
+        default=None,
+        description="Override target group id; defaults to the persona's target_group_id.",
+    )
+    projectId: str | None = Field(default=None, description="Project id (defaults to persona.project_id).")
+    organizationId: str = Field(..., description="Organization id of the calling tenant.")
+    locale: str | None = Field(
+        default=None,
+        description="Output locale for AI mode ('en' | 'de'). Defaults to request UI locale.",
+    )
+
+
+class JourneyFromUxRunResponse(BaseModel):
+    """Response after a successful conversion."""
+
+    journey: Any = Field(..., description="Full JourneyResponse payload of the created journey.")
+    mode: str = Field(..., description="Mode that actually produced the saved journey ('ai' or 'deterministic').")
+    fallbackUsed: bool = Field(
+        default=False,
+        description="True when AI mode was requested but the deterministic fallback produced the saved journey.",
+    )
+    alreadyConverted: bool = Field(
+        default=False,
+        description="True when the source run was already converted before; the existing journey is returned.",
+    )
+
+
+class JourneyFromUxRunDraftResponse(BaseModel):
+    """Preview-only conversion: structured draft without persisting."""
+
+    draft: Dict[str, Any] = Field(..., description="JourneyDraft as dict (name, description, phases[]).")
+    mode: str = Field(..., description="Mode that produced the draft.")
+    fallbackUsed: bool = Field(default=False)
+    persona: Dict[str, Any] = Field(default_factory=dict, description="Persona snapshot { id, name }.")
+    sourceJobId: str | None = Field(default=None, description="UX-agent jobId source.")
 
 
 class PersonaMetadata(BaseModel):

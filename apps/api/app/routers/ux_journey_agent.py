@@ -6,23 +6,11 @@ import httpx
 from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 
-from ..core.config import get_settings
 from ..models import User
 from ..services.auth import get_current_user
+from ..services.ux_journey_agent_client import agent_base_url_or_503 as _agent_base_url_or_503
 
 router = APIRouter(prefix="/ux-journey-agent", tags=["ux-journey-agent"])
-
-
-def _agent_base_url_or_503() -> tuple[str, float]:
-    settings = get_settings()
-    base = (settings.ux_journey_agent_url or "").strip().rstrip("/")
-    if not base:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="UX Journey Agent is not configured (UX_JOURNEY_AGENT_URL).",
-        )
-    timeout = float(settings.ux_journey_agent_timeout_seconds or 30.0)
-    return base, timeout
 
 
 @router.post("/run")

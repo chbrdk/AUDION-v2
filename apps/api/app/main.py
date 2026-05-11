@@ -19,6 +19,7 @@ from .routers.settings import router as settings_router
 from .routers.personas import router as personas_router, persona_admin_router
 from .routers.target_groups import router as target_groups_router
 from .routers.journeys import router as journeys_router
+from .routers.journeys_from_ux_runs import router as journeys_from_ux_runs_router
 from .routers.queue import router as queue_router
 from .routers.integrations_checkion import router as integrations_checkion_router
 from .routers.ux_journey_agent import router as ux_journey_agent_router
@@ -86,6 +87,7 @@ def create_app() -> FastAPI:
     app.include_router(persona_admin_router)
     app.include_router(target_groups_router)
     app.include_router(journeys_router)
+    app.include_router(journeys_from_ux_runs_router)
     app.include_router(queue_router)
     app.include_router(integrations_checkion_router)
     app.include_router(ux_journey_agent_router)

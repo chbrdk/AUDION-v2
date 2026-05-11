@@ -379,6 +379,13 @@ class PersonaUxJourneyRun(Base):
     steps_count = Column(Integer, nullable=True)
     scorecard = Column(JSONB, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    # Idempotent backlink to the structured Customer-Journey created from this run
+    # (see UxRunToJourneyService). Stays NULL until the user explicitly converts.
+    derived_journey_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("audion.journeys.id", ondelete="SET NULL"),
+        nullable=True,
+    )
 
     persona = relationship("Persona", back_populates="ux_journey_runs")
 
@@ -533,6 +540,11 @@ class Journey(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     created_by = Column(String(128), nullable=True)
+    # Weak reference to `persona_ux_journey_runs.id` when this journey was
+    # derived from a browser UX-walkthrough. No FK to avoid circular cascades
+    # (the run gets SET NULL via its own derived_journey_id when this journey
+    # is deleted).
+    source_ux_journey_run_id = Column(UUID(as_uuid=True), nullable=True)
 
     target_group = relationship("TargetGroup", back_populates="journeys")
     phases = relationship("JourneyPhase", back_populates="journey", cascade="all, delete-orphan")

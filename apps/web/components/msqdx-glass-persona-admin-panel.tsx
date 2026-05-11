@@ -54,6 +54,7 @@ import {
 import { useProject } from "./projects/project-provider";
 import { useI18n } from "./i18n/i18n-provider";
 import { targetGroupsApi, type TargetGroupResponse } from "../app/api/_lib/target-groups";
+import { MsqdxGlassConvertUxRunDialog } from "./journeys/msqdx-glass-convert-ux-run-dialog";
 
 type MsqdxGlassPersonaAdminPanelProps = {
   initialList: PersonaListResponse;
@@ -120,6 +121,7 @@ type PersonaUxJourneyRunRow = {
   stepsCount?: number | null;
   scorecard?: Record<string, unknown> | null;
   createdAt: string;
+  derivedJourneyId?: string | null;
 };
 
 type PersonaSaveUpdates =
@@ -276,6 +278,12 @@ export const MsqdxGlassPersonaAdminPanel = ({
   const [uxJourneyRuns, setUxJourneyRuns] = useState<PersonaUxJourneyRunRow[]>([]);
   const [uxJourneyRunsLoading, setUxJourneyRunsLoading] = useState(false);
   const [uxJourneyRunsError, setUxJourneyRunsError] = useState<string | null>(null);
+  const [convertRunDialog, setConvertRunDialog] = useState<{ run: PersonaUxJourneyRunRow } | null>(null);
+  const convertOrganizationIdRef = useRef<string>(
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `org-${Math.random().toString(36).slice(2)}-${Date.now().toString(36)}`,
+  );
   const [tileDialogOpen, setTileDialogOpen] = useState(false);
   const [activeTile, setActiveTile] = useState<MoodboardTile | null>(null);
   const [tileEditCaption, setTileEditCaption] = useState("");
@@ -2601,6 +2609,30 @@ export const MsqdxGlassPersonaAdminPanel = ({
                                       {t("personaAdmin.uxJourneyRunVideo")}
                                     </MsqdxButton>
                                   </a>
+                                  {run.derivedJourneyId ? (
+                                    <a
+                                      href={`/admin/journeys/${encodeURIComponent(run.derivedJourneyId)}`}
+                                      style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}
+                                    >
+                                      <MsqdxButton
+                                        component="span"
+                                        size="small"
+                                        variant="outlined"
+                                        startIcon={<MsqdxIcon name="map" customSize={16} />}
+                                      >
+                                        {t("personaAdmin.openDerivedJourney")}
+                                      </MsqdxButton>
+                                    </a>
+                                  ) : (
+                                    <MsqdxButton
+                                      size="small"
+                                      variant="outlined"
+                                      startIcon={<MsqdxIcon name="auto_awesome" customSize={16} />}
+                                      onClick={() => setConvertRunDialog({ run })}
+                                    >
+                                      {t("personaAdmin.convertToJourney")}
+                                    </MsqdxButton>
+                                  )}
                                 </Box>
                               </Box>
                               {taskPreview ? (
@@ -2897,6 +2929,34 @@ export const MsqdxGlassPersonaAdminPanel = ({
           </MsqdxButton>
         </DialogActions>
       </Dialog>
+
+      <MsqdxGlassConvertUxRunDialog
+        open={Boolean(convertRunDialog)}
+        onClose={() => setConvertRunDialog(null)}
+        personaId={selectedId ?? null}
+        runId={convertRunDialog?.run.id ?? null}
+        jobId={convertRunDialog?.run.jobId ?? null}
+        organizationId={convertOrganizationIdRef.current}
+        projectId={detail?.metadata?.projectId ?? null}
+        defaultTargetGroupId={detail?.metadata?.targetGroupId ?? null}
+        defaultName={
+          convertRunDialog?.run.task
+            ? `UX-Run: ${convertRunDialog.run.task.slice(0, 80)}`
+            : undefined
+        }
+        alreadyConverted={Boolean(convertRunDialog?.run.derivedJourneyId)}
+        derivedJourneyId={convertRunDialog?.run.derivedJourneyId ?? null}
+        onSuccess={({ journeyId }) => {
+          setUxJourneyRuns((prev) =>
+            prev.map((r) =>
+              r.id === convertRunDialog?.run.id ? { ...r, derivedJourneyId: journeyId } : r,
+            ),
+          );
+          if (selectedId) {
+            void loadUxJourneyRuns(selectedId);
+          }
+        }}
+      />
     </div>
   );
 };
