@@ -2149,6 +2149,21 @@ def delete_moodboard_tile_admin(tile_id: str, session: Session = Depends(get_db)
     session.commit()
 
 
+def _is_missing_relation_error(exc: Exception) -> bool:
+    """Detect Postgres "relation does not exist" so we can degrade gracefully.
+
+    The persona-admin UX-journey timeline ships with its own Alembic
+    migration (``20260510_persona_ux_journey_runs``). In environments where
+    the migration hasn't been applied yet (fresh deploy, branch swap, dev
+    DB) the GET endpoint must not 500 — the persona detail page should
+    still load and the timeline should simply be empty.
+    """
+    msg = str(getattr(exc, "orig", exc)).lower()
+    return "persona_ux_journey_runs" in msg and (
+        "does not exist" in msg or "undefinedtable" in msg
+    )
+
+
 @persona_admin_router.get(
     "/{persona_id}/ux-journey-runs",
     response_model=list[PersonaUxJourneyRunItem],
@@ -2160,15 +2175,25 @@ def list_persona_ux_journey_runs_admin(
     limit: int = Query(100, ge=1, le=200),
 ) -> list[PersonaUxJourneyRunItem]:
     persona = _get_persona_or_404(session, persona_id)
-    rows = (
-        session.scalars(
-            select(PersonaUxJourneyRun)
-            .where(PersonaUxJourneyRun.persona_id == persona.id)
-            .order_by(PersonaUxJourneyRun.created_at.desc())
-            .limit(limit)
+    try:
+        rows = (
+            session.scalars(
+                select(PersonaUxJourneyRun)
+                .where(PersonaUxJourneyRun.persona_id == persona.id)
+                .order_by(PersonaUxJourneyRun.created_at.desc())
+                .limit(limit)
+            )
+            .all()
         )
-        .all()
-    )
+    except Exception as exc:  # noqa: BLE001
+        session.rollback()
+        if _is_missing_relation_error(exc):
+            _log.warning(
+                "persona_ux_journey_runs table missing — run alembic upgrade head "
+                "(migration 20260510_persona_ux_journey_runs). Returning empty list."
+            )
+            return []
+        raise
     return [_serialize_persona_ux_journey_run(r) for r in rows]
 
 
@@ -2187,41 +2212,60 @@ def upsert_persona_ux_journey_run_admin(
     if not job_id:
         raise HTTPException(status_code=400, detail="jobId is required")
 
-    existing = session.scalar(
-        select(PersonaUxJourneyRun).where(
-            PersonaUxJourneyRun.persona_id == persona.id,
-            PersonaUxJourneyRun.job_id == job_id,
-        )
-    )
     score_payload = body.scorecard if isinstance(body.scorecard, dict) else None
+    try:
+        existing = session.scalar(
+            select(PersonaUxJourneyRun).where(
+                PersonaUxJourneyRun.persona_id == persona.id,
+                PersonaUxJourneyRun.job_id == job_id,
+            )
+        )
 
-    if existing:
-        if body.task is not None:
-            existing.task = body.task
-        if body.siteUrl is not None:
-            existing.site_url = body.siteUrl
-        if body.success is not None:
-            existing.success = body.success
-        if body.stepsCount is not None:
-            existing.steps_count = body.stepsCount
-        if score_payload is not None:
-            existing.scorecard = score_payload
-        session.add(existing)
+        if existing:
+            if body.task is not None:
+                existing.task = body.task
+            if body.siteUrl is not None:
+                existing.site_url = body.siteUrl
+            if body.success is not None:
+                existing.success = body.success
+            if body.stepsCount is not None:
+                existing.steps_count = body.stepsCount
+            if score_payload is not None:
+                existing.scorecard = score_payload
+            session.add(existing)
+            session.commit()
+            session.refresh(existing)
+            return _serialize_persona_ux_journey_run(existing)
+
+        row = PersonaUxJourneyRun(
+            id=uuid4(),
+            persona_id=persona.id,
+            job_id=job_id,
+            task=body.task,
+            site_url=body.siteUrl,
+            success=body.success,
+            steps_count=body.stepsCount,
+            scorecard=score_payload,
+        )
+        session.add(row)
         session.commit()
-        session.refresh(existing)
-        return _serialize_persona_ux_journey_run(existing)
-
-    row = PersonaUxJourneyRun(
-        id=uuid4(),
-        persona_id=persona.id,
-        job_id=job_id,
-        task=body.task,
-        site_url=body.siteUrl,
-        success=body.success,
-        steps_count=body.stepsCount,
-        scorecard=score_payload,
-    )
-    session.add(row)
-    session.commit()
-    session.refresh(row)
-    return _serialize_persona_ux_journey_run(row)
+        session.refresh(row)
+        return _serialize_persona_ux_journey_run(row)
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        session.rollback()
+        if _is_missing_relation_error(exc):
+            _log.warning(
+                "persona_ux_journey_runs table missing on upsert — run "
+                "alembic upgrade head (migration 20260510_persona_ux_journey_runs)."
+            )
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "persona_ux_journey_runs table is not migrated yet. "
+                    "Run `alembic upgrade head` on the persona-api."
+                ),
+            ) from exc
+        _log.exception("persona_ux_journey_runs.upsert.failed persona_id=%s", persona_id)
+        raise
