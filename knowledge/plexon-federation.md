@@ -8,7 +8,7 @@ Stand: Mai 2026
 
 ## PLEXON-Vertrag
 
-- Vertragsversion: `2026-05-plexon-federation-v1`
+- Vertragsversion: `2026-05-plexon-federation-v2`
 - Request-Header an PLEXON: `X-Plexon-Contract-Version`
 - Service-Authentifizierung: `X-Service-Secret`
 

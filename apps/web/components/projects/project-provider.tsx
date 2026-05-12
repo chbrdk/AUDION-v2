@@ -2,10 +2,12 @@
 
 import type { ReactNode } from "react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 import { useAuth } from "../auth/auth-provider";
 import { clearProjectCookie, getProjectCookie, setProjectCookie } from "../../lib/project-cookies";
 import { buildApiUrl } from "../../app/api/_lib/backend";
+import { resolvePreferredProjectId } from "../../lib/project-selection";
 
 export type ProjectSummary = {
   id: string;
@@ -62,7 +64,9 @@ const parseError = async (response: Response) => {
 };
 
 export const ProjectProvider = ({ children }: { children: ReactNode }) => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, defaultProjectId } = useAuth();
+  const searchParams = useSearchParams();
+  const launchProjectId = searchParams.get("projectId");
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   // Start with cookie selection if present; otherwise remain unselected ("Select project").
   const [activeProjectId, setActiveProjectId] = useState<string | null>(() => getProjectCookie());
@@ -85,18 +89,26 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
     const data = await response.json();
     const items = Array.isArray(data.items) ? data.items : [];
     setProjects(items);
-    // IMPORTANT: do NOT auto-select a project by default.
-    // Only restore an explicit user selection (cookie) if present.
-    if (!activeProjectId) {
-      const cookieProjectId = getProjectCookie();
-      const cookieValid =
-        typeof cookieProjectId === "string" &&
-        items.some((p: ProjectSummary) => p.id === cookieProjectId);
-      if (cookieValid && cookieProjectId) {
-        setActiveProjectId(cookieProjectId);
-      }
+    const projectIds = items.map((project: ProjectSummary) => project.id);
+    const cookieProjectId = getProjectCookie();
+    const nextProjectId = resolvePreferredProjectId(projectIds, {
+      launchProjectId,
+      activeProjectId,
+      cookieProjectId,
+      defaultProjectId,
+    });
+
+    if (!nextProjectId) {
+      setActiveProjectId(null);
+      clearProjectCookie();
+      return;
     }
-  }, [user, activeProjectId, authLoading]);
+
+    setActiveProjectId(nextProjectId);
+    if (nextProjectId === launchProjectId || nextProjectId === defaultProjectId) {
+      setProjectCookie(nextProjectId);
+    }
+  }, [user, activeProjectId, authLoading, launchProjectId, defaultProjectId]);
 
   useEffect(() => {
     void refreshProjects();
@@ -106,10 +118,22 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
     if (authLoading) return;
     if (!user) return;
     const cookieProjectId = getProjectCookie();
-    if (cookieProjectId && cookieProjectId !== activeProjectId) {
-      setActiveProjectId(cookieProjectId);
+    const nextProjectId = resolvePreferredProjectId(
+      projects.map((project) => project.id),
+      {
+        launchProjectId,
+        activeProjectId,
+        cookieProjectId,
+        defaultProjectId,
+      }
+    );
+    if (nextProjectId && nextProjectId !== activeProjectId) {
+      setActiveProjectId(nextProjectId);
+      if (nextProjectId === launchProjectId || nextProjectId === defaultProjectId) {
+        setProjectCookie(nextProjectId);
+      }
     }
-  }, [user, activeProjectId, authLoading]);
+  }, [user, activeProjectId, authLoading, launchProjectId, projects, defaultProjectId]);
 
   const selectProject = useCallback((projectId: string) => {
     // Allow clearing selection (empty string) -> "Select project" state.

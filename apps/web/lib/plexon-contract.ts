@@ -1,4 +1,4 @@
-export const PLEXON_FEDERATION_CONTRACT_VERSION = "2026-05-plexon-federation-v1";
+export const PLEXON_FEDERATION_CONTRACT_VERSION = "2026-05-plexon-federation-v2";
 export const PLEXON_CONTRACT_VERSION_HEADER = "X-Plexon-Contract-Version";
 export const PLEXON_SERVICE_SECRET_HEADER = "X-Service-Secret";
 

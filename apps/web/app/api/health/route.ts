@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getRuntimeMetadata } from "../../../lib/runtime-metadata";
 
 /**
  * Health check endpoint for Docker health checks
@@ -6,7 +7,12 @@ import { NextResponse } from "next/server";
  */
 export async function GET() {
   return NextResponse.json(
-    { status: "ok", service: "web", timestamp: new Date().toISOString() },
+    {
+      status: "ok",
+      service: "web",
+      timestamp: new Date().toISOString(),
+      ...getRuntimeMetadata(),
+    },
     { status: 200 }
   );
 }
