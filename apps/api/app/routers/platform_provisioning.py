@@ -4,7 +4,7 @@ import base64
 import hashlib
 import hmac
 from datetime import datetime
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import BaseModel, EmailStr
@@ -18,7 +18,15 @@ from ..core.plexon_contract import (
     PLEXON_SERVICE_SECRET_HEADER,
 )
 from ..db import get_db
-from ..models import ApiToken, User
+from ..models import (
+    ApiToken,
+    PlatformManagedProjectMembership,
+    Project,
+    ProjectMember,
+    ProjectMemberStatus,
+    ProjectRole,
+    User,
+)
 from ..services.auth import hash_password
 
 router = APIRouter(prefix="/platform/provisioning", tags=["platform-provisioning"])
@@ -28,6 +36,11 @@ class ProvisioningDefaultContext(BaseModel):
     entryPointId: str | None = None
     projectId: str | None = None
     deepLink: str | None = None
+
+
+class ProvisioningProjectAssignment(BaseModel):
+    projectId: str
+    role: str
 
 
 class ProvisioningRequest(BaseModel):
@@ -40,6 +53,7 @@ class ProvisioningRequest(BaseModel):
     desiredState: str
     platformRole: str
     defaultContext: ProvisioningDefaultContext | None = None
+    projectAssignments: list[ProvisioningProjectAssignment] = []
     contractVersion: str
     source: str
     requestedAt: str
@@ -74,6 +88,114 @@ def _derived_local_password(secret: str, plexon_user_id: str) -> str:
     return b64[:32]
 
 
+def _parse_project_assignment_role(value: str) -> ProjectRole:
+    try:
+        role = ProjectRole(value)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid project assignment role") from exc
+    if role == ProjectRole.owner:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Owner role is not supported for platform-managed memberships")
+    return role
+
+
+def _sync_platform_managed_memberships(
+    session: Session,
+    *,
+    user: User,
+    plexon_user_id: str,
+    assignments: list[ProvisioningProjectAssignment],
+) -> tuple[bool, str | None]:
+    changed = False
+    details: list[str] = []
+
+    tracked_memberships = session.scalars(
+        select(PlatformManagedProjectMembership).where(PlatformManagedProjectMembership.user_id == user.id)
+    ).all()
+    tracked_by_project_id = {str(item.project_id): item for item in tracked_memberships}
+    requested_project_ids: set[str] = set()
+
+    for assignment in assignments:
+        project_id_raw = assignment.projectId.strip()
+        try:
+            project_uuid = UUID(project_id_raw)
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid AUDION project id in project assignment") from exc
+
+        project = session.get(Project, project_uuid)
+        if not project:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="AUDION project not found for project assignment")
+
+        requested_project_ids.add(str(project.id))
+        role = _parse_project_assignment_role(assignment.role)
+
+        membership = session.scalar(
+            select(ProjectMember)
+            .where(ProjectMember.project_id == project.id)
+            .where(ProjectMember.user_id == user.id)
+        )
+        if membership is None:
+            membership = ProjectMember(
+                id=uuid4(),
+                project_id=project.id,
+                user_id=user.id,
+                role=role,
+                status=ProjectMemberStatus.active,
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow(),
+            )
+            session.add(membership)
+            changed = True
+        else:
+            if membership.role != ProjectRole.owner and (
+                membership.role != role or membership.status != ProjectMemberStatus.active
+            ):
+                membership.role = role
+                membership.status = ProjectMemberStatus.active
+                membership.updated_at = datetime.utcnow()
+                changed = True
+            elif membership.role == ProjectRole.owner:
+                details.append(f"Skipped owner membership for project {project_id_raw}")
+
+        tracked = tracked_by_project_id.get(str(project.id))
+        if tracked is None:
+            session.add(
+                PlatformManagedProjectMembership(
+                    id=uuid4(),
+                    plexon_user_id=plexon_user_id,
+                    user_id=user.id,
+                    project_id=project.id,
+                    role=role,
+                    created_at=datetime.utcnow(),
+                    updated_at=datetime.utcnow(),
+                )
+            )
+            changed = True
+        elif tracked.role != role or tracked.plexon_user_id != plexon_user_id:
+            tracked.role = role
+            tracked.plexon_user_id = plexon_user_id
+            tracked.updated_at = datetime.utcnow()
+            changed = True
+
+    for tracked in tracked_memberships:
+        tracked_project_id = str(tracked.project_id)
+        if tracked_project_id in requested_project_ids:
+            continue
+        membership = session.scalar(
+            select(ProjectMember)
+            .where(ProjectMember.project_id == tracked.project_id)
+            .where(ProjectMember.user_id == user.id)
+        )
+        if membership and membership.role != ProjectRole.owner:
+            session.delete(membership)
+            changed = True
+        elif membership and membership.role == ProjectRole.owner:
+            details.append(f"Kept owner membership for project {tracked_project_id}")
+        session.delete(tracked)
+        changed = True
+
+    return changed, "; ".join(details) if details else None
+
+
 @router.put("/users/{user_id}")
 def provision_user(
     user_id: str,
@@ -106,6 +228,12 @@ def provision_user(
     if payload.desiredState == "disabled":
         if user:
             session.query(ApiToken).filter(ApiToken.user_id == user.id).delete()
+            _sync_platform_managed_memberships(
+                session,
+                user=user,
+                plexon_user_id=user_id,
+                assignments=[],
+            )
             session.commit()
             return {
                 "status": "disabled",
@@ -139,11 +267,18 @@ def provision_user(
             updated_at=now,
         )
         session.add(user)
+        session.flush()
+        assignments_changed, assignment_details = _sync_platform_managed_memberships(
+            session,
+            user=user,
+            plexon_user_id=user_id,
+            assignments=payload.projectAssignments,
+        )
         session.commit()
         return {
             "status": "applied",
             "externalUserRef": str(user.id),
-            "details": "Local AUDION user created and linked to PLEXON.",
+            "details": assignment_details or "Local AUDION user created and linked to PLEXON.",
         }
 
     changed = False
@@ -166,11 +301,18 @@ def provision_user(
         user.locale = locale
         changed = True
 
-    if not changed:
+    assignments_changed, assignment_details = _sync_platform_managed_memberships(
+        session,
+        user=user,
+        plexon_user_id=user_id,
+        assignments=payload.projectAssignments,
+    )
+
+    if not changed and not assignments_changed:
         return {
             "status": "no_change",
             "externalUserRef": str(user.id),
-            "details": "Local AUDION user already matches the provisioning payload.",
+            "details": assignment_details or "Local AUDION user already matches the provisioning payload.",
         }
 
     user.updated_at = now
@@ -178,5 +320,5 @@ def provision_user(
     return {
         "status": "applied",
         "externalUserRef": str(user.id),
-        "details": "Local AUDION user updated from PLEXON.",
+        "details": assignment_details or "Local AUDION user updated from PLEXON.",
     }

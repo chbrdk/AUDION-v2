@@ -218,6 +218,22 @@ class ProjectMember(Base):
     user = relationship("User", back_populates="memberships")
 
 
+class PlatformManagedProjectMembership(Base):
+    __tablename__ = "platform_managed_project_memberships"
+    __table_args__ = (
+        UniqueConstraint("user_id", "project_id", name="uq_platform_managed_project_membership"),
+        {"schema": "audion"},
+    )
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    plexon_user_id = Column(String(128), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("audion.users.id", ondelete="CASCADE"), nullable=False)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("audion.projects.id", ondelete="CASCADE"), nullable=False)
+    role = Column(Enum(ProjectRole, name="project_role"), nullable=False, default=ProjectRole.member)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
 class AiTemplateOverride(Base):
     __tablename__ = "ai_template_overrides"
     __table_args__ = (
