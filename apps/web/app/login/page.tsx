@@ -15,6 +15,7 @@ import { MSQDX_TYPOGRAPHY } from "@msqdx/tokens";
 
 import { ThemeRegistryNoSSR } from "../../components/theme-registry-no-ssr";
 import { AuthBrandColorSelector } from "../../components/auth/auth-brand-color-selector";
+import { PlexonReturnLink } from "../../components/federation/plexon-return-link";
 import { useI18n } from "../../components/i18n/i18n-provider";
 import { buildApiUrl } from "../api/_lib/backend";
 
@@ -169,6 +170,7 @@ export default function LoginPage() {
                   {t("auth.login.link")}
                 </Link>
               </MsqdxTypography>
+              <PlexonReturnLink fullWidth />
             </Stack>
           </MsqdxMoleculeCard>
         </Box>

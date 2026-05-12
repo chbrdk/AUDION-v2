@@ -22,7 +22,8 @@
     "yes": "Yes",
     "no": "No",
     "notSpecified": "Not specified",
-    "apiDocumentation": "API documentation"
+    "apiDocumentation": "API documentation",
+    "backToPlexon": "Back to PLEXON"
   },
   "entityFieldGroups": {
     "basic": "Basics",

@@ -22,7 +22,8 @@
     "yes": "Ja",
     "no": "Nein",
     "notSpecified": "Nicht angegeben",
-    "apiDocumentation": "API-Dokumentation"
+    "apiDocumentation": "API-Dokumentation",
+    "backToPlexon": "Zurück zu PLEXON"
   },
   "entityFieldGroups": {
     "basic": "Stammdaten",

@@ -13,6 +13,7 @@ import { AdminTopControls } from "./admin-top-controls";
 import { BrandColorInitializer } from "../settings/brand-color-initializer";
 import { useI18n } from "../i18n/i18n-provider";
 import { BugReportModal } from "../bug-report/BugReportModal";
+import { PlexonReturnLink } from "../federation/plexon-return-link";
 import { useProject } from "../projects/project-provider";
 
 // Re-export for consumers that import from this file
@@ -265,7 +266,8 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
           </Box>
         </Box>
         {/* Page Title or Custom Header Content */}
-        <Box sx={{ flex: 1, display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
+        <Box sx={{ flex: 1, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 1 }}>
+          <PlexonReturnLink compact />
           {headerContent ? (
             <Box sx={{ display: { xs: "none", md: "flex" }, alignItems: "center" }}>
               {headerContent}
