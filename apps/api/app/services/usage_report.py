@@ -16,6 +16,7 @@ logger = structlog.get_logger(__name__)
 
 PLEXON_AUTH_URL = os.environ.get("PLEXON_AUTH_URL", "").strip()
 PLEXON_SERVICE_SECRET = os.environ.get("PLEXON_SERVICE_SECRET", "").strip()
+PLEXON_FEDERATION_CONTRACT_VERSION = "2026-05-plexon-federation-v1"
 
 
 def _report(
@@ -43,6 +44,7 @@ def _report(
             headers={
                 "Content-Type": "application/json",
                 "X-Service-Secret": PLEXON_SERVICE_SECRET,
+                "X-Plexon-Contract-Version": PLEXON_FEDERATION_CONTRACT_VERSION,
             },
             method="POST",
         )

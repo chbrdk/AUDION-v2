@@ -5,6 +5,8 @@
  * Aufruf (Login/Register mit abgeleitetem Passwort oder /auth/plexon).
  */
 
+import { getPlexonContractHeaders } from "./plexon-contract";
+
 const PLEXON_AUTH_URL = process.env.PLEXON_AUTH_URL ?? "";
 const PLEXON_SERVICE_SECRET = process.env.PLEXON_SERVICE_SECRET ?? "";
 
@@ -28,7 +30,7 @@ export async function validateCredentialsWithPlexon(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Service-Secret": PLEXON_SERVICE_SECRET,
+        ...getPlexonContractHeaders(PLEXON_SERVICE_SECRET),
       },
       body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
     });
@@ -69,7 +71,7 @@ export async function getPlexonProfile(userId: string): Promise<PlexonProfile | 
   try {
     const res = await fetch(
       `${base}/api/services/profile?user_id=${encodeURIComponent(userId)}`,
-      { headers: { "X-Service-Secret": PLEXON_SERVICE_SECRET } }
+      { headers: getPlexonContractHeaders(PLEXON_SERVICE_SECRET) }
     );
     if (!res.ok) return null;
     const data = (await res.json()) as { user?: PlexonProfile };
@@ -89,7 +91,7 @@ export async function getPlexonProfileByEmail(email: string): Promise<PlexonProf
   try {
     const res = await fetch(
       `${base}/api/services/profile?email=${encodeURIComponent(normalized)}`,
-      { headers: { "X-Service-Secret": PLEXON_SERVICE_SECRET } }
+      { headers: getPlexonContractHeaders(PLEXON_SERVICE_SECRET) }
     );
     if (!res.ok) return null;
     const data = (await res.json()) as { user?: PlexonProfile };
@@ -123,7 +125,7 @@ export async function patchPlexonProfile(
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
-        "X-Service-Secret": PLEXON_SERVICE_SECRET,
+        ...getPlexonContractHeaders(PLEXON_SERVICE_SECRET),
       },
       body: JSON.stringify(body),
     });
