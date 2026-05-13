@@ -62,7 +62,36 @@ Bei langsamer Managed-DB: `DB_WAIT_TIMEOUT_SECONDS=120` setzen und erneut deploy
 
 Die Tabelle `audion.alembic_version` nutzt `version_num VARCHAR(32)`. **Jede** `revision = "…"` in `apps/api/alembic/versions/*.py` darf daher **höchstens 32 Zeichen** haben (siehe auch `tests/test_alembic_revision_id_lengths.py`). Längere IDs führen zu `StringDataRightTruncation` beim `UPDATE audion.alembic_version …`.
 
-## 6. Kurzfassung
+## 6. Runtime: `UndefinedColumn` / „column … does not exist“
+
+**Symptom** in den API-Logs, z. B. bei `GET /projects`:
+
+```text
+sqlalchemy.exc.ProgrammingError: (psycopg.errors.UndefinedColumn) column projects.platform_project_id does not exist
+```
+
+**Ursache:** Der laufende **Code** (SQLAlchemy-Model) kennt Spalten, die in der **Postgres-DB** noch fehlen. Typisch: **Alembic `upgrade head`** ist auf genau dieser DB nicht durchgelaufen (altes Image, abgebrochener Deploy, manuell wiederhergestellte DB ohne Migrationen, oder mehrere DBs und die falsche `DATABASE_URL`).
+
+**Hinweis:** `GET /health` ist **ohne** vollständiges Schema gedacht — der Container kann **healthy** sein, während Routen mit `SELECT …` an fehlenden Spalten scheitern.
+
+**Lösung (Reihenfolge):**
+
+1. **Neuestes AUDION-API-Image** deployen (enthält die Migrationen unter `apps/api/alembic/versions/`, u. a. `platform_project_id` / `platform_company_id` auf `audion.projects`).
+2. In einer **Shell im API-Container** (Working directory `/app/apps/api`):
+
+   ```bash
+   .venv/bin/alembic -c alembic.ini upgrade head
+   ```
+
+   oder:
+
+   ```bash
+   bash scripts/coolify-migrate.sh
+   ```
+
+3. Wenn Alembic mit Revision-Fehlern abbricht: Deploy-Logs prüfen, ob `running Alembic upgrade head` je erfolgreich war; `audion.alembic_version` mit der erwarteten Kette aus dem Repo abgleichen.
+
+## 7. Kurzfassung
 
 1. **`docker logs` des `api`-Containers** — letzte `[audion-api/start.sh]`-Zeile + Python-Traceback lesen.  
 2. **`DATABASE_URL`, `REDIS_URL`, `AUTH_JWT_SECRET`** in Coolify prüfen (Pflicht für die API).  
