@@ -6,9 +6,19 @@ import {
   isPlexonAuthConfigured,
   validatePlexonCredentials,
   getPlexonDerivedPassword,
+  getPlexonServiceSecret,
   plexonUserDisplayNameForAudion,
   type PlexonAuthUser,
 } from "../../../../lib/plexon-auth";
+
+function safeUrlOrigin(url: string): string {
+  try {
+    const normalized = /^https?:\/\//i.test(url) ? url : `http://${url}`;
+    return new URL(normalized).origin;
+  } catch {
+    return "(invalid-url)";
+  }
+}
 
 const buildCookieOptions = () => ({
   httpOnly: true,
@@ -92,6 +102,9 @@ export async function POST(request: Request) {
   let backendBody: { email: string; password: string; name?: string; plexon_user_id?: string } = { email, password };
   let plexonUser: PlexonAuthUser | null = null;
 
+  const personaBase = getPersonaBackendBase({ preferPublic: false });
+  console.warn("[AUDION] auth/login: personaBackend=", safeUrlOrigin(personaBase), "plexonConfigured=", isPlexonAuthConfigured());
+
   if (isPlexonAuthConfigured()) {
     const plexon = await validatePlexonCredentials(email, password);
     if (plexon.ok) {
@@ -146,7 +159,8 @@ export async function POST(request: Request) {
   // 409 = Email already registered (User existiert im Backend mit anderem Passwort). PLEXON-Sync: Passwort auf abgeleitetes umstellen.
   if (response.status === 409 && plexonUser) {
     const base = getPersonaBackendBase({ preferPublic: false });
-    const secret = process.env.PLEXON_SERVICE_SECRET ?? "";
+    const secret = getPlexonServiceSecret();
+    const syncDisplayName = plexonUserDisplayNameForAudion(plexonUser.name, email);
     try {
       const syncRes = await fetch(`${base}/auth/plexon-sync`, {
         method: "POST",
@@ -157,7 +171,7 @@ export async function POST(request: Request) {
         body: JSON.stringify({
           plexon_user_id: plexonUser.id,
           email: plexonUser.email,
-          name: plexonUser.name,
+          name: syncDisplayName,
         }),
       });
       const syncText = await syncRes.text();

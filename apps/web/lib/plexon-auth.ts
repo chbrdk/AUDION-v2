@@ -9,11 +9,36 @@ import { createHmac } from "crypto";
 
 import { getPlexonContractHeaders } from "./plexon-contract";
 
-const PLEXON_AUTH_URL = process.env.PLEXON_AUTH_URL ?? "";
-const PLEXON_SERVICE_SECRET = process.env.PLEXON_SERVICE_SECRET ?? "";
+/**
+ * PLEXON-Env zur Laufzeit lesen (nicht beim Modul-Import cachen).
+ * Sonst kann ein Production-Build ohne diese Variablen leere Strings „einbacken“
+ * und Coolify-Runtime-Env wird ignoriert → kein PLEXON-Call, nur Backend-Login mit Klartext → 401.
+ */
+function getPlexonAuthUrl(): string {
+  return (process.env.PLEXON_AUTH_URL ?? "").trim();
+}
+
+export function getPlexonServiceSecret(): string {
+  return (process.env.PLEXON_SERVICE_SECRET ?? "").trim();
+}
 
 export function isPlexonAuthConfigured(): boolean {
-  return Boolean(PLEXON_AUTH_URL.trim() && PLEXON_SERVICE_SECRET.trim());
+  return Boolean(getPlexonAuthUrl() && getPlexonServiceSecret());
+}
+
+/** Für Health/Debug: keine Secrets, nur ob die Web-App PLEXON-Login aktivieren würde. */
+export function getPlexonAuthHealthSnapshot(): {
+  plexonAuthUrlSet: boolean;
+  plexonServiceSecretSet: boolean;
+  plexonAuthActive: boolean;
+} {
+  const urlSet = Boolean(getPlexonAuthUrl());
+  const secretSet = Boolean(getPlexonServiceSecret());
+  return {
+    plexonAuthUrlSet: urlSet,
+    plexonServiceSecretSet: secretSet,
+    plexonAuthActive: urlSet && secretSet,
+  };
 }
 
 export type PlexonAuthUser = { id: string; email: string; name?: string };
@@ -31,17 +56,19 @@ export type PlexonCredentialValidation =
  * Liefert strukturiertes Ergebnis, damit die Login-Route nicht fälschlich den lokalen Backend-Login mit dem PLEXON-Klartext-Passwort versucht.
  */
 export async function validatePlexonCredentials(email: string, password: string): Promise<PlexonCredentialValidation> {
-  if (!PLEXON_AUTH_URL.trim() || !PLEXON_SERVICE_SECRET.trim()) {
+  const base = getPlexonAuthUrl();
+  const secret = getPlexonServiceSecret();
+  if (!base || !secret) {
     return { ok: false, reason: "not_configured" };
   }
-  const url = `${PLEXON_AUTH_URL.replace(/\/$/, "")}/api/auth/validate-credentials`;
+  const url = `${base.replace(/\/$/, "")}/api/auth/validate-credentials`;
   let res: Response;
   try {
     res = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...getPlexonContractHeaders(PLEXON_SERVICE_SECRET),
+        ...getPlexonContractHeaders(secret),
       },
       body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
     });
@@ -97,7 +124,7 @@ export async function validatePlexonCredentials(email: string, password: string)
  * ohne Anpassung genutzt werden kann: zuerst Login, bei 401 Register mit diesem Passwort.
  */
 export function getPlexonDerivedPassword(plexonUserId: string): string {
-  return createHmac("sha256", PLEXON_SERVICE_SECRET)
+  return createHmac("sha256", getPlexonServiceSecret())
     .update(plexonUserId)
     .digest("base64url")
     .slice(0, 32);
@@ -126,12 +153,14 @@ export type PlexonProfile = {
 };
 
 export async function getPlexonProfile(userId: string): Promise<PlexonProfile | null> {
-  if (!PLEXON_AUTH_URL.trim() || !PLEXON_SERVICE_SECRET.trim()) return null;
-  const base = PLEXON_AUTH_URL.replace(/\/$/, "");
+  const authUrl = getPlexonAuthUrl();
+  const secret = getPlexonServiceSecret();
+  if (!authUrl || !secret) return null;
+  const base = authUrl.replace(/\/$/, "");
   try {
     const res = await fetch(
       `${base}/api/services/profile?user_id=${encodeURIComponent(userId)}`,
-      { headers: getPlexonContractHeaders(PLEXON_SERVICE_SECRET) }
+      { headers: getPlexonContractHeaders(secret) }
     );
     if (!res.ok) return null;
     const data = (await res.json()) as { user?: PlexonProfile };
@@ -144,14 +173,16 @@ export async function getPlexonProfile(userId: string): Promise<PlexonProfile | 
 
 /** PLEXON-Profil per E-Mail holen (Fallback wenn Backend noch kein plexon_user_id hat). */
 export async function getPlexonProfileByEmail(email: string): Promise<PlexonProfile | null> {
-  if (!PLEXON_AUTH_URL.trim() || !PLEXON_SERVICE_SECRET.trim()) return null;
-  const base = PLEXON_AUTH_URL.replace(/\/$/, "");
+  const authUrl = getPlexonAuthUrl();
+  const secret = getPlexonServiceSecret();
+  if (!authUrl || !secret) return null;
+  const base = authUrl.replace(/\/$/, "");
   const normalized = email?.trim()?.toLowerCase();
   if (!normalized) return null;
   try {
     const res = await fetch(
       `${base}/api/services/profile?email=${encodeURIComponent(normalized)}`,
-      { headers: getPlexonContractHeaders(PLEXON_SERVICE_SECRET) }
+      { headers: getPlexonContractHeaders(secret) }
     );
     if (!res.ok) return null;
     const data = (await res.json()) as { user?: PlexonProfile };
@@ -172,8 +203,10 @@ export async function patchPlexonProfile(
     locale?: string | null;
   }
 ): Promise<PlexonProfile | null> {
-  if (!PLEXON_AUTH_URL.trim() || !PLEXON_SERVICE_SECRET.trim()) return null;
-  const base = PLEXON_AUTH_URL.replace(/\/$/, "");
+  const authUrl = getPlexonAuthUrl();
+  const secret = getPlexonServiceSecret();
+  if (!authUrl || !secret) return null;
+  const base = authUrl.replace(/\/$/, "");
   const body: Record<string, unknown> = { user_id: userId };
   if (updates.name !== undefined) body.name = updates.name;
   if (updates.email !== undefined) body.email = updates.email;
@@ -185,7 +218,7 @@ export async function patchPlexonProfile(
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
-        ...getPlexonContractHeaders(PLEXON_SERVICE_SECRET),
+        ...getPlexonContractHeaders(secret),
       },
       body: JSON.stringify(body),
     });

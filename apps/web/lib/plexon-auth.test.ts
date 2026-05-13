@@ -69,4 +69,18 @@ describe("plexonUserDisplayNameForAudion", () => {
     const { plexonUserDisplayNameForAudion } = await loadPlexonAuth();
     expect(plexonUserDisplayNameForAudion(undefined, "@b.com")).toBe("User");
   });
+
+  it("getPlexonAuthHealthSnapshot reflects env at call time", async () => {
+    vi.stubEnv("PLEXON_AUTH_URL", "https://plexon.test");
+    vi.stubEnv("PLEXON_SERVICE_SECRET", "x");
+    const { getPlexonAuthHealthSnapshot } = await loadPlexonAuth();
+    expect(getPlexonAuthHealthSnapshot()).toEqual({
+      plexonAuthUrlSet: true,
+      plexonServiceSecretSet: true,
+      plexonAuthActive: true,
+    });
+    vi.stubEnv("PLEXON_AUTH_URL", "");
+    const { getPlexonAuthHealthSnapshot: snap2 } = await loadPlexonAuth();
+    expect(snap2().plexonAuthActive).toBe(false);
+  });
 });

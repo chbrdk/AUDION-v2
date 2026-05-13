@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { getPersonaBackendEnvSnapshot } from "../_lib/backend";
+import { getPlexonAuthHealthSnapshot } from "../../../lib/plexon-auth";
 import { getRuntimeMetadata } from "../../../lib/runtime-metadata";
 
 /**
@@ -12,6 +14,10 @@ export async function GET() {
       service: "web",
       timestamp: new Date().toISOString(),
       ...getRuntimeMetadata(),
+      auth: {
+        ...getPlexonAuthHealthSnapshot(),
+        ...getPersonaBackendEnvSnapshot(),
+      },
     },
     { status: 200 }
   );

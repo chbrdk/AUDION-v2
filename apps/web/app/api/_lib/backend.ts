@@ -1,9 +1,27 @@
 /**
- * Get the persona backend base URL
- * @param options - Configuration options
- * @param options.preferPublic - If true, prefer public URL; if false, prefer internal URL
- * @returns The base URL for the persona backend
+ * Persona-Backend-Basis-URL (Server: intern bevorzugt; Client: Next-API-Proxy).
+ * `getPersonaBackendEnvSnapshot()` zeigt, welche Env-Keys gesetzt sind (Health/Debug).
  */
+export function getPersonaBackendEnvSnapshot(): {
+  personaBackendInternalUrlSet: boolean;
+  personaBackendPublicUrlSet: boolean;
+  /** Welche Quelle `getPersonaBackendBase({ preferPublic: false })` auf dem Server nutzt. */
+  personaBackendBaseSource: "NEXT_PERSONA_BACKEND_INTERNAL_URL" | "NEXT_PUBLIC_PERSONA_BACKEND_URL" | "default_api_host";
+} {
+  const internal = Boolean(process.env.NEXT_PERSONA_BACKEND_INTERNAL_URL?.trim());
+  const publicUrl = Boolean(process.env.NEXT_PUBLIC_PERSONA_BACKEND_URL?.trim());
+  const source: "NEXT_PERSONA_BACKEND_INTERNAL_URL" | "NEXT_PUBLIC_PERSONA_BACKEND_URL" | "default_api_host" = internal
+    ? "NEXT_PERSONA_BACKEND_INTERNAL_URL"
+    : publicUrl
+      ? "NEXT_PUBLIC_PERSONA_BACKEND_URL"
+      : "default_api_host";
+  return {
+    personaBackendInternalUrlSet: internal,
+    personaBackendPublicUrlSet: publicUrl,
+    personaBackendBaseSource: source,
+  };
+}
+
 export function getPersonaBackendBase(options?: { preferPublic?: boolean }): string {
   // Client-side: always use the Next.js API proxy to avoid Mixed Content / CORS issues
   if (typeof window !== "undefined") {

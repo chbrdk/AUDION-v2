@@ -6,6 +6,7 @@ import hmac
 from datetime import datetime
 from uuid import UUID, uuid4
 
+import structlog
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -24,6 +25,8 @@ from ..schemas import (
     UserResponse,
 )
 from ..services.auth import create_access_token, get_current_user, hash_password, verify_password
+
+logger = structlog.get_logger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -76,11 +79,17 @@ def plexon_sync(
     settings = get_settings()
     secret = settings.plexon_service_secret
     if not secret or not x_service_secret or not hmac.compare_digest(secret, x_service_secret):
+        logger.info("auth.plexon_sync", outcome="invalid_or_missing_service_secret")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or missing service secret")
 
     email = _normalize_email(payload.email)
     user = session.scalar(select(User).where(User.email == email))
     if not user:
+        logger.info(
+            "auth.plexon_sync",
+            outcome="user_not_found",
+            email_suffix=email.split("@")[-1] if "@" in email else "",
+        )
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     derived = _plexon_derived_password(secret, payload.plexon_user_id)
@@ -92,6 +101,7 @@ def plexon_sync(
     session.commit()
 
     token = create_access_token(user=user)
+    logger.info("auth.plexon_sync", outcome="ok", user_id=str(user.id))
     return AuthTokenResponse(
         access_token=token,
         token_type="bearer",
@@ -105,6 +115,7 @@ def register(payload: AuthRegisterRequest, session: Session = Depends(get_db)) -
     email = _normalize_email(payload.email)
     existing = session.scalar(select(User).where(User.email == email))
     if existing:
+        logger.info("auth.register", outcome="email_conflict", has_plexon_id=payload.plexon_user_id is not None)
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
 
     user = User(
@@ -142,6 +153,7 @@ def register(payload: AuthRegisterRequest, session: Session = Depends(get_db)) -
     session.commit()
 
     token = create_access_token(user=user)
+    logger.info("auth.register", outcome="ok", user_id=str(user.id), has_plexon_id=payload.plexon_user_id is not None)
     return AuthTokenResponse(
         access_token=token,
         token_type="bearer",
@@ -155,12 +167,19 @@ def login(payload: AuthLoginRequest, session: Session = Depends(get_db)) -> Auth
     email = _normalize_email(payload.email)
     user = session.scalar(select(User).where(User.email == email))
     if not user or not verify_password(payload.password, user.password_hash):
+        logger.info(
+            "auth.login",
+            outcome="invalid_credentials",
+            user_found=bool(user),
+            has_plexon_id=bool(user and user.plexon_user_id),
+        )
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
     user.last_login_at = datetime.utcnow()
     session.commit()
 
     token = create_access_token(user=user)
+    logger.info("auth.login", outcome="ok", user_id=str(user.id), has_plexon_id=bool(user.plexon_user_id))
     return AuthTokenResponse(
         access_token=token,
         token_type="bearer",
