@@ -12,7 +12,10 @@ async function fetchProjectsList(headers: HeadersInit): Promise<ProjectSummary[]
       cache: "no-store",
       headers,
     });
-    if (!response.ok) return [];
+    if (!response.ok) {
+      console.warn("[AUDION] admin/projects: GET /projects failed", response.status, response.statusText);
+      return [];
+    }
     const data = await response.json();
     return Array.isArray(data.items) ? data.items : [];
   } catch {
