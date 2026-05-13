@@ -53,3 +53,20 @@ describe("validatePlexonCredentials", () => {
     expect(r).toEqual({ ok: false, reason: "not_configured" });
   });
 });
+
+describe("plexonUserDisplayNameForAudion", () => {
+  it("uses PLEXON name when present", async () => {
+    const { plexonUserDisplayNameForAudion } = await loadPlexonAuth();
+    expect(plexonUserDisplayNameForAudion("  Ada  ", "a@b.com")).toBe("Ada");
+  });
+
+  it("falls back to local part of email when name missing", async () => {
+    const { plexonUserDisplayNameForAudion } = await loadPlexonAuth();
+    expect(plexonUserDisplayNameForAudion(undefined, "ada.lovelace@b.com")).toBe("ada.lovelace");
+  });
+
+  it("falls back to User when neither name nor local part", async () => {
+    const { plexonUserDisplayNameForAudion } = await loadPlexonAuth();
+    expect(plexonUserDisplayNameForAudion(undefined, "@b.com")).toBe("User");
+  });
+});

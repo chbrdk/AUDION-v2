@@ -42,6 +42,7 @@ In der AUDION-Web-App (Coolify/Lokal) setzen:
 - **PLEXON von AUDION aus erreichbar?** Die AUDION-Web-App (Server) muss `PLEXON_AUTH_URL` per HTTPS aufrufen können. Kein lokales `localhost`; in Coolify die öffentliche PLEXON-URL verwenden.
 - **Persona-Backend erreichbar?** `NEXT_PERSONA_BACKEND_INTERNAL_URL` muss aus dem AUDION-Web-Container auf das Persona-Backend zeigen (z. B. `http://audion-api:8000`). Erreichbarkeitsfehler liefern jetzt 503 mit Hinweis „Authentication service unavailable“.
 - **Bereits in AUDION registriert?** Bei **409 (Email already registered)** ruft die Web-App automatisch **`POST /auth/plexon-sync`** auf: Das Backend setzt das Passwort des bestehenden Users auf das PLEXON-abgeleitete und liefert einen Token. Danach funktioniert der nächste Login mit PLEXON-Zugangsdaten. Dafür muss beim **Persona-Backend** `PLEXON_SERVICE_SECRET` (gleich wie in PLEXON und Web) gesetzt sein.
+- **„Invalid credentials“ vom Persona-Backend obwohl PLEXON stimmt:** Der Server-Flow nach erfolgreicher PLEXON-Validierung macht zuerst `POST /auth/login` mit dem **abgeleiteten** Passwort. Bei 401 versucht die Web-App `POST /auth/register` – aber **nur wenn ein `name` mitgeschickt wird**. Fehlte `name` in der PLEXON-Antwort (oder war leer), wurde kein Register ausgelöst, der **409 → plexon-sync**-Pfad kam nicht zustande, und das Backend antwortete mit dem generischen 401 **Invalid credentials**. Abhilfe: Anzeigename wird serverseitig immer gesetzt (`plexonUserDisplayNameForAudion`: PLEXON-Name, sonst E-Mail-Local-Part, sonst `"User"`).
 
 ## Siehe auch
 

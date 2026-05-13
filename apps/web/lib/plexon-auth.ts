@@ -103,6 +103,19 @@ export function getPlexonDerivedPassword(plexonUserId: string): string {
     .slice(0, 32);
 }
 
+/**
+ * Anzeigename fürs Persona-Backend bei PLEXON-Login: muss nie `undefined` sein,
+ * sonst sendet `loginWithBackend` bei 401 keinen Register-Versuch (und bestehende
+ * Nutzer landen nicht im 409 → plexon-sync Pfad).
+ */
+export function plexonUserDisplayNameForAudion(plexonName: string | undefined, normalizedEmail: string): string {
+  const fromPlexon = typeof plexonName === "string" ? plexonName.trim() : "";
+  if (fromPlexon) return fromPlexon;
+  const local = normalizedEmail.split("@")[0]?.trim();
+  if (local) return local;
+  return "User";
+}
+
 export type PlexonProfile = {
   id: string;
   email: string;

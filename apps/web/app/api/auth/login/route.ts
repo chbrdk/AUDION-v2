@@ -6,6 +6,7 @@ import {
   isPlexonAuthConfigured,
   validatePlexonCredentials,
   getPlexonDerivedPassword,
+  plexonUserDisplayNameForAudion,
   type PlexonAuthUser,
 } from "../../../../lib/plexon-auth";
 
@@ -99,7 +100,7 @@ export async function POST(request: Request) {
       backendBody = {
         email: plexon.user.email,
         password: derivedPassword,
-        name: plexon.user.name,
+        name: plexonUserDisplayNameForAudion(plexon.user.name, email),
         plexon_user_id: plexon.user.id,
       };
     } else if (plexon.reason === "service_secret_mismatch") {
