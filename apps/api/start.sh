@@ -1,9 +1,15 @@
 #!/bin/bash
-set -e
-# Don't use set -e here, as it will exit on any error (even non-critical ones)
+# Fail fast on migration / DB init errors so Coolify shows a failed deploy instead of a hung container.
+set -eo pipefail
 
 cd /app/apps/api
 export PYTHONPATH=/app/apps/api
+
+log() {
+  echo "[audion-api/start.sh] $*"
+}
+
+log "bootstrap begin (uvicorn → /health → DB → alembic → init_db → seed)"
 
 # Load .env file if it exists (ignore errors)
 if [ -f /app/.env ]; then
@@ -39,7 +45,7 @@ elif command -v python3 >/dev/null 2>&1; then
 fi
 
 # Run database initialization
-echo "Starting uvicorn (for fast healthchecks)..."
+log "starting uvicorn on :8000 (background)"
 /app/apps/api/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 &
 UVICORN_PID="$!"
 
@@ -50,7 +56,7 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-echo "Waiting for /health to respond..."
+log "waiting for GET /health …"
 PYTHONPATH=/app/apps/api /app/apps/api/.venv/bin/python3 - <<'PY'
 import os
 import time
@@ -73,7 +79,7 @@ while True:
     time.sleep(interval_seconds)
 PY
 
-echo "Waiting for database to be ready..."
+log "waiting for PostgreSQL (DATABASE_URL) …"
 PYTHONPATH=/app/apps/api /app/apps/api/.venv/bin/python3 - <<'PY'
 import os
 import sys
@@ -109,18 +115,18 @@ PY
 
 # Alembic migrations first (Coolify / Docker: every deploy starts a new container → this always runs).
 # Ensures schema matches code (e.g. new columns) before init_db emergency DDL + seed.
-echo "Running database migrations (Alembic)..."
+log "running Alembic upgrade head …"
 if [ -x /app/apps/api/scripts/coolify-migrate.sh ]; then
   /app/apps/api/scripts/coolify-migrate.sh
 else
   bash /app/apps/api/scripts/coolify-migrate.sh
 fi
 
-echo "Running database initialization..."
+log "running init_db.py …"
 PYTHONPATH=/app/apps/api /app/apps/api/.venv/bin/python3 app/scripts/init_db.py
 
-echo "Seeding prompt templates..."
+log "running seed_prompts.py …"
 PYTHONPATH=/app/apps/api /app/apps/api/.venv/bin/python3 app/scripts/seed_prompts.py
 
-echo "Bootstrap complete. Continuing to run uvicorn..."
+log "bootstrap complete; blocking on uvicorn PID ${UVICORN_PID}"
 wait "$UVICORN_PID"
