@@ -91,6 +91,8 @@ sqlalchemy.exc.ProgrammingError: (psycopg.errors.UndefinedColumn) column project
 
 3. Wenn Alembic mit Revision-Fehlern abbricht: Deploy-Logs prüfen, ob `running Alembic upgrade head` je erfolgreich war; `audion.alembic_version` mit der erwarteten Kette aus dem Repo abgleichen.
 
+**Hinweis (ältere Deploys):** Wenn `init_db.py` bei fehlender `audion.alembic_version` nur **`stamp head`** ausgeführt und **`upgrade head` übersprungen** hat, stand in `alembic_version` bereits „aktuell“, obwohl Spalten wie `platform_project_id` **nie** angelegt wurden. Aktueller Code: kein Stamp ohne Upgrade mehr; zusätzlich legt die ORM-Self-Heal-Phase die Plattform-Spalten per `ADD COLUMN IF NOT EXISTS` an.
+
 ## 7. Kurzfassung
 
 1. **`docker logs` des `api`-Containers** — letzte `[audion-api/start.sh]`-Zeile + Python-Traceback lesen.  

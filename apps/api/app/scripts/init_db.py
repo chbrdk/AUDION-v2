@@ -334,6 +334,22 @@ def init_db():
                             "ALTER TABLE audion.projects ADD COLUMN IF NOT EXISTS checkion_project_id VARCHAR(40) NULL"
                         )
                     )
+                    conn.execute(
+                        text(
+                            "ALTER TABLE audion.projects ADD COLUMN IF NOT EXISTS platform_project_id VARCHAR(64) NULL"
+                        )
+                    )
+                    conn.execute(
+                        text(
+                            "ALTER TABLE audion.projects ADD COLUMN IF NOT EXISTS platform_company_id VARCHAR(64) NULL"
+                        )
+                    )
+                    conn.execute(
+                        text(
+                            "CREATE UNIQUE INDEX IF NOT EXISTS uq_audion_projects_platform_project_id "
+                            "ON audion.projects (platform_project_id)"
+                        )
+                    )
 
                 tg_tbl = conn.execute(
                     text(
@@ -500,45 +516,32 @@ def init_db():
 
         alembic_cfg = Config("alembic.ini")
         ran_create_all = False
-        # Legacy DBs had app tables but no audion.alembic_version; we stamp to head without running
-        # migrations. A following `upgrade head` would replay the full chain from base and collide with
-        # existing enums/tables — skip upgrade in that case (emergency DDL + app handle drift).
-        stamped_legacy_without_alembic = False
 
         if not personas_exists:
             logger.info("Fresh database detected (no personas table). Creating all tables from models...")
             # Use the engine to create all tables defined in Base.metadata
             Base.metadata.create_all(bind=engine)
-            
+
             logger.info("Stamping database with current migration version...")
             command.stamp(alembic_cfg, "head")
             ran_create_all = True
         else:
             logger.info("Existing database detected.")
             if not alembic_exists:
-                # Legacy DB: no version table. Stamp declares current line; emergency DDL below may add
-                # columns missing from older images. A final `upgrade head` (after ensures) is idempotent.
-                logger.info("No alembic_version table found. Stamping to head to capture current state...")
-                command.stamp(alembic_cfg, "head")
-                stamped_legacy_without_alembic = True
-            else:
-                logger.info("Alembic version table found.")
+                logger.info(
+                    "No audion.alembic_version table — running alembic upgrade head next to apply missing "
+                    "revisions (migrations use IF NOT EXISTS / guards where possible)."
+                )
 
-        # Coolify / unattended deploys: reconcile to head when alembic already tracks revisions.
-        # Skip when we only stamped a legacy DB (would replay migrations from base → duplicate types/tables).
+        # Coolify / unattended deploys: reconcile schema when tables already existed.
         # Fresh DBs used create_all + stamp; running upgrade would collide with create_all.
-        if not ran_create_all and not stamped_legacy_without_alembic:
+        if not ran_create_all:
             try:
                 logger.info("Running alembic upgrade head (idempotent)...")
                 command.upgrade(alembic_cfg, "head")
             except Exception as e:
                 logger.error(f"Alembic upgrade head failed: {e}")
                 raise
-        elif stamped_legacy_without_alembic:
-            logger.info(
-                "Skipping alembic upgrade head after legacy stamp (schema already matches production; "
-                "replay would conflict). Use scripts/coolify-migrate.sh if you intentionally reset version."
-            )
 
         logger.info("Database initialization completed successfully.")
 
