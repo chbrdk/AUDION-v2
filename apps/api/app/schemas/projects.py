@@ -55,6 +55,8 @@ class ProjectResponse(BaseModel):
     company_context_de: str | None = None
     status: str = "draft"
     checkion_project_id: str | None = None
+    platform_project_id: str | None = None
+    platform_company_id: str | None = None
     created_at: datetime
     updated_at: datetime
 

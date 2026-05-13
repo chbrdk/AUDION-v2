@@ -156,7 +156,10 @@ class ApiToken(Base):
 
 class Project(Base):
     __tablename__ = "projects"
-    __table_args__ = {"schema": "audion"}
+    __table_args__ = (
+        UniqueConstraint("platform_project_id", name="uq_audion_projects_platform_project_id"),
+        {"schema": "audion"},
+    )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     name = Column(String(128), nullable=False)
@@ -170,6 +173,9 @@ class Project(Base):
     status = Column(String(32), nullable=False, default="draft")
     # Optional CHECKION project UUID (links AUDION project to CHECKION for Deep Scan slim-pages).
     checkion_project_id = Column(String(40), nullable=True)
+    # PLEXON platform project / company (mirror).
+    platform_project_id = Column(String(64), nullable=True)
+    platform_company_id = Column(String(64), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

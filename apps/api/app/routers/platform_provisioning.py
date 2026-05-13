@@ -8,7 +8,7 @@ from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import BaseModel, EmailStr
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..core.config import get_settings
@@ -20,6 +20,7 @@ from ..core.plexon_contract import (
 from ..db import get_db
 from ..models import (
     ApiToken,
+    Persona,
     PlatformManagedProjectMembership,
     Project,
     ProjectMember,
@@ -28,8 +29,11 @@ from ..models import (
     User,
 )
 from ..services.auth import hash_password
+from ..services.ai_assist import seed_default_templates_for_project
 
 router = APIRouter(prefix="/platform/provisioning", tags=["platform-provisioning"])
+
+PLEXON_USER_ID_HEADER = "X-Plexon-User-Id"
 
 
 class ProvisioningDefaultContext(BaseModel):
@@ -321,4 +325,147 @@ def provision_user(
         "status": "applied",
         "externalUserRef": str(user.id),
         "details": assignment_details or "Local AUDION user updated from PLEXON.",
+    }
+
+
+class ProvisioningProjectUpsertRequest(BaseModel):
+    platformCompanyId: str
+    name: str
+    domain: str | None = None
+    status: str
+    ownerUserId: str
+    contractVersion: str
+    source: str
+    requestedAt: str
+
+
+@router.put("/projects/{platform_project_id}")
+def upsert_platform_project(
+    platform_project_id: str,
+    payload: ProvisioningProjectUpsertRequest,
+    x_service_secret: str | None = Header(default=None, alias=PLEXON_SERVICE_SECRET_HEADER),
+    x_contract_version: str | None = Header(default=None, alias=PLEXON_CONTRACT_VERSION_HEADER),
+    session: Session = Depends(get_db),
+):
+    _assert_provisioning_auth(
+        x_service_secret=x_service_secret,
+        x_contract_version=x_contract_version,
+    )
+    if payload.contractVersion != PLEXON_FEDERATION_CONTRACT_VERSION:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Unsupported provisioning contract version",
+        )
+    ppid = platform_project_id.strip()
+    if not ppid:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid platform project id")
+
+    owner = session.scalar(
+        select(User).where(User.plexon_user_id == payload.ownerUserId.strip()).limit(1)
+    )
+    if owner is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Owner must be provisioned in AUDION before platform project sync (user provisioning first).",
+        )
+
+    existing = session.scalar(select(Project).where(Project.platform_project_id == ppid).limit(1))
+    now = datetime.utcnow()
+    if existing:
+        existing.name = payload.name.strip()
+        existing.platform_company_id = payload.platformCompanyId.strip()
+        if payload.status == "archived":
+            existing.status = "archived"
+        elif payload.status == "active" and existing.status == "archived":
+            existing.status = "draft"
+        if payload.domain and payload.domain.strip():
+            line = f"Website: {payload.domain.strip()}"
+            if not (existing.company_context or "").strip():
+                existing.company_context = line
+        existing.updated_at = now
+        session.commit()
+        return {
+            "status": "applied",
+            "externalProjectId": str(existing.id),
+            "details": "AUDION project mirror updated.",
+        }
+
+    project = Project(
+        id=uuid4(),
+        name=payload.name.strip(),
+        owner_user_id=owner.id,
+        status="archived" if payload.status == "archived" else "draft",
+        platform_project_id=ppid,
+        platform_company_id=payload.platformCompanyId.strip(),
+        created_at=now,
+        updated_at=now,
+    )
+    if payload.domain and payload.domain.strip():
+        project.company_context = f"Website: {payload.domain.strip()}"
+    session.add(project)
+    session.flush()
+    session.add(
+        ProjectMember(
+            id=uuid4(),
+            project_id=project.id,
+            user_id=owner.id,
+            role=ProjectRole.owner,
+            status=ProjectMemberStatus.active,
+            created_at=now,
+            updated_at=now,
+        )
+    )
+    seed_default_templates_for_project(session, str(project.id))
+    session.commit()
+    return {
+        "status": "applied",
+        "externalProjectId": str(project.id),
+        "details": "AUDION project mirror created.",
+    }
+
+
+@router.get("/projects/{platform_project_id}")
+def get_platform_project_summary(
+    platform_project_id: str,
+    x_service_secret: str | None = Header(default=None, alias=PLEXON_SERVICE_SECRET_HEADER),
+    x_contract_version: str | None = Header(default=None, alias=PLEXON_CONTRACT_VERSION_HEADER),
+    x_plexon_user_id: str | None = Header(default=None, alias=PLEXON_USER_ID_HEADER),
+    session: Session = Depends(get_db),
+):
+    _assert_provisioning_auth(
+        x_service_secret=x_service_secret,
+        x_contract_version=x_contract_version,
+    )
+    puid = (x_plexon_user_id or "").strip()
+    if not puid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"{PLEXON_USER_ID_HEADER} is required",
+        )
+    ppid = platform_project_id.strip()
+    if not ppid:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid platform project id")
+
+    project = session.scalar(select(Project).where(Project.platform_project_id == ppid).limit(1))
+    if project is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Platform project mirror not found")
+
+    viewer = session.scalar(select(User).where(User.plexon_user_id == puid).limit(1))
+    if viewer is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unknown PLEXON user in AUDION")
+
+    if project.owner_user_id != viewer.id:
+        member = session.scalar(
+            select(ProjectMember)
+            .where(ProjectMember.project_id == project.id)
+            .where(ProjectMember.user_id == viewer.id)
+            .limit(1)
+        )
+        if member is None:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a member of this project")
+
+    persona_count = session.scalar(select(func.count(Persona.id)).where(Persona.project_id == project.id))
+    return {
+        "externalProjectId": str(project.id),
+        "personaCount": int(persona_count or 0),
     }

@@ -133,6 +133,8 @@ def _project_response(project: Project) -> ProjectResponse:
         company_context_de=getattr(project, "company_context_de", None),
         status=getattr(project, "status", None) or "draft",
         checkion_project_id=getattr(project, "checkion_project_id", None),
+        platform_project_id=getattr(project, "platform_project_id", None),
+        platform_company_id=getattr(project, "platform_company_id", None),
         created_at=project.created_at,
         updated_at=project.updated_at,
     )
