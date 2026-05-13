@@ -17,6 +17,7 @@ import { ThemeRegistryNoSSR } from "../../components/theme-registry-no-ssr";
 import { AuthBrandColorSelector } from "../../components/auth/auth-brand-color-selector";
 import { useI18n } from "../../components/i18n/i18n-provider";
 import { buildApiUrl } from "../api/_lib/backend";
+import { resolveAuthApiErrorMessage } from "../../lib/auth-client-error-message";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -40,8 +41,8 @@ export default function RegisterPage() {
         body: JSON.stringify({ name: name || undefined, email, password }),
       });
       if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.detail || data.error || t("auth.register.error"));
+        const data = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+        throw new Error(resolveAuthApiErrorMessage(response, data, t, "auth.register.error"));
       }
       router.replace(`${basePath}/admin`);
     } catch (err) {

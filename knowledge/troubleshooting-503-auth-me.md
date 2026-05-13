@@ -72,3 +72,5 @@ Env-Variablen werden beim Build/Start gelesen. Nach Anpassung von `NEXT_PERSONA_
 - **503 auf /api/auth/me** = Next.js erreicht das Persona-Backend nicht.
 - **NEXT_PERSONA_BACKEND_INTERNAL_URL** (und ggf. **NEXT_PUBLIC_PERSONA_BACKEND_URL**) in der **Web-App** so setzen, dass der Host von der Web-App aus erreichbar ist (interner Service-Name oder öffentliche API-URL).
 - API-Container und Netzwerk (Coolify: gleiches Netz / interne Hostnamen) prüfen, dann Web-App redeployen.
+
+Nach einem fehlgeschlagenen Login zeigt die Login-Seite eine **klarere Meldung** (statt nur englisch „Authentication service unavailable“), sobald die Web-App mit diesem Repo deployed ist.

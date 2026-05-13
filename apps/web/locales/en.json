@@ -74,6 +74,7 @@
     "none": "No projects"
   },
   "auth": {
+    "personaBackendUnavailable": "Sign-in is unavailable: the AUDION web server cannot reach the API (persona backend). Set NEXT_PERSONA_BACKEND_INTERNAL_URL or NEXT_PUBLIC_PERSONA_BACKEND_URL on the web app. See knowledge/troubleshooting-503-auth-me.md",
     "login": {
       "title": "Welcome back",
       "subtitle": "Sign in to manage your projects and personas.",

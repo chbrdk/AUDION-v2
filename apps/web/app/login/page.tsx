@@ -18,6 +18,7 @@ import { AuthBrandColorSelector } from "../../components/auth/auth-brand-color-s
 import { PlexonReturnLink } from "../../components/federation/plexon-return-link";
 import { useI18n } from "../../components/i18n/i18n-provider";
 import { buildApiUrl } from "../api/_lib/backend";
+import { resolveAuthApiErrorMessage } from "../../lib/auth-client-error-message";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -42,8 +43,8 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
       if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.detail || data.error || t("auth.login.error"));
+        const data = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+        throw new Error(resolveAuthApiErrorMessage(response, data, t, "auth.login.error"));
       }
       const resolvedRedirect = redirectTo.startsWith("/")
         ? `${basePath}${redirectTo}`

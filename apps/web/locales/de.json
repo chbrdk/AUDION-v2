@@ -74,6 +74,7 @@
     "none": "Keine Projekte"
   },
   "auth": {
+    "personaBackendUnavailable": "Anmeldung derzeit nicht möglich: Der AUDION-Webserver erreicht die API nicht (Persona-Backend). In der Web-App muss NEXT_PERSONA_BACKEND_INTERNAL_URL oder NEXT_PUBLIC_PERSONA_BACKEND_URL korrekt gesetzt sein. Kurzanleitung: knowledge/troubleshooting-503-auth-me.md",
     "login": {
       "title": "Willkommen zurück",
       "subtitle": "Melde dich an, um Projekte und Personas zu verwalten.",
