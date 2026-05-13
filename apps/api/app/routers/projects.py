@@ -61,7 +61,7 @@ from ..services.persona_bootstrap import generate_persona_for_target_group
 from ..services.suggest_target_groups import suggest_target_groups as run_suggest_target_groups
 from ..services.resource_bilingual_utils import normalize_publication_status, validate_project_bilingual_publish
 from ..services.target_group_store import TargetGroupService
-from ..services.usage_report import report_usage
+from ..services.plexon_project_origin import register_audion_project_on_plexon
 from ..services.checkion_project_context import (
     build_optional_checkion_topics_prompt_block,
     fetch_checkion_site_topics_bundle,
@@ -79,8 +79,78 @@ from ..services.ai_suggestion_cache import (
     upsert_cache_entry,
 )
 from ..celery_app import celery_app
+from ..core.config import get_settings
 
 router = APIRouter(prefix="/projects", tags=["projects"])
+
+
+def _plexon_federation_env_configured(settings) -> bool:
+    return bool(
+        (getattr(settings, "plexon_api_base_url", None) or "").strip()
+        and (getattr(settings, "plexon_service_secret", None) or "").strip()
+    )
+
+
+def _sync_new_project_with_plexon(
+    session: Session,
+    project: Project,
+    current_user: User,
+    platform_company_id: str | None,
+) -> None:
+    """Registers the AUDION project on PLEXON and provisions CHECKION; no-op if federation not configured."""
+    settings = get_settings()
+    if not _plexon_federation_env_configured(settings):
+        return
+    puid = getattr(current_user, "plexon_user_id", None)
+    if not puid or not str(puid).strip():
+        return
+    pc = (platform_company_id or "").strip()
+    if not pc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "platform_company_id is required when PLEXON API URL and service secret are configured "
+                "and your user is linked to PLEXON."
+            ),
+        )
+    base = (settings.plexon_api_base_url or "").strip()
+    secret = (settings.plexon_service_secret or "").strip()
+    try:
+        data = register_audion_project_on_plexon(
+            plexon_api_base_url=base,
+            plexon_service_secret=secret,
+            audion_project_id=str(project.id),
+            name=project.name,
+            domain=None,
+            owner_plexon_user_id=str(puid).strip(),
+            platform_company_id=pc,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"PLEXON project registration failed: {exc}",
+        ) from exc
+
+    raw_cp = data.get("checkionProjectId")
+    checkion_val = str(raw_cp).strip() if raw_cp else None
+    proj = session.get(Project, project.id)
+    if not proj:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Project missing after PLEXON registration.",
+        )
+    pp = str(data.get("platformProjectId") or "").strip()
+    if not pp:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="PLEXON response missing platformProjectId",
+        )
+    pco = str(data.get("platformCompanyId") or pc).strip()
+    proj.platform_project_id = pp
+    proj.platform_company_id = pco or None
+    if checkion_val:
+        proj.checkion_project_id = checkion_val
+    session.commit()
 
 
 def _user_id_for_usage(current_user: User | None) -> str | None:
@@ -210,6 +280,16 @@ def create_project(
 
     seed_default_templates_for_project(session, str(project.id))
     session.commit()
+    try:
+        _sync_new_project_with_plexon(
+            session,
+            project,
+            current_user,
+            getattr(payload, "platform_company_id", None),
+        )
+    except HTTPException:
+        raise
+    session.refresh(project)
 
     return _project_response(project)
 
@@ -277,6 +357,16 @@ def project_easy_setup(
 
     seed_default_templates_for_project(session, str(project.id))
     session.commit()
+    session.refresh(project)
+    try:
+        _sync_new_project_with_plexon(
+            session,
+            project,
+            current_user,
+            getattr(payload, "platform_company_id", None),
+        )
+    except HTTPException:
+        raise
     session.refresh(project)
 
     context_parts = [description]

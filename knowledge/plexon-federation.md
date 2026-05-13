@@ -26,10 +26,25 @@ Die Web-App verwendet den Vertrag ueber `apps/web/lib/plexon-contract.ts`. Die P
 - Profil-Lesen/-Patch ueber PLEXON-Service-Endpunkte
 - Usage-Reporting aus Python ueber `apps/api/app/services/usage_report.py`
 
+## Zentrale Projekt-Anlage (PLEXON Company)
+
+Wenn die Persona-API mit `PLEXON_API_BASE_URL` / `PLEXON_SERVICE_SECRET` konfiguriert ist und der Nutzer ein `plexon_user_id` hat, verlangt `POST /projects` (und Bootstrap) ein **`platform_company_id`**.
+
+Die Web-App setzt das Feld automatisch, wenn eine der folgenden Quellen gesetzt ist (Prioritaet: URL, dann SessionStorage, dann Env-Default):
+
+- Query-Parameter: `platformCompanyId` oder `platform_company_id` (gleiche Schluessel wie in `apps/web/lib/platform-company-context.ts`)
+- SessionStorage-Schluessel: `audion_platform_company_id` (wird aus der URL beim Laden geschrieben)
+- Optional: `NEXT_PUBLIC_DEFAULT_PLATFORM_COMPANY_ID` fuer Single-Tenant / Dev
+
+Relevante Dateien siehe unten.
+
 ## Relevante Dateien
 
 - `apps/web/lib/plexon-contract.ts`
 - `apps/web/lib/plexon-auth.ts`
+- `apps/web/lib/platform-company-context.ts`
+- `apps/web/components/projects/project-provider.tsx`
+- `apps/web/components/setup/msqdx-glass-easy-setup-panel.tsx`
 - `apps/web/app/api/auth/login/route.ts`
 - `apps/web/middleware.ts`
 - `apps/api/app/services/usage_report.py`

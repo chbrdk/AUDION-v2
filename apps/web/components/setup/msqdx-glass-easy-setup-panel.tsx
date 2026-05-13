@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Box, Stack } from "@mui/material";
 import { MsqdxButton, MsqdxFormField, MsqdxMoleculeCard, MsqdxTextareaField, MsqdxTypography } from "@msqdx/react";
 import { buildApiUrl } from "../../app/api/_lib/backend";
 import { withOutputLocale } from "../../lib/ai-output-locale";
 import { API_ROUTES } from "../../lib/api-routes";
+import { resolvePlatformCompanyIdForApi } from "../../lib/platform-company-context";
 import { ADMIN_ROUTES } from "../../lib/routes";
 import { useI18n } from "../i18n/i18n-provider";
 import { useProject } from "../projects/project-provider";
@@ -20,6 +22,7 @@ export type ProjectEasySetupResponse = {
 
 export function MsqdxGlassEasySetupPanel() {
   const { t, locale } = useI18n();
+  const searchParams = useSearchParams();
   const { refreshProjects, selectProject } = useProject();
   const accent = "var(--color-theme-accent)";
 
@@ -56,6 +59,9 @@ export function MsqdxGlassEasySetupPanel() {
       if (url) base.website_url = url;
       const nameOverride = projectName.trim();
       if (nameOverride) base.project_name = nameOverride;
+
+      const platformCompanyId = resolvePlatformCompanyIdForApi(searchParams);
+      if (platformCompanyId) base.platform_company_id = platformCompanyId;
 
       const response = await fetch(buildApiUrl(API_ROUTES.projectsBootstrap), {
         method: "POST",

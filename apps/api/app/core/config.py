@@ -76,6 +76,11 @@ class Settings(BaseSettings):
 
     # PLEXON: same secret as in PLEXON and AUDION web; used for /auth/plexon-sync
     plexon_service_secret: str | None = None
+    # PLEXON API base (no trailing path). Alias PLEXON_AUTH_URL matches legacy usage reporting env.
+    plexon_api_base_url: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("plexon_api_base_url", "PLEXON_API_BASE_URL", "PLEXON_AUTH_URL"),
+    )
 
     # Observability
     otel_exporter_otlp_endpoint: str | None = None

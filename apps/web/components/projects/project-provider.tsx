@@ -8,6 +8,10 @@ import { useAuth } from "../auth/auth-provider";
 import { clearProjectCookie, getProjectCookie, setProjectCookie } from "../../lib/project-cookies";
 import { buildApiUrl } from "../../app/api/_lib/backend";
 import { resolvePreferredProjectId } from "../../lib/project-selection";
+import {
+  persistPlatformCompanyIdFromUrl,
+  resolvePlatformCompanyIdForApi,
+} from "../../lib/platform-company-context";
 
 export type ProjectSummary = {
   id: string;
@@ -115,6 +119,10 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
   }, [refreshProjects]);
 
   useEffect(() => {
+    persistPlatformCompanyIdFromUrl(searchParams);
+  }, [searchParams]);
+
+  useEffect(() => {
     if (authLoading) return;
     if (!user) return;
     const cookieProjectId = getProjectCookie();
@@ -147,17 +155,22 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const createProject = useCallback(async (name: string) => {
+    const platformCompanyId = resolvePlatformCompanyIdForApi(searchParams);
+    const body: Record<string, string> = { name };
+    if (platformCompanyId) {
+      body.platform_company_id = platformCompanyId;
+    }
     const response = await fetch(buildApiUrl("/api/projects"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name }),
+      body: JSON.stringify(body),
     });
     if (!response.ok) {
       throw new Error(await parseError(response));
     }
     const data = await response.json();
     return data as ProjectSummary;
-  }, []);
+  }, [searchParams]);
 
   const getProjectDetail = useCallback(async (projectId: string) => {
     const response = await fetch(buildApiUrl(`/api/projects/${projectId}`));

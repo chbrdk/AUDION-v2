@@ -12,6 +12,11 @@ class ProjectCreateRequest(BaseModel):
         default=None,
         description="Publication lifecycle: draft (default) or published. Published requires DE mirrors where EN text is set.",
     )
+    platform_company_id: str | None = Field(
+        default=None,
+        max_length=64,
+        description="PLEXON company id when creating via central federation (required if PLEXON is configured and user is linked).",
+    )
 
 
 class ProjectUpdateRequest(BaseModel):
@@ -176,6 +181,11 @@ class ProjectEasySetupRequest(BaseModel):
         description='UI locale for AI strings: "en" | "de" (aliases accepted by server). '
         "Send from web `useI18n().locale`. Omit: target-group suggest uses server default (de); "
         "persona profile JSON generation defaults to English unless this field is set.",
+    )
+    platform_company_id: str | None = Field(
+        default=None,
+        max_length=64,
+        description="PLEXON company id for central project registration (optional; see ProjectCreateRequest).",
     )
 
 
