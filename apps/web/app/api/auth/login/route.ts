@@ -4,7 +4,7 @@ import { getPersonaBackendBase } from "../../_lib/backend";
 import { AUTH_COOKIE_NAME, PROJECT_COOKIE_NAME } from "../../../../lib/auth-constants";
 import {
   isPlexonAuthConfigured,
-  validateCredentialsWithPlexon,
+  validatePlexonCredentials,
   getPlexonDerivedPassword,
   type PlexonAuthUser,
 } from "../../../../lib/plexon-auth";
@@ -92,17 +92,51 @@ export async function POST(request: Request) {
   let plexonUser: PlexonAuthUser | null = null;
 
   if (isPlexonAuthConfigured()) {
-    const user = await validateCredentialsWithPlexon(email, password);
-    if (user) {
-      plexonUser = user;
-      const derivedPassword = getPlexonDerivedPassword(user.id);
+    const plexon = await validatePlexonCredentials(email, password);
+    if (plexon.ok) {
+      plexonUser = plexon.user;
+      const derivedPassword = getPlexonDerivedPassword(plexon.user.id);
       backendBody = {
-        email: user.email,
+        email: plexon.user.email,
         password: derivedPassword,
-        name: user.name,
-        plexon_user_id: user.id,
+        name: plexon.user.name,
+        plexon_user_id: plexon.user.id,
       };
+    } else if (plexon.reason === "service_secret_mismatch") {
+      return NextResponse.json(
+        {
+          detail:
+            "PLEXON hat den Service-Aufruf abgelehnt (Unauthorized). PLEXON_SERVICE_SECRET in der AUDION-Web-App muss identisch zu PLEXON und zum AUDION-API-Container sein.",
+          code: "plexon_service_secret",
+        },
+        { status: 503 }
+      );
+    } else if (plexon.reason === "invalid_credentials") {
+      return NextResponse.json(
+        { detail: "E-Mail oder Passwort stimmen nicht mit dem PLEXON-Konto überein.", code: "plexon_invalid_credentials" },
+        { status: 401 }
+      );
+    } else if (plexon.reason === "network_error") {
+      return NextResponse.json(
+        {
+          detail: "PLEXON ist unter PLEXON_AUTH_URL nicht erreichbar.",
+          error: plexon.message,
+          code: "plexon_unreachable",
+        },
+        { status: 503 }
+      );
+    } else if (plexon.reason === "plexon_unexpected_status") {
+      return NextResponse.json(
+        {
+          detail: "Unerwartete Antwort von PLEXON beim Login.",
+          status: plexon.status,
+          error: plexon.message,
+          code: "plexon_unexpected",
+        },
+        { status: 502 }
+      );
     }
+    /* reason === "not_configured" should not happen when isPlexonAuthConfigured(); fall through to local login */
   }
 
   const response = await loginWithBackend(backendBody);

@@ -5,6 +5,8 @@
  * Aufruf (Login/Register mit abgeleitetem Passwort oder /auth/plexon).
  */
 
+import { createHmac } from "crypto";
+
 import { getPlexonContractHeaders } from "./plexon-contract";
 
 const PLEXON_AUTH_URL = process.env.PLEXON_AUTH_URL ?? "";
@@ -16,17 +18,26 @@ export function isPlexonAuthConfigured(): boolean {
 
 export type PlexonAuthUser = { id: string; email: string; name?: string };
 
+export type PlexonCredentialValidation =
+  | { ok: true; user: PlexonAuthUser }
+  | { ok: false; reason: "not_configured" }
+  | { ok: false; reason: "network_error"; message: string }
+  | { ok: false; reason: "service_secret_mismatch" }
+  | { ok: false; reason: "invalid_credentials" }
+  | { ok: false; reason: "plexon_unexpected_status"; status: number; message: string };
+
 /**
- * Validiert E-Mail/Passwort gegen PLEXON.
+ * Validiert E-Mail/Passwort gegen PLEXON (`POST …/api/auth/validate-credentials`).
+ * Liefert strukturiertes Ergebnis, damit die Login-Route nicht fälschlich den lokalen Backend-Login mit dem PLEXON-Klartext-Passwort versucht.
  */
-export async function validateCredentialsWithPlexon(
-  email: string,
-  password: string
-): Promise<PlexonAuthUser | null> {
-  if (!PLEXON_AUTH_URL.trim() || !PLEXON_SERVICE_SECRET.trim()) return null;
+export async function validatePlexonCredentials(email: string, password: string): Promise<PlexonCredentialValidation> {
+  if (!PLEXON_AUTH_URL.trim() || !PLEXON_SERVICE_SECRET.trim()) {
+    return { ok: false, reason: "not_configured" };
+  }
   const url = `${PLEXON_AUTH_URL.replace(/\/$/, "")}/api/auth/validate-credentials`;
+  let res: Response;
   try {
-    const res = await fetch(url, {
+    res = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -34,16 +45,52 @@ export async function validateCredentialsWithPlexon(
       },
       body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
     });
-    if (!res.ok) return null;
-    const data = (await res.json()) as { user?: PlexonAuthUser };
-    return data?.user ?? null;
   } catch (e) {
+    const message = e instanceof Error ? e.message : "fetch failed";
     console.error("[AUDION] PLEXON auth error:", e);
-    return null;
+    return { ok: false, reason: "network_error", message };
   }
-}
 
-import { createHmac } from "crypto";
+  const text = await res.text();
+  let errorBody = "";
+  try {
+    const j = JSON.parse(text) as { error?: unknown };
+    if (typeof j.error === "string") errorBody = j.error;
+  } catch {
+    /* ignore */
+  }
+
+  if (!res.ok) {
+    if (res.status === 401 && errorBody === "Unauthorized") {
+      return { ok: false, reason: "service_secret_mismatch" };
+    }
+    if (res.status === 401) {
+      return { ok: false, reason: "invalid_credentials" };
+    }
+    return {
+      ok: false,
+      reason: "plexon_unexpected_status",
+      status: res.status,
+      message: errorBody || text.slice(0, 200),
+    };
+  }
+
+  try {
+    const data = JSON.parse(text) as { user?: PlexonAuthUser };
+    const user = data?.user;
+    if (user?.id && user.email) {
+      return { ok: true, user: { id: user.id, email: user.email, name: user.name } };
+    }
+  } catch {
+    /* fall through */
+  }
+  return {
+    ok: false,
+    reason: "plexon_unexpected_status",
+    status: res.status,
+    message: "missing user in PLEXON response",
+  };
+}
 
 /**
  * Deterministisches Passwort für einen PLEXON-User, damit das Persona-Backend
