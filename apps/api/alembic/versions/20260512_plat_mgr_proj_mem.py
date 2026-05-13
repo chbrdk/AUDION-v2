@@ -1,6 +1,6 @@
 """Add platform managed project memberships.
 
-Revision ID: 20260512_platform_managed_project_memberships
+Revision ID: 20260512_plat_mgr_proj_mem (<=32 chars for audion.alembic_version.version_num)
 Revises: 20260512_journeys_from_ux_runs
 Create Date: 2026-05-12
 """
@@ -13,7 +13,7 @@ from sqlalchemy import inspect
 from sqlalchemy.dialects import postgresql
 
 
-revision = "20260512_platform_managed_project_memberships"
+revision = "20260512_plat_mgr_proj_mem"
 down_revision = "20260512_journeys_from_ux_runs"
 branch_labels = None
 depends_on = None

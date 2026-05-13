@@ -58,7 +58,11 @@ In den Environment Variables der **API**-App (Coolify):
 
 Bei langsamer Managed-DB: `DB_WAIT_TIMEOUT_SECONDS=120` setzen und erneut deployen.
 
-## 5. Kurzfassung
+## 5. Alembic: `version_num` VARCHAR(32)
+
+Die Tabelle `audion.alembic_version` nutzt `version_num VARCHAR(32)`. **Jede** `revision = "…"` in `apps/api/alembic/versions/*.py` darf daher **höchstens 32 Zeichen** haben (siehe auch `tests/test_alembic_revision_id_lengths.py`). Längere IDs führen zu `StringDataRightTruncation` beim `UPDATE audion.alembic_version …`.
+
+## 6. Kurzfassung
 
 1. **`docker logs` des `api`-Containers** — letzte `[audion-api/start.sh]`-Zeile + Python-Traceback lesen.  
 2. **`DATABASE_URL`, `REDIS_URL`, `AUTH_JWT_SECRET`** in Coolify prüfen (Pflicht für die API).  

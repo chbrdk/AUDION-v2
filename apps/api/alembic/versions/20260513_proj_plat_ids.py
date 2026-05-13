@@ -1,7 +1,7 @@
 """Add platform_project_id / platform_company_id to audion.projects.
 
-Revision ID: 20260513_platform_project_platform_ids
-Revises: 20260512_platform_managed_project_memberships
+Revision ID: 20260513_proj_plat_ids (<=32 chars for audion.alembic_version.version_num)
+Revises: 20260512_plat_mgr_proj_mem
 Create Date: 2026-05-13
 """
 
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 from sqlalchemy import inspect
 
 
-revision = "20260513_platform_project_platform_ids"
-down_revision = "20260512_platform_managed_project_memberships"
+revision = "20260513_proj_plat_ids"
+down_revision = "20260512_plat_mgr_proj_mem"
 branch_labels = None
 depends_on = None
 
