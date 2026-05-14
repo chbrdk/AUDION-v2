@@ -19,6 +19,16 @@ class ProjectCreateRequest(BaseModel):
     )
 
 
+class PlexonMirrorRetryRequest(BaseModel):
+    """Optional body for POST /projects/{id}/plexon-mirror when the project has no platform_company_id yet."""
+
+    platform_company_id: str | None = Field(
+        default=None,
+        max_length=64,
+        description="Use when the project row has no platform_company_id; otherwise the stored value is used.",
+    )
+
+
 class ProjectUpdateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=128)
     name_de: str | None = Field(
@@ -64,6 +74,15 @@ class ProjectResponse(BaseModel):
     platform_company_id: str | None = None
     created_at: datetime
     updated_at: datetime
+    plexon_mirror_status: str | None = Field(
+        default=None,
+        description=(
+            "Set on POST /projects (and nested in easy-setup): whether AUDION called PLEXON provisioning. "
+            "`completed` = platform project created in PLEXON; `skipped_no_env` = API missing PLEXON URL/secret; "
+            "`skipped_no_plexon_user` = user not linked to PLEXON in persona DB; "
+            "`already_synced` = POST /projects/{id}/plexon-mirror when platform_project_id was already set."
+        ),
+    )
 
 
 class ProjectListResponse(BaseModel):

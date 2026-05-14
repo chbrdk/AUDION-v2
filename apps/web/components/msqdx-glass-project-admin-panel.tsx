@@ -94,6 +94,7 @@ export function MsqdxGlassProjectAdminPanel({
         addMember,
         removeMember,
         refreshProjects,
+        retryPlexonMirror,
     } = useProject();
 
     // State
@@ -153,6 +154,7 @@ export function MsqdxGlassProjectAdminPanel({
     const [newProjectName, setNewProjectName] = useState("");
     const [creating, setCreating] = useState(false);
     const [createError, setCreateError] = useState<string | null>(null);
+    const [plexonRetryLoading, setPlexonRetryLoading] = useState(false);
 
     // Member Management State
     const [memberEmail, setMemberEmail] = useState("");
@@ -750,6 +752,35 @@ export function MsqdxGlassProjectAdminPanel({
         }
     }, [refreshProjects, t]);
 
+    const handleRetryPlexonMirror = useCallback(async () => {
+        if (!selectedId) return;
+        setPlexonRetryLoading(true);
+        try {
+            const updated = await retryPlexonMirror(selectedId);
+            await refreshProjects();
+            const response = await fetchWithTimeout(buildApiUrl(`/api/projects`), { cache: "no-store" });
+            if (response.ok) {
+                const data = await response.json();
+                setProjects(data.items || []);
+            }
+            await loadDetail(selectedId);
+            if (updated.plexon_mirror_status === "already_synced") {
+                notify(t("settingsProjects.plexonMirrorRetry.alreadySynced"));
+            } else if (updated.plexon_mirror_status === "completed") {
+                notify(t("settingsProjects.plexonMirrorRetry.success"));
+            } else if (
+                updated.plexon_mirror_status === "skipped_no_env" ||
+                updated.plexon_mirror_status === "skipped_no_plexon_user"
+            ) {
+                notify(t(`settingsProjects.createProject.plexonMirror.${updated.plexon_mirror_status}`));
+            }
+        } catch (error) {
+            notify(error instanceof Error ? error.message : t("settingsProjects.plexonMirrorRetry.error"));
+        } finally {
+            setPlexonRetryLoading(false);
+        }
+    }, [selectedId, retryPlexonMirror, refreshProjects, loadDetail, t]);
+
     // Create new project
     const handleCreateProject = useCallback(async () => {
         if (!newProjectName.trim()) {
@@ -767,6 +798,10 @@ export function MsqdxGlassProjectAdminPanel({
             setNewProjectName("");
             setShowCreateForm(false);
             notify(t("settingsProjects.messages.projectCreated") || "Project created");
+            const st = created.plexon_mirror_status;
+            if (st === "skipped_no_env" || st === "skipped_no_plexon_user") {
+                notify(t(`settingsProjects.createProject.plexonMirror.${st}`));
+            }
         } catch (error) {
             console.error("Failed to create project:", error);
             setCreateError(error instanceof Error ? error.message : t("settingsProjects.errors.createProject"));
@@ -1617,6 +1652,33 @@ export function MsqdxGlassProjectAdminPanel({
                                             />
                                         ))}
                                     </Box>
+                                    {!String(detail.platform_project_id || "").trim() ? (
+                                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 1.5, flexWrap: "wrap" }}>
+                                            <MsqdxButton
+                                                variant="outlined"
+                                                size="small"
+                                                disabled={
+                                                    plexonRetryLoading ||
+                                                    !String(detail.platform_company_id || "").trim()
+                                                }
+                                                onClick={() => void handleRetryPlexonMirror()}
+                                                sx={{
+                                                    borderColor: accent,
+                                                    color: accent,
+                                                    "&:hover": { borderColor: accent, backgroundColor: "transparent" },
+                                                }}
+                                            >
+                                                {plexonRetryLoading
+                                                    ? t("settingsProjects.plexonMirrorRetry.loading")
+                                                    : t("settingsProjects.plexonMirrorRetry.cta")}
+                                            </MsqdxButton>
+                                            {!String(detail.platform_company_id || "").trim() ? (
+                                                <MsqdxTypography variant="caption" sx={{ color: "text.secondary", maxWidth: 480 }}>
+                                                    {t("settingsProjects.plexonMirrorRetry.needsCompanyId")}
+                                                </MsqdxTypography>
+                                            ) : null}
+                                        </Box>
+                                    ) : null}
                                     <Box sx={{ display: "flex", gap: 2, mt: 2, flexWrap: "wrap" }}>
                                         <Box>
                                             <MsqdxTypography

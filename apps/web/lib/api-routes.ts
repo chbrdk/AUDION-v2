@@ -18,6 +18,9 @@ export const API_ROUTES = {
   /** GET: aggregated CHECKION Deep Scan page topics (persona-api proxy). */
   projectCheckionSiteTopics: (projectId: string) =>
     `/api/projects/${encodeURIComponent(projectId)}/integrations/checkion/site-topics`,
+  /** POST: retry PLEXON `audion-project-origin` for projects missing `platform_project_id`. */
+  projectPlexonMirror: (projectId: string) =>
+    `/api/projects/${encodeURIComponent(projectId)}/plexon-mirror`,
   projectResearchStream: (projectId: string, runId: string, after?: string | null) => {
     const qs = new URLSearchParams({ run_id: runId });
     if (after) qs.set("after", after);

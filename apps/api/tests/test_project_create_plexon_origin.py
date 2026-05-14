@@ -43,6 +43,7 @@ def test_create_project_skips_plexon_when_not_configured():
     assert r.status_code == 201, r.text
     body = r.json()
     assert body.get("platform_project_id") in (None, "")
+    assert body.get("plexon_mirror_status") == "skipped_no_env"
 
 
 @patch("app.routers.projects.register_audion_project_on_plexon")
@@ -69,6 +70,27 @@ def test_create_project_requires_platform_company_when_plexon_linked(mock_regist
         assert r.status_code == 400, r.text
         assert "platform_company_id" in str(r.json().get("detail", "")).lower()
         mock_register.assert_not_called()
+    get_settings.cache_clear()
+
+
+def test_create_project_skips_plexon_when_env_ok_but_user_not_linked():
+    with patch.dict(
+        os.environ,
+        {
+            "PLEXON_API_BASE_URL": "https://plexon.test",
+            "PLEXON_SERVICE_SECRET": "secret-x",
+        },
+    ):
+        get_settings.cache_clear()
+        token = _register_user("no-plexon-link@example.com")
+        r = client.post(
+            "/projects",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"name": "No plexon user id", "platform_company_id": "co-1"},
+        )
+        assert r.status_code == 201, r.text
+        assert r.json().get("plexon_mirror_status") == "skipped_no_plexon_user"
+        assert r.json().get("platform_project_id") in (None, "")
     get_settings.cache_clear()
 
 
@@ -104,6 +126,7 @@ def test_create_project_sets_platform_ids_after_plexon_ok(mock_register):
         assert body["platform_project_id"] == "pp-abc"
         assert body["platform_company_id"] == "comp-1"
         assert body["checkion_project_id"] == "chk-xyz"
+        assert body.get("plexon_mirror_status") == "completed"
         mock_register.assert_called_once()
         call_kw = mock_register.call_args.kwargs
         assert call_kw["platform_company_id"] == "comp-1"
@@ -127,6 +150,7 @@ def test_create_project_persists_platform_company_id_when_plexon_sync_skipped():
     body = r.json()
     assert body.get("platform_company_id") == "co-persist-1"
     assert body.get("platform_project_id") in (None, "")
+    assert body.get("plexon_mirror_status") == "skipped_no_env"
     with get_session() as session:
         proj = session.query(Project).filter(Project.name == "Tenant project").one()
         assert proj.platform_company_id == "co-persist-1"

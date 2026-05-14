@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime
 from uuid import UUID, uuid4
 
@@ -39,6 +40,7 @@ from ..schemas import (
     ProjectMemberAddRequest,
     ProjectMemberResponse,
     ProjectGenerateJourneyRequest,
+    PlexonMirrorRetryRequest,
     ProjectResponse,
     ProjectUpdateRequest,
     SuggestTargetGroupsRequest,
@@ -82,6 +84,7 @@ from ..celery_app import celery_app
 from ..core.config import get_settings
 
 router = APIRouter(prefix="/projects", tags=["projects"])
+logger = logging.getLogger(__name__)
 
 
 def _plexon_federation_env_configured(settings) -> bool:
@@ -106,14 +109,26 @@ def _sync_new_project_with_plexon(
     project: Project,
     current_user: User,
     platform_company_id: str | None,
-) -> None:
-    """Registers the AUDION project on PLEXON and provisions CHECKION; no-op if federation not configured."""
+) -> str:
+    """Registers the AUDION project on PLEXON and provisions CHECKION.
+
+    Returns ``completed`` when PLEXON was called successfully. Otherwise returns a skip reason
+    (AUDION still may store ``platform_company_id`` from the client for UI / later retry).
+    """
     settings = get_settings()
     if not _plexon_federation_env_configured(settings):
-        return
+        logger.info(
+            "audion.projects.plexon_mirror_skipped",
+            extra={"reason": "skipped_no_env", "project_id": str(project.id)},
+        )
+        return "skipped_no_env"
     puid = getattr(current_user, "plexon_user_id", None)
     if not puid or not str(puid).strip():
-        return
+        logger.info(
+            "audion.projects.plexon_mirror_skipped",
+            extra={"reason": "skipped_no_plexon_user", "project_id": str(project.id)},
+        )
+        return "skipped_no_plexon_user"
     pc = (platform_company_id or "").strip()
     if not pc:
         raise HTTPException(
@@ -161,6 +176,11 @@ def _sync_new_project_with_plexon(
     if checkion_val:
         proj.checkion_project_id = checkion_val
     session.commit()
+    logger.info(
+        "audion.projects.plexon_mirror_completed",
+        extra={"project_id": str(project.id), "platform_project_id": pp},
+    )
+    return "completed"
 
 
 def _user_id_for_usage(current_user: User | None) -> str | None:
@@ -201,7 +221,7 @@ def _require_admin_or_owner(membership: ProjectMember) -> None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
 
 
-def _project_response(project: Project) -> ProjectResponse:
+def _project_response(project: Project, *, plexon_mirror_status: str | None = None) -> ProjectResponse:
     return ProjectResponse(
         id=str(project.id),
         name=project.name,
@@ -217,6 +237,7 @@ def _project_response(project: Project) -> ProjectResponse:
         platform_company_id=getattr(project, "platform_company_id", None),
         created_at=project.created_at,
         updated_at=project.updated_at,
+        plexon_mirror_status=plexon_mirror_status,
     )
 
 
@@ -292,7 +313,7 @@ def create_project(
     seed_default_templates_for_project(session, str(project.id))
     session.commit()
     try:
-        _sync_new_project_with_plexon(
+        mirror_status = _sync_new_project_with_plexon(
             session,
             project,
             current_user,
@@ -302,7 +323,47 @@ def create_project(
         raise
     session.refresh(project)
 
-    return _project_response(project)
+    return _project_response(project, plexon_mirror_status=mirror_status)
+
+
+@router.post("/{project_id}/plexon-mirror", response_model=ProjectResponse)
+def retry_plexon_project_mirror(
+    project_id: str,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+    payload: PlexonMirrorRetryRequest | None = Body(default=None),
+) -> ProjectResponse:
+    """Call PLEXON `audion-project-origin` for an existing project (owner/admin only).
+
+    Use when the project has ``platform_company_id`` but creation skipped PLEXON (e.g. API env was missing).
+    Idempotent: if ``platform_project_id`` is already set, returns ``already_synced`` without calling upstream.
+    """
+    project = _get_project(session, project_id)
+    membership = _require_member(session, project_id=project.id, user_id=current_user.id)
+    _require_admin_or_owner(membership)
+
+    if getattr(project, "platform_project_id", None) and str(project.platform_project_id).strip():
+        return _project_response(project, plexon_mirror_status="already_synced")
+
+    raw_from_body = payload.platform_company_id if payload else None
+    pc = _normalized_platform_company_id(raw_from_body) or _normalized_platform_company_id(
+        getattr(project, "platform_company_id", None)
+    )
+    if not pc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="platform_company_id is required (set on the project or send { \"platform_company_id\": \"...\" } in the body).",
+        )
+    stored = _normalized_platform_company_id(getattr(project, "platform_company_id", None))
+    if stored != pc:
+        project.platform_company_id = pc
+        project.updated_at = datetime.utcnow()
+        session.commit()
+        session.refresh(project)
+
+    mirror = _sync_new_project_with_plexon(session, project, current_user, pc)
+    session.refresh(project)
+    return _project_response(project, plexon_mirror_status=mirror)
 
 
 @router.post(
@@ -371,7 +432,7 @@ def project_easy_setup(
     session.commit()
     session.refresh(project)
     try:
-        _sync_new_project_with_plexon(
+        plexon_mirror_status = _sync_new_project_with_plexon(
             session,
             project,
             current_user,
@@ -455,7 +516,7 @@ def project_easy_setup(
 
     session.refresh(project)
     return ProjectEasySetupResponse(
-        project=_project_response(project),
+        project=_project_response(project, plexon_mirror_status=plexon_mirror_status),
         target_group=ProjectEasySetupTargetGroupSummary(
             id=tg_response.id,
             name=tg_response.name,

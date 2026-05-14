@@ -28,6 +28,7 @@ export function MsqdxGlassProjectsOverview({ initialProjects }: MsqdxGlassProjec
   const [name, setName] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [plexonMirrorHint, setPlexonMirrorHint] = useState<string | null>(null);
 
   const resolvedPlatformCompanyId = useMemo(
     () =>
@@ -48,8 +49,13 @@ export function MsqdxGlassProjectsOverview({ initialProjects }: MsqdxGlassProjec
     if (!trimmed) return;
     setCreating(true);
     setError(null);
+    setPlexonMirrorHint(null);
     try {
       const created = await createProject(trimmed);
+      const st = created.plexon_mirror_status;
+      if (st === "skipped_no_env" || st === "skipped_no_plexon_user") {
+        setPlexonMirrorHint(t(`settingsProjects.createProject.plexonMirror.${st}`));
+      }
       await refreshProjects();
       selectProject(created.id);
       setName("");
@@ -68,6 +74,30 @@ export function MsqdxGlassProjectsOverview({ initialProjects }: MsqdxGlassProjec
 
   return (
     <Box sx={{ width: "100%" }}>
+      {plexonMirrorHint && (
+        <Box
+          role="status"
+          sx={{
+            mb: 2,
+            p: 1.5,
+            borderRadius: 1,
+            border: "1px solid",
+            borderColor: "warning.main",
+            bgcolor: "action.hover",
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: 1,
+          }}
+        >
+          <MsqdxTypography variant="body2" sx={{ color: "text.primary" }}>
+            {plexonMirrorHint}
+          </MsqdxTypography>
+          <MsqdxButton variant="text" size="small" onClick={() => setPlexonMirrorHint(null)} sx={{ flexShrink: 0 }}>
+            {t("common.close")}
+          </MsqdxButton>
+        </Box>
+      )}
       <Box sx={{ mb: 2 }}>
         <Link href={ADMIN_ROUTES.setup} style={{ textDecoration: "none" }}>
           <MsqdxButton

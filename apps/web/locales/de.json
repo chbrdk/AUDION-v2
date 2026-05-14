@@ -786,12 +786,24 @@
       "creating": "Erstellen…",
       "cta": "Erstellen",
       "centralPathHint": "Es wurde keine Firmen-Kontext-ID für PLEXON gefunden (weder im Link, noch gespeichert, noch aus deiner PLEXON-Mitgliedschaft). Bitte in PLEXON einer Firma zuordnen lassen oder AUDION mit platformCompanyId öffnen bzw. NEXT_PUBLIC_DEFAULT_PLATFORM_COMPANY_ID setzen.",
-      "companyIdRequiredAfterApi": "Es fehlt die PLEXON‑Firmen‑Kontext‑ID (platform_company_id). Öffne AUDION aus PLEXON mit passendem Link, oder setze NEXT_PUBLIC_DEFAULT_PLATFORM_COMPANY_ID / sessionStorage gemäß Plattform‑Kontext."
+      "companyIdRequiredAfterApi": "Es fehlt die PLEXON‑Firmen‑Kontext‑ID (platform_company_id). Öffne AUDION aus PLEXON mit passendem Link, oder setze NEXT_PUBLIC_DEFAULT_PLATFORM_COMPANY_ID / sessionStorage gemäß Plattform‑Kontext.",
+      "plexonMirror": {
+        "skipped_no_env": "Das Projekt wurde in AUDION angelegt, aber die AUDION‑API hat PLEXON nicht aufgerufen — auf dem API‑Container fehlen PLEXON_API_BASE_URL und PLEXON_SERVICE_SECRET (derselbe Secret wie in PLEXON). Ohne diese Variablen legt PLEXON kein Plattform‑Projekt an; im PLEXON‑Dashboard siehst du daher nichts Neues.",
+        "skipped_no_plexon_user": "Das Projekt wurde in AUDION angelegt, aber dein Nutzer hat im Persona‑Backend noch kein plexon_user_id — PLEXON‑Spiegelung wurde übersprungen. Bitte über PLEXON‑Login anmelden oder Konto verknüpfen."
+      }
     },
     "federation": {
       "plexon": "PLEXON",
       "checkion": "CHECKION",
       "localOnly": "Nur AUDION"
+    },
+    "plexonMirrorRetry": {
+      "cta": "In PLEXON registrieren",
+      "loading": "Wird registriert…",
+      "success": "PLEXON-Spiegelung erfolgreich.",
+      "alreadySynced": "War bereits in PLEXON registriert.",
+      "error": "PLEXON-Registrierung fehlgeschlagen.",
+      "needsCompanyId": "Ohne Firmen-Kontext-ID (platform_company_id) auf dem Projekt ist ein Retry nicht möglich — bitte Kontext setzen oder AUDION mit platformCompanyId öffnen."
     },
     "members": {
       "title": "Mitglieder",

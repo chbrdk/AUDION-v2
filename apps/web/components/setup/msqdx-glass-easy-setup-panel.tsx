@@ -15,7 +15,7 @@ import { useI18n } from "../i18n/i18n-provider";
 import { useProject } from "../projects/project-provider";
 
 export type ProjectEasySetupResponse = {
-  project: { id: string; name: string };
+  project: { id: string; name: string; plexon_mirror_status?: string | null };
   target_group: { id: string; name: string; segment: string };
   persona: { id: string; name: string; segment: string };
   website_excerpt_included: boolean;
@@ -34,6 +34,7 @@ export function MsqdxGlassEasySetupPanel() {
   const [projectName, setProjectName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [plexonMirrorHint, setPlexonMirrorHint] = useState<string | null>(null);
   const [result, setResult] = useState<ProjectEasySetupResponse | null>(null);
 
   const parseError = async (response: Response) => {
@@ -51,6 +52,7 @@ export function MsqdxGlassEasySetupPanel() {
     if (!customer || !brief) return;
     setSubmitting(true);
     setError(null);
+    setPlexonMirrorHint(null);
     setResult(null);
     try {
       const base: Record<string, string> = {
@@ -77,6 +79,10 @@ export function MsqdxGlassEasySetupPanel() {
       }
       const data = (await response.json()) as ProjectEasySetupResponse;
       setResult(data);
+      const st = data.project.plexon_mirror_status;
+      if (st === "skipped_no_env" || st === "skipped_no_plexon_user") {
+        setPlexonMirrorHint(t(`settingsProjects.createProject.plexonMirror.${st}`));
+      }
       await refreshProjects();
       selectProject(data.project.id);
     } catch (e) {
@@ -151,6 +157,11 @@ export function MsqdxGlassEasySetupPanel() {
           {error && (
             <MsqdxTypography variant="body2" sx={{ color: "error.main" }}>
               {error}
+            </MsqdxTypography>
+          )}
+          {plexonMirrorHint && (
+            <MsqdxTypography variant="body2" sx={{ color: "warning.main" }}>
+              {plexonMirrorHint}
             </MsqdxTypography>
           )}
           {result && (

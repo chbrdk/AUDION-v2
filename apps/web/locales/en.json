@@ -786,12 +786,24 @@
       "creating": "Creating…",
       "cta": "Create",
       "centralPathHint": "No PLEXON company context id was found (not in the link, session, env, or from your PLEXON company membership). Ask a PLEXON admin to add you to a company, or open AUDION with platformCompanyId / set NEXT_PUBLIC_DEFAULT_PLATFORM_COMPANY_ID.",
-      "companyIdRequiredAfterApi": "Missing PLEXON company context (platform_company_id). Open AUDION from PLEXON with the correct link, or set NEXT_PUBLIC_DEFAULT_PLATFORM_COMPANY_ID / sessionStorage per your platform context."
+      "companyIdRequiredAfterApi": "Missing PLEXON company context (platform_company_id). Open AUDION from PLEXON with the correct link, or set NEXT_PUBLIC_DEFAULT_PLATFORM_COMPANY_ID / sessionStorage per your platform context.",
+      "plexonMirror": {
+        "skipped_no_env": "The project was created in AUDION, but the AUDION API did not call PLEXON — set PLEXON_API_BASE_URL and PLEXON_SERVICE_SECRET on the API container (same secret as PLEXON). Without these, PLEXON never creates a platform project, so nothing new appears in the PLEXON dashboard.",
+        "skipped_no_plexon_user": "The project was created in AUDION, but your user has no plexon_user_id in the persona backend — PLEXON mirroring was skipped. Sign in via PLEXON or link your account."
+      }
     },
     "federation": {
       "plexon": "PLEXON",
       "checkion": "CHECKION",
       "localOnly": "AUDION only"
+    },
+    "plexonMirrorRetry": {
+      "cta": "Register in PLEXON",
+      "loading": "Registering…",
+      "success": "PLEXON mirror completed.",
+      "alreadySynced": "Already registered in PLEXON.",
+      "error": "PLEXON registration failed.",
+      "needsCompanyId": "Cannot retry without a platform_company_id on the project — set company context or open AUDION with platformCompanyId."
     },
     "members": {
       "title": "Members",

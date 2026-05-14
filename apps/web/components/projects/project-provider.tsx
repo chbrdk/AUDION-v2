@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import { useAuth } from "../auth/auth-provider";
 import { clearProjectCookie, getProjectCookie, setProjectCookie } from "../../lib/project-cookies";
 import { buildApiUrl } from "../../app/api/_lib/backend";
+import { API_ROUTES } from "../../lib/api-routes";
 import { resolvePreferredProjectId } from "../../lib/project-selection";
 import {
   persistPlatformCompanyIdFromUrl,
@@ -28,6 +29,8 @@ export type ProjectSummary = {
   platform_project_id?: string | null;
   /** PLEXON platform company id used when registering the project. */
   platform_company_id?: string | null;
+  /** Only on create response: whether AUDION called PLEXON `audion-project-origin` (see API docs). */
+  plexon_mirror_status?: string | null;
   /** Publication lifecycle (`draft` | `published`). */
   status?: string;
   created_at: string;
@@ -56,6 +59,11 @@ type ProjectContextValue = {
   refreshProjects: () => Promise<void>;
   createProject: (name: string) => Promise<ProjectSummary>;
   getProjectDetail: (projectId: string) => Promise<ProjectDetail>;
+  /** POST /projects/{id}/plexon-mirror — owner/admin; optional body.platform_company_id if project has none. */
+  retryPlexonMirror: (
+    projectId: string,
+    payload?: { platform_company_id?: string | null }
+  ) => Promise<ProjectSummary>;
   addMember: (projectId: string, payload: { email: string; role?: string }) => Promise<ProjectMember>;
   removeMember: (projectId: string, memberId: string) => Promise<void>;
 };
@@ -186,6 +194,25 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
     return (await response.json()) as ProjectDetail;
   }, []);
 
+  const retryPlexonMirror = useCallback(
+    async (projectId: string, payload?: { platform_company_id?: string | null }) => {
+      const body =
+        payload && payload.platform_company_id != null && String(payload.platform_company_id).trim()
+          ? JSON.stringify({ platform_company_id: String(payload.platform_company_id).trim() })
+          : JSON.stringify({});
+      const response = await fetch(buildApiUrl(API_ROUTES.projectPlexonMirror(projectId)), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+      });
+      if (!response.ok) {
+        throw new Error(await parseError(response));
+      }
+      return (await response.json()) as ProjectSummary;
+    },
+    []
+  );
+
   const addMember = useCallback(async (projectId: string, payload: { email: string; role?: string }) => {
     const response = await fetch(buildApiUrl(`/api/projects/${projectId}/members`), {
       method: "POST",
@@ -221,6 +248,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       refreshProjects,
       createProject,
       getProjectDetail,
+      retryPlexonMirror,
       addMember,
       removeMember,
     }),
@@ -232,6 +260,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       refreshProjects,
       createProject,
       getProjectDetail,
+      retryPlexonMirror,
       addMember,
       removeMember,
     ]
