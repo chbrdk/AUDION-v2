@@ -196,10 +196,15 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
 
   const retryPlexonMirror = useCallback(
     async (projectId: string, payload?: { platform_company_id?: string | null }) => {
-      const body =
-        payload && payload.platform_company_id != null && String(payload.platform_company_id).trim()
-          ? JSON.stringify({ platform_company_id: String(payload.platform_company_id).trim() })
-          : JSON.stringify({});
+      const explicit =
+        payload?.platform_company_id != null && String(payload.platform_company_id).trim()
+          ? String(payload.platform_company_id).trim()
+          : null;
+      const resolved = resolvePlatformCompanyIdForApi(searchParams, {
+        plexonDefaultCompanyId: user?.default_platform_company_id ?? null,
+      });
+      const platform_company_id = explicit ?? resolved;
+      const body = platform_company_id ? JSON.stringify({ platform_company_id }) : JSON.stringify({});
       const response = await fetch(buildApiUrl(API_ROUTES.projectPlexonMirror(projectId)), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -210,7 +215,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       }
       return (await response.json()) as ProjectSummary;
     },
-    []
+    [searchParams, user?.default_platform_company_id]
   );
 
   const addMember = useCallback(async (projectId: string, payload: { email: string; role?: string }) => {

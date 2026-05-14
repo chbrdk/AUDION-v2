@@ -64,7 +64,10 @@ from ..services.suggest_target_groups import suggest_target_groups as run_sugges
 from ..services.resource_bilingual_utils import normalize_publication_status, validate_project_bilingual_publish
 from ..services.target_group_store import TargetGroupService
 from ..services.plexon_project_origin import register_audion_project_on_plexon
-from ..services.plexon_profile import fetch_plexon_default_platform_company_id_for_user
+from ..services.plexon_profile import (
+    fetch_plexon_default_platform_company_id_for_email,
+    fetch_plexon_default_platform_company_id_for_user,
+)
 from ..services.checkion_project_context import (
     build_optional_checkion_topics_prompt_block,
     fetch_checkion_site_topics_bundle,
@@ -110,15 +113,27 @@ def _platform_company_id_from_plexon_profile(current_user: User) -> str | None:
     settings = get_settings()
     if not _plexon_federation_env_configured(settings):
         return None
+    base = (settings.plexon_api_base_url or "").strip()
+    secret = (settings.plexon_service_secret or "").strip()
     puid = getattr(current_user, "plexon_user_id", None)
-    if not puid or not str(puid).strip():
-        return None
-    raw = fetch_plexon_default_platform_company_id_for_user(
-        plexon_api_base_url=(settings.plexon_api_base_url or "").strip(),
-        plexon_service_secret=(settings.plexon_service_secret or "").strip(),
-        plexon_user_id=str(puid).strip(),
-    )
-    return _normalized_platform_company_id(raw)
+    if puid and str(puid).strip():
+        raw = fetch_plexon_default_platform_company_id_for_user(
+            plexon_api_base_url=base,
+            plexon_service_secret=secret,
+            plexon_user_id=str(puid).strip(),
+        )
+        co = _normalized_platform_company_id(raw)
+        if co:
+            return co
+    email = getattr(current_user, "email", None)
+    if email and isinstance(email, str) and email.strip():
+        raw = fetch_plexon_default_platform_company_id_for_email(
+            plexon_api_base_url=base,
+            plexon_service_secret=secret,
+            email=email.strip().lower(),
+        )
+        return _normalized_platform_company_id(raw)
+    return None
 
 
 def _sync_new_project_with_plexon(

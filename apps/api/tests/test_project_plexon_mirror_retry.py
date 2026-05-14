@@ -180,6 +180,58 @@ def test_plexon_mirror_retry_resolves_company_from_plexon_profile(mock_fetch, mo
 
 
 @patch("app.routers.projects.register_audion_project_on_plexon")
+@patch("app.routers.projects.fetch_plexon_default_platform_company_id_for_email")
+@patch("app.routers.projects.fetch_plexon_default_platform_company_id_for_user")
+def test_plexon_mirror_retry_profile_falls_back_to_email(mock_fetch_uid, mock_fetch_email, mock_register):
+    """When user_id profile returns no company id, try GET profile?email=… (same as CHECKION)."""
+    mock_fetch_uid.return_value = None
+    mock_fetch_email.return_value = "co-from-email"
+    mock_register.return_value = {
+        "platformProjectId": "pp-email",
+        "checkionProjectId": None,
+        "platformCompanyId": "co-from-email",
+    }
+    with patch.dict(
+        os.environ,
+        {
+            "PLEXON_API_BASE_URL": "https://plexon.test",
+            "PLEXON_SERVICE_SECRET": "secret-x",
+        },
+    ):
+        get_settings.cache_clear()
+        token = _register_user("retry-email-fallback@example.com")
+        with get_session() as session:
+            u = session.query(User).filter(User.email == "retry-email-fallback@example.com").one()
+            u.plexon_user_id = "plexon-has-uid"
+            p = Project(name="No co", owner_user_id=u.id, platform_company_id=None)
+            session.add(p)
+            session.flush()
+            session.add(
+                ProjectMember(
+                    project_id=p.id,
+                    user_id=u.id,
+                    role=ProjectRole.owner,
+                    status=ProjectMemberStatus.active,
+                )
+            )
+            session.commit()
+            pid = str(p.id)
+
+        r = client.post(
+            f"/projects/{pid}/plexon-mirror",
+            headers={"Authorization": f"Bearer {token}"},
+            json={},
+        )
+        assert r.status_code == 200, r.text
+        mock_fetch_uid.assert_called_once()
+        mock_fetch_email.assert_called_once()
+        mock_register.assert_called_once()
+        assert mock_register.call_args.kwargs["platform_company_id"] == "co-from-email"
+        assert r.json().get("platform_company_id") == "co-from-email"
+    get_settings.cache_clear()
+
+
+@patch("app.routers.projects.register_audion_project_on_plexon")
 @patch("app.routers.projects.fetch_plexon_default_platform_company_id_for_user")
 def test_create_project_resolves_platform_company_from_profile(mock_fetch, mock_register):
     mock_fetch.return_value = "co-create"
