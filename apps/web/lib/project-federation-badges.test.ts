@@ -9,6 +9,10 @@ describe("projectFederationChipKinds", () => {
     expect(projectFederationChipKinds({ platform_project_id: "  ", checkion_project_id: "" })).toEqual(["local"]);
   });
 
+  it("returns plexon when only platform company id is set (central context)", () => {
+    expect(projectFederationChipKinds({ platform_company_id: "co-1" })).toEqual(["plexon"]);
+  });
+
   it("returns plexon only when only platform project is set", () => {
     expect(projectFederationChipKinds({ platform_project_id: "pp-1" })).toEqual(["plexon"]);
   });

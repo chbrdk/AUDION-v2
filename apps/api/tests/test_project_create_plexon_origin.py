@@ -113,3 +113,20 @@ def test_create_project_sets_platform_ids_after_plexon_ok(mock_register):
             proj = session.query(Project).filter(Project.name == "Central").one()
             assert proj.platform_project_id == "pp-abc"
     get_settings.cache_clear()
+
+
+def test_create_project_persists_platform_company_id_when_plexon_sync_skipped():
+    """Client sends company context; API may skip PLEXON sync — row should still store company id."""
+    token = _register_user("persist-co@example.com")
+    r = client.post(
+        "/projects",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"name": "Tenant project", "platform_company_id": "co-persist-1"},
+    )
+    assert r.status_code == 201, r.text
+    body = r.json()
+    assert body.get("platform_company_id") == "co-persist-1"
+    assert body.get("platform_project_id") in (None, "")
+    with get_session() as session:
+        proj = session.query(Project).filter(Project.name == "Tenant project").one()
+        assert proj.platform_company_id == "co-persist-1"

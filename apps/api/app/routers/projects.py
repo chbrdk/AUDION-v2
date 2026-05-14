@@ -91,6 +91,16 @@ def _plexon_federation_env_configured(settings) -> bool:
     )
 
 
+def _normalized_platform_company_id(raw: str | None) -> str | None:
+    """Align with Project.platform_company_id (String(64), non-empty)."""
+    if raw is None or not isinstance(raw, str):
+        return None
+    s = raw.strip()
+    if not s or len(s) > 64:
+        return None
+    return s
+
+
 def _sync_new_project_with_plexon(
     session: Session,
     project: Project,
@@ -255,6 +265,7 @@ def create_project(
         name_de=(payload.name_de.strip() if payload.name_de else None) or None,
         owner_user_id=current_user.id,
         status=publication_status,
+        platform_company_id=_normalized_platform_company_id(getattr(payload, "platform_company_id", None)),
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow(),
     )
@@ -337,6 +348,7 @@ def project_easy_setup(
         owner_user_id=current_user.id,
         description=description,
         company_context=company_context,
+        platform_company_id=_normalized_platform_company_id(getattr(payload, "platform_company_id", None)),
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow(),
     )
