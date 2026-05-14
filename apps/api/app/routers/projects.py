@@ -64,6 +64,7 @@ from ..services.suggest_target_groups import suggest_target_groups as run_sugges
 from ..services.resource_bilingual_utils import normalize_publication_status, validate_project_bilingual_publish
 from ..services.target_group_store import TargetGroupService
 from ..services.plexon_project_origin import register_audion_project_on_plexon
+from ..services.plexon_profile import fetch_plexon_default_platform_company_id_for_user
 from ..services.checkion_project_context import (
     build_optional_checkion_topics_prompt_block,
     fetch_checkion_site_topics_bundle,
@@ -102,6 +103,22 @@ def _normalized_platform_company_id(raw: str | None) -> str | None:
     if not s or len(s) > 64:
         return None
     return s
+
+
+def _platform_company_id_from_plexon_profile(current_user: User) -> str | None:
+    """Resolve default company id from PLEXON profile when the client omitted it."""
+    settings = get_settings()
+    if not _plexon_federation_env_configured(settings):
+        return None
+    puid = getattr(current_user, "plexon_user_id", None)
+    if not puid or not str(puid).strip():
+        return None
+    raw = fetch_plexon_default_platform_company_id_for_user(
+        plexon_api_base_url=(settings.plexon_api_base_url or "").strip(),
+        plexon_service_secret=(settings.plexon_service_secret or "").strip(),
+        plexon_user_id=str(puid).strip(),
+    )
+    return _normalized_platform_company_id(raw)
 
 
 def _sync_new_project_with_plexon(
@@ -280,13 +297,17 @@ def create_project(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
+    pl_co = _normalized_platform_company_id(getattr(payload, "platform_company_id", None))
+    if not pl_co:
+        pl_co = _platform_company_id_from_plexon_profile(current_user)
+
     project = Project(
         id=uuid4(),
         name=payload.name.strip(),
         name_de=(payload.name_de.strip() if payload.name_de else None) or None,
         owner_user_id=current_user.id,
         status=publication_status,
-        platform_company_id=_normalized_platform_company_id(getattr(payload, "platform_company_id", None)),
+        platform_company_id=pl_co,
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow(),
     )
@@ -317,7 +338,7 @@ def create_project(
             session,
             project,
             current_user,
-            getattr(payload, "platform_company_id", None),
+            pl_co,
         )
     except HTTPException:
         raise
@@ -349,6 +370,8 @@ def retry_plexon_project_mirror(
     pc = _normalized_platform_company_id(raw_from_body) or _normalized_platform_company_id(
         getattr(project, "platform_company_id", None)
     )
+    if not pc:
+        pc = _platform_company_id_from_plexon_profile(current_user)
     if not pc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -403,13 +426,17 @@ def project_easy_setup(
     description = f"Customer / brand: {customer}\n\n{about}".strip()
     company_context = f"{about}{website_appendix}".strip()
 
+    pl_co = _normalized_platform_company_id(getattr(payload, "platform_company_id", None))
+    if not pl_co:
+        pl_co = _platform_company_id_from_plexon_profile(current_user)
+
     project = Project(
         id=uuid4(),
         name=project_name,
         owner_user_id=current_user.id,
         description=description,
         company_context=company_context,
-        platform_company_id=_normalized_platform_company_id(getattr(payload, "platform_company_id", None)),
+        platform_company_id=pl_co,
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow(),
     )
@@ -436,7 +463,7 @@ def project_easy_setup(
             session,
             project,
             current_user,
-            getattr(payload, "platform_company_id", None),
+            pl_co,
         )
     except HTTPException:
         raise

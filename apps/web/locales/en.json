@@ -803,7 +803,8 @@
       "success": "PLEXON mirror completed.",
       "alreadySynced": "Already registered in PLEXON.",
       "error": "PLEXON registration failed.",
-      "needsCompanyId": "Cannot retry without a platform_company_id on the project — set company context or open AUDION with platformCompanyId."
+      "needsCompanyId": "Retry needs a company context: link your PLEXON account, open AUDION with platformCompanyId, or ensure your PLEXON profile has a default company.",
+      "hintProfileFallback": "This project has no stored company id yet; the server can take it from your PLEXON profile when you are linked."
     },
     "members": {
       "title": "Members",

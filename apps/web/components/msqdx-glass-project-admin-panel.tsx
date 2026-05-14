@@ -19,6 +19,8 @@ import { API_ROUTES } from "../lib/api-routes";
 import { formatResearchTimelineDetail } from "../lib/format-research-timeline-detail";
 import { useProject, type ProjectSummary, type ProjectMember } from "./projects/project-provider";
 import { useI18n } from "./i18n/i18n-provider";
+import { useAuth } from "./auth/auth-provider";
+import { readPlatformCompanyIdFromSessionStorage } from "../lib/platform-company-context";
 import { ProjectResearchSummaryPreview } from "./admin/project-research-summary-preview";
 
 type ProjectDetail = {
@@ -83,6 +85,7 @@ export function MsqdxGlassProjectAdminPanel({
     mode = "full",
 }: MsqdxGlassProjectAdminPanelProps) {
     const { t, locale } = useI18n();
+    const { user: authUser } = useAuth();
     const router = useRouter();
     const accent = "var(--color-theme-accent)";
     const {
@@ -155,6 +158,15 @@ export function MsqdxGlassProjectAdminPanel({
     const [creating, setCreating] = useState(false);
     const [createError, setCreateError] = useState<string | null>(null);
     const [plexonRetryLoading, setPlexonRetryLoading] = useState(false);
+
+    const plexonMirrorResolvable = useMemo(() => {
+        if (!detail) return false;
+        const hasProjectCo = Boolean(String(detail.platform_company_id || "").trim());
+        const hasUserDefault = Boolean(String(authUser?.default_platform_company_id || "").trim());
+        const hasStored = Boolean(readPlatformCompanyIdFromSessionStorage());
+        const plexonLinked = Boolean(String(authUser?.plexon_user_id || "").trim());
+        return hasProjectCo || hasUserDefault || hasStored || plexonLinked;
+    }, [detail, authUser?.default_platform_company_id, authUser?.plexon_user_id]);
 
     // Member Management State
     const [memberEmail, setMemberEmail] = useState("");
@@ -1657,10 +1669,7 @@ export function MsqdxGlassProjectAdminPanel({
                                             <MsqdxButton
                                                 variant="outlined"
                                                 size="small"
-                                                disabled={
-                                                    plexonRetryLoading ||
-                                                    !String(detail.platform_company_id || "").trim()
-                                                }
+                                                disabled={plexonRetryLoading || !plexonMirrorResolvable}
                                                 onClick={() => void handleRetryPlexonMirror()}
                                                 sx={{
                                                     borderColor: accent,
@@ -1672,9 +1681,13 @@ export function MsqdxGlassProjectAdminPanel({
                                                     ? t("settingsProjects.plexonMirrorRetry.loading")
                                                     : t("settingsProjects.plexonMirrorRetry.cta")}
                                             </MsqdxButton>
-                                            {!String(detail.platform_company_id || "").trim() ? (
+                                            {!plexonMirrorResolvable ? (
                                                 <MsqdxTypography variant="caption" sx={{ color: "text.secondary", maxWidth: 480 }}>
                                                     {t("settingsProjects.plexonMirrorRetry.needsCompanyId")}
+                                                </MsqdxTypography>
+                                            ) : !String(detail.platform_company_id || "").trim() ? (
+                                                <MsqdxTypography variant="caption" sx={{ color: "text.secondary", maxWidth: 480 }}>
+                                                    {t("settingsProjects.plexonMirrorRetry.hintProfileFallback")}
                                                 </MsqdxTypography>
                                             ) : null}
                                         </Box>

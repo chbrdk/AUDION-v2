@@ -4,6 +4,11 @@ import type { ReactNode } from "react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import { buildApiUrl } from "../../app/api/_lib/backend";
+import {
+  readPlatformCompanyIdFromSessionStorage,
+  writePlatformCompanyIdToSessionStorage,
+} from "../../lib/platform-company-context";
+
 export type AuthUser = {
   id: string;
   email: string;
@@ -42,6 +47,13 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+/** Seed sessionStorage from PLEXON profile default when URL/tab did not set a company id. */
+function persistDefaultPlatformCompanyFromUser(next: AuthUser | null) {
+  if (!next?.default_platform_company_id || typeof window === "undefined") return;
+  if (readPlatformCompanyIdFromSessionStorage()) return;
+  writePlatformCompanyIdToSessionStorage(next.default_platform_company_id);
+}
+
 const parseError = async (response: Response) => {
   try {
     const data = await response.json();
@@ -72,6 +84,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       const data = await response.json();
       setUser(data.user);
+      persistDefaultPlatformCompanyFromUser(data.user);
       setDefaultProjectId(data.default_project_id ?? null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load auth");
@@ -94,6 +107,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       const data = await response.json();
       setUser(data.user);
+      persistDefaultPlatformCompanyFromUser(data.user);
       setDefaultProjectId(data.default_project_id ?? null);
     } finally {
       setLoading(false);
@@ -114,6 +128,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       const data = await response.json();
       setUser(data.user);
+      persistDefaultPlatformCompanyFromUser(data.user);
       setDefaultProjectId(data.default_project_id ?? null);
     } finally {
       setLoading(false);
@@ -140,6 +155,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       const data = await response.json();
       setUser(data.user);
+      persistDefaultPlatformCompanyFromUser(data.user);
       setDefaultProjectId(data.default_project_id ?? null);
     } finally {
       setLoading(false);
