@@ -2,12 +2,16 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Box, Stack } from "@mui/material";
-import { MsqdxButton, MsqdxFormField, MsqdxIcon, MsqdxMoleculeCard, MsqdxTypography } from "@msqdx/react";
+import { MsqdxButton, MsqdxChip, MsqdxFormField, MsqdxIcon, MsqdxMoleculeCard, MsqdxTypography } from "@msqdx/react";
 import type { ProjectSummary } from "./project-provider";
 import { useProject } from "./project-provider";
+import { useAuth } from "../auth/auth-provider";
 import { useI18n } from "../i18n/i18n-provider";
 import { ADMIN_ROUTES } from "../../lib/routes";
+import { projectFederationChipKinds } from "../../lib/project-federation-badges";
+import { resolvePlatformCompanyIdForApi } from "../../lib/platform-company-context";
 
 export type MsqdxGlassProjectsOverviewProps = {
   initialProjects: ProjectSummary[];
@@ -15,6 +19,8 @@ export type MsqdxGlassProjectsOverviewProps = {
 
 export function MsqdxGlassProjectsOverview({ initialProjects }: MsqdxGlassProjectsOverviewProps) {
   const { t } = useI18n();
+  const { user } = useAuth();
+  const searchParams = useSearchParams();
   const { projects: providerProjects, createProject, refreshProjects, selectProject } = useProject();
   const accent = "var(--color-theme-accent)";
 
@@ -22,6 +28,9 @@ export function MsqdxGlassProjectsOverview({ initialProjects }: MsqdxGlassProjec
   const [name, setName] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const resolvedPlatformCompanyId = useMemo(() => resolvePlatformCompanyIdForApi(searchParams), [searchParams]);
+  const showCentralPathHint = Boolean(user?.plexon_user_id?.trim()) && !resolvedPlatformCompanyId;
 
   const projects = useMemo(
     () => (providerProjects.length ? providerProjects : initialProjects),
@@ -40,7 +49,12 @@ export function MsqdxGlassProjectsOverview({ initialProjects }: MsqdxGlassProjec
       setName("");
       setShowCreate(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("settingsProjects.errors.createProject"));
+      const raw = e instanceof Error ? e.message : "";
+      if (raw.includes("platform_company_id")) {
+        setError(t("settingsProjects.createProject.companyIdRequiredAfterApi"));
+      } else {
+        setError(raw || t("settingsProjects.errors.createProject"));
+      }
     } finally {
       setCreating(false);
     }
@@ -145,6 +159,11 @@ export function MsqdxGlassProjectsOverview({ initialProjects }: MsqdxGlassProjec
             )}
           >
             <Stack spacing={1.5}>
+              {showCentralPathHint && (
+                <MsqdxTypography variant="caption" sx={{ color: "warning.main" }}>
+                  {t("settingsProjects.createProject.centralPathHint")}
+                </MsqdxTypography>
+              )}
               <MsqdxFormField
                 label={t("settingsProjects.createProject.name")}
                 value={name}
@@ -173,6 +192,28 @@ export function MsqdxGlassProjectsOverview({ initialProjects }: MsqdxGlassProjec
               title={project.name}
               titleVariant="h6"
               subtitle={project.id}
+              chips={projectFederationChipKinds(project).map((kind) => (
+                <MsqdxChip
+                  key={kind}
+                  size="small"
+                  variant="outlined"
+                  label={
+                    kind === "plexon"
+                      ? t("settingsProjects.federation.plexon")
+                      : kind === "checkion"
+                        ? t("settingsProjects.federation.checkion")
+                        : t("settingsProjects.federation.localOnly")
+                  }
+                  sx={{
+                    "& .MuiChip-label": {
+                      fontSize: "0.7rem",
+                      ...(kind === "plexon" ? { color: "success.main" } : {}),
+                      ...(kind === "checkion" ? { color: accent } : {}),
+                      ...(kind === "local" ? { color: "text.secondary" } : {}),
+                    },
+                  }}
+                />
+              ))}
               headerActions={<MsqdxIcon name="chevron_right" customSize={20} style={{ color: accent }} />}
               actions={(
                 <MsqdxButton

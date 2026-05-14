@@ -784,7 +784,14 @@
       "name": "Project Name",
       "placeholder": "e.g. Audion Q1 Research",
       "creating": "Creating…",
-      "cta": "Create"
+      "cta": "Create",
+      "centralPathHint": "To register new projects centrally via PLEXON, open AUDION with company context (deep link from PLEXON including platformCompanyId), or set NEXT_PUBLIC_DEFAULT_PLATFORM_COMPANY_ID — otherwise creation fails when PLEXON federation is enabled.",
+      "companyIdRequiredAfterApi": "Missing PLEXON company context (platform_company_id). Open AUDION from PLEXON with the correct link, or set NEXT_PUBLIC_DEFAULT_PLATFORM_COMPANY_ID / sessionStorage per your platform context."
+    },
+    "federation": {
+      "plexon": "PLEXON",
+      "checkion": "CHECKION",
+      "localOnly": "AUDION only"
     },
     "members": {
       "title": "Members",
