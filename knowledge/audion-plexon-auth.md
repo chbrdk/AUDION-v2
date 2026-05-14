@@ -37,7 +37,14 @@ In der AUDION-Web-App (Coolify/Lokal) setzen:
 
 ## Registrierung
 
-- Neue User registrieren sich in **PLEXON**. Auf der AUDION-Register-Seite kann optional ein Link „In PLEXON registrieren“ angezeigt werden (`NEXT_PUBLIC_PLEXON_REGISTER_URL`).
+- **PLEXON zuerst:** Wenn `PLEXON_AUTH_URL` und `PLEXON_SERVICE_SECRET` in der Web-App gesetzt sind, ruft **`POST /api/auth/register`** (Next.js) zuerst **`POST {PLEXON}/api/auth/register`** mit E-Mail, Klartext-Passwort und optionalem Namen auf. Bei Erfolg wird ans Persona-Backend **`POST /auth/register`** mit **abgeleitetem Passwort**, **`plexon_user_id`** und Anzeigename (`plexonUserDisplayNameForAudion`) geschickt — wie beim Login-Flow.
+- Ohne PLEXON-Konfiguration bleibt das alte Verhalten (Payload wird unverändert an `/auth/register` durchgereicht).
+- Optional: Link „In PLEXON registrieren“ auf der Register-Seite (`NEXT_PUBLIC_PLEXON_REGISTER_URL`).
+
+## Passwort vergessen
+
+- Zentrales Passwort liegt in **PLEXON**. Wenn `NEXT_PUBLIC_PLEXON_REGISTER_URL` gesetzt ist, zeigt die **Login-Seite** einen Link **„Passwort vergessen?“** zur PLEXON-URL `{Origin aus Register-URL}/forgot-password` (siehe `getPlexonForgotPasswordUrl()` in `lib/plexon-links.ts`).
+- In PLEXON: Anfrage **`POST /api/auth/request-password-reset`**, Setzen per **`POST /api/auth/reset-password`** und UI unter `/forgot-password` und `/reset-password` (siehe PLEXON-Repo und `NEXTAUTH_URL` bzw. `PUBLIC_APP_URL` für den Link in E-Mails).
 
 ## Troubleshooting: 401 beim Login
 

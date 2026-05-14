@@ -84,7 +84,8 @@
       "ctaLoading": "Anmeldung…",
       "error": "Anmeldung fehlgeschlagen",
       "prompt": "Neu hier?",
-      "link": "Konto erstellen"
+      "link": "Konto erstellen",
+      "forgotPasswordLink": "Passwort vergessen?"
     },
     "register": {
       "title": "Konto erstellen",

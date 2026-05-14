@@ -84,7 +84,8 @@
       "ctaLoading": "Signing in…",
       "error": "Login failed",
       "prompt": "New here?",
-      "link": "Create an account"
+      "link": "Create an account",
+      "forgotPasswordLink": "Forgot password?"
     },
     "register": {
       "title": "Create your account",

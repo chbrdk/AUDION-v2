@@ -33,3 +33,10 @@ export function extractPlexonReturnToFromRedirect(redirect: string | null | unde
   const params = new URLSearchParams(query);
   return normalizePlexonReturnTo(params.get(PLEXON_RETURN_TO_PARAM));
 }
+
+/** PLEXON `/forgot-password` — same origin as `NEXT_PUBLIC_PLEXON_REGISTER_URL`. */
+export function getPlexonForgotPasswordUrl(): string | null {
+  const origin = getConfiguredPlexonOrigin();
+  if (!origin) return null;
+  return `${origin}/forgot-password`;
+}

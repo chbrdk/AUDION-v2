@@ -234,6 +234,43 @@ export async function patchPlexonProfile(
   }
 }
 
+export type PlexonRegisterResult =
+  | { ok: true; userId: string }
+  | { ok: false; status: number; error: string };
+
+/** Public PLEXON `POST /api/auth/register` (no service secret). */
+export async function registerUserAtPlexon(params: {
+  email: string;
+  password: string;
+  name?: string | null;
+}): Promise<PlexonRegisterResult> {
+  const base = getPlexonAuthUrl().replace(/\/$/, "");
+  if (!base) return { ok: false, status: 503, error: "PLEXON not configured" };
+  const email = params.email.trim().toLowerCase();
+  try {
+    const res = await fetch(`${base}/api/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email,
+        password: params.password,
+        ...(params.name?.trim() ? { name: params.name.trim() } : {}),
+      }),
+    });
+    const data = (await res.json().catch(() => ({}))) as { userId?: string; error?: string; detail?: string };
+    if (!res.ok) {
+      const err = data.error || (typeof data.detail === "string" ? data.detail : "") || res.statusText;
+      return { ok: false, status: res.status, error: err };
+    }
+    const userId = typeof data.userId === "string" ? data.userId : "";
+    if (!userId) return { ok: false, status: 502, error: "Invalid PLEXON response" };
+    return { ok: true, userId };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "fetch failed";
+    return { ok: false, status: 503, error: msg };
+  }
+}
+
 /**
  * Merges PLEXON service profile (incl. default platform company) into the persona-backend user payload.
  */

@@ -19,6 +19,7 @@ import { PlexonReturnLink } from "../../components/federation/plexon-return-link
 import { useI18n } from "../../components/i18n/i18n-provider";
 import { buildApiUrl } from "../api/_lib/backend";
 import { resolveAuthApiErrorMessage } from "../../lib/auth-client-error-message";
+import { getPlexonForgotPasswordUrl } from "../../lib/plexon-links";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -26,6 +27,7 @@ export default function LoginPage() {
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
   const redirectTo = searchParams.get("redirect") || "/admin";
   const { t } = useI18n();
+  const plexonForgotUrl = getPlexonForgotPasswordUrl();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -148,6 +150,18 @@ export default function LoginPage() {
                     required
                     fullWidth
                   />
+                  {plexonForgotUrl ? (
+                    <Box sx={{ textAlign: "right", mt: -0.5 }}>
+                      <Link
+                        href={plexonForgotUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: "inherit", fontWeight: 600, fontSize: "0.875rem" }}
+                      >
+                        {t("auth.login.forgotPasswordLink")}
+                      </Link>
+                    </Box>
+                  ) : null}
                   <MsqdxButton
                     type="submit"
                     variant="contained"

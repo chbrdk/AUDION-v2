@@ -27,4 +27,10 @@ describe("AUDION PLEXON return links", () => {
       )
     ).toBe("https://plexon.example.com/products");
   });
+
+  it("builds forgot-password URL from the same origin as register URL", async () => {
+    vi.stubEnv("NEXT_PUBLIC_PLEXON_REGISTER_URL", "https://plexon.example.com/register");
+    const { getPlexonForgotPasswordUrl } = await import("./plexon-links");
+    expect(getPlexonForgotPasswordUrl()).toBe("https://plexon.example.com/forgot-password");
+  });
 });
