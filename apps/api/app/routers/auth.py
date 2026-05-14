@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
 import structlog
@@ -97,7 +97,7 @@ def plexon_sync(
     user.plexon_user_id = payload.plexon_user_id
     if payload.name is not None:
         user.name = payload.name.strip() or None
-    user.updated_at = datetime.utcnow()
+    user.updated_at = datetime.now(timezone.utc)
     session.commit()
 
     token = create_access_token(user=user)
@@ -124,8 +124,8 @@ def register(payload: AuthRegisterRequest, session: Session = Depends(get_db)) -
         password_hash=hash_password(payload.password),
         name=payload.name,
         plexon_user_id=payload.plexon_user_id,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
     session.add(user)
     session.flush()
@@ -134,8 +134,8 @@ def register(payload: AuthRegisterRequest, session: Session = Depends(get_db)) -
         id=uuid4(),
         name="My First Project",
         owner_user_id=user.id,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
     session.add(project)
     session.flush()
@@ -146,8 +146,8 @@ def register(payload: AuthRegisterRequest, session: Session = Depends(get_db)) -
         user_id=user.id,
         role=ProjectRole.owner,
         status=ProjectMemberStatus.active,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
     session.add(membership)
     session.commit()
@@ -175,7 +175,7 @@ def login(payload: AuthLoginRequest, session: Session = Depends(get_db)) -> Auth
         )
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
-    user.last_login_at = datetime.utcnow()
+    user.last_login_at = datetime.now(timezone.utc)
     session.commit()
 
     token = create_access_token(user=user)
@@ -224,7 +224,7 @@ def update_me(
     if payload.locale is not None:
         current_user.locale = payload.locale
 
-    current_user.updated_at = datetime.utcnow()
+    current_user.updated_at = datetime.now(timezone.utc)
     session.commit()
 
     return AuthMeResponse(
@@ -243,5 +243,5 @@ def update_password(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid current password")
 
     current_user.password_hash = hash_password(payload.new_password)
-    current_user.updated_at = datetime.utcnow()
+    current_user.updated_at = datetime.now(timezone.utc)
     session.commit()
