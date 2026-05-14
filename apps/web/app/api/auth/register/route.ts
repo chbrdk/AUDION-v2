@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getPersonaBackendBase } from "../../_lib/backend";
 import { AUTH_COOKIE_NAME, PROJECT_COOKIE_NAME } from "../../../../lib/auth-constants";
+import { enrichAudionUserWithPlexonProfile } from "../../../../lib/plexon-auth";
 
 const buildCookieOptions = () => ({
   httpOnly: true,
@@ -30,6 +31,9 @@ export async function POST(request: Request) {
   }
 
   const data = JSON.parse(dataText);
+  if (data.user && typeof data.user === "object") {
+    data.user = await enrichAudionUserWithPlexonProfile(data.user as Record<string, unknown>);
+  }
   const next = NextResponse.json({
     user: data.user,
     default_project_id: data.default_project_id,

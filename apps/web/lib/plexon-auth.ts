@@ -8,6 +8,7 @@
 import { createHmac } from "crypto";
 
 import { getPlexonContractHeaders } from "./plexon-contract";
+import { normalizePlatformCompanyId } from "./platform-company-context";
 
 /**
  * PLEXON-Env zur Laufzeit lesen (nicht beim Modul-Import cachen).
@@ -150,6 +151,8 @@ export type PlexonProfile = {
   company?: string;
   avatar_url?: string;
   locale?: string;
+  /** PLEXON `companies.id` — oldest `company_users` row; AUDION uses as `platform_company_id` fallback. */
+  default_platform_company_id?: string | null;
 };
 
 export async function getPlexonProfile(userId: string): Promise<PlexonProfile | null> {
@@ -229,4 +232,31 @@ export async function patchPlexonProfile(
     console.error("[AUDION] PLEXON patchProfile error:", e);
     return null;
   }
+}
+
+/**
+ * Merges PLEXON service profile (incl. default platform company) into the persona-backend user payload.
+ */
+export async function enrichAudionUserWithPlexonProfile(user: Record<string, unknown>): Promise<Record<string, unknown>> {
+  if (!user || typeof user !== "object") return user;
+  if (!isPlexonAuthConfigured()) return user;
+  const plexonUserId = typeof user.plexon_user_id === "string" ? user.plexon_user_id.trim() : "";
+  const email = typeof user.email === "string" ? user.email.trim().toLowerCase() : "";
+  let profile: PlexonProfile | null = null;
+  if (plexonUserId) {
+    profile = await getPlexonProfile(plexonUserId);
+  } else if (email) {
+    profile = await getPlexonProfileByEmail(email);
+  }
+  if (!profile) return user;
+  const dpc = normalizePlatformCompanyId(profile.default_platform_company_id);
+  return {
+    ...user,
+    name: profile.name ?? user.name,
+    company: profile.company ?? user.company,
+    avatar_url: profile.avatar_url ?? user.avatar_url,
+    locale: profile.locale ?? user.locale,
+    ...(profile.id ? { plexon_user_id: profile.id } : {}),
+    ...(dpc ? { default_platform_company_id: dpc } : {}),
+  };
 }

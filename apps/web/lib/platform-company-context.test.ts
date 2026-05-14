@@ -10,6 +10,7 @@ import {
 
 describe("platform-company-context", () => {
   beforeEach(() => {
+    vi.unstubAllEnvs();
     vi.stubGlobal("window", {
       sessionStorage: {
         getItem: vi.fn(() => null),
@@ -43,5 +44,15 @@ describe("platform-company-context", () => {
     vi.mocked(window.sessionStorage.getItem).mockReturnValue(null);
     vi.stubEnv("NEXT_PUBLIC_DEFAULT_PLATFORM_COMPANY_ID", "env-default");
     expect(resolvePlatformCompanyIdForApi(new URLSearchParams())).toBe("env-default");
+  });
+
+  it("resolvePlatformCompanyIdForApi falls back to PLEXON profile default last", () => {
+    vi.mocked(window.sessionStorage.getItem).mockReturnValue(null);
+    vi.stubEnv("NEXT_PUBLIC_DEFAULT_PLATFORM_COMPANY_ID", "");
+    expect(
+      resolvePlatformCompanyIdForApi(new URLSearchParams(), {
+        plexonDefaultCompanyId: "from-plexon-profile",
+      })
+    ).toBe("from-plexon-profile");
   });
 });

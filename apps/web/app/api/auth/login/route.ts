@@ -8,6 +8,7 @@ import {
   getPlexonDerivedPassword,
   getPlexonServiceSecret,
   plexonUserDisplayNameForAudion,
+  enrichAudionUserWithPlexonProfile,
   type PlexonAuthUser,
 } from "../../../../lib/plexon-auth";
 
@@ -177,6 +178,9 @@ export async function POST(request: Request) {
       const syncText = await syncRes.text();
       if (syncRes.ok) {
         const data = JSON.parse(syncText);
+        if (data.user && typeof data.user === "object") {
+          data.user = await enrichAudionUserWithPlexonProfile(data.user as Record<string, unknown>);
+        }
         const next = NextResponse.json({
           user: data.user,
           default_project_id: data.default_project_id,
@@ -214,6 +218,9 @@ export async function POST(request: Request) {
   }
 
   const data = JSON.parse(dataText);
+  if (data.user && typeof data.user === "object") {
+    data.user = await enrichAudionUserWithPlexonProfile(data.user as Record<string, unknown>);
+  }
   const next = NextResponse.json({
     user: data.user,
     default_project_id: data.default_project_id,

@@ -14,6 +14,11 @@ export type AuthUser = {
   created_at?: string;
   /** PLEXON user id when linked; use for usage tracking so PLEXON can attribute tokens. */
   plexon_user_id?: string | null;
+  /**
+   * PLEXON `companies.id` from profile service (oldest company membership).
+   * Used as `platform_company_id` when creating projects if URL/session/env omit it.
+   */
+  default_platform_company_id?: string | null;
 };
 
 type AuthContextValue = {

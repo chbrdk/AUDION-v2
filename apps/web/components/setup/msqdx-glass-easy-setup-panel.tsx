@@ -10,6 +10,7 @@ import { withOutputLocale } from "../../lib/ai-output-locale";
 import { API_ROUTES } from "../../lib/api-routes";
 import { resolvePlatformCompanyIdForApi } from "../../lib/platform-company-context";
 import { ADMIN_ROUTES } from "../../lib/routes";
+import { useAuth } from "../auth/auth-provider";
 import { useI18n } from "../i18n/i18n-provider";
 import { useProject } from "../projects/project-provider";
 
@@ -22,6 +23,7 @@ export type ProjectEasySetupResponse = {
 
 export function MsqdxGlassEasySetupPanel() {
   const { t, locale } = useI18n();
+  const { user } = useAuth();
   const searchParams = useSearchParams();
   const { refreshProjects, selectProject } = useProject();
   const accent = "var(--color-theme-accent)";
@@ -60,7 +62,9 @@ export function MsqdxGlassEasySetupPanel() {
       const nameOverride = projectName.trim();
       if (nameOverride) base.project_name = nameOverride;
 
-      const platformCompanyId = resolvePlatformCompanyIdForApi(searchParams);
+      const platformCompanyId = resolvePlatformCompanyIdForApi(searchParams, {
+        plexonDefaultCompanyId: user?.default_platform_company_id ?? null,
+      });
       if (platformCompanyId) base.platform_company_id = platformCompanyId;
 
       const response = await fetch(buildApiUrl(API_ROUTES.projectsBootstrap), {

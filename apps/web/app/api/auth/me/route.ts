@@ -3,7 +3,12 @@ import { NextResponse } from "next/server";
 
 import { getPersonaBackendBase } from "../../_lib/backend";
 import { buildAuthHeaders, getAuthTokenFromRequest } from "../../_lib/auth";
-import { isPlexonAuthConfigured, getPlexonProfile, getPlexonProfileByEmail, patchPlexonProfile } from "../../../../lib/plexon-auth";
+import {
+  isPlexonAuthConfigured,
+  enrichAudionUserWithPlexonProfile,
+  getPlexonProfileByEmail,
+  patchPlexonProfile,
+} from "../../../../lib/plexon-auth";
 
 function personaBackend503(message: string, target: string): NextResponse {
   const body: { error: string; detail: string; hint?: string; target?: string } = {
@@ -58,23 +63,10 @@ export async function GET(request: NextRequest) {
       headers: { "Content-Type": "application/json" },
     });
   }
-  if (!isPlexonAuthConfigured() || !data.user) {
+  if (!data.user) {
     return NextResponse.json(data, { headers: { "Content-Type": "application/json" } });
   }
-  let plexonProfile: { id: string; name?: string; company?: string; avatar_url?: string; locale?: string } | null = null;
-  const plexonUserId = data.user.plexon_user_id;
-  if (plexonUserId) {
-    plexonProfile = await getPlexonProfile(plexonUserId);
-  } else if (data.user.email) {
-    plexonProfile = await getPlexonProfileByEmail(String(data.user.email));
-  }
-  if (plexonProfile) {
-    data.user.name = plexonProfile.name ?? data.user.name;
-    data.user.company = plexonProfile.company ?? data.user.company;
-    data.user.avatar_url = plexonProfile.avatar_url ?? data.user.avatar_url;
-    data.user.locale = plexonProfile.locale ?? data.user.locale;
-    if (plexonProfile.id) data.user.plexon_user_id = plexonProfile.id;
-  }
+  data.user = await enrichAudionUserWithPlexonProfile(data.user as Record<string, unknown>);
   return NextResponse.json(data, {
     headers: { "Content-Type": "application/json" },
   });
@@ -107,17 +99,26 @@ export async function PATCH(request: NextRequest) {
   }
 
   const dataText = await response.text();
-  if (response.ok && isPlexonAuthConfigured()) {
-    let data: { user?: { plexon_user_id?: string; email?: string; [k: string]: unknown }; default_project_id?: string } = {};
-    try {
-      data = JSON.parse(dataText);
-    } catch {
-      return new NextResponse(dataText, {
-        status: response.status,
-        headers: { "Content-Type": response.headers.get("content-type") ?? "application/json" },
-      });
-    }
-    let plexonUserId = data?.user?.plexon_user_id;
+
+  if (!response.ok) {
+    return new NextResponse(dataText, {
+      status: response.status,
+      headers: { "Content-Type": response.headers.get("content-type") ?? "application/json" },
+    });
+  }
+
+  let data: { user?: Record<string, unknown>; default_project_id?: string };
+  try {
+    data = JSON.parse(dataText);
+  } catch {
+    return new NextResponse(dataText, {
+      status: response.status,
+      headers: { "Content-Type": response.headers.get("content-type") ?? "application/json" },
+    });
+  }
+
+  if (isPlexonAuthConfigured()) {
+    let plexonUserId = typeof data?.user?.plexon_user_id === "string" ? data.user.plexon_user_id : undefined;
     if (!plexonUserId && data?.user?.email) {
       const byEmail = await getPlexonProfileByEmail(String(data.user.email));
       plexonUserId = byEmail?.id ?? undefined;
@@ -137,9 +138,13 @@ export async function PATCH(request: NextRequest) {
         locale: patchBody.locale as string | null | undefined,
       });
     }
+    if (data.user) {
+      data.user = await enrichAudionUserWithPlexonProfile(data.user);
+    }
   }
-  return new NextResponse(dataText, {
+
+  return NextResponse.json(data, {
     status: response.status,
-    headers: { "Content-Type": response.headers.get("content-type") ?? "application/json" },
+    headers: { "Content-Type": "application/json" },
   });
 }

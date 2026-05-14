@@ -29,7 +29,13 @@ export function MsqdxGlassProjectsOverview({ initialProjects }: MsqdxGlassProjec
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const resolvedPlatformCompanyId = useMemo(() => resolvePlatformCompanyIdForApi(searchParams), [searchParams]);
+  const resolvedPlatformCompanyId = useMemo(
+    () =>
+      resolvePlatformCompanyIdForApi(searchParams, {
+        plexonDefaultCompanyId: user?.default_platform_company_id ?? null,
+      }),
+    [searchParams, user?.default_platform_company_id]
+  );
   const showCentralPathHint = Boolean(user?.plexon_user_id?.trim()) && !resolvedPlatformCompanyId;
 
   const projects = useMemo(

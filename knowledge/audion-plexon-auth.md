@@ -28,6 +28,7 @@ In der AUDION-Web-App (Coolify/Lokal) setzen:
 ## Profil (Name, Unternehmen, Avatar, Sprache) aus PLEXON
 
 - Wenn ein AUDION-User mit PLEXON verknüpft ist (`plexon_user_id` im Backend), liefert **GET /api/auth/me** die Profilfelder **name**, **company**, **avatar_url**, **locale** aus PLEXON (Überschreibung der Backend-Werte).
+- PLEXON ergänzt im Service-Profil optional **`default_platform_company_id`**: die `companies.id` der **ältesten** Zeile in `company_users` für diesen Nutzer. AUDION merged das Feld in den User und nutzt es als letzten Fallback in `resolvePlatformCompanyIdForApi` (nach URL-Parameter, `sessionStorage`, `NEXT_PUBLIC_DEFAULT_PLATFORM_COMPANY_ID`), damit **POST /projects** und Easy-Setup ohne Deep-Link eine `platform_company_id` senden können.
 - **PATCH /api/auth/me** (Profil-Update) wird sowohl ans Persona-Backend als auch an PLEXON gesendet, sodass Änderungen zentral in PLEXON gespeichert werden und in allen Diensten (CHECKION, AUDION, …) sichtbar sind.
 - `plexon_user_id` wird beim ersten PLEXON-Login gesetzt (Register oder plexon-sync). Nach dem Backend-Update muss die Migration `20260302_plexon_user_id` ausgeführt werden (`alembic upgrade head`).
 

@@ -159,7 +159,9 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const createProject = useCallback(async (name: string) => {
-    const platformCompanyId = resolvePlatformCompanyIdForApi(searchParams);
+    const platformCompanyId = resolvePlatformCompanyIdForApi(searchParams, {
+      plexonDefaultCompanyId: user?.default_platform_company_id ?? null,
+    });
     const body: Record<string, string> = { name };
     if (platformCompanyId) {
       body.platform_company_id = platformCompanyId;
@@ -174,7 +176,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
     }
     const data = await response.json();
     return data as ProjectSummary;
-  }, [searchParams]);
+  }, [searchParams, user?.default_platform_company_id]);
 
   const getProjectDetail = useCallback(async (projectId: string) => {
     const response = await fetch(buildApiUrl(`/api/projects/${projectId}`));

@@ -13,6 +13,7 @@ import { withOutputLocale } from "../lib/ai-output-locale";
 import { ADMIN_ROUTES } from "../lib/routes";
 import { mirrorFillStringPair } from "../lib/bilingual-mirror";
 import { isProjectAiContextEmpty } from "../lib/project-context";
+import { projectFederationChipKinds } from "../lib/project-federation-badges";
 import { aiAssistApi, type AiTemplateSummary } from "../app/api/_lib/ai-assist";
 import { API_ROUTES } from "../lib/api-routes";
 import { formatResearchTimelineDetail } from "../lib/format-research-timeline-detail";
@@ -31,6 +32,8 @@ type ProjectDetail = {
     status?: string;
     /** CHECKION project id for Deep Scan slim-page merge (optional). */
     checkion_project_id?: string | null;
+    platform_project_id?: string | null;
+    platform_company_id?: string | null;
     created_at: string;
     updated_at: string;
     members: ProjectMember[];
@@ -705,6 +708,8 @@ export function MsqdxGlassProjectAdminPanel({
                     company_context_de: basicDetail.company_context_de ?? null,
                     status: basicDetail.status ?? "draft",
                     checkion_project_id: basicDetail.checkion_project_id ?? null,
+                    platform_project_id: basicDetail.platform_project_id ?? null,
+                    platform_company_id: basicDetail.platform_company_id ?? null,
                     created_at: basicDetail.created_at || "",
                     updated_at: basicDetail.updated_at || "",
                     members: basicDetail.members || [],
@@ -1499,6 +1504,30 @@ export function MsqdxGlassProjectAdminPanel({
                                 <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
                                     {project.id}
                                 </MsqdxTypography>
+                                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 0.5 }}>
+                                    {projectFederationChipKinds(project).map((kind) => (
+                                        <MsqdxChip
+                                            key={kind}
+                                            size="small"
+                                            variant="outlined"
+                                            label={
+                                                kind === "plexon"
+                                                    ? t("settingsProjects.federation.plexon")
+                                                    : kind === "checkion"
+                                                      ? t("settingsProjects.federation.checkion")
+                                                      : t("settingsProjects.federation.localOnly")
+                                            }
+                                            sx={{
+                                                "& .MuiChip-label": {
+                                                    fontSize: "0.65rem",
+                                                    ...(kind === "plexon" ? { color: "success.main" } : {}),
+                                                    ...(kind === "checkion" ? { color: accent } : {}),
+                                                    ...(kind === "local" ? { color: "text.secondary" } : {}),
+                                                },
+                                            }}
+                                        />
+                                    ))}
+                                </Box>
                                 {selectedId === project.id && (
                                     <Box sx={{ mt: 0.5 }}>
                                         <MsqdxIcon name="check_circle" customSize={16} sx={{ color: accent }} />
@@ -1564,6 +1593,30 @@ export function MsqdxGlassProjectAdminPanel({
                                     <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
                                         {detail.id}
                                     </MsqdxTypography>
+                                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, mt: 1 }}>
+                                        {projectFederationChipKinds(detail).map((kind) => (
+                                            <MsqdxChip
+                                                key={kind}
+                                                size="small"
+                                                variant="outlined"
+                                                label={
+                                                    kind === "plexon"
+                                                        ? t("settingsProjects.federation.plexon")
+                                                        : kind === "checkion"
+                                                          ? t("settingsProjects.federation.checkion")
+                                                          : t("settingsProjects.federation.localOnly")
+                                                }
+                                                sx={{
+                                                    "& .MuiChip-label": {
+                                                        fontSize: "0.7rem",
+                                                        ...(kind === "plexon" ? { color: "success.main" } : {}),
+                                                        ...(kind === "checkion" ? { color: accent } : {}),
+                                                        ...(kind === "local" ? { color: "text.secondary" } : {}),
+                                                    },
+                                                }}
+                                            />
+                                        ))}
+                                    </Box>
                                     <Box sx={{ display: "flex", gap: 2, mt: 2, flexWrap: "wrap" }}>
                                         <Box>
                                             <MsqdxTypography
