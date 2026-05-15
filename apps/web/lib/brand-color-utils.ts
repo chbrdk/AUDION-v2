@@ -52,7 +52,7 @@ export function applyMonochromeBrandVars(): void {
   /* Sidebar/chrome: white surface, black icons; page/content stays black */
   document.documentElement.style.setProperty("--audion-light-border-color", "#ffffff");
   document.documentElement.style.setProperty("--audion-chrome-surface", "#ffffff");
-  document.documentElement.style.setProperty("--audion-light-html-background-color", "#000000");
+  document.documentElement.style.setProperty("--audion-light-html-background-color", "#ffffff");
   document.documentElement.style.setProperty("--audion-sidebar-text-color", "#000000");
   document.documentElement.style.setProperty("--color-theme-accent-contrast", "#000000");
   document.documentElement.style.setProperty("--audion-sidebar-hover-bg", "rgba(0, 0, 0, 0.08)");

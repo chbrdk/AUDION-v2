@@ -6,12 +6,13 @@
 [data-theme="monochrome"] {
   color-scheme: dark;
   --audion-mono-page-bg: #000000;
+  --audion-mono-canvas-bg: #ffffff;
   --audion-mono-surface: #0a0a0a;
   --audion-mono-surface-raised: #111111;
   --audion-mono-border: #ffffff;
   --audion-mono-border-muted: rgba(255, 255, 255, 0.55);
   --audion-mono-text-muted: rgba(255, 255, 255, 0.72);
-  --audion-light-html-background-color: var(--audion-mono-page-bg);
+  --audion-light-html-background-color: var(--audion-mono-canvas-bg);
   --color-neutral: var(--audion-mono-page-bg);
   --color-primary-white: var(--audion-mono-surface);
   --color-background: var(--audion-mono-surface);
@@ -36,8 +37,8 @@
 
 [data-theme="monochrome"] html,
 [data-theme="monochrome"] body {
-  background-color: var(--audion-mono-page-bg) !important;
-  color: #ffffff;
+  background-color: var(--audion-mono-canvas-bg) !important;
+  color: #000000;
 }
 
 [data-theme="monochrome"] main,

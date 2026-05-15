@@ -10,7 +10,8 @@
 
 | Element | Wert |
 |--------|------|
-| Seitenhintergrund | `#000000` (`--audion-mono-page-bg`) |
+| Canvas (`html`/`body`) | `#ffffff` (`--audion-mono-canvas-bg`) |
+| App-Inhalt (main) | `#000000` (`--audion-mono-page-bg`) |
 | Karten/Flächen | `#0a0a0a` (`--audion-mono-surface`) |
 | Ränder | `#ffffff` (`--audion-mono-border`) |
 | Akzent (Ränder) | Weiß (`--color-theme-accent`) |

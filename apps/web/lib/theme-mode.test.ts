@@ -39,6 +39,10 @@ describe("monochrome theme assets", () => {
     expect(css).toContain("--audion-mono-border: #ffffff");
     expect(css).toContain(".msqdx-glass-admin-nav");
     expect(css).toContain("--audion-mono-page-bg: #000000");
+    expect(css).toContain("--audion-mono-canvas-bg: #ffffff");
+    expect(css).toMatch(
+      /\[data-theme="monochrome"\] body\s*\{[^}]*background-color:\s*var\(--audion-mono-canvas-bg\)/
+    );
     expect(css).toContain(".msqdx-glass-chip");
     expect(css).toContain(".MuiButton-root");
     expect(css).toMatch(
@@ -74,6 +78,22 @@ describe("monochrome theme assets", () => {
     expect(layout).toContain('const isDarkApp = themeMode === "dark" || isMonochrome');
     expect(layout).toContain('const appInnerBackgroundColor = isDarkApp ? "#000000" : undefined');
     expect(layout).toContain('innerBackground={isDarkApp ? "default" : "offwhite"}');
+  });
+
+  it("aligns app inner frame border with chrome border and clears content offsets", () => {
+    const layout = readFileSync(
+      join(webRoot, "components/admin/msqdx-glass-admin-layout.tsx"),
+      "utf8"
+    );
+    expect(layout).toContain('"& > div:last-of-type > div > div:last-of-type"');
+    expect(layout).toContain("top: \"auto\"");
+    expect(layout).toContain("left: \"auto\"");
+    expect(layout).toContain("borderTopColor: `${chromeBorder} !important`");
+
+    const adminCss = readFileSync(join(webRoot, "styles/admin.css"), "utf8");
+    expect(adminCss).toContain(
+      '[data-theme="monochrome"] .msqdx-glass-app-layout > div > div:last-of-type > div > div:last-of-type'
+    );
   });
 
   it("renders glass panels without a border in base styles", () => {

@@ -216,10 +216,29 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
         sx={{
           "& > div:last-of-type": {
             backgroundColor: `${chromeBackground} !important`,
+            ...(isMonochrome
+              ? {
+                  borderColor: `${chromeBorder} !important`,
+                }
+              : {}),
           },
           "& > div:last-of-type > div": {
             borderColor: `${chromeBorder} !important`,
+            borderTopColor: `${chromeBorder} !important`,
+            borderRightColor: `${chromeBorder} !important`,
+            borderBottomColor: `${chromeBorder} !important`,
+            top: "auto",
+            left: "auto",
             ...(isDarkApp ? { backgroundColor: "#000000 !important" } : {}),
+          },
+          /* Content column (profile, settings, etc.) – no absolute offsets */
+          "& > div:last-of-type > div > div:last-of-type": {
+            position: "relative",
+            top: "auto",
+            left: "auto",
+            flex: 1,
+            minHeight: 0,
+            borderColor: `${chromeBorder}`,
           },
           /* Corner/Logo – absolut positioniert, hoher z-index (AUDION-Text über allem); Kontrast-Text bei hellen Farben. */
           "& > div:last-of-type > div > div:first-of-type": {
