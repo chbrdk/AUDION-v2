@@ -2,7 +2,12 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { isThemeMode, THEME_MODE_STORAGE_KEY, THEME_MODES } from "./theme-mode";
+import {
+  isThemeMode,
+  THEME_MODE_STORAGE_KEY,
+  THEME_MODES,
+  toAdminNavThemeMode,
+} from "./theme-mode";
 
 const webRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -18,6 +23,12 @@ describe("theme-mode", () => {
   it("exports stable storage key and mode list", () => {
     expect(THEME_MODE_STORAGE_KEY).toBe("audion-theme-mode");
     expect(THEME_MODES).toEqual(["light", "dark", "monochrome"]);
+  });
+
+  it("maps monochrome to dark for MsqdxAdminNav", () => {
+    expect(toAdminNavThemeMode("light")).toBe("light");
+    expect(toAdminNavThemeMode("dark")).toBe("dark");
+    expect(toAdminNavThemeMode("monochrome")).toBe("dark");
   });
 });
 

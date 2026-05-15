@@ -13,3 +13,10 @@ export function readThemeModeFromStorage(): ThemeMode | null {
   const saved = localStorage.getItem(THEME_MODE_STORAGE_KEY);
   return isThemeMode(saved) ? saved : null;
 }
+
+/** MsqdxAdminNav (published DS) only accepts light | dark. */
+export type AdminNavThemeMode = "light" | "dark";
+
+export function toAdminNavThemeMode(mode: ThemeMode): AdminNavThemeMode {
+  return mode === "monochrome" ? "dark" : mode;
+}

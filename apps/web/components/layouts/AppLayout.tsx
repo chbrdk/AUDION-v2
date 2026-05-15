@@ -15,6 +15,7 @@ import {
 } from "@mui/material";
 import { BugReportModal } from "../bug-report/BugReportModal";
 import { useThemeMode } from "../theme-registry";
+import { toAdminNavThemeMode } from "../../lib/theme-mode";
 import { THEME_ACCENT_WITH_FALLBACK } from "../../lib/theme-accent";
 import "../../styles/admin.css";
 
@@ -69,7 +70,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           currentPath={pathname ?? ""}
           items={ADMIN_NAV_ITEMS}
           externalItems={EXTERNAL_NAV_ITEMS}
-          themeMode={themeMode}
+          themeMode={toAdminNavThemeMode(themeMode)}
           onToggleTheme={toggleTheme}
           linkComponent={Link as any}
           sx={{
