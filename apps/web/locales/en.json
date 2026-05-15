@@ -999,9 +999,11 @@
     "title": "Theme Settings",
     "subtitle": "Customize the sidebar background color to match your preference.",
     "modeTitle": "Theme mode",
-    "modeSubtitle": "Light or dark mode for the interface.",
+    "modeSubtitle": "Light, dark, or monochrome with white borders on a black background.",
     "light": "Light",
     "dark": "Dark",
+    "monochrome": "Monochrome",
+    "sidebarDisabledMonochrome": "Sidebar color is disabled in monochrome mode (black and white only).",
     "sidebarTitle": "Sidebar Background Color",
     "sidebarSubtitle": "Choose a color for the admin sidebar background. Changes apply immediately.",
     "options": {

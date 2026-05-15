@@ -1,0 +1,182 @@
+/**
+ * Monochrome border theme — black/off-black surfaces, white borders, no color accents.
+ * Base layout inherits from dark via shared [data-theme="dark"], [data-theme="monochrome"] selectors.
+ */
+
+[data-theme="monochrome"] {
+  color-scheme: dark;
+  --audion-mono-page-bg: #000000;
+  --audion-mono-surface: #0a0a0a;
+  --audion-mono-surface-raised: #111111;
+  --audion-mono-border: #ffffff;
+  --audion-mono-border-muted: rgba(255, 255, 255, 0.55);
+  --audion-mono-text-muted: rgba(255, 255, 255, 0.72);
+  --audion-light-html-background-color: var(--audion-mono-page-bg);
+  --color-neutral: var(--audion-mono-page-bg);
+  --color-primary-white: var(--audion-mono-surface);
+  --color-background: var(--audion-mono-surface);
+  --color-theme-accent: #ffffff;
+  --color-theme-accent-tint: rgba(255, 255, 255, 0.06);
+  --color-theme-accent-contrast: #000000;
+  --audion-sidebar-text-color: #ffffff;
+  --audion-sidebar-hover-bg: rgba(255, 255, 255, 0.08);
+  --audion-sidebar-active-bg: rgba(255, 255, 255, 0.14);
+  --color-input-label: #ffffff;
+  --msqdx-glass-admin-header-bar-bg: rgb(from var(--audion-mono-surface) r g b / 0.92);
+  /* Status chips: grayscale only */
+  --color-secondary-dx-yellow-tint: rgba(255, 255, 255, 0.08);
+  --color-secondary-dx-pink-tint: rgba(255, 255, 255, 0.08);
+  --color-secondary-dx-orange-tint: rgba(255, 255, 255, 0.08);
+  --color-secondary-dx-purple-tint: rgba(255, 255, 255, 0.08);
+  --color-secondary-dx-blue-tint: rgba(255, 255, 255, 0.08);
+  --color-secondary-dx-green-tint: rgba(255, 255, 255, 0.08);
+  --color-secondary-dx-grey-light-tint: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="monochrome"] html,
+[data-theme="monochrome"] body {
+  background-color: var(--audion-mono-page-bg) !important;
+  color: #ffffff;
+}
+
+[data-theme="monochrome"] main,
+[data-theme="monochrome"] .msqdx-glass-admin-content,
+[data-theme="monochrome"] .msqdx-glass-detail,
+[data-theme="monochrome"] .msqdx-glass-admin-page {
+  background-color: var(--audion-mono-page-bg) !important;
+}
+
+/* Cards & surfaces */
+[data-theme="monochrome"] main .MuiPaper-root,
+[data-theme="monochrome"] main .MuiCard-root,
+[data-theme="monochrome"] .msqdx-glass-admin-content .MuiPaper-root,
+[data-theme="monochrome"] .msqdx-glass-admin-content .MuiCard-root,
+[data-theme="monochrome"] .msqdx-card,
+[data-theme="monochrome"] .msqdx-dashboard-card,
+[data-theme="monochrome"] .msqdx-glass-settings-card,
+[data-theme="monochrome"] .msqdx-glass-dashboard-card,
+[data-theme="monochrome"] .msqdx-glass-stat-card,
+[data-theme="monochrome"] .msqdx-glass-panel {
+  background-color: var(--audion-mono-surface) !important;
+  border: 1px solid var(--audion-mono-border) !important;
+  box-shadow: none !important;
+  color: #ffffff;
+}
+
+[data-theme="monochrome"] .msqdx-glass-settings-card:hover {
+  border-color: var(--audion-mono-border) !important;
+  background-color: var(--audion-mono-surface-raised) !important;
+}
+
+/* Buttons */
+[data-theme="monochrome"] .msqdx-glass-button {
+  background: transparent;
+  color: #ffffff;
+  border: 1px solid var(--audion-mono-border);
+}
+
+[data-theme="monochrome"] .msqdx-glass-button.--ghost,
+[data-theme="monochrome"] .MuiButton-root,
+[data-theme="monochrome"] .MuiButtonBase-root.MuiButton-root {
+  background: transparent !important;
+  color: #ffffff !important;
+  border: 1px solid var(--audion-mono-border) !important;
+  box-shadow: none !important;
+}
+
+[data-theme="monochrome"] .MuiButton-contained,
+[data-theme="monochrome"] .MuiButton-containedPrimary {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border: 1px solid var(--audion-mono-border) !important;
+}
+
+[data-theme="monochrome"] .MuiButton-contained:hover:not(:disabled),
+[data-theme="monochrome"] .MuiButton-containedPrimary:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+}
+
+[data-theme="monochrome"] .MuiButton-outlined:hover:not(:disabled),
+[data-theme="monochrome"] .msqdx-glass-button.--ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: var(--audion-mono-border) !important;
+}
+
+/* Chips */
+[data-theme="monochrome"] .msqdx-glass-chip,
+[data-theme="monochrome"] .MuiChip-root {
+  background: var(--audion-mono-surface) !important;
+  color: #ffffff !important;
+  border: 1px solid var(--audion-mono-border) !important;
+  box-shadow: none !important;
+}
+
+[data-theme="monochrome"] .msqdx-glass-chip.--draft,
+[data-theme="monochrome"] .msqdx-glass-chip.--published,
+[data-theme="monochrome"] .msqdx-glass-chip.--archived,
+[data-theme="monochrome"] .msqdx-glass-chip.--success,
+[data-theme="monochrome"] .msqdx-glass-chip.--processing,
+[data-theme="monochrome"] .msqdx-glass-chip.--error,
+[data-theme="monochrome"] .msqdx-glass-chip.--pending,
+[data-theme="monochrome"] .msqdx-glass-chip.--dashboard.--is-new {
+  background: var(--audion-mono-surface) !important;
+  color: #ffffff !important;
+  border: 1px solid var(--audion-mono-border-muted) !important;
+}
+
+/* Lists & inputs */
+[data-theme="monochrome"] .msqdx-glass-list-item {
+  background: var(--audion-mono-surface);
+  border: 1px solid var(--audion-mono-border-muted);
+}
+
+[data-theme="monochrome"] .msqdx-glass-list-item.is-active {
+  border-color: var(--audion-mono-border);
+  background: var(--audion-mono-surface-raised);
+}
+
+[data-theme="monochrome"] .MuiOutlinedInput-root,
+[data-theme="monochrome"] .MuiInputBase-root,
+[data-theme="monochrome"] input,
+[data-theme="monochrome"] textarea,
+[data-theme="monochrome"] select {
+  border-color: var(--audion-mono-border-muted) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="monochrome"] .MuiOutlinedInput-notchedOutline {
+  border-color: var(--audion-mono-border-muted) !important;
+}
+
+[data-theme="monochrome"] .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline,
+[data-theme="monochrome"] .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: var(--audion-mono-border) !important;
+}
+
+[data-theme="monochrome"] .msqdx-glass-muted,
+[data-theme="monochrome"] .msqdx-glass-detail__header p,
+[data-theme="monochrome"] .msqdx-glass-list-item__meta {
+  color: var(--audion-mono-text-muted);
+}
+
+/* Admin chrome */
+[data-theme="monochrome"] .msqdx-glass-admin-container {
+  border-color: var(--audion-mono-border) !important;
+}
+
+[data-theme="monochrome"] .msqdx-glass-admin-header-bar {
+  border-bottom: 1px solid var(--audion-mono-border-muted) !important;
+}
+
+/* Dashboard action cards: no accent fill */
+[data-theme="monochrome"] .msqdx-dashboard-action-cards > .MuiBox-root,
+[data-theme="monochrome"] .msqdx-dashboard-action-cards .msqdx-dashboard-card,
+[data-theme="monochrome"] .msqdx-dashboard-action-cards [role="region"][aria-label="Accordion"],
+[data-theme="monochrome"] .msqdx-dashboard-action-cards [id$="-panel"] {
+  background-color: var(--audion-mono-surface) !important;
+  border: 1px solid var(--audion-mono-border) !important;
+}
+
+[data-theme="monochrome"] .msqdx-glass-dashboard-grid .msqdx-dashboard-card {
+  border: 1px solid var(--audion-mono-border) !important;
+}

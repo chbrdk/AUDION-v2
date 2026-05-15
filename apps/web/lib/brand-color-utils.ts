@@ -3,6 +3,8 @@
  * Used by BrandColorSelector, login/register pages, and admin layout.
  */
 
+import type { ThemeMode } from "./theme-mode";
+
 export const BRAND_COLOR_STORAGE_KEY = "audion-sidebar-color";
 export const BRAND_COLOR_DEFAULT = "--color-secondary-dx-green";
 
@@ -43,11 +45,30 @@ const COLOR_TINT_MAP: Record<string, string> = {
   "--audion-light-border-color": "--color-secondary-dx-purple-tint",
 };
 
-export function applyBrandColorVars(
-  varName: string,
-  themeMode: "light" | "dark"
-): void {
+/** Forces white accent + black surfaces when monochrome theme is active. */
+export function applyMonochromeBrandVars(): void {
   if (typeof document === "undefined") return;
+
+  document.documentElement.style.setProperty("--audion-light-border-color", "#ffffff");
+  document.documentElement.style.setProperty("--audion-light-html-background-color", "#000000");
+  document.documentElement.style.setProperty("--audion-sidebar-text-color", "#ffffff");
+  document.documentElement.style.setProperty("--color-theme-accent-contrast", "#000000");
+  document.documentElement.style.setProperty("--audion-sidebar-hover-bg", "rgba(255, 255, 255, 0.08)");
+  document.documentElement.style.setProperty("--audion-sidebar-active-bg", "rgba(255, 255, 255, 0.14)");
+  document.documentElement.style.setProperty("--color-theme-accent", "#ffffff");
+  document.documentElement.style.setProperty("--color-theme-accent-tint", "rgba(255, 255, 255, 0.06)");
+  document.documentElement.style.setProperty("--auth-logo-color", "#ffffff");
+  document.documentElement.style.setProperty("--auth-button-text-color", "#000000");
+  document.documentElement.style.setProperty("--color-input-label", "#ffffff");
+}
+
+export function applyBrandColorVars(varName: string, themeMode: ThemeMode): void {
+  if (typeof document === "undefined") return;
+
+  if (themeMode === "monochrome") {
+    applyMonochromeBrandVars();
+    return;
+  }
 
   const styles = getComputedStyle(document.documentElement);
   const resolvedColor =
@@ -117,9 +138,11 @@ export function applyBrandColorVars(
 }
 
 /** Initializes brand color from localStorage. Call on admin layout mount. */
-export function initBrandColorFromStorage(
-  themeMode: "light" | "dark"
-): void {
+export function initBrandColorFromStorage(themeMode: ThemeMode): void {
+  if (themeMode === "monochrome") {
+    applyMonochromeBrandVars();
+    return;
+  }
   const saved =
     typeof localStorage !== "undefined"
       ? localStorage.getItem(BRAND_COLOR_STORAGE_KEY)

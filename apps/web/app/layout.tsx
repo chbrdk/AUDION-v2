@@ -8,6 +8,7 @@ import { cookies, headers } from "next/headers";
 import Script from "next/script";
 import "../styles/globals.css";
 import "../styles/dashboard-cards.css";
+import "../styles/monochrome-theme.css";
 import { I18nProvider } from "../components/i18n/i18n-provider";
 import { resolveLocale } from "../lib/i18n";
 
@@ -47,6 +48,13 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,200..700,0..1,-50..200&display=block"
+        />
+        <Script
+          id="audion-theme-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var m=localStorage.getItem("audion-theme-mode");if(m==="light"||m==="dark"||m==="monochrome"){document.documentElement.setAttribute("data-theme",m);}}catch(e){}})();`,
+          }}
         />
         <Script
           src={`${basePath}/suppress-extension-errors.js`}

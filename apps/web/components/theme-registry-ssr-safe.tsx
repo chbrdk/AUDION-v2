@@ -6,17 +6,25 @@ import { AppRouterCacheProvider } from "@mui/material-nextjs/v14-appRouter";
 import { CssBaseline, ThemeProvider, createTheme } from "@mui/material";
 import type { Shadows, Theme } from "@mui/material/styles";
 import { BRAND_FONT_FAMILY } from "../lib/branding";
+import {
+  THEME_MODE_STORAGE_KEY,
+  type ThemeMode,
+  readThemeModeFromStorage,
+} from "../lib/theme-mode";
+import { applyMonochromeBrandVars, initBrandColorFromStorage } from "../lib/brand-color-utils";
 
-type ThemeMode = "light" | "dark";
+export type { ThemeMode };
 
 interface ThemeContextType {
   themeMode: ThemeMode;
+  setThemeMode: (mode: ThemeMode) => void;
   toggleTheme: () => void;
 }
 
 const defaultThemeContext: ThemeContextType = {
   themeMode: "light",
-  toggleTheme: () => { }
+  setThemeMode: () => {},
+  toggleTheme: () => {},
 };
 
 const ThemeContext = createContext<ThemeContextType>(defaultThemeContext);
@@ -25,8 +33,7 @@ export const useThemeMode = () => {
   try {
     const context = useContext(ThemeContext);
     return context;
-  } catch (e) {
-    // During prerendering, context might be null - return default
+  } catch {
     return defaultThemeContext;
   }
 };
@@ -48,16 +55,16 @@ const lightTheme = createTheme({
     mode: "light",
     primary: { main: "#0f172a" },
     secondary: { main: "#6366f1" },
-    background: { default: "#ffffff", paper: "#f8fafc" }
+    background: { default: "#ffffff", paper: "#f8fafc" },
   },
   typography: {
     fontFamily: BRAND_FONT_FAMILY,
-    fontSize: 14
+    fontSize: 14,
   },
   shape: {
-    borderRadius: 12
+    borderRadius: 12,
   },
-  shadows: lightShadows
+  shadows: lightShadows,
 });
 
 const darkTheme = createTheme({
@@ -65,60 +72,131 @@ const darkTheme = createTheme({
     mode: "dark",
     primary: { main: "#ffffff" },
     secondary: { main: "#818cf8" },
-    background: { default: "#0f172a", paper: "#1e293b" }
+    background: { default: "#0f172a", paper: "#1e293b" },
   },
   typography: {
     fontFamily: BRAND_FONT_FAMILY,
-    fontSize: 14
+    fontSize: 14,
   },
   shape: {
-    borderRadius: 12
+    borderRadius: 12,
   },
-  shadows: darkShadows
+  shadows: darkShadows,
 });
 
+const monochromeTheme = createTheme({
+  palette: {
+    mode: "dark",
+    primary: { main: "#ffffff", contrastText: "#000000" },
+    secondary: { main: "#ffffff" },
+    background: { default: "#000000", paper: "#0a0a0a" },
+    text: { primary: "#ffffff", secondary: "rgba(255, 255, 255, 0.72)" },
+    divider: "#ffffff",
+  },
+  typography: {
+    fontFamily: BRAND_FONT_FAMILY,
+    fontSize: 14,
+  },
+  shape: {
+    borderRadius: 12,
+  },
+  shadows: darkShadows,
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          border: "1px solid #ffffff",
+          boxShadow: "none",
+        },
+        outlined: {
+          borderColor: "#ffffff",
+          color: "#ffffff",
+        },
+        contained: {
+          backgroundColor: "#ffffff",
+          color: "#000000",
+          "&:hover": {
+            backgroundColor: "rgba(255, 255, 255, 0.9)",
+          },
+        },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          border: "1px solid rgba(255, 255, 255, 0.55)",
+          backgroundColor: "#0a0a0a",
+          color: "#ffffff",
+        },
+      },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        notchedOutline: {
+          borderColor: "rgba(255, 255, 255, 0.55)",
+        },
+      },
+    },
+  },
+});
+
+function resolveMuiTheme(themeMode: ThemeMode): Theme {
+  if (themeMode === "monochrome") return monochromeTheme;
+  if (themeMode === "dark") return darkTheme;
+  return lightTheme;
+}
+
+function applyThemeToDocument(themeMode: ThemeMode): void {
+  document.documentElement.setAttribute("data-theme", themeMode);
+  if (themeMode === "monochrome") {
+    applyMonochromeBrandVars();
+  } else {
+    initBrandColorFromStorage(themeMode);
+  }
+}
+
 export const ThemeRegistrySSRSafe = ({ children }: { children: ReactNode }) => {
-  // #region agent log
-  // Hooks must be called unconditionally (Rules of Hooks)
-  const [themeMode, setThemeMode] = useState<ThemeMode>("light");
+  const [themeMode, setThemeModeState] = useState<ThemeMode>("light");
   const [mounted, setMounted] = useState(false);
-  const isBrowser = typeof window !== 'undefined';
+  const isBrowser = typeof window !== "undefined";
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem("audion-theme-mode") as ThemeMode | null;
-    if (savedTheme === "light" || savedTheme === "dark") {
-      setThemeMode(savedTheme);
-      document.documentElement.setAttribute("data-theme", savedTheme);
-    } else {
-      document.documentElement.setAttribute("data-theme", "light");
+    const savedTheme = readThemeModeFromStorage();
+    const initial = savedTheme ?? "light";
+    setThemeModeState(initial);
+    document.documentElement.setAttribute("data-theme", initial);
+    if (initial === "monochrome") {
+      applyMonochromeBrandVars();
     }
     setMounted(true);
   }, []);
 
   useEffect(() => {
-    if (mounted) {
-      document.documentElement.setAttribute("data-theme", themeMode);
-      localStorage.setItem("audion-theme-mode", themeMode);
-    }
+    if (!mounted) return;
+    applyThemeToDocument(themeMode);
+    localStorage.setItem(THEME_MODE_STORAGE_KEY, themeMode);
   }, [themeMode, mounted]);
 
-  const toggleTheme = () => {
-    setThemeMode((prev) => (prev === "light" ? "dark" : "light"));
+  const setThemeMode = (mode: ThemeMode) => {
+    setThemeModeState(mode);
   };
 
-  const currentTheme: Theme = themeMode === "dark" ? darkTheme : lightTheme;
+  const toggleTheme = () => {
+    setThemeModeState((prev) => {
+      if (prev === "light") return "dark";
+      if (prev === "dark") return "monochrome";
+      return "light";
+    });
+  };
 
-  // #region agent log
-  // Provide MUI ThemeProvider only in browser
-  // During SSR, we already returned early, so this code only runs in browser
-  // AppRouterCacheProvider might use useContext, so we skip it during SSR
+  const currentTheme = resolveMuiTheme(themeMode);
 
   if (!mounted) {
     return <>{children}</>;
   }
 
   return (
-    <ThemeContext.Provider value={{ themeMode, toggleTheme }}>
+    <ThemeContext.Provider value={{ themeMode, setThemeMode, toggleTheme }}>
       {isBrowser ? (
         <AppRouterCacheProvider options={{ enableCssLayer: false }}>
           <ThemeProvider theme={currentTheme}>
@@ -134,5 +212,4 @@ export const ThemeRegistrySSRSafe = ({ children }: { children: ReactNode }) => {
       )}
     </ThemeContext.Provider>
   );
-  // #endregion
 };

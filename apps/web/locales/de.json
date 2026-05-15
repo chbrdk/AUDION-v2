@@ -999,9 +999,11 @@
     "title": "Theme‑Einstellungen",
     "subtitle": "Passe die Sidebar‑Hintergrundfarbe an.",
     "modeTitle": "Theme‑Modus",
-    "modeSubtitle": "Hell- oder Dunkelmodus für die Oberfläche.",
+    "modeSubtitle": "Hell, Dunkel oder Monochrom mit weißen Rändern auf schwarzem Hintergrund.",
     "light": "Hell",
     "dark": "Dunkel",
+    "monochrome": "Monochrom",
+    "sidebarDisabledMonochrome": "Im Monochrom-Modus ist die Sidebar-Farbe deaktiviert (nur Schwarz/Weiß).",
     "sidebarTitle": "Sidebar‑Hintergrundfarbe",
     "sidebarSubtitle": "Wähle eine Farbe für die Admin‑Sidebar. Änderungen wirken sofort.",
     "options": {

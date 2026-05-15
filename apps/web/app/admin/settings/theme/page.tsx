@@ -2,14 +2,14 @@
 
 export const dynamic = "force-dynamic";
 
-import { MsqdxButton } from "@msqdx/react";
 import { BrandColorSelector } from "../../../../components/settings/brand-color-selector";
+import { ThemeModeSelector } from "../../../../components/settings/theme-mode-selector";
 import { useThemeMode } from "../../../../components/theme-registry";
 import { useI18n } from "../../../../components/i18n/i18n-provider";
 
 export default function ThemeSettingsPage() {
   const { t } = useI18n();
-  const { themeMode, toggleTheme } = useThemeMode();
+  const { themeMode } = useThemeMode();
 
   return (
     <div className="msqdx-glass-panel">
@@ -30,24 +30,7 @@ export default function ThemeSettingsPage() {
         <p className="msqdx-glass-muted" style={{ marginBottom: "1.5rem" }}>
           {t("settingsTheme.modeSubtitle")}
         </p>
-        <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-          <MsqdxButton
-            variant={themeMode === "light" ? "contained" : "outlined"}
-            size="medium"
-            onClick={() => themeMode !== "light" && toggleTheme()}
-            disabled={themeMode === "light"}
-          >
-            {t("settingsTheme.light")}
-          </MsqdxButton>
-          <MsqdxButton
-            variant={themeMode === "dark" ? "contained" : "outlined"}
-            size="medium"
-            onClick={() => themeMode !== "dark" && toggleTheme()}
-            disabled={themeMode === "dark"}
-          >
-            {t("settingsTheme.dark")}
-          </MsqdxButton>
-        </div>
+        <ThemeModeSelector />
       </div>
 
       <div style={{ marginTop: "2.5rem" }}>
@@ -55,9 +38,20 @@ export default function ThemeSettingsPage() {
           {t("settingsTheme.sidebarTitle")}
         </h2>
         <p className="msqdx-glass-muted" style={{ marginBottom: "1.5rem" }}>
-          {t("settingsTheme.sidebarSubtitle")}
+          {themeMode === "monochrome"
+            ? t("settingsTheme.sidebarDisabledMonochrome")
+            : t("settingsTheme.sidebarSubtitle")}
         </p>
-        <BrandColorSelector />
+        <div
+          style={
+            themeMode === "monochrome"
+              ? { opacity: 0.45, pointerEvents: "none" }
+              : undefined
+          }
+          aria-hidden={themeMode === "monochrome"}
+        >
+          <BrandColorSelector />
+        </div>
       </div>
     </div>
   );
