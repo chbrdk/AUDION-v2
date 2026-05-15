@@ -53,7 +53,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           id="audion-theme-init"
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var m=localStorage.getItem("audion-theme-mode");if(m==="light"||m==="dark"||m==="monochrome"){document.documentElement.setAttribute("data-theme",m);}}catch(e){}})();`,
+            __html: `(function(){try{var m=localStorage.getItem("audion-theme-mode");if(m==="monochrome")m="monochrome-dark";if(m==="light"||m==="dark"||m==="monochrome-dark"||m==="monochrome-light"){document.documentElement.setAttribute("data-theme",m);}}catch(e){}})();`,
           }}
         />
         <Script

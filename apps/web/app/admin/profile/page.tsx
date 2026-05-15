@@ -18,6 +18,7 @@ import { useI18n } from "../../../components/i18n/i18n-provider";
 import { BrandColorSelector } from "../../../components/settings/brand-color-selector";
 import { ThemeModeSelector } from "../../../components/settings/theme-mode-selector";
 import { useThemeMode } from "../../../components/theme-registry";
+import { isMonochromeMode } from "../../../lib/theme-mode";
 import { FORM_FIELD_ACCENT_SX } from "../../../lib/theme-accent";
 import { API_AUTH_TOKENS, apiAuthTokenRevoke } from "../../api/_lib/backend";
 
@@ -295,17 +296,17 @@ export default function ProfilePage() {
             {t("settingsTheme.sidebarTitle")}
           </MsqdxTypography>
           <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 1 }}>
-            {themeMode === "monochrome"
+            {isMonochromeMode(themeMode)
               ? t("settingsTheme.sidebarDisabledMonochrome")
               : t("settingsTheme.sidebarSubtitle")}
           </MsqdxTypography>
           <Box
             sx={
-              themeMode === "monochrome"
+              isMonochromeMode(themeMode)
                 ? { opacity: 0.45, pointerEvents: "none" }
                 : undefined
             }
-            aria-hidden={themeMode === "monochrome"}
+            aria-hidden={isMonochromeMode(themeMode)}
           >
             <BrandColorSelector />
           </Box>

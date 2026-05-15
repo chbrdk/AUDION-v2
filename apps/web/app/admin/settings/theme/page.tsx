@@ -6,6 +6,7 @@ import { BrandColorSelector } from "../../../../components/settings/brand-color-
 import { ThemeModeSelector } from "../../../../components/settings/theme-mode-selector";
 import { useThemeMode } from "../../../../components/theme-registry";
 import { useI18n } from "../../../../components/i18n/i18n-provider";
+import { isMonochromeMode } from "../../../../lib/theme-mode";
 
 export default function ThemeSettingsPage() {
   const { t } = useI18n();
@@ -38,17 +39,17 @@ export default function ThemeSettingsPage() {
           {t("settingsTheme.sidebarTitle")}
         </h2>
         <p className="msqdx-glass-muted" style={{ marginBottom: "1.5rem" }}>
-          {themeMode === "monochrome"
+          {isMonochromeMode(themeMode)
             ? t("settingsTheme.sidebarDisabledMonochrome")
             : t("settingsTheme.sidebarSubtitle")}
         </p>
         <div
           style={
-            themeMode === "monochrome"
+            isMonochromeMode(themeMode)
               ? { opacity: 0.45, pointerEvents: "none" }
               : undefined
           }
-          aria-hidden={themeMode === "monochrome"}
+          aria-hidden={isMonochromeMode(themeMode)}
         >
           <BrandColorSelector />
         </div>

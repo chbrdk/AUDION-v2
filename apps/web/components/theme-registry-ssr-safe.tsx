@@ -9,6 +9,7 @@ import { BRAND_FONT_FAMILY } from "../lib/branding";
 import {
   THEME_MODE_STORAGE_KEY,
   type ThemeMode,
+  isMonochromeMode,
   readThemeModeFromStorage,
 } from "../lib/theme-mode";
 import { applyMonochromeBrandVars, initBrandColorFromStorage } from "../lib/brand-color-utils";
@@ -84,7 +85,63 @@ const darkTheme = createTheme({
   shadows: darkShadows,
 });
 
-const monochromeTheme = createTheme({
+const monochromeDarkTheme = createTheme({
+  palette: {
+    mode: "dark",
+    primary: { main: "#ffffff", contrastText: "#000000" },
+    secondary: { main: "#ffffff" },
+    background: { default: "#000000", paper: "#0a0a0a" },
+    text: { primary: "#ffffff", secondary: "rgba(255, 255, 255, 0.72)" },
+    divider: "#ffffff",
+  },
+  typography: {
+    fontFamily: BRAND_FONT_FAMILY,
+    fontSize: 14,
+  },
+  shape: {
+    borderRadius: 12,
+  },
+  shadows: darkShadows,
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          border: "1px solid #ffffff",
+          boxShadow: "none",
+        },
+        outlined: {
+          borderColor: "#ffffff",
+          color: "#ffffff",
+        },
+        contained: {
+          backgroundColor: "#ffffff",
+          color: "#000000",
+          "&:hover": {
+            backgroundColor: "rgba(255, 255, 255, 0.9)",
+          },
+        },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          border: "1px solid rgba(255, 255, 255, 0.55)",
+          backgroundColor: "#0a0a0a",
+          color: "#ffffff",
+        },
+      },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        notchedOutline: {
+          borderColor: "rgba(255, 255, 255, 0.55)",
+        },
+      },
+    },
+  },
+});
+
+const monochromeLightTheme = createTheme({
   palette: {
     mode: "light",
     primary: { main: "#000000", contrastText: "#ffffff" },
@@ -141,15 +198,16 @@ const monochromeTheme = createTheme({
 });
 
 function resolveMuiTheme(themeMode: ThemeMode): Theme {
-  if (themeMode === "monochrome") return monochromeTheme;
+  if (themeMode === "monochrome-dark") return monochromeDarkTheme;
+  if (themeMode === "monochrome-light") return monochromeLightTheme;
   if (themeMode === "dark") return darkTheme;
   return lightTheme;
 }
 
 function applyThemeToDocument(themeMode: ThemeMode): void {
   document.documentElement.setAttribute("data-theme", themeMode);
-  if (themeMode === "monochrome") {
-    applyMonochromeBrandVars();
+  if (isMonochromeMode(themeMode)) {
+    applyMonochromeBrandVars(themeMode);
   } else {
     initBrandColorFromStorage(themeMode);
   }
@@ -165,8 +223,8 @@ export const ThemeRegistrySSRSafe = ({ children }: { children: ReactNode }) => {
     const initial = savedTheme ?? "light";
     setThemeModeState(initial);
     document.documentElement.setAttribute("data-theme", initial);
-    if (initial === "monochrome") {
-      applyMonochromeBrandVars();
+    if (isMonochromeMode(initial)) {
+      applyMonochromeBrandVars(initial);
     }
     setMounted(true);
   }, []);
@@ -184,7 +242,8 @@ export const ThemeRegistrySSRSafe = ({ children }: { children: ReactNode }) => {
   const toggleTheme = () => {
     setThemeModeState((prev) => {
       if (prev === "light") return "dark";
-      if (prev === "dark") return "monochrome";
+      if (prev === "dark") return "monochrome-dark";
+      if (prev === "monochrome-dark") return "monochrome-light";
       return "light";
     });
   };

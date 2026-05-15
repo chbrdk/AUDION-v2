@@ -49,29 +49,41 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
   const theme = useTheme();
   const { themeMode } = useThemeMode();
   const { t } = useI18n();
-  const isMonochrome = themeMode === "monochrome";
-  const isDarkApp = themeMode === "dark";
-  const chromeBackground = isMonochrome
-    ? "#000000"
-    : THEME_ACCENT_WITH_FALLBACK.backgroundColor;
-  /** Border on dark chrome (black sidebar in monochrome). */
-  const chromeBorderOnLight = isMonochrome
+  const isMonochromeDark = themeMode === "monochrome-dark";
+  const isMonochromeLight = themeMode === "monochrome-light";
+  const isMonochrome = isMonochromeDark || isMonochromeLight;
+  const isDarkApp = themeMode === "dark" || isMonochromeDark;
+  const chromeBackground = isMonochromeDark
     ? "#ffffff"
-    : THEME_ACCENT_WITH_FALLBACK.borderColor;
-  /** Border on light app frame (white content in monochrome). */
-  const chromeBorderOnDark = isMonochrome
-    ? "#000000"
-    : THEME_ACCENT_WITH_FALLBACK.borderColor;
-  const chromeIconColor = isMonochrome
-    ? "#ffffff"
-    : theme.palette.mode === "dark"
-      ? "#fff"
-      : "#000";
-  const appInnerBackgroundColor = isMonochrome
-    ? "#ffffff"
-    : isDarkApp
+    : isMonochromeLight
       ? "#000000"
-      : undefined;
+      : THEME_ACCENT_WITH_FALLBACK.backgroundColor;
+  /** Border on light chrome (white sidebar in monochrome-dark). */
+  const chromeBorderOnLight = isMonochromeDark
+    ? "rgba(0, 0, 0, 0.12)"
+    : isMonochromeLight
+      ? "#ffffff"
+      : THEME_ACCENT_WITH_FALLBACK.borderColor;
+  /** Border on dark app frame (black content in monochrome-dark). */
+  const chromeBorderOnDark = isMonochromeDark
+    ? "#ffffff"
+    : isMonochromeLight
+      ? "#000000"
+      : THEME_ACCENT_WITH_FALLBACK.borderColor;
+  const chromeIconColor = isMonochromeDark
+    ? "#000000"
+    : isMonochromeLight
+      ? "#ffffff"
+      : theme.palette.mode === "dark"
+        ? "#fff"
+        : "#000";
+  const appInnerBackgroundColor = isMonochromeDark
+    ? "#000000"
+    : isMonochromeLight
+      ? "#ffffff"
+      : isDarkApp
+        ? "#000000"
+        : undefined;
   const appInnerBackground = isMonochrome || isDarkApp ? "default" : "offwhite";
   const { activeProjectId } = useProject();
   // Get headerContent from context - safe for SSR with default value
@@ -342,10 +354,22 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
                       justifyContent: "center",
                       lineHeight: 1,
                       // Use the same brand accent token as the rest of the admin chrome.
-                      color: isMonochrome ? "#000000" : "var(--color-theme-accent)",
-                      borderColor: isMonochrome ? "rgba(0, 0, 0, 0.35)" : "var(--color-theme-accent)",
+                      color: isMonochromeDark
+                        ? "#000000"
+                        : isMonochromeLight
+                          ? "#ffffff"
+                          : "var(--color-theme-accent)",
+                      borderColor: isMonochromeDark
+                        ? "rgba(0, 0, 0, 0.35)"
+                        : isMonochromeLight
+                          ? "rgba(255, 255, 255, 0.35)"
+                          : "var(--color-theme-accent)",
                       "&:hover": {
-                        borderColor: isMonochrome ? "#000000" : "var(--color-theme-accent)",
+                        borderColor: isMonochromeDark
+                          ? "#000000"
+                          : isMonochromeLight
+                            ? "#ffffff"
+                            : "var(--color-theme-accent)",
                         backgroundColor: "transparent",
                       },
                     }}
