@@ -60,7 +60,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
     : THEME_ACCENT_WITH_FALLBACK.borderColor;
   /** Border on dark surfaces (black app frame in monochrome). */
   const chromeBorderOnDark = isMonochrome
-    ? "rgba(255, 255, 255, 0.12)"
+    ? "#ffffff"
     : THEME_ACCENT_WITH_FALLBACK.borderColor;
   const chromeIconColor = isMonochrome
     ? "#000000"

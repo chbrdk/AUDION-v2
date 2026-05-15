@@ -89,13 +89,13 @@ describe("monochrome theme assets", () => {
     expect(layout).toContain("top: \"auto\"");
     expect(layout).toContain("left: \"auto\"");
     expect(layout).toContain("borderTopColor: `${chromeBorderOnDark} !important`");
-    expect(layout).toContain('? "rgba(255, 255, 255, 0.12)"');
+    expect(layout).toContain('? "#ffffff"');
 
     const adminCss = readFileSync(join(webRoot, "styles/admin.css"), "utf8");
     expect(adminCss).toContain(
       '[data-theme="monochrome"] .msqdx-glass-app-layout > div > div:last-of-type > div > div:last-of-type'
     );
-    expect(adminCss).toContain("rgba(255, 255, 255, 0.12)");
+    expect(adminCss).toContain("border-color: #ffffff !important");
   });
 
   it("renders glass panels without a border in base styles", () => {

@@ -97,10 +97,14 @@
 }
 
 [data-theme="monochrome"] .msqdx-glass-app-layout > div > div:last-of-type > div {
-  border-color: rgba(255, 255, 255, 0.12) !important;
-  border-top-color: rgba(255, 255, 255, 0.12) !important;
-  border-right-color: rgba(255, 255, 255, 0.12) !important;
-  border-bottom-color: rgba(255, 255, 255, 0.12) !important;
+  border-color: #ffffff !important;
+  border-top-color: #ffffff !important;
+  border-right-color: #ffffff !important;
+  border-bottom-color: #ffffff !important;
+}
+
+[data-theme="monochrome"] .msqdx-glass-app-layout > div > div:last-of-type > div > div:last-of-type {
+  border-color: #ffffff !important;
 }
 
 [data-theme="monochrome"] .msqdx-glass-app-layout > div > div:last-of-type > div > div:last-of-type {

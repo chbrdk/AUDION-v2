@@ -11,7 +11,7 @@
   --audion-mono-surface-raised: #111111;
   --audion-mono-border: #ffffff;
   --audion-mono-border-muted: rgba(255, 255, 255, 0.55);
-  --audion-chrome-border-on-dark: rgba(255, 255, 255, 0.12);
+  --audion-chrome-border-on-dark: #ffffff;
   --audion-chrome-border-on-light: rgba(0, 0, 0, 0.12);
   --audion-mono-text-muted: rgba(255, 255, 255, 0.72);
   --audion-light-html-background-color: var(--audion-mono-canvas-bg);
