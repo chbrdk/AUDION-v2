@@ -14,9 +14,10 @@
 | Karten/Flächen | `#0a0a0a` (`--audion-mono-surface`) |
 | Ränder | `#ffffff` (`--audion-mono-border`) |
 | Akzent (Ränder) | Weiß (`--color-theme-accent`) |
-| Chrome (Sidebar/Shell) | `#0a0a0a` (`--audion-chrome-surface`) — **nicht** weiß |
+| Sidebar (Chrome) | `#ffffff` (`--audion-chrome-surface`) — weiß mit schwarzen Icons/Logo |
+| App-Inhalt (inner) | `#000000` — wie Dark Mode, kein Offwhite |
 
-**Häufiger Fehler:** `--audion-light-border-color` ist die Sidebar-Hintergrundfarbe (Brand), nicht die Border-Farbe. Im Monochrom-Modus muss sie dunkel bleiben, sonst sind weiße Icons unsichtbar.
+**Hinweis:** Im Monochrom-Modus ist nur die Sidebar invertiert (weiß/schwarz). Der App-Hintergrund bleibt schwarz (`innerBackgroundColor: #000000`).
 
 ## Dateien
 

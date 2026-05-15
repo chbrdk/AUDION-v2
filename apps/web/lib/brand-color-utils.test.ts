@@ -6,11 +6,10 @@ import { describe, expect, it } from "vitest";
 const webRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 describe("applyMonochromeBrandVars", () => {
-  it("uses dark chrome surface for sidebar, white only for accent borders", () => {
+  it("uses white chrome surface and black sidebar text in monochrome", () => {
     const source = readFileSync(join(webRoot, "lib/brand-color-utils.ts"), "utf8");
-    expect(source).toContain('"--audion-light-border-color", "#0a0a0a"');
-    expect(source).toContain('"--audion-chrome-surface", "#0a0a0a"');
+    expect(source).toContain('"--audion-chrome-surface", "#ffffff"');
+    expect(source).toContain('"--audion-sidebar-text-color", "#000000"');
     expect(source).toContain('"--color-theme-accent", "#ffffff"');
-    expect(source).not.toContain('"--audion-light-border-color", "#ffffff"');
   });
 });

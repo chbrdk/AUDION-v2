@@ -86,9 +86,11 @@
 }
 
 /* Main content wrapper and top strip (header area) – dark background in dark theme */
-[data-theme="dark"], [data-theme="monochrome"] .msqdx-glass-app-layout > div > div:last-of-type,
-[data-theme="dark"], [data-theme="monochrome"] .msqdx-glass-app-layout > div > div:last-of-type > div {
-  background-color: #0f0f0f !important;
+[data-theme="dark"] .msqdx-glass-app-layout > div > div:last-of-type,
+[data-theme="monochrome"] .msqdx-glass-app-layout > div > div:last-of-type,
+[data-theme="dark"] .msqdx-glass-app-layout > div > div:last-of-type > div,
+[data-theme="monochrome"] .msqdx-glass-app-layout > div > div:last-of-type > div {
+  background-color: #000000 !important;
 }
 
 .msqdx-glass-admin-nav,
@@ -112,7 +114,8 @@
   fill: currentColor;
 }
 
-[data-theme="dark"], [data-theme="monochrome"] .msqdx-glass-admin-nav {
+[data-theme="dark"] .msqdx-glass-admin-nav,
+[data-theme="monochrome"] .msqdx-glass-admin-nav {
   background: var(--audion-light-border-color, #0f172a);
   border-right-color: var(--audion-light-border-color, #0f172a);
 }

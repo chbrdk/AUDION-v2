@@ -50,13 +50,19 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
   const { themeMode } = useThemeMode();
   const { t } = useI18n();
   const isMonochrome = themeMode === "monochrome";
+  const isDarkApp = themeMode === "dark" || isMonochrome;
   const chromeBackground = isMonochrome
-    ? "var(--audion-chrome-surface, #0a0a0a)"
+    ? "#ffffff"
     : THEME_ACCENT_WITH_FALLBACK.backgroundColor;
   const chromeBorder = isMonochrome
-    ? "#ffffff"
+    ? "rgba(0, 0, 0, 0.12)"
     : THEME_ACCENT_WITH_FALLBACK.borderColor;
-  const chromeIconColor = isMonochrome ? "#ffffff" : theme.palette.mode === "dark" ? "#fff" : "#000";
+  const chromeIconColor = isMonochrome
+    ? "#000000"
+    : theme.palette.mode === "dark"
+      ? "#fff"
+      : "#000";
+  const appInnerBackgroundColor = isDarkApp ? "#000000" : undefined;
   const { activeProjectId } = useProject();
   // Get headerContent from context - safe for SSR with default value
   const { headerContent } = useAdminHeader();
@@ -204,8 +210,8 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
         }
         logo
         appName="Audion"
-        innerBackground={isMonochrome ? "default" : "offwhite"}
-        innerBackgroundColor={isMonochrome ? "#000000" : undefined}
+        innerBackground={isDarkApp ? "default" : "offwhite"}
+        innerBackgroundColor={appInnerBackgroundColor}
         borderWidth="thick"
         sx={{
           "& > div:last-of-type": {
@@ -213,7 +219,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
           },
           "& > div:last-of-type > div": {
             borderColor: `${chromeBorder} !important`,
-            ...(isMonochrome ? { backgroundColor: "#000000 !important" } : {}),
+            ...(isDarkApp ? { backgroundColor: "#000000 !important" } : {}),
           },
           /* Corner/Logo – absolut positioniert, hoher z-index (AUDION-Text über allem); Kontrast-Text bei hellen Farben. */
           "& > div:last-of-type > div > div:first-of-type": {

@@ -18,9 +18,10 @@
   --color-theme-accent: #ffffff;
   --color-theme-accent-tint: rgba(255, 255, 255, 0.06);
   --color-theme-accent-contrast: #000000;
-  --audion-sidebar-text-color: #ffffff;
-  --audion-sidebar-hover-bg: rgba(255, 255, 255, 0.08);
-  --audion-sidebar-active-bg: rgba(255, 255, 255, 0.14);
+  --audion-chrome-surface: #ffffff;
+  --audion-sidebar-text-color: #000000;
+  --audion-sidebar-hover-bg: rgba(0, 0, 0, 0.08);
+  --audion-sidebar-active-bg: rgba(0, 0, 0, 0.14);
   --color-input-label: #ffffff;
   --msqdx-glass-admin-header-bar-bg: rgb(from var(--audion-mono-surface) r g b / 0.92);
   /* Status chips: grayscale only */
@@ -210,9 +211,19 @@
 
 [data-theme="monochrome"] .msqdx-glass-admin-nav,
 [data-theme="monochrome"] .msqdx-admin-nav {
-  background: var(--audion-chrome-surface, #0a0a0a) !important;
-  border-right: 1px solid var(--audion-mono-border) !important;
-  color: #ffffff !important;
+  background: var(--audion-chrome-surface, #ffffff) !important;
+  border-right: 1px solid var(--audion-mono-border-muted) !important;
+  color: #000000 !important;
+}
+
+[data-theme="monochrome"] .msqdx-glass-admin-nav button,
+[data-theme="monochrome"] .msqdx-glass-admin-nav a,
+[data-theme="monochrome"] .msqdx-glass-admin-nav span,
+[data-theme="monochrome"] .msqdx-glass-admin-nav .MuiTypography-root,
+[data-theme="monochrome"] .msqdx-admin-nav button,
+[data-theme="monochrome"] .msqdx-admin-nav a,
+[data-theme="monochrome"] .msqdx-admin-nav span {
+  color: #000000 !important;
 }
 
 [data-theme="monochrome"] .msqdx-glass-admin-nav .material-symbols-outlined,
@@ -220,8 +231,17 @@
 [data-theme="monochrome"] .msqdx-glass-admin-nav svg,
 [data-theme="monochrome"] .msqdx-admin-nav .material-symbols-outlined,
 [data-theme="monochrome"] .msqdx-admin-nav svg {
-  color: #ffffff !important;
+  color: #000000 !important;
   fill: currentColor !important;
+}
+
+[data-theme="monochrome"] .msqdx-glass-app-layout > div > div:last-of-type > div > div:first-of-type,
+[data-theme="monochrome"] .msqdx-glass-app-layout > div > div:last-of-type > div > div:first-of-type * {
+  color: #000000 !important;
+}
+
+[data-theme="monochrome"] .msqdx-glass-app-layout > div > div:last-of-type > div > div:first-of-type svg {
+  fill: #000000 !important;
 }
 
 [data-theme="monochrome"] .msqdx-glass-admin-header-bar .material-symbols-outlined,

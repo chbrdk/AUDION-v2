@@ -44,6 +44,12 @@ describe("monochrome theme assets", () => {
     expect(css).toMatch(
       /\[data-theme="monochrome"\] \.msqdx-glass-panel\s*\{[^}]*border:\s*none\s*!important/
     );
+    expect(css).toMatch(
+      /\[data-theme="monochrome"\] \.msqdx-glass-admin-nav[\s\S]*background:[\s\S]*#ffffff/
+    );
+    expect(css).toMatch(
+      /\[data-theme="monochrome"\] \.msqdx-glass-admin-nav[\s\S]*color:\s*#000000/
+    );
   });
 
   it("keeps admin content absolutely positioned without top/left offsets", () => {
@@ -55,6 +61,16 @@ describe("monochrome theme assets", () => {
     expect(layout).toContain('position: "absolute"');
     expect(layout).not.toMatch(/msqdx-glass-admin-content[\s\S]*?top:\s*0/);
     expect(layout).not.toMatch(/msqdx-glass-admin-content[\s\S]*?left:\s*0/);
+  });
+
+  it("uses black app inner background for dark and monochrome", () => {
+    const layout = readFileSync(
+      join(webRoot, "components/admin/msqdx-glass-admin-layout.tsx"),
+      "utf8"
+    );
+    expect(layout).toContain('const isDarkApp = themeMode === "dark" || isMonochrome');
+    expect(layout).toContain('const appInnerBackgroundColor = isDarkApp ? "#000000" : undefined');
+    expect(layout).toContain('innerBackground={isDarkApp ? "default" : "offwhite"}');
   });
 
   it("renders glass panels without a border in base styles", () => {
