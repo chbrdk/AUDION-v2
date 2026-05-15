@@ -91,8 +91,16 @@
   background-color: #000000 !important;
 }
 
+[data-theme="monochrome"] .msqdx-glass-app-layout > div > div:last-of-type {
+  top: auto !important;
+  left: auto !important;
+}
+
 [data-theme="monochrome"] .msqdx-glass-app-layout > div > div:last-of-type > div {
-  border-color: rgba(0, 0, 0, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  border-top-color: rgba(255, 255, 255, 0.12) !important;
+  border-right-color: rgba(255, 255, 255, 0.12) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.12) !important;
 }
 
 [data-theme="monochrome"] .msqdx-glass-app-layout > div > div:last-of-type > div > div:last-of-type {

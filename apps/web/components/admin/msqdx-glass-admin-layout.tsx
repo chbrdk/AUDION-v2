@@ -54,8 +54,13 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
   const chromeBackground = isMonochrome
     ? "#ffffff"
     : THEME_ACCENT_WITH_FALLBACK.backgroundColor;
-  const chromeBorder = isMonochrome
+  /** Border on light surfaces (white sidebar in monochrome). */
+  const chromeBorderOnLight = isMonochrome
     ? "rgba(0, 0, 0, 0.12)"
+    : THEME_ACCENT_WITH_FALLBACK.borderColor;
+  /** Border on dark surfaces (black app frame in monochrome). */
+  const chromeBorderOnDark = isMonochrome
+    ? "rgba(255, 255, 255, 0.12)"
     : THEME_ACCENT_WITH_FALLBACK.borderColor;
   const chromeIconColor = isMonochrome
     ? "#000000"
@@ -202,7 +207,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
             linkComponent={Link as any}
             sx={{
               backgroundColor: chromeBackground,
-              borderRightColor: chromeBorder,
+              borderRightColor: chromeBorderOnLight,
               borderRightWidth: isMonochrome ? 1 : undefined,
               borderRightStyle: isMonochrome ? "solid" : undefined,
             }}
@@ -216,17 +221,14 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
         sx={{
           "& > div:last-of-type": {
             backgroundColor: `${chromeBackground} !important`,
-            ...(isMonochrome
-              ? {
-                  borderColor: `${chromeBorder} !important`,
-                }
-              : {}),
+            top: "auto",
+            left: "auto",
           },
           "& > div:last-of-type > div": {
-            borderColor: `${chromeBorder} !important`,
-            borderTopColor: `${chromeBorder} !important`,
-            borderRightColor: `${chromeBorder} !important`,
-            borderBottomColor: `${chromeBorder} !important`,
+            borderColor: `${chromeBorderOnDark} !important`,
+            borderTopColor: `${chromeBorderOnDark} !important`,
+            borderRightColor: `${chromeBorderOnDark} !important`,
+            borderBottomColor: `${chromeBorderOnDark} !important`,
             top: "auto",
             left: "auto",
             ...(isDarkApp ? { backgroundColor: "#000000 !important" } : {}),
@@ -238,7 +240,6 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
             left: "auto",
             flex: 1,
             minHeight: 0,
-            borderColor: `${chromeBorder}`,
           },
           /* Corner/Logo – absolut positioniert, hoher z-index (AUDION-Text über allem); Kontrast-Text bei hellen Farben. */
           "& > div:last-of-type > div > div:first-of-type": {
