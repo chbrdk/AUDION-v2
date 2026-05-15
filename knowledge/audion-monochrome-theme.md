@@ -13,7 +13,10 @@
 | Seitenhintergrund | `#000000` (`--audion-mono-page-bg`) |
 | Karten/Flächen | `#0a0a0a` (`--audion-mono-surface`) |
 | Ränder | `#ffffff` (`--audion-mono-border`) |
-| Akzent | Weiß (keine Brand-Farbe) |
+| Akzent (Ränder) | Weiß (`--color-theme-accent`) |
+| Chrome (Sidebar/Shell) | `#0a0a0a` (`--audion-chrome-surface`) — **nicht** weiß |
+
+**Häufiger Fehler:** `--audion-light-border-color` ist die Sidebar-Hintergrundfarbe (Brand), nicht die Border-Farbe. Im Monochrom-Modus muss sie dunkel bleiben, sonst sind weiße Icons unsichtbar.
 
 ## Dateien
 

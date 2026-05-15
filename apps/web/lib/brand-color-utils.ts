@@ -49,7 +49,9 @@ const COLOR_TINT_MAP: Record<string, string> = {
 export function applyMonochromeBrandVars(): void {
   if (typeof document === "undefined") return;
 
-  document.documentElement.style.setProperty("--audion-light-border-color", "#ffffff");
+  /* Chrome surfaces (sidebar, outer shell) — not white; borders use --color-theme-accent */
+  document.documentElement.style.setProperty("--audion-light-border-color", "#0a0a0a");
+  document.documentElement.style.setProperty("--audion-chrome-surface", "#0a0a0a");
   document.documentElement.style.setProperty("--audion-light-html-background-color", "#000000");
   document.documentElement.style.setProperty("--audion-sidebar-text-color", "#ffffff");
   document.documentElement.style.setProperty("--color-theme-accent-contrast", "#000000");

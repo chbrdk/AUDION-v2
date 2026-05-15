@@ -37,14 +37,39 @@ describe("monochrome theme assets", () => {
     const css = readFileSync(join(webRoot, "styles/monochrome-theme.css"), "utf8");
     expect(css).toContain('[data-theme="monochrome"]');
     expect(css).toContain("--audion-mono-border: #ffffff");
+    expect(css).toContain(".msqdx-glass-admin-nav");
     expect(css).toContain("--audion-mono-page-bg: #000000");
     expect(css).toContain(".msqdx-glass-chip");
     expect(css).toContain(".MuiButton-root");
+    expect(css).toMatch(
+      /\[data-theme="monochrome"\] \.msqdx-glass-panel\s*\{[^}]*border:\s*none\s*!important/
+    );
+  });
+
+  it("keeps admin content absolutely positioned without top/left offsets", () => {
+    const layout = readFileSync(
+      join(webRoot, "components/admin/msqdx-glass-admin-layout.tsx"),
+      "utf8"
+    );
+    expect(layout).toContain('className="msqdx-glass-admin-content"');
+    expect(layout).toContain('position: "absolute"');
+    expect(layout).not.toMatch(/msqdx-glass-admin-content[\s\S]*?top:\s*0/);
+    expect(layout).not.toMatch(/msqdx-glass-admin-content[\s\S]*?left:\s*0/);
+  });
+
+  it("renders glass panels without a border in base styles", () => {
+    const globals = readFileSync(join(webRoot, "styles/globals.css"), "utf8");
+    expect(globals).toMatch(/\.msqdx-glass-panel\s*\{[^}]*border:\s*none/);
   });
 
   it("extends dark selectors to monochrome in global styles", () => {
     const globals = readFileSync(join(webRoot, "styles/globals.css"), "utf8");
-    expect(globals).toContain('[data-theme="dark"], [data-theme="monochrome"]');
+    expect(globals).toContain(
+      '[data-theme="dark"], [data-theme="monochrome"] .msqdx-glass-admin-page'
+    );
+    expect(globals).toContain("[data-theme=\"dark\"], [data-theme=\"monochrome\"] {");
+    expect(globals).not.toMatch(/\[data-theme="dark"\] \{,/);
+    expect(globals).not.toMatch(/,, \[data-theme="monochrome"\]/);
   });
 
   it("registers monochrome in theme registry and layout", () => {

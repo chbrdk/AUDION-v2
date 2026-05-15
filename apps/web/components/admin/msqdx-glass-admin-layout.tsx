@@ -9,6 +9,7 @@ import { MsqdxButton, MsqdxIcon, MsqdxAdminNav, MsqdxAppLayout, MsqdxTypography 
 import type { AdminNavItem } from "@msqdx/react";
 import { useAdminHeader, useAdminPanel } from "./admin-layout-providers";
 import { THEME_ACCENT_WITH_FALLBACK } from "../../lib/theme-accent";
+import { useThemeMode } from "../theme-registry";
 import { AdminTopControls } from "./admin-top-controls";
 import { BrandColorInitializer } from "../settings/brand-color-initializer";
 import { useI18n } from "../i18n/i18n-provider";
@@ -46,7 +47,16 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
   const [bugModalOpen, setBugModalOpen] = useState(false);
   const pathname = usePathname();
   const theme = useTheme();
+  const { themeMode } = useThemeMode();
   const { t } = useI18n();
+  const isMonochrome = themeMode === "monochrome";
+  const chromeBackground = isMonochrome
+    ? "var(--audion-chrome-surface, #0a0a0a)"
+    : THEME_ACCENT_WITH_FALLBACK.backgroundColor;
+  const chromeBorder = isMonochrome
+    ? "#ffffff"
+    : THEME_ACCENT_WITH_FALLBACK.borderColor;
+  const chromeIconColor = isMonochrome ? "#ffffff" : theme.palette.mode === "dark" ? "#fff" : "#000";
   const { activeProjectId } = useProject();
   // Get headerContent from context - safe for SSR with default value
   const { headerContent } = useAdminHeader();
@@ -185,21 +195,25 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
             externalItems={navExternalItems}
             linkComponent={Link as any}
             sx={{
-              backgroundColor: THEME_ACCENT_WITH_FALLBACK.backgroundColor,
-              borderRightColor: THEME_ACCENT_WITH_FALLBACK.borderColor,
+              backgroundColor: chromeBackground,
+              borderRightColor: chromeBorder,
+              borderRightWidth: isMonochrome ? 1 : undefined,
+              borderRightStyle: isMonochrome ? "solid" : undefined,
             }}
           />
         }
         logo
         appName="Audion"
-        innerBackground="offwhite"
+        innerBackground={isMonochrome ? "default" : "offwhite"}
+        innerBackgroundColor={isMonochrome ? "#000000" : undefined}
         borderWidth="thick"
         sx={{
           "& > div:last-of-type": {
-            backgroundColor: `${THEME_ACCENT_WITH_FALLBACK.backgroundColor} !important`,
+            backgroundColor: `${chromeBackground} !important`,
           },
           "& > div:last-of-type > div": {
-            borderColor: `${THEME_ACCENT_WITH_FALLBACK.borderColor} !important`,
+            borderColor: `${chromeBorder} !important`,
+            ...(isMonochrome ? { backgroundColor: "#000000 !important" } : {}),
           },
           /* Corner/Logo – absolut positioniert, hoher z-index (AUDION-Text über allem); Kontrast-Text bei hellen Farben. */
           "& > div:last-of-type > div > div:first-of-type": {
@@ -217,7 +231,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
             fill: "currentColor",
           },
           "& > div:last-of-type > div > div:first-of-type > div": {
-            backgroundColor: `${THEME_ACCENT_WITH_FALLBACK.backgroundColor} !important`,
+            backgroundColor: `${chromeBackground} !important`,
           },
         }}
       >
@@ -295,10 +309,10 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
                       justifyContent: "center",
                       lineHeight: 1,
                       // Use the same brand accent token as the rest of the admin chrome.
-                      color: "var(--color-theme-accent)",
-                      borderColor: "var(--color-theme-accent)",
+                      color: isMonochrome ? "#ffffff" : "var(--color-theme-accent)",
+                      borderColor: isMonochrome ? "#ffffff" : "var(--color-theme-accent)",
                       "&:hover": {
-                        borderColor: "var(--color-theme-accent)",
+                        borderColor: isMonochrome ? "#ffffff" : "var(--color-theme-accent)",
                         backgroundColor: "transparent",
                       },
                     }}
@@ -366,7 +380,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
           }}
           aria-label={t("common.togglePanel")}
         >
-          <Box sx={{ color: theme.palette.mode === "dark" ? "#fff" : "#000" }}>
+          <Box sx={{ color: chromeIconColor }}>
             <MsqdxIcon name={getPageIcon()} customSize={32} />
           </Box>
         </Box>
@@ -380,8 +394,6 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
         suppressHydrationWarning
         sx={{
           position: "absolute",
-          top: 0,
-          left: 0,
           right: 0,
           bottom: 0,
           zIndex: 0,
