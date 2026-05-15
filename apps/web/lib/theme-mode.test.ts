@@ -52,15 +52,18 @@ describe("monochrome theme assets", () => {
     );
   });
 
-  it("keeps admin content absolutely positioned without top/left offsets", () => {
+  it("keeps admin content as a full-bleed scroll container under the header", () => {
     const layout = readFileSync(
       join(webRoot, "components/admin/msqdx-glass-admin-layout.tsx"),
       "utf8"
     );
     expect(layout).toContain('className="msqdx-glass-admin-content"');
     expect(layout).toContain('position: "absolute"');
-    expect(layout).not.toMatch(/msqdx-glass-admin-content[\s\S]*?top:\s*0/);
-    expect(layout).not.toMatch(/msqdx-glass-admin-content[\s\S]*?left:\s*0/);
+    expect(layout).toContain("top: 0");
+    expect(layout).toContain("left: 0");
+    expect(layout).toContain("right: 0");
+    expect(layout).toContain("bottom: 0");
+    expect(layout).toContain('overflowY: "auto"');
   });
 
   it("uses black app inner background for dark and monochrome", () => {
