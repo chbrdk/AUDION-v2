@@ -796,7 +796,12 @@
     "federation": {
       "plexon": "PLEXON",
       "checkion": "CHECKION",
-      "localOnly": "AUDION only"
+      "localOnly": "AUDION only",
+      "audionProjectId": "AUDION project ID",
+      "platformProjectId": "Platform project ID (PLEXON)",
+      "platformCompanyId": "Platform company ID (PLEXON)",
+      "checkionProjectId": "CHECKION project ID",
+      "openInPlexon": "Open in PLEXON"
     },
     "plexonMirrorRetry": {
       "cta": "Register in PLEXON",

@@ -2,14 +2,34 @@ export const PLEXON_SOURCE_PARAM = "plexon_source";
 export const PLEXON_RETURN_TO_PARAM = "plexon_return_to";
 export const PLEXON_RETURN_TO_STORAGE_KEY = "audion_plexon_return_to";
 
-function getConfiguredPlexonOrigin(): string | null {
-  const raw = process.env.NEXT_PUBLIC_PLEXON_REGISTER_URL?.trim();
-  if (!raw) return null;
+function originFromUrl(raw: string | undefined): string | null {
+  const trimmed = raw?.trim();
+  if (!trimmed) return null;
   try {
-    return new URL(raw).origin;
+    return new URL(trimmed).origin;
   } catch {
     return null;
   }
+}
+
+/** Public PLEXON app origin (register URL or auth URL). */
+export function getPlexonAppOrigin(): string | null {
+  return (
+    originFromUrl(process.env.NEXT_PUBLIC_PLEXON_REGISTER_URL) ??
+    originFromUrl(process.env.NEXT_PUBLIC_PLEXON_AUTH_URL)
+  );
+}
+
+function getConfiguredPlexonOrigin(): string | null {
+  return getPlexonAppOrigin();
+}
+
+/** PLEXON platform project dashboard — `/projects/{platformProjectId}`. */
+export function buildPlexonPlatformProjectDashboardUrl(platformProjectId: string): string | null {
+  const origin = getPlexonAppOrigin();
+  const id = platformProjectId.trim();
+  if (!origin || !id) return null;
+  return `${origin}/projects/${encodeURIComponent(id)}`;
 }
 
 export function normalizePlexonReturnTo(value: string | null | undefined): string | null {

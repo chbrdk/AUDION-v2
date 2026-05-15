@@ -18,6 +18,20 @@ describe("AUDION PLEXON return links", () => {
     expect(normalizePlexonReturnTo("https://plexon.example.com/products")).toBeNull();
   });
 
+  it("builds platform project dashboard URL from register URL origin", async () => {
+    vi.stubEnv("NEXT_PUBLIC_PLEXON_REGISTER_URL", "https://plexon.example.com/register");
+    const { buildPlexonPlatformProjectDashboardUrl } = await import("./plexon-links");
+    expect(buildPlexonPlatformProjectDashboardUrl("pp-abc")).toBe(
+      "https://plexon.example.com/projects/pp-abc"
+    );
+  });
+
+  it("builds platform project URL from NEXT_PUBLIC_PLEXON_AUTH_URL when register URL missing", async () => {
+    vi.stubEnv("NEXT_PUBLIC_PLEXON_AUTH_URL", "https://plexon.example.com/");
+    const { buildPlexonPlatformProjectDashboardUrl } = await import("./plexon-links");
+    expect(buildPlexonPlatformProjectDashboardUrl("pp-1")).toBe("https://plexon.example.com/projects/pp-1");
+  });
+
   it("extracts a federated return target from redirect query strings", async () => {
     vi.stubEnv("NEXT_PUBLIC_PLEXON_REGISTER_URL", "https://plexon.example.com/register");
     const { extractPlexonReturnToFromRedirect } = await import("./plexon-links");

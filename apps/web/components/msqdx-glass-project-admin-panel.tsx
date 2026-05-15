@@ -14,6 +14,7 @@ import { ADMIN_ROUTES } from "../lib/routes";
 import { mirrorFillStringPair } from "../lib/bilingual-mirror";
 import { isProjectAiContextEmpty } from "../lib/project-context";
 import { projectFederationChipKinds } from "../lib/project-federation-badges";
+import { ProjectFederationIds } from "./projects/project-federation-ids";
 import { aiAssistApi, type AiTemplateSummary } from "../app/api/_lib/ai-assist";
 import { API_ROUTES } from "../lib/api-routes";
 import { formatResearchTimelineDetail } from "../lib/format-research-timeline-detail";
@@ -1637,10 +1638,7 @@ export function MsqdxGlassProjectAdminPanel({
                                             DE: {detail.name_de}
                                         </MsqdxTypography>
                                     ) : null}
-                                    <MsqdxTypography variant="caption" sx={{ color: "text.secondary" }}>
-                                        {detail.id}
-                                    </MsqdxTypography>
-                                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, mt: 1 }}>
+                                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, mt: 0.5 }}>
                                         {projectFederationChipKinds(detail).map((kind) => (
                                             <MsqdxChip
                                                 key={kind}
@@ -1664,6 +1662,17 @@ export function MsqdxGlassProjectAdminPanel({
                                             />
                                         ))}
                                     </Box>
+                                    <ProjectFederationIds
+                                        project={detail}
+                                        mutedColor="text.secondary"
+                                        labels={{
+                                            audionProjectId: t("settingsProjects.federation.audionProjectId"),
+                                            platformProjectId: t("settingsProjects.federation.platformProjectId"),
+                                            platformCompanyId: t("settingsProjects.federation.platformCompanyId"),
+                                            checkionProjectId: t("settingsProjects.federation.checkionProjectId"),
+                                            openInPlexon: t("settingsProjects.federation.openInPlexon"),
+                                        }}
+                                    />
                                     {!String(detail.platform_project_id || "").trim() ? (
                                         <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 1.5, flexWrap: "wrap" }}>
                                             <MsqdxButton
