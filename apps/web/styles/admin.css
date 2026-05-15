@@ -86,9 +86,12 @@
 }
 
 /* Main content wrapper – dark app surface; frame uses chrome border token */
-[data-theme="dark"] .msqdx-glass-app-layout > div > div:last-of-type > div,
-[data-theme="monochrome"] .msqdx-glass-app-layout > div > div:last-of-type > div {
+[data-theme="dark"] .msqdx-glass-app-layout > div > div:last-of-type > div {
   background-color: #000000 !important;
+}
+
+[data-theme="monochrome"] .msqdx-glass-app-layout > div > div:last-of-type > div {
+  background-color: #ffffff !important;
 }
 
 [data-theme="monochrome"] .msqdx-glass-app-layout > div > div:last-of-type {
@@ -97,14 +100,14 @@
 }
 
 [data-theme="monochrome"] .msqdx-glass-app-layout > div > div:last-of-type > div {
-  border-color: #ffffff !important;
-  border-top-color: #ffffff !important;
-  border-right-color: #ffffff !important;
-  border-bottom-color: #ffffff !important;
+  border-color: #000000 !important;
+  border-top-color: #000000 !important;
+  border-right-color: #000000 !important;
+  border-bottom-color: #000000 !important;
 }
 
 [data-theme="monochrome"] .msqdx-glass-app-layout > div > div:last-of-type > div > div:last-of-type {
-  border-color: #ffffff !important;
+  border-color: #000000 !important;
 }
 
 [data-theme="monochrome"] .msqdx-glass-app-layout > div > div:last-of-type > div > div:last-of-type {

@@ -86,12 +86,12 @@ const darkTheme = createTheme({
 
 const monochromeTheme = createTheme({
   palette: {
-    mode: "dark",
-    primary: { main: "#ffffff", contrastText: "#000000" },
-    secondary: { main: "#ffffff" },
-    background: { default: "#000000", paper: "#0a0a0a" },
-    text: { primary: "#ffffff", secondary: "rgba(255, 255, 255, 0.72)" },
-    divider: "#ffffff",
+    mode: "light",
+    primary: { main: "#000000", contrastText: "#ffffff" },
+    secondary: { main: "#000000" },
+    background: { default: "#ffffff", paper: "#f5f5f5" },
+    text: { primary: "#000000", secondary: "rgba(0, 0, 0, 0.72)" },
+    divider: "#000000",
   },
   typography: {
     fontFamily: BRAND_FONT_FAMILY,
@@ -105,18 +105,18 @@ const monochromeTheme = createTheme({
     MuiButton: {
       styleOverrides: {
         root: {
-          border: "1px solid #ffffff",
+          border: "1px solid #000000",
           boxShadow: "none",
         },
         outlined: {
-          borderColor: "#ffffff",
-          color: "#ffffff",
+          borderColor: "#000000",
+          color: "#000000",
         },
         contained: {
-          backgroundColor: "#ffffff",
-          color: "#000000",
+          backgroundColor: "#000000",
+          color: "#ffffff",
           "&:hover": {
-            backgroundColor: "rgba(255, 255, 255, 0.9)",
+            backgroundColor: "rgba(0, 0, 0, 0.9)",
           },
         },
       },
@@ -124,16 +124,16 @@ const monochromeTheme = createTheme({
     MuiChip: {
       styleOverrides: {
         root: {
-          border: "1px solid rgba(255, 255, 255, 0.55)",
-          backgroundColor: "#0a0a0a",
-          color: "#ffffff",
+          border: "1px solid rgba(0, 0, 0, 0.55)",
+          backgroundColor: "#f5f5f5",
+          color: "#000000",
         },
       },
     },
     MuiOutlinedInput: {
       styleOverrides: {
         notchedOutline: {
-          borderColor: "rgba(255, 255, 255, 0.55)",
+          borderColor: "rgba(0, 0, 0, 0.55)",
         },
       },
     },

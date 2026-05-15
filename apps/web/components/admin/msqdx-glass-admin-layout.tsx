@@ -50,24 +50,29 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
   const { themeMode } = useThemeMode();
   const { t } = useI18n();
   const isMonochrome = themeMode === "monochrome";
-  const isDarkApp = themeMode === "dark" || isMonochrome;
+  const isDarkApp = themeMode === "dark";
   const chromeBackground = isMonochrome
-    ? "#ffffff"
+    ? "#000000"
     : THEME_ACCENT_WITH_FALLBACK.backgroundColor;
-  /** Border on light surfaces (white sidebar in monochrome). */
+  /** Border on dark chrome (black sidebar in monochrome). */
   const chromeBorderOnLight = isMonochrome
-    ? "rgba(0, 0, 0, 0.12)"
-    : THEME_ACCENT_WITH_FALLBACK.borderColor;
-  /** Border on dark surfaces (black app frame in monochrome). */
-  const chromeBorderOnDark = isMonochrome
     ? "#ffffff"
+    : THEME_ACCENT_WITH_FALLBACK.borderColor;
+  /** Border on light app frame (white content in monochrome). */
+  const chromeBorderOnDark = isMonochrome
+    ? "#000000"
     : THEME_ACCENT_WITH_FALLBACK.borderColor;
   const chromeIconColor = isMonochrome
-    ? "#000000"
+    ? "#ffffff"
     : theme.palette.mode === "dark"
       ? "#fff"
       : "#000";
-  const appInnerBackgroundColor = isDarkApp ? "#000000" : undefined;
+  const appInnerBackgroundColor = isMonochrome
+    ? "#ffffff"
+    : isDarkApp
+      ? "#000000"
+      : undefined;
+  const appInnerBackground = isMonochrome || isDarkApp ? "default" : "offwhite";
   const { activeProjectId } = useProject();
   // Get headerContent from context - safe for SSR with default value
   const { headerContent } = useAdminHeader();
@@ -215,7 +220,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
         }
         logo
         appName="Audion"
-        innerBackground={isDarkApp ? "default" : "offwhite"}
+        innerBackground={appInnerBackground}
         innerBackgroundColor={appInnerBackgroundColor}
         borderWidth="thick"
         sx={{
@@ -231,7 +236,9 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
             borderBottomColor: `${chromeBorderOnDark} !important`,
             top: "auto",
             left: "auto",
-            ...(isDarkApp ? { backgroundColor: "#000000 !important" } : {}),
+            ...(appInnerBackgroundColor
+              ? { backgroundColor: `${appInnerBackgroundColor} !important` }
+              : {}),
           },
           /* Content column (profile, settings, etc.) – no absolute offsets */
           "& > div:last-of-type > div > div:last-of-type": {
@@ -335,10 +342,10 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
                       justifyContent: "center",
                       lineHeight: 1,
                       // Use the same brand accent token as the rest of the admin chrome.
-                      color: isMonochrome ? "#ffffff" : "var(--color-theme-accent)",
-                      borderColor: isMonochrome ? "#ffffff" : "var(--color-theme-accent)",
+                      color: isMonochrome ? "#000000" : "var(--color-theme-accent)",
+                      borderColor: isMonochrome ? "rgba(0, 0, 0, 0.35)" : "var(--color-theme-accent)",
                       "&:hover": {
-                        borderColor: isMonochrome ? "#ffffff" : "var(--color-theme-accent)",
+                        borderColor: isMonochrome ? "#000000" : "var(--color-theme-accent)",
                         backgroundColor: "transparent",
                       },
                     }}

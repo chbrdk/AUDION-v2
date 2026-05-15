@@ -49,19 +49,19 @@ const COLOR_TINT_MAP: Record<string, string> = {
 export function applyMonochromeBrandVars(): void {
   if (typeof document === "undefined") return;
 
-  /* Sidebar/chrome: white surface, black icons; page/content stays black */
-  document.documentElement.style.setProperty("--audion-light-border-color", "#ffffff");
-  document.documentElement.style.setProperty("--audion-chrome-surface", "#ffffff");
-  document.documentElement.style.setProperty("--audion-light-html-background-color", "#ffffff");
-  document.documentElement.style.setProperty("--audion-sidebar-text-color", "#000000");
-  document.documentElement.style.setProperty("--color-theme-accent-contrast", "#000000");
-  document.documentElement.style.setProperty("--audion-sidebar-hover-bg", "rgba(0, 0, 0, 0.08)");
-  document.documentElement.style.setProperty("--audion-sidebar-active-bg", "rgba(0, 0, 0, 0.14)");
-  document.documentElement.style.setProperty("--color-theme-accent", "#ffffff");
-  document.documentElement.style.setProperty("--color-theme-accent-tint", "rgba(255, 255, 255, 0.06)");
-  document.documentElement.style.setProperty("--auth-logo-color", "#ffffff");
-  document.documentElement.style.setProperty("--auth-button-text-color", "#000000");
-  document.documentElement.style.setProperty("--color-input-label", "#ffffff");
+  /* Inverted monochrome: black canvas/sidebar, white content, black borders */
+  document.documentElement.style.setProperty("--audion-light-border-color", "#000000");
+  document.documentElement.style.setProperty("--audion-chrome-surface", "#000000");
+  document.documentElement.style.setProperty("--audion-light-html-background-color", "#000000");
+  document.documentElement.style.setProperty("--audion-sidebar-text-color", "#ffffff");
+  document.documentElement.style.setProperty("--color-theme-accent-contrast", "#ffffff");
+  document.documentElement.style.setProperty("--audion-sidebar-hover-bg", "rgba(255, 255, 255, 0.08)");
+  document.documentElement.style.setProperty("--audion-sidebar-active-bg", "rgba(255, 255, 255, 0.14)");
+  document.documentElement.style.setProperty("--color-theme-accent", "#000000");
+  document.documentElement.style.setProperty("--color-theme-accent-tint", "rgba(0, 0, 0, 0.06)");
+  document.documentElement.style.setProperty("--auth-logo-color", "#000000");
+  document.documentElement.style.setProperty("--auth-button-text-color", "#ffffff");
+  document.documentElement.style.setProperty("--color-input-label", "#000000");
 }
 
 export function applyBrandColorVars(varName: string, themeMode: ThemeMode): void {
