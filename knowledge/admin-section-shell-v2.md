@@ -68,10 +68,10 @@ Migration: Sektionen schrittweise aus `msqdx-glass-persona-admin-panel.tsx` extr
 
 | Breakpoint | Layout |
 |------------|--------|
-| **≥ 1025px** | Entity-Header **über** Subnav + Workspace (volle Breite). Subnav links, Section-Content rechts. |
-| **≤ 1024px** | 1. horizontale Subnav-Chips, 2. **Content-Spalte** mit Entity-Header (Zurück, Name, …) **darin**, dann Section-Titel + Inhalt. |
+| **≥ 1025px** | Zwei Spalten: **Subnav links** (sticky), **rechts** Entity-Header + `workspace__main` untereinander in derselben Spalte. |
+| **≤ 1024px** | 1. horizontale Subnav-Chips, 2. Content-Spalte mit Entity-Header, Section-Titel, Inhalt. |
 
-Entity-Header sitzt im DOM immer in `.msqdx-glass-section-workspace` (nicht mehr als separater Block über dem Grid). Desktop: `display: contents` + CSS-Grid platziert ihn visuell in Zeile 1.
+Entity-Header sitzt immer in `.msqdx-glass-section-workspace` direkt über `.msqdx-glass-section-workspace__main` — nie über die volle Admin-Breite.
 
 ## Mobile
 

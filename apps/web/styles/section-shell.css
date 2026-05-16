@@ -25,32 +25,21 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
-/* Entity + subnav: entity spans full width on desktop; workspace children join the grid */
+/* Desktop: subnav left; entity + section content stacked in the right column */
 @media (min-width: 1025px) {
-  .msqdx-glass-section-shell--has-entity
-    .msqdx-glass-section-shell__body:has(.msqdx-glass-section-nav) {
-    grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr);
+  .msqdx-glass-section-shell__body:has(.msqdx-glass-section-nav) {
+    align-items: start;
   }
 
-  .msqdx-glass-section-shell--has-entity .msqdx-glass-section-workspace--with-subnav {
-    display: contents;
-  }
-
-  .msqdx-glass-section-shell--has-entity .msqdx-glass-section-shell__entity {
-    grid-column: 1 / -1;
-    grid-row: 1;
-  }
-
-  .msqdx-glass-section-shell--has-entity .msqdx-glass-section-nav {
-    grid-column: 1;
-    grid-row: 2;
+  .msqdx-glass-section-nav {
+    position: sticky;
+    top: 0;
     align-self: start;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
   }
 
-  .msqdx-glass-section-shell--has-entity .msqdx-glass-section-workspace__main {
-    grid-column: 2;
-    grid-row: 2;
+  .msqdx-glass-section-workspace--with-subnav {
     min-width: 0;
   }
 }
