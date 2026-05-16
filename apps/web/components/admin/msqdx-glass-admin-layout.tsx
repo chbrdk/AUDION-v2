@@ -29,6 +29,7 @@ const ADMIN_NAV_ITEMS = [
   { labelKey: "nav.chatHistory", path: "/admin/chat/history", icon: "history" },
   { labelKey: "nav.projects", path: "/admin/projects", icon: "folder" },
   { labelKey: "nav.personas", path: "/admin/personas", icon: "person" },
+  { labelKey: "nav.personasV2", path: "/admin/personas-v2", icon: "view_sidebar" },
   { labelKey: "nav.targetGroups", path: "/admin/target-groups", icon: "groups" },
   { labelKey: "nav.journeys", path: "/admin/journeys", icon: "route" },
   { labelKey: "nav.uxJourneyAgent", path: "/admin/ux-journey-agent", icon: "travel_explore" },
@@ -96,7 +97,9 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
 
   const personaIdFromPath = useMemo(() => {
     if (!pathname) return null;
-    const m = pathname.match(/^\/admin\/personas\/([^/]+)$/);
+    const m =
+      pathname.match(/^\/admin\/personas\/([^/]+)$/) ??
+      pathname.match(/^\/admin\/personas-v2\/([^/]+)(?:\/|$)/);
     return m?.[1] ?? null;
   }, [pathname]);
 

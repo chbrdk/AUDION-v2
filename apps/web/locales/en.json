@@ -62,6 +62,7 @@
     "chatHistory": "Chat History",
     "projects": "Projects",
     "personas": "Personas",
+    "personasV2": "Personas (v2 preview)",
     "targetGroups": "Target Groups",
     "journeys": "Journeys",
     "uxJourneyAgent": "UX Journey Agent",
@@ -517,6 +518,66 @@
       "segmentRequired": "Segment is required.",
       "personaDeleted": "Persona deleted",
       "deleteFailed": "Delete failed"
+    }
+  },
+  "personaV2": {
+    "scopeLabel": "Personas",
+    "overviewTitle": "Persona library",
+    "overviewSubtitle": "Spacious layout with section navigation — preview",
+    "libraryTitle": "All personas",
+    "libraryDescription": "Larger cards and calmer spacing. Open a persona to edit one section at a time.",
+    "previewBanner": "Preview: classic personas remain at /admin/personas. This v2 route tests the new section shell.",
+    "hubBanner": "Jump to a focused workspace for this persona. Each area opens in its own view with more room to work.",
+    "sectionsNavLabel": "Persona areas",
+    "backToList": "All personas",
+    "openClassic": "Classic editor",
+    "openClassicList": "Classic list",
+    "openClassicSection": "Open in classic editor",
+    "migrationCardTitle": "Migration",
+    "migrationCardBody": "This section is not migrated yet. The classic page still has full editing for the same data.",
+    "sectionPlaceholder": "Placeholder for {section} ({name}). Implementation follows in a later step.",
+    "gridHint": "Tip: fewer columns and more padding than the classic grid.",
+    "sections": {
+      "overview": {
+        "label": "Overview",
+        "description": "Summary and quick links to all areas"
+      },
+      "basics": {
+        "label": "Basics",
+        "description": "Name, avatar, headline, chat prompt"
+      },
+      "bio": {
+        "label": "Bio & demographics",
+        "description": "Biography and demographic fields"
+      },
+      "personality": {
+        "label": "Personality",
+        "description": "Traits, interests, values"
+      },
+      "communication": {
+        "label": "Communication",
+        "description": "Tone, vocabulary, skepticism"
+      },
+      "painGoals": {
+        "label": "Pain & goals",
+        "description": "Pain points and goals"
+      },
+      "knowledge": {
+        "label": "Knowledge",
+        "description": "Documents and sources"
+      },
+      "uxHistory": {
+        "label": "UX history",
+        "description": "UX runs and journey conversion"
+      },
+      "moodboard": {
+        "label": "Moodboard",
+        "description": "Visual tiles and generation"
+      },
+      "advanced": {
+        "label": "Advanced",
+        "description": "Expert fields and JSON"
+      }
     }
   },
   "personaAdmin": {

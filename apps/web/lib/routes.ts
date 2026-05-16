@@ -14,6 +14,13 @@ export const ADMIN_ROUTES = {
   personas: "/admin/personas",
   personaDetail: (personaId: string) => `/admin/personas/${encodeURIComponent(personaId)}`,
 
+  /** Experimental layout: section sub-nav + one section per route. */
+  personasV2: "/admin/personas-v2",
+  personaV2Detail: (personaId: string) =>
+    `/admin/personas-v2/${encodeURIComponent(personaId)}`,
+  personaV2Section: (personaId: string, sectionId: string) =>
+    `/admin/personas-v2/${encodeURIComponent(personaId)}/${encodeURIComponent(sectionId)}`,
+
   targetGroups: "/admin/target-groups",
   targetGroupDetail: (targetGroupId: string) =>
     `/admin/target-groups/${encodeURIComponent(targetGroupId)}`,

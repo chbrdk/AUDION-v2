@@ -29,6 +29,8 @@ import { fetchTargetGroupList, generateTargetGroupPersona } from "../../app/api/
 
 export type MsqdxGlassPersonasOverviewProps = {
   initialList: PersonaListResponse;
+  /** Override detail URL when opening a persona (e.g. personas-v2). */
+  getPersonaDetailHref?: (personaId: string) => string;
 };
 
 type CreateFormState = {
@@ -54,7 +56,7 @@ function extractPersonaId(payload: unknown): string | null {
   );
 }
 
-export function MsqdxGlassPersonasOverview({ initialList }: MsqdxGlassPersonasOverviewProps) {
+export function MsqdxGlassPersonasOverview({ initialList, getPersonaDetailHref }: MsqdxGlassPersonasOverviewProps) {
   const { t } = useI18n();
   const router = useRouter();
   const { activeProjectId, activeProject, projects } = useProject();
@@ -79,6 +81,9 @@ export function MsqdxGlassPersonasOverview({ initialList }: MsqdxGlassPersonasOv
   const [aiError, setAiError] = useState<string | null>(null);
 
   const items = useMemo(() => list.items ?? [], [list.items]);
+
+  const personaHref = (personaId: string) =>
+    getPersonaDetailHref?.(personaId) ?? ADMIN_ROUTES.personaDetail(personaId);
 
   const projectNameById = useMemo(() => {
     const map = new Map<string, string>();
@@ -190,7 +195,7 @@ export function MsqdxGlassPersonasOverview({ initialList }: MsqdxGlassPersonasOv
       setAiUserBrief("");
       await refresh(activeProjectId);
       if (newId) {
-        router.push(ADMIN_ROUTES.personaDetail(newId));
+        router.push(personaHref(newId));
       }
     } catch (e) {
       setAiError(e instanceof Error ? e.message : t("personaAdmin.generateWithAiFailed"));
@@ -258,7 +263,7 @@ export function MsqdxGlassPersonasOverview({ initialList }: MsqdxGlassPersonasOv
       setShowCreate(false);
       await refresh(activeProjectId);
       if (newId) {
-        router.push(ADMIN_ROUTES.personaDetail(newId));
+        router.push(personaHref(newId));
       }
     } catch (e) {
       setCreateError(e instanceof Error ? e.message : t("personaAdmin.toasts.creationFailed"));
@@ -425,7 +430,7 @@ export function MsqdxGlassPersonasOverview({ initialList }: MsqdxGlassPersonasOv
             borderRadius="button"
             clickable
             hoverable
-            onClick={() => router.push(ADMIN_ROUTES.personaDetail(persona.id))}
+            onClick={() => router.push(personaHref(persona.id))}
             media={(
               <Box
                 sx={{

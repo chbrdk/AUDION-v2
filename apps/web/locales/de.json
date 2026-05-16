@@ -62,6 +62,7 @@
     "chatHistory": "Chatverlauf",
     "projects": "Projekte",
     "personas": "Personas",
+    "personasV2": "Personas (v2 Vorschau)",
     "targetGroups": "Zielgruppen",
     "journeys": "Journeys",
     "uxJourneyAgent": "UX Journey Agent",
@@ -517,6 +518,66 @@
       "segmentRequired": "Segment ist Pflicht.",
       "personaDeleted": "Persona gelöscht",
       "deleteFailed": "Löschen fehlgeschlagen"
+    }
+  },
+  "personaV2": {
+    "scopeLabel": "Personas",
+    "overviewTitle": "Persona-Bibliothek",
+    "overviewSubtitle": "Luftiges Layout mit Bereichsnavigation — Vorschau",
+    "libraryTitle": "Alle Personas",
+    "libraryDescription": "Größere Karten, mehr Abstand. Persona öffnen und einen Bereich nach dem anderen bearbeiten.",
+    "previewBanner": "Vorschau: Klassische Personas bleiben unter /admin/personas. Diese v2-Route testet die neue Section Shell.",
+    "hubBanner": "Springe zu einem fokussierten Arbeitsbereich. Jeder Bereich hat eine eigene Ansicht mit mehr Platz.",
+    "sectionsNavLabel": "Persona-Bereiche",
+    "backToList": "Alle Personas",
+    "openClassic": "Klassischer Editor",
+    "openClassicList": "Klassische Liste",
+    "openClassicSection": "Im klassischen Editor öffnen",
+    "migrationCardTitle": "Migration",
+    "migrationCardBody": "Dieser Bereich ist hier noch nicht umgesetzt. Die klassische Seite enthält weiterhin die vollständige Bearbeitung.",
+    "sectionPlaceholder": "Platzhalter für {section} ({name}). Umsetzung folgt in einem späteren Schritt.",
+    "gridHint": "Tipp: weniger Spalten und mehr Padding als im klassischen Grid.",
+    "sections": {
+      "overview": {
+        "label": "Überblick",
+        "description": "Kurzinfo und Links zu allen Bereichen"
+      },
+      "basics": {
+        "label": "Basics",
+        "description": "Name, Avatar, Headline, Chat-Prompt"
+      },
+      "bio": {
+        "label": "Bio & Demografie",
+        "description": "Biografie und demografische Felder"
+      },
+      "personality": {
+        "label": "Persönlichkeit",
+        "description": "Traits, Interessen, Werte"
+      },
+      "communication": {
+        "label": "Kommunikation",
+        "description": "Ton, Vokabular, Skepsis"
+      },
+      "painGoals": {
+        "label": "Pain & Ziele",
+        "description": "Pain Points und Ziele"
+      },
+      "knowledge": {
+        "label": "Wissen",
+        "description": "Dokumente und Quellen"
+      },
+      "uxHistory": {
+        "label": "UX-Verlauf",
+        "description": "UX-Runs und Journey-Konvertierung"
+      },
+      "moodboard": {
+        "label": "Moodboard",
+        "description": "Visuelle Kacheln und Generierung"
+      },
+      "advanced": {
+        "label": "Erweitert",
+        "description": "Expertenfelder und JSON"
+      }
     }
   },
   "personaAdmin": {
