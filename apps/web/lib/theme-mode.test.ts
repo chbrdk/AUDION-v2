@@ -82,14 +82,19 @@ describe("monochrome theme assets", () => {
     expect(layout).toContain('themeMode === "monochrome-light"');
     expect(layout).toContain('? "#000000"');
     expect(layout).toContain('? "#ffffff"');
+    expect(layout).toContain("logo={isMonochrome ? { size: \"small\", color: chromeIconColor } : true}");
+    expect(layout).toContain("brandBackgroundColor={chromeBackground}");
   });
 
-  it("splits app frame borders per monochrome variant in admin.css", () => {
+  it("removes app frame separator borders in admin layout CSS", () => {
     const adminCss = readFileSync(join(webRoot, "styles/admin.css"), "utf8");
-    expect(adminCss).toContain('[data-theme="monochrome-dark"] .msqdx-glass-app-layout');
-    expect(adminCss).toContain("border-color: #ffffff !important");
-    expect(adminCss).toContain('[data-theme="monochrome-light"] .msqdx-glass-app-layout');
-    expect(adminCss).toContain("border-color: #000000 !important");
+    expect(adminCss).toContain("border: none !important");
+    const layout = readFileSync(
+      join(webRoot, "components/admin/msqdx-glass-admin-layout.tsx"),
+      "utf8"
+    );
+    expect(layout).toContain('borderWidth="none"');
+    expect(layout).toContain('border: "none !important"');
   });
 
   it("registers separate MUI themes for both monochrome variants", () => {

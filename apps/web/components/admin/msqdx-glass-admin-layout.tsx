@@ -58,18 +58,6 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
     : isMonochromeLight
       ? "#000000"
       : THEME_ACCENT_WITH_FALLBACK.backgroundColor;
-  /** Border on light chrome (white sidebar in monochrome-dark). */
-  const chromeBorderOnLight = isMonochromeDark
-    ? "rgba(0, 0, 0, 0.12)"
-    : isMonochromeLight
-      ? "#ffffff"
-      : THEME_ACCENT_WITH_FALLBACK.borderColor;
-  /** Border on dark app frame (black content in monochrome-dark). */
-  const chromeBorderOnDark = isMonochromeDark
-    ? "#ffffff"
-    : isMonochromeLight
-      ? "#000000"
-      : THEME_ACCENT_WITH_FALLBACK.borderColor;
   const chromeIconColor = isMonochromeDark
     ? "#000000"
     : isMonochromeLight
@@ -224,17 +212,16 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
             linkComponent={Link as any}
             sx={{
               backgroundColor: chromeBackground,
-              borderRightColor: chromeBorderOnLight,
-              borderRightWidth: isMonochrome ? 1 : undefined,
-              borderRightStyle: isMonochrome ? "solid" : undefined,
+              borderRight: "none",
             }}
           />
         }
-        logo
+        logo={isMonochrome ? { size: "small", color: chromeIconColor } : true}
         appName="Audion"
+        brandBackgroundColor={chromeBackground}
         innerBackground={appInnerBackground}
         innerBackgroundColor={appInnerBackgroundColor}
-        borderWidth="thick"
+        borderWidth="none"
         sx={{
           "& > div:last-of-type": {
             backgroundColor: `${chromeBackground} !important`,
@@ -242,10 +229,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
             left: "auto",
           },
           "& > div:last-of-type > div": {
-            borderColor: `${chromeBorderOnDark} !important`,
-            borderTopColor: `${chromeBorderOnDark} !important`,
-            borderRightColor: `${chromeBorderOnDark} !important`,
-            borderBottomColor: `${chromeBorderOnDark} !important`,
+            border: "none !important",
             top: "auto",
             left: "auto",
             ...(appInnerBackgroundColor
@@ -260,21 +244,29 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
             flex: 1,
             minHeight: 0,
           },
-          /* Corner/Logo – absolut positioniert, hoher z-index (AUDION-Text über allem); Kontrast-Text bei hellen Farben. */
+          /* Corner/Logo – absolut positioniert; Logo-SVG nutzt festes fill, daher color hier + logo-Prop. */
           "& > div:last-of-type > div > div:first-of-type": {
             position: "absolute !important",
             top: 0,
             left: 0,
             zIndex: 100000,
             backgroundColor: "transparent !important",
-            color: "var(--color-theme-accent-contrast, #ffffff) !important",
+            color: isMonochrome ? `${chromeIconColor} !important` : "var(--color-theme-accent-contrast, #ffffff) !important",
           },
           "& > div:last-of-type > div > div:first-of-type *": {
             color: "inherit !important",
           },
-          "& > div:last-of-type > div > div:first-of-type svg": {
-            fill: "currentColor",
-          },
+          ...(isMonochrome
+            ? {
+                "& > div:last-of-type > div > div:first-of-type svg path": {
+                  fill: `${chromeIconColor} !important`,
+                },
+              }
+            : {
+                "& > div:last-of-type > div > div:first-of-type svg": {
+                  fill: "currentColor",
+                },
+              }),
           "& > div:last-of-type > div > div:first-of-type > div": {
             backgroundColor: `${chromeBackground} !important`,
           },

@@ -223,7 +223,7 @@
 }
 
 [data-theme="monochrome-dark"], [data-theme="monochrome-light"] .msqdx-glass-app-layout > div > div:last-of-type > div {
-  border-color: var(--audion-chrome-border-on-dark) !important;
+  border: none !important;
 }
 
 [data-theme="monochrome-dark"], [data-theme="monochrome-light"] .msqdx-glass-admin-header-bar {
@@ -267,7 +267,7 @@
 [data-theme="monochrome-dark"], [data-theme="monochrome-light"] .msqdx-glass-admin-nav,
 [data-theme="monochrome-dark"], [data-theme="monochrome-light"] .msqdx-admin-nav {
   background: var(--audion-chrome-surface) !important;
-  border-right: 1px solid var(--audion-chrome-border-on-dark) !important;
+  border-right: none !important;
   color: var(--audion-mono-nav-fg) !important;
 }
 
@@ -295,8 +295,10 @@
   color: var(--audion-mono-layout-toolbar-fg) !important;
 }
 
-[data-theme="monochrome-dark"], [data-theme="monochrome-light"] .msqdx-glass-app-layout > div > div:last-of-type > div > div:first-of-type svg {
+[data-theme="monochrome-dark"], [data-theme="monochrome-light"] .msqdx-glass-app-layout > div > div:last-of-type > div > div:first-of-type svg,
+[data-theme="monochrome-dark"], [data-theme="monochrome-light"] .msqdx-glass-app-layout > div > div:last-of-type > div > div:first-of-type svg path {
   fill: var(--audion-mono-layout-toolbar-fg) !important;
+  color: var(--audion-mono-layout-toolbar-fg) !important;
 }
 
 [data-theme="monochrome-dark"], [data-theme="monochrome-light"] .msqdx-glass-admin-header-bar .material-symbols-outlined,
