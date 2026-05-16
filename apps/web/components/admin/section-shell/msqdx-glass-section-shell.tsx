@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { Box } from "@mui/material";
-import { MsqdxButton, MsqdxIcon } from "@msqdx/react";
+import { MsqdxGlassSectionEntityHeader } from "./msqdx-glass-section-entity-header";
 import { MsqdxGlassSectionNav } from "./msqdx-glass-section-nav";
 import type { MsqdxGlassSectionShellProps } from "./section-shell-types";
 
@@ -33,65 +32,61 @@ export function MsqdxGlassSectionShell({
       className={[
         "msqdx-glass-section-shell",
         hideSubNav ? "msqdx-glass-section-shell--no-subnav" : "",
+        showEntityHeader ? "msqdx-glass-section-shell--has-entity" : "",
         className ?? "",
       ]
         .filter(Boolean)
         .join(" ")}
     >
-      {showEntityHeader ? (
-        <header className="msqdx-glass-section-shell__entity">
-          <div className="msqdx-glass-section-shell__entity-main">
-            {backHref ? (
-              <Box sx={{ mb: 0.5 }}>
-                <Link href={backHref} style={{ textDecoration: "none" }}>
-                  <MsqdxButton
-                    variant="text"
-                    size="small"
-                    startIcon={<MsqdxIcon name="arrow_back" customSize={18} />}
-                    sx={{ px: 0, minWidth: 0, color: "var(--color-text-secondary)" }}
-                  >
-                    {backLabel}
-                  </MsqdxButton>
-                </Link>
-              </Box>
-            ) : null}
-            {scopeLabel ? <span className="msqdx-glass-section-shell__scope">{scopeLabel}</span> : null}
-            {entityTitle ? <h1 className="msqdx-glass-section-shell__title">{entityTitle}</h1> : null}
-            {entitySubtitle ? <p className="msqdx-glass-section-shell__subtitle">{entitySubtitle}</p> : null}
-          </div>
-          {headerActions ? <Box sx={{ flexShrink: 0 }}>{headerActions}</Box> : null}
-        </header>
-      ) : null}
-
       <div className="msqdx-glass-section-shell__body">
         {showSubNav ? (
           <MsqdxGlassSectionNav items={navItems} activeSectionId={activeSectionId} navLabel={navLabel} />
         ) : null}
 
-        <div className="msqdx-glass-section-workspace">
-          {showSectionHeader ? (
-            <div className="msqdx-glass-section-workspace__header">
-              <div>
-                {sectionTitle ? (
-                  <h2 className="msqdx-glass-section-workspace__section-title">{sectionTitle}</h2>
-                ) : null}
-                {sectionDescription ? (
-                  <p className="msqdx-glass-section-workspace__section-description">{sectionDescription}</p>
-                ) : null}
-              </div>
-              {workspaceActions ? <Box sx={{ flexShrink: 0 }}>{workspaceActions}</Box> : null}
-            </div>
+        <div
+          className={[
+            "msqdx-glass-section-workspace",
+            showSubNav ? "msqdx-glass-section-workspace--with-subnav" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
+          {showEntityHeader ? (
+            <MsqdxGlassSectionEntityHeader
+              scopeLabel={scopeLabel}
+              entityTitle={entityTitle}
+              entitySubtitle={entitySubtitle}
+              backHref={backHref}
+              backLabel={backLabel}
+              headerActions={headerActions}
+            />
           ) : null}
 
-          <div
-            className={[
-              "msqdx-glass-section-workspace__content",
-              wideContent ? "msqdx-glass-section-workspace__content--wide" : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-          >
-            {children}
+          <div className="msqdx-glass-section-workspace__main">
+            {showSectionHeader ? (
+              <div className="msqdx-glass-section-workspace__header">
+                <div>
+                  {sectionTitle ? (
+                    <h2 className="msqdx-glass-section-workspace__section-title">{sectionTitle}</h2>
+                  ) : null}
+                  {sectionDescription ? (
+                    <p className="msqdx-glass-section-workspace__section-description">{sectionDescription}</p>
+                  ) : null}
+                </div>
+                {workspaceActions ? <Box sx={{ flexShrink: 0 }}>{workspaceActions}</Box> : null}
+              </div>
+            ) : null}
+
+            <div
+              className={[
+                "msqdx-glass-section-workspace__content",
+                wideContent ? "msqdx-glass-section-workspace__content--wide" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              {children}
+            </div>
           </div>
         </div>
       </div>

@@ -64,9 +64,19 @@ Migration: Sektionen schrittweise aus `msqdx-glass-persona-admin-panel.tsx` extr
 | Journeys | `/admin/journeys-v2` (geplant) | analog |
 | Projects | optional Subnav: Prompts, Settings, … | |
 
+## Responsive
+
+| Breakpoint | Layout |
+|------------|--------|
+| **≥ 1025px** | Entity-Header **über** Subnav + Workspace (volle Breite). Subnav links, Section-Content rechts. |
+| **≤ 1024px** | 1. horizontale Subnav-Chips, 2. **Content-Spalte** mit Entity-Header (Zurück, Name, …) **darin**, dann Section-Titel + Inhalt. |
+
+Entity-Header sitzt im DOM immer in `.msqdx-glass-section-workspace` (nicht mehr als separater Block über dem Grid). Desktop: `display: contents` + CSS-Grid platziert ihn visuell in Zeile 1.
+
 ## Mobile
 
-- Subnav: horizontale scrollbare Chips unter dem Entity-Header.
+- Subnav: horizontale scrollbare Chips **zuerst** (ohne Beschreibungstext).
+- Entity-Header: Teil der Content-Spalte, nicht mehr über der gesamten Admin-Fläche.
 - Section-Panel-Toggle optional über bestehenden `AdminPanelProvider`.
 
 ## Referenzen
