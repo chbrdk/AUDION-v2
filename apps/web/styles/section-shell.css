@@ -18,7 +18,7 @@
 
 /* Desktop: sub-nav left, workspace right */
 .msqdx-glass-section-shell__body:has(.msqdx-glass-section-nav) {
-  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  grid-template-columns: minmax(200px, 224px) minmax(0, 1fr);
 }
 
 .msqdx-glass-section-shell--no-subnav .msqdx-glass-section-shell__body {
@@ -35,8 +35,54 @@
     position: sticky;
     top: 0;
     align-self: start;
-    max-height: calc(100vh - 120px);
+    max-height: calc(100dvh - 112px);
     overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    padding-bottom: var(--msqdx-spacing-xs);
+  }
+
+  /* Compact rail: fits ~10 sections without internal scroll on typical viewports */
+  .msqdx-glass-section-nav--compact {
+    gap: 3px;
+  }
+
+  .msqdx-glass-section-nav--compact .msqdx-glass-section-nav__label {
+    font-size: 0.625rem;
+    letter-spacing: 0.1em;
+    padding: 0 2px 4px;
+    margin: 0;
+  }
+
+  .msqdx-glass-section-nav--compact .msqdx-glass-section-nav__card {
+    align-items: center;
+    gap: 8px;
+    min-height: 34px;
+    padding: 5px 8px;
+    border-radius: 6px;
+  }
+
+  .msqdx-glass-section-nav--compact .msqdx-glass-section-nav__card--active {
+    padding: 4px 7px;
+    box-shadow: inset 0 0 0 1px var(--color-theme-accent-tint, rgba(0, 0, 0, 0.08));
+  }
+
+  .msqdx-glass-section-nav--compact .msqdx-glass-section-nav__icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+  }
+
+  .msqdx-glass-section-nav--compact .msqdx-glass-section-nav__title {
+    font-size: 0.8125rem;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .msqdx-glass-section-nav--compact .msqdx-glass-section-nav__description {
+    display: none;
   }
 
   .msqdx-glass-section-workspace--with-subnav {

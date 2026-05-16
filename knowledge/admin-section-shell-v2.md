@@ -68,7 +68,7 @@ Migration: Sektionen schrittweise aus `msqdx-glass-persona-admin-panel.tsx` extr
 
 | Breakpoint | Layout |
 |------------|--------|
-| **≥ 1025px** | Zwei Spalten: **Subnav links** (sticky), **rechts** Entity-Header + `workspace__main` untereinander in derselben Spalte. |
+| **≥ 1025px** | Zwei Spalten: **kompakte Subnav** (~224px, Icon + Label, Beschreibung per `title`-Tooltip, sticky + `max-height: 100dvh - 112px`), **rechts** Entity + `workspace__main`. |
 | **≤ 1024px** | 1. horizontale Subnav-Chips, 2. Content-Spalte mit Entity-Header, Section-Titel, Inhalt. |
 
 Entity-Header sitzt immer in `.msqdx-glass-section-workspace` direkt über `.msqdx-glass-section-workspace__main` — nie über die volle Admin-Breite.
