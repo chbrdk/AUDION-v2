@@ -202,20 +202,23 @@
   background: rgba(255, 255, 255, 0.3);
 }
 
-/* Mobile adjustments */
-@media (max-width: 959px) {
-  .msqdx-glass-admin-nav {
+/* Drawer mode adjustments (below lg – matches MsqdxAdminNav) */
+@media (max-width: 1199px) {
+  .msqdx-glass-admin-nav,
+  .msqdx-admin-nav {
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
   }
 
-  [data-theme="dark"] .msqdx-glass-admin-nav {
+  [data-theme="dark"] .msqdx-glass-admin-nav,
+  [data-theme="dark"] .msqdx-admin-nav {
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
   }
 }
 
-/* Desktop adjustments */
-@media (min-width: 960px) {
-  .msqdx-glass-admin-nav {
+/* Docked sidebar (lg+) – do not override fixed drawer transforms below lg */
+@media (min-width: 1200px) {
+  .msqdx-glass-admin-nav,
+  .msqdx-admin-nav {
     position: relative !important;
     transform: none !important;
     z-index: auto !important;

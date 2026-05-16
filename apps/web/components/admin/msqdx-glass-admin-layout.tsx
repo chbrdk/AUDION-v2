@@ -20,6 +20,9 @@ import { useProject } from "../projects/project-provider";
 // Re-export for consumers that import from this file
 export { useAdminHeader, useAdminPanel } from "./admin-layout-providers";
 
+/** Matches MsqdxAdminNav drawer mode (`theme.breakpoints.down("lg")`). */
+const NAV_DOCKED_BREAKPOINT = "lg";
+
 const ADMIN_NAV_ITEMS = [
   { labelKey: "nav.dashboard", path: "/admin", icon: "dashboard", exact: true },
   { labelKey: "nav.chat", path: "/admin/chat", icon: "forum" },
@@ -308,9 +311,9 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
         <Box sx={{ flex: 1, display: "flex", alignItems: "center" }}>
           <Box
             sx={{
-              display: { xs: "none", md: "flex" },
+              display: { xs: "none", [NAV_DOCKED_BREAKPOINT]: "flex" },
               alignItems: "center",
-              marginLeft: { md: "230px" },
+              marginLeft: { [NAV_DOCKED_BREAKPOINT]: "230px" },
             }}
           >
             <AdminTopControls />
@@ -320,11 +323,11 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
         <Box sx={{ flex: 1, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 1 }}>
           <PlexonReturnLink compact />
           {headerContent ? (
-            <Box sx={{ display: { xs: "none", md: "flex" }, alignItems: "center" }}>
+            <Box sx={{ display: { xs: "none", [NAV_DOCKED_BREAKPOINT]: "flex" }, alignItems: "center" }}>
               {headerContent}
             </Box>
           ) : getPageTitle() ? (
-            <Box sx={{ display: { xs: "none", md: "flex" }, alignItems: "center", gap: 1 }}>
+            <Box sx={{ display: { xs: "none", [NAV_DOCKED_BREAKPOINT]: "flex" }, alignItems: "center", gap: 1 }}>
               {directChatHref ? (
                 <Tooltip title={t("nav.chat")} placement="bottom">
                   <MsqdxButton
@@ -378,7 +381,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
                   fontWeight: 800,
                   letterSpacing: "-2px",
                   color: "text.primary",
-                  display: { xs: "none", md: "block" },
+                  display: { xs: "none", [NAV_DOCKED_BREAKPOINT]: "block" },
                 }}
               >
                 {getPageTitle()}
@@ -386,12 +389,12 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
             </Box>
           ) : null}
         </Box>
-        {/* Hamburger button - mobile only */}
+        {/* Hamburger – visible while nav is drawer mode (below lg, same as MsqdxAdminNav) */}
         <Box
           sx={{
-            position: { xs: "absolute", md: "static" },
-            left: { xs: "1rem", md: "auto" },
-            top: { xs: "7px", md: "auto" },
+            position: { xs: "absolute", [NAV_DOCKED_BREAKPOINT]: "static" },
+            left: { xs: "1rem", [NAV_DOCKED_BREAKPOINT]: "auto" },
+            top: { xs: "7px", [NAV_DOCKED_BREAKPOINT]: "auto" },
             zIndex: 1201
           }}
         >
@@ -399,10 +402,10 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
             onClick={handleDrawerToggle}
             sx={{
               color: (t) => (t.palette.mode === "dark" ? "#000" : "var(--color-text-primary)"),
-              padding: { xs: "16px", md: "8px" },
-              display: { xs: drawerOpen ? "none" : "flex", md: "none" },
-              width: { xs: 64, md: "auto" },
-              height: { xs: 64, md: "auto" }
+              padding: { xs: "16px", [NAV_DOCKED_BREAKPOINT]: "8px" },
+              display: { xs: drawerOpen ? "none" : "flex", [NAV_DOCKED_BREAKPOINT]: "none" },
+              width: { xs: 64, [NAV_DOCKED_BREAKPOINT]: "auto" },
+              height: { xs: 64, [NAV_DOCKED_BREAKPOINT]: "auto" }
             }}
             aria-label={t("common.toggleNavigation")}
           >
@@ -414,7 +417,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
         <Box
           onClick={togglePanel}
           sx={{
-            display: { xs: drawerOpen ? "none" : "flex", md: "none" },
+            display: { xs: drawerOpen ? "none" : "flex", [NAV_DOCKED_BREAKPOINT]: "none" },
             alignItems: "center",
             justifyContent: "center",
             borderRadius: "0 30px 30px 0",
@@ -422,8 +425,8 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
             minWidth: 90,
             minHeight: 40,
             position: "absolute",
-            left: { xs: 80, md: -9999 },
-            top: { xs: "20px", md: "66px" },
+            left: { xs: 80, [NAV_DOCKED_BREAKPOINT]: -9999 },
+            top: { xs: "20px", [NAV_DOCKED_BREAKPOINT]: "66px" },
             zIndex: 1202,
             "&:hover": { opacity: 0.9 }
           }}
@@ -482,7 +485,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
             inset: 0,
             backgroundColor: "rgba(0, 0, 0, 0.5)",
             zIndex: 1099,
-            display: { xs: "block", md: "none" }
+            display: { xs: "block", [NAV_DOCKED_BREAKPOINT]: "none" }
           }}
         />
       )}
@@ -496,7 +499,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
             inset: 0,
             backgroundColor: "rgba(0, 0, 0, 0.5)",
             zIndex: 1198,
-            display: { xs: "block", md: "none" }
+            display: { xs: "block", [NAV_DOCKED_BREAKPOINT]: "none" }
           }}
         />
       )}
