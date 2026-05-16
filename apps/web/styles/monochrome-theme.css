@@ -95,6 +95,7 @@
 [data-theme="monochrome-dark"], [data-theme="monochrome-light"] .msqdx-glass-detail,
 [data-theme="monochrome-dark"], [data-theme="monochrome-light"] .msqdx-glass-admin-page {
   background-color: var(--audion-mono-page-bg) !important;
+  color: var(--audion-mono-fg) !important;
 }
 
 /* Cards & surfaces */
@@ -144,7 +145,7 @@
 [data-theme="monochrome-dark"], [data-theme="monochrome-light"] .MuiButton-contained,
 [data-theme="monochrome-dark"], [data-theme="monochrome-light"] .MuiButton-containedPrimary {
   background-color: var(--audion-mono-fg) !important;
-  color: var(--audion-mono-nav-fg) !important;
+  color: var(--audion-mono-fg-inverse) !important;
   border: 1px solid var(--audion-mono-border) !important;
 }
 
@@ -259,8 +260,8 @@
 [data-theme="monochrome-dark"], [data-theme="monochrome-light"] .MuiButton-contained svg,
 [data-theme="monochrome-dark"], [data-theme="monochrome-light"] .MuiButton-containedPrimary .material-symbols-outlined,
 [data-theme="monochrome-dark"], [data-theme="monochrome-light"] .MuiButton-containedPrimary svg {
-  color: var(--audion-mono-nav-fg) !important;
-  fill: var(--audion-mono-nav-fg) !important;
+  color: var(--audion-mono-fg-inverse) !important;
+  fill: var(--audion-mono-fg-inverse) !important;
 }
 
 [data-theme="monochrome-dark"], [data-theme="monochrome-light"] .msqdx-glass-admin-nav,
@@ -343,6 +344,119 @@
 [data-theme="monochrome-dark"], [data-theme="monochrome-light"] .msqdx-dashboard-action-cards .MuiButton-contained,
 [data-theme="monochrome-dark"], [data-theme="monochrome-light"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiButton-contained {
   background-color: var(--audion-mono-fg) !important;
-  color: var(--audion-mono-nav-fg) !important;
+  color: var(--audion-mono-fg-inverse) !important;
   border-color: var(--audion-mono-border) !important;
+}
+
+/* ---- Content area: enforce surface + text per variant (beats globals / dashboard-cards) ---- */
+[data-theme="monochrome-dark"] .msqdx-glass-admin-content,
+[data-theme="monochrome-dark"] .msqdx-glass-admin-page,
+[data-theme="monochrome-dark"] .msqdx-glass-detail {
+  color: var(--audion-mono-fg) !important;
+}
+
+[data-theme="monochrome-dark"] .msqdx-glass-admin-content .MuiPaper-root,
+[data-theme="monochrome-dark"] .msqdx-glass-admin-content .MuiCard-root,
+[data-theme="monochrome-dark"] .msqdx-glass-admin-content .msqdx-card,
+[data-theme="monochrome-dark"] .msqdx-glass-admin-content .msqdx-dashboard-card,
+[data-theme="monochrome-dark"] .msqdx-glass-admin-content .msqdx-glass-settings-card,
+[data-theme="monochrome-dark"] .msqdx-glass-admin-content .msqdx-glass-dashboard-card,
+[data-theme="monochrome-dark"] .msqdx-glass-admin-content .msqdx-glass-stat-card,
+[data-theme="monochrome-dark"] .msqdx-glass-panel .MuiPaper-root,
+[data-theme="monochrome-dark"] .msqdx-glass-panel .MuiCard-root,
+[data-theme="monochrome-dark"] .msqdx-glass-panel .msqdx-card {
+  background-color: var(--audion-mono-surface) !important;
+  border-color: var(--audion-mono-border) !important;
+  color: var(--audion-mono-fg) !important;
+}
+
+[data-theme="monochrome-dark"] .msqdx-glass-admin-content .MuiTypography-root,
+[data-theme="monochrome-dark"] .msqdx-glass-admin-content p,
+[data-theme="monochrome-dark"] .msqdx-glass-admin-content span,
+[data-theme="monochrome-dark"] .msqdx-glass-admin-content label,
+[data-theme="monochrome-dark"] .msqdx-glass-admin-content h1,
+[data-theme="monochrome-dark"] .msqdx-glass-admin-content h2,
+[data-theme="monochrome-dark"] .msqdx-glass-admin-content h3,
+[data-theme="monochrome-dark"] .msqdx-glass-admin-content h4,
+[data-theme="monochrome-dark"] .msqdx-glass-panel .MuiTypography-root,
+[data-theme="monochrome-dark"] .msqdx-glass-panel p,
+[data-theme="monochrome-dark"] .msqdx-glass-panel span,
+[data-theme="monochrome-dark"] .msqdx-glass-panel label,
+[data-theme="monochrome-dark"] .msqdx-glass-muted {
+  color: var(--audion-mono-fg) !important;
+}
+
+[data-theme="monochrome-dark"] .msqdx-glass-admin-content .MuiTypography-colorTextSecondary,
+[data-theme="monochrome-dark"] .msqdx-glass-panel .MuiTypography-colorTextSecondary {
+  color: var(--audion-mono-text-muted) !important;
+}
+
+[data-theme="monochrome-light"] .msqdx-glass-admin-content,
+[data-theme="monochrome-light"] .msqdx-glass-admin-page,
+[data-theme="monochrome-light"] .msqdx-glass-detail {
+  color: var(--audion-mono-fg) !important;
+}
+
+[data-theme="monochrome-light"] .msqdx-glass-admin-content .MuiPaper-root,
+[data-theme="monochrome-light"] .msqdx-glass-admin-content .MuiCard-root,
+[data-theme="monochrome-light"] .msqdx-glass-admin-content .msqdx-card,
+[data-theme="monochrome-light"] .msqdx-glass-admin-content .msqdx-dashboard-card,
+[data-theme="monochrome-light"] .msqdx-glass-admin-content .msqdx-glass-settings-card,
+[data-theme="monochrome-light"] .msqdx-glass-admin-content .msqdx-glass-dashboard-card,
+[data-theme="monochrome-light"] .msqdx-glass-admin-content .msqdx-glass-stat-card,
+[data-theme="monochrome-light"] .msqdx-glass-panel .MuiPaper-root,
+[data-theme="monochrome-light"] .msqdx-glass-panel .MuiCard-root,
+[data-theme="monochrome-light"] .msqdx-glass-panel .msqdx-card {
+  background-color: var(--audion-mono-surface) !important;
+  border-color: var(--audion-mono-border) !important;
+  color: var(--audion-mono-fg) !important;
+}
+
+[data-theme="monochrome-light"] .msqdx-glass-admin-content .MuiTypography-root,
+[data-theme="monochrome-light"] .msqdx-glass-admin-content p,
+[data-theme="monochrome-light"] .msqdx-glass-admin-content span,
+[data-theme="monochrome-light"] .msqdx-glass-admin-content label,
+[data-theme="monochrome-light"] .msqdx-glass-admin-content h1,
+[data-theme="monochrome-light"] .msqdx-glass-admin-content h2,
+[data-theme="monochrome-light"] .msqdx-glass-admin-content h3,
+[data-theme="monochrome-light"] .msqdx-glass-admin-content h4,
+[data-theme="monochrome-light"] .msqdx-glass-panel .MuiTypography-root,
+[data-theme="monochrome-light"] .msqdx-glass-panel p,
+[data-theme="monochrome-light"] .msqdx-glass-panel span,
+[data-theme="monochrome-light"] .msqdx-glass-panel label,
+[data-theme="monochrome-light"] .msqdx-glass-muted {
+  color: var(--audion-mono-fg) !important;
+}
+
+[data-theme="monochrome-light"] .msqdx-glass-admin-content .MuiTypography-colorTextSecondary,
+[data-theme="monochrome-light"] .msqdx-glass-panel .MuiTypography-colorTextSecondary {
+  color: var(--audion-mono-text-muted) !important;
+}
+
+[data-theme="monochrome-dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiStack-root > .MuiBox-root,
+[data-theme="monochrome-dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiStack-root > div,
+[data-theme="monochrome-dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards p,
+[data-theme="monochrome-dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards span,
+[data-theme="monochrome-dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards label,
+[data-theme="monochrome-dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiTypography-root,
+[data-theme="monochrome-dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiFormLabel-root,
+[data-theme="monochrome-dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiInputLabel-root,
+[data-theme="monochrome-dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards .material-symbols-outlined,
+[data-theme="monochrome-dark"] .msqdx-glass-panel .msqdx-dashboard-action-cards svg {
+  color: var(--audion-mono-fg) !important;
+  fill: currentColor !important;
+}
+
+[data-theme="monochrome-light"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiStack-root > .MuiBox-root,
+[data-theme="monochrome-light"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiStack-root > div,
+[data-theme="monochrome-light"] .msqdx-glass-panel .msqdx-dashboard-action-cards p,
+[data-theme="monochrome-light"] .msqdx-glass-panel .msqdx-dashboard-action-cards span,
+[data-theme="monochrome-light"] .msqdx-glass-panel .msqdx-dashboard-action-cards label,
+[data-theme="monochrome-light"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiTypography-root,
+[data-theme="monochrome-light"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiFormLabel-root,
+[data-theme="monochrome-light"] .msqdx-glass-panel .msqdx-dashboard-action-cards .MuiInputLabel-root,
+[data-theme="monochrome-light"] .msqdx-glass-panel .msqdx-dashboard-action-cards .material-symbols-outlined,
+[data-theme="monochrome-light"] .msqdx-glass-panel .msqdx-dashboard-action-cards svg {
+  color: var(--audion-mono-fg) !important;
+  fill: currentColor !important;
 }
