@@ -100,9 +100,26 @@
   left: auto !important;
 }
 
-[data-theme="monochrome-dark"] .msqdx-glass-app-layout > div > div:last-of-type > div,
+[data-theme="monochrome-dark"] .msqdx-glass-app-layout > div > div:last-of-type > div {
+  border-color: #ffffff !important;
+  border-top-color: #ffffff !important;
+  border-right-color: #ffffff !important;
+  border-bottom-color: #ffffff !important;
+}
+
 [data-theme="monochrome-light"] .msqdx-glass-app-layout > div > div:last-of-type > div {
-  border: none !important;
+  border-color: #000000 !important;
+  border-top-color: #000000 !important;
+  border-right-color: #000000 !important;
+  border-bottom-color: #000000 !important;
+}
+
+[data-theme="monochrome-dark"] .msqdx-glass-app-layout > div > div:last-of-type > div > div:last-of-type {
+  border-color: #ffffff !important;
+}
+
+[data-theme="monochrome-light"] .msqdx-glass-app-layout > div > div:last-of-type > div > div:last-of-type {
+  border-color: #000000 !important;
 }
 
 [data-theme="monochrome-dark"], [data-theme="monochrome-light"] .msqdx-glass-app-layout > div > div:last-of-type > div > div:last-of-type {
@@ -114,7 +131,7 @@
 .msqdx-glass-admin-nav,
 .msqdx-admin-nav {
   background: var(--audion-light-border-color, #0f172a);
-  border-right: none;
+  border-right: 1px solid var(--audion-light-border-color, #0f172a);
   color: var(--audion-sidebar-text-color, #ffffff) !important;
 }
 .msqdx-glass-admin-nav *:not(button):not(a),
@@ -135,7 +152,7 @@
 [data-theme="dark"] .msqdx-glass-admin-nav,
 [data-theme="monochrome-dark"], [data-theme="monochrome-light"] .msqdx-glass-admin-nav {
   background: var(--audion-light-border-color, #0f172a);
-  border-right: none;
+  border-right-color: var(--audion-light-border-color, #0f172a);
 }
 
 .msqdx-glass-admin-nav-item {
@@ -202,8 +219,8 @@
   background: rgba(255, 255, 255, 0.3);
 }
 
-/* Drawer mode adjustments (below lg – matches MsqdxAdminNav) */
-@media (max-width: 1199px) {
+/* Drawer mode adjustments (below md – matches MsqdxAdminNav) */
+@media (max-width: 899px) {
   .msqdx-glass-admin-nav,
   .msqdx-admin-nav {
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
@@ -215,8 +232,8 @@
   }
 }
 
-/* Docked sidebar (lg+) – do not override fixed drawer transforms below lg */
-@media (min-width: 1200px) {
+/* Docked sidebar (md+) – do not override fixed drawer transforms below md */
+@media (min-width: 900px) {
   .msqdx-glass-admin-nav,
   .msqdx-admin-nav {
     position: relative !important;

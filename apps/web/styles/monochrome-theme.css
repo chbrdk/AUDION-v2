@@ -223,7 +223,7 @@
 }
 
 [data-theme="monochrome-dark"], [data-theme="monochrome-light"] .msqdx-glass-app-layout > div > div:last-of-type > div {
-  border: none !important;
+  border-color: var(--audion-chrome-border-on-dark) !important;
 }
 
 [data-theme="monochrome-dark"], [data-theme="monochrome-light"] .msqdx-glass-admin-header-bar {
@@ -267,7 +267,7 @@
 [data-theme="monochrome-dark"], [data-theme="monochrome-light"] .msqdx-glass-admin-nav,
 [data-theme="monochrome-dark"], [data-theme="monochrome-light"] .msqdx-admin-nav {
   background: var(--audion-chrome-surface) !important;
-  border-right: none !important;
+  border-right: 1px solid var(--audion-chrome-border-on-dark) !important;
   color: var(--audion-mono-nav-fg) !important;
 }
 

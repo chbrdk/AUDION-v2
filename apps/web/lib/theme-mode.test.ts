@@ -86,15 +86,13 @@ describe("monochrome theme assets", () => {
     expect(layout).toContain("brandBackgroundColor={chromeBackground}");
   });
 
-  it("removes app frame separator borders in admin layout CSS", () => {
-    const adminCss = readFileSync(join(webRoot, "styles/admin.css"), "utf8");
-    expect(adminCss).toContain("border: none !important");
+  it("keeps app frame chrome borders in admin layout", () => {
     const layout = readFileSync(
       join(webRoot, "components/admin/msqdx-glass-admin-layout.tsx"),
       "utf8"
     );
-    expect(layout).toContain('borderWidth="none"');
-    expect(layout).toContain('border: "none !important"');
+    expect(layout).toContain('borderWidth="thick"');
+    expect(layout).toContain("chromeBorderOnDark");
   });
 
   it("registers separate MUI themes for both monochrome variants", () => {

@@ -20,8 +20,8 @@ import { useProject } from "../projects/project-provider";
 // Re-export for consumers that import from this file
 export { useAdminHeader, useAdminPanel } from "./admin-layout-providers";
 
-/** Matches MsqdxAdminNav drawer mode (`theme.breakpoints.down("lg")`). */
-const NAV_DOCKED_BREAKPOINT = "lg";
+/** Matches MsqdxAdminNav drawer mode (`theme.breakpoints.down("md")`). */
+const NAV_DOCKED_BREAKPOINT = "md";
 
 const ADMIN_NAV_ITEMS = [
   { labelKey: "nav.dashboard", path: "/admin", icon: "dashboard", exact: true },
@@ -61,6 +61,18 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
     : isMonochromeLight
       ? "#000000"
       : THEME_ACCENT_WITH_FALLBACK.backgroundColor;
+  /** Border on light chrome (sidebar). */
+  const chromeBorderOnLight = isMonochromeDark
+    ? "rgba(0, 0, 0, 0.12)"
+    : isMonochromeLight
+      ? "#ffffff"
+      : THEME_ACCENT_WITH_FALLBACK.borderColor;
+  /** Border on app content frame. */
+  const chromeBorderOnDark = isMonochromeDark
+    ? "#ffffff"
+    : isMonochromeLight
+      ? "#000000"
+      : THEME_ACCENT_WITH_FALLBACK.borderColor;
   const chromeIconColor = isMonochromeDark
     ? "#000000"
     : isMonochromeLight
@@ -215,7 +227,9 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
             linkComponent={Link as any}
             sx={{
               backgroundColor: chromeBackground,
-              borderRight: "none",
+              borderRightColor: chromeBorderOnLight,
+              borderRightWidth: 1,
+              borderRightStyle: "solid",
             }}
           />
         }
@@ -224,7 +238,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
         brandBackgroundColor={chromeBackground}
         innerBackground={appInnerBackground}
         innerBackgroundColor={appInnerBackgroundColor}
-        borderWidth="none"
+        borderWidth="thick"
         sx={{
           "& > div:last-of-type": {
             backgroundColor: `${chromeBackground} !important`,
@@ -232,7 +246,10 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
             left: "auto",
           },
           "& > div:last-of-type > div": {
-            border: "none !important",
+            borderColor: `${chromeBorderOnDark} !important`,
+            borderTopColor: `${chromeBorderOnDark} !important`,
+            borderRightColor: `${chromeBorderOnDark} !important`,
+            borderBottomColor: `${chromeBorderOnDark} !important`,
             top: "auto",
             left: "auto",
             ...(appInnerBackgroundColor
@@ -484,7 +501,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
             position: "fixed",
             inset: 0,
             backgroundColor: "rgba(0, 0, 0, 0.5)",
-            zIndex: 1099,
+            zIndex: 100_001,
             display: { xs: "block", [NAV_DOCKED_BREAKPOINT]: "none" }
           }}
         />
