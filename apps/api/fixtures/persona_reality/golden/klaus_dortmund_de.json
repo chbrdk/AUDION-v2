@@ -1,0 +1,231 @@
+{
+  "meta": {
+    "scene_id": "se_golden_klaus_001",
+    "persona_id": "klaus_dortmund",
+    "generated_at": "2026-06-01T10:00:00Z",
+    "duration_sec": 300,
+    "language": "de",
+    "client_id": null,
+    "schema_version": "1.0"
+  },
+  "persona": {
+    "id": "klaus_dortmund",
+    "display_name": "Klaus Berger",
+    "age": 47,
+    "gender_expression": "male",
+    "location": "Dortmund, DE",
+    "occupation": "Hausverwalter (WEG-Verwaltung)",
+    "household": "verheiratet, 2 Kinder (12, 15)",
+    "income_band": "mid",
+    "axes": {
+      "sector": "b2b_smb_decision_maker",
+      "life_stage": "established_career",
+      "tech_affinity": "mainstream",
+      "decision_style": "rational",
+      "industry": "shk"
+    },
+    "pain_points": [
+      "Steigende Nebenkosten und Energieeffizienz in Bestandsgebäuden",
+      "Komplexe Förderlandschaft (BEG, KfW)",
+      "Widersprüchliche Informationen von Handwerk und Herstellern"
+    ],
+    "decision_drivers": [
+      "Total Cost of Ownership über 15 Jahre",
+      "Verlässlichkeit des Installateurs",
+      "Compliance und Dokumentation für Eigentümerversammlungen"
+    ]
+  },
+  "avatar": {
+    "rpm_avatar_id": "rpm_klaus_dortmund_v1",
+    "voice_id_elevenlabs": "el_klaus_de_v1",
+    "outfit_preset": "business_casual"
+  },
+  "environments": [
+    {
+      "act": 1,
+      "environment_id": "env_void_mirror_v1",
+      "lighting_preset": "void_minimal",
+      "time_of_day": "neutral",
+      "weather": "clear",
+      "skybox_id": null
+    },
+    {
+      "act": 2,
+      "environment_id": "env_kitchen_lived_in_dach_v1",
+      "lighting_preset": "morning_warm",
+      "time_of_day": "07:15",
+      "weather": "clear",
+      "skybox_id": null
+    },
+    {
+      "act": 3,
+      "environment_id": "env_home_office_lived_in_dach_v1",
+      "lighting_preset": "midday_neutral",
+      "time_of_day": "11:30",
+      "weather": "clear",
+      "skybox_id": null
+    },
+    {
+      "act": 4,
+      "environment_id": "env_home_living_lived_in_dach_v1",
+      "lighting_preset": "evening_warm",
+      "time_of_day": "19:45",
+      "weather": "clear",
+      "skybox_id": null
+    },
+    {
+      "act": 5,
+      "environment_id": "env_void_constellation_v1",
+      "lighting_preset": "void_minimal",
+      "time_of_day": "neutral",
+      "weather": "clear",
+      "skybox_id": null
+    }
+  ],
+  "narrative_beats": [
+    {
+      "act": 1,
+      "trigger_type": "scene_enter",
+      "trigger_target": null,
+      "delay_sec": 2,
+      "duration_sec": 12,
+      "voiceover_track_id": "nova_de_act1_01",
+      "ambient_audio_id": null,
+      "haptic_pattern": "none",
+      "ui_overlay": null
+    },
+    {
+      "act": 2,
+      "trigger_type": "pickup",
+      "trigger_target": "phone_main",
+      "delay_sec": 0,
+      "duration_sec": 8,
+      "voiceover_track_id": "nova_de_act2_02",
+      "ambient_audio_id": "kitchen_morning_loop",
+      "haptic_pattern": "soft_pulse",
+      "ui_overlay": {
+        "type": "news_feed",
+        "anchor_object": "phone_main",
+        "payload": { "feed_source": "echeon.feed_items" }
+      }
+    },
+    {
+      "act": 3,
+      "trigger_type": "look_at",
+      "trigger_target": "monitor_left",
+      "delay_sec": 1,
+      "duration_sec": 10,
+      "voiceover_track_id": "nova_de_act3_01",
+      "ambient_audio_id": null,
+      "haptic_pattern": "none",
+      "ui_overlay": {
+        "type": "dashboard",
+        "anchor_object": "monitor_left",
+        "payload": { "source": "checkion.metrics" }
+      }
+    },
+    {
+      "act": 4,
+      "trigger_type": "sit_down",
+      "trigger_target": "sofa_main",
+      "delay_sec": 0,
+      "duration_sec": 14,
+      "voiceover_track_id": "nova_de_act4_01",
+      "ambient_audio_id": "living_evening_loop",
+      "haptic_pattern": "soft_pulse",
+      "ui_overlay": null
+    },
+    {
+      "act": 5,
+      "trigger_type": "timer",
+      "trigger_target": null,
+      "delay_sec": 5,
+      "duration_sec": 20,
+      "voiceover_track_id": "nova_de_act5_01",
+      "ambient_audio_id": null,
+      "haptic_pattern": "none",
+      "ui_overlay": {
+        "type": "qr_code",
+        "anchor_object": "qr_panel",
+        "payload": {}
+      }
+    }
+  ],
+  "data_layers": {
+    "echeon": {
+      "feed_items": [
+        {
+          "headline": "BEG-Förderung 2026 verschärft: Was Verwalter jetzt wissen müssen",
+          "source": "Haufe",
+          "category": "regulation",
+          "relevance_score": 0.94,
+          "published_at": "2026-05-14T08:00:00Z",
+          "url": null
+        },
+        {
+          "headline": "Wärmepumpen in Bestands-MFH: Praxisbericht aus NRW",
+          "source": "SHK Profi",
+          "category": "technology",
+          "relevance_score": 0.87,
+          "published_at": "2026-05-13T14:30:00Z",
+          "url": null
+        }
+      ],
+      "cache_ttl_sec": 1800
+    },
+    "checkion": {
+      "metrics": [
+        {
+          "label": "GEO-Sichtbarkeit",
+          "value": 68,
+          "unit": "%",
+          "comparison_value": 54,
+          "trend": "up"
+        },
+        {
+          "label": "Google-Ranking",
+          "value": 72,
+          "unit": "%",
+          "comparison_value": null,
+          "trend": "flat"
+        },
+        {
+          "label": "Website-Score",
+          "value": 81,
+          "unit": "%",
+          "comparison_value": 76,
+          "trend": "up"
+        }
+      ]
+    },
+    "audion": {
+      "diegetic_metrics": [
+        {
+          "metric_id": "compliance_pressure",
+          "label": "Compliance-Filter",
+          "value": 73,
+          "unit": "%",
+          "anchor_object": "wall_calendar",
+          "animation_preset": "glow_warm"
+        },
+        {
+          "metric_id": "stress_peak_evening",
+          "label": "Entscheidungsdruck",
+          "value": 61,
+          "unit": "%",
+          "anchor_object": "kitchen_counter_docs",
+          "animation_preset": "pulse_red"
+        }
+      ]
+    },
+    "storyblok": {
+      "page_variant_a_texture": "https://cdn.msqdx.de/persona-reality/storyblok/klaus_personalized_v1.png",
+      "page_variant_b_texture": "https://cdn.msqdx.de/persona-reality/storyblok/klaus_generic_v1.png"
+    }
+  },
+  "brand_layer": null,
+  "report": {
+    "qr_url": "https://msqdx.de/pr/r/se_golden_klaus_001",
+    "report_id": "se_golden_klaus_001"
+  }
+}
