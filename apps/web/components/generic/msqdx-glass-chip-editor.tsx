@@ -6,9 +6,22 @@ import { MsqdxIcon, MsqdxButton, MsqdxTypography, MsqdxInput } from "@msqdx/reac
 import { MsqdxGlassEditButton, MsqdxGlassAiButtonIcon } from "./";
 import { useInlineEdit } from "../hooks/use-inline-edit";
 import { MsqdxGlassInlineEditControls } from "../msqdx-glass-inline-edit-controls";
-import { MsqdxGlassChip } from "./msqdx-glass-chip";
+import clsx from "clsx";
+import { MsqdxGlassChip, type MsqdxGlassChipVariant } from "./msqdx-glass-chip";
+import { MsqdxGlassHorizontalCardSlider } from "./msqdx-glass-horizontal-card-slider";
 import { useI18n } from "../i18n/i18n-provider";
 import { INPUT_ACCENT_SX } from "../../lib/theme-accent";
+
+function resolveChipVariant(chipClassName: string): MsqdxGlassChipVariant {
+  if (chipClassName.includes("--vocab")) return "vocab";
+  if (chipClassName.includes("--pain")) return "pain";
+  if (chipClassName.includes("--goal")) return "goal";
+  if (chipClassName.includes("--value")) return "value";
+  if (chipClassName.includes("--interest")) return "interest";
+  if (chipClassName.includes("--social")) return "social";
+  if (chipClassName.includes("--trait")) return "trait";
+  return "trait";
+}
 
 export type MsqdxGlassChipEditorProps = {
   /**
@@ -48,10 +61,14 @@ export type MsqdxGlassChipEditorProps = {
    */
   highlightedChips?: string[];
   /**
-   * `list` — full-width stacked rows (better for long pain/goal copy).
+   * `list` — full-width stacked rows; `slider` — horizontal carousel (journey-style).
    * @default 'inline'
    */
-  chipLayout?: "inline" | "list";
+  chipLayout?: "inline" | "list" | "slider";
+  /**
+   * Visible slides when `chipLayout` is `slider` (supports fractions, e.g. 3.5).
+   */
+  slidesVisible?: number;
   /**
    * More vertical rhythm between heading and chips.
    */
@@ -69,6 +86,7 @@ export const MsqdxGlassChipEditor = ({
   aiLoading = false,
   highlightedChips = [],
   chipLayout = "inline",
+  slidesVisible = 3.5,
   relaxedSpacing = false,
 }: MsqdxGlassChipEditorProps) => {
   const theme = useTheme();
@@ -233,14 +251,16 @@ export const MsqdxGlassChipEditor = ({
   const hasChips = displayChips.length > 0;
   const showEmptyState = !isEditing && !hasChips;
   const isListLayout = chipLayout === "list";
+  const isSliderLayout = chipLayout === "slider";
+  const chipVariant = resolveChipVariant(chipClassName);
 
   return (
     <div
-      className={
-        isListLayout
-          ? "msqdx-glass-dashboard-card-section msqdx-glass-chip-editor--list"
-          : "msqdx-glass-dashboard-card-section"
-      }
+      className={clsx(
+        "msqdx-glass-dashboard-card-section",
+        isListLayout && "msqdx-glass-chip-editor--list",
+        isSliderLayout && "msqdx-glass-chip-editor--slider"
+      )}
       ref={containerRef}
     >
       <Box
@@ -253,12 +273,12 @@ export const MsqdxGlassChipEditor = ({
       >
         {label && (
           <MsqdxTypography
-            variant={isListLayout ? "subtitle2" : "caption"}
+            variant={isListLayout || isSliderLayout ? "subtitle2" : "caption"}
             sx={{
               fontWeight: 600,
-              textTransform: isListLayout ? "none" : "uppercase",
-              letterSpacing: isListLayout ? 0 : "0.05em",
-              color: isListLayout ? "text.primary" : "text.secondary",
+              textTransform: isListLayout || isSliderLayout ? "none" : "uppercase",
+              letterSpacing: isListLayout || isSliderLayout ? 0 : "0.05em",
+              color: isListLayout || isSliderLayout ? "text.primary" : "text.secondary",
             }}
           >
             {label}
@@ -293,6 +313,106 @@ export const MsqdxGlassChipEditor = ({
         <Box sx={{ color: "text.secondary", fontStyle: "italic", fontSize: "0.875rem" }}>
           {displayEmptyMessage}
         </Box>
+      ) : isSliderLayout ? (
+        <>
+          <MsqdxGlassHorizontalCardSlider ariaLabel={label} slidesVisible={slidesVisible}>
+            {displayChips.map((chip, idx) => (
+              <article
+                key={idx}
+                className="msqdx-glass-horizontal-card-slider__slide"
+                data-slide-index={idx}
+              >
+                <div
+                  className={clsx(
+                    "msqdx-glass-pain-goals-slide-card",
+                    chipVariant === "pain" && "--pain",
+                    chipVariant === "goal" && "--goal"
+                  )}
+                >
+                  {isEditing && editingIndex === idx ? (
+                    <Box ref={editInputWrapperRef} sx={{ width: "100%" }}>
+                      <MsqdxInput
+                        value={editingValue}
+                        onChange={(e) => setEditingValue(e.target.value)}
+                        onKeyDown={(e) => handleKeyDown(e, true, idx)}
+                        onBlur={handleSaveEditChip}
+                        size="small"
+                        multiline
+                        minRows={3}
+                        sx={INPUT_ACCENT_SX}
+                      />
+                    </Box>
+                  ) : (
+                    <MsqdxTypography
+                      variant="body2"
+                      sx={{
+                        lineHeight: 1.55,
+                        color: "text.primary",
+                        cursor: isEditing ? "pointer" : "default",
+                      }}
+                      onClick={isEditing ? () => handleStartEditChip(idx, chip) : undefined}
+                    >
+                      {chip}
+                    </MsqdxTypography>
+                  )}
+                  {isEditing && editingIndex !== idx ? (
+                    <MsqdxButton
+                      variant="text"
+                      size="small"
+                      onClick={() => handleRemoveChip(idx)}
+                      aria-label={t("common.remove")}
+                      className="msqdx-glass-pain-goals-slide-card__remove"
+                      sx={{
+                        position: "absolute",
+                        top: 4,
+                        right: 4,
+                        minWidth: 24,
+                        minHeight: 24,
+                        p: "2px",
+                        "&:hover": {
+                          backgroundColor: alpha(theme.palette.error.main, 0.1),
+                        },
+                      }}
+                    >
+                      <MsqdxIcon name="close" customSize={16} />
+                    </MsqdxButton>
+                  ) : null}
+                </div>
+              </article>
+            ))}
+            {isEditing ? (
+              <article
+                className="msqdx-glass-horizontal-card-slider__slide msqdx-glass-horizontal-card-slider__slide--add"
+                data-slide-index={displayChips.length}
+              >
+                <div className="msqdx-glass-pain-goals-slide-card --add">
+                  <Box ref={newInputWrapperRef} sx={{ width: "100%" }}>
+                    <MsqdxInput
+                      value={newChipValue}
+                      onChange={(e) => setNewChipValue(e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(e, false, null)}
+                      placeholder={t("chipEditor.addEntryPlaceholder")}
+                      size="small"
+                      multiline
+                      minRows={3}
+                      sx={INPUT_ACCENT_SX}
+                    />
+                  </Box>
+                </div>
+              </article>
+            ) : null}
+          </MsqdxGlassHorizontalCardSlider>
+          {isEditing && chipEdit.hasChanges ? (
+            <MsqdxGlassInlineEditControls
+              hasChanges={chipEdit.hasChanges}
+              saving={savePending}
+              onSave={handleSave}
+              onDiscard={handleCancelEdit}
+              anchorElement={containerRef.current}
+              position="top"
+            />
+          ) : null}
+        </>
       ) : (
         <>
           <Box
@@ -328,13 +448,7 @@ export const MsqdxGlassChipEditor = ({
                   </Box>
                 ) : (
                   <MsqdxGlassChip
-                    variant={chipClassName.includes("--trait") ? "trait" :
-                      chipClassName.includes("--vocab") ? "vocab" :
-                        chipClassName.includes("--pain") ? "pain" :
-                          chipClassName.includes("--goal") ? "goal" :
-                            chipClassName.includes("--value") ? "value" :
-                              chipClassName.includes("--interest") ? "interest" :
-                                chipClassName.includes("--social") ? "social" : "trait"}
+                    variant={chipVariant}
                     dashboard={true}
                     className={isListLayout ? "--block" : undefined}
                     highlighted={highlightedChips.some((highlight) => highlight.trim().toLowerCase() === chip.trim().toLowerCase())}

@@ -53,7 +53,8 @@ export const MsqdxGlassPainPointsGoalsCard = ({
           label={t("personaAdmin.painPoints")}
           chips={painPointsArray}
           chipClassName="--pain"
-          chipLayout="list"
+          chipLayout="slider"
+          slidesVisible={3.5}
           relaxedSpacing
           onSave={onSavePainPoints || (async () => {})}
           editable={!!onSavePainPoints}
@@ -67,7 +68,8 @@ export const MsqdxGlassPainPointsGoalsCard = ({
           label={t("personaAdmin.goals")}
           chips={goalsArray}
           chipClassName="--goal"
-          chipLayout="list"
+          chipLayout="slider"
+          slidesVisible={3.5}
           relaxedSpacing
           onSave={onSaveGoals || (async () => {})}
           editable={!!onSaveGoals}

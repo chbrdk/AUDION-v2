@@ -56,6 +56,11 @@
     "addEntryPlaceholder": "Neuen Eintrag hinzufügen…",
     "emptyEntries": "Keine Einträge"
   },
+  "horizontalSlider": {
+    "navigation": "Karussell-Navigation",
+    "previous": "Zurück",
+    "next": "Weiter"
+  },
   "nav": {
     "dashboard": "Dashboard",
     "chat": "Chat",

@@ -653,13 +653,86 @@
   border-top: 3px solid var(--color-secondary-dx-pink);
 }
 
-/* Pain & goals — single column, readable list rows */
-.msqdx-glass-pain-goals-stack {
-  max-width: 42rem;
-}
-
+/* Pain & goals — stacked sections with horizontal card sliders */
 .msqdx-glass-pain-goals-stack__block {
   padding: 0.125rem 0;
+}
+
+.msqdx-glass-chip-editor--slider {
+  width: 100%;
+}
+
+.msqdx-glass-horizontal-card-slider {
+  position: relative;
+  width: 100%;
+}
+
+.msqdx-glass-horizontal-card-slider__controls {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.msqdx-glass-horizontal-card-slider__viewport {
+  display: flex;
+  gap: var(--slider-gap, 1rem);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 0;
+  padding: 0.25rem 0 0.75rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.msqdx-glass-horizontal-card-slider__viewport:focus-visible {
+  outline: 2px solid var(--color-theme-accent);
+  outline-offset: 2px;
+  border-radius: 12px;
+}
+
+.msqdx-glass-horizontal-card-slider__viewport::-webkit-scrollbar {
+  height: 8px;
+}
+
+.msqdx-glass-horizontal-card-slider__viewport::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.45);
+  border-radius: 999px;
+}
+
+.msqdx-glass-horizontal-card-slider__slide {
+  flex: 0 0 calc((100% - 3 * var(--slider-gap, 1rem)) / var(--slides-visible, 3.5));
+  scroll-snap-align: start;
+  min-width: 0;
+  list-style: none;
+}
+
+.msqdx-glass-pain-goals-slide-card {
+  position: relative;
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 9.5rem;
+  max-height: 12.5rem;
+  overflow-y: auto;
+  padding: 1rem 1.125rem;
+  border-radius: 12px;
+  border: 1px solid var(--color-theme-accent-tint, rgba(148, 163, 184, 0.35));
+  background: var(--color-background-primary, #fff);
+}
+
+.msqdx-glass-pain-goals-slide-card.--pain {
+  border-color: var(--color-secondary-dx-pink-tint, rgba(255, 106, 159, 0.45));
+  background: var(--color-secondary-dx-pink-tint, rgba(255, 106, 159, 0.08));
+}
+
+.msqdx-glass-pain-goals-slide-card.--goal {
+  border-color: var(--color-secondary-dx-blue-tint, rgba(96, 165, 250, 0.45));
+  background: var(--color-secondary-dx-blue-tint, rgba(96, 165, 250, 0.08));
+}
+
+.msqdx-glass-pain-goals-slide-card.--add {
+  border-style: dashed;
+  display: flex;
+  align-items: stretch;
 }
 
 .msqdx-glass-chip-editor--list .msqdx-glass-chip.--dashboard.--block {
@@ -677,7 +750,8 @@
   word-break: break-word;
 }
 
-.msqdx-glass-chip-editor--list .msqdx-glass-dashboard-card-section {
+.msqdx-glass-chip-editor--list .msqdx-glass-dashboard-card-section,
+.msqdx-glass-chip-editor--slider .msqdx-glass-dashboard-card-section {
   margin-bottom: 0;
 }
 

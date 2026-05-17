@@ -56,6 +56,11 @@
     "addEntryPlaceholder": "Add new entry…",
     "emptyEntries": "No entries"
   },
+  "horizontalSlider": {
+    "navigation": "Carousel navigation",
+    "previous": "Previous",
+    "next": "Next"
+  },
   "nav": {
     "dashboard": "Dashboard",
     "chat": "Chat",
