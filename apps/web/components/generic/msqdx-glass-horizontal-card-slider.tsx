@@ -28,6 +28,8 @@ export type MsqdxGlassHorizontalCardSliderProps = {
   className?: string;
   /** Actions rendered beside prev/next controls (e.g. AI + edit). */
   toolbarStart?: ReactNode;
+  /** Corner tab or other chrome before toolbar/nav in the controls-end cluster. */
+  controlsEndStart?: ReactNode;
   /** Title or meta on the left of the controls row (e.g. section heading). */
   leading?: ReactNode;
 };
@@ -39,6 +41,7 @@ export function MsqdxGlassHorizontalCardSlider({
   ariaLabel,
   className,
   toolbarStart,
+  controlsEndStart,
   leading,
 }: MsqdxGlassHorizontalCardSliderProps) {
   const { t } = useI18n();
@@ -144,7 +147,8 @@ export function MsqdxGlassHorizontalCardSlider({
   };
 
   const showNavControls = slideCount > Math.floor(effectiveSlidesVisible);
-  const showControlsBar = Boolean(leading) || Boolean(toolbarStart) || showNavControls;
+  const showControlsBar =
+    Boolean(leading) || Boolean(controlsEndStart) || Boolean(toolbarStart) || showNavControls;
 
   return (
     <div
@@ -163,6 +167,11 @@ export function MsqdxGlassHorizontalCardSlider({
             <Box className="msqdx-glass-horizontal-card-slider__leading">{leading}</Box>
           ) : null}
           <Box className="msqdx-glass-horizontal-card-slider__controls-end">
+            {controlsEndStart ? (
+              <Box className="msqdx-glass-horizontal-card-slider__controls-end-start">
+                {controlsEndStart}
+              </Box>
+            ) : null}
             {toolbarStart ? (
               <Box
                 className="msqdx-glass-horizontal-card-slider__toolbar"

@@ -14,27 +14,20 @@ describe("persona pain-goals layout", () => {
     expect(source).toContain('chipLayout="slider"');
     expect(source).toContain("slidesVisible={3.5}");
     expect(source).toContain("msqdx-glass-pain-goals-stack");
-    expect(source).toContain("msqdx-glass-pain-goals-panel-card");
+    expect(source).not.toContain("msqdx-glass-pain-goals-panel-card");
+    expect(source).toContain("msqdx-glass-pain-goals-stack__block");
     expect(source).toContain("embedInSection");
-    expect(source).toContain('cornerTabPlacement="top-left"');
     expect(source).toContain('cornerTabPlacement="top-right"');
+    expect(source).not.toContain('cornerTabPlacement="top-left"');
   });
 
-  it("styles pain and goal panel cards with xl radius and uniform primary border", () => {
+  it("does not wrap pain/goals in bordered panel cards", () => {
     const css = readFileSync(
       resolve(process.cwd(), "styles/dashboard-cards.css"),
       "utf8"
     );
-    const panelCardRule =
-      /\.msqdx-glass-pain-goals-panel-card\.--(?:pain|goal)(?:,\s*\.msqdx-glass-pain-goals-panel-card\.--(?:pain|goal))?\s*\{[^}]*\}/;
-    expect(css).toMatch(panelCardRule);
-    const rule = css.match(panelCardRule)?.[0] ?? "";
-    expect(rule).toContain("border-radius: var(--msqdx-radius-xl");
-    expect(rule).toContain("border: 1px solid var(--color-text-primary");
-    expect(rule).not.toContain("border-top: 3px");
-    expect(css).not.toMatch(
-      /\.msqdx-glass-pain-goals-panel-card\.--goal\s*\{[^}]*border-top:\s*3px/
-    );
+    expect(css).not.toContain(".msqdx-glass-pain-goals-panel-card");
+    expect(css).toContain(".msqdx-glass-pain-goals-stack__block");
     expect(css).toContain(".msqdx-glass-chip-editor__section-heading h3.MuiTypography-root");
     expect(css).toMatch(/font-weight:\s*100/);
   });
@@ -69,6 +62,9 @@ describe("persona pain-goals layout", () => {
     expect(chipEditor).toContain("toolbarStart={sliderToolbarActions}");
     expect(chipEditor).toContain("leading={showSliderInlineHeader ? sectionHeading : undefined}");
     expect(chipEditor).toContain("MsqdxGlassPainGoalsCornerShell");
+    expect(chipEditor).toContain("ChipEditorCornerTabBadge");
+    expect(chipEditor).toContain("controlsEndStart={cornerTabBadge}");
+    expect(chipEditor).toContain("tabInControls={cornerTabInControls}");
     expect(chipEditor).toContain("showSliderInlineHeader");
     expect(chipEditor).toMatch(
       /showHeaderActions = editable && !isEditing && \(!isSliderLayout \|\| showEmptyState\)/
@@ -85,12 +81,15 @@ describe("persona pain-goals layout", () => {
       "utf8"
     );
     expect(slider).toContain("leading?: ReactNode");
+    expect(slider).toContain("controlsEndStart?: ReactNode");
     expect(slider).toContain("msqdx-glass-horizontal-card-slider__leading");
+    expect(slider).toContain("msqdx-glass-horizontal-card-slider__controls-end-start");
     expect(slider).toContain("msqdx-glass-horizontal-card-slider__controls-end");
     expect(css).toContain(".msqdx-glass-horizontal-card-slider__controls-end");
     expect(css).toMatch(
       /\.msqdx-glass-horizontal-card-slider__controls\s*\{[^}]*justify-content:\s*space-between/
     );
-    expect(css).toContain(".msqdx-glass-chip-editor__corner-tab-shell");
+    expect(css).toContain(".msqdx-glass-chip-editor__corner-tab-shell--tab-in-controls");
+    expect(css).toContain(".msqdx-glass-chip-editor__corner-tab-badge");
   });
 });

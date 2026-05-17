@@ -653,44 +653,41 @@
   border-top: 3px solid var(--color-secondary-dx-pink);
 }
 
-/* Pain & goals — bordered panel cards with horizontal sliders inside */
+/* Pain & goals — content only (corner-tab shell + slider); no outer panel card */
 .msqdx-glass-pain-goals-stack__block {
-  padding: 0;
-}
-
-.msqdx-glass-pain-goals-panel-card {
-  box-sizing: border-box;
   width: 100%;
-  padding: 1.25rem 1.5rem 1.5rem;
-  border-radius: var(--msqdx-radius-sm, 12px);
-  border: 1px solid var(--color-theme-accent-tint, rgba(0, 0, 0, 0.1));
-  background: var(--color-primary-white, #fff);
+  padding: 0;
+  overflow: visible;
 }
 
-.msqdx-glass-pain-goals-panel-card.--pain,
-.msqdx-glass-pain-goals-panel-card.--goal {
-  border-radius: var(--msqdx-radius-xl, 36px);
-  border: 1px solid var(--color-text-primary, #000);
-  overflow: visible;
+.msqdx-glass-pain-goals-stack__block .msqdx-glass-pain-toolbar {
+  margin-bottom: 0.75rem;
 }
 
 .msqdx-glass-chip-editor__corner-tab-shell {
   width: 100%;
+}
+
+.msqdx-glass-chip-editor__corner-tab-shell:not(.msqdx-glass-chip-editor__corner-tab-shell--tab-in-controls) {
   margin-top: 2rem;
+}
+
+.msqdx-glass-chip-editor__corner-tab-shell--tab-in-controls .msqdx-corner-tab-card__body {
+  padding-top: 0.5rem;
+}
+
+.msqdx-glass-horizontal-card-slider__controls-end-start {
+  display: flex;
+  align-items: center;
+}
+
+.msqdx-glass-chip-editor__corner-tab-badge {
+  pointer-events: none;
 }
 
 [data-theme="dark"] .msqdx-glass-chip-editor__corner-tab-shell .msqdx-corner-tab-card__body,
 [data-theme="dark"] .msqdx-glass-chip-editor__corner-tab-shell .MuiBox-root.msqdx-corner-tab-card__body {
   background-color: var(--color-surface-primary, #1a1a1a) !important;
-}
-
-[data-theme="dark"] .msqdx-glass-pain-goals-panel-card {
-  background: var(--color-surface-primary, #1a1a1a);
-  border-color: rgba(255, 255, 255, 0.12);
-}
-
-.msqdx-glass-pain-goals-panel-card .msqdx-glass-pain-toolbar {
-  margin-bottom: 0.75rem;
 }
 
 .msqdx-glass-chip-editor--slider {

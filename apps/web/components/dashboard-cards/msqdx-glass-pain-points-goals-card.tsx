@@ -42,17 +42,14 @@ export const MsqdxGlassPainPointsGoalsCard = ({
 
   const body = (
     <Stack component="section" className="msqdx-glass-pain-goals-stack" spacing={2.5}>
-      <Box
-        component="article"
-        className="msqdx-glass-pain-goals-stack__block msqdx-glass-pain-goals-panel-card --pain"
-      >
+      <Box component="article" className="msqdx-glass-pain-goals-stack__block --pain">
         {painPointsToolbar ? <div className="msqdx-glass-pain-toolbar">{painPointsToolbar}</div> : null}
         <MsqdxGlassChipEditor
           label={t("personaAdmin.painPoints")}
           chips={painPointsArray}
           chipClassName="--pain"
           chipLayout="slider"
-          cornerTabPlacement="top-left"
+          cornerTabPlacement="top-right"
           slidesVisible={3.5}
           relaxedSpacing
           onSave={onSavePainPoints || (async () => {})}
@@ -62,10 +59,7 @@ export const MsqdxGlassPainPointsGoalsCard = ({
           aiLoading={aiPainPointsLoading}
         />
       </Box>
-      <Box
-        component="article"
-        className="msqdx-glass-pain-goals-stack__block msqdx-glass-pain-goals-panel-card --goal"
-      >
+      <Box component="article" className="msqdx-glass-pain-goals-stack__block --goal">
         <MsqdxGlassChipEditor
           label={t("personaAdmin.goals")}
           chips={goalsArray}

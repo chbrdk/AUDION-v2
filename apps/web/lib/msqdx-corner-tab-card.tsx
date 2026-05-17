@@ -84,6 +84,7 @@ export function MsqdxCornerTabCard({
         ...sx,
       }}
     >
+      {tab ? (
       <Box sx={{ ...layout.tabContainerSx, bgcolor: tabChromeColor }}>
         <MsqdxCornerBox
           topLeft={topLeft}
@@ -98,6 +99,7 @@ export function MsqdxCornerTabCard({
           {tab as Parameters<typeof MsqdxCornerBox>[0]["children"]}
         </MsqdxCornerBox>
       </Box>
+      ) : null}
 
       <Box
         className="msqdx-corner-tab-card__body"

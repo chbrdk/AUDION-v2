@@ -12,8 +12,10 @@ export type MsqdxGlassPainGoalsCornerShellProps = {
   chipVariant: MsqdxGlassChipVariant;
   label: string;
   children: ReactNode;
-  /** @default 'top-left' */
+  /** @default 'top-right' */
   placement?: "top-left" | "top-right";
+  /** Tab icon is rendered in the slider controls row instead of floating above the body. */
+  tabInControls?: boolean;
 };
 
 /**
@@ -23,7 +25,8 @@ export function MsqdxGlassPainGoalsCornerShell({
   chipVariant,
   label,
   children,
-  placement = "top-left",
+  placement = "top-right",
+  tabInControls = false,
 }: MsqdxGlassPainGoalsCornerShellProps) {
   const cornerTabStyle = resolveChipEditorCornerTabStyle(chipVariant);
   if (!cornerTabStyle) {
@@ -32,9 +35,15 @@ export function MsqdxGlassPainGoalsCornerShell({
 
   return (
     <MsqdxCornerTabCard
-      className={`msqdx-glass-chip-editor__corner-tab-shell msqdx-glass-chip-editor__corner-tab-shell--${placement === "top-right" ? "right" : "left"}`}
+      className={[
+        "msqdx-glass-chip-editor__corner-tab-shell",
+        `msqdx-glass-chip-editor__corner-tab-shell--${placement === "top-right" ? "right" : "left"}`,
+        tabInControls && "msqdx-glass-chip-editor__corner-tab-shell--tab-in-controls",
+      ]
+        .filter(Boolean)
+        .join(" ")}
       placement={placement}
-      tab={renderChipEditorCornerTab(chipVariant, label)}
+      tab={tabInControls ? undefined : renderChipEditorCornerTab(chipVariant, label)}
       tabAriaLabel={label}
       tabChromeColor="var(--color-primary-white, #ffffff)"
       tabColor={cornerTabStyle.tabColor}
