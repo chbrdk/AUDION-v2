@@ -4,3 +4,13 @@ export const MSQDX_MONO_FONT_FAMILY = "var(--msqdx-font-family-mono)";
 export const MONO_FONT_SX = {
   fontFamily: MSQDX_MONO_FONT_FAMILY,
 } as const;
+
+/** Slider/list section titles (e.g. Pain Points) — IBM Plex Mono, weight 100. */
+export const SECTION_HEADING_MONO_SX = {
+  ...MONO_FONT_SX,
+  fontWeight: 100,
+  textTransform: "none",
+  letterSpacing: 0,
+  lineHeight: 1.2,
+  color: "text.primary",
+} as const;

@@ -10,8 +10,9 @@ import clsx from "clsx";
 import { MsqdxGlassChip, type MsqdxGlassChipVariant } from "./msqdx-glass-chip";
 import { MsqdxGlassHorizontalCardSlider } from "./msqdx-glass-horizontal-card-slider";
 import { useI18n } from "../i18n/i18n-provider";
-import { MONO_FONT_SX } from "../../lib/msqdx-typography";
+import { MONO_FONT_SX, SECTION_HEADING_MONO_SX } from "../../lib/msqdx-typography";
 import { INPUT_ACCENT_SX } from "../../lib/theme-accent";
+import { MsqdxGlassPainGoalsCornerShell } from "./msqdx-glass-pain-goals-corner-shell";
 
 function resolveChipVariant(chipClassName: string): MsqdxGlassChipVariant {
   if (chipClassName.includes("--vocab")) return "vocab";
@@ -74,6 +75,11 @@ export type MsqdxGlassChipEditorProps = {
    * More vertical rhythm between heading and chips.
    */
   relaxedSpacing?: boolean;
+  /**
+   * Corner tab position when `chipLayout` is `slider` (pain/goal variants only).
+   * @default 'top-left'
+   */
+  cornerTabPlacement?: "top-left" | "top-right";
 };
 
 export const MsqdxGlassChipEditor = ({
@@ -89,6 +95,7 @@ export const MsqdxGlassChipEditor = ({
   chipLayout = "inline",
   slidesVisible = 3.5,
   relaxedSpacing = false,
+  cornerTabPlacement = "top-left",
 }: MsqdxGlassChipEditorProps) => {
   const theme = useTheme();
   const { t } = useI18n();
@@ -256,6 +263,38 @@ export const MsqdxGlassChipEditor = ({
   const usesSectionMono = isListLayout || isSliderLayout;
   const chipVariant = resolveChipVariant(chipClassName);
   const showHeaderActions = editable && !isEditing && (!isSliderLayout || showEmptyState);
+
+  const sectionHeading =
+    label && (isListLayout || isSliderLayout) ? (
+      <Box
+        className="msqdx-glass-chip-editor__section-heading"
+        sx={{ display: "flex", alignItems: "baseline", gap: 1, flexWrap: "wrap", minWidth: 0 }}
+      >
+        <MsqdxTypography
+          variant="h3"
+          component="h3"
+          weight="thin"
+          sx={SECTION_HEADING_MONO_SX}
+        >
+          {label}
+        </MsqdxTypography>
+        <MsqdxTypography
+          variant="h5"
+          component="span"
+          sx={{
+            ...MONO_FONT_SX,
+            fontWeight: 500,
+            color: "text.secondary",
+            lineHeight: 1.2,
+          }}
+        >
+          {t("chipEditor.entryCount", { count: displayChips.length })}
+        </MsqdxTypography>
+      </Box>
+    ) : null;
+
+  const showSliderInlineHeader = isSliderLayout && !showEmptyState && Boolean(sectionHeading);
+
   const sliderToolbarActions =
     editable && !isEditing && isSliderLayout && !showEmptyState ? (
       <>
@@ -290,6 +329,7 @@ export const MsqdxGlassChipEditor = ({
       )}
       ref={containerRef}
     >
+      {(showSliderInlineHeader ? null : label || showHeaderActions) ? (
       <Box
         sx={{
           display: "flex",
@@ -298,51 +338,23 @@ export const MsqdxGlassChipEditor = ({
           mb: relaxedSpacing ? 2 : 1,
         }}
       >
-        {label && (isListLayout || isSliderLayout ? (
-          <Box
-            className="msqdx-glass-chip-editor__section-heading"
-            sx={{ display: "flex", alignItems: "baseline", gap: 1, flexWrap: "wrap", minWidth: 0 }}
-          >
+        {label && !showSliderInlineHeader ? (
+          isListLayout || isSliderLayout ? (
+            sectionHeading
+          ) : (
             <MsqdxTypography
-              variant="h3"
-              component="h3"
-              weight="bold"
+              variant="caption"
               sx={{
-                ...MONO_FONT_SX,
-                textTransform: "none",
-                letterSpacing: 0,
-                color: "text.primary",
-                lineHeight: 1.2,
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                color: "text.secondary",
               }}
             >
               {label}
             </MsqdxTypography>
-            <MsqdxTypography
-              variant="h5"
-              component="span"
-              sx={{
-                ...MONO_FONT_SX,
-                fontWeight: 500,
-                color: "text.secondary",
-                lineHeight: 1.2,
-              }}
-            >
-              {t("chipEditor.entryCount", { count: displayChips.length })}
-            </MsqdxTypography>
-          </Box>
-        ) : (
-          <MsqdxTypography
-            variant="caption"
-            sx={{
-              fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-              color: "text.secondary",
-            }}
-          >
-            {label}
-          </MsqdxTypography>
-        ))}
+          )
+        ) : null}
         {showHeaderActions ? (
           <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
             {onAiSuggest ? (
@@ -367,6 +379,7 @@ export const MsqdxGlassChipEditor = ({
           </Box>
         ) : null}
       </Box>
+      ) : null}
 
       {showEmptyState ? (
         <Box
@@ -381,9 +394,15 @@ export const MsqdxGlassChipEditor = ({
         </Box>
       ) : isSliderLayout ? (
         <>
+          <MsqdxGlassPainGoalsCornerShell
+            chipVariant={chipVariant}
+            label={label}
+            placement={cornerTabPlacement}
+          >
           <MsqdxGlassHorizontalCardSlider
             ariaLabel={label}
             slidesVisible={slidesVisible}
+            leading={showSliderInlineHeader ? sectionHeading : undefined}
             toolbarStart={sliderToolbarActions}
           >
             {displayChips.map((chip, idx) => (
@@ -473,6 +492,7 @@ export const MsqdxGlassChipEditor = ({
               </article>
             ) : null}
           </MsqdxGlassHorizontalCardSlider>
+          </MsqdxGlassPainGoalsCornerShell>
           {isEditing && chipEdit.hasChanges ? (
             <MsqdxGlassInlineEditControls
               hasChanges={chipEdit.hasChanges}

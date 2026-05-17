@@ -16,6 +16,8 @@ describe("persona pain-goals layout", () => {
     expect(source).toContain("msqdx-glass-pain-goals-stack");
     expect(source).toContain("msqdx-glass-pain-goals-panel-card");
     expect(source).toContain("embedInSection");
+    expect(source).toContain('cornerTabPlacement="top-left"');
+    expect(source).toContain('cornerTabPlacement="top-right"');
   });
 
   it("styles pain and goal panel cards with xl radius and uniform primary border", () => {
@@ -33,6 +35,8 @@ describe("persona pain-goals layout", () => {
     expect(css).not.toMatch(
       /\.msqdx-glass-pain-goals-panel-card\.--goal\s*\{[^}]*border-top:\s*3px/
     );
+    expect(css).toContain(".msqdx-glass-chip-editor__section-heading h3.MuiTypography-root");
+    expect(css).toMatch(/font-weight:\s*100/);
   });
 
   it("uses h3 section heading with entry count in slider layout", () => {
@@ -44,7 +48,8 @@ describe("persona pain-goals layout", () => {
     expect(chipEditor).toContain('component="h3"');
     expect(chipEditor).toContain('t("chipEditor.entryCount", { count: displayChips.length })');
     expect(chipEditor).toContain("msqdx-glass-chip-editor__section-heading");
-    expect(chipEditor).toContain("MONO_FONT_SX");
+    expect(chipEditor).toContain("SECTION_HEADING_MONO_SX");
+    expect(chipEditor).toContain('weight="thin"');
   });
 
   it("adjusts slider visible slides from container width", () => {
@@ -62,8 +67,30 @@ describe("persona pain-goals layout", () => {
       "utf8"
     );
     expect(chipEditor).toContain("toolbarStart={sliderToolbarActions}");
+    expect(chipEditor).toContain("leading={showSliderInlineHeader ? sectionHeading : undefined}");
+    expect(chipEditor).toContain("MsqdxGlassPainGoalsCornerShell");
+    expect(chipEditor).toContain("showSliderInlineHeader");
     expect(chipEditor).toMatch(
       /showHeaderActions = editable && !isEditing && \(!isSliderLayout \|\| showEmptyState\)/
     );
+  });
+
+  it("aligns slider section heading and controls on one row", () => {
+    const slider = readFileSync(
+      resolve(process.cwd(), "components/generic/msqdx-glass-horizontal-card-slider.tsx"),
+      "utf8"
+    );
+    const css = readFileSync(
+      resolve(process.cwd(), "styles/dashboard-cards.css"),
+      "utf8"
+    );
+    expect(slider).toContain("leading?: ReactNode");
+    expect(slider).toContain("msqdx-glass-horizontal-card-slider__leading");
+    expect(slider).toContain("msqdx-glass-horizontal-card-slider__controls-end");
+    expect(css).toContain(".msqdx-glass-horizontal-card-slider__controls-end");
+    expect(css).toMatch(
+      /\.msqdx-glass-horizontal-card-slider__controls\s*\{[^}]*justify-content:\s*space-between/
+    );
+    expect(css).toContain(".msqdx-glass-chip-editor__corner-tab-shell");
   });
 });

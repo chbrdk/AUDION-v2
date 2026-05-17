@@ -26,8 +26,10 @@ export type MsqdxGlassHorizontalCardSliderProps = {
   gap?: string;
   ariaLabel: string;
   className?: string;
-  /** Actions rendered left of prev/next controls (e.g. AI + edit). */
+  /** Actions rendered beside prev/next controls (e.g. AI + edit). */
   toolbarStart?: ReactNode;
+  /** Title or meta on the left of the controls row (e.g. section heading). */
+  leading?: ReactNode;
 };
 
 export function MsqdxGlassHorizontalCardSlider({
@@ -37,6 +39,7 @@ export function MsqdxGlassHorizontalCardSlider({
   ariaLabel,
   className,
   toolbarStart,
+  leading,
 }: MsqdxGlassHorizontalCardSliderProps) {
   const { t } = useI18n();
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -141,7 +144,7 @@ export function MsqdxGlassHorizontalCardSlider({
   };
 
   const showNavControls = slideCount > Math.floor(effectiveSlidesVisible);
-  const showControlsBar = Boolean(toolbarStart) || showNavControls;
+  const showControlsBar = Boolean(leading) || Boolean(toolbarStart) || showNavControls;
 
   return (
     <div
@@ -156,41 +159,46 @@ export function MsqdxGlassHorizontalCardSlider({
     >
       {showControlsBar ? (
         <Box className="msqdx-glass-horizontal-card-slider__controls">
-          {toolbarStart ? (
-            <Box
-              className="msqdx-glass-horizontal-card-slider__toolbar"
-              role="group"
-              aria-label={t("chipEditor.sectionActions")}
-            >
-              {toolbarStart}
-            </Box>
+          {leading ? (
+            <Box className="msqdx-glass-horizontal-card-slider__leading">{leading}</Box>
           ) : null}
-          {showNavControls ? (
-            <Box
-              className="msqdx-glass-horizontal-card-slider__nav"
-              role="group"
-              aria-label={t("horizontalSlider.navigation")}
-            >
-              <MsqdxButton
-                variant="outlined"
-                size="small"
-                onClick={() => scrollRelative(-1)}
-                disabled={!canScrollBack}
-                aria-label={t("horizontalSlider.previous")}
+          <Box className="msqdx-glass-horizontal-card-slider__controls-end">
+            {toolbarStart ? (
+              <Box
+                className="msqdx-glass-horizontal-card-slider__toolbar"
+                role="group"
+                aria-label={t("chipEditor.sectionActions")}
               >
-                <MsqdxIcon name="chevron_left" customSize={18} />
-              </MsqdxButton>
-              <MsqdxButton
-                variant="outlined"
-                size="small"
-                onClick={() => scrollRelative(1)}
-                disabled={!canScrollForward}
-                aria-label={t("horizontalSlider.next")}
+                {toolbarStart}
+              </Box>
+            ) : null}
+            {showNavControls ? (
+              <Box
+                className="msqdx-glass-horizontal-card-slider__nav"
+                role="group"
+                aria-label={t("horizontalSlider.navigation")}
               >
-                <MsqdxIcon name="chevron_right" customSize={18} />
-              </MsqdxButton>
-            </Box>
-          ) : null}
+                <MsqdxButton
+                  variant="outlined"
+                  size="small"
+                  onClick={() => scrollRelative(-1)}
+                  disabled={!canScrollBack}
+                  aria-label={t("horizontalSlider.previous")}
+                >
+                  <MsqdxIcon name="chevron_left" customSize={18} />
+                </MsqdxButton>
+                <MsqdxButton
+                  variant="outlined"
+                  size="small"
+                  onClick={() => scrollRelative(1)}
+                  disabled={!canScrollForward}
+                  aria-label={t("horizontalSlider.next")}
+                >
+                  <MsqdxIcon name="chevron_right" customSize={18} />
+                </MsqdxButton>
+              </Box>
+            ) : null}
+          </Box>
         </Box>
       ) : null}
 

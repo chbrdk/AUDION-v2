@@ -52,6 +52,7 @@ export const MsqdxGlassPainPointsGoalsCard = ({
           chips={painPointsArray}
           chipClassName="--pain"
           chipLayout="slider"
+          cornerTabPlacement="top-left"
           slidesVisible={3.5}
           relaxedSpacing
           onSave={onSavePainPoints || (async () => {})}
@@ -70,6 +71,7 @@ export const MsqdxGlassPainPointsGoalsCard = ({
           chips={goalsArray}
           chipClassName="--goal"
           chipLayout="slider"
+          cornerTabPlacement="top-right"
           slidesVisible={3.5}
           relaxedSpacing
           onSave={onSaveGoals || (async () => {})}
