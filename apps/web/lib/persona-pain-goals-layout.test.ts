@@ -14,6 +14,7 @@ describe("persona pain-goals layout", () => {
     expect(source).toContain('chipLayout="slider"');
     expect(source).toContain("slidesVisible={3.5}");
     expect(source).toContain("msqdx-glass-pain-goals-stack");
+    expect(source).toContain("msqdx-glass-pain-goals-panel-card");
     expect(source).toContain("embedInSection");
   });
 });

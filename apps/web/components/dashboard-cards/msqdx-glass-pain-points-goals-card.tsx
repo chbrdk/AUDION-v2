@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Box, Divider, Stack } from "@mui/material";
+import { Box, Stack } from "@mui/material";
 import type { PersonaProfile } from "@msqdx-glass/types";
 import { MsqdxDashboardCard } from "@msqdx/react";
 import { MsqdxGlassChipEditor } from "../generic/msqdx-glass-chip-editor";
@@ -41,13 +41,11 @@ export const MsqdxGlassPainPointsGoalsCard = ({
   const goalsArray = (profile.goals || []).map((goal) => goal.label);
 
   const body = (
-    <Stack
-      component="section"
-      className="msqdx-glass-pain-goals-stack"
-      spacing={4}
-      divider={<Divider flexItem sx={{ borderColor: "divider", opacity: 0.6 }} />}
-    >
-      <Box component="article" className="msqdx-glass-pain-goals-stack__block">
+    <Stack component="section" className="msqdx-glass-pain-goals-stack" spacing={2.5}>
+      <Box
+        component="article"
+        className="msqdx-glass-pain-goals-stack__block msqdx-glass-pain-goals-panel-card --pain"
+      >
         {painPointsToolbar ? <div className="msqdx-glass-pain-toolbar">{painPointsToolbar}</div> : null}
         <MsqdxGlassChipEditor
           label={t("personaAdmin.painPoints")}
@@ -63,7 +61,10 @@ export const MsqdxGlassPainPointsGoalsCard = ({
           aiLoading={aiPainPointsLoading}
         />
       </Box>
-      <Box component="article" className="msqdx-glass-pain-goals-stack__block">
+      <Box
+        component="article"
+        className="msqdx-glass-pain-goals-stack__block msqdx-glass-pain-goals-panel-card --goal"
+      >
         <MsqdxGlassChipEditor
           label={t("personaAdmin.goals")}
           chips={goalsArray}
