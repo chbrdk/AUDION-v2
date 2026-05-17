@@ -2545,6 +2545,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
                 profile={profileForChips ?? detail.profile}
                 expanded={accordionExpanded("pain-points-goals")}
                 onToggle={accordionToggle}
+                embedInSection={isV2Section}
                 onSavePainPoints={handleSavePainPoints}
                 onSaveGoals={handleSaveGoals}
                 onAiSuggestGoals={handleGenerateGoalsIdeas}

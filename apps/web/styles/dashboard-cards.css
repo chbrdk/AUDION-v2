@@ -653,6 +653,34 @@
   border-top: 3px solid var(--color-secondary-dx-pink);
 }
 
+/* Pain & goals — single column, readable list rows */
+.msqdx-glass-pain-goals-stack {
+  max-width: 42rem;
+}
+
+.msqdx-glass-pain-goals-stack__block {
+  padding: 0.125rem 0;
+}
+
+.msqdx-glass-chip-editor--list .msqdx-glass-chip.--dashboard.--block {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  border-radius: 10px;
+  padding: 0.875rem 1rem;
+  font-size: 0.9375rem;
+  font-weight: 450;
+  line-height: 1.55;
+  white-space: normal;
+  text-align: left;
+  word-break: break-word;
+}
+
+.msqdx-glass-chip-editor--list .msqdx-glass-dashboard-card-section {
+  margin-bottom: 0;
+}
+
 .msqdx-glass-dashboard-card.--communication {
   border-top: 3px solid var(--color-secondary-dx-blue);
 }

@@ -47,6 +47,15 @@ export type MsqdxGlassChipEditorProps = {
    * Optional highlighted chips (case-insensitive match)
    */
   highlightedChips?: string[];
+  /**
+   * `list` — full-width stacked rows (better for long pain/goal copy).
+   * @default 'inline'
+   */
+  chipLayout?: "inline" | "list";
+  /**
+   * More vertical rhythm between heading and chips.
+   */
+  relaxedSpacing?: boolean;
 };
 
 export const MsqdxGlassChipEditor = ({
@@ -58,7 +67,9 @@ export const MsqdxGlassChipEditor = ({
   emptyMessage,
   onAiSuggest,
   aiLoading = false,
-  highlightedChips = []
+  highlightedChips = [],
+  chipLayout = "inline",
+  relaxedSpacing = false,
 }: MsqdxGlassChipEditorProps) => {
   const theme = useTheme();
   const { t } = useI18n();
@@ -221,25 +232,33 @@ export const MsqdxGlassChipEditor = ({
   const displayChips = chipEdit.value;
   const hasChips = displayChips.length > 0;
   const showEmptyState = !isEditing && !hasChips;
+  const isListLayout = chipLayout === "list";
 
   return (
-    <div className="msqdx-glass-dashboard-card-section" ref={containerRef}>
+    <div
+      className={
+        isListLayout
+          ? "msqdx-glass-dashboard-card-section msqdx-glass-chip-editor--list"
+          : "msqdx-glass-dashboard-card-section"
+      }
+      ref={containerRef}
+    >
       <Box
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          mb: 1
+          mb: relaxedSpacing ? 2 : 1,
         }}
       >
         {label && (
           <MsqdxTypography
-            variant="caption"
+            variant={isListLayout ? "subtitle2" : "caption"}
             sx={{
               fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-              color: "text.secondary",
+              textTransform: isListLayout ? "none" : "uppercase",
+              letterSpacing: isListLayout ? 0 : "0.05em",
+              color: isListLayout ? "text.primary" : "text.secondary",
             }}
           >
             {label}
@@ -279,18 +298,21 @@ export const MsqdxGlassChipEditor = ({
           <Box
             sx={{
               display: "flex",
-              flexWrap: "wrap",
-              gap: 0.5,
-              mb: isEditing ? 1 : 0
+              flexDirection: isListLayout ? "column" : "row",
+              flexWrap: isListLayout ? "nowrap" : "wrap",
+              gap: isListLayout ? 1.25 : 0.5,
+              mb: isEditing ? (relaxedSpacing ? 1.5 : 1) : 0,
+              alignItems: isListLayout ? "stretch" : "flex-start",
             }}
           >
             {displayChips.map((chip, idx) => (
               <Box
                 key={idx}
                 sx={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 0.5
+                  display: "flex",
+                  alignItems: isListLayout ? "flex-start" : "center",
+                  gap: 0.5,
+                  width: isListLayout ? "100%" : "auto",
                 }}
               >
                 {isEditing && editingIndex === idx ? (
@@ -314,8 +336,10 @@ export const MsqdxGlassChipEditor = ({
                               chipClassName.includes("--interest") ? "interest" :
                                 chipClassName.includes("--social") ? "social" : "trait"}
                     dashboard={true}
+                    className={isListLayout ? "--block" : undefined}
                     highlighted={highlightedChips.some((highlight) => highlight.trim().toLowerCase() === chip.trim().toLowerCase())}
                     onClick={isEditing ? () => handleStartEditChip(idx, chip) : undefined}
+                    style={isListLayout ? { flex: 1, width: "100%" } : undefined}
                   >
                     {chip}
                   </MsqdxGlassChip>
@@ -341,7 +365,7 @@ export const MsqdxGlassChipEditor = ({
               </Box>
             ))}
             {isEditing && (
-              <Box ref={newInputWrapperRef} sx={{ minWidth: "180px" }}>
+              <Box ref={newInputWrapperRef} sx={{ minWidth: isListLayout ? "100%" : "180px", width: isListLayout ? "100%" : undefined }}>
                 <MsqdxInput
                   value={newChipValue}
                   onChange={(e) => setNewChipValue(e.target.value)}

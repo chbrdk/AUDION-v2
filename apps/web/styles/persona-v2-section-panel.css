@@ -29,3 +29,8 @@
 .msqdx-glass-persona-v2-section-panel .msqdx-glass-dashboard-card.collapsed .msqdx-glass-dashboard-card-content {
   display: block;
 }
+
+/* Pain & goals v2 — no duplicate accordion card (section shell has the title) */
+.msqdx-glass-pain-goals-section {
+  padding-top: 0.25rem;
+}
