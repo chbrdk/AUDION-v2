@@ -50,8 +50,13 @@ describe("persona pain-goals layout", () => {
       resolve(process.cwd(), "components/generic/msqdx-glass-horizontal-card-slider.tsx"),
       "utf8"
     );
-    expect(slider).toContain("resolveSlidesVisibleForContainerWidth");
+    const hook = readFileSync(
+      resolve(process.cwd(), "lib/use-horizontal-card-slider.ts"),
+      "utf8"
+    );
+    expect(slider).toContain("useHorizontalCardSlider");
     expect(slider).toContain("--slider-gap-count");
+    expect(hook).toContain("resolveSlidesVisibleForContainerWidth");
   });
 
   it("places slider chip actions in toolbar beside nav controls", () => {
@@ -62,9 +67,10 @@ describe("persona pain-goals layout", () => {
     expect(chipEditor).toContain("toolbarStart={sliderToolbarActions}");
     expect(chipEditor).toContain("leading={showSliderInlineHeader ? sectionHeading : undefined}");
     expect(chipEditor).toContain("MsqdxGlassPainGoalsCornerShell");
-    expect(chipEditor).toContain("tabActions={useCornerTabChrome ? cornerTabActions : undefined}");
-    expect(chipEditor).toContain("cornerTabControls={useCornerTabChrome}");
-    expect(chipEditor).toContain("onCornerTabControls={useCornerTabChrome ? setCornerTabActions : undefined}");
+    expect(chipEditor).toContain("renderLayout=");
+    expect(chipEditor).toContain("tabActions={controlsEnd}");
+    expect(chipEditor).not.toContain("onCornerTabControls");
+    expect(chipEditor).not.toContain("cornerTabActions");
     expect(chipEditor).toContain("showSliderInlineHeader");
     expect(chipEditor).toMatch(
       /showHeaderActions = editable && !isEditing && \(!isSliderLayout \|\| showEmptyState\)/
@@ -81,8 +87,8 @@ describe("persona pain-goals layout", () => {
       "utf8"
     );
     expect(slider).toContain("leading?: ReactNode");
-    expect(slider).toContain("cornerTabControls?: boolean");
-    expect(slider).toContain("onCornerTabControls?: (actions: ReactNode) => void");
+    expect(slider).toContain("renderLayout?:");
+    expect(slider).toContain("useHorizontalCardSlider");
     expect(slider).toContain("msqdx-glass-horizontal-card-slider__leading");
     expect(slider).toContain("msqdx-glass-horizontal-card-slider__controls-end");
     expect(css).toContain(".msqdx-glass-horizontal-card-slider__controls-end");

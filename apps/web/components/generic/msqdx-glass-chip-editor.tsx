@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, useMemo, type ReactNode } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Box, useTheme, alpha } from "@mui/material";
 import { MsqdxIcon, MsqdxButton, MsqdxTypography, MsqdxInput } from "@msqdx/react";
 import { MsqdxGlassEditButton, MsqdxGlassAiButtonIcon } from "./";
@@ -265,7 +265,6 @@ export const MsqdxGlassChipEditor = ({
   const chipVariant = resolveChipVariant(chipClassName);
   const cornerTabStyle = resolveChipEditorCornerTabStyle(chipVariant);
   const useCornerTabChrome = isSliderLayout && Boolean(cornerTabStyle);
-  const [cornerTabActions, setCornerTabActions] = useState<ReactNode>(null);
   const showHeaderActions = editable && !isEditing && (!isSliderLayout || showEmptyState);
 
   const sectionHeading =
@@ -411,19 +410,30 @@ export const MsqdxGlassChipEditor = ({
         </Box>
       ) : isSliderLayout ? (
         <>
-          <MsqdxGlassPainGoalsCornerShell
-            chipVariant={chipVariant}
-            label={label}
-            placement={cornerTabPlacement}
-            tabActions={useCornerTabChrome ? cornerTabActions : undefined}
-          >
           <MsqdxGlassHorizontalCardSlider
             ariaLabel={label}
             slidesVisible={slidesVisible}
             leading={showSliderInlineHeader ? sectionHeading : undefined}
             toolbarStart={sliderToolbarActions}
-            cornerTabControls={useCornerTabChrome}
-            onCornerTabControls={useCornerTabChrome ? setCornerTabActions : undefined}
+            renderLayout={
+              useCornerTabChrome
+                ? ({ leading, controlsEnd, viewport, showLeadingRow }) => (
+                    <MsqdxGlassPainGoalsCornerShell
+                      chipVariant={chipVariant}
+                      label={label}
+                      placement={cornerTabPlacement}
+                      tabActions={controlsEnd}
+                    >
+                      {showLeadingRow ? (
+                        <Box className="msqdx-glass-horizontal-card-slider__controls">
+                          <Box className="msqdx-glass-horizontal-card-slider__leading">{leading}</Box>
+                        </Box>
+                      ) : null}
+                      {viewport}
+                    </MsqdxGlassPainGoalsCornerShell>
+                  )
+                : undefined
+            }
           >
             {displayChips.map((chip, idx) => (
               <article
@@ -512,7 +522,6 @@ export const MsqdxGlassChipEditor = ({
               </article>
             ) : null}
           </MsqdxGlassHorizontalCardSlider>
-          </MsqdxGlassPainGoalsCornerShell>
           {isEditing && chipEdit.hasChanges ? (
             <MsqdxGlassInlineEditControls
               hasChanges={chipEdit.hasChanges}
