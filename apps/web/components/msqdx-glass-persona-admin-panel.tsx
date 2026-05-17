@@ -55,12 +55,20 @@ import { useProject } from "./projects/project-provider";
 import { useI18n } from "./i18n/i18n-provider";
 import { targetGroupsApi, type TargetGroupResponse } from "../app/api/_lib/target-groups";
 import { MsqdxGlassConvertUxRunDialog } from "./journeys/msqdx-glass-convert-ux-run-dialog";
+import type { PersonaV2SectionId } from "../lib/persona-v2-sections";
+import {
+  isPersonaV2SectionContentVisible,
+  type PersonaAdminPresentation,
+} from "../lib/persona-v2-section-visibility";
 
 type MsqdxGlassPersonaAdminPanelProps = {
   initialList: PersonaListResponse;
   docsUrl: string;
   mode?: "full" | "detail";
   activePersonaId?: string | null;
+  /** When `v2-section`, only blocks for `visibleSection` are rendered (flat layout). */
+  presentation?: PersonaAdminPresentation;
+  visibleSection?: PersonaV2SectionId;
 };
 
 type EditFormState = {
@@ -230,6 +238,8 @@ export const MsqdxGlassPersonaAdminPanel = ({
   docsUrl,
   mode = "full",
   activePersonaId = null,
+  presentation = "v1",
+  visibleSection,
 }: MsqdxGlassPersonaAdminPanelProps) => {
   const { activeProjectId, activeProject, projects } = useProject();
   const { t, locale } = useI18n();
@@ -1808,6 +1818,13 @@ export const MsqdxGlassPersonaAdminPanel = ({
 
   const isAccordionExpanded = (accordionId: string) => expandedAccordions.has(accordionId);
 
+  const isV2Section = presentation === "v2-section" && Boolean(visibleSection);
+  const showSection = (section: PersonaV2SectionId) =>
+    isPersonaV2SectionContentVisible(visibleSection, presentation, section);
+  const accordionExpanded = (accordionId: string) =>
+    presentation === "v2-section" || expandedAccordions.has(accordionId);
+  const accordionToggle = presentation === "v2-section" ? () => {} : toggleAccordion;
+
   const handleKnowledgeField = (field: keyof KnowledgeFormState, value: string) => {
     setKnowledgeForm((prev) => ({ ...prev, [field]: value }));
   };
@@ -1849,10 +1866,10 @@ export const MsqdxGlassPersonaAdminPanel = ({
 
   return (
     <div
-      className="msqdx-glass-admin-grid"
-      style={mode === "detail" ? { gridTemplateColumns: "minmax(0, 1fr)" } : undefined}
+      className={isV2Section ? "msqdx-glass-persona-v2-section-panel" : "msqdx-glass-admin-grid"}
+      style={mode === "detail" && !isV2Section ? { gridTemplateColumns: "minmax(0, 1fr)" } : undefined}
     >
-      {mode === "full" && (
+      {mode === "full" && !isV2Section && (
         <MsqdxGlassCollapsiblePanel title={t("personaAdmin.title")} defaultExpanded={true}>
           <section className="msqdx-glass-panel">
           <header className="msqdx-glass-panel__header">
@@ -1985,28 +2002,43 @@ export const MsqdxGlassPersonaAdminPanel = ({
       )}
 
       <section
-        className="msqdx-glass-panel"
-        style={mode === "detail" ? { gridColumn: "1 / -1" } : undefined}
+        className={isV2Section ? undefined : "msqdx-glass-panel"}
+        style={mode === "detail" && !isV2Section ? { gridColumn: "1 / -1" } : undefined}
       >
-        {!selectedId && <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>{t("personaAdmin.selectPersona")}</MsqdxTypography>}
-        {selectedId && detailLoading && <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>{t("personaAdmin.loading")}</MsqdxTypography>}
+        {!selectedId && !isV2Section && (
+          <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+            {t("personaAdmin.selectPersona")}
+          </MsqdxTypography>
+        )}
+        {selectedId && detailLoading && (
+          <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+            {t("personaAdmin.loading")}
+          </MsqdxTypography>
+        )}
         {detailError && <MsqdxTypography variant="body2" sx={{ color: "error.main" }}>{detailError}</MsqdxTypography>}
         {detail && (
           <div className="msqdx-glass-detail">
             <input ref={documentInputRef} type="file" className="msqdx-glass-sr-only" onChange={handleDocumentInputChange} />
 
             {/* Dashboard Cards Grid */}
-            <div className="msqdx-glass-dashboard-grid">
+            <div
+              className={
+                isV2Section
+                  ? "msqdx-glass-dashboard-grid msqdx-glass-dashboard-grid--v2-section"
+                  : "msqdx-glass-dashboard-grid"
+              }
+            >
 
               {/* Persona header (name, headline, segment); bio & demographics in the next card */}
+              {showSection("basics") ? (
               <Box sx={{ gridColumn: "1 / -1" }}>
                 <MsqdxDashboardCard
                   id="persona-basics"
                   title={t("personaAdmin.personaBasics")}
                   icon="person"
                   iconColor={{ color: THEME_ACCENT.color }}
-                  expanded={isAccordionExpanded("persona-basics")}
-                  onToggle={toggleAccordion}
+                  expanded={accordionExpanded("persona-basics")}
+                  onToggle={accordionToggle}
                 >
                   <Box sx={{ display: "flex", gap: 2, alignItems: "flex-start", mb: 2 }}>
                     <div className="msqdx-glass-avatar" style={{ flexShrink: 0 }}>
@@ -2224,26 +2256,28 @@ export const MsqdxGlassPersonaAdminPanel = ({
                   </Box>
                 </MsqdxDashboardCard>
               </Box>
+              ) : null}
 
-              {profileForBioEditor ? (
+              {showSection("bio") && profileForBioEditor ? (
                 <MsqdxGlassBioCardEdit
                   profile={profileForBioEditor}
-                  expanded={isAccordionExpanded("bio-demographics")}
-                  onToggle={toggleAccordion}
+                  expanded={accordionExpanded("bio-demographics")}
+                  onToggle={accordionToggle}
                   onSave={handleBioDemographicsBilingualSave}
                   savePending={savePending}
                 />
               ) : null}
 
               {/* Card: Metadata - full width */}
+              {showSection("basics") ? (
               <Box sx={{ gridColumn: "1 / -1" }}>
                 <MsqdxDashboardCard
                   id="metadata"
                   title={t("personaAdmin.metadata")}
                   icon="info"
                   iconColor={{ color: THEME_ACCENT.color }}
-                  expanded={isAccordionExpanded("metadata")}
-                  onToggle={toggleAccordion}
+                  expanded={accordionExpanded("metadata")}
+                  onToggle={accordionToggle}
                 >
                   <Box sx={{ pt: 1 }}>
                     {!(detail.metadata.targetGroupId ?? (detail.profile as { targetGroupId?: string }).targetGroupId) && (
@@ -2390,15 +2424,17 @@ export const MsqdxGlassPersonaAdminPanel = ({
                   </Box>
                 </MsqdxDashboardCard>
               </Box>
+              ) : null}
 
+              {showSection("basics") ? (
               <Box sx={{ gridColumn: "1 / -1" }}>
                 <MsqdxDashboardCard
                   id="integrations"
                   title={t("personaAdmin.integrations")}
                   icon="link"
                   iconColor={{ color: THEME_ACCENT.color }}
-                  expanded={isAccordionExpanded("integrations")}
-                  onToggle={toggleAccordion}
+                  expanded={accordionExpanded("integrations")}
+                  onToggle={accordionToggle}
                 >
                   <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, pt: 1 }}>
                     <Box sx={{ minWidth: 200, flex: "1 1 200px" }}>
@@ -2464,14 +2500,16 @@ export const MsqdxGlassPersonaAdminPanel = ({
                   </Box>
                 </MsqdxDashboardCard>
               </Box>
+              ) : null}
 
               {/* Cards: Personality (Traits), Interests, Values – three columns */}
+              {showSection("personality") ? (
               <MsqdxGlassPersonalityCard
                 profile={profileForChips ?? detail.profile}
-                expandedTraits={isAccordionExpanded("personality-traits")}
-                expandedInterests={isAccordionExpanded("personality-interests")}
-                expandedValues={isAccordionExpanded("personality-values")}
-                onToggle={toggleAccordion}
+                expandedTraits={accordionExpanded("personality-traits")}
+                expandedInterests={accordionExpanded("personality-interests")}
+                expandedValues={accordionExpanded("personality-values")}
+                onToggle={accordionToggle}
                 onSaveInterests={handleSaveInterests}
                 onSaveValues={handleSaveValues}
                 onSaveSocialMedia={handleSaveSocialMedia}
@@ -2484,13 +2522,14 @@ export const MsqdxGlassPersonaAdminPanel = ({
                 aiValuesLoading={personaAiLoading}
                 highlightedTraits={recentTraitHighlights}
               />
+              ) : null}
 
               {/* Card: Kommunikation - 50% width (nebeneinander mit Personality) */}
-              {(profileForChips ?? detail.profile).communication_style && (
+              {showSection("communication") && (profileForChips ?? detail.profile).communication_style ? (
                 <MsqdxGlassCommunicationCard
                   profile={profileForChips ?? detail.profile}
-                  expanded={isAccordionExpanded("communication")}
-                  onToggle={toggleAccordion}
+                  expanded={accordionExpanded("communication")}
+                  onToggle={accordionToggle}
                   onSaveVocabulary={handleSaveVocabulary}
                   onSaveSentenceStructure={handleSaveSentenceStructure}
                   onSaveSkepticismLevel={handleSaveSkepticismLevel}
@@ -2498,13 +2537,14 @@ export const MsqdxGlassPersonaAdminPanel = ({
                   aiVocabularyLoading={personaAiLoading}
                   highlightedVocabulary={recentVocabularyHighlights}
                 />
-              )}
+              ) : null}
 
               {/* Card: Pain Points & Goals - Full Width, zweispaltig */}
+              {showSection("pain-goals") ? (
               <MsqdxGlassPainPointsGoalsCard
                 profile={profileForChips ?? detail.profile}
-                expanded={isAccordionExpanded("pain-points-goals")}
-                onToggle={toggleAccordion}
+                expanded={accordionExpanded("pain-points-goals")}
+                onToggle={accordionToggle}
                 onSavePainPoints={handleSavePainPoints}
                 onSaveGoals={handleSaveGoals}
                 onAiSuggestGoals={handleGenerateGoalsIdeas}
@@ -2519,16 +2559,18 @@ export const MsqdxGlassPersonaAdminPanel = ({
                   ) : undefined
                 }
               />
+              ) : null}
 
               {/* Card: Knowledge & Sources - Full Width */}
+              {showSection("knowledge") ? (
               <MsqdxGlassKnowledgeSourcesCard
                 detail={detail}
                 knowledgeForm={knowledgeForm}
                 documentUploadPending={documentUploadPending}
                 knowledgePending={knowledgePending}
                 selectedId={selectedId}
-                expanded={isAccordionExpanded("knowledge-sources")}
-                onToggle={toggleAccordion}
+                expanded={accordionExpanded("knowledge-sources")}
+                onToggle={accordionToggle}
                 onDocumentUpload={triggerDocumentUpload}
                 onKnowledgeField={handleKnowledgeField}
                 onKnowledgeSubmit={handleKnowledgeSubmit}
@@ -2536,16 +2578,18 @@ export const MsqdxGlassPersonaAdminPanel = ({
                 formatDate={formatDate}
                 notify={notify}
               />
+              ) : null}
 
               {/* Card: UX journey history — Full Width */}
+              {showSection("ux-history") ? (
               <Box sx={{ gridColumn: "1 / -1" }}>
                 <MsqdxDashboardCard
                   id="ux-journey-history"
                   title={t("personaAdmin.uxJourneyHistory")}
                   icon="travel_explore"
                   iconColor={{ color: THEME_ACCENT.color }}
-                  expanded={isAccordionExpanded("ux-journey-history")}
-                  onToggle={toggleAccordion}
+                  expanded={accordionExpanded("ux-journey-history")}
+                  onToggle={accordionToggle}
                 >
                   <Box sx={{ pt: 1 }}>
                     {uxJourneyRunsError && (
@@ -2659,16 +2703,18 @@ export const MsqdxGlassPersonaAdminPanel = ({
                   </Box>
                 </MsqdxDashboardCard>
               </Box>
+              ) : null}
 
               {/* Card: Moodboard - Full Width */}
+              {showSection("moodboard") ? (
               <Box sx={{ gridColumn: "1 / -1" }}>
                 <MsqdxDashboardCard
                   id="moodboard"
                   title="Moodboard"
                   icon="image"
                   iconColor={{ color: THEME_ACCENT.color }}
-                  expanded={isAccordionExpanded("moodboard")}
-                  onToggle={toggleAccordion}
+                  expanded={accordionExpanded("moodboard")}
+                  onToggle={accordionToggle}
                 >
                   <Box sx={{ pt: 1 }}>
                     {moodboardError && (
@@ -2842,13 +2888,16 @@ export const MsqdxGlassPersonaAdminPanel = ({
                   </Box>
                 </MsqdxDashboardCard>
               </Box>
+              ) : null}
 
               {/* Card: Erweitert */}
+              {showSection("advanced") ? (
               <MsqdxGlassAdvancedCard
                 profile={detail.profile}
-                expanded={isAccordionExpanded("advanced")}
-                onToggle={toggleAccordion}
+                expanded={accordionExpanded("advanced")}
+                onToggle={accordionToggle}
               />
+              ) : null}
             </div>
           </div>
         )}

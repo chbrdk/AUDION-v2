@@ -1,0 +1,31 @@
+/* Flat single-column layout for persona admin v2 section routes */
+.msqdx-glass-persona-v2-section-panel .msqdx-glass-dashboard-grid--v2-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.msqdx-glass-persona-v2-section-panel .msqdx-glass-dashboard-grid--v2-section > * {
+  grid-column: unset !important;
+  width: 100%;
+}
+
+/* Section shell already shows title — hide duplicate accordion headers */
+.msqdx-glass-persona-v2-section-panel .msqdx-dashboard-card .MuiAccordionSummary-root,
+.msqdx-glass-persona-v2-section-panel .msqdx-glass-dashboard-card-header {
+  display: none;
+}
+
+.msqdx-glass-persona-v2-section-panel .msqdx-dashboard-card .MuiAccordionDetails-root,
+.msqdx-glass-persona-v2-section-panel .msqdx-glass-dashboard-card-content {
+  padding-top: 0;
+}
+
+.msqdx-glass-persona-v2-section-panel .msqdx-dashboard-card .MuiCollapse-root {
+  height: auto !important;
+  visibility: visible !important;
+}
+
+.msqdx-glass-persona-v2-section-panel .msqdx-glass-dashboard-card.collapsed .msqdx-glass-dashboard-card-content {
+  display: block;
+}

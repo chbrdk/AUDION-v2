@@ -18,6 +18,7 @@ import { MsqdxGlassPersonaV2SectionContent } from "./msqdx-glass-persona-v2-sect
 export type MsqdxGlassPersonaV2DetailLayoutProps = {
   personaId: string;
   sectionId: PersonaV2SectionId;
+  docsUrl: string;
   children?: never;
 };
 
@@ -27,7 +28,7 @@ type PersonaSummary = {
   segment: string;
 };
 
-export function MsqdxGlassPersonaV2DetailLayout({ personaId, sectionId }: MsqdxGlassPersonaV2DetailLayoutProps) {
+export function MsqdxGlassPersonaV2DetailLayout({ personaId, sectionId, docsUrl }: MsqdxGlassPersonaV2DetailLayoutProps) {
   const { t } = useI18n();
   const [summary, setSummary] = useState<PersonaSummary | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -109,6 +110,7 @@ export function MsqdxGlassPersonaV2DetailLayout({ personaId, sectionId }: MsqdxG
         personaId={personaId}
         sectionId={sectionId}
         personaName={summary?.name}
+        docsUrl={docsUrl}
       />
     </MsqdxGlassSectionShell>
   );
