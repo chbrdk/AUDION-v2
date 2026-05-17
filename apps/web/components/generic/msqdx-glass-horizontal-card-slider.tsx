@@ -190,47 +190,47 @@ export function MsqdxGlassHorizontalCardSlider({
     </Box>
   ) : null;
 
+  const hasToolbar = Boolean(toolbarStart);
+
   useLayoutEffect(() => {
     if (!cornerTabControls || !onCornerTabControls) return;
 
-    const toolbar =
-      toolbarStart ? (
-        <Box
-          className="msqdx-glass-horizontal-card-slider__toolbar"
-          role="group"
-          aria-label={t("chipEditor.sectionActions")}
-        >
-          {toolbarStart}
-        </Box>
-      ) : null;
+    const toolbar = hasToolbar ? (
+      <Box
+        className="msqdx-glass-horizontal-card-slider__toolbar"
+        role="group"
+        aria-label={t("chipEditor.sectionActions")}
+      >
+        {toolbarStart}
+      </Box>
+    ) : null;
 
-    const nav =
-      showNavControls ? (
-        <Box
-          className="msqdx-glass-horizontal-card-slider__nav"
-          role="group"
-          aria-label={t("horizontalSlider.navigation")}
+    const nav = showNavControls ? (
+      <Box
+        className="msqdx-glass-horizontal-card-slider__nav"
+        role="group"
+        aria-label={t("horizontalSlider.navigation")}
+      >
+        <MsqdxButton
+          variant="outlined"
+          size="small"
+          onClick={() => scrollRelative(-1)}
+          disabled={!canScrollBack}
+          aria-label={t("horizontalSlider.previous")}
         >
-          <MsqdxButton
-            variant="outlined"
-            size="small"
-            onClick={() => scrollRelative(-1)}
-            disabled={!canScrollBack}
-            aria-label={t("horizontalSlider.previous")}
-          >
-            <MsqdxIcon name="chevron_left" customSize={18} />
-          </MsqdxButton>
-          <MsqdxButton
-            variant="outlined"
-            size="small"
-            onClick={() => scrollRelative(1)}
-            disabled={!canScrollForward}
-            aria-label={t("horizontalSlider.next")}
-          >
-            <MsqdxIcon name="chevron_right" customSize={18} />
-          </MsqdxButton>
-        </Box>
-      ) : null;
+          <MsqdxIcon name="chevron_left" customSize={18} />
+        </MsqdxButton>
+        <MsqdxButton
+          variant="outlined"
+          size="small"
+          onClick={() => scrollRelative(1)}
+          disabled={!canScrollForward}
+          aria-label={t("horizontalSlider.next")}
+        >
+          <MsqdxIcon name="chevron_right" customSize={18} />
+        </MsqdxButton>
+      </Box>
+    ) : null;
 
     onCornerTabControls(
       toolbar || nav ? (
@@ -240,15 +240,18 @@ export function MsqdxGlassHorizontalCardSlider({
         </>
       ) : null
     );
+
+    return () => {
+      onCornerTabControls(null);
+    };
   }, [
     cornerTabControls,
     onCornerTabControls,
+    hasToolbar,
     toolbarStart,
     showNavControls,
     canScrollBack,
     canScrollForward,
-    scrollRelative,
-    t,
   ]);
 
   const showInlineControlsEnd =

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, type ReactNode } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo, type ReactNode } from "react";
 import { Box, useTheme, alpha } from "@mui/material";
 import { MsqdxIcon, MsqdxButton, MsqdxTypography, MsqdxInput } from "@msqdx/react";
 import { MsqdxGlassEditButton, MsqdxGlassAiButtonIcon } from "./";
@@ -299,30 +299,43 @@ export const MsqdxGlassChipEditor = ({
 
   const showSliderInlineHeader = isSliderLayout && !showEmptyState && Boolean(sectionHeading);
 
-  const sliderToolbarActions =
-    editable && !isEditing && isSliderLayout && !showEmptyState ? (
-      <>
-        {onAiSuggest ? (
-          <MsqdxGlassAiButtonIcon
-            onClick={onAiSuggest}
-            disabled={aiLoading}
-            loading={aiLoading}
-            size="small"
-            fontSize={18}
-            title={t("chipEditor.aiSuggestion")}
-            aria-label={t("chipEditor.aiSuggestion")}
-          />
-        ) : null}
-        {hasChips ? (
-          <MsqdxGlassEditButton
-            onClick={handleStartEdit}
-            size="small"
-            fontSize={18}
-            aria-label={t("chipEditor.editChips")}
-          />
-        ) : null}
-      </>
-    ) : null;
+  const sliderToolbarActions = useMemo(
+    () =>
+      editable && !isEditing && isSliderLayout && !showEmptyState ? (
+        <>
+          {onAiSuggest ? (
+            <MsqdxGlassAiButtonIcon
+              onClick={onAiSuggest}
+              disabled={aiLoading}
+              loading={aiLoading}
+              size="small"
+              fontSize={18}
+              title={t("chipEditor.aiSuggestion")}
+              aria-label={t("chipEditor.aiSuggestion")}
+            />
+          ) : null}
+          {hasChips ? (
+            <MsqdxGlassEditButton
+              onClick={handleStartEdit}
+              size="small"
+              fontSize={18}
+              aria-label={t("chipEditor.editChips")}
+            />
+          ) : null}
+        </>
+      ) : null,
+    [
+      editable,
+      isEditing,
+      isSliderLayout,
+      showEmptyState,
+      onAiSuggest,
+      aiLoading,
+      hasChips,
+      handleStartEdit,
+      t,
+    ]
+  );
 
   return (
     <div
