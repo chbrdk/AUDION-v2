@@ -16,6 +16,8 @@
   --msqdx-font-size-sm: 0.875rem;
   --msqdx-font-size-base: 1rem;
   --msqdx-font-size-lg: 1.125rem;
+  --msqdx-font-family-mono: var(--font-ibm-plex-mono), "IBM Plex Mono", "IBM Plex Mono Fallback",
+    ui-monospace, monospace;
   --msqdx-transition: 0.3s ease;
   --msqdx-transition-fast: 0.2s ease;
 }

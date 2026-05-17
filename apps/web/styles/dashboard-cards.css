@@ -686,6 +686,14 @@
   width: 100%;
 }
 
+.msqdx-glass-pain-goals-section .MuiTypography-root,
+.msqdx-glass-chip-editor--slider .MuiTypography-root,
+.msqdx-glass-chip-editor--list .MuiTypography-root,
+.msqdx-glass-pain-goals-slide-card,
+.msqdx-glass-chip-editor--slider .msqdx-glass-pain-goals-slide-card .MuiInputBase-input {
+  font-family: var(--msqdx-font-family-mono);
+}
+
 .msqdx-glass-horizontal-card-slider {
   position: relative;
   width: 100%;

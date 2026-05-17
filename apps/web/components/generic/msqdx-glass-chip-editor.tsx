@@ -10,6 +10,7 @@ import clsx from "clsx";
 import { MsqdxGlassChip, type MsqdxGlassChipVariant } from "./msqdx-glass-chip";
 import { MsqdxGlassHorizontalCardSlider } from "./msqdx-glass-horizontal-card-slider";
 import { useI18n } from "../i18n/i18n-provider";
+import { MONO_FONT_SX } from "../../lib/msqdx-typography";
 import { INPUT_ACCENT_SX } from "../../lib/theme-accent";
 
 function resolveChipVariant(chipClassName: string): MsqdxGlassChipVariant {
@@ -252,6 +253,7 @@ export const MsqdxGlassChipEditor = ({
   const showEmptyState = !isEditing && !hasChips;
   const isListLayout = chipLayout === "list";
   const isSliderLayout = chipLayout === "slider";
+  const usesSectionMono = isListLayout || isSliderLayout;
   const chipVariant = resolveChipVariant(chipClassName);
   const showHeaderActions = editable && !isEditing && (!isSliderLayout || showEmptyState);
   const sliderToolbarActions =
@@ -306,6 +308,7 @@ export const MsqdxGlassChipEditor = ({
               component="h3"
               weight="bold"
               sx={{
+                ...MONO_FONT_SX,
                 textTransform: "none",
                 letterSpacing: 0,
                 color: "text.primary",
@@ -318,6 +321,7 @@ export const MsqdxGlassChipEditor = ({
               variant="h5"
               component="span"
               sx={{
+                ...MONO_FONT_SX,
                 fontWeight: 500,
                 color: "text.secondary",
                 lineHeight: 1.2,
@@ -365,7 +369,14 @@ export const MsqdxGlassChipEditor = ({
       </Box>
 
       {showEmptyState ? (
-        <Box sx={{ color: "text.secondary", fontStyle: "italic", fontSize: "0.875rem" }}>
+        <Box
+          sx={{
+            color: "text.secondary",
+            fontStyle: "italic",
+            fontSize: "0.875rem",
+            ...(usesSectionMono ? MONO_FONT_SX : {}),
+          }}
+        >
           {displayEmptyMessage}
         </Box>
       ) : isSliderLayout ? (
@@ -398,13 +409,14 @@ export const MsqdxGlassChipEditor = ({
                         size="small"
                         multiline
                         minRows={3}
-                        sx={INPUT_ACCENT_SX}
+                        sx={{ ...INPUT_ACCENT_SX, ...MONO_FONT_SX }}
                       />
                     </Box>
                   ) : (
                     <MsqdxTypography
                       variant="body2"
                       sx={{
+                        ...MONO_FONT_SX,
                         lineHeight: 1.55,
                         color: "text.primary",
                         cursor: isEditing ? "pointer" : "default",
@@ -454,7 +466,7 @@ export const MsqdxGlassChipEditor = ({
                       size="small"
                       multiline
                       minRows={3}
-                      sx={INPUT_ACCENT_SX}
+                      sx={{ ...INPUT_ACCENT_SX, ...MONO_FONT_SX }}
                     />
                   </Box>
                 </div>

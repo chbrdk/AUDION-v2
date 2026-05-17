@@ -44,6 +44,7 @@ describe("persona pain-goals layout", () => {
     expect(chipEditor).toContain('component="h3"');
     expect(chipEditor).toContain('t("chipEditor.entryCount", { count: displayChips.length })');
     expect(chipEditor).toContain("msqdx-glass-chip-editor__section-heading");
+    expect(chipEditor).toContain("MONO_FONT_SX");
   });
 
   it("adjusts slider visible slides from container width", () => {

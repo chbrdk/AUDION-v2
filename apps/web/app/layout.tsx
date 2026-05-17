@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
-import { Noto_Sans_JP } from "next/font/google";
+import { IBM_Plex_Mono, Noto_Sans_JP } from "next/font/google";
 import { cookies, headers } from "next/headers";
 import Script from "next/script";
 import "../styles/globals.css";
@@ -27,6 +27,13 @@ const notoSansJp = Noto_Sans_JP({
   subsets: ["latin"],
   variable: "--font-noto-sans-jp",
   display: "swap"
+});
+
+const ibmPlexMono = IBM_Plex_Mono({
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin"],
+  variable: "--font-ibm-plex-mono",
+  display: "swap",
 });
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
@@ -61,7 +68,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           strategy="beforeInteractive"
         />
       </head>
-      <body className={`${notoSansJp.variable} ${notoSansJp.className}`}>
+      <body className={`${notoSansJp.variable} ${ibmPlexMono.variable} ${notoSansJp.className}`}>
         <I18nProvider initialLocale={locale}>{children}</I18nProvider>
       </body>
     </html>
