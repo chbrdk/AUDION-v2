@@ -273,7 +273,8 @@ export const MsqdxGlassChipEditor = ({
       >
         {label && (
           <MsqdxTypography
-            variant={isListLayout || isSliderLayout ? "subtitle2" : "caption"}
+            variant={isListLayout || isSliderLayout ? "h4" : "caption"}
+            component={isListLayout || isSliderLayout ? "h4" : undefined}
             sx={{
               fontWeight: 600,
               textTransform: isListLayout || isSliderLayout ? "none" : "uppercase",

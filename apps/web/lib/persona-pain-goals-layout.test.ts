@@ -17,4 +17,43 @@ describe("persona pain-goals layout", () => {
     expect(source).toContain("msqdx-glass-pain-goals-panel-card");
     expect(source).toContain("embedInSection");
   });
+
+  it("styles pain and goal panel cards with xl radius and uniform primary border", () => {
+    const css = readFileSync(
+      resolve(process.cwd(), "styles/dashboard-cards.css"),
+      "utf8"
+    );
+    const panelCardRule =
+      /\.msqdx-glass-pain-goals-panel-card\.--(?:pain|goal)(?:,\s*\.msqdx-glass-pain-goals-panel-card\.--(?:pain|goal))?\s*\{[^}]*\}/;
+    expect(css).toMatch(panelCardRule);
+    const rule = css.match(panelCardRule)?.[0] ?? "";
+    expect(rule).toContain("border-radius: var(--msqdx-radius-xl");
+    expect(rule).toContain("border: 1px solid var(--color-text-primary");
+    expect(rule).not.toContain("border-top: 3px");
+    expect(css).not.toMatch(
+      /\.msqdx-glass-pain-goals-panel-card\.--goal\s*\{[^}]*border-top:\s*3px/
+    );
+  });
+
+  it("uses h4 for chip editor section labels in slider layout", () => {
+    const chipEditor = readFileSync(
+      resolve(process.cwd(), "components/generic/msqdx-glass-chip-editor.tsx"),
+      "utf8"
+    );
+    expect(chipEditor).toMatch(
+      /variant=\{isListLayout \|\| isSliderLayout \? "h4" : "caption"\}/
+    );
+    expect(chipEditor).toMatch(
+      /component=\{isListLayout \|\| isSliderLayout \? "h4" : undefined\}/
+    );
+  });
+
+  it("adjusts slider visible slides from container width", () => {
+    const slider = readFileSync(
+      resolve(process.cwd(), "components/generic/msqdx-glass-horizontal-card-slider.tsx"),
+      "utf8"
+    );
+    expect(slider).toContain("resolveSlidesVisibleForContainerWidth");
+    expect(slider).toContain("--slider-gap-count");
+  });
 });

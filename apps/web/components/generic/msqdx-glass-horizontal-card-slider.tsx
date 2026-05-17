@@ -4,6 +4,7 @@ import {
   Children,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type CSSProperties,
@@ -12,6 +13,10 @@ import {
 } from "react";
 import { Box } from "@mui/material";
 import { MsqdxButton, MsqdxIcon } from "@msqdx/react";
+import {
+  gapCountForSlidesVisible,
+  resolveSlidesVisibleForContainerWidth,
+} from "../../lib/horizontal-card-slider-layout";
 import { useI18n } from "../i18n/i18n-provider";
 
 export type MsqdxGlassHorizontalCardSliderProps = {
@@ -35,8 +40,14 @@ export function MsqdxGlassHorizontalCardSlider({
   const [activeIndex, setActiveIndex] = useState(0);
   const [canScrollBack, setCanScrollBack] = useState(false);
   const [canScrollForward, setCanScrollForward] = useState(false);
+  const [containerWidth, setContainerWidth] = useState(0);
 
   const slideCount = Children.count(children);
+  const effectiveSlidesVisible = resolveSlidesVisibleForContainerWidth(
+    slidesVisible,
+    containerWidth
+  );
+  const sliderGapCount = gapCountForSlidesVisible(effectiveSlidesVisible);
 
   const updateScrollState = useCallback(() => {
     const container = viewportRef.current;
@@ -70,15 +81,28 @@ export function MsqdxGlassHorizontalCardSlider({
     setActiveIndex(closestIndex);
   }, []);
 
+  const syncContainerWidth = useCallback(() => {
+    const container = viewportRef.current;
+    if (!container) return;
+    setContainerWidth(container.clientWidth);
+  }, []);
+
+  useLayoutEffect(() => {
+    syncContainerWidth();
+  }, [syncContainerWidth, slideCount]);
+
   useEffect(() => {
     updateScrollState();
     const container = viewportRef.current;
     if (!container) return undefined;
 
-    const observer = new ResizeObserver(() => updateScrollState());
+    const observer = new ResizeObserver(() => {
+      syncContainerWidth();
+      updateScrollState();
+    });
     observer.observe(container);
     return () => observer.disconnect();
-  }, [slideCount, updateScrollState]);
+  }, [slideCount, syncContainerWidth, updateScrollState]);
 
   const scrollToIndex = useCallback(
     (index: number) => {
@@ -113,7 +137,7 @@ export function MsqdxGlassHorizontalCardSlider({
     }
   };
 
-  const showControls = slideCount > Math.floor(slidesVisible);
+  const showControls = slideCount > Math.floor(effectiveSlidesVisible);
 
   return (
     <div
@@ -121,7 +145,8 @@ export function MsqdxGlassHorizontalCardSlider({
       style={
         {
           "--slider-gap": gap,
-          "--slides-visible": String(slidesVisible),
+          "--slides-visible": String(effectiveSlidesVisible),
+          "--slider-gap-count": String(sliderGapCount),
         } as CSSProperties
       }
     >
