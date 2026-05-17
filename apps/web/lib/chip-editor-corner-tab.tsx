@@ -2,19 +2,20 @@ import type { ReactNode } from "react";
 import { MsqdxIcon } from "@msqdx/react";
 import type { MsqdxGlassChipVariant } from "../components/generic/msqdx-glass-chip";
 
+/** Shared with `MsqdxCornerTabCard` body and tab chrome (light/dark via CSS on shell). */
+export const CHIP_EDITOR_CORNER_SHELL_SURFACE =
+  "var(--msqdx-pain-goals-corner-surface, var(--color-primary-white, #ffffff))";
+
 export type ChipEditorCornerTabStyle = {
-  tabColor: string;
-  tabIconColor: string;
+  iconColor: string;
 };
 
 const CHIP_EDITOR_CORNER_TAB_STYLES: Record<"pain" | "goal", ChipEditorCornerTabStyle> = {
   pain: {
-    tabColor: "var(--color-secondary-dx-pink)",
-    tabIconColor: "var(--color-primary-white, #ffffff)",
+    iconColor: "var(--color-secondary-dx-pink)",
   },
   goal: {
-    tabColor: "var(--color-secondary-dx-blue)",
-    tabIconColor: "var(--color-primary-white, #ffffff)",
+    iconColor: "var(--color-secondary-dx-blue)",
   },
 };
 
@@ -43,7 +44,7 @@ export function renderChipEditorCornerTab(
     <MsqdxIcon
       name={iconName as "sentiment_dissatisfied"}
       customSize={18}
-      style={{ color: style.tabIconColor }}
+      style={{ color: style.iconColor }}
     />
   );
 }

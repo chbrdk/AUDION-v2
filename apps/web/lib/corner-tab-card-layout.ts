@@ -19,6 +19,8 @@ export type CornerTabCardLayoutOptions = {
   placement: CornerTabPlacement;
   tabWidthPx?: number;
   tabHeightPx?: number;
+  /** Tab grows with icon + toolbar content (pain/goals controls). */
+  tabWidthAuto?: boolean;
   containerBorderRadiusPx?: number;
   bodyBorderRadiusPx?: number;
   cornerBoxBorderRadiusPx?: number;
@@ -40,6 +42,7 @@ export function getCornerTabCardLayout(options: CornerTabCardLayoutOptions) {
   const bodyRadius = options.bodyBorderRadiusPx ?? CORNER_TAB_CARD_DEFAULTS.bodyBorderRadiusPx;
   const cornerBoxRadius = options.cornerBoxBorderRadiusPx ?? CORNER_TAB_CARD_DEFAULTS.cornerBoxBorderRadiusPx;
   const widthExtra = options.cornerBoxWidthExtraPx ?? CORNER_TAB_CARD_DEFAULTS.cornerBoxWidthExtraPx;
+  const tabWidthAuto = options.tabWidthAuto ?? false;
 
   const isTopLeft = placement === "top-left";
 
@@ -56,23 +59,25 @@ export function getCornerTabCardLayout(options: CornerTabCardLayoutOptions) {
         topLeft: "rounded",
         topRight: "rounded",
         bottomLeft: "square",
-        bottomRight: "cutdown-a",
+        bottomRight: "square",
       }
     : {
         topLeft: "rounded",
         topRight: "rounded",
-        bottomLeft: "cutdown-a",
+        bottomLeft: "square",
         bottomRight: "square",
       };
 
   const tabContainerSx: SystemStyleObject<Theme> = {
     position: "absolute",
-    top: -tabHeightPx,
+    top: tabWidthAuto ? `-${tabHeightPx}px` : -tabHeightPx,
     ...(isTopLeft ? { left: 0 } : { right: 0 }),
-    width: tabWidthPx,
-    height: tabHeightPx,
+    width: tabWidthAuto ? "max-content" : tabWidthPx,
+    minWidth: tabWidthPx,
+    height: tabWidthAuto ? "auto" : tabHeightPx,
+    minHeight: tabHeightPx,
     borderRadius: tabContainerBorderRadius,
-    pointerEvents: "none",
+    pointerEvents: tabWidthAuto ? "auto" : "none",
     zIndex: 2,
     overflow: "visible",
   };
@@ -85,8 +90,8 @@ export function getCornerTabCardLayout(options: CornerTabCardLayoutOptions) {
     height: "100%",
     display: "flex",
     alignItems: "center",
-    justifyContent: "center",
-    borderRadius: `${cornerBoxRadius}px`,
+    justifyContent: isTopLeft ? "flex-start" : "flex-end",
+    px: tabWidthAuto ? 0.5 : 0,
   };
 
   return {

@@ -1,16 +1,21 @@
 import { describe, expect, it } from "vitest";
 import {
+  CHIP_EDITOR_CORNER_SHELL_SURFACE,
   renderChipEditorCornerTab,
   resolveChipEditorCornerTabStyle,
 } from "./chip-editor-corner-tab";
 
 describe("chip-editor-corner-tab", () => {
-  it("returns pink tab styles for pain", () => {
-    expect(resolveChipEditorCornerTabStyle("pain")?.tabColor).toContain("pink");
+  it("uses shared surface token for shell background", () => {
+    expect(CHIP_EDITOR_CORNER_SHELL_SURFACE).toContain("--msqdx-pain-goals-corner-surface");
   });
 
-  it("returns blue tab styles for goal", () => {
-    expect(resolveChipEditorCornerTabStyle("goal")?.tabColor).toContain("blue");
+  it("returns pink icon accent for pain", () => {
+    expect(resolveChipEditorCornerTabStyle("pain")?.iconColor).toContain("pink");
+  });
+
+  it("returns blue icon accent for goal", () => {
+    expect(resolveChipEditorCornerTabStyle("goal")?.iconColor).toContain("blue");
   });
 
   it("skips corner tab for unrelated chip variants", () => {

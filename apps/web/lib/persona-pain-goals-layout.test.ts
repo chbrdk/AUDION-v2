@@ -62,9 +62,9 @@ describe("persona pain-goals layout", () => {
     expect(chipEditor).toContain("toolbarStart={sliderToolbarActions}");
     expect(chipEditor).toContain("leading={showSliderInlineHeader ? sectionHeading : undefined}");
     expect(chipEditor).toContain("MsqdxGlassPainGoalsCornerShell");
-    expect(chipEditor).toContain("ChipEditorCornerTabBadge");
-    expect(chipEditor).toContain("controlsEndStart={cornerTabBadge}");
-    expect(chipEditor).toContain("tabInControls={cornerTabInControls}");
+    expect(chipEditor).toContain("tabActions={useCornerTabChrome ? cornerTabActions : undefined}");
+    expect(chipEditor).toContain("cornerTabControls={useCornerTabChrome}");
+    expect(chipEditor).toContain("onCornerTabControls={useCornerTabChrome ? setCornerTabActions : undefined}");
     expect(chipEditor).toContain("showSliderInlineHeader");
     expect(chipEditor).toMatch(
       /showHeaderActions = editable && !isEditing && \(!isSliderLayout \|\| showEmptyState\)/
@@ -81,15 +81,15 @@ describe("persona pain-goals layout", () => {
       "utf8"
     );
     expect(slider).toContain("leading?: ReactNode");
-    expect(slider).toContain("controlsEndStart?: ReactNode");
+    expect(slider).toContain("cornerTabControls?: boolean");
+    expect(slider).toContain("onCornerTabControls?: (actions: ReactNode) => void");
     expect(slider).toContain("msqdx-glass-horizontal-card-slider__leading");
-    expect(slider).toContain("msqdx-glass-horizontal-card-slider__controls-end-start");
     expect(slider).toContain("msqdx-glass-horizontal-card-slider__controls-end");
     expect(css).toContain(".msqdx-glass-horizontal-card-slider__controls-end");
     expect(css).toMatch(
       /\.msqdx-glass-horizontal-card-slider__controls\s*\{[^}]*justify-content:\s*space-between/
     );
-    expect(css).toContain(".msqdx-glass-chip-editor__corner-tab-shell--tab-in-controls");
-    expect(css).toContain(".msqdx-glass-chip-editor__corner-tab-badge");
+    expect(css).toContain(".msqdx-glass-chip-editor__corner-tab-shell--with-actions");
+    expect(css).toContain(".msqdx-glass-chip-editor__corner-tab-content");
   });
 });

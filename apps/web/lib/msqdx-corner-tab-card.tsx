@@ -38,6 +38,8 @@ export interface MsqdxCornerTabCardProps extends Omit<BoxProps, "children"> {
   containerBorderRadiusPx?: number;
   tabAriaLabel?: string;
   bodySx?: SxProps<Theme>;
+  /** Tab width follows content (icon + actions). */
+  tabWidthAuto?: boolean;
 }
 
 export function MsqdxCornerTabCard({
@@ -55,6 +57,7 @@ export function MsqdxCornerTabCard({
   containerBorderRadiusPx,
   tabAriaLabel,
   bodySx,
+  tabWidthAuto = false,
   sx,
   ...rootProps
 }: MsqdxCornerTabCardProps) {
@@ -62,6 +65,7 @@ export function MsqdxCornerTabCard({
     placement,
     tabWidthPx,
     tabHeightPx,
+    tabWidthAuto,
     bodyBorderRadiusPx,
     cornerBoxBorderRadiusPx,
     cornerBoxWidthExtraPx,
@@ -69,6 +73,9 @@ export function MsqdxCornerTabCard({
   });
 
   const effectiveTabColor = tabColor ?? bodyColor;
+  const isTopRight = placement === "top-right";
+  const cornerBoxRadius =
+    cornerBoxBorderRadiusPx ?? CORNER_TAB_CARD_DEFAULTS.cornerBoxBorderRadiusPx;
   const { topLeft, topRight, bottomLeft, bottomRight } = layout.cornerStyles;
   const cornerBoxSxMerged = mergeSx(
     layout.cornerBoxSx,
@@ -87,13 +94,22 @@ export function MsqdxCornerTabCard({
       {tab ? (
       <Box sx={{ ...layout.tabContainerSx, bgcolor: tabChromeColor }}>
         <MsqdxCornerBox
+          className="msqdx-corner-tab-card__tab-box"
           topLeft={topLeft}
           topRight={topRight}
           bottomLeft={bottomLeft}
           bottomRight={bottomRight}
-          borderRadius={cornerBoxBorderRadiusPx ?? CORNER_TAB_CARD_DEFAULTS.cornerBoxBorderRadiusPx}
+          borderRadius={cornerBoxRadius}
+          bottomLeftRadius={isTopRight ? 0 : undefined}
+          bottomRightRadius={!isTopRight ? 0 : undefined}
           // Boundary cast: @msqdx/react resolves MUI/React types from the design-system tree.
-          sx={cornerBoxSxMerged as Parameters<typeof MsqdxCornerBox>[0]["sx"]}
+          sx={
+            {
+              ...cornerBoxSxMerged,
+              borderBottomLeftRadius: isTopRight ? 0 : undefined,
+              borderBottomRightRadius: !isTopRight ? 0 : undefined,
+            } as Parameters<typeof MsqdxCornerBox>[0]["sx"]
+          }
           aria-label={tab ? tabAriaLabel : undefined}
         >
           {tab as Parameters<typeof MsqdxCornerBox>[0]["children"]}

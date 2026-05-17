@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, type ReactNode } from "react";
 import { Box, useTheme, alpha } from "@mui/material";
 import { MsqdxIcon, MsqdxButton, MsqdxTypography, MsqdxInput } from "@msqdx/react";
 import { MsqdxGlassEditButton, MsqdxGlassAiButtonIcon } from "./";
@@ -13,7 +13,6 @@ import { useI18n } from "../i18n/i18n-provider";
 import { MONO_FONT_SX, SECTION_HEADING_MONO_SX } from "../../lib/msqdx-typography";
 import { INPUT_ACCENT_SX } from "../../lib/theme-accent";
 import { MsqdxGlassPainGoalsCornerShell } from "./msqdx-glass-pain-goals-corner-shell";
-import { ChipEditorCornerTabBadge } from "../../lib/chip-editor-corner-tab-badge";
 import { resolveChipEditorCornerTabStyle } from "../../lib/chip-editor-corner-tab";
 
 function resolveChipVariant(chipClassName: string): MsqdxGlassChipVariant {
@@ -265,14 +264,8 @@ export const MsqdxGlassChipEditor = ({
   const usesSectionMono = isListLayout || isSliderLayout;
   const chipVariant = resolveChipVariant(chipClassName);
   const cornerTabStyle = resolveChipEditorCornerTabStyle(chipVariant);
-  const cornerTabInControls = isSliderLayout && Boolean(cornerTabStyle);
-  const cornerTabBadge = cornerTabInControls ? (
-    <ChipEditorCornerTabBadge
-      variant={chipVariant}
-      label={label}
-      placement={cornerTabPlacement}
-    />
-  ) : null;
+  const useCornerTabChrome = isSliderLayout && Boolean(cornerTabStyle);
+  const [cornerTabActions, setCornerTabActions] = useState<ReactNode>(null);
   const showHeaderActions = editable && !isEditing && (!isSliderLayout || showEmptyState);
 
   const sectionHeading =
@@ -409,14 +402,15 @@ export const MsqdxGlassChipEditor = ({
             chipVariant={chipVariant}
             label={label}
             placement={cornerTabPlacement}
-            tabInControls={cornerTabInControls}
+            tabActions={useCornerTabChrome ? cornerTabActions : undefined}
           >
           <MsqdxGlassHorizontalCardSlider
             ariaLabel={label}
             slidesVisible={slidesVisible}
             leading={showSliderInlineHeader ? sectionHeading : undefined}
-            controlsEndStart={cornerTabBadge}
             toolbarStart={sliderToolbarActions}
+            cornerTabControls={useCornerTabChrome}
+            onCornerTabControls={useCornerTabChrome ? setCornerTabActions : undefined}
           >
             {displayChips.map((chip, idx) => (
               <article
