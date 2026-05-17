@@ -1,4 +1,5 @@
-import type { SxProps, Theme } from "@mui/material";
+import type { Theme } from "@mui/material";
+import type { SystemStyleObject } from "@mui/system";
 
 export type CornerTabPlacement = "top-left" | "top-right";
 
@@ -64,7 +65,7 @@ export function getCornerTabCardLayout(options: CornerTabCardLayoutOptions) {
         bottomRight: "square",
       };
 
-  const tabContainerSx: SxProps<Theme> = {
+  const tabContainerSx: SystemStyleObject<Theme> = {
     position: "absolute",
     top: -tabHeightPx,
     ...(isTopLeft ? { left: 0 } : { right: 0 }),
@@ -76,7 +77,7 @@ export function getCornerTabCardLayout(options: CornerTabCardLayoutOptions) {
     overflow: "visible",
   };
 
-  const cornerBoxSx: SxProps<Theme> = {
+  const cornerBoxSx: SystemStyleObject<Theme> = {
     position: "absolute",
     top: 0,
     ...(isTopLeft ? { left: 0 } : { right: 0 }),
