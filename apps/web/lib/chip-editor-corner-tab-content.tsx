@@ -2,19 +2,16 @@
 
 import { Box } from "@mui/material";
 import type { ReactNode } from "react";
-import { renderChipEditorCornerTab } from "./chip-editor-corner-tab";
-import type { MsqdxGlassChipVariant } from "../components/generic/msqdx-glass-chip";
 
 export type ChipEditorCornerTabContentProps = {
-  variant: MsqdxGlassChipVariant;
-  label: string;
+  /** Section title + count (e.g. Pain Points (15)). */
+  heading?: ReactNode;
   children?: ReactNode;
 };
 
-/** Children render inside `MsqdxCornerTabCard` tab (`MsqdxCornerBox`) beside the icon. */
+/** Heading and toolbar inside `MsqdxCornerTabCard` tab (`MsqdxCornerBox`). */
 export function ChipEditorCornerTabContent({
-  variant,
-  label,
+  heading,
   children,
 }: ChipEditorCornerTabContentProps) {
   return (
@@ -24,12 +21,16 @@ export function ChipEditorCornerTabContent({
         display: "flex",
         alignItems: "center",
         flexWrap: "nowrap",
-        gap: 0.5,
+        gap: 0.75,
         minHeight: 40,
         pr: 0.25,
       }}
     >
-      {renderChipEditorCornerTab(variant, label)}
+      {heading ? (
+        <Box className="msqdx-glass-chip-editor__corner-tab-heading" sx={{ flex: "1 1 auto", minWidth: 0 }}>
+          {heading}
+        </Box>
+      ) : null}
       {children ? (
         <Box
           className="msqdx-glass-chip-editor__corner-tab-actions"

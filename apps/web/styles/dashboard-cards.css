@@ -682,14 +682,22 @@
   margin-top: 2rem;
 }
 
-.msqdx-glass-chip-editor__corner-tab-shell--with-actions .msqdx-corner-tab-card__body {
-  padding-top: 0.5rem;
-}
 
 .msqdx-glass-chip-editor__corner-tab-content,
+.msqdx-glass-chip-editor__corner-tab-heading,
 .msqdx-glass-chip-editor__corner-tab-actions {
   position: relative;
   z-index: 1;
+}
+
+.msqdx-glass-chip-editor__corner-tab-shell--with-actions .msqdx-glass-chip-editor__corner-tab-heading {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.msqdx-glass-chip-editor__corner-tab-shell--with-actions .msqdx-glass-chip-editor__section-heading {
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 
 .msqdx-glass-chip-editor__corner-tab-shell--with-actions .msqdx-corner-tab-card__tab-box {
@@ -704,6 +712,9 @@
 .msqdx-glass-chip-editor__corner-tab-shell .msqdx-corner-tab-card__body,
 .msqdx-glass-chip-editor__corner-tab-shell .MuiBox-root.msqdx-corner-tab-card__body {
   background-color: var(--msqdx-pain-goals-corner-surface) !important;
+  padding-top: calc(var(--msqdx-spacing-md) + var(--msqdx-spacing-xxs));
+  padding-bottom: var(--msqdx-spacing-xl);
+  padding-left: var(--msqdx-spacing-xl);
 }
 
 .msqdx-glass-chip-editor--slider {

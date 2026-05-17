@@ -11,9 +11,11 @@ describe("MsqdxGlassPainGoalsCornerShell", () => {
     expect(source).toContain("MsqdxCornerTabCard");
     expect(source).toContain("../../lib/msqdx-corner-tab-card");
     expect(source).toContain('placement = "top-right"');
+    expect(source).toContain("tabHeading");
     expect(source).toContain("tabActions");
     expect(source).toContain("tabWidthAuto");
     expect(source).toContain("ChipEditorCornerTabContent");
     expect(source).toContain("resolveChipEditorCornerTabStyle");
+    expect(source).toContain("bodySx={{ pr: 0.25 }}");
   });
 });

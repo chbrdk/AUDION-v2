@@ -417,18 +417,14 @@ export const MsqdxGlassChipEditor = ({
             toolbarStart={sliderToolbarActions}
             renderLayout={
               useCornerTabChrome
-                ? ({ leading, controlsEnd, viewport, showLeadingRow }) => (
+                ? ({ controlsEnd, viewport }) => (
                     <MsqdxGlassPainGoalsCornerShell
                       chipVariant={chipVariant}
                       label={label}
                       placement={cornerTabPlacement}
+                      tabHeading={showSliderInlineHeader ? sectionHeading : undefined}
                       tabActions={controlsEnd}
                     >
-                      {showLeadingRow ? (
-                        <Box className="msqdx-glass-horizontal-card-slider__controls">
-                          <Box className="msqdx-glass-horizontal-card-slider__leading">{leading}</Box>
-                        </Box>
-                      ) : null}
                       {viewport}
                     </MsqdxGlassPainGoalsCornerShell>
                   )

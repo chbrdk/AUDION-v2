@@ -16,6 +16,8 @@ export type MsqdxGlassPainGoalsCornerShellProps = {
   children: ReactNode;
   /** @default 'top-right' */
   placement?: "top-left" | "top-right";
+  /** Section title rendered inside the corner tab (`MsqdxCornerBox`). */
+  tabHeading?: ReactNode;
   /** Toolbar + nav rendered inside the corner tab (`MsqdxCornerBox`). */
   tabActions?: ReactNode;
 };
@@ -28,6 +30,7 @@ export function MsqdxGlassPainGoalsCornerShell({
   label,
   children,
   placement = "top-right",
+  tabHeading,
   tabActions,
 }: MsqdxGlassPainGoalsCornerShellProps) {
   const cornerTabStyle = resolveChipEditorCornerTabStyle(chipVariant);
@@ -35,11 +38,9 @@ export function MsqdxGlassPainGoalsCornerShell({
     return <>{children}</>;
   }
 
-  const hasTabActions = Boolean(tabActions);
-  const tab = hasTabActions ? (
-    <ChipEditorCornerTabContent variant={chipVariant} label={label}>
-      {tabActions}
-    </ChipEditorCornerTabContent>
+  const hasTabChrome = Boolean(tabHeading) || Boolean(tabActions);
+  const tab = hasTabChrome ? (
+    <ChipEditorCornerTabContent heading={tabHeading}>{tabActions}</ChipEditorCornerTabContent>
   ) : (
     renderChipEditorCornerTab(chipVariant, label)
   );
@@ -49,19 +50,19 @@ export function MsqdxGlassPainGoalsCornerShell({
       className={[
         "msqdx-glass-chip-editor__corner-tab-shell",
         `msqdx-glass-chip-editor__corner-tab-shell--${placement === "top-right" ? "right" : "left"}`,
-        hasTabActions && "msqdx-glass-chip-editor__corner-tab-shell--with-actions",
+        hasTabChrome && "msqdx-glass-chip-editor__corner-tab-shell--with-actions",
       ]
         .filter(Boolean)
         .join(" ")}
       placement={placement}
       tab={tab}
-      tabWidthAuto={hasTabActions}
+      tabWidthAuto={hasTabChrome}
       tabAriaLabel={label}
       tabChromeColor={CHIP_EDITOR_CORNER_SHELL_SURFACE}
       tabColor={CHIP_EDITOR_CORNER_SHELL_SURFACE}
       bodyColor={CHIP_EDITOR_CORNER_SHELL_SURFACE}
       bodyBorderRadiusPx={24}
-      bodySx={{ pt: 1.25, pb: 0.25, px: 0.25 }}
+      bodySx={{ pr: 0.25 }}
     >
       {children}
     </MsqdxCornerTabCard>

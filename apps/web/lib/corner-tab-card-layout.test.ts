@@ -15,12 +15,17 @@ describe("corner-tab-card-layout", () => {
 
   it("expands tab width for icon + toolbar content", () => {
     const layout = getCornerTabCardLayout({ placement: "top-right", tabWidthAuto: true });
-    expect(layout.tabContainerSx).toMatchObject({ width: "max-content", minWidth: 48 });
+    expect(layout.tabContainerSx).toMatchObject({
+      width: "max-content",
+      minWidth: 48,
+      top: "-48px",
+    });
     expect(layout.tabContainerSx).toMatchObject({ pointerEvents: "auto", minHeight: 40 });
     expect(layout.cornerBoxSx).toMatchObject({
       width: "fit-content",
       minHeight: 40,
       py: 0.5,
+      px: 1,
     });
   });
 });

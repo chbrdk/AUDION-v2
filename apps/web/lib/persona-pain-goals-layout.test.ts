@@ -69,6 +69,8 @@ describe("persona pain-goals layout", () => {
     expect(chipEditor).toContain("MsqdxGlassPainGoalsCornerShell");
     expect(chipEditor).toContain("renderLayout=");
     expect(chipEditor).toContain("tabActions={controlsEnd}");
+    expect(chipEditor).toContain("tabHeading={showSliderInlineHeader ? sectionHeading : undefined}");
+    expect(chipEditor).not.toContain("horizontal-card-slider__leading");
     expect(chipEditor).not.toContain("onCornerTabControls");
     expect(chipEditor).not.toContain("cornerTabActions");
     expect(chipEditor).toContain("showSliderInlineHeader");
@@ -97,7 +99,17 @@ describe("persona pain-goals layout", () => {
     );
     expect(css).toContain(".msqdx-glass-chip-editor__corner-tab-shell--with-actions");
     expect(css).toContain(".msqdx-glass-chip-editor__corner-tab-content");
+    expect(css).toContain(".msqdx-glass-chip-editor__corner-tab-heading");
     expect(css).toContain(".msqdx-corner-tab-card__tab-box");
     expect(css).toMatch(/width:\s*fit-content/);
+    expect(css).toMatch(
+      /\.msqdx-glass-chip-editor__corner-tab-shell \.msqdx-corner-tab-card__body[^}]*padding-top:\s*calc\(var\(--msqdx-spacing-md\) \+ var\(--msqdx-spacing-xxs\)\)/
+    );
+    expect(css).toMatch(
+      /\.msqdx-glass-chip-editor__corner-tab-shell \.msqdx-corner-tab-card__body[^}]*padding-bottom:\s*var\(--msqdx-spacing-xl\)/
+    );
+    expect(css).toMatch(
+      /\.msqdx-glass-chip-editor__corner-tab-shell \.msqdx-corner-tab-card__body[^}]*padding-left:\s*var\(--msqdx-spacing-xl\)/
+    );
   });
 });

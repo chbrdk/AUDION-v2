@@ -11,6 +11,8 @@ export const CORNER_TAB_CARD_DEFAULTS = {
   tabHeightPx: 32,
   /** Taller tab when icon + toolbar actions sit inside the corner box. */
   tabHeightAutoPx: 40,
+  /** Vertical offset for auto-width tab shell (sits above the card body). */
+  tabContainerTopOffsetAutoPx: 48,
   containerBorderRadiusPx: 16,
   bodyBorderRadiusPx: 14,
   cornerBoxBorderRadiusPx: 16,
@@ -71,11 +73,12 @@ export function getCornerTabCardLayout(options: CornerTabCardLayoutOptions) {
       };
 
   const tabHeightAutoPx = CORNER_TAB_CARD_DEFAULTS.tabHeightAutoPx;
+  const tabContainerTopOffsetAutoPx = CORNER_TAB_CARD_DEFAULTS.tabContainerTopOffsetAutoPx;
   const effectiveTabHeightPx = tabWidthAuto ? tabHeightAutoPx : tabHeightPx;
 
   const tabContainerSx: SystemStyleObject<Theme> = {
     position: "absolute",
-    top: tabWidthAuto ? `-${effectiveTabHeightPx}px` : -tabHeightPx,
+    top: tabWidthAuto ? `-${tabContainerTopOffsetAutoPx}px` : -tabHeightPx,
     ...(isTopLeft ? { left: 0 } : { right: 0 }),
     width: tabWidthAuto ? "max-content" : tabWidthPx,
     minWidth: tabWidthPx,
@@ -98,7 +101,7 @@ export function getCornerTabCardLayout(options: CornerTabCardLayoutOptions) {
         alignItems: "center",
         justifyContent: isTopLeft ? "flex-start" : "flex-end",
         py: 0.5,
-        px: 0.5,
+        px: 1,
         boxSizing: "border-box",
         // Cutdown still extends toward the card body (top-right tab).
         ...(isTopLeft ? {} : { marginLeft: `-${widthExtra}px` }),
