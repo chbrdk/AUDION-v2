@@ -694,8 +694,17 @@
 .msqdx-glass-horizontal-card-slider__controls {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 0.5rem;
   margin-bottom: 0.75rem;
+}
+
+.msqdx-glass-horizontal-card-slider__toolbar,
+.msqdx-glass-horizontal-card-slider__nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .msqdx-glass-horizontal-card-slider__viewport {

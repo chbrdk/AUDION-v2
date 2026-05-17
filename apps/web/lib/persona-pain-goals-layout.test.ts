@@ -35,17 +35,15 @@ describe("persona pain-goals layout", () => {
     );
   });
 
-  it("uses h4 for chip editor section labels in slider layout", () => {
+  it("uses h3 section heading with entry count in slider layout", () => {
     const chipEditor = readFileSync(
       resolve(process.cwd(), "components/generic/msqdx-glass-chip-editor.tsx"),
       "utf8"
     );
-    expect(chipEditor).toMatch(
-      /variant=\{isListLayout \|\| isSliderLayout \? "h4" : "caption"\}/
-    );
-    expect(chipEditor).toMatch(
-      /component=\{isListLayout \|\| isSliderLayout \? "h4" : undefined\}/
-    );
+    expect(chipEditor).toContain('variant="h3"');
+    expect(chipEditor).toContain('component="h3"');
+    expect(chipEditor).toContain('t("chipEditor.entryCount", { count: displayChips.length })');
+    expect(chipEditor).toContain("msqdx-glass-chip-editor__section-heading");
   });
 
   it("adjusts slider visible slides from container width", () => {
@@ -55,5 +53,16 @@ describe("persona pain-goals layout", () => {
     );
     expect(slider).toContain("resolveSlidesVisibleForContainerWidth");
     expect(slider).toContain("--slider-gap-count");
+  });
+
+  it("places slider chip actions in toolbar beside nav controls", () => {
+    const chipEditor = readFileSync(
+      resolve(process.cwd(), "components/generic/msqdx-glass-chip-editor.tsx"),
+      "utf8"
+    );
+    expect(chipEditor).toContain("toolbarStart={sliderToolbarActions}");
+    expect(chipEditor).toMatch(
+      /showHeaderActions = editable && !isEditing && \(!isSliderLayout \|\| showEmptyState\)/
+    );
   });
 });

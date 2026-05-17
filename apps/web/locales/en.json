@@ -51,6 +51,8 @@
     "searchVariables": "Search variables…"
   },
   "chipEditor": {
+    "sectionActions": "Section actions",
+    "entryCount": "({count})",
     "aiSuggestion": "AI suggestion",
     "editChips": "Edit chips",
     "addEntryPlaceholder": "Add new entry…",

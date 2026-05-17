@@ -253,6 +253,31 @@ export const MsqdxGlassChipEditor = ({
   const isListLayout = chipLayout === "list";
   const isSliderLayout = chipLayout === "slider";
   const chipVariant = resolveChipVariant(chipClassName);
+  const showHeaderActions = editable && !isEditing && (!isSliderLayout || showEmptyState);
+  const sliderToolbarActions =
+    editable && !isEditing && isSliderLayout && !showEmptyState ? (
+      <>
+        {onAiSuggest ? (
+          <MsqdxGlassAiButtonIcon
+            onClick={onAiSuggest}
+            disabled={aiLoading}
+            loading={aiLoading}
+            size="small"
+            fontSize={18}
+            title={t("chipEditor.aiSuggestion")}
+            aria-label={t("chipEditor.aiSuggestion")}
+          />
+        ) : null}
+        {hasChips ? (
+          <MsqdxGlassEditButton
+            onClick={handleStartEdit}
+            size="small"
+            fontSize={18}
+            aria-label={t("chipEditor.editChips")}
+          />
+        ) : null}
+      </>
+    ) : null;
 
   return (
     <div
@@ -266,28 +291,57 @@ export const MsqdxGlassChipEditor = ({
       <Box
         sx={{
           display: "flex",
-          justifyContent: "space-between",
+          justifyContent: showHeaderActions ? "space-between" : "flex-start",
           alignItems: "center",
           mb: relaxedSpacing ? 2 : 1,
         }}
       >
-        {label && (
+        {label && (isListLayout || isSliderLayout ? (
+          <Box
+            className="msqdx-glass-chip-editor__section-heading"
+            sx={{ display: "flex", alignItems: "baseline", gap: 1, flexWrap: "wrap", minWidth: 0 }}
+          >
+            <MsqdxTypography
+              variant="h3"
+              component="h3"
+              weight="bold"
+              sx={{
+                textTransform: "none",
+                letterSpacing: 0,
+                color: "text.primary",
+                lineHeight: 1.2,
+              }}
+            >
+              {label}
+            </MsqdxTypography>
+            <MsqdxTypography
+              variant="h5"
+              component="span"
+              sx={{
+                fontWeight: 500,
+                color: "text.secondary",
+                lineHeight: 1.2,
+              }}
+            >
+              {t("chipEditor.entryCount", { count: displayChips.length })}
+            </MsqdxTypography>
+          </Box>
+        ) : (
           <MsqdxTypography
-            variant={isListLayout || isSliderLayout ? "h4" : "caption"}
-            component={isListLayout || isSliderLayout ? "h4" : undefined}
+            variant="caption"
             sx={{
               fontWeight: 600,
-              textTransform: isListLayout || isSliderLayout ? "none" : "uppercase",
-              letterSpacing: isListLayout || isSliderLayout ? 0 : "0.05em",
-              color: isListLayout || isSliderLayout ? "text.primary" : "text.secondary",
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              color: "text.secondary",
             }}
           >
             {label}
           </MsqdxTypography>
-        )}
-        {editable && !isEditing && (
+        ))}
+        {showHeaderActions ? (
           <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
-            {onAiSuggest && (
+            {onAiSuggest ? (
               <MsqdxGlassAiButtonIcon
                 onClick={onAiSuggest}
                 disabled={aiLoading}
@@ -297,17 +351,17 @@ export const MsqdxGlassChipEditor = ({
                 title={t("chipEditor.aiSuggestion")}
                 aria-label={t("chipEditor.aiSuggestion")}
               />
-            )}
-            {hasChips && (
+            ) : null}
+            {hasChips ? (
               <MsqdxGlassEditButton
                 onClick={handleStartEdit}
                 size="small"
                 fontSize={18}
                 aria-label={t("chipEditor.editChips")}
               />
-            )}
+            ) : null}
           </Box>
-        )}
+        ) : null}
       </Box>
 
       {showEmptyState ? (
@@ -316,7 +370,11 @@ export const MsqdxGlassChipEditor = ({
         </Box>
       ) : isSliderLayout ? (
         <>
-          <MsqdxGlassHorizontalCardSlider ariaLabel={label} slidesVisible={slidesVisible}>
+          <MsqdxGlassHorizontalCardSlider
+            ariaLabel={label}
+            slidesVisible={slidesVisible}
+            toolbarStart={sliderToolbarActions}
+          >
             {displayChips.map((chip, idx) => (
               <article
                 key={idx}
