@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { MsqdxCornerTabCard } from "@msqdx/react";
+import { MsqdxCornerTabCard } from "../../lib/msqdx-corner-tab-card";
 import type { MsqdxGlassChipVariant } from "./msqdx-glass-chip";
 import {
   renderChipEditorCornerTab,

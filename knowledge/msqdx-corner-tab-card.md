@@ -4,8 +4,9 @@ BVik workflow nodes used `MsqdxCornerBox` as a top corner tab on React Flow card
 
 ## Source of truth
 
-- Package: `@msqdx/react`
-- Path: `msqdx-design-system/packages/react/src/components/molecules/CornerTabCard/`
+- Package: `@msqdx/react` (export `MsqdxCornerTabCard` — push `msqdx-design-system` to GitHub for Coolify)
+- **AUDION deploy fallback:** `apps/web/lib/msqdx-corner-tab-card.tsx` (uses `MsqdxCornerBox` from `@msqdx/react`)
+- DS path: `msqdx-design-system/packages/react/src/components/molecules/CornerTabCard/`
 - Storybook: **Design System / Molecules / CornerTabCard**
 
 ## AUDION integration

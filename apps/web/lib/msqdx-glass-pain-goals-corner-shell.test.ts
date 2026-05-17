@@ -9,6 +9,7 @@ describe("MsqdxGlassPainGoalsCornerShell", () => {
       "utf8"
     );
     expect(source).toContain("MsqdxCornerTabCard");
+    expect(source).toContain("../../lib/msqdx-corner-tab-card");
     expect(source).toContain('placement = "top-left"');
     expect(source).toContain("resolveChipEditorCornerTabStyle");
   });
