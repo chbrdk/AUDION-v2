@@ -25,7 +25,7 @@ export function ChipEditorCornerTabContent({
         alignItems: "center",
         flexWrap: "nowrap",
         gap: 0.5,
-        minHeight: 32,
+        minHeight: 40,
         pr: 0.25,
       }}
     >

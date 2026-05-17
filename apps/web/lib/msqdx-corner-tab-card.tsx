@@ -73,7 +73,6 @@ export function MsqdxCornerTabCard({
   });
 
   const effectiveTabColor = tabColor ?? bodyColor;
-  const isTopRight = placement === "top-right";
   const cornerBoxRadius =
     cornerBoxBorderRadiusPx ?? CORNER_TAB_CARD_DEFAULTS.cornerBoxBorderRadiusPx;
   const { topLeft, topRight, bottomLeft, bottomRight } = layout.cornerStyles;
@@ -100,16 +99,8 @@ export function MsqdxCornerTabCard({
           bottomLeft={bottomLeft}
           bottomRight={bottomRight}
           borderRadius={cornerBoxRadius}
-          bottomLeftRadius={isTopRight ? 0 : undefined}
-          bottomRightRadius={!isTopRight ? 0 : undefined}
           // Boundary cast: @msqdx/react resolves MUI/React types from the design-system tree.
-          sx={
-            {
-              ...cornerBoxSxMerged,
-              borderBottomLeftRadius: isTopRight ? 0 : undefined,
-              borderBottomRightRadius: !isTopRight ? 0 : undefined,
-            } as Parameters<typeof MsqdxCornerBox>[0]["sx"]
-          }
+          sx={cornerBoxSxMerged as Parameters<typeof MsqdxCornerBox>[0]["sx"]}
           aria-label={tab ? tabAriaLabel : undefined}
         >
           {tab as Parameters<typeof MsqdxCornerBox>[0]["children"]}

@@ -9,6 +9,8 @@ type CornerStyle = "rounded" | "square" | "cutdown-a" | "cutdown-b";
 export const CORNER_TAB_CARD_DEFAULTS = {
   tabWidthPx: 48,
   tabHeightPx: 32,
+  /** Taller tab when icon + toolbar actions sit inside the corner box. */
+  tabHeightAutoPx: 40,
   containerBorderRadiusPx: 16,
   bodyBorderRadiusPx: 14,
   cornerBoxBorderRadiusPx: 16,
@@ -59,40 +61,58 @@ export function getCornerTabCardLayout(options: CornerTabCardLayoutOptions) {
         topLeft: "rounded",
         topRight: "rounded",
         bottomLeft: "square",
-        bottomRight: "square",
+        bottomRight: "cutdown-a",
       }
     : {
         topLeft: "rounded",
         topRight: "rounded",
-        bottomLeft: "square",
+        bottomLeft: "cutdown-a",
         bottomRight: "square",
       };
 
+  const tabHeightAutoPx = CORNER_TAB_CARD_DEFAULTS.tabHeightAutoPx;
+  const effectiveTabHeightPx = tabWidthAuto ? tabHeightAutoPx : tabHeightPx;
+
   const tabContainerSx: SystemStyleObject<Theme> = {
     position: "absolute",
-    top: tabWidthAuto ? `-${tabHeightPx}px` : -tabHeightPx,
+    top: tabWidthAuto ? `-${effectiveTabHeightPx}px` : -tabHeightPx,
     ...(isTopLeft ? { left: 0 } : { right: 0 }),
     width: tabWidthAuto ? "max-content" : tabWidthPx,
     minWidth: tabWidthPx,
     height: tabWidthAuto ? "auto" : tabHeightPx,
-    minHeight: tabHeightPx,
+    minHeight: effectiveTabHeightPx,
     borderRadius: tabContainerBorderRadius,
     pointerEvents: tabWidthAuto ? "auto" : "none",
     zIndex: 2,
     overflow: "visible",
   };
 
-  const cornerBoxSx: SystemStyleObject<Theme> = {
-    position: "absolute",
-    top: 0,
-    ...(isTopLeft ? { left: 0 } : { right: 0 }),
-    width: `calc(100% + ${widthExtra}px)`,
-    height: "100%",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: isTopLeft ? "flex-start" : "flex-end",
-    px: tabWidthAuto ? 0.5 : 0,
-  };
+  const cornerBoxSx: SystemStyleObject<Theme> = tabWidthAuto
+    ? {
+        position: "relative",
+        width: "fit-content",
+        minWidth: tabWidthPx,
+        minHeight: tabHeightAutoPx,
+        height: "auto",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: isTopLeft ? "flex-start" : "flex-end",
+        py: 0.5,
+        px: 0.5,
+        boxSizing: "border-box",
+        // Cutdown still extends toward the card body (top-right tab).
+        ...(isTopLeft ? {} : { marginLeft: `-${widthExtra}px` }),
+      }
+    : {
+        position: "absolute",
+        top: 0,
+        ...(isTopLeft ? { left: 0 } : { right: 0 }),
+        width: `calc(100% + ${widthExtra}px)`,
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: isTopLeft ? "flex-start" : "flex-end",
+      };
 
   return {
     placement,

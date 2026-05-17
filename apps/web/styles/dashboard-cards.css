@@ -692,8 +692,13 @@
   z-index: 1;
 }
 
-.msqdx-glass-chip-editor__corner-tab-shell--right .msqdx-corner-tab-card__tab-box {
-  border-bottom-left-radius: 0 !important;
+.msqdx-glass-chip-editor__corner-tab-shell--with-actions .msqdx-corner-tab-card__tab-box {
+  width: fit-content;
+  min-height: 40px;
+  height: auto;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  box-sizing: border-box;
 }
 
 .msqdx-glass-chip-editor__corner-tab-shell .msqdx-corner-tab-card__body,

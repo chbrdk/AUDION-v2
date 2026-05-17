@@ -97,5 +97,7 @@ describe("persona pain-goals layout", () => {
     );
     expect(css).toContain(".msqdx-glass-chip-editor__corner-tab-shell--with-actions");
     expect(css).toContain(".msqdx-glass-chip-editor__corner-tab-content");
+    expect(css).toContain(".msqdx-corner-tab-card__tab-box");
+    expect(css).toMatch(/width:\s*fit-content/);
   });
 });
