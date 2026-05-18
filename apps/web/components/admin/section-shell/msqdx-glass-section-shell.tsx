@@ -111,7 +111,7 @@ export function MsqdxGlassSectionShell({
                 width: "100%",
                 boxSizing: "border-box",
                 bgcolor: "transparent",
-                border: "4px solid var(--msqdx-section-workspace-dock-border)",
+                border: "none",
                 display: "flex",
                 flexDirection: "column",
                 gap: "var(--msqdx-spacing-lg)",

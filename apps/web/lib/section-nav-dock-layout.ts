@@ -1,8 +1,8 @@
 /** Matches `--msqdx-radius-3xl` — same radius as pain/goals corner-tab card body. */
 export const SECTION_NAV_DOCK_BORDER_RADIUS_PX = 24;
 
-/** Workspace dock shell beside subnav — larger rounded frame than the nav rail. */
-export const SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX = 42;
+/** Workspace dock shell beside subnav — outer frame radius (matches CSS on `--with-subnav`). */
+export const SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX = 36;
 
 /** Subtle rail fill — see `--msqdx-section-nav-dock-surface` in section-shell.css */
 export const SECTION_NAV_DOCK_SURFACE = "var(--msqdx-section-nav-dock-surface)";
