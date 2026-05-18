@@ -22,12 +22,12 @@
 }
 
 .msqdx-glass-section-shell {
-  --msqdx-section-nav-dock-surface: var(--color-primary-white, #ffffff);
+  --msqdx-section-nav-dock-surface: var(--color-theme-accent-tint, rgba(0, 0, 0, 0.04));
 }
 
 [data-theme="dark"] .msqdx-glass-section-shell,
 [data-theme="monochrome-dark"] .msqdx-glass-section-shell {
-  --msqdx-section-nav-dock-surface: var(--color-surface-primary, #1a1a1a);
+  --msqdx-section-nav-dock-surface: var(--color-theme-accent-tint, rgba(255, 255, 255, 0.06));
 }
 
 .msqdx-glass-section-shell--no-subnav .msqdx-glass-section-shell__body {
@@ -106,7 +106,11 @@
 
   .msqdx-glass-section-nav--docked {
     height: fit-content;
+    max-height: none;
     align-self: start;
+    overflow: visible;
+    padding-bottom: 0;
+    scrollbar-width: auto;
   }
 
   .msqdx-glass-section-nav__dock-shell {

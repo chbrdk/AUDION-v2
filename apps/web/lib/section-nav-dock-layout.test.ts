@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   SECTION_NAV_DOCK_BORDER_RADIUS_PX,
   SECTION_NAV_DOCK_CORNER_STYLES,
+  SECTION_NAV_DOCK_SURFACE,
 } from "./section-nav-dock-layout";
 
 describe("section-nav-dock-layout", () => {
@@ -25,9 +26,19 @@ describe("section-nav-dock-layout", () => {
     expect(source).toContain("SECTION_NAV_DOCK_CORNER_STYLES");
   });
 
-  it("sizes docked nav to content height", () => {
+  it("sizes docked nav to content height without spurious scroll", () => {
     const css = readFileSync(resolve(process.cwd(), "styles/section-shell.css"), "utf8");
     expect(css).toMatch(/\.msqdx-glass-section-nav--docked\s*\{[^}]*height:\s*fit-content/);
+    expect(css).toMatch(/\.msqdx-glass-section-nav--docked\s*\{[^}]*max-height:\s*none/);
+    expect(css).toMatch(/\.msqdx-glass-section-nav--docked\s*\{[^}]*overflow:\s*visible/);
     expect(css).toMatch(/\.msqdx-glass-section-nav__dock-shell\s*\{[^}]*height:\s*fit-content/);
+  });
+
+  it("uses a light tint for dock surface", () => {
+    expect(SECTION_NAV_DOCK_SURFACE).toBe("var(--msqdx-section-nav-dock-surface)");
+    const css = readFileSync(resolve(process.cwd(), "styles/section-shell.css"), "utf8");
+    expect(css).toMatch(
+      /--msqdx-section-nav-dock-surface:\s*var\(--color-theme-accent-tint/
+    );
   });
 });

@@ -13,6 +13,8 @@ Desktop compact subnav (`msqdx-glass-section-nav--compact`) sits in a `MsqdxCorn
 
 Radius: `24px` (`SECTION_NAV_DOCK_BORDER_RADIUS_PX` / `--msqdx-radius-3xl`).
 
+Surface: `--msqdx-section-nav-dock-surface` → `--color-theme-accent-tint` (light rail, not solid white). Docked nav uses `overflow: visible` / `max-height: none` so cutout patches do not trigger a scrollbar.
+
 ## Code
 
 - Layout constants: `apps/web/lib/section-nav-dock-layout.ts`
