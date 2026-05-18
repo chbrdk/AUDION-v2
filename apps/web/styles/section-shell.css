@@ -23,11 +23,13 @@
 
 .msqdx-glass-section-shell {
   --msqdx-section-nav-dock-surface: var(--color-theme-accent-tint, rgba(0, 0, 0, 0.04));
+  --msqdx-section-nav-dock-border: var(--color-theme-accent-tint, rgba(0, 0, 0, 0.12));
 }
 
 [data-theme="dark"] .msqdx-glass-section-shell,
 [data-theme="monochrome-dark"] .msqdx-glass-section-shell {
   --msqdx-section-nav-dock-surface: var(--color-theme-accent-tint, rgba(255, 255, 255, 0.06));
+  --msqdx-section-nav-dock-border: var(--color-theme-accent-tint, rgba(255, 255, 255, 0.12));
 }
 
 .msqdx-glass-section-shell--no-subnav .msqdx-glass-section-shell__body {
@@ -272,13 +274,8 @@
 .msqdx-glass-section-workspace__dock-shell {
   min-width: 0;
   box-sizing: border-box;
-  background-color: var(--msqdx-section-nav-dock-surface);
-  /* Pain/goals corner-tab body matches dock panel (not solid white) */
-  --msqdx-pain-goals-corner-surface: var(--msqdx-section-nav-dock-surface);
-}
-
-.msqdx-glass-section-workspace__dock-shell .msqdx-glass-section-workspace__content {
-  background-color: var(--msqdx-section-nav-dock-surface);
+  background-color: transparent;
+  border: 1px solid var(--msqdx-section-nav-dock-border);
 }
 
 @media (min-width: 1025px) {

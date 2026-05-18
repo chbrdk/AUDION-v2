@@ -15,10 +15,15 @@ describe("section-shell layout", () => {
       /\.msqdx-glass-section-workspace__content\s*\{[^}]*max-width:\s*960px/
     );
     expect(css).toMatch(
-      /\.msqdx-glass-section-workspace__dock-shell \.msqdx-glass-section-workspace__content[^}]*background-color:\s*var\(--msqdx-section-nav-dock-surface\)/
+      /\.msqdx-glass-section-workspace__dock-shell\s*\{[^}]*background-color:\s*transparent/
     );
     expect(css).toMatch(
-      /\.msqdx-glass-section-workspace__dock-shell[^}]*--msqdx-pain-goals-corner-surface:\s*var\(--msqdx-section-nav-dock-surface\)/
+      /\.msqdx-glass-section-workspace__dock-shell\s*\{[^}]*border:\s*1px solid var\(--msqdx-section-nav-dock-border\)/
     );
+    const shell = readFileSync(
+      resolve(process.cwd(), "components/admin/section-shell/msqdx-glass-section-shell.tsx"),
+      "utf8"
+    );
+    expect(shell).toContain('bgcolor: "transparent"');
   });
 });

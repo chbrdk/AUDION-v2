@@ -110,7 +110,8 @@ export function MsqdxGlassSectionShell({
               sx={{
                 width: "100%",
                 boxSizing: "border-box",
-                bgcolor: SECTION_NAV_DOCK_SURFACE,
+                bgcolor: "transparent",
+                border: "1px solid var(--msqdx-section-nav-dock-border)",
                 display: "flex",
                 flexDirection: "column",
                 gap: "var(--msqdx-spacing-lg)",
