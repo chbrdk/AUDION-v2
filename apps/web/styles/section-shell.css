@@ -24,12 +24,14 @@
 .msqdx-glass-section-shell {
   --msqdx-section-nav-dock-surface: var(--color-theme-accent-tint, rgba(0, 0, 0, 0.04));
   --msqdx-section-nav-dock-border: var(--color-theme-accent-tint, rgba(0, 0, 0, 0.12));
+  --msqdx-section-workspace-dock-border: var(--color-theme-accent-tint, rgba(0, 0, 0, 0.09));
 }
 
 [data-theme="dark"] .msqdx-glass-section-shell,
 [data-theme="monochrome-dark"] .msqdx-glass-section-shell {
   --msqdx-section-nav-dock-surface: var(--color-theme-accent-tint, rgba(255, 255, 255, 0.06));
   --msqdx-section-nav-dock-border: var(--color-theme-accent-tint, rgba(255, 255, 255, 0.12));
+  --msqdx-section-workspace-dock-border: var(--color-theme-accent-tint, rgba(255, 255, 255, 0.09));
 }
 
 .msqdx-glass-section-shell--no-subnav .msqdx-glass-section-shell__body {
@@ -275,7 +277,8 @@
   min-width: 0;
   box-sizing: border-box;
   background-color: transparent;
-  border: 1px solid var(--msqdx-section-nav-dock-border);
+  border: 4px solid var(--msqdx-section-workspace-dock-border);
+  border-radius: 42px;
 }
 
 @media (min-width: 1025px) {

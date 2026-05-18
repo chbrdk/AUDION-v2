@@ -3,8 +3,8 @@
 import { Box } from "@mui/material";
 import { MsqdxCornerBox } from "@msqdx/react";
 import {
-  SECTION_NAV_DOCK_BORDER_RADIUS_PX,
   SECTION_NAV_DOCK_SURFACE,
+  SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX,
   SECTION_WORKSPACE_DOCK_CORNER_STYLES,
 } from "../../../lib/section-nav-dock-layout";
 import { MsqdxGlassSectionEntityHeader } from "./msqdx-glass-section-entity-header";
@@ -106,12 +106,12 @@ export function MsqdxGlassSectionShell({
               topRight={SECTION_WORKSPACE_DOCK_CORNER_STYLES.topRight}
               bottomLeft={SECTION_WORKSPACE_DOCK_CORNER_STYLES.bottomLeft}
               bottomRight={SECTION_WORKSPACE_DOCK_CORNER_STYLES.bottomRight}
-              borderRadius={SECTION_NAV_DOCK_BORDER_RADIUS_PX}
+              borderRadius={SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX}
               sx={{
                 width: "100%",
                 boxSizing: "border-box",
                 bgcolor: "transparent",
-                border: "1px solid var(--msqdx-section-nav-dock-border)",
+                border: "4px solid var(--msqdx-section-workspace-dock-border)",
                 display: "flex",
                 flexDirection: "column",
                 gap: "var(--msqdx-spacing-lg)",

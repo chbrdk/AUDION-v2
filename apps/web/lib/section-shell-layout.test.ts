@@ -18,7 +18,10 @@ describe("section-shell layout", () => {
       /\.msqdx-glass-section-workspace__dock-shell\s*\{[^}]*background-color:\s*transparent/
     );
     expect(css).toMatch(
-      /\.msqdx-glass-section-workspace__dock-shell\s*\{[^}]*border:\s*1px solid var\(--msqdx-section-nav-dock-border\)/
+      /\.msqdx-glass-section-workspace__dock-shell\s*\{[^}]*border:\s*4px solid var\(--msqdx-section-workspace-dock-border\)/
+    );
+    expect(css).toMatch(
+      /\.msqdx-glass-section-workspace__dock-shell\s*\{[^}]*border-radius:\s*42px/
     );
     const shell = readFileSync(
       resolve(process.cwd(), "components/admin/section-shell/msqdx-glass-section-shell.tsx"),

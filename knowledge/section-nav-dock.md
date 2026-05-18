@@ -15,7 +15,7 @@ Radius: `24px` (`SECTION_NAV_DOCK_BORDER_RADIUS_PX` / `--msqdx-radius-3xl`).
 
 Surface: `--msqdx-section-nav-dock-surface` → `--color-theme-accent-tint` (light rail, not solid white). Docked nav uses `overflow: visible` / `max-height: none` so cutout patches do not trigger a scrollbar.
 
-Workspace: `MsqdxCornerBox.msqdx-glass-section-workspace__dock-shell` — transparent fill, `border: 1px solid var(--msqdx-section-nav-dock-border)`, all corners `rounded`. Nav rail keeps the light tint fill (`--msqdx-section-nav-dock-surface`).
+Workspace: `MsqdxCornerBox.msqdx-glass-section-workspace__dock-shell` — transparent fill, `border: 4px solid var(--msqdx-section-workspace-dock-border)` (fallback `rgba(0,0,0,0.09)`), radius `42px` (`SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX`), all corners `rounded`. Nav rail keeps the light tint fill (`--msqdx-section-nav-dock-surface`).
 
 ## Code
 
@@ -27,10 +27,9 @@ Workspace: `MsqdxCornerBox.msqdx-glass-section-workspace__dock-shell` — transp
 
 | Corner | Style | Role |
 |--------|--------|------|
-| top-left, bottom-left | `cutdown-b` | Seam with the subnav rail |
-| top-right, bottom-right | `rounded` | Outer edge of the admin layout |
+| all four | `rounded` | Pill-like frame around entity + section content |
 
-Same surface token and radius as the nav dock. Implemented in `msqdx-glass-section-shell.tsx` (`msqdx-glass-section-workspace__dock-shell`).
+Radius `42px`; border via `--msqdx-section-workspace-dock-border`. Implemented in `msqdx-glass-section-shell.tsx` (`msqdx-glass-section-workspace__dock-shell`).
 
 ## Follow-ups (optional)
 

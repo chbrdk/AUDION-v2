@@ -5,6 +5,7 @@ import {
   SECTION_NAV_DOCK_BORDER_RADIUS_PX,
   SECTION_NAV_DOCK_CORNER_STYLES,
   SECTION_NAV_DOCK_SURFACE,
+  SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX,
   SECTION_WORKSPACE_DOCK_CORNER_STYLES,
 } from "./section-nav-dock-layout";
 
@@ -48,6 +49,7 @@ describe("section-nav-dock-layout", () => {
     expect(SECTION_WORKSPACE_DOCK_CORNER_STYLES.bottomLeft).toBe("rounded");
     expect(SECTION_WORKSPACE_DOCK_CORNER_STYLES.topRight).toBe("rounded");
     expect(SECTION_WORKSPACE_DOCK_CORNER_STYLES.bottomRight).toBe("rounded");
+    expect(SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX).toBe(42);
   });
 
   it("wraps subnav workspace in MsqdxCornerBox dock shell", () => {
@@ -57,6 +59,7 @@ describe("section-nav-dock-layout", () => {
     );
     expect(source).toContain("msqdx-glass-section-workspace__dock-shell");
     expect(source).toContain("SECTION_WORKSPACE_DOCK_CORNER_STYLES");
-    expect(source).toContain("SECTION_NAV_DOCK_SURFACE");
+    expect(source).toContain("SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX");
+    expect(source).toContain("--msqdx-section-workspace-dock-border");
   });
 });
