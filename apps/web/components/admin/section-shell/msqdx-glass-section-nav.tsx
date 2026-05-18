@@ -1,7 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { MsqdxIcon } from "@msqdx/react";
+import { MsqdxCornerBox, MsqdxIcon } from "@msqdx/react";
+import {
+  SECTION_NAV_DOCK_BORDER_RADIUS_PX,
+  SECTION_NAV_DOCK_CORNER_STYLES,
+  SECTION_NAV_DOCK_SURFACE,
+} from "../../../lib/section-nav-dock-layout";
 import type { SectionNavItem } from "./section-shell-types";
 
 export type MsqdxGlassSectionNavProps = {
@@ -18,16 +23,8 @@ export function MsqdxGlassSectionNav({
   navLabel,
   compact = true,
 }: MsqdxGlassSectionNavProps) {
-  return (
-    <nav
-      className={[
-        "msqdx-glass-section-nav",
-        compact ? "msqdx-glass-section-nav--compact" : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
-      aria-label={navLabel ?? "Section navigation"}
-    >
+  const navList = (
+    <>
       {navLabel ? <span className="msqdx-glass-section-nav__label">{navLabel}</span> : null}
       {items.map((item) => {
         const isActive = activeSectionId === item.id;
@@ -53,6 +50,44 @@ export function MsqdxGlassSectionNav({
           </Link>
         );
       })}
+    </>
+  );
+
+  return (
+    <nav
+      className={[
+        "msqdx-glass-section-nav",
+        compact ? "msqdx-glass-section-nav--compact" : "",
+        compact ? "msqdx-glass-section-nav--docked" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      aria-label={navLabel ?? "Section navigation"}
+    >
+      {compact ? (
+        <MsqdxCornerBox
+          className="msqdx-glass-section-nav__dock-shell"
+          topLeft={SECTION_NAV_DOCK_CORNER_STYLES.topLeft}
+          topRight={SECTION_NAV_DOCK_CORNER_STYLES.topRight}
+          bottomLeft={SECTION_NAV_DOCK_CORNER_STYLES.bottomLeft}
+          bottomRight={SECTION_NAV_DOCK_CORNER_STYLES.bottomRight}
+          borderRadius={SECTION_NAV_DOCK_BORDER_RADIUS_PX}
+          sx={{
+            width: "100%",
+            boxSizing: "border-box",
+            bgcolor: SECTION_NAV_DOCK_SURFACE,
+            display: "flex",
+            flexDirection: "column",
+            gap: 0.375,
+            py: 0.75,
+            px: 0.75,
+          }}
+        >
+          {navList}
+        </MsqdxCornerBox>
+      ) : (
+        navList
+      )}
     </nav>
   );
 }

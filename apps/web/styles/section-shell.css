@@ -21,6 +21,15 @@
   grid-template-columns: minmax(200px, 224px) minmax(0, 1fr);
 }
 
+.msqdx-glass-section-shell {
+  --msqdx-section-nav-dock-surface: var(--color-primary-white, #ffffff);
+}
+
+[data-theme="dark"] .msqdx-glass-section-shell,
+[data-theme="monochrome-dark"] .msqdx-glass-section-shell {
+  --msqdx-section-nav-dock-surface: var(--color-surface-primary, #1a1a1a);
+}
+
 .msqdx-glass-section-shell--no-subnav .msqdx-glass-section-shell__body {
   grid-template-columns: minmax(0, 1fr);
 }
@@ -87,6 +96,38 @@
 
   .msqdx-glass-section-workspace--with-subnav {
     min-width: 0;
+  }
+
+  /* Docked subnav: cutdown on the right meets workspace (no column gap) */
+  .msqdx-glass-section-shell__body:has(.msqdx-glass-section-nav--docked) {
+    gap: 0;
+    align-items: stretch;
+  }
+
+  .msqdx-glass-section-nav--docked {
+    align-self: stretch;
+  }
+
+  .msqdx-glass-section-nav__dock-shell {
+    flex: 1 1 auto;
+    min-height: 100%;
+    overflow: visible;
+  }
+
+  .msqdx-glass-section-nav--docked .msqdx-glass-section-nav__card {
+    border-color: transparent;
+    background: transparent;
+  }
+
+  .msqdx-glass-section-nav--docked .msqdx-glass-section-nav__card:hover {
+    background: var(--color-theme-accent-tint, rgba(0, 0, 0, 0.04));
+    border-color: transparent;
+  }
+
+  .msqdx-glass-section-nav--docked .msqdx-glass-section-nav__card--active {
+    background: var(--color-theme-accent-tint, rgba(0, 0, 0, 0.06));
+    border-color: transparent;
+    box-shadow: none;
   }
 }
 
