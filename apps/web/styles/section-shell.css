@@ -213,6 +213,7 @@
 
 .msqdx-glass-section-workspace {
   min-width: 0;
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: var(--msqdx-spacing-lg);
@@ -223,6 +224,7 @@
   flex-direction: column;
   gap: var(--msqdx-spacing-lg);
   min-width: 0;
+  width: 100%;
 }
 
 .msqdx-glass-section-workspace__header {
@@ -248,12 +250,13 @@
 
 .msqdx-glass-section-workspace__content {
   width: 100%;
-  max-width: 960px;
+  max-width: 100%;
   min-width: 0;
+  box-sizing: border-box;
 }
 
 .msqdx-glass-section-workspace__content--wide {
-  max-width: none;
+  max-width: 100%;
 }
 
 .msqdx-glass-section-v2-banner {

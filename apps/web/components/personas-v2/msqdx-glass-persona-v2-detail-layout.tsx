@@ -96,7 +96,7 @@ export function MsqdxGlassPersonaV2DetailLayout({ personaId, sectionId, docsUrl 
       navLabel={t("personaV2.sectionsNavLabel")}
       sectionTitle={t(activeSection.labelKey)}
       sectionDescription={t(activeSection.descriptionKey)}
-      wideContent={sectionId === "moodboard"}
+      wideContent
       headerActions={
         <Link href={ADMIN_ROUTES.personaDetail(personaId)} style={{ textDecoration: "none" }}>
           <MsqdxButton variant="outlined" size="small">
