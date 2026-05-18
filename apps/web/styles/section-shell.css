@@ -101,16 +101,16 @@
   /* Docked subnav: cutdown on the right meets workspace (no column gap) */
   .msqdx-glass-section-shell__body:has(.msqdx-glass-section-nav--docked) {
     gap: 0;
-    align-items: stretch;
+    align-items: start;
   }
 
   .msqdx-glass-section-nav--docked {
-    align-self: stretch;
+    height: fit-content;
+    align-self: start;
   }
 
   .msqdx-glass-section-nav__dock-shell {
-    flex: 1 1 auto;
-    min-height: 100%;
+    height: fit-content;
     overflow: visible;
   }
 

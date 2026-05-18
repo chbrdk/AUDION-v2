@@ -8,8 +8,8 @@ import {
 
 describe("section-nav-dock-layout", () => {
   it("uses right-edge cutdowns for left-rail dock", () => {
-    expect(SECTION_NAV_DOCK_CORNER_STYLES.topRight).toBe("cutdown-a");
-    expect(SECTION_NAV_DOCK_CORNER_STYLES.bottomRight).toBe("cutdown-a");
+    expect(SECTION_NAV_DOCK_CORNER_STYLES.topRight).toBe("cutdown-b");
+    expect(SECTION_NAV_DOCK_CORNER_STYLES.bottomRight).toBe("cutdown-b");
     expect(SECTION_NAV_DOCK_CORNER_STYLES.topLeft).toBe("rounded");
     expect(SECTION_NAV_DOCK_BORDER_RADIUS_PX).toBe(24);
   });
@@ -23,5 +23,11 @@ describe("section-nav-dock-layout", () => {
     expect(source).toContain("msqdx-glass-section-nav__dock-shell");
     expect(source).toContain("msqdx-glass-section-nav--docked");
     expect(source).toContain("SECTION_NAV_DOCK_CORNER_STYLES");
+  });
+
+  it("sizes docked nav to content height", () => {
+    const css = readFileSync(resolve(process.cwd(), "styles/section-shell.css"), "utf8");
+    expect(css).toMatch(/\.msqdx-glass-section-nav--docked\s*\{[^}]*height:\s*fit-content/);
+    expect(css).toMatch(/\.msqdx-glass-section-nav__dock-shell\s*\{[^}]*height:\s*fit-content/);
   });
 });

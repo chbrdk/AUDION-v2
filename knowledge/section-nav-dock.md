@@ -9,7 +9,7 @@ Desktop compact subnav (`msqdx-glass-section-nav--compact`) sits in a `MsqdxCorn
 | Corner | Style | Role |
 |--------|--------|------|
 | top-left, bottom-left | `rounded` | Outer edge of the admin layout |
-| top-right, bottom-right | `cutdown-a` | Concave join toward workspace content |
+| top-right, bottom-right | `cutdown-b` | Concave on the right edge (oben/unten rechts, not rechts oben/unten) |
 
 Radius: `24px` (`SECTION_NAV_DOCK_BORDER_RADIUS_PX` / `--msqdx-radius-3xl`).
 
@@ -22,4 +22,4 @@ Radius: `24px` (`SECTION_NAV_DOCK_BORDER_RADIUS_PX` / `--msqdx-radius-3xl`).
 ## Follow-ups (optional)
 
 - Mirror cutdown on workspace `top-left` / `bottom-left` for a perfect seam
-- Tune `cutdown-a` vs `cutdown-b` per edge if the curve direction looks inverted
+- Swap `cutdown-a` / `cutdown-b` per edge if the curve direction looks inverted
