@@ -5,6 +5,7 @@ import {
   SECTION_NAV_DOCK_BORDER_RADIUS_PX,
   SECTION_NAV_DOCK_CORNER_STYLES,
   SECTION_NAV_DOCK_SURFACE,
+  SECTION_WORKSPACE_DOCK_CORNER_STYLES,
 } from "./section-nav-dock-layout";
 
 describe("section-nav-dock-layout", () => {
@@ -40,5 +41,22 @@ describe("section-nav-dock-layout", () => {
     expect(css).toMatch(
       /--msqdx-section-nav-dock-surface:\s*var\(--color-theme-accent-tint/
     );
+  });
+
+  it("mirrors nav cutdowns on the workspace left edge", () => {
+    expect(SECTION_WORKSPACE_DOCK_CORNER_STYLES.topLeft).toBe("cutdown-b");
+    expect(SECTION_WORKSPACE_DOCK_CORNER_STYLES.bottomLeft).toBe("cutdown-b");
+    expect(SECTION_WORKSPACE_DOCK_CORNER_STYLES.topRight).toBe("rounded");
+    expect(SECTION_WORKSPACE_DOCK_CORNER_STYLES.bottomRight).toBe("rounded");
+  });
+
+  it("wraps subnav workspace in MsqdxCornerBox dock shell", () => {
+    const source = readFileSync(
+      resolve(process.cwd(), "components/admin/section-shell/msqdx-glass-section-shell.tsx"),
+      "utf8"
+    );
+    expect(source).toContain("msqdx-glass-section-workspace__dock-shell");
+    expect(source).toContain("SECTION_WORKSPACE_DOCK_CORNER_STYLES");
+    expect(source).toContain("SECTION_NAV_DOCK_SURFACE");
   });
 });

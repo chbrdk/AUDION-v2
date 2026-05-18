@@ -14,3 +14,14 @@ export const SECTION_NAV_DOCK_CORNER_STYLES = {
   topRight: "cutdown-b",
   bottomRight: "cutdown-b",
 } as const;
+
+/**
+ * Right-hand workspace docked to the subnav on the left: outer corners rounded on the right,
+ * cutdown on the left edge for a seamless seam with the nav rail.
+ */
+export const SECTION_WORKSPACE_DOCK_CORNER_STYLES = {
+  topLeft: "cutdown-b",
+  bottomLeft: "cutdown-b",
+  topRight: "rounded",
+  bottomRight: "rounded",
+} as const;

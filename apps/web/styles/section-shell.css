@@ -264,6 +264,31 @@
   gap: var(--msqdx-spacing-lg);
 }
 
+.msqdx-glass-section-workspace--with-subnav {
+  align-self: start;
+  min-width: 0;
+}
+
+.msqdx-glass-section-workspace__dock-shell {
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+@media (min-width: 1025px) {
+  .msqdx-glass-section-workspace--with-subnav {
+    align-self: stretch;
+  }
+
+  .msqdx-glass-section-workspace__dock-shell {
+    flex: 1 1 auto;
+    min-height: fit-content;
+  }
+
+  .msqdx-glass-section-workspace--with-subnav .msqdx-glass-section-shell__entity {
+    padding-bottom: var(--msqdx-spacing-md);
+  }
+}
+
 .msqdx-glass-section-workspace__main {
   display: flex;
   flex-direction: column;

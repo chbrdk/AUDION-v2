@@ -21,7 +21,16 @@ Surface: `--msqdx-section-nav-dock-surface` → `--color-theme-accent-tint` (lig
 - Component: `apps/web/components/admin/section-shell/msqdx-glass-section-nav.tsx`
 - CSS: `apps/web/styles/section-shell.css` (`.msqdx-glass-section-nav--docked`, gap `0` on shell body)
 
+## Workspace (right column)
+
+| Corner | Style | Role |
+|--------|--------|------|
+| top-left, bottom-left | `cutdown-b` | Seam with the subnav rail |
+| top-right, bottom-right | `rounded` | Outer edge of the admin layout |
+
+Same surface token and radius as the nav dock. Implemented in `msqdx-glass-section-shell.tsx` (`msqdx-glass-section-workspace__dock-shell`).
+
 ## Follow-ups (optional)
 
-- Mirror cutdown on workspace `top-left` / `bottom-left` for a perfect seam
 - Swap `cutdown-a` / `cutdown-b` per edge if the curve direction looks inverted
+- On mobile (stacked layout), use all-`rounded` corners on the workspace dock
