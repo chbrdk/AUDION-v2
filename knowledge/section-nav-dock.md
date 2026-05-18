@@ -15,6 +15,8 @@ Radius: `24px` (`SECTION_NAV_DOCK_BORDER_RADIUS_PX` / `--msqdx-radius-3xl`).
 
 Surface: `--msqdx-section-nav-dock-surface` → `--color-theme-accent-tint` (light rail, not solid white). Docked nav uses `overflow: visible` / `max-height: none` so cutout patches do not trigger a scrollbar.
 
+Workspace: `MsqdxCornerBox.msqdx-glass-section-workspace__dock-shell` shares the same surface; all corners `rounded` (no left cutdown). `__content` and `--msqdx-pain-goals-corner-surface` inherit the surface inside the dock shell.
+
 ## Code
 
 - Layout constants: `apps/web/lib/section-nav-dock-layout.ts`

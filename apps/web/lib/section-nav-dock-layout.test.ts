@@ -44,8 +44,8 @@ describe("section-nav-dock-layout", () => {
   });
 
   it("mirrors nav cutdowns on the workspace left edge", () => {
-    expect(SECTION_WORKSPACE_DOCK_CORNER_STYLES.topLeft).toBe("cutdown-b");
-    expect(SECTION_WORKSPACE_DOCK_CORNER_STYLES.bottomLeft).toBe("cutdown-b");
+    expect(SECTION_WORKSPACE_DOCK_CORNER_STYLES.topLeft).toBe("rounded");
+    expect(SECTION_WORKSPACE_DOCK_CORNER_STYLES.bottomLeft).toBe("rounded");
     expect(SECTION_WORKSPACE_DOCK_CORNER_STYLES.topRight).toBe("rounded");
     expect(SECTION_WORKSPACE_DOCK_CORNER_STYLES.bottomRight).toBe("rounded");
   });

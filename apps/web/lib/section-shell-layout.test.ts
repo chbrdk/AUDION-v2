@@ -14,5 +14,11 @@ describe("section-shell layout", () => {
     expect(css).not.toMatch(
       /\.msqdx-glass-section-workspace__content\s*\{[^}]*max-width:\s*960px/
     );
+    expect(css).toMatch(
+      /\.msqdx-glass-section-workspace__dock-shell \.msqdx-glass-section-workspace__content[^}]*background-color:\s*var\(--msqdx-section-nav-dock-surface\)/
+    );
+    expect(css).toMatch(
+      /\.msqdx-glass-section-workspace__dock-shell[^}]*--msqdx-pain-goals-corner-surface:\s*var\(--msqdx-section-nav-dock-surface\)/
+    );
   });
 });
