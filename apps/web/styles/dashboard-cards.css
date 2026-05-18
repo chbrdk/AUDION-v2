@@ -721,6 +721,11 @@
   width: 100%;
 }
 
+.msqdx-glass-chip-editor--slider:has(.msqdx-glass-chip-editor__corner-tab-shell)
+  > .MuiBox-root:first-of-type {
+  margin-bottom: var(--msqdx-spacing-md);
+}
+
 .msqdx-glass-pain-goals-section .MuiTypography-root,
 .msqdx-glass-chip-editor--slider .MuiTypography-root,
 .msqdx-glass-chip-editor--list .MuiTypography-root,

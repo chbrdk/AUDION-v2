@@ -296,7 +296,8 @@ export const MsqdxGlassChipEditor = ({
       </Box>
     ) : null;
 
-  const showSliderInlineHeader = isSliderLayout && !showEmptyState && Boolean(sectionHeading);
+  const showSliderInlineHeader =
+    isSliderLayout && !showEmptyState && Boolean(sectionHeading) && !useCornerTabChrome;
 
   const sliderToolbarActions = useMemo(
     () =>
@@ -417,20 +418,13 @@ export const MsqdxGlassChipEditor = ({
             toolbarStart={sliderToolbarActions}
             renderLayout={
               useCornerTabChrome
-                ? ({ controlsEnd, viewport, leading }) => (
+                ? ({ controlsEnd, viewport }) => (
                     <MsqdxGlassPainGoalsCornerShell
                       chipVariant={chipVariant}
                       label={label}
                       placement={cornerTabPlacement}
                       tabActions={controlsEnd}
                     >
-                      {leading ? (
-                        <Box className="msqdx-glass-horizontal-card-slider__controls">
-                          <Box className="msqdx-glass-horizontal-card-slider__leading">
-                            {leading}
-                          </Box>
-                        </Box>
-                      ) : null}
                       {viewport}
                     </MsqdxGlassPainGoalsCornerShell>
                   )

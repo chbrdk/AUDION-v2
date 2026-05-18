@@ -66,11 +66,15 @@ describe("persona pain-goals layout", () => {
     );
     expect(chipEditor).toContain("toolbarStart={sliderToolbarActions}");
     expect(chipEditor).toContain("leading={showSliderInlineHeader ? sectionHeading : undefined}");
+    expect(chipEditor).toContain("!useCornerTabChrome");
     expect(chipEditor).toContain("MsqdxGlassPainGoalsCornerShell");
     expect(chipEditor).toContain("renderLayout=");
     expect(chipEditor).toContain("tabActions={controlsEnd}");
     expect(chipEditor).not.toContain("tabHeading=");
-    expect(chipEditor).toContain("msqdx-glass-horizontal-card-slider__leading");
+    expect(chipEditor).toMatch(
+      /useCornerTabChrome\s*\?\s*\(\{\s*controlsEnd,\s*viewport\s*\}\)/
+    );
+    expect(chipEditor).not.toContain("msqdx-glass-horizontal-card-slider__leading");
     expect(chipEditor).not.toContain("onCornerTabControls");
     expect(chipEditor).not.toContain("cornerTabActions");
     expect(chipEditor).toContain("showSliderInlineHeader");
