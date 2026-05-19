@@ -20,6 +20,8 @@ describe("persona v2 detail admin header", () => {
     expect(layout).not.toContain("sectionTitle=");
     expect(layout).not.toContain("sectionDescription=");
     expect(layout).not.toContain("personaV2.openClassic");
+    expect(layout).toContain("entitySubtitle={summary?.segment?.trim()");
+    expect(layout).not.toContain("[summary.headline, summary.segment]");
 
     const providers = readFileSync(
       join(webRoot, "components/admin/admin-layout-providers.tsx"),

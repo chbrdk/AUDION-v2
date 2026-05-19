@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Box, useTheme, alpha } from "@mui/material";
-import { MsqdxIcon, MsqdxButton, MsqdxTypography, MsqdxInput } from "@msqdx/react";
+import { MsqdxIcon, MsqdxButton, MsqdxTypography, MsqdxInput, MsqdxCornerBox } from "@msqdx/react";
 import { MsqdxGlassEditButton, MsqdxGlassAiButtonIcon } from "./";
 import { useInlineEdit } from "../hooks/use-inline-edit";
 import { MsqdxGlassInlineEditControls } from "../msqdx-glass-inline-edit-controls";
@@ -13,7 +13,7 @@ import { useI18n } from "../i18n/i18n-provider";
 import { MONO_FONT_SX, SECTION_HEADING_MONO_SX } from "../../lib/msqdx-typography";
 import { INPUT_ACCENT_SX } from "../../lib/theme-accent";
 import { MsqdxGlassPainGoalsCornerShell } from "./msqdx-glass-pain-goals-corner-shell";
-import { resolveChipEditorCornerTabStyle } from "../../lib/chip-editor-corner-tab";
+import { resolveChipEditorCornerTabStyle, PAIN_GOALS_SLIDE_INDEX_BADGE_RADIUS_PX } from "../../lib/chip-editor-corner-tab";
 
 function resolveChipVariant(chipClassName: string): MsqdxGlassChipVariant {
   if (chipClassName.includes("--vocab")) return "vocab";
@@ -441,9 +441,49 @@ export const MsqdxGlassChipEditor = ({
                   className={clsx(
                     "msqdx-glass-pain-goals-slide-card",
                     chipVariant === "pain" && "--pain",
-                    chipVariant === "goal" && "--goal"
+                    chipVariant === "goal" && "--goal",
+                    useCornerTabChrome && "msqdx-glass-pain-goals-slide-card--indexed"
                   )}
                 >
+                  {useCornerTabChrome ? (
+                    <MsqdxCornerBox
+                      className="msqdx-glass-pain-goals-slide-card__index-corner"
+                      topLeft="cutdown-a"
+                      topRight="rounded"
+                      bottomLeft="rounded"
+                      bottomRight="rounded"
+                      borderRadius={PAIN_GOALS_SLIDE_INDEX_BADGE_RADIUS_PX}
+                      aria-label={t("chipEditor.slideIndexAria", { n: idx + 1 })}
+                      sx={{
+                        position: "absolute",
+                        zIndex: 2,
+                        top: 0,
+                        left: 0,
+                        minWidth: "1.75rem",
+                        px: 0.75,
+                        py: 0.5,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        boxSizing: "border-box",
+                        bgcolor: "var(--msqdx-pain-goals-slide-surface)",
+                        color: "text.primary",
+                        pointerEvents: "none",
+                      }}
+                    >
+                      <Box
+                        component="span"
+                        sx={{
+                          ...MONO_FONT_SX,
+                          fontSize: "0.75rem",
+                          fontWeight: 700,
+                          lineHeight: 1,
+                        }}
+                      >
+                        {idx + 1}
+                      </Box>
+                    </MsqdxCornerBox>
+                  ) : null}
                   {isEditing && editingIndex === idx ? (
                     <Box ref={editInputWrapperRef} sx={{ width: "100%" }}>
                       <MsqdxInput

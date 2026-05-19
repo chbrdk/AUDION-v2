@@ -27,6 +27,8 @@ describe("persona pain-goals layout", () => {
       "utf8"
     );
     expect(css).not.toContain(".msqdx-glass-pain-goals-panel-card");
+    expect(css).toContain(".msqdx-glass-pain-goals-slide-card--indexed");
+    expect(css).toContain("--msqdx-pain-goals-slide-surface");
     expect(css).toContain(".msqdx-glass-pain-goals-stack__block");
     expect(css).toContain(".msqdx-glass-chip-editor__section-heading h3.MuiTypography-root");
     expect(css).toMatch(/font-weight:\s*100/);
@@ -68,6 +70,10 @@ describe("persona pain-goals layout", () => {
     expect(chipEditor).toContain("leading={showSliderInlineHeader ? sectionHeading : undefined}");
     expect(chipEditor).toContain("!useCornerTabChrome");
     expect(chipEditor).toContain("MsqdxGlassPainGoalsCornerShell");
+    expect(chipEditor).toContain("MsqdxCornerBox");
+    expect(chipEditor).toContain("PAIN_GOALS_SLIDE_INDEX_BADGE_RADIUS_PX");
+    expect(chipEditor).toContain("msqdx-glass-pain-goals-slide-card--indexed");
+    expect(chipEditor).toContain("chipEditor.slideIndexAria");
     expect(chipEditor).toContain("renderLayout=");
     expect(chipEditor).toContain("tabActions={controlsEnd}");
     expect(chipEditor).not.toContain("tabHeading=");

@@ -56,7 +56,8 @@
     "aiSuggestion": "AI suggestion",
     "editChips": "Edit chips",
     "addEntryPlaceholder": "Add new entry…",
-    "emptyEntries": "No entries"
+    "emptyEntries": "No entries",
+    "slideIndexAria": "Entry {n}"
   },
   "horizontalSlider": {
     "navigation": "Carousel navigation",

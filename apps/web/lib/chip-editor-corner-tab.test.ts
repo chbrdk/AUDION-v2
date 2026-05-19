@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   CHIP_EDITOR_CORNER_BORDER_RADIUS_PX,
   CHIP_EDITOR_CORNER_SHELL_SURFACE,
+  PAIN_GOALS_SLIDE_INDEX_BADGE_RADIUS_PX,
   renderChipEditorCornerTab,
   resolveChipEditorCornerTabStyle,
 } from "./chip-editor-corner-tab";
@@ -13,6 +14,10 @@ describe("chip-editor-corner-tab", () => {
 
   it("aligns corner tab radius with card body (--msqdx-radius-3xl)", () => {
     expect(CHIP_EDITOR_CORNER_BORDER_RADIUS_PX).toBe(24);
+  });
+
+  it("exposes slider index badge radius matching slide card corners", () => {
+    expect(PAIN_GOALS_SLIDE_INDEX_BADGE_RADIUS_PX).toBe(18);
   });
 
   it("returns pink icon accent for pain", () => {

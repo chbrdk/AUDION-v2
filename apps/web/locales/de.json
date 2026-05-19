@@ -56,7 +56,8 @@
     "aiSuggestion": "KI-Vorschlag",
     "editChips": "Chips bearbeiten",
     "addEntryPlaceholder": "Neuen Eintrag hinzufügen…",
-    "emptyEntries": "Keine Einträge"
+    "emptyEntries": "Keine Einträge",
+    "slideIndexAria": "Eintrag {n}"
   },
   "horizontalSlider": {
     "navigation": "Karussell-Navigation",

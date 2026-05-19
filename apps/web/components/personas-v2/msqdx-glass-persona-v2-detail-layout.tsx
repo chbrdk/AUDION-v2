@@ -25,7 +25,6 @@ export type MsqdxGlassPersonaV2DetailLayoutProps = {
 
 type PersonaSummary = {
   name: string;
-  headline: string;
   segment: string;
 };
 
@@ -70,13 +69,12 @@ export function MsqdxGlassPersonaV2DetailLayout({ personaId, sectionId, docsUrl 
         if (cancelled) return;
         setSummary({
           name: data.profile?.name?.trim() || personaId,
-          headline: data.profile?.headline?.trim() || "",
           segment: data.profile?.segment?.trim() || "",
         });
       } catch (e) {
         if (!cancelled) {
           setLoadError(e instanceof Error ? e.message : t("personaAdmin.loadFailed"));
-          setSummary({ name: personaId, headline: "", segment: "" });
+          setSummary({ name: personaId, segment: "" });
         }
       }
     };
@@ -102,11 +100,7 @@ export function MsqdxGlassPersonaV2DetailLayout({ personaId, sectionId, docsUrl 
     <MsqdxGlassSectionShell
       className="msqdx-glass-persona-v2-detail"
       entityTitle={summary?.name ?? t("personaAdmin.loading")}
-      entitySubtitle={
-        summary?.headline || summary?.segment
-          ? [summary.headline, summary.segment].filter(Boolean).join(" · ")
-          : undefined
-      }
+      entitySubtitle={summary?.segment?.trim() ? summary.segment.trim() : undefined}
       backHref={ADMIN_ROUTES.personasV2}
       backLabel={t("personaV2.backToList")}
       activeSectionId={sectionId}
