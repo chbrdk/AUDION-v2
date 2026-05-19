@@ -44,10 +44,10 @@ export function MsqdxGlassSectionEntityHeader({
           aria-hidden
           sx={{
             position: "absolute",
-            top: 0,
-            right: 0,
-            width: { xs: 52, sm: 72 },
-            height: { xs: 36, sm: 44 },
+            top: -18,
+            right: -18,
+            width: { xs: 52, sm: 72, md: 396 },
+            height: { xs: 36, sm: 44 ,md: 240},
             pointerEvents: "none",
             zIndex: 0,
           }}
