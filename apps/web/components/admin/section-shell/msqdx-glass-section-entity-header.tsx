@@ -53,7 +53,7 @@ export function MsqdxGlassSectionEntityHeader({
           }}
         >
           <MsqdxCornerBox
-            topLeft="cutdown-b"
+            topLeft="cutdown-a"
             topRight="rounded"
             bottomLeft="rounded"
             bottomRight="cutdown-b"
