@@ -15,10 +15,10 @@ describe("section-shell layout", () => {
       /\.msqdx-glass-section-workspace__content\s*\{[^}]*max-width:\s*960px/
     );
     expect(css).toMatch(
-      /\.msqdx-glass-section-workspace--with-subnav\s*\{[^}]*border:\s*1px solid var\(--msqdx-section-nav-dock-border\)/
+      /\.msqdx-glass-section-workspace--with-subnav\s*\{[^}]*border:\s*1px solid var\(--msqdx-section-workspace-frame-border\)/
     );
     expect(css).toMatch(
-      /\.msqdx-glass-section-workspace--with-subnav\s*\{[^}]*border-radius:\s*0\s+var\(--msqdx-section-workspace-frame-radius\)/
+      /\.msqdx-glass-section-workspace--with-subnav\s*\{[^}]*border-radius:\s*var\(--msqdx-section-workspace-frame-radius\)/
     );
     expect(css).toMatch(
       /\.msqdx-glass-section-workspace__dock-shell\s*\{[^}]*border:\s*none/

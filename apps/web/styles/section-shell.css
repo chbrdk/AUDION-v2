@@ -24,7 +24,11 @@
 .msqdx-glass-section-shell {
   --msqdx-section-nav-dock-surface: var(--color-theme-accent-tint, rgba(0, 0, 0, 0.04));
   --msqdx-section-nav-dock-border: var(--color-theme-accent-tint, rgba(0, 0, 0, 0.12));
-  --msqdx-section-nav-active-card-surface: var(--color-primary-white, #ffffff);
+  /* Outer workspace frame: solid accent (light = black), not alpha grey. */
+  --msqdx-section-workspace-frame-border: var(--color-theme-accent, #000000);
+  /* Docked compact active row: opaque black, white label/icon (no alpha on fill). */
+  --msqdx-section-nav-active-card-surface: #000000;
+  --msqdx-section-nav-active-card-on-surface: #ffffff;
   /* Outer workspace frame beside subnav (matches SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX) */
   --msqdx-section-workspace-frame-radius: 36px;
 }
@@ -33,7 +37,9 @@
 [data-theme="monochrome-dark"] .msqdx-glass-section-shell {
   --msqdx-section-nav-dock-surface: var(--color-theme-accent-tint, rgba(255, 255, 255, 0.06));
   --msqdx-section-nav-dock-border: var(--color-theme-accent-tint, rgba(255, 255, 255, 0.12));
-  --msqdx-section-nav-active-card-surface: rgba(255, 255, 255, 0.12);
+  --msqdx-section-workspace-frame-border: var(--color-theme-accent, #ffffff);
+  --msqdx-section-nav-active-card-surface: #000000;
+  --msqdx-section-nav-active-card-on-surface: #ffffff;
 }
 
 .msqdx-glass-section-shell--no-subnav .msqdx-glass-section-shell__body {
@@ -143,12 +149,12 @@
     position: relative;
     z-index: 1;
     /* Solid active strip (CornerBox patches inherit this). */
-    background-color: var(--msqdx-section-nav-active-card-surface, var(--color-primary-white, #ffffff));
+    background-color: var(--msqdx-section-nav-active-card-surface);
   }
 
   .msqdx-glass-section-nav--docked .msqdx-glass-section-nav__card-active-shell .msqdx-glass-section-nav__icon {
-    background: var(--msqdx-section-nav-active-card-surface, var(--color-primary-white, #ffffff));
-    color: var(--color-theme-accent);
+    background: transparent;
+    color: var(--msqdx-section-nav-active-card-on-surface);
   }
 
   .msqdx-glass-section-nav--docked .msqdx-glass-section-nav__card-active-shell .msqdx-glass-section-nav__card--active {
@@ -159,6 +165,14 @@
     padding: 5px 8px;
     min-height: 34px;
     align-items: center;
+    color: var(--msqdx-section-nav-active-card-on-surface);
+  }
+
+  .msqdx-glass-section-nav--docked
+    .msqdx-glass-section-nav__card-active-shell
+    .msqdx-glass-section-nav__card--active
+    .msqdx-glass-section-nav__title {
+    color: var(--msqdx-section-nav-active-card-on-surface);
   }
 }
 
@@ -296,10 +310,9 @@
   min-width: 0;
   box-sizing: border-box;
   background-color: transparent;
-  border: 1px solid var(--msqdx-section-nav-dock-border);
-  /* Square top-left (flush under entity / nav seam); rounded elsewhere */
-  border-radius: 0 var(--msqdx-section-workspace-frame-radius) var(--msqdx-section-workspace-frame-radius)
-    var(--msqdx-section-workspace-frame-radius);
+  border: 1px solid var(--msqdx-section-workspace-frame-border);
+  border-radius: var(--msqdx-section-workspace-frame-radius) var(--msqdx-section-workspace-frame-radius)
+    var(--msqdx-section-workspace-frame-radius) var(--msqdx-section-workspace-frame-radius);
   overflow: hidden;
 }
 

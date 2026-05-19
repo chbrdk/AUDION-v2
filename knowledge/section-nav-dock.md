@@ -15,9 +15,9 @@ Radius: `24px` (`SECTION_NAV_DOCK_BORDER_RADIUS_PX` / `--msqdx-radius-3xl`).
 
 Surface: `--msqdx-section-nav-dock-surface` → `--color-theme-accent-tint` (light rail, not solid white). Docked nav uses `overflow: visible` / `max-height: none` so cutout patches do not trigger a scrollbar.
 
-**Active compact row:** `MsqdxCornerBox.msqdx-glass-section-nav__card-active-shell` — same right-edge `cutdown-b` corners + `24px` radius as the rail; background from CSS using `--msqdx-section-nav-active-card-surface` so cutout patches inherit a solid fill. Icon chip uses the same surface (no grey tint). Inner `<Link>` stays transparent. Dock shell uses `pl: theme.spacing(0.75)` and **`pr: 0`** so the active strip meets the inner right edge of the rail.
+**Active compact row:** `MsqdxCornerBox.msqdx-glass-section-nav__card-active-shell` — same right-edge `cutdown-b` corners + `24px` radius as the rail. Tokens: `--msqdx-section-nav-active-card-surface` (`#000000`, opaque) and `--msqdx-section-nav-active-card-on-surface` (`#ffffff`) for label + icon; cutout patches inherit the surface fill. Inner `<Link>` stays transparent. Dock shell uses `pl: theme.spacing(0.75)` and **`pr: 0`** so the active strip meets the inner right edge of the rail.
 
-Workspace: `.msqdx-glass-section-workspace--with-subnav` — `border: 1px solid var(--msqdx-section-nav-dock-border)`, `border-radius: 0 var(--msqdx-section-workspace-frame-radius) …` (token on `.msqdx-glass-section-shell`, default `36px`; top-left `0` where the frame meets the nav column). Inner `__dock-shell` transparent, no second border. Nav rail keeps tint fill (`--msqdx-section-nav-dock-surface`).
+Workspace: `.msqdx-glass-section-workspace--with-subnav` — `border: 1px solid var(--msqdx-section-workspace-frame-border)` where the token resolves to `var(--color-theme-accent)` (opaque: black on light surfaces, white on dark/monochrome-dark content). `border-radius` uses `--msqdx-section-workspace-frame-radius` on **all four corners**. Inner `__dock-shell` transparent, no second border. Nav rail keeps tint fill (`--msqdx-section-nav-dock-surface`) and subtle separators (`--msqdx-section-nav-dock-border`).
 
 ## Code
 
@@ -29,10 +29,9 @@ Workspace: `.msqdx-glass-section-workspace--with-subnav` — `border: 1px solid 
 
 | Corner | Style | Role |
 |--------|--------|------|
-| top-left | square (`0`) | Flush seam with the docked nav column |
-| top-right, bottom-right, bottom-left | `rounded` (`36px`) | Pill-like frame around entity + section content |
+| all four | `rounded` (`36px` via `--msqdx-section-workspace-frame-radius`) | Pill-like frame around entity + section content |
 
-Outer frame: `border-radius: 0 var(--msqdx-section-workspace-frame-radius) …` on `--with-subnav` (shell token, `36px` default); `SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX` for inner `MsqdxCornerBox` corners.
+Outer frame: four-corner `border-radius` from `--msqdx-section-workspace-frame-radius` on `--with-subnav`; `SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX` for inner `MsqdxCornerBox` corners.
 
 ## Follow-ups (optional)
 

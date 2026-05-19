@@ -30,6 +30,12 @@ describe("section-nav-dock-layout", () => {
     expect(source).toMatch(/pr:\s*0/);
   });
 
+  it("uses opaque black active dock row with white on-surface tokens", () => {
+    const css = readFileSync(resolve(process.cwd(), "styles/section-shell.css"), "utf8");
+    expect(css).toMatch(/--msqdx-section-nav-active-card-surface:\s*#000000/);
+    expect(css).toMatch(/--msqdx-section-nav-active-card-on-surface:\s*#ffffff/);
+  });
+
   it("sizes docked nav to content height without spurious scroll", () => {
     const css = readFileSync(resolve(process.cwd(), "styles/section-shell.css"), "utf8");
     expect(css).toMatch(/\.msqdx-glass-section-nav--docked\s*\{[^}]*height:\s*fit-content/);
@@ -64,7 +70,7 @@ describe("section-nav-dock-layout", () => {
     expect(source).toContain("SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX");
     const css = readFileSync(resolve(process.cwd(), "styles/section-shell.css"), "utf8");
     expect(css).toMatch(
-      /\.msqdx-glass-section-workspace--with-subnav\s*\{[^}]*border:\s*1px solid var\(--msqdx-section-nav-dock-border\)/
+      /\.msqdx-glass-section-workspace--with-subnav\s*\{[^}]*border:\s*1px solid var\(--msqdx-section-workspace-frame-border\)/
     );
   });
 });
