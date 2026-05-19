@@ -28,14 +28,9 @@ export function MsqdxGlassSectionNav({
       {navLabel ? <span className="msqdx-glass-section-nav__label">{navLabel}</span> : null}
       {items.map((item) => {
         const isActive = activeSectionId === item.id;
-        return (
-          <Link
-            key={item.id}
-            href={item.href}
-            className={`msqdx-glass-section-nav__card${isActive ? " msqdx-glass-section-nav__card--active" : ""}`}
-            aria-current={isActive ? "page" : undefined}
-            title={item.description}
-          >
+        const cardClass = `msqdx-glass-section-nav__card${isActive ? " msqdx-glass-section-nav__card--active" : ""}`;
+        const cardBody = (
+          <>
             {item.icon ? (
               <span className="msqdx-glass-section-nav__icon" aria-hidden>
                 <MsqdxIcon name={item.icon} customSize={compact ? 18 : 22} />
@@ -47,6 +42,48 @@ export function MsqdxGlassSectionNav({
                 <span className="msqdx-glass-section-nav__description">{item.description}</span>
               ) : null}
             </span>
+          </>
+        );
+
+        if (compact && isActive) {
+          return (
+            <MsqdxCornerBox
+              key={item.id}
+              className="msqdx-glass-section-nav__card-active-shell"
+              topLeft={SECTION_NAV_DOCK_CORNER_STYLES.topLeft}
+              topRight={SECTION_NAV_DOCK_CORNER_STYLES.topRight}
+              bottomLeft={SECTION_NAV_DOCK_CORNER_STYLES.bottomLeft}
+              bottomRight={SECTION_NAV_DOCK_CORNER_STYLES.bottomRight}
+              borderRadius={SECTION_NAV_DOCK_BORDER_RADIUS_PX}
+              sx={{
+                width: "100%",
+                boxSizing: "border-box",
+                bgcolor:
+                  "var(--msqdx-section-nav-active-card-surface, var(--color-primary-white, #ffffff))",
+                overflow: "visible",
+              }}
+            >
+              <Link
+                href={item.href}
+                className={cardClass}
+                aria-current="page"
+                title={item.description}
+              >
+                {cardBody}
+              </Link>
+            </MsqdxCornerBox>
+          );
+        }
+
+        return (
+          <Link
+            key={item.id}
+            href={item.href}
+            className={cardClass}
+            aria-current={isActive ? "page" : undefined}
+            title={item.description}
+          >
+            {cardBody}
           </Link>
         );
       })}

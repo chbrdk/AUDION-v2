@@ -25,6 +25,7 @@ describe("section-nav-dock-layout", () => {
     expect(source).toContain("MsqdxCornerBox");
     expect(source).toContain("msqdx-glass-section-nav__dock-shell");
     expect(source).toContain("msqdx-glass-section-nav--docked");
+    expect(source).toContain("msqdx-glass-section-nav__card-active-shell");
     expect(source).toContain("SECTION_NAV_DOCK_CORNER_STYLES");
   });
 

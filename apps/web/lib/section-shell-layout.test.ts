@@ -18,7 +18,7 @@ describe("section-shell layout", () => {
       /\.msqdx-glass-section-workspace--with-subnav\s*\{[^}]*border:\s*1px solid var\(--msqdx-section-nav-dock-border\)/
     );
     expect(css).toMatch(
-      /\.msqdx-glass-section-workspace--with-subnav\s*\{[^}]*border-radius:\s*36px/
+      /\.msqdx-glass-section-workspace--with-subnav\s*\{[^}]*border-radius:\s*0\s+var\(--msqdx-section-workspace-frame-radius\)/
     );
     expect(css).toMatch(
       /\.msqdx-glass-section-workspace__dock-shell\s*\{[^}]*border:\s*none/
