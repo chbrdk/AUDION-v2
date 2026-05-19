@@ -18,9 +18,10 @@ describe("section entity header corner accent", () => {
     expect(entity).toContain("msqdx-glass-section-shell__entity--has-corner-accent");
     expect(entity).toContain("SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX");
     expect(entity).toContain("msqdx-entity-accent-on-surface");
-    expect(entity).toContain("topLeft=\"cutdown-a\"");
-    expect(entity).toContain("bottomRight=\"cutdown-b\"");
-    expect(entity).toContain("topRight=\"rounded\"");
+    expect(entity).toContain("topLeft=\"rounded\"");
+    expect(entity).toContain("topRight=\"cutdown-a\"");
+    expect(entity).toContain("bottomLeft=\"cutdown-b\"");
+    expect(entity).toContain("bottomRight=\"rounded\"");
     expect(entity).toContain("textAlign: \"right\"");
 
     const shell = readFileSync(
@@ -40,6 +41,10 @@ describe("section entity header corner accent", () => {
     expect(css).toContain(".msqdx-glass-section-shell__entity-hero");
     expect(css).toContain(".msqdx-glass-section-shell__entity-main--on-accent");
     expect(css).toContain("--msqdx-entity-accent-on-surface");
+    expect(css).toContain(
+      ".msqdx-glass-section-shell__entity-corner-accent .msqdx-glass-section-shell__entity-main--on-accent h1.msqdx-glass-section-shell__title"
+    );
+    expect(css).toContain("!important");
     expect(css).toContain("text-align: right");
     expect(css).not.toContain("calc(72px + var(--msqdx-spacing-md))");
   });

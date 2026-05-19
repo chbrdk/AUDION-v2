@@ -240,13 +240,24 @@
   justify-content: flex-end;
 }
 
-.msqdx-glass-section-shell__entity-main--on-accent .msqdx-glass-section-shell__scope,
-.msqdx-glass-section-shell__entity-main--on-accent .msqdx-glass-section-shell__title {
-  color: var(--msqdx-entity-accent-on-surface, #ffffff);
+/*
+ * On-surface copy must stay light on the black corner hero. Admin themes set
+ * `[data-theme="monochrome-*"] .msqdx-glass-admin-content h1|p|span { color: … !important }`
+ * (specificity 0,2,1), which otherwise wins over two-class rules here.
+ */
+.msqdx-glass-section-shell__entity-corner-accent .msqdx-glass-section-shell__entity-main--on-accent h1.msqdx-glass-section-shell__title,
+.msqdx-glass-section-shell__entity-corner-accent .msqdx-glass-section-shell__entity-main--on-accent span.msqdx-glass-section-shell__scope {
+  color: var(--msqdx-entity-accent-on-surface, #ffffff) !important;
 }
 
-.msqdx-glass-section-shell__entity-main--on-accent .msqdx-glass-section-shell__subtitle {
-  color: var(--msqdx-entity-accent-on-surface-muted, rgba(255, 255, 255, 0.82));
+.msqdx-glass-section-shell__entity-corner-accent .msqdx-glass-section-shell__entity-main--on-accent p.msqdx-glass-section-shell__subtitle {
+  color: var(--msqdx-entity-accent-on-surface-muted, rgba(255, 255, 255, 0.82)) !important;
+}
+
+.msqdx-glass-section-shell__entity-corner-accent .msqdx-glass-section-shell__entity-main--on-accent .MuiButton-root,
+.msqdx-glass-section-shell__entity-corner-accent .msqdx-glass-section-shell__entity-main--on-accent .MuiButton-root .MuiButton-startIcon,
+.msqdx-glass-section-shell__entity-corner-accent .msqdx-glass-section-shell__entity-main--on-accent .MuiButton-root .material-symbols-outlined {
+  color: var(--msqdx-entity-accent-on-surface, #ffffff) !important;
 }
 
 .msqdx-glass-section-shell__entity-main {

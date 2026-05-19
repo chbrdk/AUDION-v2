@@ -74,10 +74,10 @@ export function MsqdxGlassSectionEntityHeader({
         <div className="msqdx-glass-section-shell__entity-hero">
           <MsqdxCornerBox
             className="msqdx-glass-section-shell__entity-corner-accent"
-            topLeft="cutdown-a"
-            topRight="rounded"
-            bottomLeft="rounded"
-            bottomRight="cutdown-b"
+            topLeft="rounded"
+            topRight="cutdown-a"
+            bottomLeft="cutdown-b"
+            bottomRight="rounded"
             borderRadius={SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX}
             sx={{
               width: "100%",
