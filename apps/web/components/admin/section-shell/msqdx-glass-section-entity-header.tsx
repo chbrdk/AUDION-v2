@@ -13,7 +13,7 @@ export type MsqdxGlassSectionEntityHeaderProps = {
   backHref?: string;
   backLabel?: string;
   headerActions?: ReactNode;
-  /** Subtle top-right cut-corner panel (matches subnav dock geometry) */
+  /** Decorative MsqdxCornerBox in the header’s top-right — cutdown top-left + bottom-right, rounded top-right */
   entityCornerAccent?: boolean;
   className?: string;
 };
@@ -53,10 +53,10 @@ export function MsqdxGlassSectionEntityHeader({
           }}
         >
           <MsqdxCornerBox
-            topLeft="rounded"
-            topRight="cutdown-b"
+            topLeft="cutdown-b"
+            topRight="rounded"
             bottomLeft="rounded"
-            bottomRight="rounded"
+            bottomRight="cutdown-b"
             borderRadius={SECTION_NAV_DOCK_BORDER_RADIUS_PX}
             sx={{
               width: "100%",

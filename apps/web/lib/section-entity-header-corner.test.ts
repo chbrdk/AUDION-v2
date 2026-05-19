@@ -14,7 +14,9 @@ describe("section entity header corner accent", () => {
     expect(entity).toContain("MsqdxCornerBox");
     expect(entity).toContain("entityCornerAccent");
     expect(entity).toContain("msqdx-glass-section-shell__entity--has-corner-accent");
-    expect(entity).toContain("topRight=\"cutdown-b\"");
+    expect(entity).toContain("topLeft=\"cutdown-b\"");
+    expect(entity).toContain("bottomRight=\"cutdown-b\"");
+    expect(entity).toContain("topRight=\"rounded\"");
 
     const shell = readFileSync(
       join(webRoot, "components/admin/section-shell/msqdx-glass-section-shell.tsx"),
