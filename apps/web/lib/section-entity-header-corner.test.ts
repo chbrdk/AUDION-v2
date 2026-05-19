@@ -17,9 +17,11 @@ describe("section entity header corner accent", () => {
     expect(entity).toContain("entity-main--on-accent");
     expect(entity).toContain("msqdx-glass-section-shell__entity--has-corner-accent");
     expect(entity).toContain("SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX");
+    expect(entity).toContain("msqdx-entity-accent-on-surface");
     expect(entity).toContain("topLeft=\"cutdown-a\"");
     expect(entity).toContain("bottomRight=\"cutdown-b\"");
     expect(entity).toContain("topRight=\"rounded\"");
+    expect(entity).toContain("textAlign: \"right\"");
 
     const shell = readFileSync(
       join(webRoot, "components/admin/section-shell/msqdx-glass-section-shell.tsx"),
@@ -37,6 +39,8 @@ describe("section entity header corner accent", () => {
     expect(css).toContain(".msqdx-glass-section-shell__entity--has-corner-accent");
     expect(css).toContain(".msqdx-glass-section-shell__entity-hero");
     expect(css).toContain(".msqdx-glass-section-shell__entity-main--on-accent");
+    expect(css).toContain("--msqdx-entity-accent-on-surface");
+    expect(css).toContain("text-align: right");
     expect(css).not.toContain("calc(72px + var(--msqdx-spacing-md))");
   });
 });

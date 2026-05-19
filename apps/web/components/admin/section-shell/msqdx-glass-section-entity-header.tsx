@@ -29,7 +29,7 @@ export function MsqdxGlassSectionEntityHeader({
   className,
 }: MsqdxGlassSectionEntityHeaderProps) {
   const theme = useTheme();
-  const onAccentContrast = "var(--color-theme-accent-contrast, #ffffff)";
+  const onAccentText = "var(--msqdx-entity-accent-on-surface, #ffffff)";
 
   const renderMainFields = (onAccent: boolean) => (
     <>
@@ -43,7 +43,7 @@ export function MsqdxGlassSectionEntityHeader({
               sx={{
                 px: 0,
                 minWidth: 0,
-                color: onAccent ? onAccentContrast : "var(--color-text-secondary)",
+                color: onAccent ? onAccentText : "var(--color-text-secondary)",
                 ...(onAccent && {
                   "&:hover": { backgroundColor: theme.palette.action.hover },
                 }),
@@ -84,14 +84,15 @@ export function MsqdxGlassSectionEntityHeader({
               minWidth: 0,
               boxSizing: "border-box",
               bgcolor: "var(--color-theme-accent, #000000)",
-              color: onAccentContrast,
+              color: "var(--msqdx-entity-accent-on-surface, #ffffff)",
               position: "relative",
               py: "var(--msqdx-spacing-md)",
               px: "var(--msqdx-spacing-lg)",
               display: "flex",
               flexDirection: "column",
-              alignItems: "stretch",
+              alignItems: "flex-end",
               justifyContent: "center",
+              textAlign: "right",
             }}
           >
             <div className="msqdx-glass-section-shell__entity-main msqdx-glass-section-shell__entity-main--on-accent">

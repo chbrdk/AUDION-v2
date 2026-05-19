@@ -215,6 +215,12 @@
   flex: 1;
 }
 
+/* Black corner hero: always light on-surface copy (independent of theme primary-white flip) */
+.msqdx-glass-section-shell__entity-corner-accent {
+  --msqdx-entity-accent-on-surface: #ffffff;
+  --msqdx-entity-accent-on-surface-muted: rgba(255, 255, 255, 0.82);
+}
+
 .msqdx-glass-section-shell__entity--has-corner-accent .msqdx-glass-section-shell__entity-hero .msqdx-glass-section-shell__entity-main {
   position: relative;
   z-index: 1;
@@ -222,15 +228,25 @@
 
 .msqdx-glass-section-shell__entity-main--on-accent {
   min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  text-align: right;
+  align-items: flex-end;
+}
+
+.msqdx-glass-section-shell__entity-main--on-accent .msqdx-glass-section-shell__entity-back {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .msqdx-glass-section-shell__entity-main--on-accent .msqdx-glass-section-shell__scope,
 .msqdx-glass-section-shell__entity-main--on-accent .msqdx-glass-section-shell__title {
-  color: var(--color-theme-accent-contrast, #ffffff);
+  color: var(--msqdx-entity-accent-on-surface, #ffffff);
 }
 
 .msqdx-glass-section-shell__entity-main--on-accent .msqdx-glass-section-shell__subtitle {
-  color: color-mix(in srgb, var(--color-theme-accent-contrast, #ffffff) 80%, transparent);
+  color: var(--msqdx-entity-accent-on-surface-muted, rgba(255, 255, 255, 0.82));
 }
 
 .msqdx-glass-section-shell__entity-main {
