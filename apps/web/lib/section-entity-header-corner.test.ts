@@ -12,10 +12,11 @@ describe("section entity header corner accent", () => {
       "utf8"
     );
     expect(entity).toContain("MsqdxCornerBox");
-    expect(entity).toContain("right: 0");
+    expect(entity).toContain("right: -18");
     expect(entity).toContain("entityCornerAccent");
     expect(entity).toContain("msqdx-glass-section-shell__entity--has-corner-accent");
-    expect(entity).toContain("topLeft=\"cutdown-b\"");
+    expect(entity).toContain("SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX");
+    expect(entity).toContain("topLeft=\"cutdown-a\"");
     expect(entity).toContain("bottomRight=\"cutdown-b\"");
     expect(entity).toContain("topRight=\"rounded\"");
 

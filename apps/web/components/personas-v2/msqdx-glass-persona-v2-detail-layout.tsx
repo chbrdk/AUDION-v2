@@ -98,8 +98,6 @@ export function MsqdxGlassPersonaV2DetailLayout({ personaId, sectionId, docsUrl 
     [personaId, t]
   );
 
-  const activeSection = PERSONA_V2_SECTIONS.find((s) => s.id === sectionId) ?? PERSONA_V2_SECTIONS[0]!;
-
   return (
     <MsqdxGlassSectionShell
       className="msqdx-glass-persona-v2-detail"
@@ -115,8 +113,6 @@ export function MsqdxGlassPersonaV2DetailLayout({ personaId, sectionId, docsUrl 
       activeSectionId={sectionId}
       navItems={navItems}
       navLabel={t("personaV2.sectionsNavLabel")}
-      sectionTitle={t(activeSection.labelKey)}
-      sectionDescription={t(activeSection.descriptionKey)}
       wideContent
       entityCornerAccent
     >

@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { Box } from "@mui/material";
 import { MsqdxButton, MsqdxCornerBox, MsqdxIcon } from "@msqdx/react";
-import { SECTION_NAV_DOCK_BORDER_RADIUS_PX } from "../../../lib/section-nav-dock-layout";
+import { SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX } from "../../../lib/section-nav-dock-layout";
 
 export type MsqdxGlassSectionEntityHeaderProps = {
   scopeLabel?: string;
@@ -13,7 +13,7 @@ export type MsqdxGlassSectionEntityHeaderProps = {
   backHref?: string;
   backLabel?: string;
   headerActions?: ReactNode;
-  /** Decorative patch top-right of the entity header; MsqdxCornerBox uses cutdown on the shape’s top-left + bottom-right, rounded on the shape’s top-right */
+  /** Decorative patch top-right of the entity header; radius matches workspace frame (`SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX` / 36px). Cutdowns on the shape’s top-left + bottom-right, rounded top-right */
   entityCornerAccent?: boolean;
   className?: string;
 };
@@ -47,7 +47,7 @@ export function MsqdxGlassSectionEntityHeader({
             top: -18,
             right: -18,
             width: { xs: 52, sm: 72, md: 496 },
-            height: { xs: 36, sm: 44 ,md: 70},
+            height: { xs: 36, sm: 44, md: 70 },
             pointerEvents: "none",
             zIndex: 0,
           }}
@@ -57,13 +57,12 @@ export function MsqdxGlassSectionEntityHeader({
             topRight="rounded"
             bottomLeft="rounded"
             bottomRight="cutdown-b"
-            borderRadius={SECTION_NAV_DOCK_BORDER_RADIUS_PX}
+            borderRadius={SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX}
             sx={{
               width: "100%",
               height: "100%",
               boxSizing: "border-box",
               bgcolor: "var(--color-theme-accent, #000)",
-         
             }}
           />
         </Box>
