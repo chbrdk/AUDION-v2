@@ -13,7 +13,7 @@ export type MsqdxGlassSectionEntityHeaderProps = {
   backHref?: string;
   backLabel?: string;
   headerActions?: ReactNode;
-  /** Decorative MsqdxCornerBox in the header’s top-right — cutdown top-left + bottom-right, rounded top-right */
+  /** Decorative MsqdxCornerBox anchored to the header’s top-left — cutdown top-left + bottom-right, rounded top-right */
   entityCornerAccent?: boolean;
   className?: string;
 };
@@ -45,7 +45,7 @@ export function MsqdxGlassSectionEntityHeader({
           sx={{
             position: "absolute",
             top: 0,
-            right: 0,
+            left: 0,
             width: { xs: 52, sm: 72 },
             height: { xs: 36, sm: 44 },
             pointerEvents: "none",

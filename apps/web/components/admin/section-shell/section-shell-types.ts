@@ -17,7 +17,7 @@ export type MsqdxGlassSectionShellProps = {
   backHref?: string;
   backLabel?: string;
   headerActions?: ReactNode;
-  /** Decorative MsqdxCornerBox in the entity header (top-right patch; cutdown top-left + bottom-right) */
+  /** Decorative MsqdxCornerBox anchored to the entity header’s top-left (cutdown top-left + bottom-right) */
   entityCornerAccent?: boolean;
   navItems?: SectionNavItem[];
   /** Accessible label for the sub-nav `<nav>` */

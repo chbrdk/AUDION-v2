@@ -12,6 +12,7 @@ describe("section entity header corner accent", () => {
       "utf8"
     );
     expect(entity).toContain("MsqdxCornerBox");
+    expect(entity).toContain("left: 0");
     expect(entity).toContain("entityCornerAccent");
     expect(entity).toContain("msqdx-glass-section-shell__entity--has-corner-accent");
     expect(entity).toContain("topLeft=\"cutdown-b\"");
@@ -32,5 +33,6 @@ describe("section entity header corner accent", () => {
 
     const css = readFileSync(join(webRoot, "styles/section-shell.css"), "utf8");
     expect(css).toContain(".msqdx-glass-section-shell__entity--has-corner-accent");
+    expect(css).toContain("calc(72px + var(--msqdx-spacing-md))");
   });
 });

@@ -211,6 +211,14 @@
 .msqdx-glass-section-shell__entity--has-corner-accent .msqdx-glass-section-shell__entity-main {
   position: relative;
   z-index: 1;
+  /* Clear absolute accent (52px xs / 72px sm) + token gap */
+  padding-left: calc(52px + var(--msqdx-spacing-md));
+}
+
+@media (min-width: 600px) {
+  .msqdx-glass-section-shell__entity--has-corner-accent .msqdx-glass-section-shell__entity-main {
+    padding-left: calc(72px + var(--msqdx-spacing-md));
+  }
 }
 
 .msqdx-glass-section-shell__entity-main {
