@@ -15,7 +15,7 @@ describe("section-shell layout", () => {
       /\.msqdx-glass-section-workspace__content\s*\{[^}]*max-width:\s*960px/
     );
     expect(css).toMatch(
-      /\.msqdx-glass-section-workspace--with-subnav\s*\{[^}]*border:\s*1px solid var\(--msqdx-section-workspace-frame-border\)/
+      /\.msqdx-glass-section-workspace--with-subnav\s*\{[^}]*border:\s*var\(--msqdx-section-workspace-frame-border-width\)\s+solid\s+var\(--msqdx-section-workspace-frame-border\)/
     );
     expect(css).toMatch(
       /\.msqdx-glass-section-workspace--with-subnav\s*\{[^}]*border-radius:\s*var\(--msqdx-section-workspace-frame-radius\)/

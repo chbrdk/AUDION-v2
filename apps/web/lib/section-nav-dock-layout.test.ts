@@ -34,6 +34,12 @@ describe("section-nav-dock-layout", () => {
     const css = readFileSync(resolve(process.cwd(), "styles/section-shell.css"), "utf8");
     expect(css).toMatch(/--msqdx-section-nav-active-card-surface:\s*#000000/);
     expect(css).toMatch(/--msqdx-section-nav-active-card-on-surface:\s*#ffffff/);
+    expect(css).toContain(
+      "color: var(--msqdx-section-nav-active-card-on-surface) !important"
+    );
+    expect(css).toMatch(
+      /\.msqdx-glass-section-nav__icon\s*\.msqdx-material-symbol[\s\S]*?color:\s*var\(--msqdx-section-nav-active-card-on-surface\)\s*!important/s
+    );
   });
 
   it("sizes docked nav to content height without spurious scroll", () => {
@@ -70,7 +76,7 @@ describe("section-nav-dock-layout", () => {
     expect(source).toContain("SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX");
     const css = readFileSync(resolve(process.cwd(), "styles/section-shell.css"), "utf8");
     expect(css).toMatch(
-      /\.msqdx-glass-section-workspace--with-subnav\s*\{[^}]*border:\s*1px solid var\(--msqdx-section-workspace-frame-border\)/
+      /\.msqdx-glass-section-workspace--with-subnav\s*\{[^}]*border:\s*var\(--msqdx-section-workspace-frame-border-width\)\s+solid\s+var\(--msqdx-section-workspace-frame-border\)/
     );
   });
 });

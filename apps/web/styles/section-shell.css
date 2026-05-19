@@ -21,6 +21,13 @@
   grid-template-columns: minmax(200px, 224px) minmax(0, 1fr);
 }
 
+/* Persona v2 detail: back link is in admin header next to project (md+); hide in-page duplicate */
+@media (min-width: 900px) {
+  .msqdx-glass-persona-v2-detail .msqdx-glass-section-shell__entity-back {
+    display: none;
+  }
+}
+
 .msqdx-glass-section-shell {
   --msqdx-section-nav-dock-surface: var(--color-theme-accent-tint, rgba(0, 0, 0, 0.04));
   --msqdx-section-nav-dock-border: var(--color-theme-accent-tint, rgba(0, 0, 0, 0.12));
@@ -31,6 +38,8 @@
   --msqdx-section-nav-active-card-on-surface: #ffffff;
   /* Outer workspace frame beside subnav (matches SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX) */
   --msqdx-section-workspace-frame-radius: 36px;
+  /* Frame stroke matches preview (4px); use spacing token, not magic px */
+  --msqdx-section-workspace-frame-border-width: var(--msqdx-spacing-xxs);
 }
 
 [data-theme="dark"] .msqdx-glass-section-shell,
@@ -157,6 +166,14 @@
     color: var(--msqdx-section-nav-active-card-on-surface);
   }
 
+  /* MsqdxIcon sets inline color: currentColor; force on-surface on the black active strip */
+  .msqdx-glass-section-nav--docked
+    .msqdx-glass-section-nav__card-active-shell
+    .msqdx-glass-section-nav__icon
+    .msqdx-material-symbol {
+    color: var(--msqdx-section-nav-active-card-on-surface) !important;
+  }
+
   .msqdx-glass-section-nav--docked .msqdx-glass-section-nav__card-active-shell .msqdx-glass-section-nav__card--active {
     border: none;
     background: transparent;
@@ -172,7 +189,7 @@
     .msqdx-glass-section-nav__card-active-shell
     .msqdx-glass-section-nav__card--active
     .msqdx-glass-section-nav__title {
-    color: var(--msqdx-section-nav-active-card-on-surface);
+    color: var(--msqdx-section-nav-active-card-on-surface) !important;
   }
 }
 
@@ -310,7 +327,8 @@
   min-width: 0;
   box-sizing: border-box;
   background-color: transparent;
-  border: 1px solid var(--msqdx-section-workspace-frame-border);
+  border: var(--msqdx-section-workspace-frame-border-width) solid
+    var(--msqdx-section-workspace-frame-border);
   border-radius: var(--msqdx-section-workspace-frame-radius) var(--msqdx-section-workspace-frame-radius)
     var(--msqdx-section-workspace-frame-radius) var(--msqdx-section-workspace-frame-radius);
   overflow: hidden;

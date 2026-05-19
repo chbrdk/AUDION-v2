@@ -18,6 +18,8 @@ describe("admin glass header bar chrome", () => {
     expect(layout).toContain("backgroundColor: \"var(--msqdx-glass-admin-header-bar-bg)\"");
     expect(layout).toContain("borderBottom: \"none\"");
     expect(layout).not.toMatch(/borderBottom:\s*\(/);
+    expect(layout).toContain("headerStartContent");
+    expect(layout).toContain("<AdminTopControls />");
   });
 
   it("applies a bottom fade mask on the admin header only", () => {

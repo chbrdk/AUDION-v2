@@ -17,7 +17,7 @@ Surface: `--msqdx-section-nav-dock-surface` → `--color-theme-accent-tint` (lig
 
 **Active compact row:** `MsqdxCornerBox.msqdx-glass-section-nav__card-active-shell` — same right-edge `cutdown-b` corners + `24px` radius as the rail. Tokens: `--msqdx-section-nav-active-card-surface` (`#000000`, opaque) and `--msqdx-section-nav-active-card-on-surface` (`#ffffff`) for label + icon; cutout patches inherit the surface fill. Inner `<Link>` stays transparent. Dock shell uses `pl: theme.spacing(0.75)` and **`pr: 0`** so the active strip meets the inner right edge of the rail.
 
-Workspace: `.msqdx-glass-section-workspace--with-subnav` — `border: 1px solid var(--msqdx-section-workspace-frame-border)` where the token resolves to `var(--color-theme-accent)` (opaque: black on light surfaces, white on dark/monochrome-dark content). `border-radius` uses `--msqdx-section-workspace-frame-radius` on **all four corners**. Inner `__dock-shell` transparent, no second border. Nav rail keeps tint fill (`--msqdx-section-nav-dock-surface`) and subtle separators (`--msqdx-section-nav-dock-border`).
+Workspace: `.msqdx-glass-section-workspace--with-subnav` — `border: var(--msqdx-section-workspace-frame-border-width) solid var(--msqdx-section-workspace-frame-border)` where width is `var(--msqdx-spacing-xxs)` (4px) and color resolves to `var(--color-theme-accent)` (opaque: black on light surfaces, white on dark/monochrome-dark content). `border-radius` uses `--msqdx-section-workspace-frame-radius` on **all four corners**. Inner `__dock-shell` transparent, no second border. Nav rail keeps tint fill (`--msqdx-section-nav-dock-surface`) and subtle separators (`--msqdx-section-nav-dock-border`).
 
 ## Code
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { MsqdxButton } from "@msqdx/react";
+import { MsqdxButton, MsqdxIcon } from "@msqdx/react";
 import { buildApiUrl } from "../../app/api/_lib/backend";
 import { ADMIN_ROUTES } from "../../lib/routes";
 import {
@@ -14,6 +14,7 @@ import { useI18n } from "../i18n/i18n-provider";
 import { MsqdxGlassSectionShell } from "../admin/section-shell";
 import type { SectionNavItem } from "../admin/section-shell";
 import { MsqdxGlassPersonaV2SectionContent } from "./msqdx-glass-persona-v2-section-content";
+import { useAdminHeader } from "../admin/admin-layout-providers";
 
 export type MsqdxGlassPersonaV2DetailLayoutProps = {
   personaId: string;
@@ -30,8 +31,27 @@ type PersonaSummary = {
 
 export function MsqdxGlassPersonaV2DetailLayout({ personaId, sectionId, docsUrl }: MsqdxGlassPersonaV2DetailLayoutProps) {
   const { t } = useI18n();
+  const { setHeaderStartContent } = useAdminHeader();
   const [summary, setSummary] = useState<PersonaSummary | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setHeaderStartContent(
+      <Link href={ADMIN_ROUTES.personasV2} style={{ textDecoration: "none" }}>
+        <MsqdxButton
+          variant="text"
+          size="small"
+          startIcon={<MsqdxIcon name="arrow_back" customSize={18} />}
+          sx={{ px: 0, minWidth: 0, color: "var(--color-text-secondary)" }}
+        >
+          {t("personaV2.backToList")}
+        </MsqdxButton>
+      </Link>
+    );
+    return () => {
+      setHeaderStartContent(null);
+    };
+  }, [setHeaderStartContent, t]);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,6 +102,7 @@ export function MsqdxGlassPersonaV2DetailLayout({ personaId, sectionId, docsUrl 
 
   return (
     <MsqdxGlassSectionShell
+      className="msqdx-glass-persona-v2-detail"
       scopeLabel={t("personaV2.scopeLabel")}
       entityTitle={summary?.name ?? t("personaAdmin.loading")}
       entitySubtitle={

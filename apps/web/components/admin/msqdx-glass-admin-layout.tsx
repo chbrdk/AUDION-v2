@@ -91,7 +91,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
   const appInnerBackground = isMonochrome || isDarkApp ? "default" : "offwhite";
   const { activeProjectId } = useProject();
   // Get headerContent from context - safe for SSR with default value
-  const { headerContent } = useAdminHeader();
+  const { headerContent, headerStartContent } = useAdminHeader();
   // Get panel state from context
   const { panelOpen, togglePanel, setPanelOpen } = useAdminPanel();
 
@@ -333,10 +333,15 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
             sx={{
               display: { xs: "none", [NAV_DOCKED_BREAKPOINT]: "flex" },
               alignItems: "center",
+              flexWrap: "wrap",
+              gap: 1,
               marginLeft: { [NAV_DOCKED_BREAKPOINT]: "230px" },
             }}
           >
             <AdminTopControls />
+            {headerStartContent ? (
+              <Box sx={{ display: "flex", alignItems: "center", flexShrink: 0 }}>{headerStartContent}</Box>
+            ) : null}
           </Box>
         </Box>
         {/* Page Title or Custom Header Content */}

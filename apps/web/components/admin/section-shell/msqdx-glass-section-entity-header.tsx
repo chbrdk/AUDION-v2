@@ -30,7 +30,7 @@ export function MsqdxGlassSectionEntityHeader({
     >
       <div className="msqdx-glass-section-shell__entity-main">
         {backHref ? (
-          <Box sx={{ mb: 0.5 }}>
+          <Box className="msqdx-glass-section-shell__entity-back" sx={{ mb: 0.5 }}>
             <Link href={backHref} style={{ textDecoration: "none" }}>
               <MsqdxButton
                 variant="text"
