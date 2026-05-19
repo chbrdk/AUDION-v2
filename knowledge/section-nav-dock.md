@@ -15,7 +15,7 @@ Radius: `24px` (`SECTION_NAV_DOCK_BORDER_RADIUS_PX` / `--msqdx-radius-3xl`).
 
 Surface: `--msqdx-section-nav-dock-surface` → `--color-theme-accent-tint` (light rail, not solid white). Docked nav uses `overflow: visible` / `max-height: none` so cutout patches do not trigger a scrollbar.
 
-**Active compact row:** `MsqdxCornerBox.msqdx-glass-section-nav__card-active-shell` — same right-edge `cutdown-b` corners + `24px` radius as the rail; fill `--msqdx-section-nav-active-card-surface` (white in light, soft highlight in dark). Inner `<Link>` stays transparent so the white shows from the shell.
+**Active compact row:** `MsqdxCornerBox.msqdx-glass-section-nav__card-active-shell` — same right-edge `cutdown-b` corners + `24px` radius as the rail; background from CSS using `--msqdx-section-nav-active-card-surface` so cutout patches inherit a solid fill. Icon chip uses the same surface (no grey tint). Inner `<Link>` stays transparent. Dock shell uses `pl: theme.spacing(0.75)` and **`pr: 0`** so the active strip meets the inner right edge of the rail.
 
 Workspace: `.msqdx-glass-section-workspace--with-subnav` — `border: 1px solid var(--msqdx-section-nav-dock-border)`, `border-radius: 0 var(--msqdx-section-workspace-frame-radius) …` (token on `.msqdx-glass-section-shell`, default `36px`; top-left `0` where the frame meets the nav column). Inner `__dock-shell` transparent, no second border. Nav rail keeps tint fill (`--msqdx-section-nav-dock-surface`).
 

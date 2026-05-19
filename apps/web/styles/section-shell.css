@@ -69,6 +69,10 @@
     margin: 0;
   }
 
+  .msqdx-glass-section-nav--docked.msqdx-glass-section-nav--compact .msqdx-glass-section-nav__label {
+    padding-right: var(--msqdx-spacing-sm);
+  }
+
   .msqdx-glass-section-nav--compact .msqdx-glass-section-nav__card {
     align-items: center;
     gap: 8px;
@@ -138,6 +142,13 @@
     width: 100%;
     position: relative;
     z-index: 1;
+    /* Solid active strip (CornerBox patches inherit this). */
+    background-color: var(--msqdx-section-nav-active-card-surface, var(--color-primary-white, #ffffff));
+  }
+
+  .msqdx-glass-section-nav--docked .msqdx-glass-section-nav__card-active-shell .msqdx-glass-section-nav__icon {
+    background: var(--msqdx-section-nav-active-card-surface, var(--color-primary-white, #ffffff));
+    color: var(--color-theme-accent);
   }
 
   .msqdx-glass-section-nav--docked .msqdx-glass-section-nav__card-active-shell .msqdx-glass-section-nav__card--active {

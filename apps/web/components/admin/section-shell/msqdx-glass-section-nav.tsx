@@ -58,8 +58,6 @@ export function MsqdxGlassSectionNav({
               sx={{
                 width: "100%",
                 boxSizing: "border-box",
-                bgcolor:
-                  "var(--msqdx-section-nav-active-card-surface, var(--color-primary-white, #ffffff))",
                 overflow: "visible",
               }}
             >
@@ -109,16 +107,18 @@ export function MsqdxGlassSectionNav({
           bottomLeft={SECTION_NAV_DOCK_CORNER_STYLES.bottomLeft}
           bottomRight={SECTION_NAV_DOCK_CORNER_STYLES.bottomRight}
           borderRadius={SECTION_NAV_DOCK_BORDER_RADIUS_PX}
-          sx={{
+          sx={(theme) => ({
             width: "100%",
             boxSizing: "border-box",
             bgcolor: SECTION_NAV_DOCK_SURFACE,
             display: "flex",
             flexDirection: "column",
-            gap: 0.375,
-            py: 0.75,
-            px: 0.75,
-          }}
+            gap: theme.spacing(0.375),
+            py: theme.spacing(0.75),
+            /* Left inset only — active row + rail align flush to inner right (cutout edge). */
+            pl: theme.spacing(0.75),
+            pr: 0,
+          })}
         >
           {navList}
         </MsqdxCornerBox>
