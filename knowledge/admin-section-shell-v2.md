@@ -33,7 +33,7 @@ Drei Zonen von links nach rechts:
 | Piece | Path |
 |-------|------|
 | Shell | `components/admin/section-shell/msqdx-glass-section-shell.tsx` |
-| Entity header | `entityCornerAccent`: `MsqdxCornerBox` oben rechts, **`borderRadius` = `SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX` (36px)** wie Workspace-Rahmen `--with-subnav` |
+| Entity header | `__entity-hero`: `entity-main` + Corner-Patch; `entityCornerAccent` mit 36px wie Workspace; Persona-Detail **ohne** `scopeLabel` („PERSONAS“) |
 | Subnav | `components/admin/section-shell/msqdx-glass-section-nav.tsx` |
 | Styles | `styles/section-shell.css` |
 | Persona sections | `lib/persona-v2-sections.ts` |

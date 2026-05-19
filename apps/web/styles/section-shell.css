@@ -208,7 +208,14 @@
   position: relative;
 }
 
-.msqdx-glass-section-shell__entity--has-corner-accent .msqdx-glass-section-shell__entity-main {
+.msqdx-glass-section-shell__entity-hero {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  flex: 1;
+}
+
+.msqdx-glass-section-shell__entity--has-corner-accent .msqdx-glass-section-shell__entity-hero .msqdx-glass-section-shell__entity-main {
   position: relative;
   z-index: 1;
 }

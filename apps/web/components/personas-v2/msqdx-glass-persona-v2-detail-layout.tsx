@@ -101,7 +101,6 @@ export function MsqdxGlassPersonaV2DetailLayout({ personaId, sectionId, docsUrl 
   return (
     <MsqdxGlassSectionShell
       className="msqdx-glass-persona-v2-detail"
-      scopeLabel={t("personaV2.scopeLabel")}
       entityTitle={summary?.name ?? t("personaAdmin.loading")}
       entitySubtitle={
         summary?.headline || summary?.segment

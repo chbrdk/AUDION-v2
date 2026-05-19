@@ -13,7 +13,7 @@ export type MsqdxGlassSectionEntityHeaderProps = {
   backHref?: string;
   backLabel?: string;
   headerActions?: ReactNode;
-  /** Decorative patch top-right of the entity header; radius matches workspace frame (`SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX` / 36px). Cutdowns on the shape’s top-left + bottom-right, rounded top-right */
+  /** Wraps `entity-main` + corner `MsqdxCornerBox` in `__entity-hero` (stacked in workspace dock). Radius 36px. */
   entityCornerAccent?: boolean;
   className?: string;
 };
@@ -28,6 +28,28 @@ export function MsqdxGlassSectionEntityHeader({
   entityCornerAccent = false,
   className,
 }: MsqdxGlassSectionEntityHeaderProps) {
+  const mainFields = (
+    <>
+      {backHref ? (
+        <Box className="msqdx-glass-section-shell__entity-back" sx={{ mb: 0.5 }}>
+          <Link href={backHref} style={{ textDecoration: "none" }}>
+            <MsqdxButton
+              variant="text"
+              size="small"
+              startIcon={<MsqdxIcon name="arrow_back" customSize={18} />}
+              sx={{ px: 0, minWidth: 0, color: "var(--color-text-secondary)" }}
+            >
+              {backLabel}
+            </MsqdxButton>
+          </Link>
+        </Box>
+      ) : null}
+      {scopeLabel ? <span className="msqdx-glass-section-shell__scope">{scopeLabel}</span> : null}
+      {entityTitle ? <h1 className="msqdx-glass-section-shell__title">{entityTitle}</h1> : null}
+      {entitySubtitle ? <p className="msqdx-glass-section-shell__subtitle">{entitySubtitle}</p> : null}
+    </>
+  );
+
   return (
     <header
       className={[
@@ -39,53 +61,39 @@ export function MsqdxGlassSectionEntityHeader({
         .join(" ")}
     >
       {entityCornerAccent ? (
-        <Box
-          className="msqdx-glass-section-shell__entity-corner-accent"
-          aria-hidden
-          sx={{
-            position: "absolute",
-            top: -18,
-            right: -18,
-            width: { xs: 52, sm: 72, md: 496 },
-            height: { xs: 36, sm: 44, md: 70 },
-            pointerEvents: "none",
-            zIndex: 0,
-          }}
-        >
-          <MsqdxCornerBox
-            topLeft="cutdown-a"
-            topRight="rounded"
-            bottomLeft="rounded"
-            bottomRight="cutdown-b"
-            borderRadius={SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX}
+        <div className="msqdx-glass-section-shell__entity-hero">
+          <div className="msqdx-glass-section-shell__entity-main">{mainFields}</div>
+          <Box
+            className="msqdx-glass-section-shell__entity-corner-accent"
+            aria-hidden
             sx={{
-              width: "100%",
-              height: "100%",
-              boxSizing: "border-box",
-              bgcolor: "var(--color-theme-accent, #000)",
+              position: "absolute",
+              top: -18,
+              right: -18,
+              width: { xs: 52, sm: 72, md: 496 },
+              height: { xs: 36, sm: 44, md: 70 },
+              pointerEvents: "none",
+              zIndex: 0,
             }}
-          />
-        </Box>
-      ) : null}
-      <div className="msqdx-glass-section-shell__entity-main">
-        {backHref ? (
-          <Box className="msqdx-glass-section-shell__entity-back" sx={{ mb: 0.5 }}>
-            <Link href={backHref} style={{ textDecoration: "none" }}>
-              <MsqdxButton
-                variant="text"
-                size="small"
-                startIcon={<MsqdxIcon name="arrow_back" customSize={18} />}
-                sx={{ px: 0, minWidth: 0, color: "var(--color-text-secondary)" }}
-              >
-                {backLabel}
-              </MsqdxButton>
-            </Link>
+          >
+            <MsqdxCornerBox
+              topLeft="cutdown-a"
+              topRight="rounded"
+              bottomLeft="rounded"
+              bottomRight="cutdown-b"
+              borderRadius={SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX}
+              sx={{
+                width: "100%",
+                height: "100%",
+                boxSizing: "border-box",
+                bgcolor: "var(--color-theme-accent, #000)",
+              }}
+            />
           </Box>
-        ) : null}
-        {scopeLabel ? <span className="msqdx-glass-section-shell__scope">{scopeLabel}</span> : null}
-        {entityTitle ? <h1 className="msqdx-glass-section-shell__title">{entityTitle}</h1> : null}
-        {entitySubtitle ? <p className="msqdx-glass-section-shell__subtitle">{entitySubtitle}</p> : null}
-      </div>
+        </div>
+      ) : (
+        <div className="msqdx-glass-section-shell__entity-main">{mainFields}</div>
+      )}
       {headerActions ? (
         <Box sx={{ flexShrink: 0, position: "relative", zIndex: 1 }}>{headerActions}</Box>
       ) : null}

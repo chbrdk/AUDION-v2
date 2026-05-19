@@ -17,7 +17,7 @@ export type MsqdxGlassSectionShellProps = {
   backHref?: string;
   backLabel?: string;
   headerActions?: ReactNode;
-  /** Decorative MsqdxCornerBox top-right; 36px radius aligned with workspace `--with-subnav` frame */
+  /** Decorative MsqdxCornerBox top-right; 36px radius; with accent, `entity-main` + patch live in `__entity-hero` inside the workspace dock */
   entityCornerAccent?: boolean;
   navItems?: SectionNavItem[];
   /** Accessible label for the sub-nav `<nav>` */

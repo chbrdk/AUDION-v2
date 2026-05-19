@@ -15,6 +15,7 @@ describe("persona v2 detail admin header", () => {
     expect(layout).toContain("msqdx-glass-persona-v2-detail");
     expect(layout).toContain("ADMIN_ROUTES.personasV2");
     expect(layout).toContain("entityCornerAccent");
+    expect(layout).not.toContain("scopeLabel=");
     expect(layout).not.toContain("sectionTitle=");
     expect(layout).not.toContain("sectionDescription=");
     expect(layout).not.toContain("personaV2.openClassic");
