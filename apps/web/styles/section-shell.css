@@ -220,6 +220,19 @@
   z-index: 1;
 }
 
+.msqdx-glass-section-shell__entity-main--on-accent {
+  min-width: 0;
+}
+
+.msqdx-glass-section-shell__entity-main--on-accent .msqdx-glass-section-shell__scope,
+.msqdx-glass-section-shell__entity-main--on-accent .msqdx-glass-section-shell__title {
+  color: var(--color-theme-accent-contrast, #ffffff);
+}
+
+.msqdx-glass-section-shell__entity-main--on-accent .msqdx-glass-section-shell__subtitle {
+  color: color-mix(in srgb, var(--color-theme-accent-contrast, #ffffff) 80%, transparent);
+}
+
 .msqdx-glass-section-shell__entity-main {
   display: flex;
   flex-direction: column;

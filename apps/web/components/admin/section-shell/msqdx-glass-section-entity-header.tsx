@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { Box } from "@mui/material";
+import { Box, useTheme } from "@mui/material";
 import { MsqdxButton, MsqdxCornerBox, MsqdxIcon } from "@msqdx/react";
 import { SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX } from "../../../lib/section-nav-dock-layout";
 
@@ -13,7 +13,7 @@ export type MsqdxGlassSectionEntityHeaderProps = {
   backHref?: string;
   backLabel?: string;
   headerActions?: ReactNode;
-  /** Wraps `entity-main` + corner `MsqdxCornerBox` in `__entity-hero` (stacked in workspace dock). Radius 36px. */
+  /** Title + meta live inside the black `MsqdxCornerBox` (36px radius, same as workspace frame). */
   entityCornerAccent?: boolean;
   className?: string;
 };
@@ -28,7 +28,10 @@ export function MsqdxGlassSectionEntityHeader({
   entityCornerAccent = false,
   className,
 }: MsqdxGlassSectionEntityHeaderProps) {
-  const mainFields = (
+  const theme = useTheme();
+  const onAccentContrast = "var(--color-theme-accent-contrast, #ffffff)";
+
+  const renderMainFields = (onAccent: boolean) => (
     <>
       {backHref ? (
         <Box className="msqdx-glass-section-shell__entity-back" sx={{ mb: 0.5 }}>
@@ -37,7 +40,14 @@ export function MsqdxGlassSectionEntityHeader({
               variant="text"
               size="small"
               startIcon={<MsqdxIcon name="arrow_back" customSize={18} />}
-              sx={{ px: 0, minWidth: 0, color: "var(--color-text-secondary)" }}
+              sx={{
+                px: 0,
+                minWidth: 0,
+                color: onAccent ? onAccentContrast : "var(--color-text-secondary)",
+                ...(onAccent && {
+                  "&:hover": { backgroundColor: theme.palette.action.hover },
+                }),
+              }}
             >
               {backLabel}
             </MsqdxButton>
@@ -62,37 +72,35 @@ export function MsqdxGlassSectionEntityHeader({
     >
       {entityCornerAccent ? (
         <div className="msqdx-glass-section-shell__entity-hero">
-          <div className="msqdx-glass-section-shell__entity-main">{mainFields}</div>
-          <Box
+          <MsqdxCornerBox
             className="msqdx-glass-section-shell__entity-corner-accent"
-            aria-hidden
+            topLeft="cutdown-a"
+            topRight="rounded"
+            bottomLeft="rounded"
+            bottomRight="cutdown-b"
+            borderRadius={SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX}
             sx={{
-              position: "absolute",
-              top: -18,
-              right: -18,
-              width: { xs: 52, sm: 72, md: 496 },
-              height: { xs: 36, sm: 44, md: 70 },
-              pointerEvents: "none",
-              zIndex: 0,
+              width: "100%",
+              minWidth: 0,
+              boxSizing: "border-box",
+              bgcolor: "var(--color-theme-accent, #000000)",
+              color: onAccentContrast,
+              position: "relative",
+              py: "var(--msqdx-spacing-md)",
+              px: "var(--msqdx-spacing-lg)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "stretch",
+              justifyContent: "center",
             }}
           >
-            <MsqdxCornerBox
-              topLeft="cutdown-a"
-              topRight="rounded"
-              bottomLeft="rounded"
-              bottomRight="cutdown-b"
-              borderRadius={SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX}
-              sx={{
-                width: "100%",
-                height: "100%",
-                boxSizing: "border-box",
-                bgcolor: "var(--color-theme-accent, #000)",
-              }}
-            />
-          </Box>
+            <div className="msqdx-glass-section-shell__entity-main msqdx-glass-section-shell__entity-main--on-accent">
+              {renderMainFields(true)}
+            </div>
+          </MsqdxCornerBox>
         </div>
       ) : (
-        <div className="msqdx-glass-section-shell__entity-main">{mainFields}</div>
+        <div className="msqdx-glass-section-shell__entity-main">{renderMainFields(false)}</div>
       )}
       {headerActions ? (
         <Box sx={{ flexShrink: 0, position: "relative", zIndex: 1 }}>{headerActions}</Box>
