@@ -448,10 +448,10 @@ export const MsqdxGlassChipEditor = ({
                   {useCornerTabChrome ? (
                     <MsqdxCornerBox
                       className="msqdx-glass-pain-goals-slide-card__index-corner"
-                      topLeft="cutdown-a"
-                      topRight="rounded"
-                      bottomLeft="rounded"
-                      bottomRight="cutdown-b"
+                      topLeft="rounded"
+                      topRight="cutdown-a"
+                      bottomLeft="cutdown-b"
+                      bottomRight="rounded"
                       borderRadius={PAIN_GOALS_SLIDE_INDEX_BADGE_RADIUS_PX}
                       aria-label={t("chipEditor.slideIndexAria", { n: idx + 1 })}
                       sx={{
@@ -460,8 +460,8 @@ export const MsqdxGlassChipEditor = ({
                         top: 0,
                         left: 0,
                         overflow: "visible",
-                        minWidth: "2rem",
-                        minHeight: "2rem",
+                        minWidth: "4rem",
+                        minHeight: "4rem",
                         px: 0.75,
                         py: 0.5,
                         display: "flex",
@@ -477,7 +477,7 @@ export const MsqdxGlassChipEditor = ({
                         component="span"
                         sx={{
                           ...MONO_FONT_SX,
-                          fontSize: "0.75rem",
+                          fontSize: "1.5rem",
                           fontWeight: 700,
                           lineHeight: 1,
                         }}
