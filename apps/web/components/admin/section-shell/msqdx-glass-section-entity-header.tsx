@@ -46,8 +46,8 @@ export function MsqdxGlassSectionEntityHeader({
             position: "absolute",
             top: -18,
             right: -18,
-            width: { xs: 52, sm: 72, md: 396 },
-            height: { xs: 36, sm: 44 ,md: 240},
+            width: { xs: 52, sm: 72, md: 496 },
+            height: { xs: 36, sm: 44 ,md: 70},
             pointerEvents: "none",
             zIndex: 0,
           }}
