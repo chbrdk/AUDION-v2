@@ -3,7 +3,8 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { Box } from "@mui/material";
-import { MsqdxButton, MsqdxIcon } from "@msqdx/react";
+import { MsqdxButton, MsqdxCornerBox, MsqdxIcon } from "@msqdx/react";
+import { SECTION_NAV_DOCK_BORDER_RADIUS_PX } from "../../../lib/section-nav-dock-layout";
 
 export type MsqdxGlassSectionEntityHeaderProps = {
   scopeLabel?: string;
@@ -12,6 +13,8 @@ export type MsqdxGlassSectionEntityHeaderProps = {
   backHref?: string;
   backLabel?: string;
   headerActions?: ReactNode;
+  /** Subtle top-right cut-corner panel (matches subnav dock geometry) */
+  entityCornerAccent?: boolean;
   className?: string;
 };
 
@@ -22,12 +25,48 @@ export function MsqdxGlassSectionEntityHeader({
   backHref,
   backLabel = "Back",
   headerActions,
+  entityCornerAccent = false,
   className,
 }: MsqdxGlassSectionEntityHeaderProps) {
   return (
     <header
-      className={["msqdx-glass-section-shell__entity", className ?? ""].filter(Boolean).join(" ")}
+      className={[
+        "msqdx-glass-section-shell__entity",
+        entityCornerAccent ? "msqdx-glass-section-shell__entity--has-corner-accent" : "",
+        className ?? "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
     >
+      {entityCornerAccent ? (
+        <Box
+          className="msqdx-glass-section-shell__entity-corner-accent"
+          aria-hidden
+          sx={{
+            position: "absolute",
+            top: 0,
+            right: 0,
+            width: { xs: 52, sm: 72 },
+            height: { xs: 36, sm: 44 },
+            pointerEvents: "none",
+            zIndex: 0,
+          }}
+        >
+          <MsqdxCornerBox
+            topLeft="rounded"
+            topRight="cutdown-b"
+            bottomLeft="rounded"
+            bottomRight="rounded"
+            borderRadius={SECTION_NAV_DOCK_BORDER_RADIUS_PX}
+            sx={{
+              width: "100%",
+              height: "100%",
+              boxSizing: "border-box",
+              bgcolor: "var(--color-theme-accent-tint, rgba(0, 0, 0, 0.06))",
+            }}
+          />
+        </Box>
+      ) : null}
       <div className="msqdx-glass-section-shell__entity-main">
         {backHref ? (
           <Box className="msqdx-glass-section-shell__entity-back" sx={{ mb: 0.5 }}>
@@ -47,7 +86,9 @@ export function MsqdxGlassSectionEntityHeader({
         {entityTitle ? <h1 className="msqdx-glass-section-shell__title">{entityTitle}</h1> : null}
         {entitySubtitle ? <p className="msqdx-glass-section-shell__subtitle">{entitySubtitle}</p> : null}
       </div>
-      {headerActions ? <Box sx={{ flexShrink: 0 }}>{headerActions}</Box> : null}
+      {headerActions ? (
+        <Box sx={{ flexShrink: 0, position: "relative", zIndex: 1 }}>{headerActions}</Box>
+      ) : null}
     </header>
   );
 }

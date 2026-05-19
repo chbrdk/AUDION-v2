@@ -14,6 +14,8 @@ describe("persona v2 detail admin header", () => {
     expect(layout).toContain("setHeaderStartContent");
     expect(layout).toContain("msqdx-glass-persona-v2-detail");
     expect(layout).toContain("ADMIN_ROUTES.personasV2");
+    expect(layout).toContain("entityCornerAccent");
+    expect(layout).not.toContain("personaV2.openClassic");
 
     const providers = readFileSync(
       join(webRoot, "components/admin/admin-layout-providers.tsx"),

@@ -204,6 +204,15 @@
   min-width: 0;
 }
 
+.msqdx-glass-section-shell__entity--has-corner-accent {
+  position: relative;
+}
+
+.msqdx-glass-section-shell__entity--has-corner-accent .msqdx-glass-section-shell__entity-main {
+  position: relative;
+  z-index: 1;
+}
+
 .msqdx-glass-section-shell__entity-main {
   display: flex;
   flex-direction: column;

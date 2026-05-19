@@ -19,6 +19,7 @@ export function MsqdxGlassSectionShell({
   backHref,
   backLabel = "Back",
   headerActions,
+  entityCornerAccent = false,
   navItems = [],
   navLabel,
   activeSectionId,
@@ -29,7 +30,9 @@ export function MsqdxGlassSectionShell({
   wideContent = false,
   className,
 }: MsqdxGlassSectionShellProps) {
-  const showEntityHeader = Boolean(scopeLabel || entityTitle || entitySubtitle || backHref || headerActions);
+  const showEntityHeader = Boolean(
+    scopeLabel || entityTitle || entitySubtitle || backHref || headerActions || entityCornerAccent
+  );
   const showSubNav = !hideSubNav && navItems.length > 0;
   const showSectionHeader = Boolean(sectionTitle || sectionDescription || workspaceActions);
 
@@ -43,6 +46,7 @@ export function MsqdxGlassSectionShell({
           backHref={backHref}
           backLabel={backLabel}
           headerActions={headerActions}
+          entityCornerAccent={entityCornerAccent}
         />
       ) : null}
 

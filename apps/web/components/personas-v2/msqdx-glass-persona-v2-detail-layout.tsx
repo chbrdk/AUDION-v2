@@ -118,13 +118,7 @@ export function MsqdxGlassPersonaV2DetailLayout({ personaId, sectionId, docsUrl 
       sectionTitle={t(activeSection.labelKey)}
       sectionDescription={t(activeSection.descriptionKey)}
       wideContent
-      headerActions={
-        <Link href={ADMIN_ROUTES.personaDetail(personaId)} style={{ textDecoration: "none" }}>
-          <MsqdxButton variant="outlined" size="small">
-            {t("personaV2.openClassic")}
-          </MsqdxButton>
-        </Link>
-      }
+      entityCornerAccent
     >
       {loadError ? <p style={{ color: "var(--color-secondary-dx-pink-on-light)" }}>{loadError}</p> : null}
       <MsqdxGlassPersonaV2SectionContent
