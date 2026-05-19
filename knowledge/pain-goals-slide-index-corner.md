@@ -1,7 +1,10 @@
-# Pain / goals slider — index corner badge
+# Pain / goals slider — index cutout (`MsqdxCornerBox`)
 
-- **UI**: Pain- and goal-chips in **slider** layout with corner tab chrome (`MsqdxGlassPainGoalsCornerShell`) show a top-left **`MsqdxCornerBox`** cutout (`topLeft="cutdown-a"`) with the **1-based entry index**.
-- **Surface**: Badge `bgcolor` uses CSS var **`--msqdx-pain-goals-slide-surface`**, defined on `.msqdx-glass-pain-goals-slide-card` (same token as the card background) in `apps/web/styles/dashboard-cards.css`.
-- **Radius constant**: `PAIN_GOALS_SLIDE_INDEX_BADGE_RADIUS_PX` (18) in `apps/web/lib/chip-editor-corner-tab.tsx` — matches slide card `border-radius: 18px`.
-- **i18n**: `chipEditor.slideIndexAria` (`{n}`) — `aria-label` on the corner box for screen readers.
-- **Spacing**: Modifier **`msqdx-glass-pain-goals-slide-card--indexed`** adds left padding so body text clears the badge.
+- **Geometry**: Same pattern as the black entity hero: **`topLeft="cutdown-a"`** and **`bottomRight="cutdown-b"`** (other corners `rounded`) so the **cutdown patches** from `@msqdx/react` read as a real cutout tab, not a plain rounded pill.
+- **Radius**: `PAIN_GOALS_SLIDE_INDEX_BADGE_RADIUS_PX` in `apps/web/lib/chip-editor-corner-tab.tsx` (22px — large enough for the mask to read; slide card frame stays 18px).
+- **Clipping**: The slide **shell** (`.msqdx-glass-pain-goals-slide-card`) uses **`overflow: visible`**. Long text scrolls in **`.msqdx-glass-pain-goals-slide-card__body`** (`overflow-y: auto`). Previously a single node had `overflow-y: auto`, which **clipped** the cutout patches.
+- **Viewport gutter**: `.msqdx-glass-chip-editor__corner-tab-shell .msqdx-glass-horizontal-card-slider__viewport` gets **`padding-inline: max(24px, …)`** so patches that extend horizontally past the badge are not clipped by **`overflow-x: auto`** on the viewport.
+- **Slides**: `.msqdx-glass-horizontal-card-slider__slide` sets **`overflow: visible`**.
+- **Surface**: Badge `bgcolor: var(--msqdx-pain-goals-slide-surface)` — same CSS variable as the card (see `dashboard-cards.css`).
+- **i18n**: `chipEditor.slideIndexAria` (`{n}`) on the corner box `aria-label`.
+- **Body padding**: `.msqdx-glass-pain-goals-slide-card__body--indexed` adds left padding so copy clears the badge.

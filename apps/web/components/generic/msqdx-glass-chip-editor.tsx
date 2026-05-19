@@ -451,15 +451,17 @@ export const MsqdxGlassChipEditor = ({
                       topLeft="cutdown-a"
                       topRight="rounded"
                       bottomLeft="rounded"
-                      bottomRight="rounded"
+                      bottomRight="cutdown-b"
                       borderRadius={PAIN_GOALS_SLIDE_INDEX_BADGE_RADIUS_PX}
                       aria-label={t("chipEditor.slideIndexAria", { n: idx + 1 })}
                       sx={{
                         position: "absolute",
-                        zIndex: 2,
+                        zIndex: 3,
                         top: 0,
                         left: 0,
-                        minWidth: "1.75rem",
+                        overflow: "visible",
+                        minWidth: "2rem",
+                        minHeight: "2rem",
                         px: 0.75,
                         py: 0.5,
                         display: "flex",
@@ -484,33 +486,40 @@ export const MsqdxGlassChipEditor = ({
                       </Box>
                     </MsqdxCornerBox>
                   ) : null}
-                  {isEditing && editingIndex === idx ? (
-                    <Box ref={editInputWrapperRef} sx={{ width: "100%" }}>
-                      <MsqdxInput
-                        value={editingValue}
-                        onChange={(e) => setEditingValue(e.target.value)}
-                        onKeyDown={(e) => handleKeyDown(e, true, idx)}
-                        onBlur={handleSaveEditChip}
-                        size="small"
-                        multiline
-                        minRows={3}
-                        sx={{ ...INPUT_ACCENT_SX, ...MONO_FONT_SX }}
-                      />
-                    </Box>
-                  ) : (
-                    <MsqdxTypography
-                      variant="body2"
-                      sx={{
-                        ...MONO_FONT_SX,
-                        lineHeight: 1.55,
-                        color: "text.primary",
-                        cursor: isEditing ? "pointer" : "default",
-                      }}
-                      onClick={isEditing ? () => handleStartEditChip(idx, chip) : undefined}
-                    >
-                      {chip}
-                    </MsqdxTypography>
-                  )}
+                  <div
+                    className={clsx(
+                      "msqdx-glass-pain-goals-slide-card__body",
+                      useCornerTabChrome && "msqdx-glass-pain-goals-slide-card__body--indexed"
+                    )}
+                  >
+                    {isEditing && editingIndex === idx ? (
+                      <Box ref={editInputWrapperRef} sx={{ width: "100%" }}>
+                        <MsqdxInput
+                          value={editingValue}
+                          onChange={(e) => setEditingValue(e.target.value)}
+                          onKeyDown={(e) => handleKeyDown(e, true, idx)}
+                          onBlur={handleSaveEditChip}
+                          size="small"
+                          multiline
+                          minRows={3}
+                          sx={{ ...INPUT_ACCENT_SX, ...MONO_FONT_SX }}
+                        />
+                      </Box>
+                    ) : (
+                      <MsqdxTypography
+                        variant="body2"
+                        sx={{
+                          ...MONO_FONT_SX,
+                          lineHeight: 1.55,
+                          color: "text.primary",
+                          cursor: isEditing ? "pointer" : "default",
+                        }}
+                        onClick={isEditing ? () => handleStartEditChip(idx, chip) : undefined}
+                      >
+                        {chip}
+                      </MsqdxTypography>
+                    )}
+                  </div>
                   {isEditing && editingIndex !== idx ? (
                     <MsqdxButton
                       variant="text"
@@ -525,6 +534,7 @@ export const MsqdxGlassChipEditor = ({
                         minWidth: 24,
                         minHeight: 24,
                         p: "2px",
+                        zIndex: 4,
                         "&:hover": {
                           backgroundColor: alpha(theme.palette.error.main, 0.1),
                         },

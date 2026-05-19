@@ -9,8 +9,8 @@ export const CHIP_EDITOR_CORNER_SHELL_SURFACE =
 /** Matches `--msqdx-radius-3xl`; tab box + card body share the same corner radius. */
 export const CHIP_EDITOR_CORNER_BORDER_RADIUS_PX = 24;
 
-/** Matches `.msqdx-glass-pain-goals-slide-card` border-radius; index cutout badge on slider slides. */
-export const PAIN_GOALS_SLIDE_INDEX_BADGE_RADIUS_PX = 18;
+/** Matches `.msqdx-glass-pain-goals-slide-card` corner radius; index cutout badge (MsqdxCornerBox cutdown patches). */
+export const PAIN_GOALS_SLIDE_INDEX_BADGE_RADIUS_PX = 22;
 
 export type ChipEditorCornerTabStyle = {
   iconColor: string;
