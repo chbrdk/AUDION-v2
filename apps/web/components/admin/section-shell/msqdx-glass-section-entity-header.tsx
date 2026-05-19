@@ -74,18 +74,20 @@ export function MsqdxGlassSectionEntityHeader({
         <div className="msqdx-glass-section-shell__entity-hero">
           <MsqdxCornerBox
             className="msqdx-glass-section-shell__entity-corner-accent"
-            topLeft="rounded"
-            topRight="cutdown-a"
-            bottomLeft="cutdown-b"
-            bottomRight="rounded"
+            topLeft="cutdown-a"
+            topRight="rounded"
+            bottomLeft="rounded"
+            bottomRight="cutdown-b"
             borderRadius={SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX}
             sx={{
-              width: "100%",
+              width: "auto",
               minWidth: 0,
               boxSizing: "border-box",
               bgcolor: "var(--color-theme-accent, #000000)",
               color: "var(--msqdx-entity-accent-on-surface, #ffffff)",
-              position: "relative",
+              position: "absolute",
+              top: -18,
+              right: -18,
               py: "var(--msqdx-spacing-md)",
               px: "var(--msqdx-spacing-lg)",
               display: "flex",

@@ -33,7 +33,7 @@ Drei Zonen von links nach rechts:
 | Piece | Path |
 |-------|------|
 | Shell | `components/admin/section-shell/msqdx-glass-section-shell.tsx` |
-| Entity header | `entityCornerAccent`: Text **hell** (`--msqdx-entity-accent-on-surface*`), **rechtsbündig** in schwarzer `MsqdxCornerBox`; 36px Radius. On-surface-Regeln nutzen **höhere Spezifität + `!important`**, weil `monochrome-theme.css` für `.msqdx-glass-admin-content h1|p|span` ebenfalls `!important` setzt und sonst dunkle Schrift auf dem schwarzen Hero erzwingt. |
+| Entity header | `entityCornerAccent`: Text **hell** (`--msqdx-entity-accent-on-surface*`), **rechtsbündig** in schwarzer `MsqdxCornerBox`; 36px Radius. On-surface-Regeln nutzen **höhere Spezifität + `!important`**, weil `monochrome-theme.css` für `.msqdx-glass-admin-content h1|p|span` ebenfalls `!important` setzt. Persona-Detail: **In-page-`backHref`** bleibt für Viewports **unter `md`** (Header-Slot dort ausgeblendet); ab **900px** wird `.entity-back` in der Corner-Box per CSS ausgeblendet, weil der Back im **Admin-Header** sitzt. |
 | Subnav | `components/admin/section-shell/msqdx-glass-section-nav.tsx` |
 | Styles | `styles/section-shell.css` |
 | Persona sections | `lib/persona-v2-sections.ts` |

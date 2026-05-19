@@ -21,10 +21,15 @@
   grid-template-columns: minmax(200px, 224px) minmax(0, 1fr);
 }
 
-/* Persona v2 detail: back link is in admin header next to project (md+); hide in-page duplicate */
+/*
+ * Persona v2 + black entity hero: back is duplicated in `headerStartContent` from md up
+ * (header slot hidden below md). Hide in-page back in the hero from md so only one control shows.
+ */
 @media (min-width: 900px) {
-  .msqdx-glass-persona-v2-detail .msqdx-glass-section-shell__entity-back {
-    display: none;
+  .msqdx-glass-persona-v2-detail
+    .msqdx-glass-section-shell__entity-corner-accent
+    .msqdx-glass-section-shell__entity-back {
+    display: none !important;
   }
 }
 

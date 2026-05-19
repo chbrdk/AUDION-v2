@@ -14,6 +14,7 @@ export type MsqdxGlassSectionShellProps = {
   scopeLabel?: string;
   entityTitle?: string;
   entitySubtitle?: string;
+  /** In-page back link. Persona v2 + corner hero: duplicate hidden from `md` via CSS (header slot shows there). */
   backHref?: string;
   backLabel?: string;
   headerActions?: ReactNode;
