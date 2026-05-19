@@ -62,7 +62,7 @@ export function MsqdxGlassSectionEntityHeader({
               width: "100%",
               height: "100%",
               boxSizing: "border-box",
-              bgcolor: "var(--color-theme-accent-tint, rgba(0, 0, 0, 1))",
+              bgcolor: "var(--color-text-secondary), rgba(0, 0, 0, 1))",
             }}
           />
         </Box>
