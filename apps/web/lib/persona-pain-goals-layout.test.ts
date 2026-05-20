@@ -136,5 +136,18 @@ describe("persona pain-goals layout", () => {
     expect(css).toMatch(
       /\.msqdx-glass-chip-editor__corner-tab-shell \.msqdx-corner-tab-card__body[^}]*padding-left:\s*var\(--msqdx-spacing-xl\)/
     );
+    expect(css).toMatch(
+      /\.msqdx-glass-chip-editor--slider:has\(\.msqdx-glass-chip-editor__corner-tab-shell\)\s*>\s*\.MuiBox-root:first-of-type\s*\{[^}]*margin-bottom:\s*-18px/
+    );
+  });
+
+  it("tightens corner-tab slider section heading spacing", () => {
+    const chipEditor = readFileSync(
+      resolve(process.cwd(), "components/generic/msqdx-glass-chip-editor.tsx"),
+      "utf8"
+    );
+    expect(chipEditor).toMatch(
+      /isSliderLayout && relaxedSpacing\s*\?\s*"-18px"/
+    );
   });
 });

@@ -873,7 +873,7 @@
 
 .msqdx-glass-chip-editor--slider:has(.msqdx-glass-chip-editor__corner-tab-shell)
   > .MuiBox-root:first-of-type {
-  margin-bottom: var(--msqdx-spacing-md);
+  margin-bottom: -18px;
 }
 
 .msqdx-glass-pain-goals-section .MuiTypography-root,

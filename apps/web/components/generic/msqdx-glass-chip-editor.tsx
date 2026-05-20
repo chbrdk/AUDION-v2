@@ -356,7 +356,12 @@ export const MsqdxGlassChipEditor = ({
           display: "flex",
           justifyContent: showHeaderActions ? "space-between" : "flex-start",
           alignItems: "center",
-          mb: relaxedSpacing ? 2 : 1,
+          mb:
+            isSliderLayout && relaxedSpacing
+              ? "-18px"
+              : relaxedSpacing
+                ? 2
+                : 1,
         }}
       >
         {label && !showSliderInlineHeader ? (
