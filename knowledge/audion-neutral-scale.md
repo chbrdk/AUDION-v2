@@ -29,12 +29,13 @@ Imported in `apps/web/app/layout.tsx` **before** `globals.css`.
 
 | Token | Purpose |
 |-------|---------|
-| `--msqdx-pain-goals-corner-surface` | Corner-tab shell + card body |
-| `--msqdx-pain-goals-slide-surface-default` | Neutral slide fill |
-| `--msqdx-pain-goals-slide-border-default` | Neutral slide border |
+| `--msqdx-pain-goals-corner-surface` | Corner-tab shell + `.msqdx-corner-tab-card__body` (light: `neutral-01`) |
+| `--msqdx-pain-goals-slide-surface` | Shared fill for pain/goal slides **and** index cutout badge |
+| `--msqdx-pain-goals-slide-surface-pain` / `-goal` | Alias → `--msqdx-pain-goals-slide-surface` |
+| `--msqdx-pain-goals-slide-border-default` | (unused while slides are borderless) |
 | `--msqdx-pain-goals-scrollbar-thumb` | Horizontal scrollbar |
-| `--msqdx-pain-goals-slide-surface-pain` / `-border-pain` | Pain slides |
-| `--msqdx-pain-goals-slide-surface-goal` / `-border-goal` | Goal slides |
+
+Pain/goal slide cards have **no border**. Index `MsqdxCornerBox` uses the same `--msqdx-pain-goals-slide-surface` via CSS + TSX `bgcolor`.
 
 Styles: `apps/web/styles/dashboard-cards.css` (`.msqdx-glass-pain-goals-*`).
 

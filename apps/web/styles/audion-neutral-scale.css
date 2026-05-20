@@ -38,15 +38,14 @@
   --color-border-default: var(--audion-neutral-08);
   --color-border-strong: var(--audion-neutral-12);
 
-  /* Pain / goals slider (solid greys + brand slide fills from globals) */
-  --msqdx-pain-goals-corner-surface: var(--audion-neutral-00);
-  --msqdx-pain-goals-slide-surface-default: var(--audion-neutral-01);
+  /* Pain / goals slider — shell body + slides share one ramp step (index cutout uses slide surface) */
+  --msqdx-pain-goals-corner-surface: var(--audion-neutral-01);
+  --msqdx-pain-goals-slide-surface: var(--audion-neutral-01);
+  --msqdx-pain-goals-slide-surface-default: var(--msqdx-pain-goals-slide-surface);
   --msqdx-pain-goals-slide-border-default: var(--audion-neutral-07);
   --msqdx-pain-goals-scrollbar-thumb: var(--audion-neutral-08);
-  --msqdx-pain-goals-slide-surface-pain: var(--color-secondary-dx-pink-tint);
-  --msqdx-pain-goals-slide-border-pain: #e4b4c8;
-  --msqdx-pain-goals-slide-surface-goal: var(--color-secondary-dx-blue-tint);
-  --msqdx-pain-goals-slide-border-goal: #b8d4f8;
+  --msqdx-pain-goals-slide-surface-pain: var(--msqdx-pain-goals-slide-surface);
+  --msqdx-pain-goals-slide-surface-goal: var(--msqdx-pain-goals-slide-surface);
 }
 
 [data-theme="dark"] {
@@ -61,34 +60,31 @@
   --color-border-default: var(--audion-neutral-12);
   --color-border-strong: var(--audion-neutral-09);
 
-  --msqdx-pain-goals-corner-surface: var(--audion-neutral-16);
-  --msqdx-pain-goals-slide-surface-default: var(--audion-neutral-15);
+  --msqdx-pain-goals-corner-surface: var(--audion-neutral-17);
+  --msqdx-pain-goals-slide-surface: var(--audion-neutral-17);
+  --msqdx-pain-goals-slide-surface-default: var(--msqdx-pain-goals-slide-surface);
   --msqdx-pain-goals-slide-border-default: var(--audion-neutral-12);
   --msqdx-pain-goals-scrollbar-thumb: var(--audion-neutral-11);
-  --msqdx-pain-goals-slide-surface-pain: #3a2431;
-  --msqdx-pain-goals-slide-border-pain: #5a3a4c;
-  --msqdx-pain-goals-slide-surface-goal: #1c2a3d;
-  --msqdx-pain-goals-slide-border-goal: #2d4563;
+  --msqdx-pain-goals-slide-surface-pain: var(--msqdx-pain-goals-slide-surface);
+  --msqdx-pain-goals-slide-surface-goal: var(--msqdx-pain-goals-slide-surface);
 }
 
 [data-theme="monochrome-dark"] {
   --msqdx-pain-goals-corner-surface: var(--audion-mono-surface, var(--audion-neutral-17));
-  --msqdx-pain-goals-slide-surface-default: var(--audion-mono-surface-raised, var(--audion-neutral-16));
+  --msqdx-pain-goals-slide-surface: var(--audion-neutral-17);
+  --msqdx-pain-goals-slide-surface-default: var(--msqdx-pain-goals-slide-surface);
   --msqdx-pain-goals-slide-border-default: var(--audion-neutral-12);
   --msqdx-pain-goals-scrollbar-thumb: var(--audion-neutral-10);
-  --msqdx-pain-goals-slide-surface-pain: var(--audion-neutral-15);
-  --msqdx-pain-goals-slide-border-pain: var(--audion-neutral-11);
-  --msqdx-pain-goals-slide-surface-goal: var(--audion-neutral-15);
-  --msqdx-pain-goals-slide-border-goal: var(--audion-neutral-11);
+  --msqdx-pain-goals-slide-surface-pain: var(--msqdx-pain-goals-slide-surface);
+  --msqdx-pain-goals-slide-surface-goal: var(--msqdx-pain-goals-slide-surface);
 }
 
 [data-theme="monochrome-light"] {
   --msqdx-pain-goals-corner-surface: var(--audion-mono-surface, var(--audion-neutral-02));
-  --msqdx-pain-goals-slide-surface-default: var(--audion-neutral-01);
+  --msqdx-pain-goals-slide-surface: var(--audion-neutral-02);
+  --msqdx-pain-goals-slide-surface-default: var(--msqdx-pain-goals-slide-surface);
   --msqdx-pain-goals-slide-border-default: var(--audion-neutral-08);
   --msqdx-pain-goals-scrollbar-thumb: var(--audion-neutral-09);
-  --msqdx-pain-goals-slide-surface-pain: var(--audion-neutral-03);
-  --msqdx-pain-goals-slide-border-pain: var(--audion-neutral-10);
-  --msqdx-pain-goals-slide-surface-goal: var(--audion-neutral-03);
-  --msqdx-pain-goals-slide-border-goal: var(--audion-neutral-10);
+  --msqdx-pain-goals-slide-surface-pain: var(--msqdx-pain-goals-slide-surface);
+  --msqdx-pain-goals-slide-surface-goal: var(--msqdx-pain-goals-slide-surface);
 }

@@ -34,11 +34,10 @@ export const AUDION_NEUTRAL_LIGHT: readonly string[] = [
 /** Semantic tokens used by pain/goals slider chrome (see `audion-neutral-scale.css`). */
 export const AUDION_PAIN_GOALS_NEUTRAL_TOKENS = [
   "--msqdx-pain-goals-corner-surface",
+  "--msqdx-pain-goals-slide-surface",
   "--msqdx-pain-goals-slide-surface-default",
   "--msqdx-pain-goals-slide-border-default",
   "--msqdx-pain-goals-scrollbar-thumb",
   "--msqdx-pain-goals-slide-surface-pain",
-  "--msqdx-pain-goals-slide-border-pain",
   "--msqdx-pain-goals-slide-surface-goal",
-  "--msqdx-pain-goals-slide-border-goal",
 ] as const;
