@@ -855,6 +855,7 @@
 .msqdx-glass-pain-goals-slide-card__body--indexed {
   background: var(--msqdx-pain-goals-slide-surface, var(--audion-neutral-02, #f8f7f3)) !important;
   border-radius: 18px;
+  padding: 0;
 }
 
 .msqdx-glass-pain-goals-slide-card__body--indexed::after {
@@ -880,6 +881,8 @@
 
 .msqdx-glass-pain-goals-slide-card__body--indexed .MuiTypography-root {
   display: block;
+  padding: calc(var(--msqdx-spacing-md) + var(--msqdx-spacing-xxs))
+    calc(var(--msqdx-spacing-sm) + var(--msqdx-spacing-xxs) - 1px);
 }
 
 .msqdx-glass-pain-goals-slide-card.--add {

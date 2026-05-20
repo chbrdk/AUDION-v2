@@ -7,4 +7,4 @@
 - **Slides**: `.msqdx-glass-horizontal-card-slider__slide` sets **`overflow: visible`**.
 - **Surface**: `.msqdx-glass-pain-goals-slide-card__index-corner` is **transparent** (no `background-color`). The container shade shows through the clipped notch on the slide body; do not set index-surface on this class.
 - **i18n**: `chipEditor.slideIndexAria` (`{n}`) on the corner box `aria-label`.
-- **Body padding**: `.msqdx-glass-pain-goals-slide-card__body--indexed` adds left padding so copy clears the badge.
+- **Body padding**: `.msqdx-glass-pain-goals-slide-card__body--indexed` has no padding; copy inset lives on `.MuiTypography-root` inside the indexed body (`20px` vertical, `15px` horizontal via spacing tokens).

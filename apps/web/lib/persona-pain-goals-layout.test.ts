@@ -28,6 +28,12 @@ describe("persona pain-goals layout", () => {
     );
     expect(css).not.toContain(".msqdx-glass-pain-goals-panel-card");
     expect(css).toContain(".msqdx-glass-pain-goals-slide-card__body--indexed");
+    expect(css).toMatch(
+      /\.msqdx-glass-pain-goals-slide-card__body--indexed\s*\{[^}]*padding:\s*0/
+    );
+    expect(css).toMatch(
+      /\.msqdx-glass-pain-goals-slide-card__body--indexed \.MuiTypography-root[^}]*padding:/
+    );
     expect(css).toContain(".msqdx-glass-pain-goals-slide-card__index-corner");
     expect(css).toContain("--msqdx-pain-goals-slide-surface");
     expect(css).toContain(".msqdx-glass-pain-goals-stack__block");
