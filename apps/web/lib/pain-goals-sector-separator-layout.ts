@@ -13,10 +13,13 @@ export const PAIN_GOALS_SECTOR_SEPARATOR_LINE_HEIGHT_PX = 1;
 /** Corner patch size (matches cutdown radius on the separator brackets). */
 export const PAIN_GOALS_SECTOR_SEPARATOR_BORDER_RADIUS_PX = CHIP_EDITOR_CORNER_BORDER_RADIUS_PX;
 
-/** Per-corner MsqdxCornerBox geometry (only the outward-facing corner is cutdown). */
+/**
+ * Bracket geometry around the 1px line: `(_` above, `(` below (per side).
+ * Top corners: cutdown-b (patch extends up). Bottom corners: cutdown-b (patch extends down).
+ */
 export const PAIN_GOALS_SECTOR_SEPARATOR_CORNER_STYLES = {
   topLeft: { topLeft: "cutdown-b", topRight: "square", bottomLeft: "square", bottomRight: "square" },
   topRight: { topLeft: "square", topRight: "cutdown-b", bottomLeft: "square", bottomRight: "square" },
-  bottomLeft: { topLeft: "square", topRight: "square", bottomLeft: "cutdown-a", bottomRight: "square" },
-  bottomRight: { topLeft: "square", topRight: "square", bottomLeft: "square", bottomRight: "cutdown-a" },
+  bottomLeft: { topLeft: "square", topRight: "square", bottomLeft: "cutdown-b", bottomRight: "square" },
+  bottomRight: { topLeft: "square", topRight: "square", bottomLeft: "square", bottomRight: "cutdown-b" },
 } as const;

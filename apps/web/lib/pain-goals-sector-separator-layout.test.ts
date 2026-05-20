@@ -17,7 +17,8 @@ describe("pain-goals sector separator layout", () => {
     expect(PAIN_GOALS_SECTOR_SEPARATOR_LINE_HEIGHT_PX).toBe(1);
     expect(PAIN_GOALS_SECTOR_SEPARATOR_COLOR).toContain("--msqdx-section-workspace-frame-border");
     expect(PAIN_GOALS_SECTOR_SEPARATOR_CORNER_STYLES.topLeft.topLeft).toBe("cutdown-b");
-    expect(PAIN_GOALS_SECTOR_SEPARATOR_CORNER_STYLES.bottomLeft.bottomLeft).toBe("cutdown-a");
+    expect(PAIN_GOALS_SECTOR_SEPARATOR_CORNER_STYLES.bottomLeft.bottomLeft).toBe("cutdown-b");
+    expect(PAIN_GOALS_SECTOR_SEPARATOR_CORNER_STYLES.bottomRight.bottomRight).toBe("cutdown-b");
     expect(PAIN_GOALS_SECTOR_SEPARATOR_BORDER_RADIUS_PX).toBe(24);
     expect(PAIN_GOALS_SECTOR_SEPARATOR_BLEED_PADDING).toContain("--msqdx-spacing-lg");
   });

@@ -669,6 +669,7 @@
   --msqdx-pain-goals-sector-separator-corner: var(--msqdx-pain-goals-sector-separator-line);
   --msqdx-pain-goals-sector-separator-corner-size: 24px;
   position: relative;
+  z-index: 1;
   width: 100%;
   height: 1px;
   min-height: 1px;
@@ -698,6 +699,7 @@
 /* MsqdxCornerBox shell stays transparent; only cutdown patches (aria-hidden) draw the bracket. */
 .msqdx-glass-pain-goals-sector-separator__corner,
 .msqdx-glass-pain-goals-sector-separator__corner.MuiBox-root {
+  z-index: 2;
   background-color: transparent !important;
   overflow: visible !important;
 }
