@@ -15,6 +15,18 @@ export const ADMIN_HEADER_V2_BACK_BUTTON_SIZE_PX = 55;
 /** In-card actions (e.g. chat) aligned to header card chrome. */
 export const ADMIN_HEADER_V2_CARD_ACTION_SIZE_PX = 40;
 
+/** Matches MsqdxAdminNav drawer mode (`theme.breakpoints.down("md")`). */
+export const ADMIN_HEADER_V2_MOBILE_MAX_WIDTH_PX = 899;
+/** Tighter inline pickers before switching to the context drawer. */
+export const ADMIN_HEADER_V2_COMPACT_PICKERS_MAX_WIDTH_PX = 1199;
+
+export const ADMIN_HEADER_V2_CARD_PICKERS_DESKTOP_CLASS =
+  "msqdx-glass-admin-header-card__pickers-desktop";
+export const ADMIN_HEADER_V2_MENU_BUTTON_WRAP_CLASS =
+  "msqdx-glass-admin-header-v2-menu-button-wrap";
+export const ADMIN_HEADER_V2_CONTEXT_DRAWER_CLASS =
+  "msqdx-glass-admin-header-v2-context-drawer";
+
 export function isPersonasV2AdminPath(pathname: string | null | undefined): boolean {
   return Boolean(pathname?.startsWith("/admin/personas-v2"));
 }

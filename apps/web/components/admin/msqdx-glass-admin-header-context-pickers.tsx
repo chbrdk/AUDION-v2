@@ -7,7 +7,13 @@ import { useProject } from "../projects/project-provider";
 import { useI18n } from "../i18n/i18n-provider";
 import { MsqdxGlassAdminHeaderCompactPicker } from "./msqdx-glass-admin-header-compact-picker";
 
-export function MsqdxGlassAdminHeaderContextPickers() {
+export type MsqdxGlassAdminHeaderContextPickersProps = {
+  layout?: "inline" | "stack";
+};
+
+export function MsqdxGlassAdminHeaderContextPickers({
+  layout = "inline",
+}: MsqdxGlassAdminHeaderContextPickersProps) {
   const { t } = useI18n();
   const { projects, activeProjectId, selectProject } = useProject();
   const {
@@ -26,8 +32,13 @@ export function MsqdxGlassAdminHeaderContextPickers() {
     label: project.name,
   }));
 
+  const pickersClassName =
+    layout === "stack"
+      ? "msqdx-glass-admin-header-card__pickers msqdx-glass-admin-header-card__pickers--stack"
+      : "msqdx-glass-admin-header-card__pickers";
+
   return (
-    <Box className="msqdx-glass-admin-header-card__pickers">
+    <Box className={pickersClassName}>
       <MsqdxGlassAdminHeaderCompactPicker
         label={t("project.label")}
         value={activeProjectId ?? ""}

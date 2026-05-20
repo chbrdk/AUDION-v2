@@ -374,7 +374,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
         {isPersonasV2Chrome ? (
           <Box
             sx={{
-              display: { xs: "none", [NAV_DOCKED_BREAKPOINT]: "flex" },
+              display: "flex",
               flex: 1,
               minWidth: 0,
               width: "100%",

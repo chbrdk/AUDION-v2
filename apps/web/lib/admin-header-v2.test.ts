@@ -45,6 +45,9 @@ describe("admin header v2 card", () => {
       "utf8"
     );
     expect(card).toContain("MsqdxGlassAdminHeaderContextPickers");
+    expect(card).toContain("MsqdxGlassAdminHeaderV2ContextDrawer");
+    expect(card).toContain("MsqdxGlassAdminHeaderV2MenuButton");
+    expect(card).toContain("ADMIN_HEADER_V2_CARD_PICKERS_DESKTOP_CLASS");
   });
 
   it("defines bordered card and compact project picker styles", () => {
@@ -64,6 +67,15 @@ describe("admin header v2 card", () => {
     expect(globals).toContain("--msqdx-admin-header-v2-back-button-size: 55px");
     expect(globals).toContain("--msqdx-admin-header-v2-card-action-size: 40px");
     expect(css).toContain(".msqdx-glass-admin-header-v2-chat-button__btn");
+    expect(css).toContain(".msqdx-glass-admin-header-v2-menu-button-wrap");
+    expect(css).toContain(".msqdx-glass-admin-header-v2-context-drawer");
+    expect(css).toMatch(/max-width:\s*899px[\s\S]*\.msqdx-glass-admin-header-card__pickers-desktop[\s\S]*display:\s*none/);
+    expect(css).toMatch(
+      /\.msqdx-glass-admin-header-card__end[^}]*margin-left:\s*auto/
+    );
+    expect(css).toMatch(
+      /\.msqdx-glass-admin-header-card \.msqdx-glass-admin-header-page-title[^}]*justify-content:\s*flex-end/
+    );
     expect(ADMIN_HEADER_V2_CARD_ACTION_SIZE_PX).toBe(40);
     expect(css).toMatch(/\.msqdx-glass-admin-header-v2-row[^}]*margin-left:\s*var\(--msqdx-admin-header-logo-inset/);
     expect(css).toContain(".msqdx-glass-admin-header-compact-picker");

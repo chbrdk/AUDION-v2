@@ -77,6 +77,10 @@
     "profile": "Profil",
     "settings": "Einstellungen"
   },
+  "adminHeader": {
+    "contextDrawerTitle": "Kontext",
+    "openContextMenu": "Projekt- und Persona-Filter öffnen"
+  },
   "project": {
     "label": "Projekt",
     "select": "Projekt auswählen",
