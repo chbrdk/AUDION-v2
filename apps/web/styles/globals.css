@@ -50,6 +50,8 @@
   --msqdx-glass-admin-header-bar-bg: rgb(from var(--color-neutral) r g b / 0.3);
   /* Bottom edge: height of the soft mask fade (admin header --fade-bottom modifier only) */
   --msqdx-glass-admin-header-bar-mask-fade-depth: 40px;
+  --msqdx-admin-header-logo-inset: 230px;
+  --msqdx-admin-header-v2-card-min-height: 54px;
   --audion-light-border-color: #0f172a;
   --audion-light-html-background-color: #0f172a;
   --audion-sidebar-text-color: #ffffff;

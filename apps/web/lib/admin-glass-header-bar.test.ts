@@ -15,7 +15,8 @@ describe("admin glass header bar chrome", () => {
 
   it("header Box uses the CSS variable and no divider border", () => {
     const layout = readFileSync(join(webRoot, "components/admin/msqdx-glass-admin-layout.tsx"), "utf8");
-    expect(layout).toContain("backgroundColor: \"var(--msqdx-glass-admin-header-bar-bg)\"");
+    expect(layout).toContain(": \"var(--msqdx-glass-admin-header-bar-bg)\"");
+    expect(layout).toContain("isPersonasV2Chrome");
     expect(layout).toContain("borderBottom: \"none\"");
     expect(layout).not.toMatch(/borderBottom:\s*\(/);
     expect(layout).toContain("headerStartContent");

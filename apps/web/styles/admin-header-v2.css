@@ -1,0 +1,162 @@
+/* Personas v2 — rounded header card (full width from logo inset to content edge) */
+
+.msqdx-glass-admin-header-bar--v2-card {
+  -webkit-mask-image: none;
+  mask-image: none;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  padding: var(--msqdx-spacing-md) var(--msqdx-spacing-md) var(--msqdx-spacing-sm);
+  padding-left: 0;
+  min-height: auto;
+}
+
+.msqdx-glass-admin-header-bar--v2-card.msqdx-glass-admin-header-bar-mask {
+  overflow: visible;
+}
+
+.msqdx-glass-admin-header-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--msqdx-spacing-md);
+  flex: 1;
+  min-width: 0;
+  min-height: var(--msqdx-admin-header-v2-card-min-height, 54px);
+  margin-left: var(--msqdx-admin-header-logo-inset, 230px);
+  margin-right: 0;
+  padding: var(--msqdx-spacing-xs) var(--msqdx-spacing-md);
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.12));
+  border-radius: var(--msqdx-radius-3xl, 24px);
+  background: var(--msqdx-glass-admin-header-v2-card-bg, var(--color-primary-white, #ffffff));
+  box-sizing: border-box;
+}
+
+[data-theme="dark"] .msqdx-glass-admin-header-card,
+[data-theme="monochrome-dark"] .msqdx-glass-admin-header-card {
+  --msqdx-glass-admin-header-v2-card-bg: var(--color-background, #1a1a1a);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="monochrome-light"] .msqdx-glass-admin-header-card {
+  --msqdx-glass-admin-header-v2-card-bg: #ffffff;
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+.msqdx-glass-admin-header-card__start,
+.msqdx-glass-admin-header-card__end {
+  display: flex;
+  align-items: center;
+  gap: var(--msqdx-spacing-md);
+  min-width: 0;
+}
+
+.msqdx-glass-admin-header-card__start {
+  flex: 1 1 auto;
+}
+
+.msqdx-glass-admin-header-card__end {
+  flex: 0 1 auto;
+  justify-content: flex-end;
+}
+
+.msqdx-glass-admin-header-card__divider {
+  width: 1px;
+  align-self: stretch;
+  min-height: 28px;
+  margin-block: var(--msqdx-spacing-xxs);
+  background: var(--color-border, rgba(0, 0, 0, 0.12));
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .msqdx-glass-admin-header-card__divider,
+[data-theme="monochrome-dark"] .msqdx-glass-admin-header-card__divider {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Compact project picker inside header card */
+.msqdx-glass-admin-project-picker {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.msqdx-glass-admin-project-picker__label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  line-height: 1.2;
+}
+
+.msqdx-glass-admin-project-picker__select {
+  min-width: 120px;
+  max-width: 220px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.msqdx-glass-admin-project-picker__select .MuiOutlinedInput-notchedOutline {
+  border: none;
+}
+
+.msqdx-glass-admin-project-picker__select .MuiSelect-select {
+  display: flex;
+  align-items: center;
+  gap: var(--msqdx-spacing-xs);
+  padding: 0 !important;
+  padding-right: 1.75rem !important;
+  min-height: 0;
+}
+
+.msqdx-glass-admin-project-picker__select.MuiOutlinedInput-root {
+  padding-right: 0;
+}
+
+.msqdx-glass-admin-project-picker__value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 180px;
+}
+
+.msqdx-glass-admin-project-picker__chevron {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-secondary);
+  pointer-events: none;
+}
+
+.msqdx-glass-admin-header-card .msqdx-glass-admin-header-page-title {
+  display: flex;
+  align-items: center;
+  gap: var(--msqdx-spacing-sm);
+  min-width: 0;
+}
+
+.msqdx-glass-admin-header-card .msqdx-glass-admin-header-page-title__label {
+  font-size: clamp(1.25rem, 2vw, 2.25rem);
+  text-transform: lowercase;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  color: var(--color-text-primary);
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+@media (max-width: 899px) {
+  .msqdx-glass-admin-header-card {
+    margin-left: 0;
+  }
+
+  .msqdx-glass-admin-header-bar--v2-card {
+    padding-left: var(--msqdx-spacing-md);
+  }
+}

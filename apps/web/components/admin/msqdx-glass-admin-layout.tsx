@@ -4,13 +4,16 @@ import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Box, IconButton, Tooltip, useTheme } from "@mui/material";
-import { MsqdxButton, MsqdxIcon, MsqdxAdminNav, MsqdxAppLayout, MsqdxTypography } from "@msqdx/react";
+import { Box, IconButton, useTheme } from "@mui/material";
+import { MsqdxIcon, MsqdxAdminNav, MsqdxAppLayout, MsqdxTypography } from "@msqdx/react";
 import type { AdminNavItem } from "@msqdx/react";
 import { useAdminHeader, useAdminPanel } from "./admin-layout-providers";
 import { THEME_ACCENT_WITH_FALLBACK } from "../../lib/theme-accent";
 import { useThemeMode } from "../theme-registry";
 import { AdminTopControls } from "./admin-top-controls";
+import { MsqdxGlassAdminHeaderV2Card } from "./msqdx-glass-admin-header-v2-card";
+import { MsqdxGlassAdminHeaderPageTitle } from "./msqdx-glass-admin-header-page-title";
+import { ADMIN_HEADER_V2_BAR_CLASS, isPersonasV2AdminPath } from "../../lib/admin-header-layout";
 import { BrandColorInitializer } from "../settings/brand-color-initializer";
 import { useI18n } from "../i18n/i18n-provider";
 import { BugReportModal } from "../bug-report/BugReportModal";
@@ -90,6 +93,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
         : undefined;
   const appInnerBackground = isMonochrome || isDarkApp ? "default" : "offwhite";
   const { activeProjectId } = useProject();
+  const isPersonasV2Chrome = isPersonasV2AdminPath(pathname);
   // Get headerContent from context - safe for SSR with default value
   const { headerContent, headerStartContent } = useAdminHeader();
   // Get panel state from context
@@ -159,6 +163,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
       "/admin/chat/history": t("nav.chatHistory"),
       "/admin/projects": t("nav.projects"),
       "/admin/personas": t("nav.personas"),
+      "/admin/personas-v2": t("nav.personasV2"),
       "/admin/target-groups": t("nav.targetGroups"),
       "/admin/journeys": t("nav.journeys"),
       "/admin/ux-journey-agent": t("nav.uxJourneyAgent"),
@@ -191,6 +196,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
       "/admin/chat/history": "history",
       "/admin/projects": "folder",
       "/admin/personas": "person",
+      "/admin/personas-v2": "view_sidebar",
       "/admin/target-groups": "groups",
       "/admin/journeys": "route",
       "/admin/ux-journey-agent": "travel_explore",
@@ -214,6 +220,28 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
     // Default fallback
     return "toc";
   };
+
+  const pageTitle = getPageTitle();
+  const pageIcon = getPageIcon();
+  const defaultHeaderEnd =
+    headerContent ??
+    (pageTitle ? (
+      <MsqdxGlassAdminHeaderPageTitle
+        pageIcon={pageIcon}
+        pageTitle={pageTitle}
+        directChatHref={directChatHref}
+        isMonochromeDark={isMonochromeDark}
+        isMonochromeLight={isMonochromeLight}
+        variant={isPersonasV2Chrome ? "card" : "bar"}
+      />
+    ) : null);
+
+  const headerEndCluster = (
+    <>
+      <PlexonReturnLink compact />
+      {defaultHeaderEnd}
+    </>
+  );
 
   return (
     <>
@@ -299,7 +327,11 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
       <Box sx={{ position: "relative", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
       {/* Header Bar – Page Title, Hamburger, Panel Toggle (Logo/Corner via MsqdxAppLayout) */}
       <Box
-        className="msqdx-glass-admin-header-bar-mask msqdx-glass-admin-header-bar--fade-bottom"
+        className={
+          isPersonasV2Chrome
+            ? `msqdx-glass-admin-header-bar-mask ${ADMIN_HEADER_V2_BAR_CLASS}`
+            : "msqdx-glass-admin-header-bar-mask msqdx-glass-admin-header-bar--fade-bottom"
+        }
         sx={{
           position: "absolute",
           top: 0,
@@ -311,7 +343,11 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
       >
         <Box
           component="header"
-          className="msqdx-glass-admin-header-bar"
+          className={
+            isPersonasV2Chrome
+              ? `msqdx-glass-admin-header-bar ${ADMIN_HEADER_V2_BAR_CLASS}`
+              : "msqdx-glass-admin-header-bar"
+          }
           suppressHydrationWarning
           sx={{
             position: "relative",
@@ -319,101 +355,66 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            padding: { xs: "0.75rem 1rem", md: "1rem 1.5rem" },
-            minHeight: { xs: "56px", md: "64px" },
-            backgroundColor: "var(--msqdx-glass-admin-header-bar-bg)",
-            backdropFilter: "saturate(180%) blur(16px)",
-            WebkitBackdropFilter: "saturate(180%) blur(16px)",
+            padding: isPersonasV2Chrome
+              ? 0
+              : { xs: "0.75rem 1rem", md: "1rem 1.5rem" },
+            minHeight: isPersonasV2Chrome ? "auto" : { xs: "56px", md: "64px" },
+            backgroundColor: isPersonasV2Chrome
+              ? "transparent"
+              : "var(--msqdx-glass-admin-header-bar-bg)",
+            backdropFilter: isPersonasV2Chrome ? "none" : "saturate(180%) blur(16px)",
+            WebkitBackdropFilter: isPersonasV2Chrome ? "none" : "saturate(180%) blur(16px)",
             borderBottom: "none",
             overflow: "visible",
           }}
         >
-        <Box sx={{ flex: 1, display: "flex", alignItems: "center" }}>
+        {isPersonasV2Chrome ? (
           <Box
             sx={{
               display: { xs: "none", [NAV_DOCKED_BREAKPOINT]: "flex" },
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: 1,
-              marginLeft: { [NAV_DOCKED_BREAKPOINT]: "230px" },
+              flex: 1,
+              minWidth: 0,
+              width: "100%",
             }}
           >
-            <AdminTopControls />
-            {headerStartContent ? (
-              <Box sx={{ display: "flex", alignItems: "center", flexShrink: 0 }}>{headerStartContent}</Box>
-            ) : null}
+            <MsqdxGlassAdminHeaderV2Card
+              startAfterProject={headerStartContent}
+              end={headerEndCluster}
+            />
           </Box>
-        </Box>
-        {/* Page Title or Custom Header Content */}
-        <Box sx={{ flex: 1, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 1 }}>
-          <PlexonReturnLink compact />
-          {headerContent ? (
-            <Box sx={{ display: { xs: "none", [NAV_DOCKED_BREAKPOINT]: "flex" }, alignItems: "center" }}>
-              {headerContent}
-            </Box>
-          ) : getPageTitle() ? (
-            <Box sx={{ display: { xs: "none", [NAV_DOCKED_BREAKPOINT]: "flex" }, alignItems: "center", gap: 1 }}>
-              {directChatHref ? (
-                <Tooltip title={t("nav.chat")} placement="bottom">
-                  <MsqdxButton
-                    component={Link as any}
-                    href={directChatHref}
-                    variant="outlined"
-                    size="small"
-                    aria-label={t("nav.chat")}
-                    sx={{
-                      minWidth: 32,
-                      minHeight: 32,
-                      width: 32,
-                      height: 32,
-                      p: 0,
-                      borderRadius: "rounded",
-                      // Align perfectly with the headline baseline/line-height.
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      lineHeight: 1,
-                      // Use the same brand accent token as the rest of the admin chrome.
-                      color: isMonochromeDark
-                        ? "#000000"
-                        : isMonochromeLight
-                          ? "#ffffff"
-                          : "var(--color-theme-accent)",
-                      borderColor: isMonochromeDark
-                        ? "rgba(0, 0, 0, 0.35)"
-                        : isMonochromeLight
-                          ? "rgba(255, 255, 255, 0.35)"
-                          : "var(--color-theme-accent)",
-                      "&:hover": {
-                        borderColor: isMonochromeDark
-                          ? "#000000"
-                          : isMonochromeLight
-                            ? "#ffffff"
-                            : "var(--color-theme-accent)",
-                        backgroundColor: "transparent",
-                      },
-                    }}
-                  >
-                    <MsqdxIcon name="forum" customSize={18} />
-                  </MsqdxButton>
-                </Tooltip>
-              ) : null}
-              <MsqdxTypography
-                variant="h4"
+        ) : (
+          <>
+            <Box sx={{ flex: 1, display: "flex", alignItems: "center" }}>
+              <Box
                 sx={{
-                  fontSize: { xs: "1.5rem", md: "36px" },
-                  textTransform: "lowercase",
-                  fontWeight: 800,
-                  letterSpacing: "-2px",
-                  color: "text.primary",
-                  display: { xs: "none", [NAV_DOCKED_BREAKPOINT]: "block" },
+                  display: { xs: "none", [NAV_DOCKED_BREAKPOINT]: "flex" },
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: 1,
+                  marginLeft: { [NAV_DOCKED_BREAKPOINT]: "230px" },
                 }}
               >
-                {getPageTitle()}
-              </MsqdxTypography>
+                <AdminTopControls />
+                {headerStartContent ? (
+                  <Box sx={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+                    {headerStartContent}
+                  </Box>
+                ) : null}
+              </Box>
             </Box>
-          ) : null}
-        </Box>
+            <Box sx={{ flex: 1, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 1 }}>
+              <Box
+                sx={{
+                  display: { xs: "none", [NAV_DOCKED_BREAKPOINT]: "flex" },
+                  alignItems: "center",
+                  gap: 1,
+                }}
+              >
+                {headerEndCluster}
+              </Box>
+            </Box>
+          </>
+        )}
         {/* Hamburger – visible while nav is drawer mode (below lg, same as MsqdxAdminNav) */}
         <Box
           sx={{
