@@ -38,9 +38,9 @@
   --color-border-default: var(--audion-neutral-08);
   --color-border-strong: var(--audion-neutral-12);
 
-  /* Pain / goals: shell body 2 steps darker than slides; index cutout = slide surface */
-  --msqdx-pain-goals-corner-surface: var(--audion-neutral-03);
-  --msqdx-pain-goals-slide-surface: var(--audion-neutral-01);
+  /* Pain / goals: shell body darker than slides; index cutout = slide surface */
+  --msqdx-pain-goals-corner-surface: var(--audion-neutral-05);
+  --msqdx-pain-goals-slide-surface: var(--audion-neutral-02);
   --msqdx-pain-goals-slide-surface-default: var(--msqdx-pain-goals-slide-surface);
   --msqdx-pain-goals-slide-border-default: var(--audion-neutral-07);
   --msqdx-pain-goals-scrollbar-thumb: var(--audion-neutral-08);
@@ -60,8 +60,8 @@
   --color-border-default: var(--audion-neutral-12);
   --color-border-strong: var(--audion-neutral-09);
 
-  --msqdx-pain-goals-corner-surface: var(--audion-neutral-19);
-  --msqdx-pain-goals-slide-surface: var(--audion-neutral-17);
+  --msqdx-pain-goals-corner-surface: var(--audion-neutral-17);
+  --msqdx-pain-goals-slide-surface: var(--audion-neutral-15);
   --msqdx-pain-goals-slide-surface-default: var(--msqdx-pain-goals-slide-surface);
   --msqdx-pain-goals-slide-border-default: var(--audion-neutral-12);
   --msqdx-pain-goals-scrollbar-thumb: var(--audion-neutral-11);

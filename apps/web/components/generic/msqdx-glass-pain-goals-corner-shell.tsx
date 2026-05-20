@@ -6,7 +6,6 @@ import type { MsqdxGlassChipVariant } from "./msqdx-glass-chip";
 import { ChipEditorCornerTabContent } from "../../lib/chip-editor-corner-tab-content";
 import {
   CHIP_EDITOR_CORNER_BORDER_RADIUS_PX,
-  CHIP_EDITOR_CORNER_SHELL_SURFACE,
   renderChipEditorCornerTab,
   resolveChipEditorCornerTabStyle,
 } from "../../lib/chip-editor-corner-tab";
@@ -59,9 +58,6 @@ export function MsqdxGlassPainGoalsCornerShell({
       tab={tab}
       tabWidthAuto={hasTabChrome}
       tabAriaLabel={label}
-      tabChromeColor={CHIP_EDITOR_CORNER_SHELL_SURFACE}
-      tabColor={CHIP_EDITOR_CORNER_SHELL_SURFACE}
-      bodyColor={CHIP_EDITOR_CORNER_SHELL_SURFACE}
       bodyBorderRadiusPx={CHIP_EDITOR_CORNER_BORDER_RADIUS_PX}
       cornerBoxBorderRadiusPx={CHIP_EDITOR_CORNER_BORDER_RADIUS_PX}
       containerBorderRadiusPx={CHIP_EDITOR_CORNER_BORDER_RADIUS_PX}

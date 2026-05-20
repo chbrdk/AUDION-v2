@@ -47,7 +47,7 @@ export function MsqdxCornerTabCard({
   tab,
   placement = "top-left",
   bodyColor,
-  tabChromeColor = "#ffffff",
+  tabChromeColor,
   tabColor,
   bodyBorderRadiusPx,
   tabWidthPx,
@@ -91,7 +91,12 @@ export function MsqdxCornerTabCard({
       }}
     >
       {tab ? (
-      <Box sx={{ ...layout.tabContainerSx, bgcolor: tabChromeColor }}>
+      <Box
+        sx={{
+          ...layout.tabContainerSx,
+          ...(tabChromeColor ? { bgcolor: tabChromeColor } : {}),
+        }}
+      >
         <MsqdxCornerBox
           className="msqdx-corner-tab-card__tab-box"
           topLeft={topLeft}

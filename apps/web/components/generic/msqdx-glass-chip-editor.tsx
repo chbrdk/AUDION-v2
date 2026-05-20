@@ -468,7 +468,6 @@ export const MsqdxGlassChipEditor = ({
                         alignItems: "center",
                         justifyContent: "center",
                         boxSizing: "border-box",
-                        bgcolor: "var(--msqdx-pain-goals-slide-surface)",
                         color: "text.primary",
                         pointerEvents: "none",
                       }}

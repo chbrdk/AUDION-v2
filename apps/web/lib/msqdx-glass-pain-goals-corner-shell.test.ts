@@ -20,5 +20,8 @@ describe("MsqdxGlassPainGoalsCornerShell", () => {
     expect(source).toContain("cornerBoxBorderRadiusPx={CHIP_EDITOR_CORNER_BORDER_RADIUS_PX}");
     expect(source).toContain("containerBorderRadiusPx={CHIP_EDITOR_CORNER_BORDER_RADIUS_PX}");
     expect(source).toContain("bodySx={{ pr: 0.25 }}");
+    expect(source).not.toContain("bodyColor=");
+    expect(source).not.toContain("tabChromeColor=");
+    expect(source).not.toContain("tabColor=");
   });
 });

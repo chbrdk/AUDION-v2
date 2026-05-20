@@ -5,6 +5,6 @@
 - **Clipping**: The slide **shell** (`.msqdx-glass-pain-goals-slide-card`) uses **`overflow: visible`**. Long text scrolls in **`.msqdx-glass-pain-goals-slide-card__body`** (`overflow-y: auto`). Previously a single node had `overflow-y: auto`, which **clipped** the cutout patches.
 - **Viewport gutter**: `.msqdx-glass-chip-editor__corner-tab-shell .msqdx-glass-horizontal-card-slider__viewport` gets **`padding-inline: max(24px, …)`** so patches that extend horizontally past the badge are not clipped by **`overflow-x: auto`** on the viewport.
 - **Slides**: `.msqdx-glass-horizontal-card-slider__slide` sets **`overflow: visible`**.
-- **Surface**: Badge `bgcolor: var(--msqdx-pain-goals-slide-surface)` — same CSS variable as the card (see `dashboard-cards.css`).
+- **Surface**: Badge uses `var(--msqdx-pain-goals-slide-surface)` from CSS (`.msqdx-glass-pain-goals-slide-card__index-corner`), same as the slide card.
 - **i18n**: `chipEditor.slideIndexAria` (`{n}`) on the corner box `aria-label`.
 - **Body padding**: `.msqdx-glass-pain-goals-slide-card__body--indexed` adds left padding so copy clears the badge.
