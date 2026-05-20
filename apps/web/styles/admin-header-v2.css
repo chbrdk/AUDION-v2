@@ -101,6 +101,7 @@
 
 .msqdx-glass-admin-header-v2-menu-button-wrap {
   display: none;
+  flex: 0 0 auto;
   flex-shrink: 0;
   align-items: center;
 }
@@ -272,7 +273,6 @@
   gap: var(--msqdx-spacing-sm);
   min-width: 0;
   flex: 0 1 auto;
-  max-width: 100%;
 }
 
 .msqdx-glass-admin-header-card .msqdx-glass-admin-header-page-title__label {
@@ -404,8 +404,12 @@
     min-height: var(--msqdx-admin-header-v2-card-action-size, 40px);
   }
 
-  .msqdx-glass-admin-header-card {
-    gap: var(--msqdx-spacing-sm);
+  .msqdx-glass-admin-header-v2-row .msqdx-glass-admin-header-card {
+    flex: 0 1 auto;
+    width: fit-content;
+    max-width: 100%;
+    margin-left: auto;
+    gap: var(--msqdx-spacing-xs);
     padding: var(--msqdx-spacing-xs) var(--msqdx-spacing-sm);
   }
 
@@ -413,17 +417,18 @@
     display: none;
   }
 
-  .msqdx-glass-admin-header-v2-menu-button-wrap {
-    display: flex;
+  .msqdx-glass-admin-header-card__start {
+    display: none;
   }
 
-  .msqdx-glass-admin-header-card__start {
-    flex: 0 0 auto;
+  .msqdx-glass-admin-header-page-title .msqdx-glass-admin-header-v2-menu-button-wrap {
+    display: flex !important;
+    flex-shrink: 0;
   }
 
   .msqdx-glass-admin-header-card__end {
     flex: 0 0 auto;
-    margin-left: auto;
+    margin-left: 0;
     min-width: 0;
     gap: var(--msqdx-spacing-xs);
     justify-content: flex-end;

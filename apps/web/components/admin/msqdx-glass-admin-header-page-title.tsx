@@ -3,8 +3,11 @@
 import Link from "next/link";
 import { Box, Tooltip } from "@mui/material";
 import { MsqdxButton, MsqdxIcon, MsqdxTypography } from "@msqdx/react";
+import { ADMIN_HEADER_V2_MENU_BUTTON_WRAP_CLASS } from "../../lib/admin-header-layout";
+import { useAdminHeaderV2ContextMenuOptional } from "../../lib/admin-header-v2-context-menu";
 import { useI18n } from "../i18n/i18n-provider";
 import { MsqdxGlassAdminHeaderChatIconButton } from "./msqdx-glass-admin-header-chat-icon-button";
+import { MsqdxGlassAdminHeaderV2MenuButton } from "./msqdx-glass-admin-header-v2-menu-button";
 
 export type MsqdxGlassAdminHeaderPageTitleProps = {
   pageTitle: string;
@@ -23,10 +26,12 @@ export function MsqdxGlassAdminHeaderPageTitle({
   variant = "bar",
 }: MsqdxGlassAdminHeaderPageTitleProps) {
   const { t } = useI18n();
+  const contextMenu = useAdminHeaderV2ContextMenuOptional();
 
   if (!pageTitle) return null;
 
   const chatLabel = t("nav.chat");
+  const contextMenuLabel = t("adminHeader.openContextMenu");
 
   const cardChatButton =
     directChatHref && variant === "card" ? (
@@ -85,8 +90,17 @@ export function MsqdxGlassAdminHeaderPageTitle({
   if (variant === "card") {
     return (
       <Box className="msqdx-glass-admin-header-page-title">
-        {cardChatButton}
         <span className="msqdx-glass-admin-header-page-title__label">{pageTitle}</span>
+        {cardChatButton}
+        {contextMenu ? (
+          <Box className={ADMIN_HEADER_V2_MENU_BUTTON_WRAP_CLASS}>
+            <MsqdxGlassAdminHeaderV2MenuButton
+              ariaLabel={contextMenuLabel}
+              tooltip={contextMenuLabel}
+              onClick={contextMenu.openContextDrawer}
+            />
+          </Box>
+        ) : null}
       </Box>
     );
   }

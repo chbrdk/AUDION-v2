@@ -38,15 +38,19 @@ describe("admin header v2 card", () => {
     const cardTitleReturn =
       pageTitle.match(/if \(variant === "card"\) \{[\s\S]*?\n  \}/)?.[0] ?? "";
     expect(cardTitleReturn).toContain("{cardChatButton}");
+    expect(cardTitleReturn).toMatch(/page-title__label[\s\S]*cardChatButton/);
     expect(cardTitleReturn).not.toContain("MsqdxButton");
     expect(layout).toContain("ADMIN_HEADER_V2_BAR_CLASS");
     const card = readFileSync(
       join(webRoot, "components/admin/msqdx-glass-admin-header-v2-card.tsx"),
       "utf8"
     );
+    expect(card).not.toContain("MsqdxGlassAdminHeaderV2MenuButton");
     expect(card).toContain("MsqdxGlassAdminHeaderContextPickers");
-    expect(card).toContain("MsqdxGlassAdminHeaderV2ContextDrawer");
-    expect(card).toContain("MsqdxGlassAdminHeaderV2MenuButton");
+    expect(pageTitle).toContain("MsqdxGlassAdminHeaderV2MenuButton");
+    expect(pageTitle).toContain("useAdminHeaderV2ContextMenuOptional");
+    expect(card).toContain("AdminHeaderV2ContextMenuProvider");
+    expect(pageTitle).toContain("ADMIN_HEADER_V2_MENU_BUTTON_WRAP_CLASS");
     expect(card).toContain("ADMIN_HEADER_V2_CARD_PICKERS_DESKTOP_CLASS");
   });
 
@@ -70,6 +74,11 @@ describe("admin header v2 card", () => {
     expect(css).toContain(".msqdx-glass-admin-header-v2-menu-button-wrap");
     expect(css).toContain(".msqdx-glass-admin-header-v2-context-drawer");
     expect(css).toMatch(/max-width:\s*899px[\s\S]*\.msqdx-glass-admin-header-card__pickers-desktop[\s\S]*display:\s*none/);
+    expect(css).toMatch(/max-width:\s*899px[\s\S]*width:\s*fit-content/);
+    expect(css).toMatch(/max-width:\s*899px[\s\S]*\.msqdx-glass-admin-header-card__start[\s\S]*display:\s*none/);
+    expect(css).toMatch(
+      /max-width:\s*899px[\s\S]*\.msqdx-glass-admin-header-page-title \.msqdx-glass-admin-header-v2-menu-button-wrap[\s\S]*display:\s*flex/
+    );
     expect(css).toMatch(
       /\.msqdx-glass-admin-header-card__end[^}]*margin-left:\s*auto/
     );
