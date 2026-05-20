@@ -41,15 +41,12 @@ describe("audion-neutral-scale", () => {
     expect(css).toContain("--msqdx-pain-goals-slide-surface-pain: var(--msqdx-pain-goals-slide-surface)");
     expect(dashboard).toContain("msqdx-glass-pain-goals-slide-card__index-corner");
     expect(dashboard).toMatch(/\.msqdx-glass-pain-goals-slide-card__index-corner[^}]*overflow:\s*visible/);
-    expect(dashboard).not.toMatch(
-      /\.msqdx-glass-pain-goals-slide-card__index-corner[^}]*background-color:\s*var\(/
-    );
+    expect(dashboard).toMatch(/\.msqdx-glass-pain-goals-slide-card__body--indexed::after[^}]*clear:\s*both/);
     expect(dashboard).toContain(".msqdx-glass-pain-goals-slide-card--indexed");
     expect(dashboard).toMatch(
       /\.msqdx-glass-pain-goals-slide-card--indexed[^}]*background:\s*transparent/
     );
-    expect(dashboard).toMatch(
-      /\.msqdx-glass-pain-goals-slide-card__body--indexed[^}]*clip-path:\s*polygon/
-    );
+    expect(dashboard).toMatch(/\.msqdx-glass-pain-goals-slide-card__index-corner[^}]*float:\s*left/);
+    expect(dashboard).toMatch(/shape-outside:\s*margin-box/);
   });
 });

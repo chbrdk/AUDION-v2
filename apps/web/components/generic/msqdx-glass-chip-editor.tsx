@@ -449,55 +449,49 @@ export const MsqdxGlassChipEditor = ({
                     useCornerTabChrome && "msqdx-glass-pain-goals-slide-card--indexed"
                   )}
                 >
-                  {useCornerTabChrome ? (
-                    <MsqdxCornerBox
-                      className="msqdx-glass-pain-goals-slide-card__index-corner"
-                      topLeft="square"
-                      topRight="cutdown-a"
-                      bottomLeft="cutdown-b"
-                      bottomRight="rounded"
-                      borderRadius={PAIN_GOALS_SLIDE_INDEX_BADGE_RADIUS_PX}
-                      aria-label={t("chipEditor.slideIndexAria", { n: idx + 1 })}
-                      sx={{
-                        position: "absolute",
-                        zIndex: 5,
-                        top: 0,
-                        left: 0,
-                        overflow: "visible",
-                        width: PAIN_GOALS_SLIDE_INDEX_BADGE_SIZE,
-                        height: PAIN_GOALS_SLIDE_INDEX_BADGE_SIZE,
-                        minWidth: PAIN_GOALS_SLIDE_INDEX_BADGE_SIZE,
-                        minHeight: PAIN_GOALS_SLIDE_INDEX_BADGE_SIZE,
-                        px: 0.75,
-                        py: 0.5,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        boxSizing: "border-box",
-                        color: "text.primary",
-                        pointerEvents: "none",
-                        isolation: "isolate",
-                      }}
-                    >
-                      <Box
-                        component="span"
-                        sx={{
-                          ...MONO_FONT_SX,
-                          fontSize: "1.5rem",
-                          fontWeight: 700,
-                          lineHeight: 1,
-                        }}
-                      >
-                        {idx + 1}
-                      </Box>
-                    </MsqdxCornerBox>
-                  ) : null}
                   <div
                     className={clsx(
                       "msqdx-glass-pain-goals-slide-card__body",
                       useCornerTabChrome && "msqdx-glass-pain-goals-slide-card__body--indexed"
                     )}
                   >
+                    {useCornerTabChrome ? (
+                      <MsqdxCornerBox
+                        className="msqdx-glass-pain-goals-slide-card__index-corner"
+                        topLeft="square"
+                        topRight="cutdown-a"
+                        bottomLeft="cutdown-b"
+                        bottomRight="rounded"
+                        borderRadius={PAIN_GOALS_SLIDE_INDEX_BADGE_RADIUS_PX}
+                        aria-label={t("chipEditor.slideIndexAria", { n: idx + 1 })}
+                        sx={{
+                          width: PAIN_GOALS_SLIDE_INDEX_BADGE_SIZE,
+                          height: PAIN_GOALS_SLIDE_INDEX_BADGE_SIZE,
+                          minWidth: PAIN_GOALS_SLIDE_INDEX_BADGE_SIZE,
+                          minHeight: PAIN_GOALS_SLIDE_INDEX_BADGE_SIZE,
+                          px: 0.75,
+                          py: 0.5,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          boxSizing: "border-box",
+                          color: "text.primary",
+                          pointerEvents: "none",
+                        }}
+                      >
+                        <Box
+                          component="span"
+                          sx={{
+                            ...MONO_FONT_SX,
+                            fontSize: "1.5rem",
+                            fontWeight: 700,
+                            lineHeight: 1,
+                          }}
+                        >
+                          {idx + 1}
+                        </Box>
+                      </MsqdxCornerBox>
+                    ) : null}
                     {isEditing && editingIndex === idx ? (
                       <Box ref={editInputWrapperRef} sx={{ width: "100%" }}>
                         <MsqdxInput
