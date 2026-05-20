@@ -73,6 +73,7 @@ describe("persona pain-goals layout", () => {
     expect(chipEditor).toContain("MsqdxGlassPainGoalsCornerShell");
     expect(chipEditor).toContain("MsqdxCornerBox");
     expect(chipEditor).toContain("PAIN_GOALS_SLIDE_INDEX_BADGE_RADIUS_PX");
+    expect(chipEditor).toContain("topLeft=\"square\"");
     expect(chipEditor).toContain("topRight=\"cutdown-a\"");
     expect(chipEditor).toContain("bottomLeft=\"cutdown-b\"");
     expect(chipEditor).toContain("msqdx-glass-pain-goals-slide-card__body");

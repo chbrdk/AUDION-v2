@@ -452,7 +452,7 @@ export const MsqdxGlassChipEditor = ({
                   {useCornerTabChrome ? (
                     <MsqdxCornerBox
                       className="msqdx-glass-pain-goals-slide-card__index-corner"
-                      topLeft="rounded"
+                      topLeft="square"
                       topRight="cutdown-a"
                       bottomLeft="cutdown-b"
                       bottomRight="rounded"
