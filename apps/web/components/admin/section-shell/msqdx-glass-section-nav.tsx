@@ -1,11 +1,16 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import { MsqdxCornerBox, MsqdxIcon } from "@msqdx/react";
 import {
   SECTION_NAV_DOCK_BORDER_RADIUS_PX,
   SECTION_NAV_DOCK_CORNER_STYLES,
   SECTION_NAV_DOCK_SURFACE,
+  SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES,
+  SECTION_NAV_HORIZONTAL_DOCK_CORNER_STYLES,
+  SECTION_NAV_HORIZONTAL_MEDIA_QUERY,
 } from "../../../lib/section-nav-dock-layout";
 import type { SectionNavItem } from "./section-shell-types";
 
@@ -23,6 +28,28 @@ export function MsqdxGlassSectionNav({
   navLabel,
   compact = true,
 }: MsqdxGlassSectionNavProps) {
+  const isHorizontal = useMediaQuery(SECTION_NAV_HORIZONTAL_MEDIA_QUERY);
+  const navRef = useRef<HTMLElement>(null);
+
+  const dockCornerStyles = isHorizontal
+    ? SECTION_NAV_HORIZONTAL_DOCK_CORNER_STYLES
+    : SECTION_NAV_DOCK_CORNER_STYLES;
+
+  const activeCornerStyles = isHorizontal
+    ? SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES
+    : SECTION_NAV_DOCK_CORNER_STYLES;
+
+  useEffect(() => {
+    if (!compact || !isHorizontal || !activeSectionId) return;
+    const shell = navRef.current?.querySelector<HTMLElement>(
+      ".msqdx-glass-section-nav__dock-shell"
+    );
+    const active = shell?.querySelector<HTMLElement>(
+      ".msqdx-glass-section-nav__card-active-shell, .msqdx-glass-section-nav__card--active"
+    );
+    active?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }, [compact, isHorizontal, activeSectionId, items]);
+
   const navList = (
     <>
       {navLabel ? <span className="msqdx-glass-section-nav__label">{navLabel}</span> : null}
@@ -50,13 +77,14 @@ export function MsqdxGlassSectionNav({
             <MsqdxCornerBox
               key={item.id}
               className="msqdx-glass-section-nav__card-active-shell"
-              topLeft={SECTION_NAV_DOCK_CORNER_STYLES.topLeft}
-              topRight={SECTION_NAV_DOCK_CORNER_STYLES.topRight}
-              bottomLeft={SECTION_NAV_DOCK_CORNER_STYLES.bottomLeft}
-              bottomRight={SECTION_NAV_DOCK_CORNER_STYLES.bottomRight}
+              topLeft={activeCornerStyles.topLeft}
+              topRight={activeCornerStyles.topRight}
+              bottomLeft={activeCornerStyles.bottomLeft}
+              bottomRight={activeCornerStyles.bottomRight}
               borderRadius={SECTION_NAV_DOCK_BORDER_RADIUS_PX}
               sx={{
-                width: "100%",
+                width: isHorizontal ? "auto" : "100%",
+                flexShrink: 0,
                 boxSizing: "border-box",
                 overflow: "visible",
               }}
@@ -90,10 +118,12 @@ export function MsqdxGlassSectionNav({
 
   return (
     <nav
+      ref={navRef}
       className={[
         "msqdx-glass-section-nav",
         compact ? "msqdx-glass-section-nav--compact" : "",
         compact ? "msqdx-glass-section-nav--docked" : "",
+        compact && isHorizontal ? "msqdx-glass-section-nav--horizontal" : "",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -102,22 +132,20 @@ export function MsqdxGlassSectionNav({
       {compact ? (
         <MsqdxCornerBox
           className="msqdx-glass-section-nav__dock-shell"
-          topLeft={SECTION_NAV_DOCK_CORNER_STYLES.topLeft}
-          topRight={SECTION_NAV_DOCK_CORNER_STYLES.topRight}
-          bottomLeft={SECTION_NAV_DOCK_CORNER_STYLES.bottomLeft}
-          bottomRight={SECTION_NAV_DOCK_CORNER_STYLES.bottomRight}
+          topLeft={dockCornerStyles.topLeft}
+          topRight={dockCornerStyles.topRight}
+          bottomLeft={dockCornerStyles.bottomLeft}
+          bottomRight={dockCornerStyles.bottomRight}
           borderRadius={SECTION_NAV_DOCK_BORDER_RADIUS_PX}
           sx={(theme) => ({
             width: "100%",
             boxSizing: "border-box",
             bgcolor: SECTION_NAV_DOCK_SURFACE,
             display: "flex",
-            flexDirection: "column",
             gap: theme.spacing(0.375),
             py: theme.spacing(0.75),
-            /* Left inset only — active row + rail align flush to inner right (cutout edge). */
             pl: theme.spacing(0.75),
-            pr: 0,
+            pr: isHorizontal ? theme.spacing(0.75) : 0,
           })}
         >
           {navList}

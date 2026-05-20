@@ -146,6 +146,7 @@
   .msqdx-glass-section-nav__dock-shell {
     height: fit-content;
     overflow: visible;
+    flex-direction: column;
   }
 
   .msqdx-glass-section-nav--docked .msqdx-glass-section-nav__card {
@@ -467,7 +468,7 @@
   color: var(--color-text-secondary);
 }
 
-/* Tablet / mobile: subnav chips first, then content column (entity inside workspace) */
+/* Tablet / mobile: horizontal swipeable subnav, active tab rounds into workspace below */
 @media (max-width: 1024px) {
   .msqdx-glass-section-shell__body,
   .msqdx-glass-section-shell__body:has(.msqdx-glass-section-nav) {
@@ -476,46 +477,126 @@
     gap: var(--msqdx-spacing-md);
   }
 
+  .msqdx-glass-section-shell__body:has(.msqdx-glass-section-nav--docked) {
+    gap: 0;
+  }
+
   .msqdx-glass-section-shell--has-entity .msqdx-glass-section-workspace--with-subnav {
     display: flex;
     flex-direction: column;
-    gap: var(--msqdx-spacing-md);
+    gap: 0;
   }
 
   .msqdx-glass-section-nav {
+    position: static;
+    width: 100%;
+    max-width: 100%;
+    max-height: none;
+    overflow: visible;
+    padding-bottom: 0;
+  }
+
+  .msqdx-glass-section-nav--docked {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  .msqdx-glass-section-nav--horizontal {
     flex-direction: row;
     flex-wrap: nowrap;
+  }
+
+  .msqdx-glass-section-nav__dock-shell {
+    flex-direction: row !important;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    max-height: none;
     overflow-x: auto;
-    padding-bottom: var(--msqdx-spacing-xs);
+    overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: var(--msqdx-spacing-sm);
     scrollbar-width: thin;
+    gap: var(--msqdx-spacing-xs);
+    padding-block: var(--msqdx-spacing-xs);
+    padding-inline: var(--msqdx-spacing-sm);
+  }
+
+  .msqdx-glass-section-nav__dock-shell > .msqdx-glass-section-nav__label {
+    display: none;
+  }
+
+  .msqdx-glass-section-nav__dock-shell > a,
+  .msqdx-glass-section-nav__dock-shell > .msqdx-glass-section-nav__card-active-shell {
+    flex: 0 0 auto;
+    width: auto;
+    scroll-snap-align: center;
   }
 
   .msqdx-glass-section-nav__label {
     display: none;
   }
 
-  .msqdx-glass-section-nav__card {
+  .msqdx-glass-section-nav--compact .msqdx-glass-section-nav__card,
+  .msqdx-glass-section-nav--docked .msqdx-glass-section-nav__card {
     flex: 0 0 auto;
-    width: min(200px, 72vw);
+    width: auto;
+    min-width: min(168px, 64vw);
+    max-width: min(200px, 72vw);
+    min-height: 40px;
     padding: var(--msqdx-spacing-sm) var(--msqdx-spacing-md);
+    border-radius: var(--msqdx-radius-sm) var(--msqdx-radius-sm) 0 0;
+    align-items: center;
   }
 
-  .msqdx-glass-section-nav__card--active {
-    padding: calc(var(--msqdx-spacing-sm) - 1px) calc(var(--msqdx-spacing-md) - 1px);
+  .msqdx-glass-section-nav__card-active-shell {
+    width: auto !important;
+    flex-shrink: 0;
+    align-self: stretch;
+    background-color: var(--msqdx-section-nav-active-card-surface);
+  }
+
+  .msqdx-glass-section-nav--docked .msqdx-glass-section-nav__card-active-shell .msqdx-glass-section-nav__card--active {
+    border-radius: 0;
+    min-height: 40px;
+  }
+
+  .msqdx-glass-section-nav--docked
+    .msqdx-glass-section-nav__card-active-shell
+    .msqdx-glass-section-nav__card--active
+    .msqdx-glass-section-nav__title {
+    color: var(--msqdx-section-nav-active-card-on-surface) !important;
+  }
+
+  .msqdx-glass-section-nav--docked
+    .msqdx-glass-section-nav__card-active-shell
+    .msqdx-glass-section-nav__icon
+    .msqdx-material-symbol {
+    color: var(--msqdx-section-nav-active-card-on-surface) !important;
   }
 
   .msqdx-glass-section-nav__description {
     display: none;
   }
 
+  .msqdx-glass-section-nav--compact .msqdx-glass-section-nav__icon,
   .msqdx-glass-section-nav__icon {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
   }
 
   .msqdx-glass-section-shell__entity {
     padding-bottom: var(--msqdx-spacing-md);
+  }
+
+  .msqdx-glass-section-workspace--with-subnav {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
   }
 
   .msqdx-glass-section-workspace__content {

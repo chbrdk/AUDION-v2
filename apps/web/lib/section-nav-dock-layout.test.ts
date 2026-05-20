@@ -5,6 +5,9 @@ import {
   SECTION_NAV_DOCK_BORDER_RADIUS_PX,
   SECTION_NAV_DOCK_CORNER_STYLES,
   SECTION_NAV_DOCK_SURFACE,
+  SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES,
+  SECTION_NAV_HORIZONTAL_DOCK_CORNER_STYLES,
+  SECTION_NAV_HORIZONTAL_MEDIA_QUERY,
   SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX,
   SECTION_WORKSPACE_DOCK_CORNER_STYLES,
   SECTION_WORKSPACE_DOCK_PADDING,
@@ -26,9 +29,19 @@ describe("section-nav-dock-layout", () => {
     expect(source).toContain("MsqdxCornerBox");
     expect(source).toContain("msqdx-glass-section-nav__dock-shell");
     expect(source).toContain("msqdx-glass-section-nav--docked");
+    expect(source).toContain("msqdx-glass-section-nav--horizontal");
     expect(source).toContain("msqdx-glass-section-nav__card-active-shell");
     expect(source).toContain("SECTION_NAV_DOCK_CORNER_STYLES");
-    expect(source).toMatch(/pr:\s*0/);
+    expect(source).toContain("SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES");
+    expect(source).toContain("SECTION_NAV_HORIZONTAL_MEDIA_QUERY");
+    expect(source).toContain("scrollIntoView");
+  });
+
+  it("uses bottom-rounded corners for active tab in horizontal mode", () => {
+    expect(SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES.bottomLeft).toBe("rounded");
+    expect(SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES.bottomRight).toBe("rounded");
+    expect(SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES.topLeft).toBe("square");
+    expect(SECTION_NAV_HORIZONTAL_DOCK_CORNER_STYLES.bottomLeft).toBe("square");
   });
 
   it("uses opaque black active dock row with white on-surface tokens", () => {
@@ -49,6 +62,12 @@ describe("section-nav-dock-layout", () => {
     expect(css).toMatch(/\.msqdx-glass-section-nav--docked\s*\{[^}]*max-height:\s*none/);
     expect(css).toMatch(/\.msqdx-glass-section-nav--docked\s*\{[^}]*overflow:\s*visible/);
     expect(css).toMatch(/\.msqdx-glass-section-nav__dock-shell\s*\{[^}]*height:\s*fit-content/);
+    expect(css).toMatch(
+      /max-width:\s*1024px[\s\S]*\.msqdx-glass-section-nav__dock-shell[\s\S]*flex-direction:\s*row/
+    );
+    expect(css).toMatch(
+      /max-width:\s*1024px[\s\S]*\.msqdx-glass-section-nav__dock-shell[\s\S]*scroll-snap-type:\s*x/
+    );
   });
 
   it("uses a light tint for dock surface", () => {
