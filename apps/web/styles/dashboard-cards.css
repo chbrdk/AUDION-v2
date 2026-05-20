@@ -666,7 +666,7 @@
 
 .msqdx-glass-chip-editor__corner-tab-shell {
   width: 100%;
-  --msqdx-pain-goals-corner-surface: var(--audion-neutral-05, #e4e3dc);
+  --msqdx-pain-goals-corner-surface: var(--audion-neutral-05, #e0e0e0);
   --msqdx-pain-goals-slide-surface: var(--audion-neutral-02, #f8f7f3);
 }
 
@@ -713,7 +713,7 @@
 
 .msqdx-glass-chip-editor__corner-tab-shell .msqdx-corner-tab-card__body,
 .msqdx-glass-chip-editor__corner-tab-shell .MuiBox-root.msqdx-corner-tab-card__body {
-  background-color: var(--msqdx-pain-goals-corner-surface) !important;
+  background-color: var(--audion-neutral-05, #e0e0e0) !important;
   padding-top: calc(var(--msqdx-spacing-md) + var(--msqdx-spacing-xxs));
   padding-bottom: var(--msqdx-spacing-xl);
   padding-left: var(--msqdx-spacing-xl);
