@@ -695,8 +695,14 @@
   background-color: var(--msqdx-pain-goals-sector-separator-line);
 }
 
+/* MsqdxCornerBox shell stays transparent; only cutdown patches (aria-hidden) draw the bracket. */
 .msqdx-glass-pain-goals-sector-separator__corner,
 .msqdx-glass-pain-goals-sector-separator__corner.MuiBox-root {
+  background-color: transparent !important;
+  overflow: visible !important;
+}
+
+.msqdx-glass-pain-goals-sector-separator__corner > .MuiBox-root[aria-hidden="true"] {
   background-color: var(--msqdx-pain-goals-sector-separator-corner) !important;
 }
 

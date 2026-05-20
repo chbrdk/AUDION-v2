@@ -9,6 +9,7 @@ import {
   PAIN_GOALS_SECTOR_SEPARATOR_LINE_HEIGHT_PX,
 } from "../../lib/pain-goals-sector-separator-layout";
 
+/** Shell is transparent; frame color is applied to MsqdxCornerBox cutdown patches via CSS. */
 const cornerSx = {
   position: "absolute" as const,
   width: PAIN_GOALS_SECTOR_SEPARATOR_BORDER_RADIUS_PX,
@@ -16,8 +17,9 @@ const cornerSx = {
   minWidth: PAIN_GOALS_SECTOR_SEPARATOR_BORDER_RADIUS_PX,
   minHeight: PAIN_GOALS_SECTOR_SEPARATOR_BORDER_RADIUS_PX,
   boxSizing: "border-box" as const,
-  bgcolor: PAIN_GOALS_SECTOR_SEPARATOR_COLOR,
+  bgcolor: "transparent",
   border: "none",
+  overflow: "visible" as const,
   pointerEvents: "none" as const,
 };
 
