@@ -94,8 +94,6 @@ export function MsqdxGlassPersonaV2DetailLayout({ personaId, sectionId, docsUrl 
       className="msqdx-glass-persona-v2-detail"
       entityTitle={summary?.name ?? t("personaAdmin.loading")}
       entitySubtitle={summary?.segment?.trim() ? summary.segment.trim() : undefined}
-      backHref={ADMIN_ROUTES.personasV2}
-      backLabel={t("personaV2.backToList")}
       activeSectionId={sectionId}
       navItems={navItems}
       navLabel={t("personaV2.sectionsNavLabel")}

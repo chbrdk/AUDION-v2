@@ -22,15 +22,13 @@
 }
 
 /*
- * Persona v2 + black entity hero: back is duplicated in `headerStartContent` from md up
- * (header slot hidden below md). Hide in-page back in the hero from md so only one control shows.
+ * Persona v2: back lives in the admin header (`headerStartContent`), not in the corner hero.
+ * Safety net if `backHref` is passed alongside `entityCornerAccent`.
  */
-@media (min-width: 900px) {
-  .msqdx-glass-persona-v2-detail
-    .msqdx-glass-section-shell__entity-corner-accent
-    .msqdx-glass-section-shell__entity-back {
-    display: none !important;
-  }
+.msqdx-glass-persona-v2-detail
+  .msqdx-glass-section-shell__entity-corner-accent
+  .msqdx-glass-section-shell__entity-back {
+  display: none !important;
 }
 
 .msqdx-glass-section-shell {
@@ -233,6 +231,12 @@
 .msqdx-glass-section-shell__entity-corner-accent {
   --msqdx-entity-accent-on-surface: #ffffff;
   --msqdx-entity-accent-on-surface-muted: rgba(255, 255, 255, 0.82);
+}
+
+@media (max-width: 1024px) {
+  .msqdx-glass-section-shell__entity-corner-accent--responsive {
+    border-top-right-radius: 0 !important;
+  }
 }
 
 .msqdx-glass-section-shell__entity--has-corner-accent .msqdx-glass-section-shell__entity-hero .msqdx-glass-section-shell__entity-main {

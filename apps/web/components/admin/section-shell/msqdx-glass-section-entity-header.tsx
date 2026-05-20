@@ -3,7 +3,13 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { Box, useTheme } from "@mui/material";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import { MsqdxButton, MsqdxCornerBox, MsqdxIcon } from "@msqdx/react";
+import {
+  SECTION_ENTITY_CORNER_ACCENT_CORNERS_DESKTOP,
+  SECTION_ENTITY_CORNER_ACCENT_CORNERS_RESPONSIVE,
+  SECTION_ENTITY_CORNER_ACCENT_RESPONSIVE_MEDIA_QUERY,
+} from "../../../lib/section-entity-header-corner-layout";
 import { SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX } from "../../../lib/section-nav-dock-layout";
 
 export type MsqdxGlassSectionEntityHeaderProps = {
@@ -29,6 +35,10 @@ export function MsqdxGlassSectionEntityHeader({
   className,
 }: MsqdxGlassSectionEntityHeaderProps) {
   const theme = useTheme();
+  const isResponsiveLayout = useMediaQuery(SECTION_ENTITY_CORNER_ACCENT_RESPONSIVE_MEDIA_QUERY);
+  const cornerAccentCorners = isResponsiveLayout
+    ? SECTION_ENTITY_CORNER_ACCENT_CORNERS_RESPONSIVE
+    : SECTION_ENTITY_CORNER_ACCENT_CORNERS_DESKTOP;
   const onAccentText = "var(--msqdx-entity-accent-on-surface, #ffffff)";
 
   const renderMainFields = (onAccent: boolean) => (
@@ -73,11 +83,16 @@ export function MsqdxGlassSectionEntityHeader({
       {entityCornerAccent ? (
         <div className="msqdx-glass-section-shell__entity-hero">
           <MsqdxCornerBox
-            className="msqdx-glass-section-shell__entity-corner-accent"
-            topLeft="cutdown-a"
-            topRight="rounded"
-            bottomLeft="rounded"
-            bottomRight="cutdown-b"
+            className={[
+              "msqdx-glass-section-shell__entity-corner-accent",
+              isResponsiveLayout ? "msqdx-glass-section-shell__entity-corner-accent--responsive" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            topLeft={cornerAccentCorners.topLeft}
+            topRight={cornerAccentCorners.topRight}
+            bottomLeft={cornerAccentCorners.bottomLeft}
+            bottomRight={cornerAccentCorners.bottomRight}
             borderRadius={SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX}
             sx={{
               width: "auto",

@@ -17,7 +17,8 @@ describe("persona v2 detail admin header", () => {
     expect(layout).toContain("msqdx-glass-persona-v2-detail");
     expect(layout).toContain("ADMIN_ROUTES.personasV2");
     expect(layout).toContain("entityCornerAccent");
-    expect(layout).toContain("backHref=");
+    expect(layout).not.toContain("backHref=");
+    expect(layout).not.toContain("backLabel=");
     expect(layout).not.toContain("scopeLabel=");
     expect(layout).not.toContain("sectionTitle=");
     expect(layout).not.toContain("sectionDescription=");
@@ -34,7 +35,7 @@ describe("persona v2 detail admin header", () => {
 
     const css = readFileSync(join(webRoot, "styles/section-shell.css"), "utf8");
     expect(css).toMatch(
-      /\.msqdx-glass-persona-v2-detail\s+\.msqdx-glass-section-shell__entity-corner-accent\s+\.msqdx-glass-section-shell__entity-back/
+      /\.msqdx-glass-persona-v2-detail[\s\S]*\.msqdx-glass-section-shell__entity-corner-accent[\s\S]*\.msqdx-glass-section-shell__entity-back[\s\S]*display:\s*none/
     );
   });
 });
