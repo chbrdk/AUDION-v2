@@ -10,7 +10,7 @@
 On personas v2 routes, `MsqdxGlassAdminLayoutClient` switches to **`MsqdxGlassAdminHeaderV2Card`**:
 
 - One **rounded bordered card** from logo inset (`--msqdx-admin-header-logo-inset`, 230px) to the content edge.
-- **Start:** `MsqdxGlassAdminProjectPicker` (compact uppercase label + value) → optional divider → `headerStartContent` (e.g. back to list).
+- **Row** (`msqdx-glass-admin-header-v2-row`, logo inset): optional **`headerStartContent`** left of the card — persona detail uses `MsqdxGlassAdminHeaderBackIconButton` → **card** with `MsqdxGlassAdminHeaderContextPickers` (project → target group → persona, compact dropdowns) + page title end cluster. Data: `lib/use-admin-header-v2-context.ts` (loads TGs/personas, navigates on change).
 - **End:** Plexon link + `headerContent` or default page title (`MsqdxGlassAdminHeaderPageTitle` with section icon).
 - Styles: `apps/web/styles/admin-header-v2.css` (imported in `app/admin/personas-v2/layout.tsx`).
 - Layout tokens: `apps/web/lib/admin-header-layout.ts`.

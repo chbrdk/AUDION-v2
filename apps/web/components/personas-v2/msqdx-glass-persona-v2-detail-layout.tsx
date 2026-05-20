@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { MsqdxButton, MsqdxIcon } from "@msqdx/react";
+import { MsqdxGlassAdminHeaderBackIconButton } from "../admin/msqdx-glass-admin-header-back-icon-button";
 import { buildApiUrl } from "../../app/api/_lib/backend";
 import { ADMIN_ROUTES } from "../../lib/routes";
 import {
@@ -36,16 +35,10 @@ export function MsqdxGlassPersonaV2DetailLayout({ personaId, sectionId, docsUrl 
 
   useEffect(() => {
     setHeaderStartContent(
-      <Link href={ADMIN_ROUTES.personasV2} style={{ textDecoration: "none" }}>
-        <MsqdxButton
-          variant="text"
-          size="small"
-          startIcon={<MsqdxIcon name="arrow_back" customSize={18} />}
-          sx={{ px: 0, minWidth: 0, color: "var(--color-text-secondary)" }}
-        >
-          {t("personaV2.backToList")}
-        </MsqdxButton>
-      </Link>
+      <MsqdxGlassAdminHeaderBackIconButton
+        href={ADMIN_ROUTES.personasV2}
+        ariaLabel={t("personaV2.backToList")}
+      />
     );
     return () => {
       setHeaderStartContent(null);

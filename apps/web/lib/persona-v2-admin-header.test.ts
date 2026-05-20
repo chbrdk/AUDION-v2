@@ -12,6 +12,8 @@ describe("persona v2 detail admin header", () => {
       "utf8"
     );
     expect(layout).toContain("setHeaderStartContent");
+    expect(layout).toContain("MsqdxGlassAdminHeaderBackIconButton");
+    expect(layout).not.toContain('variant="text"');
     expect(layout).toContain("msqdx-glass-persona-v2-detail");
     expect(layout).toContain("ADMIN_ROUTES.personasV2");
     expect(layout).toContain("entityCornerAccent");

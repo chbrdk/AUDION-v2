@@ -21,25 +21,46 @@ describe("admin header v2 card", () => {
     );
     expect(layout).toContain("isPersonasV2AdminPath");
     expect(layout).toContain("MsqdxGlassAdminHeaderV2Card");
+    expect(layout).toContain("ADMIN_HEADER_V2_ROW_CLASS");
+    expect(layout).toContain("ADMIN_HEADER_V2_BACK_SLOT_CLASS");
+    expect(layout).not.toContain("startAfterProject");
     expect(layout).toContain("MsqdxGlassAdminHeaderPageTitle");
     expect(layout).toContain("ADMIN_HEADER_V2_BAR_CLASS");
+    const card = readFileSync(
+      join(webRoot, "components/admin/msqdx-glass-admin-header-v2-card.tsx"),
+      "utf8"
+    );
+    expect(card).toContain("MsqdxGlassAdminHeaderContextPickers");
   });
 
   it("defines bordered card and compact project picker styles", () => {
     const css = readFileSync(join(webRoot, "styles/admin-header-v2.css"), "utf8");
     expect(css).toContain(".msqdx-glass-admin-header-card");
     expect(css).toContain("border-radius: var(--msqdx-radius-3xl");
-    expect(css).toContain("margin-left: var(--msqdx-admin-header-logo-inset");
-    expect(css).toContain(".msqdx-glass-admin-project-picker");
+    expect(css).toContain(".msqdx-glass-admin-header-v2-row");
+    expect(css).toContain(".msqdx-glass-admin-header-v2-back");
+    expect(css).toContain(".msqdx-glass-admin-header-v2-back-button__btn");
+    expect(css).toContain("--msqdx-admin-header-v2-chrome-block-height");
+    expect(css).toMatch(/\.msqdx-glass-admin-header-v2-row[^}]*margin-left:\s*var\(--msqdx-admin-header-logo-inset/);
+    expect(css).toContain(".msqdx-glass-admin-header-compact-picker");
+    expect(css).toContain(".msqdx-glass-admin-header-card__pickers");
     expect(css).toMatch(/mask-image:\s*none/);
+    expect(css).toMatch(/\.msqdx-glass-admin-header-bar--v2-card[^}]*border-bottom:\s*none/);
   });
 
-  it("uses header card project picker instead of legacy MsqdxSelect form", () => {
-    const picker = readFileSync(
-      join(webRoot, "components/admin/msqdx-glass-admin-project-picker.tsx"),
+  it("does not apply monochrome legacy header bottom border on v2 card", () => {
+    const mono = readFileSync(join(webRoot, "styles/monochrome-theme.css"), "utf8");
+    expect(mono).toContain(
+      ".msqdx-glass-admin-header-bar:not(.msqdx-glass-admin-header-bar--v2-card)"
+    );
+  });
+
+  it("uses compact pickers instead of legacy MsqdxSelect in v2 header", () => {
+    const pickers = readFileSync(
+      join(webRoot, "components/admin/msqdx-glass-admin-header-context-pickers.tsx"),
       "utf8"
     );
-    expect(picker).toContain("msqdx-glass-admin-project-picker__label");
-    expect(picker).not.toContain("MsqdxSelect");
+    expect(pickers).toContain("MsqdxGlassAdminHeaderCompactPicker");
+    expect(pickers).not.toContain("MsqdxSelect");
   });
 });

@@ -13,7 +13,12 @@ import { useThemeMode } from "../theme-registry";
 import { AdminTopControls } from "./admin-top-controls";
 import { MsqdxGlassAdminHeaderV2Card } from "./msqdx-glass-admin-header-v2-card";
 import { MsqdxGlassAdminHeaderPageTitle } from "./msqdx-glass-admin-header-page-title";
-import { ADMIN_HEADER_V2_BAR_CLASS, isPersonasV2AdminPath } from "../../lib/admin-header-layout";
+import {
+  ADMIN_HEADER_V2_BACK_SLOT_CLASS,
+  ADMIN_HEADER_V2_BAR_CLASS,
+  ADMIN_HEADER_V2_ROW_CLASS,
+  isPersonasV2AdminPath,
+} from "../../lib/admin-header-layout";
 import { BrandColorInitializer } from "../settings/brand-color-initializer";
 import { useI18n } from "../i18n/i18n-provider";
 import { BugReportModal } from "../bug-report/BugReportModal";
@@ -377,10 +382,12 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
               width: "100%",
             }}
           >
-            <MsqdxGlassAdminHeaderV2Card
-              startAfterProject={headerStartContent}
-              end={headerEndCluster}
-            />
+            <Box className={ADMIN_HEADER_V2_ROW_CLASS}>
+              {headerStartContent ? (
+                <Box className={ADMIN_HEADER_V2_BACK_SLOT_CLASS}>{headerStartContent}</Box>
+              ) : null}
+              <MsqdxGlassAdminHeaderV2Card end={headerEndCluster} />
+            </Box>
           </Box>
         ) : (
           <>
