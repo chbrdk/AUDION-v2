@@ -40,8 +40,8 @@ describe("section-nav-dock-layout", () => {
   });
 
   it("uses bottom-edge cutdown corners for active tab in horizontal mode", () => {
-    expect(SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES.bottomLeft).toBe("cutdown-b");
-    expect(SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES.bottomRight).toBe("cutdown-b");
+    expect(SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES.bottomLeft).toBe("cutdown-a");
+    expect(SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES.bottomRight).toBe("cutdown-a");
     expect(SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES.topLeft).toBe("square");
     expect(SECTION_NAV_HORIZONTAL_DOCK_CORNER_STYLES.bottomLeft).toBe("square");
   });

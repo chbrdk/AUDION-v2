@@ -34,12 +34,12 @@ export const SECTION_NAV_HORIZONTAL_DOCK_CORNER_STYLES = {
   bottomRight: "square",
 } as const;
 
-/** Active tab: bottom-edge cutdown-b into workspace below (mirrors vertical rail right-edge cutdown). */
+/** Active tab: bottom-edge cutdown-a into workspace below (variant b faces the wrong way on the bottom edge). */
 export const SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES = {
   topLeft: "square",
   topRight: "square",
-  bottomLeft: "cutdown-b",
-  bottomRight: "cutdown-b",
+  bottomLeft: "cutdown-a",
+  bottomRight: "cutdown-a",
 } as const;
 
 /** Inner padding on `msqdx-glass-section-workspace__dock-shell` (px/py in section-shell). */
