@@ -7,6 +7,7 @@ import {
   SECTION_NAV_DOCK_SURFACE,
   SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX,
   SECTION_WORKSPACE_DOCK_CORNER_STYLES,
+  SECTION_WORKSPACE_DOCK_PADDING,
 } from "./section-nav-dock-layout";
 
 describe("section-nav-dock-layout", () => {
@@ -74,7 +75,10 @@ describe("section-nav-dock-layout", () => {
     expect(source).toContain("msqdx-glass-section-workspace__dock-shell");
     expect(source).toContain("SECTION_WORKSPACE_DOCK_CORNER_STYLES");
     expect(source).toContain("SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX");
+    expect(source).toContain("SECTION_WORKSPACE_DOCK_PADDING");
+    expect(SECTION_WORKSPACE_DOCK_PADDING).toContain("--msqdx-spacing-lg");
     const css = readFileSync(resolve(process.cwd(), "styles/section-shell.css"), "utf8");
+    expect(css).toContain("--msqdx-section-workspace-dock-padding");
     expect(css).toMatch(
       /\.msqdx-glass-section-workspace--with-subnav\s*\{[^}]*border:\s*var\(--msqdx-section-workspace-frame-border-width\)\s+solid\s+var\(--msqdx-section-workspace-frame-border\)/
     );

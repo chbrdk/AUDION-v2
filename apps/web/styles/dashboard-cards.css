@@ -660,19 +660,43 @@
   overflow: visible;
 }
 
-/* Sector gutter between pain and goals (MsqdxCornerBox, four cutdown corners) */
+/* Sector separator: 1px line + frame-colored corner brackets (workspace border token) */
 .msqdx-glass-pain-goals-sector-separator {
-  --msqdx-pain-goals-sector-separator-height: calc(
-    var(--msqdx-spacing-md) + var(--msqdx-spacing-sm)
+  --msqdx-pain-goals-sector-separator-line: var(
+    --msqdx-section-workspace-frame-border,
+    var(--color-theme-accent, #000000)
   );
+  --msqdx-pain-goals-sector-separator-corner: var(--msqdx-pain-goals-sector-separator-line);
+  --msqdx-pain-goals-sector-separator-corner-size: 24px;
+  position: relative;
   width: 100%;
-  min-height: var(--msqdx-pain-goals-sector-separator-height);
+  min-height: calc(var(--msqdx-pain-goals-sector-separator-corner-size) * 2 + 1px);
   margin-block: var(--msqdx-spacing-md);
   overflow: visible;
+  background: transparent;
 }
 
-.msqdx-glass-pain-goals-sector-separator.MuiBox-root {
-  background-color: var(--msqdx-pain-goals-corner-surface, var(--audion-neutral-05, #e0e0e0)) !important;
+/* Full-bleed inside workspace dock shell (negate dock px padding) */
+.msqdx-glass-section-workspace__dock-shell .msqdx-glass-pain-goals-sector-separator {
+  margin-inline: calc(-1 * var(--msqdx-section-workspace-dock-padding, var(--msqdx-spacing-lg)));
+  width: calc(100% + 2 * var(--msqdx-section-workspace-dock-padding, var(--msqdx-spacing-lg)));
+  max-width: none;
+}
+
+.msqdx-glass-pain-goals-sector-separator__line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 100%;
+  height: 1px;
+  background-color: var(--msqdx-pain-goals-sector-separator-line);
+}
+
+.msqdx-glass-pain-goals-sector-separator__corner,
+.msqdx-glass-pain-goals-sector-separator__corner.MuiBox-root {
+  background-color: var(--msqdx-pain-goals-sector-separator-corner) !important;
 }
 
 .msqdx-glass-pain-goals-stack__block .msqdx-glass-pain-toolbar {

@@ -18,6 +18,9 @@ export const SECTION_NAV_DOCK_CORNER_STYLES = {
   bottomRight: "cutdown-b",
 } as const;
 
+/** Inner padding on `msqdx-glass-section-workspace__dock-shell` (px/py in section-shell). */
+export const SECTION_WORKSPACE_DOCK_PADDING = "var(--msqdx-spacing-lg)";
+
 /** Workspace panel beside subnav: all four corners rounded (no left-edge cutdown). */
 export const SECTION_WORKSPACE_DOCK_CORNER_STYLES = {
   topLeft: "rounded",

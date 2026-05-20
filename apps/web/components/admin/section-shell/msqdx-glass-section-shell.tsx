@@ -6,6 +6,7 @@ import {
   SECTION_NAV_DOCK_SURFACE,
   SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX,
   SECTION_WORKSPACE_DOCK_CORNER_STYLES,
+  SECTION_WORKSPACE_DOCK_PADDING,
 } from "../../../lib/section-nav-dock-layout";
 import { MsqdxGlassSectionEntityHeader } from "./msqdx-glass-section-entity-header";
 import { MsqdxGlassSectionNav } from "./msqdx-glass-section-nav";
@@ -118,9 +119,9 @@ export function MsqdxGlassSectionShell({
                 border: "none",
                 display: "flex",
                 flexDirection: "column",
-                gap: "var(--msqdx-spacing-lg)",
-                py: "var(--msqdx-spacing-lg)",
-                px: "var(--msqdx-spacing-lg)",
+                gap: SECTION_WORKSPACE_DOCK_PADDING,
+                py: SECTION_WORKSPACE_DOCK_PADDING,
+                px: SECTION_WORKSPACE_DOCK_PADDING,
                 minWidth: 0,
               }}
             >
