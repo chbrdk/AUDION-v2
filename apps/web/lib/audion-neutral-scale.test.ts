@@ -40,5 +40,9 @@ describe("audion-neutral-scale", () => {
     expect(dashboard).toContain("--msqdx-pain-goals-corner-surface: var(--audion-neutral-05");
     expect(css).toContain("--msqdx-pain-goals-slide-surface-pain: var(--msqdx-pain-goals-slide-surface)");
     expect(dashboard).toContain("msqdx-glass-pain-goals-slide-card__index-corner");
+    expect(dashboard).toContain("--msqdx-pain-goals-index-surface");
+    expect(dashboard).toMatch(
+      /\.msqdx-glass-pain-goals-slide-card__index-corner[^}]*--msqdx-pain-goals-corner-surface/
+    );
   });
 });

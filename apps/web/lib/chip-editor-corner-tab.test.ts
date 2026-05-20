@@ -3,6 +3,7 @@ import {
   CHIP_EDITOR_CORNER_BORDER_RADIUS_PX,
   CHIP_EDITOR_CORNER_SHELL_SURFACE,
   PAIN_GOALS_SLIDE_INDEX_BADGE_RADIUS_PX,
+  PAIN_GOALS_SLIDE_INDEX_SURFACE,
   renderChipEditorCornerTab,
   resolveChipEditorCornerTabStyle,
 } from "./chip-editor-corner-tab";
@@ -19,6 +20,10 @@ describe("chip-editor-corner-tab", () => {
 
   it("exposes slider index badge radius for MsqdxCornerBox cutdown patches", () => {
     expect(PAIN_GOALS_SLIDE_INDEX_BADGE_RADIUS_PX).toBe(22);
+  });
+
+  it("maps slide index badge surface to corner shell token", () => {
+    expect(PAIN_GOALS_SLIDE_INDEX_SURFACE).toBe(CHIP_EDITOR_CORNER_SHELL_SURFACE);
   });
 
   it("returns pink icon accent for pain", () => {

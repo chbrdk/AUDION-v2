@@ -13,7 +13,11 @@ import { useI18n } from "../i18n/i18n-provider";
 import { MONO_FONT_SX, SECTION_HEADING_MONO_SX } from "../../lib/msqdx-typography";
 import { INPUT_ACCENT_SX } from "../../lib/theme-accent";
 import { MsqdxGlassPainGoalsCornerShell } from "./msqdx-glass-pain-goals-corner-shell";
-import { resolveChipEditorCornerTabStyle, PAIN_GOALS_SLIDE_INDEX_BADGE_RADIUS_PX } from "../../lib/chip-editor-corner-tab";
+import {
+  resolveChipEditorCornerTabStyle,
+  PAIN_GOALS_SLIDE_INDEX_BADGE_RADIUS_PX,
+  PAIN_GOALS_SLIDE_INDEX_SURFACE,
+} from "../../lib/chip-editor-corner-tab";
 
 function resolveChipVariant(chipClassName: string): MsqdxGlassChipVariant {
   if (chipClassName.includes("--vocab")) return "vocab";
@@ -468,6 +472,7 @@ export const MsqdxGlassChipEditor = ({
                         alignItems: "center",
                         justifyContent: "center",
                         boxSizing: "border-box",
+                        bgcolor: PAIN_GOALS_SLIDE_INDEX_SURFACE,
                         color: "text.primary",
                         pointerEvents: "none",
                       }}

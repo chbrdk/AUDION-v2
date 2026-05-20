@@ -859,7 +859,10 @@
 .msqdx-glass-pain-goals-slide-card__index-corner,
 .msqdx-glass-pain-goals-slide-card__index-corner.MuiBox-root {
   overflow: visible !important;
-  background-color: var(--msqdx-pain-goals-slide-surface, var(--audion-neutral-02, #f8f7f3)) !important;
+  background-color: var(
+    --msqdx-pain-goals-index-surface,
+    var(--msqdx-pain-goals-corner-surface, var(--audion-neutral-05, #e4e3dc))
+  ) !important;
 }
 
 .msqdx-glass-pain-goals-slide-card.--add {

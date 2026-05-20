@@ -77,7 +77,8 @@ describe("persona pain-goals layout", () => {
     expect(chipEditor).toContain("bottomLeft=\"cutdown-b\"");
     expect(chipEditor).toContain("msqdx-glass-pain-goals-slide-card__body");
     expect(chipEditor).toContain("msqdx-glass-pain-goals-slide-card--indexed");
-    expect(chipEditor).toContain("chipEditor.slideIndexAria");
+    expect(chipEditor).toContain("PAIN_GOALS_SLIDE_INDEX_SURFACE");
+    expect(chipEditor).toContain("bgcolor: PAIN_GOALS_SLIDE_INDEX_SURFACE");
     expect(chipEditor).toContain("renderLayout=");
     expect(chipEditor).toContain("tabActions={controlsEnd}");
     expect(chipEditor).not.toContain("tabHeading=");
