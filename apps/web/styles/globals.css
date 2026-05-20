@@ -44,8 +44,8 @@
   --color-secondary-dx-green: #00ca55;
   --color-secondary-dx-green-tint: #dff1e1;
   --color-secondary-dx-grey-light: #d4d2d2;
-  --color-secondary-dx-grey-light-tint: rgba(212, 210, 210, 0.5);
-  --color-neutral: #f8f6f0;
+  --color-secondary-dx-grey-light-tint: var(--audion-neutral-06, #dbd9d2);
+  --color-neutral: var(--audion-neutral-03, #f3f2ed);
   /* Frosted admin top bar (MsqdxGlassAdminLayout header): warm neutral @ 30% — same base as --color-neutral */
   --msqdx-glass-admin-header-bar-bg: rgb(from var(--color-neutral) r g b / 0.3);
   /* Bottom edge: height of the soft mask fade (admin header --fade-bottom modifier only) */
@@ -65,22 +65,22 @@
   --color-primary-white: #1a1a1a;
   --color-background: #1a1a1a;
   --color-secondary-dx-yellow: #fef14d;
-  --color-secondary-dx-yellow-tint: rgba(254, 241, 77, 0.2);
+  --color-secondary-dx-yellow-tint: #3d3820;
   --color-secondary-dx-pink: #f256b6;
-  --color-secondary-dx-pink-tint: rgba(242, 86, 182, 0.2);
+  --color-secondary-dx-pink-tint: #3a2431;
   --color-secondary-dx-pink-on-light: #ff6bb8;
   --color-secondary-dx-orange: #ff6a3b;
-  --color-secondary-dx-orange-overlay-20: rgba(255, 106, 59, 0.3);
-  --color-secondary-dx-orange-tint: rgba(255, 106, 59, 0.2);
+  --color-secondary-dx-orange-overlay-20: #4d2a1f;
+  --color-secondary-dx-orange-tint: #3d281f;
   --color-secondary-dx-purple: #b638ff;
-  --color-secondary-dx-purple-tint: rgba(182, 56, 255, 0.2);
+  --color-secondary-dx-purple-tint: #2f1f3d;
   --color-secondary-dx-blue: #3b82f6;
-  --color-secondary-dx-blue-tint: rgba(59, 130, 246, 0.2);
+  --color-secondary-dx-blue-tint: #1c2a3d;
   --color-secondary-dx-green: #00ca55;
-  --color-secondary-dx-green-tint: rgba(0, 202, 85, 0.2);
+  --color-secondary-dx-green-tint: #1a3324;
   --color-secondary-dx-grey-light: #666666;
-  --color-secondary-dx-grey-light-tint: rgba(102, 102, 102, 0.3);
-  --color-neutral: #0f0f0f;
+  --color-secondary-dx-grey-light-tint: var(--audion-neutral-13, #55534d);
+  --color-neutral: var(--audion-neutral-18, #0f0f0d);
   --msqdx-glass-admin-header-bar-bg: rgb(from var(--color-neutral) r g b / 0.82);
 }
 

@@ -666,11 +666,6 @@
 
 .msqdx-glass-chip-editor__corner-tab-shell {
   width: 100%;
-  --msqdx-pain-goals-corner-surface: var(--color-primary-white, #ffffff);
-}
-
-[data-theme="dark"] .msqdx-glass-chip-editor__corner-tab-shell {
-  --msqdx-pain-goals-corner-surface: var(--color-surface-primary, #1a1a1a);
 }
 
 .msqdx-glass-chip-editor__corner-tab-shell .msqdx-corner-tab-card__tab-box,
@@ -800,7 +795,7 @@
 }
 
 .msqdx-glass-horizontal-card-slider__viewport::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.45);
+  background: var(--msqdx-pain-goals-scrollbar-thumb, var(--audion-neutral-08, #bfbdb4));
   border-radius: 999px;
 }
 
@@ -828,8 +823,8 @@
   flex-direction: column;
   padding: 0;
   border-radius: 18px;
-  border: 1px solid var(--color-theme-accent-tint, rgba(148, 163, 184, 0.35));
-  --msqdx-pain-goals-slide-surface: var(--color-background-primary, #fff);
+  border: 1px solid var(--msqdx-pain-goals-slide-border-default, var(--audion-neutral-07, #cfcdc5));
+  --msqdx-pain-goals-slide-surface: var(--msqdx-pain-goals-slide-surface-default, var(--audion-neutral-01, #fcfcfa));
   background: var(--msqdx-pain-goals-slide-surface);
 }
 
@@ -849,14 +844,14 @@
 }
 
 .msqdx-glass-pain-goals-slide-card.--pain {
-  border-color: var(--color-secondary-dx-pink-tint, rgba(255, 106, 159, 0.45));
-  --msqdx-pain-goals-slide-surface: var(--color-secondary-dx-pink-tint, rgba(255, 106, 159, 0.08));
+  border-color: var(--msqdx-pain-goals-slide-border-pain, #e4b4c8);
+  --msqdx-pain-goals-slide-surface: var(--msqdx-pain-goals-slide-surface-pain, var(--color-secondary-dx-pink-tint, #f3d9e3));
   background: var(--msqdx-pain-goals-slide-surface);
 }
 
 .msqdx-glass-pain-goals-slide-card.--goal {
-  border-color: var(--color-secondary-dx-blue-tint, rgba(96, 165, 250, 0.45));
-  --msqdx-pain-goals-slide-surface: var(--color-secondary-dx-blue-tint, rgba(96, 165, 250, 0.08));
+  border-color: var(--msqdx-pain-goals-slide-border-goal, #b8d4f8);
+  --msqdx-pain-goals-slide-surface: var(--msqdx-pain-goals-slide-surface-goal, var(--color-secondary-dx-blue-tint, #dbeafe));
   background: var(--msqdx-pain-goals-slide-surface);
 }
 

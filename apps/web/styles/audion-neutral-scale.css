@@ -1,0 +1,94 @@
+/**
+ * Audion neutral scale — 20 solid steps (no alpha).
+ * Step 00 = white, step 19 = black. Warm ramp aligned with --color-neutral (#f8f6f0).
+ * Semantic aliases map steps per theme; components reference aliases, not raw rgba.
+ */
+
+:root {
+  --audion-neutral-00: #ffffff;
+  --audion-neutral-01: #fcfcfa;
+  --audion-neutral-02: #f8f7f3;
+  --audion-neutral-03: #f3f2ed;
+  --audion-neutral-04: #ecebe5;
+  --audion-neutral-05: #e4e3dc;
+  --audion-neutral-06: #dbd9d2;
+  --audion-neutral-07: #cfcdc5;
+  --audion-neutral-08: #bfbdb4;
+  --audion-neutral-09: #acaaa1;
+  --audion-neutral-10: #96948b;
+  --audion-neutral-11: #807e76;
+  --audion-neutral-12: #6a6861;
+  --audion-neutral-13: #55534d;
+  --audion-neutral-14: #424039;
+  --audion-neutral-15: #302f2a;
+  --audion-neutral-16: #22211d;
+  --audion-neutral-17: #181714;
+  --audion-neutral-18: #0f0f0d;
+  --audion-neutral-19: #000000;
+
+  /* Semantic — light */
+  --color-text-primary: var(--audion-neutral-19);
+  --color-text-secondary: var(--audion-neutral-11);
+  --color-text-tertiary: var(--audion-neutral-09);
+  --color-background-primary: var(--audion-neutral-00);
+  --color-surface-primary: var(--audion-neutral-00);
+  --color-surface-secondary: var(--audion-neutral-02);
+  --color-surface-tertiary: var(--audion-neutral-04);
+  --color-border-subtle: var(--audion-neutral-06);
+  --color-border-default: var(--audion-neutral-08);
+  --color-border-strong: var(--audion-neutral-12);
+
+  /* Pain / goals slider (solid greys + brand slide fills from globals) */
+  --msqdx-pain-goals-corner-surface: var(--audion-neutral-00);
+  --msqdx-pain-goals-slide-surface-default: var(--audion-neutral-01);
+  --msqdx-pain-goals-slide-border-default: var(--audion-neutral-07);
+  --msqdx-pain-goals-scrollbar-thumb: var(--audion-neutral-08);
+  --msqdx-pain-goals-slide-surface-pain: var(--color-secondary-dx-pink-tint);
+  --msqdx-pain-goals-slide-border-pain: #e4b4c8;
+  --msqdx-pain-goals-slide-surface-goal: var(--color-secondary-dx-blue-tint);
+  --msqdx-pain-goals-slide-border-goal: #b8d4f8;
+}
+
+[data-theme="dark"] {
+  --color-text-primary: var(--audion-neutral-00);
+  --color-text-secondary: var(--audion-neutral-08);
+  --color-text-tertiary: var(--audion-neutral-10);
+  --color-background-primary: var(--audion-neutral-16);
+  --color-surface-primary: var(--audion-neutral-16);
+  --color-surface-secondary: var(--audion-neutral-15);
+  --color-surface-tertiary: var(--audion-neutral-14);
+  --color-border-subtle: var(--audion-neutral-13);
+  --color-border-default: var(--audion-neutral-12);
+  --color-border-strong: var(--audion-neutral-09);
+
+  --msqdx-pain-goals-corner-surface: var(--audion-neutral-16);
+  --msqdx-pain-goals-slide-surface-default: var(--audion-neutral-15);
+  --msqdx-pain-goals-slide-border-default: var(--audion-neutral-12);
+  --msqdx-pain-goals-scrollbar-thumb: var(--audion-neutral-11);
+  --msqdx-pain-goals-slide-surface-pain: #3a2431;
+  --msqdx-pain-goals-slide-border-pain: #5a3a4c;
+  --msqdx-pain-goals-slide-surface-goal: #1c2a3d;
+  --msqdx-pain-goals-slide-border-goal: #2d4563;
+}
+
+[data-theme="monochrome-dark"] {
+  --msqdx-pain-goals-corner-surface: var(--audion-mono-surface, var(--audion-neutral-17));
+  --msqdx-pain-goals-slide-surface-default: var(--audion-mono-surface-raised, var(--audion-neutral-16));
+  --msqdx-pain-goals-slide-border-default: var(--audion-neutral-12);
+  --msqdx-pain-goals-scrollbar-thumb: var(--audion-neutral-10);
+  --msqdx-pain-goals-slide-surface-pain: var(--audion-neutral-15);
+  --msqdx-pain-goals-slide-border-pain: var(--audion-neutral-11);
+  --msqdx-pain-goals-slide-surface-goal: var(--audion-neutral-15);
+  --msqdx-pain-goals-slide-border-goal: var(--audion-neutral-11);
+}
+
+[data-theme="monochrome-light"] {
+  --msqdx-pain-goals-corner-surface: var(--audion-mono-surface, var(--audion-neutral-02));
+  --msqdx-pain-goals-slide-surface-default: var(--audion-neutral-01);
+  --msqdx-pain-goals-slide-border-default: var(--audion-neutral-08);
+  --msqdx-pain-goals-scrollbar-thumb: var(--audion-neutral-09);
+  --msqdx-pain-goals-slide-surface-pain: var(--audion-neutral-03);
+  --msqdx-pain-goals-slide-border-pain: var(--audion-neutral-10);
+  --msqdx-pain-goals-slide-surface-goal: var(--audion-neutral-03);
+  --msqdx-pain-goals-slide-border-goal: var(--audion-neutral-10);
+}

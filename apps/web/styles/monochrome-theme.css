@@ -11,10 +11,10 @@
   --audion-mono-surface: #0a0a0a;
   --audion-mono-surface-raised: #111111;
   --audion-mono-border: #ffffff;
-  --audion-mono-border-muted: rgba(255, 255, 255, 0.55);
+  --audion-mono-border-muted: var(--audion-neutral-10, #96948b);
   --audion-chrome-border-on-dark: #ffffff;
-  --audion-chrome-border-on-light: rgba(0, 0, 0, 0.12);
-  --audion-mono-text-muted: rgba(255, 255, 255, 0.72);
+  --audion-chrome-border-on-light: var(--audion-neutral-06, #dbd9d2);
+  --audion-mono-text-muted: var(--audion-neutral-08, #bfbdb4);
   --audion-mono-fg: #ffffff;
   --audion-mono-fg-inverse: #000000;
   --audion-mono-canvas-fg: #000000;
@@ -27,21 +27,21 @@
   --color-primary-white: var(--audion-mono-surface);
   --color-background: var(--audion-mono-surface);
   --color-theme-accent: #ffffff;
-  --color-theme-accent-tint: rgba(255, 255, 255, 0.06);
+  --color-theme-accent-tint: var(--audion-neutral-16, #22211d);
   --color-theme-accent-contrast: #000000;
   --audion-chrome-surface: #ffffff;
   --audion-sidebar-text-color: #000000;
-  --audion-sidebar-hover-bg: rgba(0, 0, 0, 0.08);
-  --audion-sidebar-active-bg: rgba(0, 0, 0, 0.14);
+  --audion-sidebar-hover-bg: var(--audion-neutral-05, #e4e3dc);
+  --audion-sidebar-active-bg: var(--audion-neutral-07, #cfcdc5);
   --color-input-label: #ffffff;
   --msqdx-glass-admin-header-bar-bg: rgb(from var(--audion-mono-surface) r g b / 0.92);
-  --color-secondary-dx-yellow-tint: rgba(255, 255, 255, 0.08);
-  --color-secondary-dx-pink-tint: rgba(255, 255, 255, 0.08);
-  --color-secondary-dx-orange-tint: rgba(255, 255, 255, 0.08);
-  --color-secondary-dx-purple-tint: rgba(255, 255, 255, 0.08);
-  --color-secondary-dx-blue-tint: rgba(255, 255, 255, 0.08);
-  --color-secondary-dx-green-tint: rgba(255, 255, 255, 0.08);
-  --color-secondary-dx-grey-light-tint: rgba(255, 255, 255, 0.08);
+  --color-secondary-dx-yellow-tint: var(--audion-neutral-15, #302f2a);
+  --color-secondary-dx-pink-tint: var(--audion-neutral-15, #302f2a);
+  --color-secondary-dx-orange-tint: var(--audion-neutral-15, #302f2a);
+  --color-secondary-dx-purple-tint: var(--audion-neutral-15, #302f2a);
+  --color-secondary-dx-blue-tint: var(--audion-neutral-15, #302f2a);
+  --color-secondary-dx-green-tint: var(--audion-neutral-15, #302f2a);
+  --color-secondary-dx-grey-light-tint: var(--audion-neutral-14, #424039);
 }
 
 [data-theme="monochrome-light"] {
@@ -51,10 +51,10 @@
   --audion-mono-surface: #f5f5f5;
   --audion-mono-surface-raised: #eeeeee;
   --audion-mono-border: #000000;
-  --audion-mono-border-muted: rgba(0, 0, 0, 0.55);
+  --audion-mono-border-muted: var(--audion-neutral-10, #96948b);
   --audion-chrome-border-on-dark: #ffffff;
-  --audion-chrome-border-on-light: rgba(255, 255, 255, 0.2);
-  --audion-mono-text-muted: rgba(0, 0, 0, 0.72);
+  --audion-chrome-border-on-light: var(--audion-neutral-07, #cfcdc5);
+  --audion-mono-text-muted: var(--audion-neutral-11, #807e76);
   --audion-mono-fg: #000000;
   --audion-mono-fg-inverse: #ffffff;
   --audion-mono-canvas-fg: #ffffff;
@@ -67,21 +67,21 @@
   --color-primary-white: var(--audion-mono-surface);
   --color-background: var(--audion-mono-surface);
   --color-theme-accent: #000000;
-  --color-theme-accent-tint: rgba(0, 0, 0, 0.06);
+  --color-theme-accent-tint: var(--audion-neutral-04, #ecebe5);
   --color-theme-accent-contrast: #ffffff;
   --audion-chrome-surface: #000000;
   --audion-sidebar-text-color: #ffffff;
-  --audion-sidebar-hover-bg: rgba(255, 255, 255, 0.08);
-  --audion-sidebar-active-bg: rgba(255, 255, 255, 0.14);
+  --audion-sidebar-hover-bg: var(--audion-neutral-14, #424039);
+  --audion-sidebar-active-bg: var(--audion-neutral-12, #6a6861);
   --color-input-label: #000000;
   --msqdx-glass-admin-header-bar-bg: rgb(from #ffffff r g b / 0.92);
-  --color-secondary-dx-yellow-tint: rgba(0, 0, 0, 0.08);
-  --color-secondary-dx-pink-tint: rgba(0, 0, 0, 0.08);
-  --color-secondary-dx-orange-tint: rgba(0, 0, 0, 0.08);
-  --color-secondary-dx-purple-tint: rgba(0, 0, 0, 0.08);
-  --color-secondary-dx-blue-tint: rgba(0, 0, 0, 0.08);
-  --color-secondary-dx-green-tint: rgba(0, 0, 0, 0.08);
-  --color-secondary-dx-grey-light-tint: rgba(0, 0, 0, 0.08);
+  --color-secondary-dx-yellow-tint: var(--audion-neutral-03, #f3f2ed);
+  --color-secondary-dx-pink-tint: var(--audion-neutral-03, #f3f2ed);
+  --color-secondary-dx-orange-tint: var(--audion-neutral-03, #f3f2ed);
+  --color-secondary-dx-purple-tint: var(--audion-neutral-03, #f3f2ed);
+  --color-secondary-dx-blue-tint: var(--audion-neutral-03, #f3f2ed);
+  --color-secondary-dx-green-tint: var(--audion-neutral-03, #f3f2ed);
+  --color-secondary-dx-grey-light-tint: var(--audion-neutral-05, #e4e3dc);
 }
 
 [data-theme="monochrome-dark"], [data-theme="monochrome-light"] html,

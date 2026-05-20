@@ -6,6 +6,7 @@ import type { Metadata } from "next";
 import { IBM_Plex_Mono, Noto_Sans_JP } from "next/font/google";
 import { cookies, headers } from "next/headers";
 import Script from "next/script";
+import "../styles/audion-neutral-scale.css";
 import "../styles/globals.css";
 import "../styles/dashboard-cards.css";
 import "../styles/monochrome-theme.css";

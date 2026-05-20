@@ -4,7 +4,7 @@ import type { MsqdxGlassChipVariant } from "../components/generic/msqdx-glass-ch
 
 /** Shared with `MsqdxCornerTabCard` body and tab chrome (light/dark via CSS on shell). */
 export const CHIP_EDITOR_CORNER_SHELL_SURFACE =
-  "var(--msqdx-pain-goals-corner-surface, var(--color-primary-white, #ffffff))";
+  "var(--msqdx-pain-goals-corner-surface, var(--audion-neutral-00, #ffffff))";
 
 /** Matches `--msqdx-radius-3xl`; tab box + card body share the same corner radius. */
 export const CHIP_EDITOR_CORNER_BORDER_RADIUS_PX = 24;
