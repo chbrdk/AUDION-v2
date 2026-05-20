@@ -5,6 +5,6 @@
 - **Clipping**: The slide **shell** (`.msqdx-glass-pain-goals-slide-card--indexed`) is **`background: transparent`** so the pain-point **container** shows through the top-left notch. The slide text area (`.msqdx-glass-pain-goals-slide-card__body--indexed`) has the slide surface color and a **`clip-path`** polygon that **cuts out** the top-left `4rem` square so white fill does not cover the index badge.
 - **Viewport gutter**: `.msqdx-glass-chip-editor__corner-tab-shell .msqdx-glass-horizontal-card-slider__viewport` gets **`padding-inline: max(24px, …)`** so patches that extend horizontally past the badge are not clipped by **`overflow-x: auto`** on the viewport.
 - **Slides**: `.msqdx-glass-horizontal-card-slider__slide` sets **`overflow: visible`**.
-- **Surface**: Badge uses `var(--msqdx-pain-goals-corner-surface)` via inline `style` + `sx` on `MsqdxCornerBox` (container shade). Cutdown patches use `background: inherit` from that root.
+- **Surface**: `.msqdx-glass-pain-goals-slide-card__index-corner` is **transparent** (no `background-color`). The container shade shows through the clipped notch on the slide body; do not set index-surface on this class.
 - **i18n**: `chipEditor.slideIndexAria` (`{n}`) on the corner box `aria-label`.
 - **Body padding**: `.msqdx-glass-pain-goals-slide-card__body--indexed` adds left padding so copy clears the badge.

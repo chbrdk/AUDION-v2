@@ -31,12 +31,12 @@ Imported in `apps/web/app/layout.tsx` **before** `globals.css`.
 |-------|---------|
 | `--msqdx-pain-goals-corner-surface` | Corner-tab shell + `.msqdx-corner-tab-card__body` (light: `neutral-05`) |
 | `--msqdx-pain-goals-slide-surface` | Pain/goal slide cards only (light: `neutral-02`) |
-| `--msqdx-pain-goals-index-surface` | Index cutout badge → alias of `--msqdx-pain-goals-corner-surface` |
+| `--msqdx-pain-goals-index-surface` | Reserved alias of corner surface (not applied on `.msqdx-glass-pain-goals-slide-card__index-corner`) |
 | `--msqdx-pain-goals-slide-surface-pain` / `-goal` | Alias → `--msqdx-pain-goals-slide-surface` |
 | `--msqdx-pain-goals-slide-border-default` | (unused while slides are borderless) |
 | `--msqdx-pain-goals-scrollbar-thumb` | Horizontal scrollbar |
 
-Pain/goal slide cards have **no border**. Index `MsqdxCornerBox` uses **`--msqdx-pain-goals-index-surface`** (= container / corner-tab shade), **not** the slide surface. Set `bgcolor` on the badge in TSX so `CutdownPatch` (`background: inherit`) picks up the shell color.
+Pain/goal slide cards have **no border**. Index `MsqdxCornerBox` is transparent; container color comes from the shell behind the slide notch (`clip-path` on `__body--indexed`).
 
 Styles: `apps/web/styles/dashboard-cards.css` (`.msqdx-glass-pain-goals-*`).
 

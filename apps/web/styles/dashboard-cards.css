@@ -877,19 +877,6 @@
 .msqdx-glass-pain-goals-slide-card__index-corner,
 .msqdx-glass-pain-goals-slide-card__index-corner.MuiBox-root {
   overflow: visible !important;
-  background: var(
-    --msqdx-pain-goals-index-surface,
-    var(--msqdx-pain-goals-corner-surface, var(--audion-neutral-05, #e4e3dc))
-  ) !important;
-  background-color: var(
-    --msqdx-pain-goals-index-surface,
-    var(--msqdx-pain-goals-corner-surface, var(--audion-neutral-05, #e4e3dc))
-  ) !important;
-}
-
-/* Cutdown patches inherit shell shade from the badge root */
-.msqdx-glass-pain-goals-slide-card__index-corner > .MuiBox-root[aria-hidden="true"] {
-  background: inherit !important;
 }
 
 .msqdx-glass-pain-goals-slide-card.--add {
