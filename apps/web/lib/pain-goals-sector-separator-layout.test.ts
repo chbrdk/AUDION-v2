@@ -48,6 +48,8 @@ describe("pain-goals sector separator layout", () => {
     expect(css).toContain(".msqdx-glass-pain-goals-sector-separator__line");
     expect(css).toContain("--msqdx-pain-goals-sector-separator-line");
     expect(css).toMatch(/\.msqdx-glass-pain-goals-sector-separator__line[^}]*height:\s*1px/);
+    expect(css).toMatch(/\.msqdx-glass-pain-goals-sector-separator[^}]*height:\s*1px/);
+    expect(css).toMatch(/\.msqdx-glass-pain-goals-sector-separator[^}]*min-height:\s*1px/);
     expect(css).toContain("--msqdx-section-workspace-frame-border");
     expect(css).toContain(".msqdx-glass-section-workspace__dock-shell .msqdx-glass-pain-goals-sector-separator");
     expect(css).toMatch(

@@ -670,7 +670,8 @@
   --msqdx-pain-goals-sector-separator-corner-size: 24px;
   position: relative;
   width: 100%;
-  min-height: calc(var(--msqdx-pain-goals-sector-separator-corner-size) * 2 + 1px);
+  height: 1px;
+  min-height: 1px;
   margin-block: var(--msqdx-spacing-md);
   overflow: visible;
   background: transparent;

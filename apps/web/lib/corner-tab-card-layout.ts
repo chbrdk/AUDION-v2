@@ -80,6 +80,7 @@ export function getCornerTabCardLayout(options: CornerTabCardLayoutOptions) {
     position: "absolute",
     top: tabWidthAuto ? `-${tabContainerTopOffsetAutoPx}px` : -tabHeightPx,
     ...(isTopLeft ? { left: 0 } : { right: 0 }),
+    ...(tabWidthAuto && !isTopLeft ? { marginLeft: `-${widthExtra}px` } : {}),
     width: tabWidthAuto ? "max-content" : tabWidthPx,
     minWidth: tabWidthPx,
     height: tabWidthAuto ? "auto" : tabHeightPx,

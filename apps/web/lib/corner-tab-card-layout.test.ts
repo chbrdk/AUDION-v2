@@ -19,6 +19,7 @@ describe("corner-tab-card-layout", () => {
       width: "max-content",
       minWidth: 48,
       top: "-48px",
+      marginLeft: "-14px",
     });
     expect(layout.tabContainerSx).toMatchObject({ pointerEvents: "auto", minHeight: 40 });
     expect(layout.cornerBoxSx).toMatchObject({
