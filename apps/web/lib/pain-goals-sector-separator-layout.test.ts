@@ -36,7 +36,9 @@ describe("pain-goals sector separator layout", () => {
     expect(card).toMatch(
       /--pain[\s\S]*MsqdxGlassPainGoalsSectorSeparator[\s\S]*--goal/
     );
-    expect(separator).toContain("MsqdxCornerBox");
+    expect(separator).not.toContain("MsqdxCornerBox");
+    expect(separator).toContain("PAIN_GOALS_SECTOR_SEPARATOR_CORNER_KEYS");
+    expect(separator).toContain("msqdx-glass-pain-goals-sector-separator__corner--${corner}");
     expect(separator).toContain("msqdx-glass-pain-goals-sector-separator__line");
     expect(separator).toContain('role="separator"');
     expect(separator).toContain("PAIN_GOALS_SECTOR_SEPARATOR_COLOR");
@@ -51,12 +53,12 @@ describe("pain-goals sector separator layout", () => {
     expect(css).toMatch(/\.msqdx-glass-pain-goals-sector-separator__line[^}]*height:\s*1px/);
     expect(css).toMatch(/\.msqdx-glass-pain-goals-sector-separator[^}]*height:\s*1px/);
     expect(css).toMatch(/\.msqdx-glass-pain-goals-sector-separator[^}]*min-height:\s*1px/);
+    expect(css).toContain(".msqdx-glass-pain-goals-sector-separator__corner--bottom-right::before");
     expect(css).toMatch(
-      /\.msqdx-glass-pain-goals-sector-separator__corner[^}]*background-color:\s*transparent/
+      /\.msqdx-glass-pain-goals-sector-separator__corner--bottom-right::before[^}]*mask-image:\s*radial-gradient/
     );
-    expect(css).toContain(
-      '.msqdx-glass-pain-goals-sector-separator__corner > .MuiBox-root[aria-hidden="true"]'
-    );
+    expect(css).toContain(".msqdx-glass-pain-goals-sector-separator__corner--top-left::before");
+    expect(css).toContain(".msqdx-glass-pain-goals-sector-separator__corner--bottom-left::before");
     expect(css).toContain("--msqdx-section-workspace-frame-border");
     expect(css).toContain(".msqdx-glass-section-workspace__dock-shell .msqdx-glass-pain-goals-sector-separator");
     expect(css).toMatch(

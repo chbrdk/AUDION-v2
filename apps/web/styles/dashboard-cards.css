@@ -696,16 +696,116 @@
   background-color: var(--msqdx-pain-goals-sector-separator-line);
 }
 
-/* MsqdxCornerBox shell stays transparent; only cutdown patches (aria-hidden) draw the bracket. */
-.msqdx-glass-pain-goals-sector-separator__corner,
-.msqdx-glass-pain-goals-sector-separator__corner.MuiBox-root {
+/* Cutdown-b brackets: `(_` above the line, `(` below (MsqdxCornerBox CUTDOWN_DEFS geometry). */
+.msqdx-glass-pain-goals-sector-separator__corner {
+  position: absolute;
   z-index: 2;
-  background-color: transparent !important;
-  overflow: visible !important;
+  width: var(--msqdx-pain-goals-sector-separator-corner-size);
+  height: var(--msqdx-pain-goals-sector-separator-corner-size);
+  pointer-events: none;
 }
 
-.msqdx-glass-pain-goals-sector-separator__corner > .MuiBox-root[aria-hidden="true"] {
-  background-color: var(--msqdx-pain-goals-sector-separator-corner) !important;
+.msqdx-glass-pain-goals-sector-separator__corner::before {
+  content: "";
+  position: absolute;
+  width: var(--msqdx-pain-goals-sector-separator-corner-size);
+  height: var(--msqdx-pain-goals-sector-separator-corner-size);
+  background-color: var(--msqdx-pain-goals-sector-separator-corner);
+  pointer-events: none;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: 0 0;
+  mask-position: 0 0;
+}
+
+.msqdx-glass-pain-goals-sector-separator__corner--top-left {
+  top: 0;
+  left: 0;
+}
+
+.msqdx-glass-pain-goals-sector-separator__corner--top-left::before {
+  top: calc(-1 * var(--msqdx-pain-goals-sector-separator-corner-size));
+  left: 0;
+  -webkit-mask-image: radial-gradient(
+    circle at 100% 0%,
+    transparent 0,
+    transparent var(--msqdx-pain-goals-sector-separator-corner-size),
+    #fff var(--msqdx-pain-goals-sector-separator-corner-size)
+  );
+  mask-image: radial-gradient(
+    circle at 100% 0%,
+    transparent 0,
+    transparent var(--msqdx-pain-goals-sector-separator-corner-size),
+    #fff var(--msqdx-pain-goals-sector-separator-corner-size)
+  );
+}
+
+.msqdx-glass-pain-goals-sector-separator__corner--top-right {
+  top: 0;
+  right: 0;
+}
+
+.msqdx-glass-pain-goals-sector-separator__corner--top-right::before {
+  top: calc(-1 * var(--msqdx-pain-goals-sector-separator-corner-size));
+  right: 0;
+  -webkit-mask-image: radial-gradient(
+    circle at 0% 0%,
+    transparent 0,
+    transparent var(--msqdx-pain-goals-sector-separator-corner-size),
+    #fff var(--msqdx-pain-goals-sector-separator-corner-size)
+  );
+  mask-image: radial-gradient(
+    circle at 0% 0%,
+    transparent 0,
+    transparent var(--msqdx-pain-goals-sector-separator-corner-size),
+    #fff var(--msqdx-pain-goals-sector-separator-corner-size)
+  );
+}
+
+.msqdx-glass-pain-goals-sector-separator__corner--bottom-left {
+  bottom: 0;
+  left: 0;
+}
+
+.msqdx-glass-pain-goals-sector-separator__corner--bottom-left::before {
+  bottom: calc(-1 * var(--msqdx-pain-goals-sector-separator-corner-size));
+  left: 0;
+  -webkit-mask-image: radial-gradient(
+    circle at 100% 100%,
+    transparent 0,
+    transparent var(--msqdx-pain-goals-sector-separator-corner-size),
+    #fff var(--msqdx-pain-goals-sector-separator-corner-size)
+  );
+  mask-image: radial-gradient(
+    circle at 100% 100%,
+    transparent 0,
+    transparent var(--msqdx-pain-goals-sector-separator-corner-size),
+    #fff var(--msqdx-pain-goals-sector-separator-corner-size)
+  );
+}
+
+.msqdx-glass-pain-goals-sector-separator__corner--bottom-right {
+  bottom: 0;
+  right: 0;
+}
+
+.msqdx-glass-pain-goals-sector-separator__corner--bottom-right::before {
+  bottom: calc(-1 * var(--msqdx-pain-goals-sector-separator-corner-size));
+  right: 0;
+  -webkit-mask-image: radial-gradient(
+    circle at 0% 100%,
+    transparent 0,
+    transparent var(--msqdx-pain-goals-sector-separator-corner-size),
+    #fff var(--msqdx-pain-goals-sector-separator-corner-size)
+  );
+  mask-image: radial-gradient(
+    circle at 0% 100%,
+    transparent 0,
+    transparent var(--msqdx-pain-goals-sector-separator-corner-size),
+    #fff var(--msqdx-pain-goals-sector-separator-corner-size)
+  );
 }
 
 .msqdx-glass-pain-goals-stack__block .msqdx-glass-pain-toolbar {

@@ -13,10 +13,18 @@ export const PAIN_GOALS_SECTOR_SEPARATOR_LINE_HEIGHT_PX = 1;
 /** Corner patch size (matches cutdown radius on the separator brackets). */
 export const PAIN_GOALS_SECTOR_SEPARATOR_BORDER_RADIUS_PX = CHIP_EDITOR_CORNER_BORDER_RADIUS_PX;
 
-/**
- * Bracket geometry around the 1px line: `(_` above, `(` below (per side).
- * Top corners: cutdown-b (patch extends up). Bottom corners: cutdown-b (patch extends down).
- */
+/** Corner anchors rendered as CSS `::before` cutdown-b patches (see dashboard-cards.css). */
+export const PAIN_GOALS_SECTOR_SEPARATOR_CORNER_KEYS = [
+  "top-left",
+  "top-right",
+  "bottom-left",
+  "bottom-right",
+] as const;
+
+export type PainGoalsSectorSeparatorCornerKey =
+  (typeof PAIN_GOALS_SECTOR_SEPARATOR_CORNER_KEYS)[number];
+
+/** @deprecated Use CSS corners; kept so tests document cutdown-b parity with MsqdxCornerBox. */
 export const PAIN_GOALS_SECTOR_SEPARATOR_CORNER_STYLES = {
   topLeft: { topLeft: "cutdown-b", topRight: "square", bottomLeft: "square", bottomRight: "square" },
   topRight: { topLeft: "square", topRight: "cutdown-b", bottomLeft: "square", bottomRight: "square" },
