@@ -525,7 +525,7 @@
     max-width: 100%;
     height: auto;
     max-height: none;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .msqdx-glass-section-nav__dock-track {
@@ -534,7 +534,7 @@
     height: auto;
     max-height: none;
     overflow-x: auto !important;
-    overflow-y: hidden !important;
+    overflow-y: visible !important;
     -webkit-overflow-scrolling: touch;
     scroll-snap-type: x proximity;
     scroll-padding-inline: var(--msqdx-spacing-sm);
@@ -581,6 +581,9 @@
     width: auto !important;
     flex-shrink: 0;
     align-self: stretch;
+    position: relative;
+    z-index: 1;
+    overflow: visible;
     background-color: var(--msqdx-section-nav-active-card-surface);
   }
 

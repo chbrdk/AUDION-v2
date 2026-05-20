@@ -143,7 +143,7 @@ export function MsqdxGlassSectionNav({
             width: "100%",
             boxSizing: "border-box",
             bgcolor: SECTION_NAV_DOCK_SURFACE,
-            overflow: isHorizontal ? "hidden" : "visible",
+            overflow: "visible",
           }}
         >
           <Box
