@@ -29,8 +29,8 @@ Imported in `apps/web/app/layout.tsx` **before** `globals.css`.
 
 | Token | Purpose |
 |-------|---------|
-| `--msqdx-pain-goals-corner-surface` | Corner-tab shell + `.msqdx-corner-tab-card__body` (light: `neutral-01`) |
-| `--msqdx-pain-goals-slide-surface` | Shared fill for pain/goal slides **and** index cutout badge |
+| `--msqdx-pain-goals-corner-surface` | Corner-tab shell + `.msqdx-corner-tab-card__body` (light: `neutral-03`, 2 steps darker than slides) |
+| `--msqdx-pain-goals-slide-surface` | Pain/goal slides **and** index cutout badge (light: `neutral-01`) |
 | `--msqdx-pain-goals-slide-surface-pain` / `-goal` | Alias → `--msqdx-pain-goals-slide-surface` |
 | `--msqdx-pain-goals-slide-border-default` | (unused while slides are borderless) |
 | `--msqdx-pain-goals-scrollbar-thumb` | Horizontal scrollbar |

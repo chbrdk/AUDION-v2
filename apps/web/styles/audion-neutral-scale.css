@@ -38,8 +38,8 @@
   --color-border-default: var(--audion-neutral-08);
   --color-border-strong: var(--audion-neutral-12);
 
-  /* Pain / goals slider — shell body + slides share one ramp step (index cutout uses slide surface) */
-  --msqdx-pain-goals-corner-surface: var(--audion-neutral-01);
+  /* Pain / goals: shell body 2 steps darker than slides; index cutout = slide surface */
+  --msqdx-pain-goals-corner-surface: var(--audion-neutral-03);
   --msqdx-pain-goals-slide-surface: var(--audion-neutral-01);
   --msqdx-pain-goals-slide-surface-default: var(--msqdx-pain-goals-slide-surface);
   --msqdx-pain-goals-slide-border-default: var(--audion-neutral-07);
@@ -60,7 +60,7 @@
   --color-border-default: var(--audion-neutral-12);
   --color-border-strong: var(--audion-neutral-09);
 
-  --msqdx-pain-goals-corner-surface: var(--audion-neutral-17);
+  --msqdx-pain-goals-corner-surface: var(--audion-neutral-19);
   --msqdx-pain-goals-slide-surface: var(--audion-neutral-17);
   --msqdx-pain-goals-slide-surface-default: var(--msqdx-pain-goals-slide-surface);
   --msqdx-pain-goals-slide-border-default: var(--audion-neutral-12);
@@ -70,7 +70,7 @@
 }
 
 [data-theme="monochrome-dark"] {
-  --msqdx-pain-goals-corner-surface: var(--audion-mono-surface, var(--audion-neutral-17));
+  --msqdx-pain-goals-corner-surface: var(--audion-mono-surface, var(--audion-neutral-19));
   --msqdx-pain-goals-slide-surface: var(--audion-neutral-17);
   --msqdx-pain-goals-slide-surface-default: var(--msqdx-pain-goals-slide-surface);
   --msqdx-pain-goals-slide-border-default: var(--audion-neutral-12);
@@ -80,7 +80,7 @@
 }
 
 [data-theme="monochrome-light"] {
-  --msqdx-pain-goals-corner-surface: var(--audion-mono-surface, var(--audion-neutral-02));
+  --msqdx-pain-goals-corner-surface: var(--audion-mono-surface, var(--audion-neutral-04));
   --msqdx-pain-goals-slide-surface: var(--audion-neutral-02);
   --msqdx-pain-goals-slide-surface-default: var(--msqdx-pain-goals-slide-surface);
   --msqdx-pain-goals-slide-border-default: var(--audion-neutral-08);

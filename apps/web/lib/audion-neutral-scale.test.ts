@@ -34,7 +34,7 @@ describe("audion-neutral-scale", () => {
     expect(dashboard).toContain("--msqdx-pain-goals-slide-surface");
     expect(dashboard).not.toContain("rgba(148, 163, 184");
     expect(dashboard).toMatch(/\.msqdx-glass-pain-goals-slide-card\s*\{[^}]*border:\s*none/);
-    expect(css).toContain("--msqdx-pain-goals-corner-surface: var(--audion-neutral-01)");
+    expect(css).toContain("--msqdx-pain-goals-corner-surface: var(--audion-neutral-03)");
     expect(css).toContain("--msqdx-pain-goals-slide-surface: var(--audion-neutral-01)");
     expect(css).toContain("--msqdx-pain-goals-slide-surface-pain: var(--msqdx-pain-goals-slide-surface)");
     expect(dashboard).toContain("msqdx-glass-pain-goals-slide-card__index-corner");
