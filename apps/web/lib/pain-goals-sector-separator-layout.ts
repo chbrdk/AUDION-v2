@@ -14,6 +14,6 @@ export const PAIN_GOALS_SECTOR_SEPARATOR_BORDER_RADIUS_PX = CHIP_EDITOR_CORNER_B
 export const PAIN_GOALS_SECTOR_SEPARATOR_CORNER_STYLES = {
   topLeft: "cutdown-b",
   topRight: "cutdown-b",
-  bottomLeft: "cutdown-a",
-  bottomRight: "cutdown-a",
+  bottomLeft: "cutdown-b",
+  bottomRight: "cutdown-b",
 } as const;
