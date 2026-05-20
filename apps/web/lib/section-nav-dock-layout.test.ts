@@ -42,7 +42,8 @@ describe("section-nav-dock-layout", () => {
   it("uses bottom-edge cutdown corners for active tab in horizontal mode", () => {
     expect(SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES.bottomLeft).toBe("cutdown-a");
     expect(SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES.bottomRight).toBe("cutdown-a");
-    expect(SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES.topLeft).toBe("square");
+    expect(SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES.topLeft).toBe("rounded");
+    expect(SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES.topRight).toBe("rounded");
     expect(SECTION_NAV_HORIZONTAL_DOCK_CORNER_STYLES.bottomLeft).toBe("square");
   });
 
@@ -69,6 +70,9 @@ describe("section-nav-dock-layout", () => {
     );
     expect(css).toMatch(
       /max-width:\s*1024px[\s\S]*\.msqdx-glass-section-nav__dock-track[\s\S]*scroll-snap-type:\s*x/
+    );
+    expect(css).not.toMatch(
+      /max-width:\s*1024px[\s\S]*\.msqdx-glass-section-workspace--with-subnav[\s\S]*border-top-left-radius:\s*0/
     );
   });
 

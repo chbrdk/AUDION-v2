@@ -620,11 +620,6 @@
     padding-bottom: var(--msqdx-spacing-md);
   }
 
-  .msqdx-glass-section-workspace--with-subnav {
-    border-top-left-radius: 0;
-    border-top-right-radius: 0;
-  }
-
   .msqdx-glass-section-workspace__content {
     max-width: none;
   }

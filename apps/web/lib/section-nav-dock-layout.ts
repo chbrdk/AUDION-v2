@@ -34,10 +34,10 @@ export const SECTION_NAV_HORIZONTAL_DOCK_CORNER_STYLES = {
   bottomRight: "square",
 } as const;
 
-/** Active tab: bottom-edge cutdown-a into workspace below (variant b faces the wrong way on the bottom edge). */
+/** Active tab: rounded top, cutdown-a bottom into workspace below. */
 export const SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES = {
-  topLeft: "square",
-  topRight: "square",
+  topLeft: "rounded",
+  topRight: "rounded",
   bottomLeft: "cutdown-a",
   bottomRight: "cutdown-a",
 } as const;
