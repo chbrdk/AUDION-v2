@@ -840,6 +840,11 @@
   background: var(--msqdx-pain-goals-slide-surface) !important;
 }
 
+/* Indexed slides: shell transparent so container shows through index cutout */
+.msqdx-glass-chip-editor__corner-tab-shell .msqdx-glass-pain-goals-slide-card--indexed {
+  background: transparent !important;
+}
+
 .msqdx-glass-pain-goals-slide-card__body {
   flex: 1 1 auto;
   min-height: 0;
@@ -848,7 +853,20 @@
 }
 
 .msqdx-glass-pain-goals-slide-card__body--indexed {
-  padding-left: 2.75rem;
+  position: relative;
+  z-index: 1;
+  padding-left: 1.25rem;
+  background: var(--msqdx-pain-goals-slide-surface, var(--audion-neutral-02, #f8f7f3)) !important;
+  border-radius: 18px;
+  /* Cut top-left notch so slide fill does not paint over the index corner */
+  clip-path: polygon(
+    0 4rem,
+    4rem 4rem,
+    4rem 0,
+    100% 0,
+    100% 100%,
+    0 100%
+  );
 }
 
 .msqdx-glass-pain-goals-slide-card.--pain,
@@ -859,10 +877,19 @@
 .msqdx-glass-pain-goals-slide-card__index-corner,
 .msqdx-glass-pain-goals-slide-card__index-corner.MuiBox-root {
   overflow: visible !important;
+  background: var(
+    --msqdx-pain-goals-index-surface,
+    var(--msqdx-pain-goals-corner-surface, var(--audion-neutral-05, #e4e3dc))
+  ) !important;
   background-color: var(
     --msqdx-pain-goals-index-surface,
     var(--msqdx-pain-goals-corner-surface, var(--audion-neutral-05, #e4e3dc))
   ) !important;
+}
+
+/* Cutdown patches inherit shell shade from the badge root */
+.msqdx-glass-pain-goals-slide-card__index-corner > .MuiBox-root[aria-hidden="true"] {
+  background: inherit !important;
 }
 
 .msqdx-glass-pain-goals-slide-card.--add {

@@ -44,5 +44,12 @@ describe("audion-neutral-scale", () => {
     expect(dashboard).toMatch(
       /\.msqdx-glass-pain-goals-slide-card__index-corner[^}]*--msqdx-pain-goals-corner-surface/
     );
+    expect(dashboard).toContain(".msqdx-glass-pain-goals-slide-card--indexed");
+    expect(dashboard).toMatch(
+      /\.msqdx-glass-pain-goals-slide-card--indexed[^}]*background:\s*transparent/
+    );
+    expect(dashboard).toMatch(
+      /\.msqdx-glass-pain-goals-slide-card__body--indexed[^}]*clip-path:\s*polygon/
+    );
   });
 });

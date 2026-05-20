@@ -11,6 +11,9 @@ export const CHIP_EDITOR_CORNER_BORDER_RADIUS_PX = 24;
 
 export const PAIN_GOALS_SLIDE_INDEX_BADGE_RADIUS_PX = 22;
 
+/** Width/height of index cutout (must match `clip-path` on `.msqdx-glass-pain-goals-slide-card__body--indexed`). */
+export const PAIN_GOALS_SLIDE_INDEX_BADGE_SIZE = "4rem";
+
 /** Index badge on each slide — same shade as corner-tab shell / body (not the slide card). */
 export const PAIN_GOALS_SLIDE_INDEX_SURFACE = CHIP_EDITOR_CORNER_SHELL_SURFACE;
 

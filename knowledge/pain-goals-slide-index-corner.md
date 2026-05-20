@@ -2,9 +2,9 @@
 
 - **Geometry**: Same pattern as the black entity hero: **`topLeft="cutdown-a"`** and **`bottomRight="cutdown-b"`** (other corners `rounded`) so the **cutdown patches** from `@msqdx/react` read as a real cutout tab, not a plain rounded pill.
 - **Radius**: `PAIN_GOALS_SLIDE_INDEX_BADGE_RADIUS_PX` in `apps/web/lib/chip-editor-corner-tab.tsx` (22px — large enough for the mask to read; slide card frame stays 18px).
-- **Clipping**: The slide **shell** (`.msqdx-glass-pain-goals-slide-card`) uses **`overflow: visible`**. Long text scrolls in **`.msqdx-glass-pain-goals-slide-card__body`** (`overflow-y: auto`). Previously a single node had `overflow-y: auto`, which **clipped** the cutout patches.
+- **Clipping**: The slide **shell** (`.msqdx-glass-pain-goals-slide-card--indexed`) is **`background: transparent`** so the pain-point **container** shows through the top-left notch. The slide text area (`.msqdx-glass-pain-goals-slide-card__body--indexed`) has the slide surface color and a **`clip-path`** polygon that **cuts out** the top-left `4rem` square so white fill does not cover the index badge.
 - **Viewport gutter**: `.msqdx-glass-chip-editor__corner-tab-shell .msqdx-glass-horizontal-card-slider__viewport` gets **`padding-inline: max(24px, …)`** so patches that extend horizontally past the badge are not clipped by **`overflow-x: auto`** on the viewport.
 - **Slides**: `.msqdx-glass-horizontal-card-slider__slide` sets **`overflow: visible`**.
-- **Surface**: Badge uses `PAIN_GOALS_SLIDE_INDEX_SURFACE` → `var(--msqdx-pain-goals-corner-surface)` (container shade). Required on the `MsqdxCornerBox` so cutdown patches inherit the shell color instead of the slide card behind it.
+- **Surface**: Badge uses `var(--msqdx-pain-goals-corner-surface)` via inline `style` + `sx` on `MsqdxCornerBox` (container shade). Cutdown patches use `background: inherit` from that root.
 - **i18n**: `chipEditor.slideIndexAria` (`{n}`) on the corner box `aria-label`.
 - **Body padding**: `.msqdx-glass-pain-goals-slide-card__body--indexed` adds left padding so copy clears the badge.

@@ -16,6 +16,7 @@ import { MsqdxGlassPainGoalsCornerShell } from "./msqdx-glass-pain-goals-corner-
 import {
   resolveChipEditorCornerTabStyle,
   PAIN_GOALS_SLIDE_INDEX_BADGE_RADIUS_PX,
+  PAIN_GOALS_SLIDE_INDEX_BADGE_SIZE,
   PAIN_GOALS_SLIDE_INDEX_SURFACE,
 } from "../../lib/chip-editor-corner-tab";
 
@@ -458,23 +459,29 @@ export const MsqdxGlassChipEditor = ({
                       bottomRight="rounded"
                       borderRadius={PAIN_GOALS_SLIDE_INDEX_BADGE_RADIUS_PX}
                       aria-label={t("chipEditor.slideIndexAria", { n: idx + 1 })}
+                      style={{
+                        backgroundColor: "var(--msqdx-pain-goals-corner-surface, #e4e3dc)",
+                      }}
                       sx={{
                         position: "absolute",
-                        zIndex: 3,
+                        zIndex: 5,
                         top: 0,
                         left: 0,
                         overflow: "visible",
-                        minWidth: "4rem",
-                        minHeight: "4rem",
+                        width: PAIN_GOALS_SLIDE_INDEX_BADGE_SIZE,
+                        height: PAIN_GOALS_SLIDE_INDEX_BADGE_SIZE,
+                        minWidth: PAIN_GOALS_SLIDE_INDEX_BADGE_SIZE,
+                        minHeight: PAIN_GOALS_SLIDE_INDEX_BADGE_SIZE,
                         px: 0.75,
                         py: 0.5,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         boxSizing: "border-box",
-                        bgcolor: PAIN_GOALS_SLIDE_INDEX_SURFACE,
+                        backgroundColor: PAIN_GOALS_SLIDE_INDEX_SURFACE,
                         color: "text.primary",
                         pointerEvents: "none",
+                        isolation: "isolate",
                       }}
                     >
                       <Box
