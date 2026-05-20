@@ -16,6 +16,7 @@ describe("persona pain-goals layout", () => {
     expect(source).toContain("msqdx-glass-pain-goals-stack");
     expect(source).not.toContain("msqdx-glass-pain-goals-panel-card");
     expect(source).toContain("msqdx-glass-pain-goals-stack__block");
+    expect(source).toContain("MsqdxGlassPainGoalsSectorSeparator");
     expect(source).toContain("embedInSection");
     expect(source).toContain('cornerTabPlacement="top-right"');
     expect(source).not.toContain('cornerTabPlacement="top-left"');

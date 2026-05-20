@@ -660,6 +660,21 @@
   overflow: visible;
 }
 
+/* Sector gutter between pain and goals (MsqdxCornerBox, four cutdown corners) */
+.msqdx-glass-pain-goals-sector-separator {
+  --msqdx-pain-goals-sector-separator-height: calc(
+    var(--msqdx-spacing-md) + var(--msqdx-spacing-sm)
+  );
+  width: 100%;
+  min-height: var(--msqdx-pain-goals-sector-separator-height);
+  margin-block: var(--msqdx-spacing-md);
+  overflow: visible;
+}
+
+.msqdx-glass-pain-goals-sector-separator.MuiBox-root {
+  background-color: var(--msqdx-pain-goals-corner-surface, var(--audion-neutral-05, #e0e0e0)) !important;
+}
+
 .msqdx-glass-pain-goals-stack__block .msqdx-glass-pain-toolbar {
   margin-bottom: 0.75rem;
 }
