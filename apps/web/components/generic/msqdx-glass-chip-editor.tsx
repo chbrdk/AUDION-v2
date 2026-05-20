@@ -483,8 +483,8 @@ export const MsqdxGlassChipEditor = ({
                           component="span"
                           sx={{
                             ...MONO_FONT_SX,
-                            fontSize: "1.5rem",
-                            fontWeight: 700,
+                            fontSize: "2.25rem",
+                            fontWeight: 300,
                             lineHeight: 1,
                           }}
                         >

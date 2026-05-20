@@ -85,6 +85,8 @@ describe("persona pain-goals layout", () => {
     expect(chipEditor).toContain("msqdx-glass-pain-goals-slide-card__body");
     expect(chipEditor).toContain("msqdx-glass-pain-goals-slide-card--indexed");
     expect(chipEditor).toContain("PAIN_GOALS_SLIDE_INDEX_BADGE_SIZE");
+    expect(chipEditor).toContain('fontSize: "2.25rem"');
+    expect(chipEditor).toContain("fontWeight: 300");
     expect(chipEditor).not.toContain("PAIN_GOALS_SLIDE_INDEX_SURFACE");
     expect(chipEditor).toContain("renderLayout=");
     expect(chipEditor).toContain("tabActions={controlsEnd}");
