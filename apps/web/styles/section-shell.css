@@ -146,7 +146,15 @@
   .msqdx-glass-section-nav__dock-shell {
     height: fit-content;
     overflow: visible;
+  }
+
+  .msqdx-glass-section-nav__dock-track {
+    display: flex;
     flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 3px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .msqdx-glass-section-nav--docked .msqdx-glass-section-nav__card {
@@ -509,15 +517,20 @@
   }
 
   .msqdx-glass-section-nav__dock-shell {
-    flex-direction: row !important;
-    flex-wrap: nowrap;
-    align-items: stretch;
     width: 100%;
     max-width: 100%;
     height: auto;
     max-height: none;
-    overflow-x: auto;
-    overflow-y: hidden;
+    overflow: hidden;
+  }
+
+  .msqdx-glass-section-nav__dock-track {
+    flex-direction: row !important;
+    align-items: stretch;
+    height: auto;
+    max-height: none;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
     -webkit-overflow-scrolling: touch;
     scroll-snap-type: x proximity;
     scroll-padding-inline: var(--msqdx-spacing-sm);
@@ -527,15 +540,21 @@
     padding-inline: var(--msqdx-spacing-sm);
   }
 
-  .msqdx-glass-section-nav__dock-shell > .msqdx-glass-section-nav__label {
+  .msqdx-glass-section-nav__dock-track > .msqdx-glass-section-nav__label {
     display: none;
   }
 
-  .msqdx-glass-section-nav__dock-shell > a,
-  .msqdx-glass-section-nav__dock-shell > .msqdx-glass-section-nav__card-active-shell {
-    flex: 0 0 auto;
-    width: auto;
+  .msqdx-glass-section-nav__dock-track > a,
+  .msqdx-glass-section-nav__dock-track > .msqdx-glass-section-nav__card-active-shell {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    max-width: min(200px, 72vw);
     scroll-snap-align: center;
+  }
+
+  .msqdx-glass-section-nav__dock-track .msqdx-glass-section-nav__card {
+    width: auto !important;
+    max-width: min(200px, 72vw);
   }
 
   .msqdx-glass-section-nav__label {

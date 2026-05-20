@@ -12,6 +12,9 @@ export const SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX = 36;
 /** Subtle rail fill — see `--msqdx-section-nav-dock-surface` in section-shell.css */
 export const SECTION_NAV_DOCK_SURFACE = "var(--msqdx-section-nav-dock-surface)";
 
+/** Inner flex row/column for nav items (inside CornerBox shell). */
+export const SECTION_NAV_DOCK_TRACK_CLASS = "msqdx-glass-section-nav__dock-track";
+
 /**
  * Left rail docked to workspace on the right: outer corners rounded on the left,
  * cutdown-b on the right (patch on the right edge → reads as oben/unten rechts, not rechts oben/unten).

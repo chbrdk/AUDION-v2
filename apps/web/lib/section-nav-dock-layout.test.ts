@@ -35,6 +35,8 @@ describe("section-nav-dock-layout", () => {
     expect(source).toContain("SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES");
     expect(source).toContain("SECTION_NAV_HORIZONTAL_MEDIA_QUERY");
     expect(source).toContain("scrollIntoView");
+    expect(source).toContain("SECTION_NAV_DOCK_TRACK_CLASS");
+    expect(source).toContain('flexDirection: isHorizontal ? "row" : "column"');
   });
 
   it("uses bottom-rounded corners for active tab in horizontal mode", () => {
@@ -63,10 +65,10 @@ describe("section-nav-dock-layout", () => {
     expect(css).toMatch(/\.msqdx-glass-section-nav--docked\s*\{[^}]*overflow:\s*visible/);
     expect(css).toMatch(/\.msqdx-glass-section-nav__dock-shell\s*\{[^}]*height:\s*fit-content/);
     expect(css).toMatch(
-      /max-width:\s*1024px[\s\S]*\.msqdx-glass-section-nav__dock-shell[\s\S]*flex-direction:\s*row/
+      /max-width:\s*1024px[\s\S]*\.msqdx-glass-section-nav__dock-track[\s\S]*flex-direction:\s*row/
     );
     expect(css).toMatch(
-      /max-width:\s*1024px[\s\S]*\.msqdx-glass-section-nav__dock-shell[\s\S]*scroll-snap-type:\s*x/
+      /max-width:\s*1024px[\s\S]*\.msqdx-glass-section-nav__dock-track[\s\S]*scroll-snap-type:\s*x/
     );
   });
 

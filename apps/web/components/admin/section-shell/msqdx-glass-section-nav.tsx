@@ -2,12 +2,14 @@
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
+import { Box } from "@mui/material";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { MsqdxCornerBox, MsqdxIcon } from "@msqdx/react";
 import {
   SECTION_NAV_DOCK_BORDER_RADIUS_PX,
   SECTION_NAV_DOCK_CORNER_STYLES,
   SECTION_NAV_DOCK_SURFACE,
+  SECTION_NAV_DOCK_TRACK_CLASS,
   SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES,
   SECTION_NAV_HORIZONTAL_DOCK_CORNER_STYLES,
   SECTION_NAV_HORIZONTAL_MEDIA_QUERY,
@@ -42,7 +44,7 @@ export function MsqdxGlassSectionNav({
   useEffect(() => {
     if (!compact || !isHorizontal || !activeSectionId) return;
     const shell = navRef.current?.querySelector<HTMLElement>(
-      ".msqdx-glass-section-nav__dock-shell"
+      ".msqdx-glass-section-nav__dock-track"
     );
     const active = shell?.querySelector<HTMLElement>(
       ".msqdx-glass-section-nav__card-active-shell, .msqdx-glass-section-nav__card--active"
@@ -137,18 +139,33 @@ export function MsqdxGlassSectionNav({
           bottomLeft={dockCornerStyles.bottomLeft}
           bottomRight={dockCornerStyles.bottomRight}
           borderRadius={SECTION_NAV_DOCK_BORDER_RADIUS_PX}
-          sx={(theme) => ({
+          sx={{
             width: "100%",
             boxSizing: "border-box",
             bgcolor: SECTION_NAV_DOCK_SURFACE,
-            display: "flex",
-            gap: theme.spacing(0.375),
-            py: theme.spacing(0.75),
-            pl: theme.spacing(0.75),
-            pr: isHorizontal ? theme.spacing(0.75) : 0,
-          })}
+            overflow: isHorizontal ? "hidden" : "visible",
+          }}
         >
-          {navList}
+          <Box
+            className={SECTION_NAV_DOCK_TRACK_CLASS}
+            sx={(theme) => ({
+              display: "flex",
+              flexDirection: isHorizontal ? "row" : "column",
+              flexWrap: "nowrap",
+              alignItems: isHorizontal ? "stretch" : "stretch",
+              gap: theme.spacing(0.375),
+              width: "100%",
+              boxSizing: "border-box",
+              overflowX: isHorizontal ? "auto" : "visible",
+              overflowY: isHorizontal ? "hidden" : "visible",
+              WebkitOverflowScrolling: isHorizontal ? "touch" : undefined,
+              py: theme.spacing(0.75),
+              pl: theme.spacing(0.75),
+              pr: isHorizontal ? theme.spacing(0.75) : 0,
+            })}
+          >
+            {navList}
+          </Box>
         </MsqdxCornerBox>
       ) : (
         navList
