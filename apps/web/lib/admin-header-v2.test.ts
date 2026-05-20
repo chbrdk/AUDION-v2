@@ -2,7 +2,11 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { isPersonasV2AdminPath } from "./admin-header-layout";
+import {
+  ADMIN_HEADER_V2_BACK_BUTTON_SIZE_PX,
+  ADMIN_HEADER_V2_CARD_ACTION_SIZE_PX,
+  isPersonasV2AdminPath,
+} from "./admin-header-layout";
 
 const webRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -25,6 +29,16 @@ describe("admin header v2 card", () => {
     expect(layout).toContain("ADMIN_HEADER_V2_BACK_SLOT_CLASS");
     expect(layout).not.toContain("startAfterProject");
     expect(layout).toContain("MsqdxGlassAdminHeaderPageTitle");
+    const pageTitle = readFileSync(
+      join(webRoot, "components/admin/msqdx-glass-admin-header-page-title.tsx"),
+      "utf8"
+    );
+    expect(pageTitle).toContain("MsqdxGlassAdminHeaderChatIconButton");
+    expect(pageTitle).toMatch(/variant === "card"[\s\S]*cardChatButton/);
+    const cardTitleReturn =
+      pageTitle.match(/if \(variant === "card"\) \{[\s\S]*?\n  \}/)?.[0] ?? "";
+    expect(cardTitleReturn).toContain("{cardChatButton}");
+    expect(cardTitleReturn).not.toContain("MsqdxButton");
     expect(layout).toContain("ADMIN_HEADER_V2_BAR_CLASS");
     const card = readFileSync(
       join(webRoot, "components/admin/msqdx-glass-admin-header-v2-card.tsx"),
@@ -41,6 +55,16 @@ describe("admin header v2 card", () => {
     expect(css).toContain(".msqdx-glass-admin-header-v2-back");
     expect(css).toContain(".msqdx-glass-admin-header-v2-back-button__btn");
     expect(css).toContain("--msqdx-admin-header-v2-chrome-block-height");
+    expect(css).toContain("--msqdx-admin-header-v2-back-button-size");
+    expect(css).toMatch(
+      /\.msqdx-glass-admin-header-v2-back[^}]*height:\s*var\(--msqdx-admin-header-v2-chrome-block-height\)/
+    );
+    expect(ADMIN_HEADER_V2_BACK_BUTTON_SIZE_PX).toBe(55);
+    const globals = readFileSync(join(webRoot, "styles/globals.css"), "utf8");
+    expect(globals).toContain("--msqdx-admin-header-v2-back-button-size: 55px");
+    expect(globals).toContain("--msqdx-admin-header-v2-card-action-size: 40px");
+    expect(css).toContain(".msqdx-glass-admin-header-v2-chat-button__btn");
+    expect(ADMIN_HEADER_V2_CARD_ACTION_SIZE_PX).toBe(40);
     expect(css).toMatch(/\.msqdx-glass-admin-header-v2-row[^}]*margin-left:\s*var\(--msqdx-admin-header-logo-inset/);
     expect(css).toContain(".msqdx-glass-admin-header-compact-picker");
     expect(css).toContain(".msqdx-glass-admin-header-card__pickers");

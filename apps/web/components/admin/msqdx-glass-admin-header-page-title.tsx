@@ -4,9 +4,9 @@ import Link from "next/link";
 import { Box, Tooltip } from "@mui/material";
 import { MsqdxButton, MsqdxIcon, MsqdxTypography } from "@msqdx/react";
 import { useI18n } from "../i18n/i18n-provider";
+import { MsqdxGlassAdminHeaderChatIconButton } from "./msqdx-glass-admin-header-chat-icon-button";
 
 export type MsqdxGlassAdminHeaderPageTitleProps = {
-  pageIcon: string;
   pageTitle: string;
   directChatHref?: string | null;
   isMonochromeDark?: boolean;
@@ -16,7 +16,6 @@ export type MsqdxGlassAdminHeaderPageTitleProps = {
 };
 
 export function MsqdxGlassAdminHeaderPageTitle({
-  pageIcon,
   pageTitle,
   directChatHref,
   isMonochromeDark = false,
@@ -27,55 +26,66 @@ export function MsqdxGlassAdminHeaderPageTitle({
 
   if (!pageTitle) return null;
 
-  const chatButton = directChatHref ? (
-    <Tooltip title={t("nav.chat")} placement="bottom">
-      <MsqdxButton
-        component={Link as any}
+  const chatLabel = t("nav.chat");
+
+  const cardChatButton =
+    directChatHref && variant === "card" ? (
+      <MsqdxGlassAdminHeaderChatIconButton
         href={directChatHref}
-        variant="outlined"
-        size="small"
-        aria-label={t("nav.chat")}
-        sx={{
-          minWidth: 32,
-          minHeight: 32,
-          width: 32,
-          height: 32,
-          p: 0,
-          borderRadius: "rounded",
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          lineHeight: 1,
-          color: isMonochromeDark
-            ? "#000000"
-            : isMonochromeLight
-              ? "#ffffff"
-              : "var(--color-theme-accent)",
-          borderColor: isMonochromeDark
-            ? "rgba(0, 0, 0, 0.35)"
-            : isMonochromeLight
-              ? "rgba(255, 255, 255, 0.35)"
-              : "var(--color-theme-accent)",
-          "&:hover": {
-            borderColor: isMonochromeDark
+        ariaLabel={chatLabel}
+        tooltip={chatLabel}
+      />
+    ) : null;
+
+  const barChatButton =
+    directChatHref && variant !== "card" ? (
+      <Tooltip title={chatLabel} placement="bottom">
+        <MsqdxButton
+          component={Link as any}
+          href={directChatHref}
+          variant="outlined"
+          size="small"
+          aria-label={chatLabel}
+          sx={{
+            minWidth: 32,
+            minHeight: 32,
+            width: 32,
+            height: 32,
+            p: 0,
+            borderRadius: "rounded",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            lineHeight: 1,
+            color: isMonochromeDark
               ? "#000000"
               : isMonochromeLight
                 ? "#ffffff"
                 : "var(--color-theme-accent)",
-            backgroundColor: "transparent",
-          },
-        }}
-      >
-        <MsqdxIcon name="forum" customSize={18} />
-      </MsqdxButton>
-    </Tooltip>
-  ) : null;
+            borderColor: isMonochromeDark
+              ? "rgba(0, 0, 0, 0.35)"
+              : isMonochromeLight
+                ? "rgba(255, 255, 255, 0.35)"
+                : "var(--color-theme-accent)",
+            "&:hover": {
+              borderColor: isMonochromeDark
+                ? "#000000"
+                : isMonochromeLight
+                  ? "#ffffff"
+                  : "var(--color-theme-accent)",
+              backgroundColor: "transparent",
+            },
+          }}
+        >
+          <MsqdxIcon name="forum" customSize={18} />
+        </MsqdxButton>
+      </Tooltip>
+    ) : null;
 
   if (variant === "card") {
     return (
       <Box className="msqdx-glass-admin-header-page-title">
-        {chatButton}
-        <MsqdxIcon name={pageIcon} customSize={28} />
+        {cardChatButton}
         <span className="msqdx-glass-admin-header-page-title__label">{pageTitle}</span>
       </Box>
     );
@@ -83,7 +93,7 @@ export function MsqdxGlassAdminHeaderPageTitle({
 
   return (
     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-      {chatButton}
+      {barChatButton}
       <MsqdxTypography
         variant="h4"
         sx={{

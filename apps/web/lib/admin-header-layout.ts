@@ -10,6 +10,10 @@ export const ADMIN_HEADER_V2_CARD_END_CLASS = "msqdx-glass-admin-header-card__en
 export const ADMIN_HEADER_V2_CARD_PICKER_DIVIDER_CLASS = "msqdx-glass-admin-header-card__picker-divider";
 
 export const ADMIN_HEADER_V2_CARD_MIN_HEIGHT_PX = 54;
+/** Back control in v2 header row (compact square; smaller than card chrome block). */
+export const ADMIN_HEADER_V2_BACK_BUTTON_SIZE_PX = 55;
+/** In-card actions (e.g. chat) aligned to header card chrome. */
+export const ADMIN_HEADER_V2_CARD_ACTION_SIZE_PX = 40;
 
 export function isPersonasV2AdminPath(pathname: string | null | undefined): boolean {
   return Boolean(pathname?.startsWith("/admin/personas-v2"));

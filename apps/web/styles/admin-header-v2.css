@@ -18,8 +18,9 @@
 }
 
 .msqdx-glass-admin-header-v2-row {
-  --msqdx-admin-header-v2-chrome-block-height: calc(
-    var(--msqdx-admin-header-v2-card-min-height, 54px) + 2 * var(--msqdx-spacing-xs)
+  --msqdx-admin-header-v2-chrome-block-height: var(
+    --msqdx-admin-header-v2-back-button-size,
+    55px
   );
   display: flex;
   align-items: center;
@@ -34,11 +35,15 @@
   display: flex;
   align-items: center;
   flex-shrink: 0;
+  width: var(--msqdx-admin-header-v2-chrome-block-height);
+  height: var(--msqdx-admin-header-v2-chrome-block-height);
 }
 
 .msqdx-glass-admin-header-v2-back-button {
   display: inline-flex;
   flex-shrink: 0;
+  width: var(--msqdx-admin-header-v2-chrome-block-height);
+  height: var(--msqdx-admin-header-v2-chrome-block-height);
 }
 
 .msqdx-glass-admin-header-v2-back-button__btn.MuiIconButton-root {
@@ -61,6 +66,36 @@
 
 [data-theme="dark"] .msqdx-glass-admin-header-v2-back-button__btn.MuiIconButton-root,
 [data-theme="monochrome-dark"] .msqdx-glass-admin-header-v2-back-button__btn.MuiIconButton-root {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.msqdx-glass-admin-header-v2-chat-button {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: var(--msqdx-admin-header-v2-card-action-size, 40px);
+  height: var(--msqdx-admin-header-v2-card-action-size, 40px);
+}
+
+.msqdx-glass-admin-header-v2-chat-button__btn.MuiIconButton-root {
+  width: var(--msqdx-admin-header-v2-card-action-size, 40px);
+  height: var(--msqdx-admin-header-v2-card-action-size, 40px);
+  min-width: var(--msqdx-admin-header-v2-card-action-size, 40px);
+  min-height: var(--msqdx-admin-header-v2-card-action-size, 40px);
+  padding: 0;
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.12));
+  border-radius: var(--msqdx-radius-3xl, 24px);
+  background: var(--msqdx-glass-admin-header-v2-card-bg, var(--color-primary-white, #ffffff));
+  color: var(--color-text-primary);
+  box-sizing: border-box;
+}
+
+.msqdx-glass-admin-header-v2-chat-button__btn.MuiIconButton-root:hover {
+  background: var(--msqdx-glass-admin-header-v2-card-bg, var(--color-primary-white, #ffffff));
+  border-color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .msqdx-glass-admin-header-v2-chat-button__btn.MuiIconButton-root,
+[data-theme="monochrome-dark"] .msqdx-glass-admin-header-v2-chat-button__btn.MuiIconButton-root {
   border-color: rgba(255, 255, 255, 0.2);
 }
 

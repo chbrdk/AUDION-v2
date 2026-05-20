@@ -227,12 +227,10 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
   };
 
   const pageTitle = getPageTitle();
-  const pageIcon = getPageIcon();
   const defaultHeaderEnd =
     headerContent ??
     (pageTitle ? (
       <MsqdxGlassAdminHeaderPageTitle
-        pageIcon={pageIcon}
         pageTitle={pageTitle}
         directChatHref={directChatHref}
         isMonochromeDark={isMonochromeDark}
