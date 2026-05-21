@@ -278,6 +278,8 @@ export const MsqdxGlassChipEditor = ({
   const chipVariant = resolveChipVariant(chipClassName);
   const cornerTabStyle = resolveChipEditorCornerTabStyle(chipVariant);
   const useCornerTabChrome = isSliderLayout && Boolean(cornerTabStyle);
+  const useCornerTabShell =
+    Boolean(cornerTabStyle) && relaxedSpacing && (isWrapLayout || isGridLayout);
   const showHeaderActions = editable && !isEditing && (!isSliderLayout || showEmptyState);
 
   const sectionHeading =
@@ -350,6 +352,179 @@ export const MsqdxGlassChipEditor = ({
     ]
   );
 
+  const headerActions = useMemo(
+    () =>
+      showHeaderActions ? (
+        <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
+          {onAiSuggest ? (
+            <MsqdxGlassAiButtonIcon
+              onClick={onAiSuggest}
+              disabled={aiLoading}
+              loading={aiLoading}
+              size="small"
+              fontSize={18}
+              title={t("chipEditor.aiSuggestion")}
+              aria-label={t("chipEditor.aiSuggestion")}
+            />
+          ) : null}
+          {hasChips ? (
+            <MsqdxGlassEditButton
+              onClick={handleStartEdit}
+              size="small"
+              fontSize={18}
+              aria-label={t("chipEditor.editChips")}
+            />
+          ) : null}
+        </Box>
+      ) : null,
+    [
+      showHeaderActions,
+      onAiSuggest,
+      aiLoading,
+      hasChips,
+      handleStartEdit,
+      t,
+    ]
+  );
+
+  const showStandaloneHeader =
+    !showSliderInlineHeader && !useCornerTabShell && Boolean(label || showHeaderActions);
+
+  const inlineGridBody = (
+    <>
+      {showEmptyState ? (
+        <Box
+          sx={{
+            color: "text.secondary",
+            fontStyle: "italic",
+            fontSize: "0.875rem",
+            ...(usesSectionMono ? MONO_FONT_SX : {}),
+          }}
+        >
+          {displayEmptyMessage}
+        </Box>
+      ) : (
+        <>
+          <Box
+            className={clsx(
+              "msqdx-glass-chip-editor__chips",
+              isGridLayout && "msqdx-glass-chip-editor__chips--grid",
+              isGridLayout && gridColumns === 3 && "msqdx-glass-chip-editor__chips--grid-cols-3",
+              isWrapLayout && "msqdx-glass-chip-editor__chips--wrap",
+              isListLayout && "msqdx-glass-chip-editor__chips--list"
+            )}
+            sx={{
+              display: isGridLayout ? "grid" : "flex",
+              flexDirection: isListLayout ? "column" : "row",
+              flexWrap: isListLayout ? "nowrap" : isWrapLayout ? "wrap" : "nowrap",
+              gridTemplateColumns: isGridLayout
+                ? `repeat(${gridColumns}, minmax(0, 1fr))`
+                : undefined,
+              gap: isGridLayout ? 1.25 : isListLayout ? 1.25 : relaxedSpacing ? 1 : 0.5,
+              mb: isEditing ? (relaxedSpacing ? 1.5 : 1) : 0,
+              alignItems: isListLayout ? "stretch" : "flex-start",
+            }}
+          >
+            {displayChips.map((chip, idx) => (
+              <Box
+                key={idx}
+                className={isGridLayout ? "msqdx-glass-chip-editor__chip-cell" : undefined}
+                sx={{
+                  display: "flex",
+                  alignItems: isListLayout ? "flex-start" : "center",
+                  gap: 0.5,
+                  width: isListLayout || isGridLayout ? "100%" : "auto",
+                  minWidth: isGridLayout ? 0 : undefined,
+                }}
+              >
+                {isEditing && editingIndex === idx ? (
+                  <Box ref={editInputWrapperRef} sx={{ minWidth: "120px" }}>
+                    <MsqdxInput
+                      value={editingValue}
+                      onChange={(e) => setEditingValue(e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(e, true, idx)}
+                      onBlur={handleSaveEditChip}
+                      size="small"
+                      sx={INPUT_ACCENT_SX}
+                    />
+                  </Box>
+                ) : (
+                  <MsqdxGlassChip
+                    variant={chipVariant}
+                    dashboard={true}
+                    className={isListLayout ? "--block" : undefined}
+                    highlighted={highlightedChips.some(
+                      (highlight) => highlight.trim().toLowerCase() === chip.trim().toLowerCase()
+                    )}
+                    onClick={isEditing ? () => handleStartEditChip(idx, chip) : undefined}
+                    style={
+                      isListLayout
+                        ? { flex: 1, width: "100%" }
+                        : isGridLayout
+                          ? { width: "100%", maxWidth: "100%", justifyContent: "flex-start" }
+                          : undefined
+                    }
+                  >
+                    {chip}
+                  </MsqdxGlassChip>
+                )}
+                {isEditing && editingIndex !== idx && (
+                  <MsqdxButton
+                    variant="text"
+                    size="small"
+                    onClick={() => handleRemoveChip(idx)}
+                    aria-label={t("common.remove")}
+                    sx={{
+                      minWidth: 24,
+                      minHeight: 24,
+                      p: "2px",
+                      "&:hover": {
+                        backgroundColor: alpha(theme.palette.error.main, 0.1),
+                      },
+                    }}
+                  >
+                    <MsqdxIcon name="close" customSize={16} />
+                  </MsqdxButton>
+                )}
+              </Box>
+            ))}
+            {isEditing && (
+              <Box
+                ref={newInputWrapperRef}
+                className={isGridLayout ? "msqdx-glass-chip-editor__chip-cell" : undefined}
+                sx={{
+                  minWidth: isListLayout || isGridLayout ? "100%" : "180px",
+                  width: isListLayout || isGridLayout ? "100%" : undefined,
+                  gridColumn: isGridLayout ? "1 / -1" : undefined,
+                }}
+              >
+                <MsqdxInput
+                  value={newChipValue}
+                  onChange={(e) => setNewChipValue(e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(e, false, null)}
+                  placeholder={t("chipEditor.addEntryPlaceholder")}
+                  size="small"
+                  sx={INPUT_ACCENT_SX}
+                />
+              </Box>
+            )}
+          </Box>
+
+          {isEditing && chipEdit.hasChanges && (
+            <MsqdxGlassInlineEditControls
+              hasChanges={chipEdit.hasChanges}
+              saving={savePending}
+              onSave={handleSave}
+              onDiscard={handleCancelEdit}
+              anchorElement={containerRef.current}
+              position="top"
+            />
+          )}
+        </>
+      )}
+    </>
+  );
+
   return (
     <div
       className={clsx(
@@ -357,11 +532,12 @@ export const MsqdxGlassChipEditor = ({
         isListLayout && "msqdx-glass-chip-editor--list",
         isSliderLayout && "msqdx-glass-chip-editor--slider",
         isGridLayout && "msqdx-glass-chip-editor--grid",
-        isGridLayout && gridColumns === 3 && "msqdx-glass-chip-editor--grid-cols-3"
+        isGridLayout && gridColumns === 3 && "msqdx-glass-chip-editor--grid-cols-3",
+        useCornerTabShell && "msqdx-glass-chip-editor--corner-tab"
       )}
       ref={containerRef}
     >
-      {(showSliderInlineHeader ? null : label || showHeaderActions) ? (
+      {showStandaloneHeader ? (
       <Box
         sx={{
           display: "flex",
@@ -375,7 +551,7 @@ export const MsqdxGlassChipEditor = ({
                 : 1,
         }}
       >
-        {label && !showSliderInlineHeader ? (
+        {label ? (
           usesSectionMono ? (
             sectionHeading
           ) : (
@@ -392,44 +568,11 @@ export const MsqdxGlassChipEditor = ({
             </MsqdxTypography>
           )
         ) : null}
-        {showHeaderActions ? (
-          <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
-            {onAiSuggest ? (
-              <MsqdxGlassAiButtonIcon
-                onClick={onAiSuggest}
-                disabled={aiLoading}
-                loading={aiLoading}
-                size="small"
-                fontSize={18}
-                title={t("chipEditor.aiSuggestion")}
-                aria-label={t("chipEditor.aiSuggestion")}
-              />
-            ) : null}
-            {hasChips ? (
-              <MsqdxGlassEditButton
-                onClick={handleStartEdit}
-                size="small"
-                fontSize={18}
-                aria-label={t("chipEditor.editChips")}
-              />
-            ) : null}
-          </Box>
-        ) : null}
+        {headerActions}
       </Box>
       ) : null}
 
-      {showEmptyState ? (
-        <Box
-          sx={{
-            color: "text.secondary",
-            fontStyle: "italic",
-            fontSize: "0.875rem",
-            ...(usesSectionMono ? MONO_FONT_SX : {}),
-          }}
-        >
-          {displayEmptyMessage}
-        </Box>
-      ) : isSliderLayout ? (
+      {isSliderLayout ? (
         <>
           <MsqdxGlassHorizontalCardSlider
             ariaLabel={label}
@@ -595,122 +738,18 @@ export const MsqdxGlassChipEditor = ({
             />
           ) : null}
         </>
+      ) : useCornerTabShell ? (
+        <MsqdxGlassPainGoalsCornerShell
+          chipVariant={chipVariant}
+          label={label}
+          placement={cornerTabPlacement}
+          tabHeading={sectionHeading ?? undefined}
+          tabActions={headerActions ?? undefined}
+        >
+          {inlineGridBody}
+        </MsqdxGlassPainGoalsCornerShell>
       ) : (
-        <>
-          <Box
-            className={clsx(
-              "msqdx-glass-chip-editor__chips",
-              isGridLayout && "msqdx-glass-chip-editor__chips--grid",
-              isGridLayout && gridColumns === 3 && "msqdx-glass-chip-editor__chips--grid-cols-3",
-              isWrapLayout && "msqdx-glass-chip-editor__chips--wrap",
-              isListLayout && "msqdx-glass-chip-editor__chips--list"
-            )}
-            sx={{
-              display: isGridLayout ? "grid" : "flex",
-              flexDirection: isListLayout ? "column" : "row",
-              flexWrap: isListLayout ? "nowrap" : isWrapLayout ? "wrap" : "nowrap",
-              gridTemplateColumns: isGridLayout
-                ? `repeat(${gridColumns}, minmax(0, 1fr))`
-                : undefined,
-              gap: isGridLayout ? 1.25 : isListLayout ? 1.25 : relaxedSpacing ? 1 : 0.5,
-              mb: isEditing ? (relaxedSpacing ? 1.5 : 1) : 0,
-              alignItems: isListLayout ? "stretch" : "flex-start",
-            }}
-          >
-            {displayChips.map((chip, idx) => (
-              <Box
-                key={idx}
-                className={isGridLayout ? "msqdx-glass-chip-editor__chip-cell" : undefined}
-                sx={{
-                  display: "flex",
-                  alignItems: isListLayout ? "flex-start" : "center",
-                  gap: 0.5,
-                  width: isListLayout || isGridLayout ? "100%" : "auto",
-                  minWidth: isGridLayout ? 0 : undefined,
-                }}
-              >
-                {isEditing && editingIndex === idx ? (
-                  <Box ref={editInputWrapperRef} sx={{ minWidth: "120px" }}>
-                    <MsqdxInput
-                      value={editingValue}
-                      onChange={(e) => setEditingValue(e.target.value)}
-                      onKeyDown={(e) => handleKeyDown(e, true, idx)}
-                      onBlur={handleSaveEditChip}
-                      size="small"
-                      sx={INPUT_ACCENT_SX}
-                    />
-                  </Box>
-                ) : (
-                  <MsqdxGlassChip
-                    variant={chipVariant}
-                    dashboard={true}
-                    className={isListLayout ? "--block" : undefined}
-                    highlighted={highlightedChips.some((highlight) => highlight.trim().toLowerCase() === chip.trim().toLowerCase())}
-                    onClick={isEditing ? () => handleStartEditChip(idx, chip) : undefined}
-                    style={
-                      isListLayout
-                        ? { flex: 1, width: "100%" }
-                        : isGridLayout
-                          ? { width: "100%", maxWidth: "100%", justifyContent: "flex-start" }
-                          : undefined
-                    }
-                  >
-                    {chip}
-                  </MsqdxGlassChip>
-                )}
-                {isEditing && editingIndex !== idx && (
-                  <MsqdxButton
-                    variant="text"
-                    size="small"
-                    onClick={() => handleRemoveChip(idx)}
-                    aria-label={t("common.remove")}
-                    sx={{
-                      minWidth: 24,
-                      minHeight: 24,
-                      p: "2px",
-                      "&:hover": {
-                        backgroundColor: alpha(theme.palette.error.main, 0.1),
-                      },
-                    }}
-                  >
-                    <MsqdxIcon name="close" customSize={16} />
-                  </MsqdxButton>
-                )}
-              </Box>
-            ))}
-            {isEditing && (
-              <Box
-                ref={newInputWrapperRef}
-                className={isGridLayout ? "msqdx-glass-chip-editor__chip-cell" : undefined}
-                sx={{
-                  minWidth: isListLayout || isGridLayout ? "100%" : "180px",
-                  width: isListLayout || isGridLayout ? "100%" : undefined,
-                  gridColumn: isGridLayout ? "1 / -1" : undefined,
-                }}
-              >
-                <MsqdxInput
-                  value={newChipValue}
-                  onChange={(e) => setNewChipValue(e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(e, false, null)}
-                  placeholder={t("chipEditor.addEntryPlaceholder")}
-                  size="small"
-                  sx={INPUT_ACCENT_SX}
-                />
-              </Box>
-            )}
-          </Box>
-
-          {isEditing && chipEdit.hasChanges && (
-            <MsqdxGlassInlineEditControls
-              hasChanges={chipEdit.hasChanges}
-              saving={savePending}
-              onSave={handleSave}
-              onDiscard={handleCancelEdit}
-              anchorElement={containerRef.current}
-              position="top"
-            />
-          )}
-        </>
+        inlineGridBody
       )}
 
       {editable && showEmptyState && (

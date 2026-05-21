@@ -687,18 +687,29 @@
 
 .msqdx-glass-personality-section .msqdx-glass-dashboard-card-section {
   margin-bottom: var(--msqdx-spacing-lg);
-  padding: calc(var(--msqdx-spacing-md) + var(--msqdx-spacing-xxs)) var(--msqdx-spacing-xl)
-    var(--msqdx-spacing-xl);
-  background-color: var(--msqdx-personality-section-surface);
-  box-sizing: border-box;
 }
 
 .msqdx-glass-personality-section .msqdx-glass-dashboard-card-section:last-child {
   margin-bottom: 0;
 }
 
-.msqdx-glass-personality-section .msqdx-glass-chip-editor__section-heading {
-  margin-bottom: var(--msqdx-spacing-md);
+.msqdx-glass-personality-section .msqdx-glass-chip-editor__corner-tab-shell {
+  --msqdx-pain-goals-corner-surface: var(--msqdx-personality-section-surface);
+  --msqdx-pain-goals-slide-surface: var(--audion-neutral-02, #f8f7f3);
+  width: 100%;
+}
+
+[data-theme="dark"] .msqdx-glass-personality-section .msqdx-glass-chip-editor__corner-tab-shell {
+  --msqdx-pain-goals-slide-surface: var(--audion-neutral-15, #302f2a);
+}
+
+.msqdx-glass-personality-section .msqdx-glass-chip-editor--corner-tab.msqdx-glass-chip-editor--grid,
+.msqdx-glass-personality-section .msqdx-glass-chip-editor--corner-tab:not(.msqdx-glass-chip-editor--grid) {
+  margin-bottom: 0;
+}
+
+.msqdx-glass-personality-section .msqdx-glass-chip-editor__corner-tab-shell--with-actions {
+  margin-top: 2rem;
 }
 
 .msqdx-glass-personality-section .msqdx-glass-chip-editor__section-heading h3.MuiTypography-root {

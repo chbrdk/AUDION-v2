@@ -91,7 +91,10 @@ describe("persona pain-goals layout", () => {
     expect(chipEditor).not.toContain("PAIN_GOALS_SLIDE_INDEX_SURFACE");
     expect(chipEditor).toContain("renderLayout=");
     expect(chipEditor).toContain("tabActions={controlsEnd}");
-    expect(chipEditor).not.toContain("tabHeading=");
+    expect(chipEditor).toMatch(
+      /renderLayout=\{\s*useCornerTabChrome[\s\S]*?tabActions=\{controlsEnd\}/
+    );
+    expect(chipEditor).toMatch(/useCornerTabShell[\s\S]*?tabHeading=\{sectionHeading/);
     expect(chipEditor).toMatch(
       /useCornerTabChrome\s*\?\s*\(\{\s*controlsEnd,\s*viewport\s*\}\)/
     );

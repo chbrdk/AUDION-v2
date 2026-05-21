@@ -5,6 +5,7 @@ import {
   PERSONALITY_CHIP_FONT_SIZE,
   PERSONALITY_CHIP_FONT_WEIGHT,
   PERSONALITY_CHIP_PADDING,
+  PERSONALITY_CORNER_TAB_PLACEMENT,
   PERSONALITY_GRID_CHIP_PROPS,
   PERSONALITY_GRID_WIDE_MIN_WIDTH_PX,
   PERSONALITY_TRAIT_CHIP_PROPS,
@@ -19,6 +20,10 @@ describe("persona personality layout", () => {
     expect(chipEditor).toMatch(
       /usesSectionMono\s*=[\s\S]*?isWrapLayout && relaxedSpacing/
     );
+    expect(chipEditor).toContain("useCornerTabShell");
+    expect(chipEditor).toContain("msqdx-glass-chip-editor--corner-tab");
+    expect(chipEditor).toContain("tabHeading={sectionHeading");
+    expect(chipEditor).toContain("tabActions={headerActions");
   });
 
   it("uses inline traits and 2→3 col grid for interests/values", () => {
@@ -29,7 +34,9 @@ describe("persona personality layout", () => {
     expect(source).toContain("PERSONALITY_TRAIT_CHIP_PROPS");
     expect(source).toContain("PERSONALITY_GRID_CHIP_PROPS");
     expect(PERSONALITY_TRAIT_CHIP_PROPS.chipLayout).toBe("inline");
+    expect(PERSONALITY_TRAIT_CHIP_PROPS.cornerTabPlacement).toBe(PERSONALITY_CORNER_TAB_PLACEMENT);
     expect(PERSONALITY_GRID_CHIP_PROPS.chipLayout).toBe("grid");
+    expect(PERSONALITY_GRID_CHIP_PROPS.cornerTabPlacement).toBe(PERSONALITY_CORNER_TAB_PLACEMENT);
     expect(source).not.toContain('chipLayout: "slider"');
     expect(source).toContain("msqdx-glass-personality-stack");
     expect(source).toContain("embedInSection");
@@ -58,10 +65,10 @@ describe("persona personality layout", () => {
     expect(css).toContain("--msqdx-personality-chip-font-weight");
     expect(css).toContain("--msqdx-personality-chip-padding");
     expect(css).toContain("--msqdx-personality-section-surface");
-    expect(css).toMatch(
-      /\.msqdx-glass-personality-section \.msqdx-glass-dashboard-card-section[^}]*padding:\s*calc\(var\(--msqdx-spacing-md\)/
+    expect(css).toContain(
+      ".msqdx-glass-personality-section .msqdx-glass-chip-editor__corner-tab-shell"
     );
-    expect(css).toContain(".msqdx-glass-personality-section .msqdx-glass-chip-editor__section-heading");
+    expect(css).toContain(".msqdx-glass-chip-editor--corner-tab");
     expect(css).toContain(PERSONALITY_CHIP_FONT_SIZE);
     expect(css).toContain(PERSONALITY_CHIP_FONT_WEIGHT);
     expect(css).toContain(PERSONALITY_CHIP_PADDING);
