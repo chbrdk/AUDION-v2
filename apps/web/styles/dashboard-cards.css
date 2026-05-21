@@ -668,8 +668,9 @@
 
 /* Personality v2 — uniform chip type, roomier gaps, 2→3 col grid for interests/values */
 .msqdx-glass-personality-section {
-  --msqdx-personality-chip-font-size: 0.8125rem;
-  --msqdx-personality-chip-padding: 0.625rem 1.125rem;
+  --msqdx-personality-chip-font-size: 0.875rem;
+  --msqdx-personality-chip-font-weight: 200;
+  --msqdx-personality-chip-padding: 1rem 1.125rem;
   --msqdx-personality-chip-gap: var(--msqdx-spacing-sm);
   --msqdx-personality-block-padding: var(--msqdx-spacing-md) var(--msqdx-spacing-lg);
 }
@@ -688,6 +689,7 @@
 .msqdx-glass-personality-section .msqdx-glass-chip.--dashboard.--interest,
 .msqdx-glass-personality-section .msqdx-glass-chip.--dashboard.--social {
   font-size: var(--msqdx-personality-chip-font-size);
+  font-weight: var(--msqdx-personality-chip-font-weight);
   padding: var(--msqdx-personality-chip-padding);
   line-height: 1.35;
 }

@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   PERSONALITY_CHIP_FONT_SIZE,
+  PERSONALITY_CHIP_FONT_WEIGHT,
+  PERSONALITY_CHIP_PADDING,
   PERSONALITY_GRID_CHIP_PROPS,
   PERSONALITY_GRID_WIDE_MIN_WIDTH_PX,
   PERSONALITY_TRAIT_CHIP_PROPS,
@@ -36,9 +38,16 @@ describe("persona personality layout", () => {
   it("uniform chip font and responsive grid in CSS", () => {
     const css = readFileSync(resolve(process.cwd(), "styles/dashboard-cards.css"), "utf8");
     expect(css).toContain("--msqdx-personality-chip-font-size");
+    expect(css).toContain("--msqdx-personality-chip-font-weight");
+    expect(css).toContain("--msqdx-personality-chip-padding");
     expect(css).toContain(PERSONALITY_CHIP_FONT_SIZE);
+    expect(css).toContain(PERSONALITY_CHIP_FONT_WEIGHT);
+    expect(css).toContain(PERSONALITY_CHIP_PADDING);
     expect(css).toMatch(
       /\.msqdx-glass-personality-section \.msqdx-glass-chip\.--dashboard\.--trait[^}]*font-size:\s*var\(--msqdx-personality-chip-font-size\)/
+    );
+    expect(css).toMatch(
+      /\.msqdx-glass-personality-section \.msqdx-glass-chip\.--dashboard\.--interest[^}]*font-weight:\s*var\(--msqdx-personality-chip-font-weight\)/
     );
     expect(css).toMatch(
       new RegExp(
