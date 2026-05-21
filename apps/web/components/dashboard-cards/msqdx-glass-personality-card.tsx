@@ -12,10 +12,9 @@ const PERSONALITY_TRAITS_ID = "personality-traits";
 const PERSONALITY_INTERESTS_ID = "personality-interests";
 const PERSONALITY_VALUES_ID = "personality-values";
 
-const SLIDER_CHIP_PROPS = {
-  chipLayout: "slider" as const,
-  cornerTabPlacement: "top-right" as const,
-  slidesVisible: 3.5,
+/** v2 stack uses list rows (not sliders) — see `knowledge/persona-v2-section-chip-layout.md`. */
+const SECTION_CHIP_PROPS = {
+  chipLayout: "list" as const,
   relaxedSpacing: true,
 };
 
@@ -75,7 +74,7 @@ export const MsqdxGlassPersonalityCard = ({
       onAiSuggest={onAiSuggestTraits}
       aiLoading={aiTraitsLoading}
       highlightedChips={highlightedTraits}
-      {...SLIDER_CHIP_PROPS}
+      {...SECTION_CHIP_PROPS}
     />
   );
 
@@ -89,7 +88,7 @@ export const MsqdxGlassPersonalityCard = ({
       emptyMessage={t("personaAdmin.noInterests")}
       onAiSuggest={onAiSuggestInterests}
       aiLoading={aiInterestsLoading}
-      {...SLIDER_CHIP_PROPS}
+      {...SECTION_CHIP_PROPS}
     />
   );
 
@@ -104,7 +103,7 @@ export const MsqdxGlassPersonalityCard = ({
         emptyMessage={t("personaAdmin.noValues")}
         onAiSuggest={onAiSuggestValues}
         aiLoading={aiValuesLoading}
-        {...SLIDER_CHIP_PROPS}
+        {...SECTION_CHIP_PROPS}
       />
       <MsqdxGlassChipEditor
         label={t("personaAdmin.socialMediaUsage")}
@@ -113,7 +112,7 @@ export const MsqdxGlassPersonalityCard = ({
         onSave={onSaveSocialMedia || (async () => {})}
         editable={!!onSaveSocialMedia}
         emptyMessage={t("personaAdmin.noSocialMedia")}
-        {...SLIDER_CHIP_PROPS}
+        {...SECTION_CHIP_PROPS}
       />
     </Stack>
   );

@@ -1,35 +1,47 @@
-# Persona v2 section pages — chip stack layout (Pain & Goals, Personality)
+# Persona v2 section pages — layout guide
 
-Reference for redesigning persona admin **v2 section routes** (`presentation="v2-section"`, `embedInSection`).
+Reference for persona admin **v2 section routes** (`presentation="v2-section"`, `embedInSection`).
 
-## Pattern (shared)
+## Universal v2 shell (every chip section)
 
-1. **No nested accordion cards** in v2 — section shell already shows title; pass `embedInSection={isV2Section}` from `msqdx-glass-persona-admin-panel.tsx`.
-2. **Vertical stack** — `msqdx-glass-*-stack` with `__block` articles per sector.
-3. **Sector separators** — reuse `MsqdxGlassPainGoalsSectorSeparator` (1px frame line + cutdown-b corner brackets, full-bleed in workspace dock).
-4. **Horizontal chip sliders** — `MsqdxGlassChipEditor` with `chipLayout="slider"`, `slidesVisible={3.5}`, `relaxedSpacing`, `cornerTabPlacement="top-right"`.
-5. **Corner-tab chrome** — `MsqdxGlassPainGoalsCornerShell` + indexed slide cards when `resolveChipEditorCornerTabStyle(variant)` returns a style (see `lib/chip-editor-corner-tab.tsx`).
-6. **Tokens** — slide/corner surfaces: `--msqdx-pain-goals-corner-surface`, `--msqdx-pain-goals-slide-surface` (shared naming; personality reuses same chrome).
+Use on **all** v2 sections that today use nested `MsqdxDashboardCard` accordions:
 
-## Pain & Goals (`pain-goals`)
+1. **`embedInSection={isV2Section}`** — section nav/shell owns the title; no inner accordion chrome.
+2. **Vertical stack** — `msqdx-glass-*-stack` + `__block` per logical group.
+3. **Sector separators** — `MsqdxGlassPainGoalsSectorSeparator` between blocks (frame line + cutdown corners).
 
-| Block | Modifier | Chip class | Corner tab icon |
-|-------|----------|------------|-----------------|
-| Pain points | `--pain` | `--pain` | `sentiment_dissatisfied` (pink) |
-| Goals | `--goal` | `--goal` | `flag` (blue) |
+Sliders are **not** part of this shell.
 
-**Files:** `components/dashboard-cards/msqdx-glass-pain-points-goals-card.tsx`, `styles/dashboard-cards.css` (`.msqdx-glass-pain-goals-stack__block`), tests: `lib/persona-pain-goals-layout.test.ts`.
+## Chip layout per section (pick one)
 
-## Personality (`personality`)
+| Layout | When to use | Examples |
+|--------|-------------|----------|
+| **`slider`** | Few narrative “cards”, user scans horizontally, corner-tab + index badge | Pain points, goals |
+| **`list`** | Many items, full-width readable rows, vertical scan | Personality (traits, interests, values, social) |
+| **`inline`** | Short tags, dense wrap, no section h3 | Small vocab lists, quick tags |
+| **Custom** | Not chip-based | Bio form, moodboard grid, knowledge table |
 
-| Block | Modifier | Chip class | Corner tab icon |
-|-------|----------|------------|-----------------|
-| Traits | `--trait` | `--trait` | `psychology` (green) |
-| Interests | `--interest` | `--interest` | `lightbulb` (yellow) |
-| Values + social | `--value` | `--value`, `--social` | `volunteer_activism`, `share` (green / orange) |
+Rule: **default to `list` or `inline`** for new v2 sections. Use **`slider` only when the content is intentionally card-carousel UX** (currently: pain-goals only).
 
-**Files:** `components/dashboard-cards/msqdx-glass-personality-card.tsx`, `.msqdx-glass-personality-stack__block`, tests: `lib/persona-personality-layout.test.ts`.
+## Implemented sections
+
+### Pain & Goals (`pain-goals`)
+
+- Stack + separators + **`chipLayout="slider"`** (3.5 visible, corner-tab chrome).
+- Files: `msqdx-glass-pain-points-goals-card.tsx`, `lib/persona-pain-goals-layout.test.ts`.
+
+### Personality (`personality`)
+
+- Stack + separators + **`chipLayout="list"`** (no horizontal slider).
+- Values block: two list editors (values, then social) in one `__block`.
+- Files: `msqdx-glass-personality-card.tsx`, `lib/persona-personality-layout.test.ts`.
 
 ## v1 fallback
 
-When `embedInSection` is false, keep legacy `MsqdxDashboardCard` accordions but each card body uses the same slider blocks (no stack separators between cards).
+When `embedInSection` is false, keep legacy `MsqdxDashboardCard` accordions; block bodies use the same chip layout as v2.
+
+## Adding a new v2 section
+
+1. Add `embedInSection` on the section card in `msqdx-glass-persona-admin-panel.tsx`.
+2. Choose layout from the table above (avoid copying slider unless justified).
+3. If multiple groups: stack + separator, not multiple accordions.

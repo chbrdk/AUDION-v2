@@ -3,18 +3,19 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 describe("persona personality layout", () => {
-  it("uses horizontal slider stack in the personality card (v2-style)", () => {
+  it("uses list stack in the personality card (not sliders)", () => {
     const source = readFileSync(
       resolve(process.cwd(), "components/dashboard-cards/msqdx-glass-personality-card.tsx"),
       "utf8"
     );
-    expect(source).toContain('chipLayout: "slider"');
-    expect(source).toContain("slidesVisible: 3.5");
+    expect(source).toContain('chipLayout: "list"');
+    expect(source).not.toContain('chipLayout: "slider"');
+    expect(source).not.toContain("slidesVisible");
+    expect(source).not.toContain("cornerTabPlacement");
     expect(source).toContain("msqdx-glass-personality-stack");
     expect(source).toContain("msqdx-glass-personality-stack__block");
     expect(source).toContain("MsqdxGlassPainGoalsSectorSeparator");
     expect(source).toContain("embedInSection");
-    expect(source).toContain('cornerTabPlacement: "top-right"');
     expect(source).toContain("msqdx-glass-personality-section");
   });
 
@@ -28,7 +29,7 @@ describe("persona personality layout", () => {
     );
   });
 
-  it("styles personality stack blocks like pain-goals", () => {
+  it("styles personality stack blocks like pain-goals shell blocks", () => {
     const css = readFileSync(resolve(process.cwd(), "styles/dashboard-cards.css"), "utf8");
     expect(css).toContain(".msqdx-glass-personality-stack__block");
     expect(css).toMatch(
