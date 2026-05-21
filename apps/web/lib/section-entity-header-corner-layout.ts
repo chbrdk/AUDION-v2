@@ -10,10 +10,10 @@ export const SECTION_ENTITY_CORNER_ACCENT_CORNERS_DESKTOP = {
   bottomRight: "cutdown-b",
 } as const;
 
-/** ≤1024px stacked above horizontal subnav: flat bottom edge meets the tab rail. */
+/** ≤1024px stacked above horizontal subnav: full 36px radius on all corners. */
 export const SECTION_ENTITY_CORNER_ACCENT_CORNERS_RESPONSIVE = {
   topLeft: "rounded",
   topRight: "rounded",
-  bottomLeft: "square",
-  bottomRight: "square",
+  bottomLeft: "rounded",
+  bottomRight: "rounded",
 } as const;

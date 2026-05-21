@@ -40,11 +40,11 @@ describe("section-nav-dock-layout", () => {
     expect(source).toContain('flexDirection: isHorizontal ? "row" : "column"');
   });
 
-  it("uses bottom-edge cutdown corners for active tab in horizontal mode", () => {
+  it("uses top- and bottom-edge cutdown corners for active tab in horizontal mode", () => {
     expect(SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES.bottomLeft).toBe("cutdown-a");
     expect(SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES.bottomRight).toBe("cutdown-a");
-    expect(SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES.topLeft).toBe("rounded");
-    expect(SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES.topRight).toBe("rounded");
+    expect(SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES.topLeft).toBe("cutdown-b");
+    expect(SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES.topRight).toBe("cutdown-b");
     expect(SECTION_NAV_HORIZONTAL_DOCK_CORNER_STYLES.bottomLeft).toBe("square");
   });
 

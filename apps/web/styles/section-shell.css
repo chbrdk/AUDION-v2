@@ -243,11 +243,6 @@
   .msqdx-glass-section-shell__entity--stacked-above-nav .msqdx-glass-section-shell__entity-hero {
     width: 100%;
   }
-
-  .msqdx-glass-section-shell__entity-corner-accent--responsive {
-    border-bottom-left-radius: 0 !important;
-    border-bottom-right-radius: 0 !important;
-  }
 }
 
 .msqdx-glass-section-shell__entity--has-corner-accent .msqdx-glass-section-shell__entity-hero .msqdx-glass-section-shell__entity-main {
@@ -656,7 +651,7 @@
     height: 28px;
   }
 
-  .msqdx-glass-section-shell__entity {
+  .msqdx-glass-section-shell__entity:not(.msqdx-glass-section-shell__entity--stacked-above-nav) {
     padding-bottom: var(--msqdx-spacing-md);
   }
 
