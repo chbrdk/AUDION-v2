@@ -7,14 +7,16 @@ import {
   PAIN_GOALS_SECTOR_SEPARATOR_BORDER_RADIUS_PX,
   PAIN_GOALS_SECTOR_SEPARATOR_COLOR,
   PAIN_GOALS_SECTOR_SEPARATOR_CORNER_STYLES,
+  PAIN_GOALS_SECTOR_SEPARATOR_HEIGHT_PX,
   PAIN_GOALS_SECTOR_SEPARATOR_LINE_HEIGHT_PX,
 } from "./pain-goals-sector-separator-layout";
 
 const webRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 describe("pain-goals sector separator layout", () => {
-  it("uses workspace frame border color and 1px line", () => {
-    expect(PAIN_GOALS_SECTOR_SEPARATOR_LINE_HEIGHT_PX).toBe(1);
+  it("uses workspace frame border color and 7px separator line", () => {
+    expect(PAIN_GOALS_SECTOR_SEPARATOR_HEIGHT_PX).toBe(7);
+    expect(PAIN_GOALS_SECTOR_SEPARATOR_LINE_HEIGHT_PX).toBe(7);
     expect(PAIN_GOALS_SECTOR_SEPARATOR_COLOR).toContain("--msqdx-section-workspace-frame-border");
     expect(PAIN_GOALS_SECTOR_SEPARATOR_CORNER_STYLES.topLeft.topLeft).toBe("cutdown-b");
     expect(PAIN_GOALS_SECTOR_SEPARATOR_CORNER_STYLES.bottomLeft.bottomLeft).toBe("cutdown-b");
@@ -41,8 +43,8 @@ describe("pain-goals sector separator layout", () => {
     expect(separator).toContain("msqdx-glass-pain-goals-sector-separator__corner--${corner}");
     expect(separator).toContain("msqdx-glass-pain-goals-sector-separator__line");
     expect(separator).toContain('role="separator"');
-    expect(separator).toContain("PAIN_GOALS_SECTOR_SEPARATOR_COLOR");
-    expect(separator).toContain("PAIN_GOALS_SECTOR_SEPARATOR_LINE_HEIGHT_PX");
+    expect(separator).not.toContain("bgcolor:");
+    expect(separator).not.toContain("PAIN_GOALS_SECTOR_SEPARATOR_COLOR");
   });
 
   it("styles sector separator in dashboard-cards.css", () => {
@@ -50,9 +52,10 @@ describe("pain-goals sector separator layout", () => {
     expect(css).toContain(".msqdx-glass-pain-goals-sector-separator");
     expect(css).toContain(".msqdx-glass-pain-goals-sector-separator__line");
     expect(css).toContain("--msqdx-pain-goals-sector-separator-line");
-    expect(css).toMatch(/\.msqdx-glass-pain-goals-sector-separator__line[^}]*height:\s*1px/);
-    expect(css).toMatch(/\.msqdx-glass-pain-goals-sector-separator[^}]*height:\s*1px/);
-    expect(css).toMatch(/\.msqdx-glass-pain-goals-sector-separator[^}]*min-height:\s*1px/);
+    expect(css).toContain("--msqdx-pain-goals-sector-separator-height: 7px");
+    expect(css).toContain("--msqdx-pain-goals-sector-separator-line-height: var(--msqdx-pain-goals-sector-separator-height)");
+    expect(css).toMatch(/\.msqdx-glass-pain-goals-sector-separator[^}]*border:\s*none/);
+    expect(css).toMatch(/\.msqdx-glass-pain-goals-sector-separator__line[^}]*border:\s*none/);
     expect(css).toContain(".msqdx-glass-pain-goals-sector-separator__corner--bottom-right::before");
     expect(css).toMatch(
       /\.msqdx-glass-pain-goals-sector-separator__corner--bottom-right::before[^}]*mask-image:\s*radial-gradient/

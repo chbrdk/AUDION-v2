@@ -782,8 +782,10 @@
   min-width: 0;
 }
 
-/* Sector separator: 1px line + frame-colored corner brackets (workspace border token) */
+/* Sector separator: hairline + frame-colored corner brackets (workspace border token) */
 .msqdx-glass-pain-goals-sector-separator {
+  --msqdx-pain-goals-sector-separator-height: 7px;
+  --msqdx-pain-goals-sector-separator-line-height: var(--msqdx-pain-goals-sector-separator-height);
   --msqdx-pain-goals-sector-separator-line: var(
     --msqdx-section-workspace-frame-border,
     var(--color-theme-accent, #000000)
@@ -793,10 +795,13 @@
   position: relative;
   z-index: 1;
   width: 100%;
-  height: 1px;
-  min-height: 1px;
+  height: var(--msqdx-pain-goals-sector-separator-height);
+  min-height: var(--msqdx-pain-goals-sector-separator-height);
   margin-block: var(--msqdx-spacing-md);
   overflow: visible;
+  border: none;
+  outline: none;
+  box-shadow: none;
   background: transparent;
 }
 
@@ -813,8 +818,12 @@
   right: 0;
   top: 50%;
   transform: translateY(-50%);
+  display: block;
   width: 100%;
-  height: 1px;
+  height: var(--msqdx-pain-goals-sector-separator-line-height);
+  border: none;
+  outline: none;
+  box-shadow: none;
   background-color: var(--msqdx-pain-goals-sector-separator-line);
 }
 

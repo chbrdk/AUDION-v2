@@ -1,11 +1,7 @@
 "use client";
 
 import { Box } from "@mui/material";
-import {
-  PAIN_GOALS_SECTOR_SEPARATOR_COLOR,
-  PAIN_GOALS_SECTOR_SEPARATOR_CORNER_KEYS,
-  PAIN_GOALS_SECTOR_SEPARATOR_LINE_HEIGHT_PX,
-} from "../../lib/pain-goals-sector-separator-layout";
+import { PAIN_GOALS_SECTOR_SEPARATOR_CORNER_KEYS } from "../../lib/pain-goals-sector-separator-layout";
 
 /**
  * 1px sector line between pain and goals with frame-colored corner brackets
@@ -26,16 +22,7 @@ export function MsqdxGlassPainGoalsSectorSeparator() {
           aria-hidden
         />
       ))}
-      <Box
-        component="span"
-        className="msqdx-glass-pain-goals-sector-separator__line"
-        aria-hidden
-        sx={{
-          display: "block",
-          height: PAIN_GOALS_SECTOR_SEPARATOR_LINE_HEIGHT_PX,
-          bgcolor: PAIN_GOALS_SECTOR_SEPARATOR_COLOR,
-        }}
-      />
+      <span className="msqdx-glass-pain-goals-sector-separator__line" aria-hidden />
     </Box>
   );
 }

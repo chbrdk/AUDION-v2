@@ -8,7 +8,10 @@ export const PAIN_GOALS_SECTOR_SEPARATOR_BLEED_PADDING = SECTION_WORKSPACE_DOCK_
 export const PAIN_GOALS_SECTOR_SEPARATOR_COLOR =
   "var(--msqdx-section-workspace-frame-border, var(--color-theme-accent, #000000))";
 
-export const PAIN_GOALS_SECTOR_SEPARATOR_LINE_HEIGHT_PX = 1;
+/** Separator track + line height (corner brackets sit outside this box). */
+export const PAIN_GOALS_SECTOR_SEPARATOR_HEIGHT_PX = 7;
+
+export const PAIN_GOALS_SECTOR_SEPARATOR_LINE_HEIGHT_PX = PAIN_GOALS_SECTOR_SEPARATOR_HEIGHT_PX;
 
 /** Corner patch size (matches cutdown radius on the separator brackets). */
 export const PAIN_GOALS_SECTOR_SEPARATOR_BORDER_RADIUS_PX = CHIP_EDITOR_CORNER_BORDER_RADIUS_PX;
