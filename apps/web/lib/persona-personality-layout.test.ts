@@ -22,8 +22,10 @@ describe("persona personality layout", () => {
     );
     expect(chipEditor).toContain("useCornerTabShell");
     expect(chipEditor).toContain("msqdx-glass-chip-editor--corner-tab");
-    expect(chipEditor).toContain("tabHeading={sectionHeading");
+    expect(chipEditor).toContain("showCornerTabLeadingHeader");
+    expect(chipEditor).toContain("msqdx-glass-chip-editor__corner-tab-leading");
     expect(chipEditor).toContain("tabActions={headerActions");
+    expect(chipEditor).not.toMatch(/useCornerTabShell[\s\S]*?tabHeading=/);
   });
 
   it("uses inline traits and 2→3 col grid for interests/values", () => {
@@ -69,6 +71,7 @@ describe("persona personality layout", () => {
       ".msqdx-glass-personality-section .msqdx-glass-chip-editor__corner-tab-shell"
     );
     expect(css).toContain(".msqdx-glass-chip-editor--corner-tab");
+    expect(css).toContain(".msqdx-glass-chip-editor__corner-tab-leading");
     expect(css).toContain(PERSONALITY_CHIP_FONT_SIZE);
     expect(css).toContain(PERSONALITY_CHIP_FONT_WEIGHT);
     expect(css).toContain(PERSONALITY_CHIP_PADDING);

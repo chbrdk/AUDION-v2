@@ -387,8 +387,11 @@ export const MsqdxGlassChipEditor = ({
     ]
   );
 
+  const showCornerTabLeadingHeader = useCornerTabShell && Boolean(sectionHeading);
   const showStandaloneHeader =
-    !showSliderInlineHeader && !useCornerTabShell && Boolean(label || showHeaderActions);
+    !showSliderInlineHeader &&
+    !useCornerTabShell &&
+    Boolean(label || showHeaderActions);
 
   const inlineGridBody = (
     <>
@@ -738,18 +741,24 @@ export const MsqdxGlassChipEditor = ({
             />
           ) : null}
         </>
-      ) : useCornerTabShell ? (
-        <MsqdxGlassPainGoalsCornerShell
-          chipVariant={chipVariant}
-          label={label}
-          placement={cornerTabPlacement}
-          tabHeading={sectionHeading ?? undefined}
-          tabActions={headerActions ?? undefined}
-        >
-          {inlineGridBody}
-        </MsqdxGlassPainGoalsCornerShell>
       ) : (
-        inlineGridBody
+        <>
+          {showCornerTabLeadingHeader ? (
+            <Box className="msqdx-glass-chip-editor__corner-tab-leading">{sectionHeading}</Box>
+          ) : null}
+          {useCornerTabShell ? (
+            <MsqdxGlassPainGoalsCornerShell
+              chipVariant={chipVariant}
+              label={label}
+              placement={cornerTabPlacement}
+              tabActions={headerActions ?? undefined}
+            >
+              {inlineGridBody}
+            </MsqdxGlassPainGoalsCornerShell>
+          ) : (
+            inlineGridBody
+          )}
+        </>
       )}
 
       {editable && showEmptyState && (

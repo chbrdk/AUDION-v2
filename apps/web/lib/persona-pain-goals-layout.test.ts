@@ -94,7 +94,7 @@ describe("persona pain-goals layout", () => {
     expect(chipEditor).toMatch(
       /renderLayout=\{\s*useCornerTabChrome[\s\S]*?tabActions=\{controlsEnd\}/
     );
-    expect(chipEditor).toMatch(/useCornerTabShell[\s\S]*?tabHeading=\{sectionHeading/);
+    expect(chipEditor).not.toMatch(/useCornerTabShell[\s\S]*?tabHeading=/);
     expect(chipEditor).toMatch(
       /useCornerTabChrome\s*\?\s*\(\{\s*controlsEnd,\s*viewport\s*\}\)/
     );

@@ -712,6 +712,19 @@
   margin-top: 2rem;
 }
 
+.msqdx-glass-chip-editor--corner-tab:has(.msqdx-glass-chip-editor__corner-tab-shell)
+  > .msqdx-glass-chip-editor__corner-tab-leading {
+  margin-bottom: -18px;
+}
+
+.msqdx-glass-chip-editor--slider:has(.msqdx-glass-chip-editor__corner-tab-shell)
+  > .MuiBox-root:first-of-type,
+.msqdx-glass-chip-editor--corner-tab:has(.msqdx-glass-chip-editor__corner-tab-shell)
+  > .msqdx-glass-chip-editor__corner-tab-leading {
+  position: relative;
+  z-index: 1;
+}
+
 .msqdx-glass-personality-section .msqdx-glass-chip-editor__section-heading h3.MuiTypography-root {
   font-size: clamp(1.125rem, 2.5vw, 1.5rem);
 }
