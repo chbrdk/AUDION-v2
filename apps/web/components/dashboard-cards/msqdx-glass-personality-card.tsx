@@ -12,10 +12,9 @@ const PERSONALITY_TRAITS_ID = "personality-traits";
 const PERSONALITY_INTERESTS_ID = "personality-interests";
 const PERSONALITY_VALUES_ID = "personality-values";
 
-/** v2 stack uses list rows (not sliders) — see `knowledge/persona-v2-section-chip-layout.md`. */
+/** v2 stack: compact wrapping chips (not list rows or sliders). */
 const SECTION_CHIP_PROPS = {
-  chipLayout: "list" as const,
-  relaxedSpacing: true,
+  chipLayout: "inline" as const,
 };
 
 export type MsqdxGlassPersonalityCardProps = {
@@ -93,7 +92,7 @@ export const MsqdxGlassPersonalityCard = ({
   );
 
   const valuesBlock = (
-    <Stack spacing={2} sx={{ width: "100%" }}>
+    <Stack spacing={1.5} sx={{ width: "100%" }}>
       <MsqdxGlassChipEditor
         label={t("chat.values")}
         chips={profile.values || []}

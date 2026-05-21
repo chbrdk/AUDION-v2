@@ -17,11 +17,11 @@ Sliders are **not** part of this shell.
 | Layout | When to use | Examples |
 |--------|-------------|----------|
 | **`slider`** | Few narrative “cards”, user scans horizontally, corner-tab + index badge | Pain points, goals |
-| **`list`** | Many items, full-width readable rows, vertical scan | Personality (traits, interests, values, social) |
-| **`inline`** | Short tags, dense wrap, no section h3 | Small vocab lists, quick tags |
+| **`list`** | Long text per item, one row each, vertical scan | Long-form bullet lists |
+| **`inline`** | Short tags, dense wrap (default for many chips) | Personality (traits, interests, values, social) |
 | **Custom** | Not chip-based | Bio form, moodboard grid, knowledge table |
 
-Rule: **default to `list` or `inline`** for new v2 sections. Use **`slider` only when the content is intentionally card-carousel UX** (currently: pain-goals only).
+Rule: **default to `inline`** for tag-like chips; use **`list`** only when each entry needs a full row. Use **`slider` only for card-carousel UX** (currently: pain-goals only).
 
 ## Implemented sections
 
@@ -32,7 +32,7 @@ Rule: **default to `list` or `inline`** for new v2 sections. Use **`slider` only
 
 ### Personality (`personality`)
 
-- Stack + separators + **`chipLayout="list"`** (no horizontal slider).
+- Stack + separators + **`chipLayout="inline"`** (wrapping tags, compact).
 - Values block: two list editors (values, then social) in one `__block`.
 - Files: `msqdx-glass-personality-card.tsx`, `lib/persona-personality-layout.test.ts`.
 

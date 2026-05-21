@@ -3,12 +3,13 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 describe("persona personality layout", () => {
-  it("uses list stack in the personality card (not sliders)", () => {
+  it("uses compact inline chip wrap in the personality card (not sliders or list rows)", () => {
     const source = readFileSync(
       resolve(process.cwd(), "components/dashboard-cards/msqdx-glass-personality-card.tsx"),
       "utf8"
     );
-    expect(source).toContain('chipLayout: "list"');
+    expect(source).toContain('chipLayout: "inline"');
+    expect(source).not.toContain('chipLayout: "list"');
     expect(source).not.toContain('chipLayout: "slider"');
     expect(source).not.toContain("slidesVisible");
     expect(source).not.toContain("cornerTabPlacement");
