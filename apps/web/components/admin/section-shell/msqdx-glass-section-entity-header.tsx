@@ -21,6 +21,8 @@ export type MsqdxGlassSectionEntityHeaderProps = {
   headerActions?: ReactNode;
   /** Title + meta live inside the black `MsqdxCornerBox` (36px radius, same as workspace frame). */
   entityCornerAccent?: boolean;
+  /** ≤1024px: hero sits above horizontal subnav instead of inside the workspace frame. */
+  stackedAboveNav?: boolean;
   className?: string;
 };
 
@@ -32,6 +34,7 @@ export function MsqdxGlassSectionEntityHeader({
   backLabel = "Back",
   headerActions,
   entityCornerAccent = false,
+  stackedAboveNav = false,
   className,
 }: MsqdxGlassSectionEntityHeaderProps) {
   const theme = useTheme();
@@ -75,6 +78,7 @@ export function MsqdxGlassSectionEntityHeader({
       className={[
         "msqdx-glass-section-shell__entity",
         entityCornerAccent ? "msqdx-glass-section-shell__entity--has-corner-accent" : "",
+        stackedAboveNav ? "msqdx-glass-section-shell__entity--stacked-above-nav" : "",
         className ?? "",
       ]
         .filter(Boolean)
@@ -95,14 +99,14 @@ export function MsqdxGlassSectionEntityHeader({
             bottomRight={cornerAccentCorners.bottomRight}
             borderRadius={SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX}
             sx={{
-              width: "auto",
+              width: stackedAboveNav ? "100%" : "auto",
               minWidth: 0,
               boxSizing: "border-box",
               bgcolor: "var(--color-theme-accent, #000000)",
               color: "var(--msqdx-entity-accent-on-surface, #ffffff)",
-              position: "absolute",
-              top: -19,
-              right: -19,
+              position: stackedAboveNav ? "relative" : "absolute",
+              top: stackedAboveNav ? "auto" : -19,
+              right: stackedAboveNav ? "auto" : -19,
               py: "var(--msqdx-spacing-md)",
               px: "var(--msqdx-spacing-lg)",
               display: "flex",

@@ -1,9 +1,11 @@
 "use client";
 
 import { Box } from "@mui/material";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import { MsqdxCornerBox } from "@msqdx/react";
 import {
   SECTION_NAV_DOCK_SURFACE,
+  SECTION_NAV_HORIZONTAL_MEDIA_QUERY,
   SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX,
   SECTION_WORKSPACE_DOCK_CORNER_STYLES,
   SECTION_WORKSPACE_DOCK_PADDING,
@@ -36,20 +38,25 @@ export function MsqdxGlassSectionShell({
   );
   const showSubNav = !hideSubNav && navItems.length > 0;
   const showSectionHeader = Boolean(sectionTitle || sectionDescription || workspaceActions);
+  const isHorizontalSubnav = useMediaQuery(SECTION_NAV_HORIZONTAL_MEDIA_QUERY);
+  const entityStackedAboveNav = showEntityHeader && showSubNav && isHorizontalSubnav;
+
+  const entityHeader = showEntityHeader ? (
+    <MsqdxGlassSectionEntityHeader
+      scopeLabel={scopeLabel}
+      entityTitle={entityTitle}
+      entitySubtitle={entitySubtitle}
+      backHref={backHref}
+      backLabel={backLabel}
+      headerActions={headerActions}
+      entityCornerAccent={entityCornerAccent}
+      stackedAboveNav={entityStackedAboveNav}
+    />
+  ) : null;
 
   const workspaceInner = (
     <>
-      {showEntityHeader ? (
-        <MsqdxGlassSectionEntityHeader
-          scopeLabel={scopeLabel}
-          entityTitle={entityTitle}
-          entitySubtitle={entitySubtitle}
-          backHref={backHref}
-          backLabel={backLabel}
-          headerActions={headerActions}
-          entityCornerAccent={entityCornerAccent}
-        />
-      ) : null}
+      {entityHeader && !entityStackedAboveNav ? entityHeader : null}
 
       <div className="msqdx-glass-section-workspace__main">
         {showSectionHeader ? (
@@ -92,6 +99,7 @@ export function MsqdxGlassSectionShell({
         .join(" ")}
     >
       <div className="msqdx-glass-section-shell__body">
+        {entityStackedAboveNav ? entityHeader : null}
         {showSubNav ? (
           <MsqdxGlassSectionNav items={navItems} activeSectionId={activeSectionId} navLabel={navLabel} />
         ) : null}

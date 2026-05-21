@@ -25,6 +25,7 @@ describe("section entity header corner accent", () => {
     expect(entity).toContain("SECTION_ENTITY_CORNER_ACCENT_CORNERS_DESKTOP");
     expect(entity).toContain("SECTION_ENTITY_CORNER_ACCENT_CORNERS_RESPONSIVE");
     expect(entity).toContain("useMediaQuery");
+    expect(entity).toContain("stackedAboveNav");
     expect(entity).toContain("textAlign: \"right\"");
 
     const shell = readFileSync(
@@ -32,6 +33,9 @@ describe("section entity header corner accent", () => {
       "utf8"
     );
     expect(shell).toContain("entityCornerAccent");
+    expect(shell).toContain("entityStackedAboveNav");
+    expect(shell).toContain("SECTION_NAV_HORIZONTAL_MEDIA_QUERY");
+    expect(shell).toContain("stackedAboveNav");
 
     const types = readFileSync(
       join(webRoot, "components/admin/section-shell/section-shell-types.ts"),
@@ -45,6 +49,8 @@ describe("section entity header corner accent", () => {
     expect(css).toContain(".msqdx-glass-section-shell__entity-main--on-accent");
     expect(css).toContain("--msqdx-entity-accent-on-surface");
     expect(css).toContain(".msqdx-glass-section-shell__entity-corner-accent--responsive");
+    expect(css).toContain(".msqdx-glass-section-shell__entity--stacked-above-nav");
+    expect(css).toMatch(/border-bottom-left-radius:\s*0\s*!important/);
     expect(css).toContain(
       ".msqdx-glass-section-shell__entity-corner-accent .msqdx-glass-section-shell__entity-main--on-accent h1.msqdx-glass-section-shell__title"
     );
@@ -53,8 +59,10 @@ describe("section entity header corner accent", () => {
     expect(css).not.toContain("calc(72px + var(--msqdx-spacing-md))");
   });
 
-  it("uses square top-right corner on responsive layout", () => {
+  it("uses square bottom corners on responsive layout above horizontal subnav", () => {
     expect(SECTION_ENTITY_CORNER_ACCENT_CORNERS_DESKTOP.topRight).toBe("rounded");
-    expect(SECTION_ENTITY_CORNER_ACCENT_CORNERS_RESPONSIVE.topRight).toBe("square");
+    expect(SECTION_ENTITY_CORNER_ACCENT_CORNERS_RESPONSIVE.topRight).toBe("rounded");
+    expect(SECTION_ENTITY_CORNER_ACCENT_CORNERS_RESPONSIVE.bottomLeft).toBe("square");
+    expect(SECTION_ENTITY_CORNER_ACCENT_CORNERS_RESPONSIVE.bottomRight).toBe("square");
   });
 });
