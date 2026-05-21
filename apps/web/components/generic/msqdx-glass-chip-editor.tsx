@@ -68,10 +68,15 @@ export type MsqdxGlassChipEditorProps = {
    */
   highlightedChips?: string[];
   /**
-   * `list` — full-width stacked rows; `slider` — horizontal carousel (journey-style).
+   * `list` — full-width stacked rows; `slider` — carousel; `grid` — fixed columns (e.g. personality).
    * @default 'inline'
    */
-  chipLayout?: "inline" | "list" | "slider";
+  chipLayout?: "inline" | "list" | "slider" | "grid";
+  /**
+   * Column count when `chipLayout` is `grid`.
+   * @default 2
+   */
+  gridColumns?: 2 | 3;
   /**
    * Visible slides when `chipLayout` is `slider` (supports fractions, e.g. 3.5).
    */
@@ -98,6 +103,7 @@ export const MsqdxGlassChipEditor = ({
   aiLoading = false,
   highlightedChips = [],
   chipLayout = "inline",
+  gridColumns = 2,
   slidesVisible = 3.5,
   relaxedSpacing = false,
   cornerTabPlacement = "top-right",
@@ -265,14 +271,16 @@ export const MsqdxGlassChipEditor = ({
   const showEmptyState = !isEditing && !hasChips;
   const isListLayout = chipLayout === "list";
   const isSliderLayout = chipLayout === "slider";
-  const usesSectionMono = isListLayout || isSliderLayout;
+  const isGridLayout = chipLayout === "grid";
+  const isWrapLayout = chipLayout === "inline";
+  const usesSectionMono = isListLayout || isSliderLayout || isGridLayout;
   const chipVariant = resolveChipVariant(chipClassName);
   const cornerTabStyle = resolveChipEditorCornerTabStyle(chipVariant);
   const useCornerTabChrome = isSliderLayout && Boolean(cornerTabStyle);
   const showHeaderActions = editable && !isEditing && (!isSliderLayout || showEmptyState);
 
   const sectionHeading =
-    label && (isListLayout || isSliderLayout) ? (
+    label && usesSectionMono ? (
       <Box
         className="msqdx-glass-chip-editor__section-heading"
         sx={{ display: "flex", alignItems: "baseline", gap: 1, flexWrap: "wrap", minWidth: 0 }}
@@ -346,7 +354,9 @@ export const MsqdxGlassChipEditor = ({
       className={clsx(
         "msqdx-glass-dashboard-card-section",
         isListLayout && "msqdx-glass-chip-editor--list",
-        isSliderLayout && "msqdx-glass-chip-editor--slider"
+        isSliderLayout && "msqdx-glass-chip-editor--slider",
+        isGridLayout && "msqdx-glass-chip-editor--grid",
+        isGridLayout && gridColumns === 3 && "msqdx-glass-chip-editor--grid-cols-3"
       )}
       ref={containerRef}
     >
@@ -365,7 +375,7 @@ export const MsqdxGlassChipEditor = ({
         }}
       >
         {label && !showSliderInlineHeader ? (
-          isListLayout || isSliderLayout ? (
+          usesSectionMono ? (
             sectionHeading
           ) : (
             <MsqdxTypography
@@ -587,11 +597,21 @@ export const MsqdxGlassChipEditor = ({
       ) : (
         <>
           <Box
+            className={clsx(
+              "msqdx-glass-chip-editor__chips",
+              isGridLayout && "msqdx-glass-chip-editor__chips--grid",
+              isGridLayout && gridColumns === 3 && "msqdx-glass-chip-editor__chips--grid-cols-3",
+              isWrapLayout && "msqdx-glass-chip-editor__chips--wrap",
+              isListLayout && "msqdx-glass-chip-editor__chips--list"
+            )}
             sx={{
-              display: "flex",
+              display: isGridLayout ? "grid" : "flex",
               flexDirection: isListLayout ? "column" : "row",
-              flexWrap: isListLayout ? "nowrap" : "wrap",
-              gap: isListLayout ? 1.25 : 0.5,
+              flexWrap: isListLayout ? "nowrap" : isWrapLayout ? "wrap" : "nowrap",
+              gridTemplateColumns: isGridLayout
+                ? `repeat(${gridColumns}, minmax(0, 1fr))`
+                : undefined,
+              gap: isGridLayout ? 1.25 : isListLayout ? 1.25 : relaxedSpacing ? 1 : 0.5,
               mb: isEditing ? (relaxedSpacing ? 1.5 : 1) : 0,
               alignItems: isListLayout ? "stretch" : "flex-start",
             }}
@@ -599,11 +619,13 @@ export const MsqdxGlassChipEditor = ({
             {displayChips.map((chip, idx) => (
               <Box
                 key={idx}
+                className={isGridLayout ? "msqdx-glass-chip-editor__chip-cell" : undefined}
                 sx={{
                   display: "flex",
                   alignItems: isListLayout ? "flex-start" : "center",
                   gap: 0.5,
-                  width: isListLayout ? "100%" : "auto",
+                  width: isListLayout || isGridLayout ? "100%" : "auto",
+                  minWidth: isGridLayout ? 0 : undefined,
                 }}
               >
                 {isEditing && editingIndex === idx ? (
@@ -624,7 +646,13 @@ export const MsqdxGlassChipEditor = ({
                     className={isListLayout ? "--block" : undefined}
                     highlighted={highlightedChips.some((highlight) => highlight.trim().toLowerCase() === chip.trim().toLowerCase())}
                     onClick={isEditing ? () => handleStartEditChip(idx, chip) : undefined}
-                    style={isListLayout ? { flex: 1, width: "100%" } : undefined}
+                    style={
+                      isListLayout
+                        ? { flex: 1, width: "100%" }
+                        : isGridLayout
+                          ? { width: "100%", maxWidth: "100%", justifyContent: "flex-start" }
+                          : undefined
+                    }
                   >
                     {chip}
                   </MsqdxGlassChip>
@@ -650,7 +678,15 @@ export const MsqdxGlassChipEditor = ({
               </Box>
             ))}
             {isEditing && (
-              <Box ref={newInputWrapperRef} sx={{ minWidth: isListLayout ? "100%" : "180px", width: isListLayout ? "100%" : undefined }}>
+              <Box
+                ref={newInputWrapperRef}
+                className={isGridLayout ? "msqdx-glass-chip-editor__chip-cell" : undefined}
+                sx={{
+                  minWidth: isListLayout || isGridLayout ? "100%" : "180px",
+                  width: isListLayout || isGridLayout ? "100%" : undefined,
+                  gridColumn: isGridLayout ? "1 / -1" : undefined,
+                }}
+              >
                 <MsqdxInput
                   value={newChipValue}
                   onChange={(e) => setNewChipValue(e.target.value)}

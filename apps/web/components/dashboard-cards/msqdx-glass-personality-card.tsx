@@ -7,15 +7,14 @@ import { MsqdxGlassChipEditor } from "../generic/msqdx-glass-chip-editor";
 import { MsqdxGlassPainGoalsSectorSeparator } from "../generic/msqdx-glass-pain-goals-sector-separator";
 import { useI18n } from "../i18n/i18n-provider";
 import { THEME_ACCENT } from "../../lib/theme-accent";
+import {
+  PERSONALITY_GRID_CHIP_PROPS,
+  PERSONALITY_TRAIT_CHIP_PROPS,
+} from "../../lib/persona-personality-chip-layout";
 
 const PERSONALITY_TRAITS_ID = "personality-traits";
 const PERSONALITY_INTERESTS_ID = "personality-interests";
 const PERSONALITY_VALUES_ID = "personality-values";
-
-/** v2 stack: compact wrapping chips (not list rows or sliders). */
-const SECTION_CHIP_PROPS = {
-  chipLayout: "inline" as const,
-};
 
 export type MsqdxGlassPersonalityCardProps = {
   profile: PersonaProfile;
@@ -73,7 +72,7 @@ export const MsqdxGlassPersonalityCard = ({
       onAiSuggest={onAiSuggestTraits}
       aiLoading={aiTraitsLoading}
       highlightedChips={highlightedTraits}
-      {...SECTION_CHIP_PROPS}
+      {...PERSONALITY_TRAIT_CHIP_PROPS}
     />
   );
 
@@ -87,12 +86,12 @@ export const MsqdxGlassPersonalityCard = ({
       emptyMessage={t("personaAdmin.noInterests")}
       onAiSuggest={onAiSuggestInterests}
       aiLoading={aiInterestsLoading}
-      {...SECTION_CHIP_PROPS}
+      {...PERSONALITY_GRID_CHIP_PROPS}
     />
   );
 
   const valuesBlock = (
-    <Stack spacing={1.5} sx={{ width: "100%" }}>
+    <Stack spacing={2} sx={{ width: "100%" }}>
       <MsqdxGlassChipEditor
         label={t("chat.values")}
         chips={profile.values || []}
@@ -102,7 +101,7 @@ export const MsqdxGlassPersonalityCard = ({
         emptyMessage={t("personaAdmin.noValues")}
         onAiSuggest={onAiSuggestValues}
         aiLoading={aiValuesLoading}
-        {...SECTION_CHIP_PROPS}
+        {...PERSONALITY_GRID_CHIP_PROPS}
       />
       <MsqdxGlassChipEditor
         label={t("personaAdmin.socialMediaUsage")}
@@ -111,7 +110,7 @@ export const MsqdxGlassPersonalityCard = ({
         onSave={onSaveSocialMedia || (async () => {})}
         editable={!!onSaveSocialMedia}
         emptyMessage={t("personaAdmin.noSocialMedia")}
-        {...SECTION_CHIP_PROPS}
+        {...PERSONALITY_GRID_CHIP_PROPS}
       />
     </Stack>
   );

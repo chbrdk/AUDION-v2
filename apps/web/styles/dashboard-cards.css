@@ -654,11 +654,71 @@
 }
 
 /* Pain & goals / personality — content only (corner-tab shell + slider); no outer panel card */
-.msqdx-glass-pain-goals-stack__block,
-.msqdx-glass-personality-stack__block {
+.msqdx-glass-pain-goals-stack__block {
   width: 100%;
   padding: 0;
   overflow: visible;
+}
+
+.msqdx-glass-personality-stack__block {
+  width: 100%;
+  padding: var(--msqdx-personality-block-padding, var(--msqdx-spacing-md) var(--msqdx-spacing-lg));
+  overflow: visible;
+}
+
+/* Personality v2 — uniform chip type, roomier gaps, 2→3 col grid for interests/values */
+.msqdx-glass-personality-section {
+  --msqdx-personality-chip-font-size: 0.8125rem;
+  --msqdx-personality-chip-padding: 0.625rem 1.125rem;
+  --msqdx-personality-chip-gap: var(--msqdx-spacing-sm);
+  --msqdx-personality-block-padding: var(--msqdx-spacing-md) var(--msqdx-spacing-lg);
+}
+
+.msqdx-glass-personality-section .msqdx-glass-pain-goals-sector-separator {
+  margin-block: var(--msqdx-spacing-lg);
+}
+
+.msqdx-glass-personality-section .msqdx-glass-dashboard-card-section {
+  margin-bottom: var(--msqdx-spacing-md);
+}
+
+.msqdx-glass-personality-section .msqdx-glass-chip.--dashboard,
+.msqdx-glass-personality-section .msqdx-glass-chip.--dashboard.--trait,
+.msqdx-glass-personality-section .msqdx-glass-chip.--dashboard.--value,
+.msqdx-glass-personality-section .msqdx-glass-chip.--dashboard.--interest,
+.msqdx-glass-personality-section .msqdx-glass-chip.--dashboard.--social {
+  font-size: var(--msqdx-personality-chip-font-size);
+  padding: var(--msqdx-personality-chip-padding);
+  line-height: 1.35;
+}
+
+.msqdx-glass-personality-section .msqdx-glass-chip-editor__chips--wrap {
+  gap: var(--msqdx-personality-chip-gap);
+}
+
+.msqdx-glass-personality-stack__block.--interest .msqdx-glass-chip-editor__chips--grid,
+.msqdx-glass-personality-stack__block.--value .msqdx-glass-chip-editor__chips--grid {
+  gap: var(--msqdx-spacing-md);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 960px) {
+  .msqdx-glass-personality-stack__block.--interest .msqdx-glass-chip-editor__chips--grid,
+  .msqdx-glass-personality-stack__block.--value .msqdx-glass-chip-editor__chips--grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.msqdx-glass-personality-section .msqdx-glass-chip-editor--grid .msqdx-glass-chip.--dashboard {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.msqdx-glass-chip-editor--grid .msqdx-glass-chip-editor__chip-cell {
+  min-width: 0;
 }
 
 /* Sector separator: 1px line + frame-colored corner brackets (workspace border token) */

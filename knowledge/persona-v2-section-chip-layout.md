@@ -18,7 +18,8 @@ Sliders are **not** part of this shell.
 |--------|-------------|----------|
 | **`slider`** | Few narrative “cards”, user scans horizontally, corner-tab + index badge | Pain points, goals |
 | **`list`** | Long text per item, one row each, vertical scan | Long-form bullet lists |
-| **`inline`** | Short tags, dense wrap (default for many chips) | Personality (traits, interests, values, social) |
+| **`inline`** | Wrapping tags with uniform size | Personality traits |
+| **`grid`** | 2 cols (3 on wide screens) | Personality interests, values, social |
 | **Custom** | Not chip-based | Bio form, moodboard grid, knowledge table |
 
 Rule: **default to `inline`** for tag-like chips; use **`list`** only when each entry needs a full row. Use **`slider` only for card-carousel UX** (currently: pain-goals only).
@@ -32,8 +33,9 @@ Rule: **default to `inline`** for tag-like chips; use **`list`** only when each 
 
 ### Personality (`personality`)
 
-- Stack + separators + **`chipLayout="inline"`** (wrapping tags, compact).
-- Values block: two list editors (values, then social) in one `__block`.
+- Stack + separators; traits **`inline`**, interests/values/social **`grid`** (2→3 cols ≥960px).
+- Uniform chip font/padding via `.msqdx-glass-personality-section` tokens.
+- Layout constants: `lib/persona-personality-chip-layout.ts`.
 - Files: `msqdx-glass-personality-card.tsx`, `lib/persona-personality-layout.test.ts`.
 
 ## v1 fallback
