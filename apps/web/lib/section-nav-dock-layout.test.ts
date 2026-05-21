@@ -8,6 +8,7 @@ import {
   SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES,
   SECTION_NAV_HORIZONTAL_DOCK_CORNER_STYLES,
   SECTION_NAV_HORIZONTAL_MEDIA_QUERY,
+  SECTION_NAV_HORIZONTAL_WORKSPACE_OVERLAP_PX,
   SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX,
   SECTION_WORKSPACE_DOCK_CORNER_STYLES,
   SECTION_WORKSPACE_DOCK_PADDING,
@@ -57,6 +58,9 @@ describe("section-nav-dock-layout", () => {
     expect(css).toMatch(
       /\.msqdx-glass-section-nav__icon\s*\.msqdx-material-symbol[\s\S]*?color:\s*var\(--msqdx-section-nav-active-card-on-surface\)\s*!important/s
     );
+    expect(css).toMatch(
+      /\/\* Docked compact: active link has no border[\s\S]*?\.msqdx-glass-section-nav--docked[\s\S]*?\.msqdx-glass-section-nav__card--active\s*\{[\s\S]*?border:\s*none/
+    );
   });
 
   it("sizes docked nav to content height without spurious scroll", () => {
@@ -73,6 +77,18 @@ describe("section-nav-dock-layout", () => {
     );
     expect(css).not.toMatch(
       /max-width:\s*1024px[\s\S]*\.msqdx-glass-section-workspace--with-subnav[\s\S]*border-top-left-radius:\s*0/
+    );
+    expect(SECTION_NAV_HORIZONTAL_WORKSPACE_OVERLAP_PX).toBe(18);
+    expect(css).toContain("--msqdx-section-nav-horizontal-workspace-overlap: 18px");
+    expect(css).toMatch(
+      /max-width:\s*1024px[\s\S]*\.msqdx-glass-section-nav--horizontal[\s\S]*margin-bottom:\s*calc\(-1 \* var\(--msqdx-section-nav-horizontal-workspace-overlap\)\)/
+    );
+    expect(css).toContain("--msqdx-section-nav-dock-border-radius");
+    expect(css).toMatch(
+      /max-width:\s*1024px[\s\S]*\.msqdx-glass-section-nav--horizontal[\s\S]*border-top-left-radius:\s*var\(--msqdx-section-nav-dock-border-radius\)/
+    );
+    expect(css).toMatch(
+      /max-width:\s*1024px[\s\S]*\.msqdx-glass-section-nav--horizontal\s+\.msqdx-glass-section-nav__dock-shell[\s\S]*border-top-right-radius:\s*var\(--msqdx-section-nav-dock-border-radius\)/
     );
   });
 

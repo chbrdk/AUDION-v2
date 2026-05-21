@@ -157,7 +157,7 @@ export function MsqdxGlassSectionNav({
               width: "100%",
               boxSizing: "border-box",
               overflowX: isHorizontal ? "auto" : "visible",
-              overflowY: isHorizontal ? "hidden" : "visible",
+              overflowY: "visible",
               WebkitOverflowScrolling: isHorizontal ? "touch" : undefined,
               py: theme.spacing(0.75),
               pl: theme.spacing(0.75),

@@ -41,6 +41,10 @@
   --msqdx-section-nav-active-card-on-surface: #ffffff;
   /* Outer workspace frame beside subnav (matches SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX) */
   --msqdx-section-workspace-frame-radius: 36px;
+  /* Horizontal subnav overlap onto workspace (SECTION_NAV_HORIZONTAL_WORKSPACE_OVERLAP_PX) */
+  --msqdx-section-nav-horizontal-workspace-overlap: 18px;
+  /* Dock / horizontal rail top corners (SECTION_NAV_DOCK_BORDER_RADIUS_PX) */
+  --msqdx-section-nav-dock-border-radius: var(--msqdx-radius-3xl, 24px);
   /* Frame stroke matches preview (4px); use spacing token, not magic px */
   --msqdx-section-workspace-frame-border-width: var(--msqdx-spacing-xxs);
 }
@@ -187,14 +191,10 @@
   }
 
   .msqdx-glass-section-nav--docked .msqdx-glass-section-nav__card-active-shell .msqdx-glass-section-nav__card--active {
-    border: none;
-    background: transparent;
-    box-shadow: none;
     border-radius: 0;
     padding: 5px 8px;
     min-height: 34px;
     align-items: center;
-    color: var(--msqdx-section-nav-active-card-on-surface);
   }
 
   .msqdx-glass-section-nav--docked
@@ -355,6 +355,20 @@
   border-width: 2px;
   padding: calc(var(--msqdx-spacing-md) - 1px);
   background: var(--color-theme-accent-tint, rgba(0, 0, 0, 0.05));
+}
+
+/* Docked compact: active link has no border; corner shell owns the surface (all breakpoints) */
+.msqdx-glass-section-nav--docked
+  .msqdx-glass-section-nav__card-active-shell
+  .msqdx-glass-section-nav__card--active {
+  border: none;
+  border-width: 0;
+  border-color: transparent;
+  border-style: none;
+  border-image: none;
+  background: transparent;
+  box-shadow: none;
+  color: var(--msqdx-section-nav-active-card-on-surface);
 }
 
 .msqdx-glass-section-nav__icon {
@@ -518,14 +532,20 @@
   .msqdx-glass-section-nav--horizontal {
     flex-direction: row;
     flex-wrap: nowrap;
+    margin-bottom: calc(-1 * var(--msqdx-section-nav-horizontal-workspace-overlap));
+    border-top-left-radius: var(--msqdx-section-nav-dock-border-radius);
+    border-top-right-radius: var(--msqdx-section-nav-dock-border-radius);
+    overflow: visible;
   }
 
-  .msqdx-glass-section-nav__dock-shell {
+  .msqdx-glass-section-nav--horizontal .msqdx-glass-section-nav__dock-shell {
     width: 100%;
     max-width: 100%;
     height: auto;
     max-height: none;
-    overflow: visible;
+    overflow: hidden;
+    border-top-left-radius: var(--msqdx-section-nav-dock-border-radius);
+    border-top-right-radius: var(--msqdx-section-nav-dock-border-radius);
   }
 
   .msqdx-glass-section-nav__dock-track {
@@ -573,8 +593,11 @@
     max-width: min(200px, 72vw);
     min-height: 40px;
     padding: var(--msqdx-spacing-sm) var(--msqdx-spacing-md);
-    border-radius: var(--msqdx-radius-sm) var(--msqdx-radius-sm) 0 0;
     align-items: center;
+  }
+
+  .msqdx-glass-section-nav--horizontal .msqdx-glass-section-nav__card {
+    border-radius: 0;
   }
 
   .msqdx-glass-section-nav__card-active-shell {
