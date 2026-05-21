@@ -81,7 +81,7 @@ export type MsqdxGlassChipEditorProps = {
    */
   relaxedSpacing?: boolean;
   /**
-   * Corner tab position when `chipLayout` is `slider` (pain/goal variants only).
+   * Corner tab position when `chipLayout` is `slider` (pain/goal/personality variants).
    * @default 'top-right'
    */
   cornerTabPlacement?: "top-left" | "top-right";

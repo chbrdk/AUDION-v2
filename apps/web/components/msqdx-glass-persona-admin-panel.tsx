@@ -2510,6 +2510,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
                 expandedInterests={accordionExpanded("personality-interests")}
                 expandedValues={accordionExpanded("personality-values")}
                 onToggle={accordionToggle}
+                embedInSection={isV2Section}
                 onSaveInterests={handleSaveInterests}
                 onSaveValues={handleSaveValues}
                 onSaveSocialMedia={handleSaveSocialMedia}

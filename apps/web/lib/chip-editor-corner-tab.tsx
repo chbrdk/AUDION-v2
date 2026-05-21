@@ -21,27 +21,61 @@ export type ChipEditorCornerTabStyle = {
   iconColor: string;
 };
 
-const CHIP_EDITOR_CORNER_TAB_STYLES: Record<"pain" | "goal", ChipEditorCornerTabStyle> = {
+export type ChipEditorCornerTabVariant =
+  | "pain"
+  | "goal"
+  | "trait"
+  | "interest"
+  | "value"
+  | "social";
+
+const CHIP_EDITOR_CORNER_TAB_STYLES: Record<ChipEditorCornerTabVariant, ChipEditorCornerTabStyle> = {
   pain: {
     iconColor: "var(--color-secondary-dx-pink)",
   },
   goal: {
     iconColor: "var(--color-secondary-dx-blue)",
   },
+  trait: {
+    iconColor: "var(--color-secondary-dx-green)",
+  },
+  interest: {
+    iconColor: "var(--color-secondary-dx-yellow)",
+  },
+  value: {
+    iconColor: "var(--color-secondary-dx-green)",
+  },
+  social: {
+    iconColor: "var(--color-secondary-dx-orange)",
+  },
 };
 
-const CHIP_EDITOR_CORNER_TAB_ICONS: Record<"pain" | "goal", string> = {
+const CHIP_EDITOR_CORNER_TAB_ICONS: Record<ChipEditorCornerTabVariant, string> = {
   pain: "sentiment_dissatisfied",
   goal: "flag",
+  trait: "psychology",
+  interest: "lightbulb",
+  value: "volunteer_activism",
+  social: "share",
 };
+
+const CHIP_EDITOR_CORNER_TAB_VARIANTS = new Set<ChipEditorCornerTabVariant>(
+  Object.keys(CHIP_EDITOR_CORNER_TAB_STYLES) as ChipEditorCornerTabVariant[]
+);
+
+function isChipEditorCornerTabVariant(
+  variant: MsqdxGlassChipVariant
+): variant is ChipEditorCornerTabVariant {
+  return CHIP_EDITOR_CORNER_TAB_VARIANTS.has(variant as ChipEditorCornerTabVariant);
+}
 
 export function resolveChipEditorCornerTabStyle(
   variant: MsqdxGlassChipVariant
 ): ChipEditorCornerTabStyle | null {
-  if (variant === "pain" || variant === "goal") {
-    return CHIP_EDITOR_CORNER_TAB_STYLES[variant];
+  if (!isChipEditorCornerTabVariant(variant)) {
+    return null;
   }
-  return null;
+  return CHIP_EDITOR_CORNER_TAB_STYLES[variant];
 }
 
 export function renderChipEditorCornerTab(
@@ -49,13 +83,14 @@ export function renderChipEditorCornerTab(
   ariaLabel: string
 ): ReactNode | undefined {
   const style = resolveChipEditorCornerTabStyle(variant);
-  if (!style) return undefined;
-  const iconName = variant === "pain" ? CHIP_EDITOR_CORNER_TAB_ICONS.pain : CHIP_EDITOR_CORNER_TAB_ICONS.goal;
+  if (!style || !isChipEditorCornerTabVariant(variant)) return undefined;
+  const iconName = CHIP_EDITOR_CORNER_TAB_ICONS[variant];
   return (
     <MsqdxIcon
       name={iconName as "sentiment_dissatisfied"}
       customSize={18}
       style={{ color: style.iconColor }}
+      aria-label={ariaLabel}
     />
   );
 }

@@ -1,14 +1,23 @@
 "use client";
 
+import { Box, Stack } from "@mui/material";
 import type { PersonaProfile } from "@msqdx-glass/types";
 import { MsqdxDashboardCard } from "@msqdx/react";
 import { MsqdxGlassChipEditor } from "../generic/msqdx-glass-chip-editor";
+import { MsqdxGlassPainGoalsSectorSeparator } from "../generic/msqdx-glass-pain-goals-sector-separator";
 import { useI18n } from "../i18n/i18n-provider";
 import { THEME_ACCENT } from "../../lib/theme-accent";
 
 const PERSONALITY_TRAITS_ID = "personality-traits";
 const PERSONALITY_INTERESTS_ID = "personality-interests";
 const PERSONALITY_VALUES_ID = "personality-values";
+
+const SLIDER_CHIP_PROPS = {
+  chipLayout: "slider" as const,
+  cornerTabPlacement: "top-right" as const,
+  slidesVisible: 3.5,
+  relaxedSpacing: true,
+};
 
 export type MsqdxGlassPersonalityCardProps = {
   profile: PersonaProfile;
@@ -27,6 +36,8 @@ export type MsqdxGlassPersonalityCardProps = {
   onAiSuggestValues?: () => Promise<void>;
   aiValuesLoading?: boolean;
   highlightedTraits?: string[];
+  /** Section shell already shows title — flat stack only (persona v2). */
+  embedInSection?: boolean;
 };
 
 export const MsqdxGlassPersonalityCard = ({
@@ -46,11 +57,90 @@ export const MsqdxGlassPersonalityCard = ({
   onAiSuggestValues,
   aiValuesLoading = false,
   highlightedTraits = [],
+  embedInSection = false,
 }: MsqdxGlassPersonalityCardProps) => {
   const { t } = useI18n();
   const traitsArray = Object.keys(profile.traits || {}).map((trait) =>
     trait.replace(/_/g, " ")
   );
+
+  const traitsBlock = (
+    <MsqdxGlassChipEditor
+      label={t("personaAdmin.personalityTraits")}
+      chips={traitsArray}
+      chipClassName="--trait"
+      onSave={onSaveTraits || (async () => {})}
+      editable={!!onSaveTraits}
+      emptyMessage={t("personaAdmin.noTraits")}
+      onAiSuggest={onAiSuggestTraits}
+      aiLoading={aiTraitsLoading}
+      highlightedChips={highlightedTraits}
+      {...SLIDER_CHIP_PROPS}
+    />
+  );
+
+  const interestsBlock = (
+    <MsqdxGlassChipEditor
+      label={t("chat.interests")}
+      chips={profile.interests || []}
+      chipClassName="--interest"
+      onSave={onSaveInterests || (async () => {})}
+      editable={!!onSaveInterests}
+      emptyMessage={t("personaAdmin.noInterests")}
+      onAiSuggest={onAiSuggestInterests}
+      aiLoading={aiInterestsLoading}
+      {...SLIDER_CHIP_PROPS}
+    />
+  );
+
+  const valuesBlock = (
+    <Stack spacing={2} sx={{ width: "100%" }}>
+      <MsqdxGlassChipEditor
+        label={t("chat.values")}
+        chips={profile.values || []}
+        chipClassName="--value"
+        onSave={onSaveValues || (async () => {})}
+        editable={!!onSaveValues}
+        emptyMessage={t("personaAdmin.noValues")}
+        onAiSuggest={onAiSuggestValues}
+        aiLoading={aiValuesLoading}
+        {...SLIDER_CHIP_PROPS}
+      />
+      <MsqdxGlassChipEditor
+        label={t("personaAdmin.socialMediaUsage")}
+        chips={profile.social_media_usage || []}
+        chipClassName="--social"
+        onSave={onSaveSocialMedia || (async () => {})}
+        editable={!!onSaveSocialMedia}
+        emptyMessage={t("personaAdmin.noSocialMedia")}
+        {...SLIDER_CHIP_PROPS}
+      />
+    </Stack>
+  );
+
+  const stackBody = (
+    <Stack component="section" className="msqdx-glass-personality-stack" spacing={0}>
+      <Box component="article" className="msqdx-glass-personality-stack__block --trait">
+        {traitsBlock}
+      </Box>
+      <MsqdxGlassPainGoalsSectorSeparator />
+      <Box component="article" className="msqdx-glass-personality-stack__block --interest">
+        {interestsBlock}
+      </Box>
+      <MsqdxGlassPainGoalsSectorSeparator />
+      <Box component="article" className="msqdx-glass-personality-stack__block --value">
+        {valuesBlock}
+      </Box>
+    </Stack>
+  );
+
+  if (embedInSection) {
+    return (
+      <Box sx={{ gridColumn: "1 / -1", width: "100%" }} className="msqdx-glass-personality-section">
+        {stackBody}
+      </Box>
+    );
+  }
 
   return (
     <>
@@ -62,17 +152,7 @@ export const MsqdxGlassPersonalityCard = ({
         expanded={expandedTraits}
         onToggle={onToggle}
       >
-        <MsqdxGlassChipEditor
-          label={t("personaAdmin.personalityTraits")}
-          chips={traitsArray}
-          chipClassName="--trait"
-          onSave={onSaveTraits || (async () => {})}
-          editable={!!onSaveTraits}
-          emptyMessage={t("personaAdmin.noTraits")}
-          onAiSuggest={onAiSuggestTraits}
-          aiLoading={aiTraitsLoading}
-          highlightedChips={highlightedTraits}
-        />
+        {traitsBlock}
       </MsqdxDashboardCard>
 
       <MsqdxDashboardCard
@@ -83,16 +163,7 @@ export const MsqdxGlassPersonalityCard = ({
         expanded={expandedInterests}
         onToggle={onToggle}
       >
-        <MsqdxGlassChipEditor
-          label={t("chat.interests")}
-          chips={profile.interests || []}
-          chipClassName="--interest"
-          onSave={onSaveInterests || (async () => {})}
-          editable={!!onSaveInterests}
-          emptyMessage={t("personaAdmin.noInterests")}
-          onAiSuggest={onAiSuggestInterests}
-          aiLoading={aiInterestsLoading}
-        />
+        {interestsBlock}
       </MsqdxDashboardCard>
 
       <MsqdxDashboardCard
@@ -103,26 +174,8 @@ export const MsqdxGlassPersonalityCard = ({
         expanded={expandedValues}
         onToggle={onToggle}
       >
-        <MsqdxGlassChipEditor
-          label={t("chat.values")}
-          chips={profile.values || []}
-          chipClassName="--value"
-          onSave={onSaveValues || (async () => {})}
-          editable={!!onSaveValues}
-          emptyMessage={t("personaAdmin.noValues")}
-          onAiSuggest={onAiSuggestValues}
-          aiLoading={aiValuesLoading}
-        />
-        <MsqdxGlassChipEditor
-          label={t("personaAdmin.socialMediaUsage")}
-          chips={profile.social_media_usage || []}
-          chipClassName="--social"
-          onSave={onSaveSocialMedia || (async () => {})}
-          editable={!!onSaveSocialMedia}
-          emptyMessage={t("personaAdmin.noSocialMedia")}
-        />
+        {valuesBlock}
       </MsqdxDashboardCard>
     </>
   );
 };
-

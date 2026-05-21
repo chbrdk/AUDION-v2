@@ -36,8 +36,15 @@ describe("chip-editor-corner-tab", () => {
     expect(resolveChipEditorCornerTabStyle("goal")?.iconColor).toContain("blue");
   });
 
+  it("returns accent colors for personality slider variants", () => {
+    expect(resolveChipEditorCornerTabStyle("trait")?.iconColor).toContain("green");
+    expect(resolveChipEditorCornerTabStyle("interest")?.iconColor).toContain("yellow");
+    expect(resolveChipEditorCornerTabStyle("value")?.iconColor).toContain("green");
+    expect(resolveChipEditorCornerTabStyle("social")?.iconColor).toContain("orange");
+  });
+
   it("skips corner tab for unrelated chip variants", () => {
-    expect(resolveChipEditorCornerTabStyle("trait")).toBeNull();
-    expect(renderChipEditorCornerTab("trait", "Label")).toBeUndefined();
+    expect(resolveChipEditorCornerTabStyle("vocab")).toBeNull();
+    expect(renderChipEditorCornerTab("vocab", "Label")).toBeUndefined();
   });
 });
