@@ -7,10 +7,10 @@ export const SECTION_NAV_HORIZONTAL_MAX_WIDTH_PX = 1024;
 export const SECTION_NAV_HORIZONTAL_MEDIA_QUERY = `(max-width: ${SECTION_NAV_HORIZONTAL_MAX_WIDTH_PX}px)`;
 
 /**
- * Pull horizontal subnav onto the workspace frame (active tab cutdown meets top radius).
+ * Reserved horizontal overlap between subnav and workspace (0 = flush gap from shell layout only).
  * CSS: `--msqdx-section-nav-horizontal-workspace-overlap` in section-shell.css.
  */
-export const SECTION_NAV_HORIZONTAL_WORKSPACE_OVERLAP_PX = 18;
+export const SECTION_NAV_HORIZONTAL_WORKSPACE_OVERLAP_PX = 0;
 
 /** Workspace dock shell beside subnav — outer frame radius (matches CSS on `--with-subnav`). */
 export const SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX = 36;

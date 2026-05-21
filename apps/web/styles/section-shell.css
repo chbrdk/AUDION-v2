@@ -42,7 +42,7 @@
   /* Outer workspace frame beside subnav (matches SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX) */
   --msqdx-section-workspace-frame-radius: 36px;
   /* Horizontal subnav overlap onto workspace (SECTION_NAV_HORIZONTAL_WORKSPACE_OVERLAP_PX) */
-  --msqdx-section-nav-horizontal-workspace-overlap: 18px;
+  --msqdx-section-nav-horizontal-workspace-overlap: 0px;
   /* Dock / horizontal rail top corners (SECTION_NAV_DOCK_BORDER_RADIUS_PX) */
   --msqdx-section-nav-dock-border-radius: var(--msqdx-radius-3xl, 24px);
   /* Frame stroke matches preview (4px); use spacing token, not magic px */
@@ -544,7 +544,7 @@
   .msqdx-glass-section-nav--horizontal {
     flex-direction: row;
     flex-wrap: nowrap;
-    margin-bottom: calc(-1 * var(--msqdx-section-nav-horizontal-workspace-overlap));
+    margin-bottom: 0;
     border-top-left-radius: var(--msqdx-section-nav-dock-border-radius);
     border-top-right-radius: var(--msqdx-section-nav-dock-border-radius);
     overflow: visible;
@@ -560,7 +560,7 @@
     border-top-right-radius: var(--msqdx-section-nav-dock-border-radius);
   }
 
-  .msqdx-glass-section-nav__dock-track {
+  .msqdx-glass-section-nav--horizontal .msqdx-glass-section-nav__dock-track {
     flex-direction: row !important;
     align-items: stretch;
     height: auto;
@@ -570,10 +570,17 @@
     -webkit-overflow-scrolling: touch;
     scroll-snap-type: x proximity;
     scroll-padding-inline: var(--msqdx-spacing-sm);
-    scrollbar-width: thin;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
     gap: var(--msqdx-spacing-xs);
-    padding-block: var(--msqdx-spacing-xs);
+    padding-block: 0;
     padding-inline: var(--msqdx-spacing-sm);
+  }
+
+  .msqdx-glass-section-nav--horizontal .msqdx-glass-section-nav__dock-track::-webkit-scrollbar {
+    display: none;
+    height: 0;
+    width: 0;
   }
 
   .msqdx-glass-section-nav__dock-track > .msqdx-glass-section-nav__label {

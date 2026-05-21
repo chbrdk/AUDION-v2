@@ -38,6 +38,7 @@ describe("section-nav-dock-layout", () => {
     expect(source).toContain("scrollIntoView");
     expect(source).toContain("SECTION_NAV_DOCK_TRACK_CLASS");
     expect(source).toContain('flexDirection: isHorizontal ? "row" : "column"');
+    expect(source).toContain("py: isHorizontal ? 0 : theme.spacing(0.75)");
   });
 
   it("uses top- and bottom-edge cutdown corners for active tab in horizontal mode", () => {
@@ -78,10 +79,19 @@ describe("section-nav-dock-layout", () => {
     expect(css).not.toMatch(
       /max-width:\s*1024px[\s\S]*\.msqdx-glass-section-workspace--with-subnav[\s\S]*border-top-left-radius:\s*0/
     );
-    expect(SECTION_NAV_HORIZONTAL_WORKSPACE_OVERLAP_PX).toBe(18);
-    expect(css).toContain("--msqdx-section-nav-horizontal-workspace-overlap: 18px");
+    expect(SECTION_NAV_HORIZONTAL_WORKSPACE_OVERLAP_PX).toBe(0);
+    expect(css).toContain("--msqdx-section-nav-horizontal-workspace-overlap: 0px");
     expect(css).toMatch(
-      /max-width:\s*1024px[\s\S]*\.msqdx-glass-section-nav--horizontal[\s\S]*margin-bottom:\s*calc\(-1 \* var\(--msqdx-section-nav-horizontal-workspace-overlap\)\)/
+      /max-width:\s*1024px[\s\S]*\.msqdx-glass-section-nav--horizontal[\s\S]*margin-bottom:\s*0/
+    );
+    expect(css).toMatch(
+      /max-width:\s*1024px[\s\S]*\.msqdx-glass-section-nav--horizontal\s+\.msqdx-glass-section-nav__dock-track[\s\S]*padding-block:\s*0/
+    );
+    expect(css).toMatch(
+      /max-width:\s*1024px[\s\S]*\.msqdx-glass-section-nav--horizontal\s+\.msqdx-glass-section-nav__dock-track[\s\S]*scrollbar-width:\s*none/
+    );
+    expect(css).toMatch(
+      /max-width:\s*1024px[\s\S]*\.msqdx-glass-section-nav--horizontal\s+\.msqdx-glass-section-nav__dock-track::-webkit-scrollbar[\s\S]*display:\s*none/
     );
     expect(css).toContain("--msqdx-section-nav-dock-border-radius");
     expect(css).toMatch(

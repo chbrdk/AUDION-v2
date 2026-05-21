@@ -159,7 +159,7 @@ export function MsqdxGlassSectionNav({
               overflowX: isHorizontal ? "auto" : "visible",
               overflowY: "visible",
               WebkitOverflowScrolling: isHorizontal ? "touch" : undefined,
-              py: theme.spacing(0.75),
+              py: isHorizontal ? 0 : theme.spacing(0.75),
               pl: theme.spacing(0.75),
               pr: isHorizontal ? theme.spacing(0.75) : 0,
             })}
