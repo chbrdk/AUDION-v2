@@ -273,7 +273,8 @@ export const MsqdxGlassChipEditor = ({
   const isSliderLayout = chipLayout === "slider";
   const isGridLayout = chipLayout === "grid";
   const isWrapLayout = chipLayout === "inline";
-  const usesSectionMono = isListLayout || isSliderLayout || isGridLayout;
+  const usesSectionMono =
+    isListLayout || isSliderLayout || isGridLayout || (isWrapLayout && relaxedSpacing);
   const chipVariant = resolveChipVariant(chipClassName);
   const cornerTabStyle = resolveChipEditorCornerTabStyle(chipVariant);
   const useCornerTabChrome = isSliderLayout && Boolean(cornerTabStyle);

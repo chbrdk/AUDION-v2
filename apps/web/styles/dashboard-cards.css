@@ -669,10 +669,16 @@
 /* Personality v2 — uniform chip type, roomier gaps, 2→3 col grid for interests/values */
 .msqdx-glass-personality-section {
   --msqdx-personality-chip-font-size: 0.875rem;
-  --msqdx-personality-chip-font-weight: 200;
+  --msqdx-personality-chip-font-weight: 400;
   --msqdx-personality-chip-padding: 1rem 1.125rem;
   --msqdx-personality-chip-gap: var(--msqdx-spacing-sm);
-  --msqdx-personality-block-padding: var(--msqdx-spacing-md) var(--msqdx-spacing-lg);
+  --msqdx-personality-block-padding: 0;
+  --msqdx-personality-section-surface: var(--audion-neutral-05, #e0e0e0);
+  padding-top: 0.25rem;
+}
+
+[data-theme="dark"] .msqdx-glass-personality-section {
+  --msqdx-personality-section-surface: var(--audion-neutral-17, #181714);
 }
 
 .msqdx-glass-personality-section .msqdx-glass-pain-goals-sector-separator {
@@ -680,7 +686,23 @@
 }
 
 .msqdx-glass-personality-section .msqdx-glass-dashboard-card-section {
+  margin-bottom: var(--msqdx-spacing-lg);
+  padding: calc(var(--msqdx-spacing-md) + var(--msqdx-spacing-xxs)) var(--msqdx-spacing-xl)
+    var(--msqdx-spacing-xl);
+  background-color: var(--msqdx-personality-section-surface);
+  box-sizing: border-box;
+}
+
+.msqdx-glass-personality-section .msqdx-glass-dashboard-card-section:last-child {
+  margin-bottom: 0;
+}
+
+.msqdx-glass-personality-section .msqdx-glass-chip-editor__section-heading {
   margin-bottom: var(--msqdx-spacing-md);
+}
+
+.msqdx-glass-personality-section .msqdx-glass-chip-editor__section-heading h3.MuiTypography-root {
+  font-size: clamp(1.125rem, 2.5vw, 1.5rem);
 }
 
 .msqdx-glass-personality-section .msqdx-glass-chip.--dashboard,

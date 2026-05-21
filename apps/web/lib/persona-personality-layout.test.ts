@@ -11,6 +11,16 @@ import {
 } from "./persona-personality-chip-layout";
 
 describe("persona personality layout", () => {
+  it("uses prominent mono section headings for inline traits (relaxedSpacing)", () => {
+    const chipEditor = readFileSync(
+      resolve(process.cwd(), "components/generic/msqdx-glass-chip-editor.tsx"),
+      "utf8"
+    );
+    expect(chipEditor).toMatch(
+      /usesSectionMono\s*=[\s\S]*?isWrapLayout && relaxedSpacing/
+    );
+  });
+
   it("uses inline traits and 2→3 col grid for interests/values", () => {
     const source = readFileSync(
       resolve(process.cwd(), "components/dashboard-cards/msqdx-glass-personality-card.tsx"),
@@ -47,6 +57,11 @@ describe("persona personality layout", () => {
     expect(css).toContain("--msqdx-personality-chip-font-size");
     expect(css).toContain("--msqdx-personality-chip-font-weight");
     expect(css).toContain("--msqdx-personality-chip-padding");
+    expect(css).toContain("--msqdx-personality-section-surface");
+    expect(css).toMatch(
+      /\.msqdx-glass-personality-section \.msqdx-glass-dashboard-card-section[^}]*padding:\s*calc\(var\(--msqdx-spacing-md\)/
+    );
+    expect(css).toContain(".msqdx-glass-personality-section .msqdx-glass-chip-editor__section-heading");
     expect(css).toContain(PERSONALITY_CHIP_FONT_SIZE);
     expect(css).toContain(PERSONALITY_CHIP_FONT_WEIGHT);
     expect(css).toContain(PERSONALITY_CHIP_PADDING);
