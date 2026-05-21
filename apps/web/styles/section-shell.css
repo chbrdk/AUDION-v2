@@ -617,7 +617,7 @@
   }
 
   .msqdx-glass-section-nav--horizontal .msqdx-glass-section-nav__card {
-    border-radius: 0;
+    border-radius: var(--msqdx-section-nav-horizontal-dock-border-radius);
   }
 
   .msqdx-glass-section-nav__card-active-shell {

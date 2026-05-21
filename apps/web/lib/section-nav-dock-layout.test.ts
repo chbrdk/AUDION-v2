@@ -104,6 +104,9 @@ describe("section-nav-dock-layout", () => {
     expect(css).toMatch(
       /max-width:\s*1024px[\s\S]*\.msqdx-glass-section-nav--horizontal\s+\.msqdx-glass-section-nav__dock-shell[\s\S]*border-radius:\s*var\(--msqdx-section-nav-horizontal-dock-border-radius\)/
     );
+    expect(css).toMatch(
+      /max-width:\s*1024px[\s\S]*\.msqdx-glass-section-nav--horizontal\s+\.msqdx-glass-section-nav__card[\s\S]*border-radius:\s*var\(--msqdx-section-nav-horizontal-dock-border-radius\)/
+    );
   });
 
   it("keeps nav dock shell background unset", () => {
