@@ -43,8 +43,10 @@
   --msqdx-section-workspace-frame-radius: 36px;
   /* Horizontal subnav overlap onto workspace (SECTION_NAV_HORIZONTAL_WORKSPACE_OVERLAP_PX) */
   --msqdx-section-nav-horizontal-workspace-overlap: 0px;
-  /* Dock / horizontal rail top corners (SECTION_NAV_DOCK_BORDER_RADIUS_PX) */
+  /* Left-rail dock corners (SECTION_NAV_DOCK_BORDER_RADIUS_PX) */
   --msqdx-section-nav-dock-border-radius: var(--msqdx-radius-3xl, 24px);
+  /* Horizontal rail shell — full frame radius (SECTION_NAV_HORIZONTAL_DOCK_BORDER_RADIUS_PX) */
+  --msqdx-section-nav-horizontal-dock-border-radius: var(--msqdx-section-workspace-frame-radius, 36px);
   /* Frame stroke matches preview (4px); use spacing token, not magic px */
   --msqdx-section-workspace-frame-border-width: var(--msqdx-spacing-xxs);
 }
@@ -148,6 +150,7 @@
   .msqdx-glass-section-nav__dock-shell {
     height: fit-content;
     overflow: visible;
+    background: unset;
   }
 
   .msqdx-glass-section-nav__dock-track {
@@ -545,8 +548,7 @@
     flex-direction: row;
     flex-wrap: nowrap;
     margin-bottom: 0;
-    border-top-left-radius: var(--msqdx-section-nav-dock-border-radius);
-    border-top-right-radius: var(--msqdx-section-nav-dock-border-radius);
+    border-radius: var(--msqdx-section-nav-horizontal-dock-border-radius);
     overflow: visible;
   }
 
@@ -556,8 +558,7 @@
     height: auto;
     max-height: none;
     overflow: hidden;
-    border-top-left-radius: var(--msqdx-section-nav-dock-border-radius);
-    border-top-right-radius: var(--msqdx-section-nav-dock-border-radius);
+    border-radius: var(--msqdx-section-nav-horizontal-dock-border-radius);
   }
 
   .msqdx-glass-section-nav--horizontal .msqdx-glass-section-nav__dock-track {

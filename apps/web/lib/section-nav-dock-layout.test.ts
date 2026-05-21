@@ -4,8 +4,8 @@ import { describe, expect, it } from "vitest";
 import {
   SECTION_NAV_DOCK_BORDER_RADIUS_PX,
   SECTION_NAV_DOCK_CORNER_STYLES,
-  SECTION_NAV_DOCK_SURFACE,
   SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES,
+  SECTION_NAV_HORIZONTAL_DOCK_BORDER_RADIUS_PX,
   SECTION_NAV_HORIZONTAL_DOCK_CORNER_STYLES,
   SECTION_NAV_HORIZONTAL_MEDIA_QUERY,
   SECTION_NAV_HORIZONTAL_WORKSPACE_OVERLAP_PX,
@@ -35,6 +35,8 @@ describe("section-nav-dock-layout", () => {
     expect(source).toContain("SECTION_NAV_DOCK_CORNER_STYLES");
     expect(source).toContain("SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES");
     expect(source).toContain("SECTION_NAV_HORIZONTAL_MEDIA_QUERY");
+    expect(source).toContain("SECTION_NAV_HORIZONTAL_DOCK_BORDER_RADIUS_PX");
+    expect(source).toContain("dockBorderRadiusPx");
     expect(source).toContain("scrollIntoView");
     expect(source).toContain("SECTION_NAV_DOCK_TRACK_CLASS");
     expect(source).toContain('flexDirection: isHorizontal ? "row" : "column"');
@@ -46,7 +48,8 @@ describe("section-nav-dock-layout", () => {
     expect(SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES.bottomRight).toBe("cutdown-a");
     expect(SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES.topLeft).toBe("cutdown-a");
     expect(SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES.topRight).toBe("cutdown-a");
-    expect(SECTION_NAV_HORIZONTAL_DOCK_CORNER_STYLES.bottomLeft).toBe("square");
+    expect(SECTION_NAV_HORIZONTAL_DOCK_CORNER_STYLES.bottomLeft).toBe("rounded");
+    expect(SECTION_NAV_HORIZONTAL_DOCK_BORDER_RADIUS_PX).toBe(36);
   });
 
   it("uses opaque black active dock row with white on-surface tokens", () => {
@@ -94,19 +97,25 @@ describe("section-nav-dock-layout", () => {
       /max-width:\s*1024px[\s\S]*\.msqdx-glass-section-nav--horizontal\s+\.msqdx-glass-section-nav__dock-track::-webkit-scrollbar[\s\S]*display:\s*none/
     );
     expect(css).toContain("--msqdx-section-nav-dock-border-radius");
+    expect(css).toContain("--msqdx-section-nav-horizontal-dock-border-radius");
     expect(css).toMatch(
-      /max-width:\s*1024px[\s\S]*\.msqdx-glass-section-nav--horizontal[\s\S]*border-top-left-radius:\s*var\(--msqdx-section-nav-dock-border-radius\)/
+      /max-width:\s*1024px[\s\S]*\.msqdx-glass-section-nav--horizontal[\s\S]*border-radius:\s*var\(--msqdx-section-nav-horizontal-dock-border-radius\)/
     );
     expect(css).toMatch(
-      /max-width:\s*1024px[\s\S]*\.msqdx-glass-section-nav--horizontal\s+\.msqdx-glass-section-nav__dock-shell[\s\S]*border-top-right-radius:\s*var\(--msqdx-section-nav-dock-border-radius\)/
+      /max-width:\s*1024px[\s\S]*\.msqdx-glass-section-nav--horizontal\s+\.msqdx-glass-section-nav__dock-shell[\s\S]*border-radius:\s*var\(--msqdx-section-nav-horizontal-dock-border-radius\)/
     );
   });
 
-  it("uses a light tint for dock surface", () => {
-    expect(SECTION_NAV_DOCK_SURFACE).toBe("var(--msqdx-section-nav-dock-surface)");
+  it("keeps nav dock shell background unset", () => {
+    const source = readFileSync(
+      resolve(process.cwd(), "components/admin/section-shell/msqdx-glass-section-nav.tsx"),
+      "utf8"
+    );
+    expect(source).not.toContain("SECTION_NAV_DOCK_SURFACE");
+    expect(source).not.toMatch(/msqdx-glass-section-nav__dock-shell[\s\S]*?bgcolor:/);
     const css = readFileSync(resolve(process.cwd(), "styles/section-shell.css"), "utf8");
     expect(css).toMatch(
-      /--msqdx-section-nav-dock-surface:\s*var\(--color-theme-accent-tint/
+      /\.msqdx-glass-section-nav__dock-shell\s*\{[^}]*background:\s*unset/
     );
   });
 

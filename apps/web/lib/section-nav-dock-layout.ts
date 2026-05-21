@@ -15,8 +15,9 @@ export const SECTION_NAV_HORIZONTAL_WORKSPACE_OVERLAP_PX = 0;
 /** Workspace dock shell beside subnav — outer frame radius (matches CSS on `--with-subnav`). */
 export const SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX = 36;
 
-/** Subtle rail fill — see `--msqdx-section-nav-dock-surface` in section-shell.css */
-export const SECTION_NAV_DOCK_SURFACE = "var(--msqdx-section-nav-dock-surface)";
+/** Horizontal scroll rail shell — full 36px radius on all corners (matches workspace frame). */
+export const SECTION_NAV_HORIZONTAL_DOCK_BORDER_RADIUS_PX =
+  SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX;
 
 /** Inner flex row/column for nav items (inside CornerBox shell). */
 export const SECTION_NAV_DOCK_TRACK_CLASS = "msqdx-glass-section-nav__dock-track";
@@ -32,12 +33,12 @@ export const SECTION_NAV_DOCK_CORNER_STYLES = {
   bottomRight: "cutdown-b",
 } as const;
 
-/** Horizontal scroll rail: flat bottom, rounded top. */
+/** Horizontal scroll rail: all corners rounded (36px, aligned with workspace frame). */
 export const SECTION_NAV_HORIZONTAL_DOCK_CORNER_STYLES = {
   topLeft: "rounded",
   topRight: "rounded",
-  bottomLeft: "square",
-  bottomRight: "square",
+  bottomLeft: "rounded",
+  bottomRight: "rounded",
 } as const;
 
 /** Active tab: cutdown-a top (side-edge patches), cutdown-a bottom into workspace below. */

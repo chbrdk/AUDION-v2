@@ -8,7 +8,7 @@ import { MsqdxCornerBox, MsqdxIcon } from "@msqdx/react";
 import {
   SECTION_NAV_DOCK_BORDER_RADIUS_PX,
   SECTION_NAV_DOCK_CORNER_STYLES,
-  SECTION_NAV_DOCK_SURFACE,
+  SECTION_NAV_HORIZONTAL_DOCK_BORDER_RADIUS_PX,
   SECTION_NAV_DOCK_TRACK_CLASS,
   SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES,
   SECTION_NAV_HORIZONTAL_DOCK_CORNER_STYLES,
@@ -40,6 +40,10 @@ export function MsqdxGlassSectionNav({
   const activeCornerStyles = isHorizontal
     ? SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES
     : SECTION_NAV_DOCK_CORNER_STYLES;
+
+  const dockBorderRadiusPx = isHorizontal
+    ? SECTION_NAV_HORIZONTAL_DOCK_BORDER_RADIUS_PX
+    : SECTION_NAV_DOCK_BORDER_RADIUS_PX;
 
   useEffect(() => {
     if (!compact || !isHorizontal || !activeSectionId) return;
@@ -83,7 +87,7 @@ export function MsqdxGlassSectionNav({
               topRight={activeCornerStyles.topRight}
               bottomLeft={activeCornerStyles.bottomLeft}
               bottomRight={activeCornerStyles.bottomRight}
-              borderRadius={SECTION_NAV_DOCK_BORDER_RADIUS_PX}
+              borderRadius={dockBorderRadiusPx}
               sx={{
                 width: isHorizontal ? "auto" : "100%",
                 flexShrink: 0,
@@ -138,11 +142,10 @@ export function MsqdxGlassSectionNav({
           topRight={dockCornerStyles.topRight}
           bottomLeft={dockCornerStyles.bottomLeft}
           bottomRight={dockCornerStyles.bottomRight}
-          borderRadius={SECTION_NAV_DOCK_BORDER_RADIUS_PX}
+          borderRadius={dockBorderRadiusPx}
           sx={{
             width: "100%",
             boxSizing: "border-box",
-            bgcolor: SECTION_NAV_DOCK_SURFACE,
             overflow: "visible",
           }}
         >

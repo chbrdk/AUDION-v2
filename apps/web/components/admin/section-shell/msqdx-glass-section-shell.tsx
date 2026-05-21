@@ -4,7 +4,6 @@ import { Box } from "@mui/material";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { MsqdxCornerBox } from "@msqdx/react";
 import {
-  SECTION_NAV_DOCK_SURFACE,
   SECTION_NAV_HORIZONTAL_MEDIA_QUERY,
   SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX,
   SECTION_WORKSPACE_DOCK_CORNER_STYLES,
