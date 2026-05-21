@@ -40,10 +40,10 @@ export const SECTION_NAV_HORIZONTAL_DOCK_CORNER_STYLES = {
   bottomRight: "square",
 } as const;
 
-/** Active tab: cutdown-b top into rail, cutdown-a bottom into workspace below. */
+/** Active tab: cutdown-a top (side-edge patches), cutdown-a bottom into workspace below. */
 export const SECTION_NAV_HORIZONTAL_ACTIVE_CORNER_STYLES = {
-  topLeft: "cutdown-b",
-  topRight: "cutdown-b",
+  topLeft: "cutdown-a",
+  topRight: "cutdown-a",
   bottomLeft: "cutdown-a",
   bottomRight: "cutdown-a",
 } as const;
