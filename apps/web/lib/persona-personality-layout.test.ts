@@ -35,6 +35,13 @@ describe("persona personality layout", () => {
     expect(chipEditor).toContain("gridColumns");
   });
 
+  it("excludes dashboard chips from globals mobile chip reset", () => {
+    const globals = readFileSync(resolve(process.cwd(), "styles/globals.css"), "utf8");
+    expect(globals).toMatch(
+      /@media \(max-width:\s*959px\)[\s\S]*\.msqdx-glass-chip:not\(\.--dashboard\)/
+    );
+  });
+
   it("uniform chip font and responsive grid in CSS", () => {
     const css = readFileSync(resolve(process.cwd(), "styles/dashboard-cards.css"), "utf8");
     expect(css).toContain("--msqdx-personality-chip-font-size");
@@ -47,7 +54,10 @@ describe("persona personality layout", () => {
       /\.msqdx-glass-personality-section \.msqdx-glass-chip\.--dashboard\.--trait[^}]*font-size:\s*var\(--msqdx-personality-chip-font-size\)/
     );
     expect(css).toMatch(
-      /\.msqdx-glass-personality-section \.msqdx-glass-chip\.--dashboard\.--interest[^}]*font-weight:\s*var\(--msqdx-personality-chip-font-weight\)/
+      /\.msqdx-glass-personality-section \.msqdx-glass-chip\.--dashboard\.--interest[^}]*font-weight:\s*var\(--msqdx-personality-chip-font-weight\)\s*!important/
+    );
+    expect(css).toMatch(
+      /@media \(max-width:\s*959px\)[\s\S]*\.msqdx-glass-personality-section \.msqdx-glass-chip\.--dashboard[^}]*font-size:\s*var\(--msqdx-personality-chip-font-size\)\s*!important/
     );
     expect(css).toMatch(
       new RegExp(

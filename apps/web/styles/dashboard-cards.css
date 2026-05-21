@@ -688,10 +688,23 @@
 .msqdx-glass-personality-section .msqdx-glass-chip.--dashboard.--value,
 .msqdx-glass-personality-section .msqdx-glass-chip.--dashboard.--interest,
 .msqdx-glass-personality-section .msqdx-glass-chip.--dashboard.--social {
-  font-size: var(--msqdx-personality-chip-font-size);
-  font-weight: var(--msqdx-personality-chip-font-weight);
-  padding: var(--msqdx-personality-chip-padding);
+  font-size: var(--msqdx-personality-chip-font-size) !important;
+  font-weight: var(--msqdx-personality-chip-font-weight) !important;
+  padding: var(--msqdx-personality-chip-padding) !important;
   line-height: 1.35;
+}
+
+/* Beat globals.css mobile chip reset (max-width: 959px) */
+@media (max-width: 959px) {
+  .msqdx-glass-personality-section .msqdx-glass-chip.--dashboard,
+  .msqdx-glass-personality-section .msqdx-glass-chip.--dashboard.--trait,
+  .msqdx-glass-personality-section .msqdx-glass-chip.--dashboard.--value,
+  .msqdx-glass-personality-section .msqdx-glass-chip.--dashboard.--interest,
+  .msqdx-glass-personality-section .msqdx-glass-chip.--dashboard.--social {
+    font-size: var(--msqdx-personality-chip-font-size) !important;
+    font-weight: var(--msqdx-personality-chip-font-weight) !important;
+    padding: var(--msqdx-personality-chip-padding) !important;
+  }
 }
 
 .msqdx-glass-personality-section .msqdx-glass-chip-editor__chips--wrap {

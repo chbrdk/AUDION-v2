@@ -2310,9 +2310,9 @@ main {
     line-height: 1.5 !important;
   }
 
-  /* Chip and badge text */
+  /* Chip and badge text (dashboard chips use dashboard-cards.css, incl. personality v2) */
   .MuiChip-label,
-  .msqdx-glass-chip {
+  .msqdx-glass-chip:not(.--dashboard) {
     font-size: 0.75rem !important;
     font-weight: 500 !important;
   }
