@@ -20,6 +20,8 @@ export type MsqdxGlassBioCardEditProps = {
   savePending?: boolean;
   /** Section shell shows title — flat stack with mono block headings (persona v2). */
   embedInSection?: boolean;
+  /** Render biography + demographics blocks only (nested in persona basics stack). */
+  embedInParentStack?: boolean;
 };
 
 function BioSubsection({
@@ -50,6 +52,7 @@ export const MsqdxGlassBioCardEdit = ({
   onSave,
   savePending = false,
   embedInSection = false,
+  embedInParentStack = false,
 }: MsqdxGlassBioCardEditProps) => {
   const { t } = useI18n();
   const genderOptions = useMemo(
@@ -365,6 +368,10 @@ export const MsqdxGlassBioCardEdit = ({
       {demographicsBlock}
     </>
   );
+
+  if (embedInSection && embedInParentStack) {
+    return <>{body}</>;
+  }
 
   if (embedInSection) {
     return (

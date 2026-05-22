@@ -92,6 +92,11 @@
   margin: 0;
 }
 
+.msqdx-glass-persona-basics-section .msqdx-glass-bio-stack__block {
+  padding: var(--msqdx-spacing-md) 0;
+  min-width: 0;
+}
+
 .msqdx-glass-persona-basics-section__name {
   margin: 0;
   flex: 1;

@@ -4,7 +4,6 @@ import { ADMIN_ROUTES } from "./routes";
 export const PERSONA_V2_SECTION_IDS = [
   "overview",
   "basics",
-  "bio",
   "personality",
   "communication",
   "pain-goals",
@@ -38,12 +37,6 @@ export const PERSONA_V2_SECTIONS: readonly PersonaV2SectionDef[] = [
     labelKey: "personaV2.sections.basics.label",
     descriptionKey: "personaV2.sections.basics.description",
     v1AccordionId: "persona-basics",
-  },
-  {
-    id: "bio",
-    icon: "badge",
-    labelKey: "personaV2.sections.bio.label",
-    descriptionKey: "personaV2.sections.bio.description",
   },
   {
     id: "personality",
@@ -91,8 +84,21 @@ export const PERSONA_V2_SECTIONS: readonly PersonaV2SectionDef[] = [
 
 export const PERSONA_V2_DEFAULT_SECTION: PersonaV2SectionId = "overview";
 
+/** Old routes merged into another section (e.g. `/bio` → basics). */
+export const PERSONA_V2_SECTION_LEGACY_ALIASES: Partial<Record<string, PersonaV2SectionId>> = {
+  bio: "basics",
+};
+
 export function isPersonaV2SectionId(value: string): value is PersonaV2SectionId {
   return (PERSONA_V2_SECTION_IDS as readonly string[]).includes(value);
+}
+
+export function resolvePersonaV2SectionId(value: string): PersonaV2SectionId | null {
+  if (isPersonaV2SectionId(value)) {
+    return value;
+  }
+  const mapped = PERSONA_V2_SECTION_LEGACY_ALIASES[value];
+  return mapped ?? null;
 }
 
 export function personaV2SectionHref(personaId: string, sectionId: PersonaV2SectionId): string {

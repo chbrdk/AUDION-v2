@@ -17,6 +17,8 @@ describe("persona v2 bio flat section", () => {
     expect(bio).toContain("PersonaV2SectionBlock");
     expect(bio).toContain("MsqdxGlassPainGoalsSectorSeparator");
     expect(bio).toMatch(/embedInSection \? \([\s\S]*msqdx-glass-bio-stack/);
+    expect(bio).toContain("embedInParentStack");
+    expect(bio).toMatch(/embedInSection && embedInParentStack/);
     expect(bio).toMatch(/if \(embedInSection\)[\s\S]*msqdx-glass-bio-section/);
     expect(bio).toMatch(/MsqdxDashboardCard[\s\S]*id="bio-demographics"/);
   });
@@ -27,7 +29,7 @@ describe("persona v2 bio flat section", () => {
       "utf8"
     );
     expect(panel).toMatch(
-      /MsqdxGlassBioCardEdit[\s\S]*?embedInSection=\{isV2Section\}/
+      /showSection\("basics"\)[\s\S]*MsqdxGlassBioCardEdit[\s\S]*embedInParentStack=\{isV2Section\}/
     );
   });
 

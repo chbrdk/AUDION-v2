@@ -24,6 +24,10 @@ describe("persona v2 basics flat section", () => {
     expect(panel).not.toMatch(
       /showSection\("basics"\)[\s\S]*MsqdxDashboardCard[\s\S]*id="persona-basics"/
     );
+    expect(panel).toMatch(
+      /showSection\("basics"\)[\s\S]*MsqdxGlassBioCardEdit[\s\S]*embedInParentStack=\{isV2Section\}/
+    );
+    expect(panel).not.toContain('showSection("bio")');
   });
 
   it("styles basics section with design tokens", () => {

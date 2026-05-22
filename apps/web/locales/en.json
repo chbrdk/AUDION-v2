@@ -555,12 +555,8 @@
         "description": "Summary and quick links to all areas"
       },
       "basics": {
-        "label": "Basics",
-        "description": "Name, avatar, headline, chat prompt"
-      },
-      "bio": {
-        "label": "Bio & demographics",
-        "description": "Biography and demographic fields"
+        "label": "Profile & bio",
+        "description": "Name, avatar, biography, demographics, metadata, and integrations"
       },
       "personality": {
         "label": "Personality",

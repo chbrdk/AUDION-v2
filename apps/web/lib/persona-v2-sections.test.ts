@@ -3,8 +3,10 @@ import {
   PERSONA_V2_SECTION_IDS,
   PERSONA_V2_SECTIONS,
   PERSONA_V2_DEFAULT_SECTION,
+  PERSONA_V2_SECTION_LEGACY_ALIASES,
   isPersonaV2SectionId,
   personaV2SectionHref,
+  resolvePersonaV2SectionId,
 } from "./persona-v2-sections";
 
 describe("persona-v2-sections", () => {
@@ -27,6 +29,15 @@ describe("persona-v2-sections", () => {
 
   it("validates section ids", () => {
     expect(isPersonaV2SectionId("basics")).toBe(true);
+    expect(isPersonaV2SectionId("bio")).toBe(false);
     expect(isPersonaV2SectionId("unknown")).toBe(false);
+  });
+
+  it("merges legacy bio route into basics", () => {
+    expect(PERSONA_V2_SECTION_LEGACY_ALIASES.bio).toBe("basics");
+    expect(resolvePersonaV2SectionId("bio")).toBe("basics");
+    expect(resolvePersonaV2SectionId("basics")).toBe("basics");
+    expect(resolvePersonaV2SectionId("unknown")).toBeNull();
+    expect(PERSONA_V2_SECTION_IDS).not.toContain("bio");
   });
 });

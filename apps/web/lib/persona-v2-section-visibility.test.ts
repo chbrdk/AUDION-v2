@@ -4,12 +4,12 @@ import { isPersonaV2SectionContentVisible } from "./persona-v2-section-visibilit
 describe("persona-v2-section-visibility", () => {
   it("shows all blocks in v1 mode", () => {
     expect(isPersonaV2SectionContentVisible(undefined, "v1", "basics")).toBe(true);
-    expect(isPersonaV2SectionContentVisible("bio", "v1", "personality")).toBe(true);
+    expect(isPersonaV2SectionContentVisible("basics", "v1", "personality")).toBe(true);
   });
 
   it("filters blocks in v2-section mode", () => {
     expect(isPersonaV2SectionContentVisible("basics", "v2-section", "basics")).toBe(true);
-    expect(isPersonaV2SectionContentVisible("basics", "v2-section", "bio")).toBe(false);
+    expect(isPersonaV2SectionContentVisible("personality", "v2-section", "basics")).toBe(false);
     expect(isPersonaV2SectionContentVisible("moodboard", "v2-section", "moodboard")).toBe(true);
   });
 

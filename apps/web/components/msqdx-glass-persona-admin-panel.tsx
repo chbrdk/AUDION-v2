@@ -2268,6 +2268,19 @@ export const MsqdxGlassPersonaAdminPanel = ({
                 </PersonaAdminSectionSurface>
                 {isV2Section ? <MsqdxGlassPainGoalsSectorSeparator /> : null}
 
+                {profileForBioEditor ? (
+                  <MsqdxGlassBioCardEdit
+                    profile={profileForBioEditor}
+                    expanded={accordionExpanded("bio-demographics")}
+                    onToggle={accordionToggle}
+                    onSave={handleBioDemographicsBilingualSave}
+                    savePending={savePending}
+                    embedInSection={isV2Section}
+                    embedInParentStack={isV2Section}
+                  />
+                ) : null}
+                {isV2Section && profileForBioEditor ? <MsqdxGlassPainGoalsSectorSeparator /> : null}
+
                 <PersonaAdminSectionSurface
                   embedInSection={isV2Section}
                   cardId="metadata"
@@ -2497,14 +2510,13 @@ export const MsqdxGlassPersonaAdminPanel = ({
               </Box>
               ) : null}
 
-              {showSection("bio") && profileForBioEditor ? (
+              {!isV2Section && profileForBioEditor ? (
                 <MsqdxGlassBioCardEdit
                   profile={profileForBioEditor}
                   expanded={accordionExpanded("bio-demographics")}
                   onToggle={accordionToggle}
                   onSave={handleBioDemographicsBilingualSave}
                   savePending={savePending}
-                  embedInSection={isV2Section}
                 />
               ) : null}
 
