@@ -14,3 +14,10 @@ export const SECTION_HEADING_MONO_SX = {
   lineHeight: 1.2,
   color: "text.primary",
 } as const;
+
+export {
+  PERSONA_V2_SECTION_HEADING_COUNT_FONT_SIZE,
+  PERSONA_V2_SECTION_HEADING_FONT_SIZE,
+  PERSONA_V2_SECTION_HEADING_FONT_WEIGHT,
+  PERSONA_V2_SECTION_HEADING_LINE_HEIGHT,
+} from "./persona-v2-section-heading";

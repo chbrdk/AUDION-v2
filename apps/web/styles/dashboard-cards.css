@@ -725,10 +725,6 @@
   z-index: 1;
 }
 
-.msqdx-glass-personality-section .msqdx-glass-chip-editor__section-heading h3.MuiTypography-root {
-  font-size: clamp(1.125rem, 2.5vw, 1.5rem);
-}
-
 .msqdx-glass-personality-section .msqdx-glass-chip.--dashboard,
 .msqdx-glass-personality-section .msqdx-glass-chip.--dashboard.--trait,
 .msqdx-glass-personality-section .msqdx-glass-chip.--dashboard.--value,

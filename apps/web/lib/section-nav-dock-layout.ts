@@ -22,6 +22,12 @@ export const SECTION_NAV_HORIZONTAL_DOCK_BORDER_RADIUS_PX =
 /** Inner flex row/column for nav items (inside CornerBox shell). */
 export const SECTION_NAV_DOCK_TRACK_CLASS = "msqdx-glass-section-nav__dock-track";
 
+/** Default left-rail grid column (section-shell.css). */
+export const SECTION_NAV_RAIL_COLUMN_MAX_PX = 224;
+
+/** Wider rail when entity corner accent sits above subnav (persona v2). */
+export const SECTION_NAV_RAIL_WITH_ENTITY_ACCENT_MAX_PX = 280;
+
 /**
  * Left rail docked to workspace on the right: outer corners rounded on the left,
  * cutdown-b on the right (patch on the right edge → reads as oben/unten rechts, not rechts oben/unten).

@@ -1,3 +1,29 @@
+/* Persona v2 — unified chip-editor section headings (Pain Points, Personality, …) */
+.msqdx-glass-persona-v2-detail {
+  --msqdx-persona-v2-section-heading-font-size: clamp(1.125rem, 2.5vw, 1.5rem);
+  --msqdx-persona-v2-section-heading-count-font-size: 0.9375rem;
+}
+
+.msqdx-glass-persona-v2-detail .msqdx-glass-chip-editor__section-heading h3.MuiTypography-root {
+  font-family: var(--msqdx-font-family-mono) !important;
+  font-size: var(--msqdx-persona-v2-section-heading-font-size) !important;
+  font-weight: 100 !important;
+  line-height: 1.2 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  color: var(--color-text-primary) !important;
+}
+
+.msqdx-glass-persona-v2-detail
+  .msqdx-glass-chip-editor__section-heading
+  .MuiTypography-root.MuiTypography-h5 {
+  font-family: var(--msqdx-font-family-mono) !important;
+  font-size: var(--msqdx-persona-v2-section-heading-count-font-size) !important;
+  font-weight: 500 !important;
+  line-height: 1.2 !important;
+  color: var(--color-text-secondary) !important;
+}
+
 /* Flat single-column layout for persona admin v2 section routes */
 .msqdx-glass-persona-v2-section-panel .msqdx-glass-dashboard-grid--v2-section {
   display: flex;

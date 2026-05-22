@@ -11,10 +11,21 @@ import {
   SECTION_NAV_HORIZONTAL_WORKSPACE_OVERLAP_PX,
   SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX,
   SECTION_WORKSPACE_DOCK_CORNER_STYLES,
+  SECTION_NAV_RAIL_WITH_ENTITY_ACCENT_MAX_PX,
   SECTION_WORKSPACE_DOCK_PADDING,
 } from "./section-nav-dock-layout";
 
 describe("section-nav-dock-layout", () => {
+  it("widens nav rail when entity accent is in nav column", () => {
+    const css = readFileSync(resolve(process.cwd(), "styles/section-shell.css"), "utf8");
+    expect(SECTION_NAV_RAIL_WITH_ENTITY_ACCENT_MAX_PX).toBe(280);
+    expect(css).toMatch(
+      new RegExp(
+        `grid-template-columns:\\s*minmax\\(240px,\\s*${SECTION_NAV_RAIL_WITH_ENTITY_ACCENT_MAX_PX}px\\)`
+      )
+    );
+  });
+
   it("uses right-edge cutdowns for left-rail dock", () => {
     expect(SECTION_NAV_DOCK_CORNER_STYLES.topRight).toBe("cutdown-b");
     expect(SECTION_NAV_DOCK_CORNER_STYLES.bottomRight).toBe("cutdown-b");
