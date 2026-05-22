@@ -28,7 +28,7 @@
 .msqdx-glass-persona-v2-section-panel .msqdx-glass-dashboard-grid--v2-section {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: var(--msqdx-spacing-lg);
   margin-top: 0;
 }
 
@@ -60,4 +60,95 @@
 /* Pain & goals v2 — no duplicate accordion card (section shell has the title) */
 .msqdx-glass-pain-goals-section {
   padding-top: 0.25rem;
+}
+
+/* Persona basics v2 — flat stack (profile, metadata, integrations) */
+.msqdx-glass-persona-basics-section {
+  width: 100%;
+  padding-top: var(--msqdx-spacing-xxs);
+}
+
+.msqdx-glass-persona-basics-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+}
+
+.msqdx-glass-persona-v2-section-block {
+  padding: var(--msqdx-spacing-md) 0;
+  min-width: 0;
+}
+
+.msqdx-glass-persona-v2-section-block:first-child {
+  padding-top: 0;
+}
+
+.msqdx-glass-persona-v2-section-block:last-child {
+  padding-bottom: 0;
+}
+
+.msqdx-glass-persona-basics-section .msqdx-glass-pain-goals-sector-separator {
+  margin: 0;
+}
+
+.msqdx-glass-persona-basics-section__name {
+  margin: 0;
+  flex: 1;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--color-text-primary);
+}
+
+.msqdx-glass-persona-basics-section__headline {
+  font-size: var(--msqdx-font-size-base);
+  color: var(--color-text-secondary);
+}
+
+.msqdx-glass-persona-basics-section__segment {
+  font-size: var(--msqdx-font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.msqdx-glass-persona-basics-section__field-row {
+  display: flex;
+  align-items: center;
+  gap: var(--msqdx-spacing-xs);
+}
+
+.msqdx-glass-persona-basics-section__field-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--msqdx-spacing-xxs);
+}
+
+.msqdx-glass-persona-basics-section__hero {
+  display: flex;
+  gap: var(--msqdx-spacing-md);
+  align-items: flex-start;
+  margin-bottom: var(--msqdx-spacing-md);
+}
+
+.msqdx-glass-persona-basics-section__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--msqdx-spacing-sm);
+  margin-top: var(--msqdx-spacing-sm);
+}
+
+.msqdx-glass-persona-basics-section__actions-primary {
+  display: flex;
+  gap: var(--msqdx-spacing-xs);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.msqdx-glass-persona-basics-section__actions-danger {
+  display: flex;
+  gap: var(--msqdx-spacing-sm);
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  padding-top: var(--msqdx-spacing-xs);
+  border-top: 1px solid var(--color-theme-accent-tint, rgba(0, 0, 0, 0.08));
 }

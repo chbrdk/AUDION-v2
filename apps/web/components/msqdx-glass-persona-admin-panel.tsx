@@ -60,6 +60,8 @@ import {
   isPersonaV2SectionContentVisible,
   type PersonaAdminPresentation,
 } from "../lib/persona-v2-section-visibility";
+import { PersonaAdminSectionSurface } from "./personas-v2/persona-admin-section-surface";
+import { MsqdxGlassPainGoalsSectorSeparator } from "./generic/msqdx-glass-pain-goals-sector-separator";
 
 type MsqdxGlassPersonaAdminPanelProps = {
   initialList: PersonaListResponse;
@@ -2029,18 +2031,27 @@ export const MsqdxGlassPersonaAdminPanel = ({
               }
             >
 
-              {/* Persona header (name, headline, segment); bio & demographics in the next card */}
+              {/* Persona header (name, headline, segment); metadata & integrations */}
               {showSection("basics") ? (
-              <Box sx={{ gridColumn: "1 / -1" }}>
-                <MsqdxDashboardCard
-                  id="persona-basics"
+              <Box
+                sx={{ gridColumn: "1 / -1", width: "100%" }}
+                className={isV2Section ? "msqdx-glass-persona-basics-section" : undefined}
+              >
+                <Stack
+                  component={isV2Section ? "section" : "div"}
+                  className={isV2Section ? "msqdx-glass-persona-basics-stack" : undefined}
+                  spacing={0}
+                >
+                <PersonaAdminSectionSurface
+                  embedInSection={isV2Section}
+                  hideBlockTitle={isV2Section}
+                  cardId="persona-basics"
                   title={t("personaAdmin.personaBasics")}
                   icon="person"
-                  iconColor={{ color: THEME_ACCENT.color }}
                   expanded={accordionExpanded("persona-basics")}
                   onToggle={accordionToggle}
                 >
-                  <Box sx={{ display: "flex", gap: 2, alignItems: "flex-start", mb: 2 }}>
+                  <Box className={isV2Section ? "msqdx-glass-persona-basics-section__hero" : undefined} sx={isV2Section ? undefined : { display: "flex", gap: 2, alignItems: "flex-start", mb: 2 }}>
                     <div className="msqdx-glass-avatar" style={{ flexShrink: 0 }}>
                       {detail.metadata.avatarUrl ? (
                         /* eslint-disable-next-line @next/next/no-img-element */
@@ -2062,7 +2073,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
                         return (
                           <div>
                             {nameField && (
-                              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                              <div className={isV2Section ? "msqdx-glass-persona-basics-section__field-row" : undefined} style={isV2Section ? { marginBottom: "var(--msqdx-spacing-sm)" } : { display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
                                 {editingField === "name" ? (
                                   <Box sx={{ flex: 1 }}>
                                     <MsqdxGlassFieldEditor
@@ -2079,7 +2090,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
                                   </Box>
                                 ) : (
                                   <>
-                                    <h2 style={{ margin: 0, fontSize: "2rem", fontWeight: 600, flex: 1 }}>
+                                    <h2 className={isV2Section ? "msqdx-glass-persona-basics-section__name" : undefined} style={isV2Section ? undefined : { margin: 0, fontSize: "2rem", fontWeight: 600, flex: 1 }}>
                                       {detail.profile.name}
                                     </h2>
                                     <MsqdxGlassEditButton onClick={() => setEditingField("name")} disabled={savePending} aria-label="Edit name" size="small" fontSize={16} />
@@ -2087,8 +2098,8 @@ export const MsqdxGlassPersonaAdminPanel = ({
                                 )}
                               </div>
                             )}
-                            <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                            <div className={isV2Section ? "msqdx-glass-persona-basics-section__field-stack" : undefined} style={isV2Section ? undefined : { display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                              <div className={isV2Section ? "msqdx-glass-persona-basics-section__field-row" : undefined} style={isV2Section ? undefined : { display: "flex", alignItems: "center", gap: "0.5rem" }}>
                                 {editingField === "headline" ? (
                                   <Box sx={{ flex: 1, display: "flex", flexDirection: "column", gap: 1, width: "100%" }}>
                                     <TextField
@@ -2183,7 +2194,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
                                   </Box>
                                 ) : (
                                   <>
-                                    <span style={{ fontSize: "1rem", color: "var(--color-text-secondary)" }}>
+                                    <span className={isV2Section ? "msqdx-glass-persona-basics-section__headline" : undefined} style={isV2Section ? undefined : { fontSize: "1rem", color: "var(--color-text-secondary)" }}>
                                       {locale === "de"
                                         ? detail.headline_de?.trim() || detail.profile.headline || "—"
                                         : detail.profile.headline || "—"}
@@ -2200,7 +2211,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
                               </div>
 
                               {segmentField && (
-                                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                                <div className={isV2Section ? "msqdx-glass-persona-basics-section__field-row" : undefined} style={isV2Section ? undefined : { display: "flex", alignItems: "center", gap: "0.5rem" }}>
                                   {editingField === "segment" ? (
                                     <Box sx={{ flex: 1 }}>
                                       <MsqdxGlassFieldEditor
@@ -2217,15 +2228,15 @@ export const MsqdxGlassPersonaAdminPanel = ({
                                     </Box>
                                   ) : (
                                     <>
-                                      <span style={{ fontSize: "0.875rem", color: "var(--color-text-secondary)" }}>{detail.profile.segment || "—"}</span>
+                                      <span className={isV2Section ? "msqdx-glass-persona-basics-section__segment" : undefined} style={isV2Section ? undefined : { fontSize: "0.875rem", color: "var(--color-text-secondary)" }}>{detail.profile.segment || "—"}</span>
                                       <MsqdxGlassEditButton onClick={() => setEditingField("segment")} disabled={savePending} aria-label="Edit segment" size="small" fontSize={14} />
                                     </>
                                   )}
                                 </div>
                               )}
                             </div>
-                            <Box sx={{ mt: 1, display: "flex", flexDirection: "column", gap: 1 }}>
-                              <Box sx={{ display: "flex", gap: 0.5, alignItems: "center", flexWrap: "wrap" }}>
+                            <Box className={isV2Section ? "msqdx-glass-persona-basics-section__actions" : undefined} sx={isV2Section ? undefined : { mt: 1, display: "flex", flexDirection: "column", gap: 1 }}>
+                              <Box className={isV2Section ? "msqdx-glass-persona-basics-section__actions-primary" : undefined} sx={isV2Section ? undefined : { display: "flex", gap: 0.5, alignItems: "center", flexWrap: "wrap" }}>
                                 <MsqdxButton variant="outlined" size="small" onClick={handleEnrichWithAi} disabled={enrichPending || savePending} startIcon={<MsqdxIcon name="auto_awesome" customSize={16} />}>
                                   {enrichPending ? t("personaAdmin.enrichingWithAi") : t("personaAdmin.enrichWithAi")}
                                 </MsqdxButton>
@@ -2240,7 +2251,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
                                   {avatarGeneratePending ? t("personaAdmin.generatingAvatar") : t("personaAdmin.generateAvatar")}
                                 </MsqdxButton>
                               </Box>
-                              <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end", flexWrap: "wrap", pt: 0.5, borderTop: "1px solid", borderColor: "divider" }}>
+                              <Box className={isV2Section ? "msqdx-glass-persona-basics-section__actions-danger" : undefined} sx={isV2Section ? undefined : { display: "flex", gap: 1, justifyContent: "flex-end", flexWrap: "wrap", pt: 0.5, borderTop: "1px solid", borderColor: "divider" }}>
                                 <MsqdxButton variant="text" size="small" onClick={handleArchive} disabled={savePending} startIcon={<MsqdxIcon name="archive" customSize={16} />}>
                                   {t("personaAdmin.archive")}
                                 </MsqdxButton>
@@ -2254,28 +2265,14 @@ export const MsqdxGlassPersonaAdminPanel = ({
                       })()}
                     </Box>
                   </Box>
-                </MsqdxDashboardCard>
-              </Box>
-              ) : null}
+                </PersonaAdminSectionSurface>
+                {isV2Section ? <MsqdxGlassPainGoalsSectorSeparator /> : null}
 
-              {showSection("bio") && profileForBioEditor ? (
-                <MsqdxGlassBioCardEdit
-                  profile={profileForBioEditor}
-                  expanded={accordionExpanded("bio-demographics")}
-                  onToggle={accordionToggle}
-                  onSave={handleBioDemographicsBilingualSave}
-                  savePending={savePending}
-                />
-              ) : null}
-
-              {/* Card: Metadata - full width */}
-              {showSection("basics") ? (
-              <Box sx={{ gridColumn: "1 / -1" }}>
-                <MsqdxDashboardCard
-                  id="metadata"
+                <PersonaAdminSectionSurface
+                  embedInSection={isV2Section}
+                  cardId="metadata"
                   title={t("personaAdmin.metadata")}
                   icon="info"
-                  iconColor={{ color: THEME_ACCENT.color }}
                   expanded={accordionExpanded("metadata")}
                   onToggle={accordionToggle}
                 >
@@ -2422,17 +2419,14 @@ export const MsqdxGlassPersonaAdminPanel = ({
                       </Box>
                     )}
                   </Box>
-                </MsqdxDashboardCard>
-              </Box>
-              ) : null}
+                </PersonaAdminSectionSurface>
+                {isV2Section ? <MsqdxGlassPainGoalsSectorSeparator /> : null}
 
-              {showSection("basics") ? (
-              <Box sx={{ gridColumn: "1 / -1" }}>
-                <MsqdxDashboardCard
-                  id="integrations"
+                <PersonaAdminSectionSurface
+                  embedInSection={isV2Section}
+                  cardId="integrations"
                   title={t("personaAdmin.integrations")}
                   icon="link"
-                  iconColor={{ color: THEME_ACCENT.color }}
                   expanded={accordionExpanded("integrations")}
                   onToggle={accordionToggle}
                 >
@@ -2498,8 +2492,19 @@ export const MsqdxGlassPersonaAdminPanel = ({
                       />
                     </Box>
                   </Box>
-                </MsqdxDashboardCard>
+                </PersonaAdminSectionSurface>
+                </Stack>
               </Box>
+              ) : null}
+
+              {showSection("bio") && profileForBioEditor ? (
+                <MsqdxGlassBioCardEdit
+                  profile={profileForBioEditor}
+                  expanded={accordionExpanded("bio-demographics")}
+                  onToggle={accordionToggle}
+                  onSave={handleBioDemographicsBilingualSave}
+                  savePending={savePending}
+                />
               ) : null}
 
               {/* Cards: Personality (Traits), Interests, Values – three columns */}

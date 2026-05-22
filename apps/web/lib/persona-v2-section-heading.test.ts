@@ -36,5 +36,8 @@ describe("persona v2 section panel layout", () => {
     expect(css).toMatch(
       /\.msqdx-glass-persona-v2-section-panel \.msqdx-glass-dashboard-grid--v2-section[^}]*margin-top:\s*0/
     );
+    expect(css).toMatch(
+      /\.msqdx-glass-persona-v2-section-panel \.msqdx-glass-dashboard-grid--v2-section[^}]*gap:\s*var\(--msqdx-spacing-lg\)/
+    );
   });
 });

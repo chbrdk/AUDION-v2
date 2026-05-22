@@ -20,8 +20,10 @@ describe("persona v2 detail admin header", () => {
     expect(layout).not.toContain("backHref=");
     expect(layout).not.toContain("backLabel=");
     expect(layout).not.toContain("scopeLabel=");
-    expect(layout).not.toContain("sectionTitle=");
-    expect(layout).not.toContain("sectionDescription=");
+    expect(layout).toContain("getPersonaV2SectionDef");
+    expect(layout).toContain('sectionId !== "overview"');
+    expect(layout).toContain("sectionTitle={showWorkspaceSectionHeader");
+    expect(layout).toContain("sectionDescription={showWorkspaceSectionHeader");
     expect(layout).not.toContain("personaV2.openClassic");
     expect(layout).toContain("entitySubtitle={summary?.segment?.trim()");
     expect(layout).not.toContain("[summary.headline, summary.segment]");

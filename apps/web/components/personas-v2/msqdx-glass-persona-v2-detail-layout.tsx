@@ -5,6 +5,7 @@ import { MsqdxGlassAdminHeaderBackIconButton } from "../admin/msqdx-glass-admin-
 import { buildApiUrl } from "../../app/api/_lib/backend";
 import { ADMIN_ROUTES } from "../../lib/routes";
 import {
+  getPersonaV2SectionDef,
   PERSONA_V2_SECTIONS,
   personaV2SectionHref,
   type PersonaV2SectionId,
@@ -89,6 +90,9 @@ export function MsqdxGlassPersonaV2DetailLayout({ personaId, sectionId, docsUrl 
     [personaId, t]
   );
 
+  const sectionDef = getPersonaV2SectionDef(sectionId);
+  const showWorkspaceSectionHeader = sectionId !== "overview";
+
   return (
     <MsqdxGlassSectionShell
       className="msqdx-glass-persona-v2-detail"
@@ -97,6 +101,8 @@ export function MsqdxGlassPersonaV2DetailLayout({ personaId, sectionId, docsUrl 
       activeSectionId={sectionId}
       navItems={navItems}
       navLabel={t("personaV2.sectionsNavLabel")}
+      sectionTitle={showWorkspaceSectionHeader ? t(sectionDef.labelKey) : undefined}
+      sectionDescription={showWorkspaceSectionHeader ? t(sectionDef.descriptionKey) : undefined}
       wideContent
       entityCornerAccent
     >
