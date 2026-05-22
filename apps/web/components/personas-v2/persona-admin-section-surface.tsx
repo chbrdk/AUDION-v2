@@ -1,10 +1,13 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { Box } from "@mui/material";
 import { MsqdxDashboardCard } from "@msqdx/react";
 import { THEME_ACCENT } from "../../lib/theme-accent";
 import { PersonaV2SectionBlock } from "./persona-v2-section-block";
+
+/** Aligns with @msqdx/react when app and design-system use different @types/react versions. */
+type MsqdxDashboardCardChildren = ComponentProps<typeof MsqdxDashboardCard>["children"];
 
 export type PersonaAdminSectionSurfaceProps = {
   embedInSection?: boolean;
@@ -49,7 +52,7 @@ export function PersonaAdminSectionSurface({
         expanded={expanded}
         onToggle={onToggle}
       >
-        {children}
+        {children as MsqdxDashboardCardChildren}
       </MsqdxDashboardCard>
     </Box>
   );
