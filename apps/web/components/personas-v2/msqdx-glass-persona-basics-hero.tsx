@@ -4,7 +4,7 @@ import type { MutableRefObject } from "react";
 import type { Locale } from "../../lib/i18n";
 import type { PersonaResponse } from "@msqdx-glass/types";
 import { getFieldDefinitions } from "@msqdx-glass/types";
-import { Box, TextField, Tooltip } from "@mui/material";
+import { Box, IconButton, TextField, Tooltip } from "@mui/material";
 import { MsqdxButton, MsqdxIcon } from "@msqdx/react";
 import { mirrorFillStringPair } from "../../lib/bilingual-mirror";
 import {
@@ -36,7 +36,6 @@ export type MsqdxGlassPersonaBasicsHeroProps = {
   metadataFormDirtyRef: MutableRefObject<boolean>;
   savePending: boolean;
   enrichPending: boolean;
-  ensureChatPromptPending: boolean;
   avatarGeneratePending: boolean;
   metadataAssignPending: boolean;
   projects: readonly PersonaMetadataAssignmentProject[];
@@ -44,7 +43,6 @@ export type MsqdxGlassPersonaBasicsHeroProps = {
   onSave: (updates: Record<string, unknown>) => Promise<void>;
   onAssignMetadata: (payload: { project_id?: string; target_group_id?: string }) => void | Promise<void>;
   onEnrichWithAi: () => void;
-  onEnsureChatPrompt: () => void;
   onGenerateAvatar: () => void;
   onArchive: () => void;
   onDelete: () => void;
@@ -62,7 +60,6 @@ export function MsqdxGlassPersonaBasicsHero({
   metadataFormDirtyRef,
   savePending,
   enrichPending,
-  ensureChatPromptPending,
   avatarGeneratePending,
   metadataAssignPending,
   projects,
@@ -70,7 +67,6 @@ export function MsqdxGlassPersonaBasicsHero({
   onSave,
   onAssignMetadata,
   onEnrichWithAi,
-  onEnsureChatPrompt,
   onGenerateAvatar,
   onArchive,
   onDelete,
@@ -304,43 +300,34 @@ export function MsqdxGlassPersonaBasicsHero({
           >
             {enrichPending ? t("personaAdmin.enrichingWithAi") : t("personaAdmin.enrichWithAi")}
           </MsqdxButton>
-          <Tooltip title={t("personaAdmin.ensureChatPromptTooltip")}>
-            <span>
-              <MsqdxButton
-                variant="outlined"
-                size="small"
-                onClick={onEnsureChatPrompt}
-                disabled={ensureChatPromptPending || savePending}
-                startIcon={<MsqdxIcon name="chat" customSize={16} />}
-              >
-                {ensureChatPromptPending
-                  ? t("personaAdmin.ensuringChatPrompt")
-                  : t("personaAdmin.ensureChatPrompt")}
-              </MsqdxButton>
-            </span>
-          </Tooltip>
-        </div>
-
-        <div className="msqdx-glass-persona-basics-hero__footer">
-          <MsqdxButton
-            variant="text"
-            size="small"
-            onClick={onArchive}
-            disabled={savePending}
-            startIcon={<MsqdxIcon name="archive" customSize={16} />}
-          >
-            {t("personaAdmin.archive")}
-          </MsqdxButton>
-          <MsqdxButton
-            variant="text"
-            size="small"
-            onClick={onDelete}
-            disabled={savePending}
-            brandColor="pink"
-            startIcon={<MsqdxIcon name="delete" customSize={16} />}
-          >
-            {t("personaAdmin.delete")}
-          </MsqdxButton>
+          <div className="msqdx-glass-persona-basics-hero__toolbar-actions">
+            <Tooltip title={t("personaAdmin.archive")}>
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={onArchive}
+                  disabled={savePending}
+                  aria-label={t("personaAdmin.archive")}
+                  className="msqdx-glass-persona-basics-hero__icon-action"
+                >
+                  <MsqdxIcon name="archive" customSize={18} />
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Tooltip title={t("personaAdmin.deletePersona")}>
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={onDelete}
+                  disabled={savePending}
+                  aria-label={t("personaAdmin.deletePersona")}
+                  className="msqdx-glass-persona-basics-hero__icon-action msqdx-glass-persona-basics-hero__icon-action--danger"
+                >
+                  <MsqdxIcon name="delete" customSize={18} />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </div>
         </div>
       </div>
     </div>

@@ -2,7 +2,8 @@
 
 import type { PersonaResponse } from "@msqdx-glass/types";
 import { Alert, Box } from "@mui/material";
-import { MsqdxTypography } from "@msqdx/react";
+import { MsqdxSelect } from "@msqdx/react";
+import { FORM_FIELD_ACCENT_SX } from "../../lib/theme-accent";
 import { useI18n } from "../i18n/i18n-provider";
 
 export type PersonaMetadataAssignmentProject = {
@@ -43,62 +44,37 @@ export function MsqdxGlassPersonaMetadataAssignment({
         </Alert>
       ) : null}
       <Box className="msqdx-glass-persona-metadata-assignment__fields">
-        <Box sx={{ minWidth: 200, flex: "1 1 200px" }}>
-          <MsqdxTypography
-            variant="caption"
-            sx={{
-              color: "text.secondary",
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-              display: "block",
-              mb: 0.5,
-            }}
-          >
-            {t("personaAdmin.project")}
-          </MsqdxTypography>
-          <Box
-            component="select"
+        <Box className="msqdx-glass-persona-metadata-assignment__field">
+          <MsqdxSelect
+            label={t("personaAdmin.project")}
             value={detail.metadata.projectId ?? ""}
-            onChange={(e) => void onAssign({ project_id: e.target.value, target_group_id: "" })}
+            onChange={(e) => void onAssign({ project_id: String(e.target.value ?? ""), target_group_id: "" })}
+            options={projects.map((p) => ({ value: p.id, label: p.name }))}
+            fullWidth
+            size="medium"
             disabled={disabled}
-            className="msqdx-glass-persona-metadata-assignment__select"
-          >
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </Box>
+            sx={FORM_FIELD_ACCENT_SX}
+          />
         </Box>
-        <Box sx={{ minWidth: 200, flex: "1 1 200px" }}>
-          <MsqdxTypography
-            variant="caption"
-            sx={{
-              color: "text.secondary",
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-              display: "block",
-              mb: 0.5,
-            }}
-          >
-            {t("personaAdmin.targetGroup")}
-          </MsqdxTypography>
-          <Box
-            component="select"
+        <Box className="msqdx-glass-persona-metadata-assignment__field">
+          <MsqdxSelect
+            label={t("personaAdmin.targetGroup")}
             value={targetGroupId ?? ""}
             onChange={(e) =>
-              void onAssign({ target_group_id: e.target.value === "" ? "" : e.target.value })
+              void onAssign({
+                target_group_id: e.target.value === "" ? "" : String(e.target.value ?? ""),
+              })
             }
+            options={[
+              { value: "", label: t("personaAdmin.noTargetGroup") },
+              ...targetGroups.map((tg) => ({ value: tg.id, label: tg.name })),
+            ]}
+            displayEmpty
+            fullWidth
+            size="medium"
             disabled={disabled}
-            className="msqdx-glass-persona-metadata-assignment__select"
-          >
-            <option value="">{t("personaAdmin.noTargetGroup")}</option>
-            {targetGroups.map((tg) => (
-              <option key={tg.id} value={tg.id}>
-                {tg.name}
-              </option>
-            ))}
-          </Box>
+            sx={FORM_FIELD_ACCENT_SX}
+          />
         </Box>
       </Box>
     </Box>

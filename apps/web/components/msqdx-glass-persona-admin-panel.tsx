@@ -2059,7 +2059,6 @@ export const MsqdxGlassPersonaAdminPanel = ({
                       metadataFormDirtyRef={metadataFormDirtyRef}
                       savePending={savePending}
                       enrichPending={enrichPending}
-                      ensureChatPromptPending={ensureChatPromptPending}
                       avatarGeneratePending={avatarGeneratePending}
                       metadataAssignPending={metadataAssignPending}
                       projects={projects}
@@ -2067,7 +2066,6 @@ export const MsqdxGlassPersonaAdminPanel = ({
                       onSave={(updates) => handleSave(updates as Partial<EditFormState>)}
                       onAssignMetadata={handleSaveMetadataAssignment}
                       onEnrichWithAi={handleEnrichWithAi}
-                      onEnsureChatPrompt={handleEnsureChatPrompt}
                       onGenerateAvatar={handleGenerateAvatar}
                       onArchive={handleArchive}
                       onDelete={handleDelete}

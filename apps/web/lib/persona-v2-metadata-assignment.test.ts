@@ -13,7 +13,7 @@ describe("persona v2 metadata assignment", () => {
     );
     expect(panel).toMatch(/!isV2Section \? \([\s\S]*cardId="metadata"[\s\S]*personaAdmin\.confidencePercent/);
     expect(panel).toMatch(
-      /msqdx-glass-persona-basics-section__assignment[\s\S]*MsqdxGlassPersonaMetadataAssignment/
+      /MsqdxGlassPersonaBasicsHero[\s\S]*MsqdxGlassPersonaMetadataAssignment/
     );
   });
 
@@ -24,6 +24,16 @@ describe("persona v2 metadata assignment", () => {
     );
     expect(assignment).toContain("msqdx-glass-persona-metadata-assignment");
     expect(assignment).toContain("personaAdmin.project");
+    expect(assignment).toContain("MsqdxSelect");
+    expect(assignment).not.toContain('component="select"');
     expect(assignment).not.toContain("personaAdmin.confidence");
+  });
+
+  it("styles metadata assignment as a two-column grid for msqdx selects", () => {
+    const css = readFileSync(join(webRoot, "styles/persona-v2-section-panel.css"), "utf8");
+    expect(css).toMatch(
+      /\.msqdx-glass-persona-metadata-assignment__fields[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/
+    );
+    expect(css).not.toContain(".msqdx-glass-persona-metadata-assignment__select");
   });
 });

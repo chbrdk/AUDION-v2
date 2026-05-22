@@ -22,6 +22,7 @@ describe("persona v2 bio flat section", () => {
     expect(bio).toMatch(/if \(embedInSection\)[\s\S]*msqdx-glass-bio-section/);
     expect(bio).toMatch(/MsqdxDashboardCard[\s\S]*id="bio-demographics"/);
     expect(bio).toContain("msqdx-glass-bio-demographics-field-row");
+    expect(bio).toMatch(/personaAdmin\.gender[\s\S]*size="medium"/);
   });
 
   it("passes embedInSection from persona admin panel", () => {

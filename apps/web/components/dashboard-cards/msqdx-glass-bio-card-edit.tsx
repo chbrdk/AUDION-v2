@@ -281,7 +281,7 @@ export const MsqdxGlassBioCardEdit = ({
               options={[{ value: "", label: t("personaAdmin.genderNone") }, ...genderOptions]}
               displayEmpty
               fullWidth
-              size="small"
+              size="medium"
               sx={FORM_FIELD_ACCENT_SX}
             />
             <MsqdxGlassInlineEditControls

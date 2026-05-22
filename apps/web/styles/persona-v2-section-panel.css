@@ -107,23 +107,20 @@
 }
 
 .msqdx-glass-persona-metadata-assignment__fields {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--msqdx-spacing-md);
+  align-items: start;
 }
 
-.msqdx-glass-persona-metadata-assignment__select {
-  width: 100%;
-  padding: var(--msqdx-spacing-xs) var(--msqdx-spacing-sm);
-  font-size: var(--msqdx-font-size-sm);
-  border: 1px solid var(--color-theme-accent-tint, rgba(0, 0, 0, 0.12));
-  border-radius: var(--msqdx-radius-sm);
-  background: var(--color-primary-white, #ffffff);
-  color: var(--color-text-primary);
+.msqdx-glass-persona-metadata-assignment__field {
+  min-width: 0;
 }
 
-[data-theme="dark"] .msqdx-glass-persona-metadata-assignment__select {
-  background: var(--color-background, #1a1a1a);
+@media (max-width: 560px) {
+  .msqdx-glass-persona-metadata-assignment__fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .msqdx-glass-persona-basics-section__name {
@@ -261,15 +258,37 @@
   flex-wrap: wrap;
   gap: var(--msqdx-spacing-sm);
   align-items: center;
-}
-
-.msqdx-glass-persona-basics-hero__footer {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--msqdx-spacing-sm);
-  justify-content: flex-end;
+  justify-content: space-between;
   padding-top: var(--msqdx-spacing-sm);
   border-top: 1px solid var(--color-theme-accent-tint, rgba(0, 0, 0, 0.08));
+}
+
+.msqdx-glass-persona-basics-hero__toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--msqdx-spacing-xxs);
+  align-items: center;
+  margin-left: auto;
+}
+
+.msqdx-glass-persona-basics-hero__icon-action {
+  border: 1px solid var(--color-theme-accent-tint, rgba(0, 0, 0, 0.12));
+  border-radius: var(--msqdx-radius-sm);
+  color: var(--color-text-secondary);
+}
+
+.msqdx-glass-persona-basics-hero__icon-action:hover {
+  background: var(--color-theme-accent-tint, rgba(0, 0, 0, 0.06));
+  color: var(--color-text-primary);
+}
+
+.msqdx-glass-persona-basics-hero__icon-action--danger {
+  color: var(--color-status-error, #e91e63);
+  border-color: color-mix(in srgb, var(--color-status-error, #e91e63) 25%, transparent);
+}
+
+.msqdx-glass-persona-basics-hero__icon-action--danger:hover {
+  background: color-mix(in srgb, var(--color-status-error, #e91e63) 12%, transparent);
 }
 
 @media (max-width: 720px) {
