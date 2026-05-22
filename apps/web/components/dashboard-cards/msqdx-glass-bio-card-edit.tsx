@@ -272,43 +272,45 @@ export const MsqdxGlassBioCardEdit = ({
           />
         </Box>
 
-        <Box ref={genderRef} sx={{ position: "relative" }}>
-          <MsqdxSelect
-            label={t("personaAdmin.gender")}
-            value={genderEdit.value}
-            onChange={(e) => genderEdit.setValue(String(e.target.value ?? ""))}
-            options={[{ value: "", label: t("personaAdmin.genderNone") }, ...genderOptions]}
-            displayEmpty
-            fullWidth
-            size="small"
-            sx={FORM_FIELD_ACCENT_SX}
-          />
-          <MsqdxGlassInlineEditControls
-            hasChanges={genderEdit.hasChanges}
-            saving={savePending}
-            onSave={handleSaveGender}
-            onDiscard={() => genderEdit.reset()}
-            anchorElement={genderRef.current}
-            position="top"
-          />
-        </Box>
+        <Box className="msqdx-glass-bio-demographics-field-row">
+          <Box ref={genderRef} sx={{ position: "relative", minWidth: 0 }}>
+            <MsqdxSelect
+              label={t("personaAdmin.gender")}
+              value={genderEdit.value}
+              onChange={(e) => genderEdit.setValue(String(e.target.value ?? ""))}
+              options={[{ value: "", label: t("personaAdmin.genderNone") }, ...genderOptions]}
+              displayEmpty
+              fullWidth
+              size="small"
+              sx={FORM_FIELD_ACCENT_SX}
+            />
+            <MsqdxGlassInlineEditControls
+              hasChanges={genderEdit.hasChanges}
+              saving={savePending}
+              onSave={handleSaveGender}
+              onDiscard={() => genderEdit.reset()}
+              anchorElement={genderRef.current}
+              position="top"
+            />
+          </Box>
 
-        <Box ref={locationRef} sx={{ position: "relative" }}>
-          <MsqdxFormField
-            label={t("personaAdmin.location")}
-            value={locationEdit.value}
-            onChange={(e) => locationEdit.setValue(e.target.value)}
-            placeholder={t("personaAdmin.locationPlaceholder")}
-            fullWidth
-          />
-          <MsqdxGlassInlineEditControls
-            hasChanges={locationEdit.hasChanges}
-            saving={savePending}
-            onSave={handleSaveLocation}
-            onDiscard={() => locationEdit.reset()}
-            anchorElement={locationRef.current}
-            position="top"
-          />
+          <Box ref={locationRef} sx={{ position: "relative", minWidth: 0 }}>
+            <MsqdxFormField
+              label={t("personaAdmin.location")}
+              value={locationEdit.value}
+              onChange={(e) => locationEdit.setValue(e.target.value)}
+              placeholder={t("personaAdmin.locationPlaceholder")}
+              fullWidth
+            />
+            <MsqdxGlassInlineEditControls
+              hasChanges={locationEdit.hasChanges}
+              saving={savePending}
+              onSave={handleSaveLocation}
+              onDiscard={() => locationEdit.reset()}
+              anchorElement={locationRef.current}
+              position="top"
+            />
+          </Box>
         </Box>
 
         <Box ref={mediaAffinityRef} sx={{ position: "relative" }}>

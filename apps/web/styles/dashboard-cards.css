@@ -801,26 +801,11 @@
   background: transparent;
 }
 
-/* Full-bleed only on pain/goals + personality stacks (not persona basics/bio) */
-.msqdx-glass-section-workspace__dock-shell
-  .msqdx-glass-pain-goals-section
-  > .msqdx-glass-pain-goals-stack
-  > .msqdx-glass-pain-goals-sector-separator,
-.msqdx-glass-section-workspace__dock-shell
-  .msqdx-glass-personality-section
-  > .msqdx-glass-personality-stack
-  > .msqdx-glass-pain-goals-sector-separator {
+/* Full-bleed inside workspace dock shell (cancel dock px padding) */
+.msqdx-glass-section-workspace__dock-shell .msqdx-glass-pain-goals-sector-separator {
   margin-inline: calc(-1 * var(--msqdx-section-workspace-dock-padding, var(--msqdx-spacing-lg)));
   width: calc(100% + 2 * var(--msqdx-section-workspace-dock-padding, var(--msqdx-spacing-lg)));
   max-width: none;
-}
-
-/* Persona basics / bio: stay within content column (no dock bleed) */
-.msqdx-glass-persona-basics-stack > .msqdx-glass-pain-goals-sector-separator,
-.msqdx-glass-bio-stack > .msqdx-glass-pain-goals-sector-separator {
-  margin-inline: 0;
-  width: 100%;
-  max-width: 100%;
   box-sizing: border-box;
 }
 

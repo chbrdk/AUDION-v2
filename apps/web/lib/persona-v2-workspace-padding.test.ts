@@ -6,12 +6,18 @@ import { describe, expect, it } from "vitest";
 const webRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 describe("persona v2 workspace content alignment", () => {
-  it("keeps sector separators in basics stack contained", () => {
+  it("bleeds sector separators across dock-shell horizontal padding", () => {
     const css = readFileSync(join(webRoot, "styles/dashboard-cards.css"), "utf8");
-    expect(css).toMatch(
-      /\.msqdx-glass-persona-basics-stack > \.msqdx-glass-pain-goals-sector-separator[^}]*width:\s*100%/
+    expect(css).toContain(
+      ".msqdx-glass-section-workspace__dock-shell .msqdx-glass-pain-goals-sector-separator"
     );
     expect(css).toMatch(
+      /\.msqdx-glass-section-workspace__dock-shell \.msqdx-glass-pain-goals-sector-separator[^}]*margin-inline:\s*calc\(-1 \* var\(--msqdx-section-workspace-dock-padding/
+    );
+    expect(css).toMatch(
+      /\.msqdx-glass-section-workspace__dock-shell \.msqdx-glass-pain-goals-sector-separator[^}]*width:\s*calc\(100% \+ 2 \* var\(--msqdx-section-workspace-dock-padding/
+    );
+    expect(css).not.toMatch(
       /\.msqdx-glass-persona-basics-stack > \.msqdx-glass-pain-goals-sector-separator[^}]*margin-inline:\s*0/
     );
   });

@@ -347,6 +347,21 @@
   padding-bottom: 0;
 }
 
+/* Demographics: gender + location side by side */
+.msqdx-glass-bio-demographics-field-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--msqdx-spacing-md);
+  align-items: start;
+  width: 100%;
+}
+
+@media (max-width: 520px) {
+  .msqdx-glass-bio-demographics-field-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 
 .msqdx-glass-bio-section .msqdx-glass-persona-v2-section-block .MuiSlider-root {
   color: var(--color-theme-accent);

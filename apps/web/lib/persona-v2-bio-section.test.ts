@@ -21,6 +21,7 @@ describe("persona v2 bio flat section", () => {
     expect(bio).toMatch(/embedInSection && embedInParentStack/);
     expect(bio).toMatch(/if \(embedInSection\)[\s\S]*msqdx-glass-bio-section/);
     expect(bio).toMatch(/MsqdxDashboardCard[\s\S]*id="bio-demographics"/);
+    expect(bio).toContain("msqdx-glass-bio-demographics-field-row");
   });
 
   it("passes embedInSection from persona admin panel", () => {
@@ -37,5 +38,8 @@ describe("persona v2 bio flat section", () => {
     const css = readFileSync(join(webRoot, "styles/persona-v2-section-panel.css"), "utf8");
     expect(css).toContain(".msqdx-glass-bio-section");
     expect(css).toContain(".msqdx-glass-bio-stack__block");
+    expect(css).toMatch(
+      /\.msqdx-glass-bio-demographics-field-row[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s*minmax\(0,\s*1fr\)/
+    );
   });
 });
