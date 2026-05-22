@@ -39,6 +39,8 @@ export function MsqdxGlassSectionShell({
   const showSectionHeader = Boolean(sectionTitle || sectionDescription || workspaceActions);
   const isHorizontalSubnav = useMediaQuery(SECTION_NAV_HORIZONTAL_MEDIA_QUERY);
   const entityStackedAboveNav = showEntityHeader && showSubNav && isHorizontalSubnav;
+  const entityAccentInNavRail =
+    showEntityHeader && entityCornerAccent && showSubNav && !isHorizontalSubnav;
 
   const entityHeader = showEntityHeader ? (
     <MsqdxGlassSectionEntityHeader
@@ -50,12 +52,13 @@ export function MsqdxGlassSectionShell({
       headerActions={headerActions}
       entityCornerAccent={entityCornerAccent}
       stackedAboveNav={entityStackedAboveNav}
+      accentPlacement={entityAccentInNavRail ? "nav-rail" : "workspace"}
     />
   ) : null;
 
   const workspaceInner = (
     <>
-      {entityHeader && !entityStackedAboveNav ? entityHeader : null}
+      {entityHeader && !entityStackedAboveNav && !entityAccentInNavRail ? entityHeader : null}
 
       <div className="msqdx-glass-section-workspace__main">
         {showSectionHeader ? (
@@ -92,6 +95,7 @@ export function MsqdxGlassSectionShell({
         "msqdx-glass-section-shell",
         hideSubNav ? "msqdx-glass-section-shell--no-subnav" : "",
         showEntityHeader ? "msqdx-glass-section-shell--has-entity" : "",
+        entityAccentInNavRail ? "msqdx-glass-section-shell--entity-accent-in-nav" : "",
         className ?? "",
       ]
         .filter(Boolean)
@@ -100,7 +104,10 @@ export function MsqdxGlassSectionShell({
       <div className="msqdx-glass-section-shell__body">
         {entityStackedAboveNav ? entityHeader : null}
         {showSubNav ? (
-          <MsqdxGlassSectionNav items={navItems} activeSectionId={activeSectionId} navLabel={navLabel} />
+          <div className="msqdx-glass-section-shell__nav-column">
+            {entityAccentInNavRail ? entityHeader : null}
+            <MsqdxGlassSectionNav items={navItems} activeSectionId={activeSectionId} navLabel={navLabel} />
+          </div>
         ) : null}
 
         <div

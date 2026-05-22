@@ -64,20 +64,67 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
+.msqdx-glass-section-shell__nav-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+  align-self: start;
+}
+
+.msqdx-glass-section-shell--entity-accent-in-nav .msqdx-glass-section-shell__nav-column {
+  gap: 0;
+}
+
+.msqdx-glass-section-shell__entity--in-nav-rail {
+  width: 100%;
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+
+.msqdx-glass-section-shell__entity--in-nav-rail .msqdx-glass-section-shell__entity-hero {
+  width: 100%;
+}
+
+.msqdx-glass-section-shell__entity--in-nav-rail .msqdx-glass-section-shell__entity-main--on-accent {
+  text-align: left;
+  align-items: flex-start;
+}
+
+.msqdx-glass-section-shell__entity--in-nav-rail
+  .msqdx-glass-section-shell__entity-main--on-accent
+  .msqdx-glass-section-shell__entity-back {
+  justify-content: flex-start;
+}
+
+.msqdx-glass-section-shell--entity-accent-in-nav .msqdx-glass-section-nav--docked {
+  margin-top: 0;
+}
+
 /* Desktop: subnav left; entity + section content stacked in the right column */
 @media (min-width: 1025px) {
   .msqdx-glass-section-shell__body:has(.msqdx-glass-section-nav) {
     align-items: start;
   }
 
-  .msqdx-glass-section-nav {
+  .msqdx-glass-section-shell__nav-column {
     position: sticky;
     top: 0;
-    align-self: start;
     max-height: calc(100dvh - 112px);
     overflow-y: auto;
     overscroll-behavior: contain;
     scrollbar-width: thin;
+  }
+
+  .msqdx-glass-section-nav {
+    position: static;
+    top: auto;
+    align-self: stretch;
+    max-height: none;
+    overflow-y: visible;
+    overscroll-behavior: auto;
+    scrollbar-width: auto;
     padding-bottom: var(--msqdx-spacing-xs);
   }
 

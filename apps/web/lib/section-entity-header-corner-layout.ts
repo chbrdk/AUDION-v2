@@ -17,3 +17,13 @@ export const SECTION_ENTITY_CORNER_ACCENT_CORNERS_RESPONSIVE = {
   bottomLeft: "rounded",
   bottomRight: "rounded",
 } as const;
+
+/** Desktop: accent atop left nav rail (flush into dock track below). */
+export const SECTION_ENTITY_CORNER_ACCENT_CORNERS_NAV_RAIL = {
+  topLeft: "rounded",
+  topRight: "rounded",
+  bottomLeft: "rounded",
+  bottomRight: "cutdown-b",
+} as const;
+
+export type SectionEntityCornerAccentPlacement = "workspace" | "nav-rail";

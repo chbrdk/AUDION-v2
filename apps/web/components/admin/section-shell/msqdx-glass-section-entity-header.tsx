@@ -7,8 +7,10 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 import { MsqdxButton, MsqdxCornerBox, MsqdxIcon } from "@msqdx/react";
 import {
   SECTION_ENTITY_CORNER_ACCENT_CORNERS_DESKTOP,
+  SECTION_ENTITY_CORNER_ACCENT_CORNERS_NAV_RAIL,
   SECTION_ENTITY_CORNER_ACCENT_CORNERS_RESPONSIVE,
   SECTION_ENTITY_CORNER_ACCENT_RESPONSIVE_MEDIA_QUERY,
+  type SectionEntityCornerAccentPlacement,
 } from "../../../lib/section-entity-header-corner-layout";
 import { SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX } from "../../../lib/section-nav-dock-layout";
 
@@ -23,6 +25,8 @@ export type MsqdxGlassSectionEntityHeaderProps = {
   entityCornerAccent?: boolean;
   /** ≤1024px: hero sits above horizontal subnav instead of inside the workspace frame. */
   stackedAboveNav?: boolean;
+  /** Desktop: black hero atop left subnav rail instead of workspace top-right. */
+  accentPlacement?: SectionEntityCornerAccentPlacement;
   className?: string;
 };
 
@@ -35,13 +39,18 @@ export function MsqdxGlassSectionEntityHeader({
   headerActions,
   entityCornerAccent = false,
   stackedAboveNav = false,
+  accentPlacement = "workspace",
   className,
 }: MsqdxGlassSectionEntityHeaderProps) {
   const theme = useTheme();
   const isResponsiveLayout = useMediaQuery(SECTION_ENTITY_CORNER_ACCENT_RESPONSIVE_MEDIA_QUERY);
+  const isNavRailAccent = accentPlacement === "nav-rail" && !isResponsiveLayout;
   const cornerAccentCorners = isResponsiveLayout
     ? SECTION_ENTITY_CORNER_ACCENT_CORNERS_RESPONSIVE
-    : SECTION_ENTITY_CORNER_ACCENT_CORNERS_DESKTOP;
+    : isNavRailAccent
+      ? SECTION_ENTITY_CORNER_ACCENT_CORNERS_NAV_RAIL
+      : SECTION_ENTITY_CORNER_ACCENT_CORNERS_DESKTOP;
+  const accentTextAlign = isNavRailAccent ? "left" : "right";
   const onAccentText = "var(--msqdx-entity-accent-on-surface, #ffffff)";
 
   const renderMainFields = (onAccent: boolean) => (
@@ -78,6 +87,7 @@ export function MsqdxGlassSectionEntityHeader({
       className={[
         "msqdx-glass-section-shell__entity",
         entityCornerAccent ? "msqdx-glass-section-shell__entity--has-corner-accent" : "",
+        isNavRailAccent ? "msqdx-glass-section-shell__entity--in-nav-rail" : "",
         stackedAboveNav ? "msqdx-glass-section-shell__entity--stacked-above-nav" : "",
         className ?? "",
       ]
@@ -99,21 +109,21 @@ export function MsqdxGlassSectionEntityHeader({
             bottomRight={cornerAccentCorners.bottomRight}
             borderRadius={SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX}
             sx={{
-              width: stackedAboveNav ? "100%" : "auto",
+              width: stackedAboveNav || isNavRailAccent ? "100%" : "auto",
               minWidth: 0,
               boxSizing: "border-box",
               bgcolor: "var(--color-theme-accent, #000000)",
               color: "var(--msqdx-entity-accent-on-surface, #ffffff)",
-              position: stackedAboveNav ? "relative" : "absolute",
-              top: stackedAboveNav ? "auto" : -19,
-              right: stackedAboveNav ? "auto" : -19,
+              position: stackedAboveNav || isNavRailAccent ? "relative" : "absolute",
+              top: stackedAboveNav || isNavRailAccent ? "auto" : -19,
+              right: stackedAboveNav || isNavRailAccent ? "auto" : -19,
               py: "var(--msqdx-spacing-md)",
               px: "var(--msqdx-spacing-lg)",
               display: "flex",
               flexDirection: "column",
-              alignItems: "flex-end",
+              alignItems: isNavRailAccent ? "flex-start" : "flex-end",
               justifyContent: "center",
-              textAlign: "right",
+              textAlign: accentTextAlign,
             }}
           >
             <div className="msqdx-glass-section-shell__entity-main msqdx-glass-section-shell__entity-main--on-accent">

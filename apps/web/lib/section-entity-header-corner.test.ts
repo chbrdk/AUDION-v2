@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   SECTION_ENTITY_CORNER_ACCENT_CORNERS_DESKTOP,
+  SECTION_ENTITY_CORNER_ACCENT_CORNERS_NAV_RAIL,
   SECTION_ENTITY_CORNER_ACCENT_CORNERS_RESPONSIVE,
 } from "./section-entity-header-corner-layout";
 
@@ -23,10 +24,13 @@ describe("section entity header corner accent", () => {
     expect(entity).toContain("SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX");
     expect(entity).toContain("msqdx-entity-accent-on-surface");
     expect(entity).toContain("SECTION_ENTITY_CORNER_ACCENT_CORNERS_DESKTOP");
+    expect(entity).toContain("SECTION_ENTITY_CORNER_ACCENT_CORNERS_NAV_RAIL");
     expect(entity).toContain("SECTION_ENTITY_CORNER_ACCENT_CORNERS_RESPONSIVE");
+    expect(entity).toContain('accentPlacement = "workspace"');
+    expect(entity).toContain("isNavRailAccent");
     expect(entity).toContain("useMediaQuery");
     expect(entity).toContain("stackedAboveNav");
-    expect(entity).toContain("textAlign: \"right\"");
+    expect(entity).toContain("accentTextAlign");
 
     const shell = readFileSync(
       join(webRoot, "components/admin/section-shell/msqdx-glass-section-shell.tsx"),
@@ -34,6 +38,9 @@ describe("section entity header corner accent", () => {
     );
     expect(shell).toContain("entityCornerAccent");
     expect(shell).toContain("entityStackedAboveNav");
+    expect(shell).toContain("entityAccentInNavRail");
+    expect(shell).toContain("msqdx-glass-section-shell__nav-column");
+    expect(shell).toContain('accentPlacement={entityAccentInNavRail ? "nav-rail" : "workspace"}');
     expect(shell).toContain("SECTION_NAV_HORIZONTAL_MEDIA_QUERY");
     expect(shell).toContain("stackedAboveNav");
 
@@ -50,6 +57,8 @@ describe("section entity header corner accent", () => {
     expect(css).toContain("--msqdx-entity-accent-on-surface");
     expect(entity).toContain("msqdx-glass-section-shell__entity-corner-accent--responsive");
     expect(css).toContain(".msqdx-glass-section-shell__entity--stacked-above-nav");
+    expect(css).toContain(".msqdx-glass-section-shell__entity--in-nav-rail");
+    expect(css).toContain(".msqdx-glass-section-shell--entity-accent-in-nav");
     expect(css).not.toMatch(/border-bottom-left-radius:\s*0\s*!important/);
     expect(css).toContain(
       ".msqdx-glass-section-shell__entity-corner-accent .msqdx-glass-section-shell__entity-main--on-accent h1.msqdx-glass-section-shell__title"
@@ -61,6 +70,7 @@ describe("section entity header corner accent", () => {
 
   it("uses rounded corners on responsive layout above horizontal subnav", () => {
     expect(SECTION_ENTITY_CORNER_ACCENT_CORNERS_DESKTOP.topRight).toBe("rounded");
+    expect(SECTION_ENTITY_CORNER_ACCENT_CORNERS_NAV_RAIL.bottomRight).toBe("cutdown-b");
     expect(SECTION_ENTITY_CORNER_ACCENT_CORNERS_RESPONSIVE.topRight).toBe("rounded");
     expect(SECTION_ENTITY_CORNER_ACCENT_CORNERS_RESPONSIVE.bottomLeft).toBe("rounded");
     expect(SECTION_ENTITY_CORNER_ACCENT_CORNERS_RESPONSIVE.bottomRight).toBe("rounded");
