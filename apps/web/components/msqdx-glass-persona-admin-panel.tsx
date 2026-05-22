@@ -2504,6 +2504,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
                   onToggle={accordionToggle}
                   onSave={handleBioDemographicsBilingualSave}
                   savePending={savePending}
+                  embedInSection={isV2Section}
                 />
               ) : null}
 

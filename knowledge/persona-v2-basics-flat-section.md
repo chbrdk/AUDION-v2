@@ -15,6 +15,12 @@
 | `apps/web/components/personas-v2/persona-admin-section-surface.tsx` | Card (v1) vs flat block (v2) switch |
 | `apps/web/styles/persona-v2-section-panel.css` | Basics layout + tokenized grid gap |
 
+## Bio (flat v2)
+
+- `MsqdxGlassBioCardEdit` with `embedInSection` → `msqdx-glass-bio-section` / `msqdx-glass-bio-stack`
+- Sub-blocks: biography + demographics via `PersonaV2SectionBlock`, separated by `MsqdxGlassPainGoalsSectorSeparator`
+- Tests: `apps/web/lib/persona-v2-bio-section.test.ts`
+
 ## Reuse for other sections
 
-Apply `PersonaAdminSectionSurface` + `embedInSection` to bio, communication, knowledge, etc. (see pain-goals / personality cards).
+Apply `PersonaAdminSectionSurface` or `embedInSection` to communication, knowledge, etc. (see pain-goals / personality / bio cards).

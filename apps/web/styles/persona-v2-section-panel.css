@@ -152,3 +152,37 @@
   padding-top: var(--msqdx-spacing-xs);
   border-top: 1px solid var(--color-theme-accent-tint, rgba(0, 0, 0, 0.08));
 }
+
+/* Bio v2 — flat biography + demographics stack */
+.msqdx-glass-bio-section {
+  width: 100%;
+  padding-top: var(--msqdx-spacing-xxs);
+}
+
+.msqdx-glass-bio-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+}
+
+.msqdx-glass-bio-stack__block {
+  padding: var(--msqdx-spacing-md) 0;
+  min-width: 0;
+}
+
+.msqdx-glass-bio-stack__block:first-child {
+  padding-top: 0;
+}
+
+.msqdx-glass-bio-stack__block:last-child {
+  padding-bottom: 0;
+}
+
+.msqdx-glass-bio-section .msqdx-glass-pain-goals-sector-separator {
+  margin: 0;
+}
+
+.msqdx-glass-bio-section .msqdx-glass-persona-v2-section-block .MuiSlider-root {
+  color: var(--color-theme-accent);
+}
