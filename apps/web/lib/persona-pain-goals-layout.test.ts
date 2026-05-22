@@ -39,7 +39,7 @@ describe("persona pain-goals layout", () => {
     expect(css).toContain("--msqdx-pain-goals-slide-surface");
     expect(css).toContain(".msqdx-glass-pain-goals-stack__block");
     expect(css).toContain(".msqdx-glass-chip-editor__section-heading h3.MuiTypography-root");
-    expect(css).toMatch(/font-weight:\s*100/);
+    expect(css).toMatch(/font-weight:\s*400/);
   });
 
   it("uses h3 section heading with entry count in slider layout", () => {
@@ -52,7 +52,7 @@ describe("persona pain-goals layout", () => {
     expect(chipEditor).toContain('t("chipEditor.entryCount", { count: displayChips.length })');
     expect(chipEditor).toContain("msqdx-glass-chip-editor__section-heading");
     expect(chipEditor).toContain("SECTION_HEADING_MONO_SX");
-    expect(chipEditor).toContain('weight="thin"');
+    expect(chipEditor).not.toContain('weight="thin"');
   });
 
   it("adjusts slider visible slides from container width", () => {

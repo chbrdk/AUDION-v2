@@ -14,7 +14,7 @@ describe("persona v2 section heading typography", () => {
   it("defines shared clamp size for chip-editor section headings", () => {
     expect(PERSONA_V2_SECTION_HEADING_FONT_SIZE).toBe("clamp(1.125rem, 2.5vw, 1.5rem)");
     expect(PERSONA_V2_SECTION_HEADING_COUNT_FONT_SIZE).toBe("0.9375rem");
-    expect(PERSONA_V2_SECTION_HEADING_FONT_WEIGHT).toBe(100);
+    expect(PERSONA_V2_SECTION_HEADING_FONT_WEIGHT).toBe(400);
   });
 
   it("applies heading tokens under msqdx-glass-persona-v2-detail", () => {
@@ -25,7 +25,16 @@ describe("persona v2 section heading typography", () => {
       /\.msqdx-glass-persona-v2-detail \.msqdx-glass-chip-editor__section-heading h3\.MuiTypography-root[^}]*font-size:\s*var\(--msqdx-persona-v2-section-heading-font-size\)/
     );
     expect(css).toMatch(
-      /\.msqdx-glass-persona-v2-detail \.msqdx-glass-chip-editor__section-heading h3\.MuiTypography-root[^}]*font-weight:\s*100/
+      /\.msqdx-glass-persona-v2-detail \.msqdx-glass-chip-editor__section-heading h3\.MuiTypography-root[^}]*font-weight:\s*400/
+    );
+  });
+});
+
+describe("persona v2 section panel layout", () => {
+  it("removes top margin from v2-section dashboard grid", () => {
+    const css = readFileSync(join(webRoot, "styles/persona-v2-section-panel.css"), "utf8");
+    expect(css).toMatch(
+      /\.msqdx-glass-persona-v2-section-panel \.msqdx-glass-dashboard-grid--v2-section[^}]*margin-top:\s*0/
     );
   });
 });

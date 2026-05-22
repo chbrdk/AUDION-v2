@@ -291,7 +291,6 @@ export const MsqdxGlassChipEditor = ({
         <MsqdxTypography
           variant="h3"
           component="h3"
-          weight="thin"
           sx={SECTION_HEADING_MONO_SX}
         >
           {label}

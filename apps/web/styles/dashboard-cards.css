@@ -1014,7 +1014,7 @@
 
 .msqdx-glass-chip-editor__section-heading h3.MuiTypography-root {
   font-family: var(--msqdx-font-family-mono);
-  font-weight: 100 !important;
+  font-weight: 400 !important;
 }
 
 .msqdx-glass-horizontal-card-slider {

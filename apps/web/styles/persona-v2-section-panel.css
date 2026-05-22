@@ -7,7 +7,7 @@
 .msqdx-glass-persona-v2-detail .msqdx-glass-chip-editor__section-heading h3.MuiTypography-root {
   font-family: var(--msqdx-font-family-mono) !important;
   font-size: var(--msqdx-persona-v2-section-heading-font-size) !important;
-  font-weight: 100 !important;
+  font-weight: 400 !important;
   line-height: 1.2 !important;
   letter-spacing: 0 !important;
   text-transform: none !important;
@@ -29,6 +29,7 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  margin-top: 0;
 }
 
 .msqdx-glass-persona-v2-section-panel .msqdx-glass-dashboard-grid--v2-section > * {

@@ -19,8 +19,8 @@ describe("msqdx-typography", () => {
     expect(globals).toContain("--font-ibm-plex-mono");
   });
 
-  it("section heading mono sx uses IBM Plex Mono stack at weight 100", () => {
+  it("section heading mono sx uses IBM Plex Mono stack at weight 400", () => {
     expect(SECTION_HEADING_MONO_SX.fontFamily).toBe(MSQDX_MONO_FONT_FAMILY);
-    expect(SECTION_HEADING_MONO_SX.fontWeight).toBe(100);
+    expect(SECTION_HEADING_MONO_SX.fontWeight).toBe(400);
   });
 });

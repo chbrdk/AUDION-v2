@@ -58,6 +58,12 @@ describe("section entity header corner accent", () => {
     expect(entity).toContain("msqdx-glass-section-shell__entity-corner-accent--responsive");
     expect(css).toContain(".msqdx-glass-section-shell__entity--stacked-above-nav");
     expect(css).toContain(".msqdx-glass-section-shell__entity--in-nav-rail");
+    expect(css).toMatch(
+      /\.msqdx-glass-section-shell__entity:not\(\.msqdx-glass-section-shell__entity--in-nav-rail\)[^}]*border-bottom:\s*1px/
+    );
+    expect(css).toMatch(
+      /\.msqdx-glass-section-shell__entity--in-nav-rail[^}]*border-bottom:\s*none/
+    );
     expect(css).toContain(".msqdx-glass-section-shell--entity-accent-in-nav");
     expect(css).toMatch(
       /\.msqdx-glass-section-shell--entity-accent-in-nav \.msqdx-glass-section-shell__body:has\(\.msqdx-glass-section-nav\)[^}]*grid-template-columns:\s*minmax\(240px,\s*280px\)/

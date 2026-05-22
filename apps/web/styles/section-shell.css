@@ -298,8 +298,11 @@
   justify-content: space-between;
   gap: var(--msqdx-spacing-md);
   padding-bottom: var(--msqdx-spacing-sm);
-  border-bottom: 1px solid var(--color-theme-accent-tint, rgba(0, 0, 0, 0.08));
   min-width: 0;
+}
+
+.msqdx-glass-section-shell__entity:not(.msqdx-glass-section-shell__entity--in-nav-rail) {
+  border-bottom: 1px solid var(--color-theme-accent-tint, rgba(0, 0, 0, 0.08));
 }
 
 .msqdx-glass-section-shell__entity--has-corner-accent {
