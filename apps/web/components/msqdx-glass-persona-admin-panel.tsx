@@ -61,7 +61,10 @@ import {
   type PersonaAdminPresentation,
 } from "../lib/persona-v2-section-visibility";
 import { PersonaAdminSectionSurface } from "./personas-v2/persona-admin-section-surface";
+import { MsqdxGlassPersonaBasicsHero } from "./personas-v2/msqdx-glass-persona-basics-hero";
+import { MsqdxGlassPersonaMetadataAssignment } from "./personas-v2/msqdx-glass-persona-metadata-assignment";
 import { MsqdxGlassPainGoalsSectorSeparator } from "./generic/msqdx-glass-pain-goals-sector-separator";
+import { safePersonaAvatarSrc } from "../lib/persona-avatar-src";
 
 type MsqdxGlassPersonaAdminPanelProps = {
   initialList: PersonaListResponse;
@@ -164,16 +167,6 @@ const defaultKnowledgeForm: KnowledgeFormState = {
   title: "",
   content: "",
 };
-
-/** Avoid Mixed Content: use same-origin proxy when API returns http/localhost and page is HTTPS. */
-function safeAvatarSrc(avatarUrl: string | null | undefined, personaId: string | undefined): string | undefined {
-  if (!avatarUrl || !personaId) return avatarUrl ?? undefined;
-  if (avatarUrl.startsWith("data:")) return avatarUrl;
-  if (typeof window !== "undefined" && window.location.protocol === "https:" && (avatarUrl.startsWith("http://") || avatarUrl.includes("localhost"))) {
-    return buildApiUrl(`/api/persona-admin/${personaId}/avatar`);
-  }
-  return avatarUrl;
-}
 
 const formatDate = (value?: string | null) => {
   if (!value) {
@@ -2051,11 +2044,41 @@ export const MsqdxGlassPersonaAdminPanel = ({
                   expanded={accordionExpanded("persona-basics")}
                   onToggle={accordionToggle}
                 >
-                  <Box className={isV2Section ? "msqdx-glass-persona-basics-section__hero" : undefined} sx={isV2Section ? undefined : { display: "flex", gap: 2, alignItems: "flex-start", mb: 2 }}>
+                  {isV2Section ? (
+                    <MsqdxGlassPersonaBasicsHero
+                      detail={detail}
+                      selectedId={selectedId}
+                      locale={locale}
+                      editForm={{
+                        headline: editForm.headline,
+                        headline_de: editForm.headline_de,
+                      }}
+                      onEditFormPatch={(patch) => setEditForm((prev) => ({ ...prev, ...patch }))}
+                      editingField={editingField}
+                      setEditingField={setEditingField}
+                      metadataFormDirtyRef={metadataFormDirtyRef}
+                      savePending={savePending}
+                      enrichPending={enrichPending}
+                      ensureChatPromptPending={ensureChatPromptPending}
+                      avatarGeneratePending={avatarGeneratePending}
+                      metadataAssignPending={metadataAssignPending}
+                      projects={projects}
+                      targetGroups={targetGroupsForMetadata}
+                      onSave={(updates) => handleSave(updates as Partial<EditFormState>)}
+                      onAssignMetadata={handleSaveMetadataAssignment}
+                      onEnrichWithAi={handleEnrichWithAi}
+                      onEnsureChatPrompt={handleEnsureChatPrompt}
+                      onGenerateAvatar={handleGenerateAvatar}
+                      onArchive={handleArchive}
+                      onDelete={handleDelete}
+                      notify={notify}
+                    />
+                  ) : (
+                  <Box sx={{ display: "flex", gap: 2, alignItems: "flex-start", mb: 2 }}>
                     <div className="msqdx-glass-avatar" style={{ flexShrink: 0 }}>
                       {detail.metadata.avatarUrl ? (
                         /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={safeAvatarSrc(detail.metadata.avatarUrl, detail.metadata.personaId) ?? detail.metadata.avatarUrl} alt={`${detail.profile.name} Avatar`} />
+                        <img src={safePersonaAvatarSrc(detail.metadata.avatarUrl, detail.metadata.personaId) ?? detail.metadata.avatarUrl} alt={`${detail.profile.name} Avatar`} />
                       ) : (
                         <MsqdxIcon name="person" customSize={32} />
                       )}
@@ -2235,8 +2258,8 @@ export const MsqdxGlassPersonaAdminPanel = ({
                                 </div>
                               )}
                             </div>
-                            <Box className={isV2Section ? "msqdx-glass-persona-basics-section__actions" : undefined} sx={isV2Section ? undefined : { mt: 1, display: "flex", flexDirection: "column", gap: 1 }}>
-                              <Box className={isV2Section ? "msqdx-glass-persona-basics-section__actions-primary" : undefined} sx={isV2Section ? undefined : { display: "flex", gap: 0.5, alignItems: "center", flexWrap: "wrap" }}>
+                            <Box sx={{ mt: 1, display: "flex", flexDirection: "column", gap: 1 }}>
+                              <Box sx={{ display: "flex", gap: 0.5, alignItems: "center", flexWrap: "wrap" }}>
                                 <MsqdxButton variant="outlined" size="small" onClick={handleEnrichWithAi} disabled={enrichPending || savePending} startIcon={<MsqdxIcon name="auto_awesome" customSize={16} />}>
                                   {enrichPending ? t("personaAdmin.enrichingWithAi") : t("personaAdmin.enrichWithAi")}
                                 </MsqdxButton>
@@ -2251,7 +2274,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
                                   {avatarGeneratePending ? t("personaAdmin.generatingAvatar") : t("personaAdmin.generateAvatar")}
                                 </MsqdxButton>
                               </Box>
-                              <Box className={isV2Section ? "msqdx-glass-persona-basics-section__actions-danger" : undefined} sx={isV2Section ? undefined : { display: "flex", gap: 1, justifyContent: "flex-end", flexWrap: "wrap", pt: 0.5, borderTop: "1px solid", borderColor: "divider" }}>
+                              <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end", flexWrap: "wrap", pt: 0.5, borderTop: "1px solid", borderColor: "divider" }}>
                                 <MsqdxButton variant="text" size="small" onClick={handleArchive} disabled={savePending} startIcon={<MsqdxIcon name="archive" customSize={16} />}>
                                   {t("personaAdmin.archive")}
                                 </MsqdxButton>
@@ -2265,6 +2288,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
                       })()}
                     </Box>
                   </Box>
+                  )}
                 </PersonaAdminSectionSurface>
                 {isV2Section ? <MsqdxGlassPainGoalsSectorSeparator /> : null}
 
@@ -2281,159 +2305,102 @@ export const MsqdxGlassPersonaAdminPanel = ({
                 ) : null}
                 {isV2Section && profileForBioEditor ? <MsqdxGlassPainGoalsSectorSeparator /> : null}
 
-                <PersonaAdminSectionSurface
-                  embedInSection={isV2Section}
-                  cardId="metadata"
-                  title={t("personaAdmin.metadata")}
-                  icon="info"
-                  expanded={accordionExpanded("metadata")}
-                  onToggle={accordionToggle}
-                >
-                  <Box sx={{ pt: 1 }}>
-                    {!(detail.metadata.targetGroupId ?? (detail.profile as { targetGroupId?: string }).targetGroupId) && (
-                      <Alert severity="warning" sx={{ mb: 2 }}>
-                        {t("personaAdmin.noTargetGroupDetailHint")}
-                      </Alert>
-                    )}
-                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 2 }}>
-                      <Box sx={{ minWidth: 200 }}>
-                        <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.5 }}>
-                          {t("personaAdmin.project")}
-                        </MsqdxTypography>
-                        <Box
-                          component="select"
-                          value={detail.metadata.projectId ?? ""}
-                          onChange={(e) => handleSaveMetadataAssignment({ project_id: e.target.value, target_group_id: "" })}
-                          disabled={metadataAssignPending || savePending}
-                          sx={{
-                            width: "100%",
-                            py: 0.75,
-                            px: 1,
-                            fontSize: "0.875rem",
-                            border: "1px solid",
-                            borderColor: "divider",
-                            borderRadius: 1,
-                            bgcolor: "background.paper",
-                            color: "text.primary",
-                          }}
-                        >
-                          {projects.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.name}
-                            </option>
-                          ))}
-                        </Box>
-                      </Box>
-                      <Box sx={{ minWidth: 200 }}>
-                        <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.5 }}>
-                          {t("personaAdmin.targetGroup")}
-                        </MsqdxTypography>
-                        <Box
-                          component="select"
-                          value={detail.metadata.targetGroupId ?? (detail.profile as { targetGroupId?: string }).targetGroupId ?? ""}
-                          onChange={(e) => handleSaveMetadataAssignment({ target_group_id: e.target.value === "" ? "" : e.target.value })}
-                          disabled={metadataAssignPending || savePending}
-                          sx={{
-                            width: "100%",
-                            py: 0.75,
-                            px: 1,
-                            fontSize: "0.875rem",
-                            border: "1px solid",
-                            borderColor: "divider",
-                            borderRadius: 1,
-                            bgcolor: "background.paper",
-                            color: "text.primary",
-                          }}
-                        >
-                          <option value="">{t("personaAdmin.noTargetGroup")}</option>
-                          {targetGroupsForMetadata.map((tg) => (
-                            <option key={tg.id} value={tg.id}>
-                              {tg.name}
-                            </option>
-                          ))}
-                        </Box>
-                      </Box>
-                    </Box>
-                  </Box>
-                  <Box
-                    sx={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
-                      gap: 1.5,
-                      pt: 1,
-                    }}
+                {!isV2Section ? (
+                  <PersonaAdminSectionSurface
+                    embedInSection={false}
+                    cardId="metadata"
+                    title={t("personaAdmin.metadata")}
+                    icon="info"
+                    expanded={accordionExpanded("metadata")}
+                    onToggle={accordionToggle}
                   >
-                    <Box sx={{ minWidth: 140 }}>
-                      <Tooltip title={t("personaAdmin.confidenceHint")}>
-                        <Box>
+                    <MsqdxGlassPersonaMetadataAssignment
+                      detail={detail}
+                      projects={projects}
+                      targetGroups={targetGroupsForMetadata}
+                      disabled={metadataAssignPending || savePending}
+                      onAssign={handleSaveMetadataAssignment}
+                    />
+                    <Box
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+                        gap: 1.5,
+                        pt: 1,
+                      }}
+                    >
+                      <Box sx={{ minWidth: 140 }}>
+                        <Tooltip title={t("personaAdmin.confidenceHint")}>
+                          <Box>
+                            <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
+                              {t("personaAdmin.confidence")}
+                            </MsqdxTypography>
+                            <MsqdxTypography variant="body2" weight="medium" sx={{ mb: 0.5 }}>
+                              {t("personaAdmin.confidencePercent", {
+                                value: Math.round(Math.min(1, Math.max(0, detail.metadata.confidence)) * 100),
+                              })}
+                            </MsqdxTypography>
+                            <LinearProgress
+                              variant="determinate"
+                              value={Math.min(100, Math.max(0, detail.metadata.confidence * 100))}
+                              sx={{ height: 6, borderRadius: 1 }}
+                            />
+                          </Box>
+                        </Tooltip>
+                      </Box>
+                      <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
+                        <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
+                          {t("personaAdmin.version")}
+                        </MsqdxTypography>
+                        <MsqdxTypography variant="body2" weight="medium">{detail.metadata.version}</MsqdxTypography>
+                      </Box>
+                      <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
+                        <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
+                          {t("personaAdmin.updated")}
+                        </MsqdxTypography>
+                        <MsqdxTypography variant="body2" weight="medium">{formatDate(detail.metadata.updatedAt)}</MsqdxTypography>
+                      </Box>
+                      <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
+                        <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
+                          {t("personaAdmin.updatedBy")}
+                        </MsqdxTypography>
+                        <MsqdxTypography variant="body2" weight="medium">{detail.metadata.updatedBy ?? "—"}</MsqdxTypography>
+                      </Box>
+                      <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
+                        <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
+                          {t("personaAdmin.lastReview")}
+                        </MsqdxTypography>
+                        <MsqdxTypography variant="body2" weight="medium">{formatDate(detail.metadata.lastReviewedAt)}</MsqdxTypography>
+                      </Box>
+                      {detail.profile.created_at && (
+                        <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
                           <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
-                            {t("personaAdmin.confidence")}
+                            {t("personaAdmin.createdAt")}
                           </MsqdxTypography>
-                          <MsqdxTypography variant="body2" weight="medium" sx={{ mb: 0.5 }}>
-                            {t("personaAdmin.confidencePercent", {
-                              value: Math.round(Math.min(1, Math.max(0, detail.metadata.confidence)) * 100),
-                            })}
-                          </MsqdxTypography>
-                          <LinearProgress
-                            variant="determinate"
-                            value={Math.min(100, Math.max(0, detail.metadata.confidence * 100))}
-                            sx={{ height: 6, borderRadius: 1 }}
-                          />
+                          <MsqdxTypography variant="body2" weight="medium">{formatDate(detail.profile.created_at)}</MsqdxTypography>
                         </Box>
-                      </Tooltip>
+                      )}
+                      {(detail.metadata.targetGroupId ?? (detail.profile as { targetGroupId?: string }).targetGroupId) && (
+                        <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
+                          <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
+                            {t("personaAdmin.targetGroup")}
+                          </MsqdxTypography>
+                          <MsqdxButton
+                            variant="text"
+                            size="small"
+                            component="a"
+                            href={`/admin/target-groups?selected=${detail.metadata.targetGroupId ?? (detail.profile as { targetGroupId?: string }).targetGroupId}`}
+                            sx={{ fontSize: "0.875rem", p: "4px 8px" }}
+                            startIcon={<MsqdxIcon name="groups" customSize={14} />}
+                          >
+                            {t("personaAdmin.toTargetGroup")}
+                          </MsqdxButton>
+                        </Box>
+                      )}
                     </Box>
-                    <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
-                      <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
-                        {t("personaAdmin.version")}
-                      </MsqdxTypography>
-                      <MsqdxTypography variant="body2" weight="medium">{detail.metadata.version}</MsqdxTypography>
-                    </Box>
-                    <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
-                      <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
-                        {t("personaAdmin.updated")}
-                      </MsqdxTypography>
-                      <MsqdxTypography variant="body2" weight="medium">{formatDate(detail.metadata.updatedAt)}</MsqdxTypography>
-                    </Box>
-                    <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
-                      <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
-                        {t("personaAdmin.updatedBy")}
-                      </MsqdxTypography>
-                      <MsqdxTypography variant="body2" weight="medium">{detail.metadata.updatedBy ?? "—"}</MsqdxTypography>
-                    </Box>
-                    <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
-                      <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
-                        {t("personaAdmin.lastReview")}
-                      </MsqdxTypography>
-                      <MsqdxTypography variant="body2" weight="medium">{formatDate(detail.metadata.lastReviewedAt)}</MsqdxTypography>
-                    </Box>
-                    {detail.profile.created_at && (
-                      <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
-                        <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
-                          {t("personaAdmin.createdAt")}
-                        </MsqdxTypography>
-                        <MsqdxTypography variant="body2" weight="medium">{formatDate(detail.profile.created_at)}</MsqdxTypography>
-                      </Box>
-                    )}
-                    {(detail.metadata.targetGroupId ?? (detail.profile as { targetGroupId?: string }).targetGroupId) && (
-                      <Box sx={{ borderLeft: "1px solid", borderColor: "divider", pl: 1.5 }}>
-                        <MsqdxTypography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", mb: 0.25 }}>
-                          {t("personaAdmin.targetGroup")}
-                        </MsqdxTypography>
-                        <MsqdxButton
-                          variant="text"
-                          size="small"
-                          component="a"
-                          href={`/admin/target-groups?selected=${detail.metadata.targetGroupId ?? (detail.profile as { targetGroupId?: string }).targetGroupId}`}
-                          sx={{ fontSize: "0.875rem", p: "4px 8px" }}
-                          startIcon={<MsqdxIcon name="groups" customSize={14} />}
-                        >
-                          {t("personaAdmin.toTargetGroup")}
-                        </MsqdxButton>
-                      </Box>
-                    )}
-                  </Box>
-                </PersonaAdminSectionSurface>
-                {isV2Section ? <MsqdxGlassPainGoalsSectorSeparator /> : null}
+                  </PersonaAdminSectionSurface>
+                ) : null}
+                {!isV2Section ? <MsqdxGlassPainGoalsSectorSeparator /> : null}
 
                 <PersonaAdminSectionSurface
                   embedInSection={isV2Section}

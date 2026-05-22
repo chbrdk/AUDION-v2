@@ -88,13 +88,42 @@
   padding-bottom: 0;
 }
 
-.msqdx-glass-persona-basics-section .msqdx-glass-pain-goals-sector-separator {
-  margin: 0;
+.msqdx-glass-persona-v2-detail .msqdx-glass-section-workspace__content .msqdx-glass-detail,
+.msqdx-glass-persona-v2-detail .msqdx-glass-persona-v2-section-panel {
+  padding-inline: 0;
+  margin-inline: 0;
+  max-width: 100%;
 }
 
 .msqdx-glass-persona-basics-section .msqdx-glass-bio-stack__block {
   padding: var(--msqdx-spacing-md) 0;
   min-width: 0;
+}
+
+.msqdx-glass-persona-basics-section__assignment {
+  margin-top: var(--msqdx-spacing-md);
+  padding-top: var(--msqdx-spacing-md);
+  border-top: 1px solid var(--color-theme-accent-tint, rgba(0, 0, 0, 0.08));
+}
+
+.msqdx-glass-persona-metadata-assignment__fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--msqdx-spacing-md);
+}
+
+.msqdx-glass-persona-metadata-assignment__select {
+  width: 100%;
+  padding: var(--msqdx-spacing-xs) var(--msqdx-spacing-sm);
+  font-size: var(--msqdx-font-size-sm);
+  border: 1px solid var(--color-theme-accent-tint, rgba(0, 0, 0, 0.12));
+  border-radius: var(--msqdx-radius-sm);
+  background: var(--color-primary-white, #ffffff);
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .msqdx-glass-persona-metadata-assignment__select {
+  background: var(--color-background, #1a1a1a);
 }
 
 .msqdx-glass-persona-basics-section__name {
@@ -126,6 +155,140 @@
   display: flex;
   flex-direction: column;
   gap: var(--msqdx-spacing-xxs);
+}
+
+/* Profile hero — large avatar column + identity */
+.msqdx-glass-persona-basics-hero {
+  display: grid;
+  grid-template-columns: minmax(120px, 140px) minmax(0, 1fr);
+  gap: var(--msqdx-spacing-xl);
+  align-items: start;
+  width: 100%;
+}
+
+.msqdx-glass-persona-basics-hero__media {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--msqdx-spacing-sm);
+}
+
+.msqdx-glass-persona-basics-hero__avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: var(--msqdx-radius-3xl);
+  background: var(--color-theme-accent-tint, rgba(0, 0, 0, 0.06));
+  border: 1px solid var(--color-theme-accent-tint, rgba(0, 0, 0, 0.12));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+}
+
+.msqdx-glass-persona-basics-hero__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.msqdx-glass-persona-basics-hero__avatar-action {
+  width: 100%;
+}
+
+.msqdx-glass-persona-basics-hero__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--msqdx-spacing-lg);
+  min-width: 0;
+}
+
+.msqdx-glass-persona-basics-hero__identity {
+  display: flex;
+  flex-direction: column;
+  gap: var(--msqdx-spacing-sm);
+}
+
+.msqdx-glass-persona-basics-hero__name-row,
+.msqdx-glass-persona-basics-hero__headline-row,
+.msqdx-glass-persona-basics-hero__segment-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--msqdx-spacing-xs);
+  min-width: 0;
+}
+
+.msqdx-glass-persona-basics-hero__name {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-size: clamp(1.75rem, 3.5vw, 2.25rem);
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--color-text-primary);
+}
+
+.msqdx-glass-persona-basics-hero__headline {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-size: var(--msqdx-font-size-base);
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.msqdx-glass-persona-basics-hero__segment-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--msqdx-spacing-xxs) var(--msqdx-spacing-sm);
+  border-radius: 999px;
+  font-size: var(--msqdx-font-size-sm);
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--color-text-primary);
+  background: var(--color-theme-accent-tint, rgba(0, 0, 0, 0.06));
+  border: 1px solid var(--color-theme-accent-tint, rgba(0, 0, 0, 0.1));
+}
+
+.msqdx-glass-persona-basics-hero .msqdx-glass-persona-metadata-assignment {
+  padding-top: var(--msqdx-spacing-md);
+  border-top: 1px solid var(--color-theme-accent-tint, rgba(0, 0, 0, 0.08));
+}
+
+.msqdx-glass-persona-basics-hero__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--msqdx-spacing-sm);
+  align-items: center;
+}
+
+.msqdx-glass-persona-basics-hero__footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--msqdx-spacing-sm);
+  justify-content: flex-end;
+  padding-top: var(--msqdx-spacing-sm);
+  border-top: 1px solid var(--color-theme-accent-tint, rgba(0, 0, 0, 0.08));
+}
+
+@media (max-width: 720px) {
+  .msqdx-glass-persona-basics-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .msqdx-glass-persona-basics-hero__media {
+    align-items: center;
+  }
+
+  .msqdx-glass-persona-basics-hero__avatar {
+    margin-inline: auto;
+  }
+
+  .msqdx-glass-persona-basics-hero__avatar-action {
+    max-width: 280px;
+    margin-inline: auto;
+  }
 }
 
 .msqdx-glass-persona-basics-section__hero {
@@ -184,9 +347,6 @@
   padding-bottom: 0;
 }
 
-.msqdx-glass-bio-section .msqdx-glass-pain-goals-sector-separator {
-  margin: 0;
-}
 
 .msqdx-glass-bio-section .msqdx-glass-persona-v2-section-block .MuiSlider-root {
   color: var(--color-theme-accent);

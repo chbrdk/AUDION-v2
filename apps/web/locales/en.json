@@ -556,7 +556,7 @@
       },
       "basics": {
         "label": "Profile & bio",
-        "description": "Name, avatar, biography, demographics, metadata, and integrations"
+        "description": "Name, avatar, biography, demographics, and integrations"
       },
       "personality": {
         "label": "Personality",

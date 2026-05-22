@@ -15,8 +15,14 @@ describe("persona v2 basics flat section", () => {
     expect(panel).toContain("msqdx-glass-persona-basics-stack");
     expect(panel).toContain("PersonaAdminSectionSurface");
     expect(panel).toContain("hideBlockTitle={isV2Section}");
+    expect(panel).toContain("MsqdxGlassPersonaBasicsHero");
+    expect(panel).toContain("MsqdxGlassPersonaMetadataAssignment");
     expect(panel).toMatch(
-      /showSection\("basics"\)[\s\S]*embedInSection=\{isV2Section\}[\s\S]*cardId="metadata"/
+      /isV2Section \? \([\s\S]*MsqdxGlassPersonaBasicsHero[\s\S]*MsqdxGlassPersonaMetadataAssignment/
+    );
+    expect(panel).toMatch(/!isV2Section \? \([\s\S]*cardId="metadata"/);
+    expect(panel).toMatch(
+      /cardId="integrations"[\s\S]*embedInSection=\{isV2Section\}/
     );
     expect(panel).toMatch(
       /showSection\("basics"\)[\s\S]*cardId="integrations"[\s\S]*<\/Stack>/

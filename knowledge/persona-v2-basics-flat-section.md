@@ -5,8 +5,9 @@
 - **Single nav section `basics`** — biography & demographics merged here; legacy route `/bio` redirects to `/basics` (`resolvePersonaV2SectionId` in `persona-v2-sections.ts`).
 - **Workspace header**: `MsqdxGlassSectionShell` receives `sectionTitle` / `sectionDescription` from `getPersonaV2SectionDef()` (all sections except `overview`).
 - **Basics content**: `msqdx-glass-persona-basics-section` + `msqdx-glass-persona-basics-stack` in `msqdx-glass-persona-admin-panel.tsx` — no `MsqdxDashboardCard` in v2.
-- **Block order (v2)**: profile hero → biography → demographics → metadata → integrations.
-- **Blocks**: `PersonaAdminSectionSurface` with `embedInSection={isV2Section}` wraps profile (no block title), metadata, integrations; `MsqdxGlassBioCardEdit` with `embedInParentStack` for bio blocks inside the same stack.
+- **Block order (v2)**: profile hero (+ project/target group assignment) → biography → demographics → integrations.
+- **Blocks**: `PersonaAdminSectionSurface` with `embedInSection={isV2Section}` wraps profile (no block title) and integrations; `MsqdxGlassBioCardEdit` with `embedInParentStack` for bio blocks inside the same stack.
+- **No audit metadata in v2**: confidence, version, timestamps, updated-by UUID grid only on v1 (`!isV2Section` metadata card). v2 uses `MsqdxGlassPersonaMetadataAssignment` under the profile block.
 - **Separators**: `MsqdxGlassPainGoalsSectorSeparator` between blocks (same as pain/personality stacks).
 
 ## Components
