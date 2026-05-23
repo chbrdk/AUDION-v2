@@ -9,6 +9,7 @@ import Script from "next/script";
 import "../styles/audion-neutral-scale.css";
 import "../styles/globals.css";
 import "../styles/dashboard-cards.css";
+import "../styles/msqdx-glass-persona-chip.css";
 import "../styles/monochrome-theme.css";
 import { I18nProvider } from "../components/i18n/i18n-provider";
 import { resolveLocale } from "../lib/i18n";

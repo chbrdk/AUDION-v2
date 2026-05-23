@@ -24,6 +24,12 @@ Sliders are **not** part of this shell.
 
 Rule: **default to `inline`** for tag-like chips; use **`list`** only when each entry needs a full row. Use **`slider` only for card-carousel UX** (currently: pain-goals only).
 
+## Reusable chip component
+
+- **`MsqdxGlassPersonaChip`** (`apps/web/components/msqdx/chip/`) — standard dashboard tag for traits, vocab, grid chips, etc.
+- Hover + focus styles: `apps/web/styles/msqdx-glass-persona-chip.css`
+- **Double-click** (or Enter/Space when focused) calls `onRequestEdit` → chip editor enters edit mode and focuses that entry.
+
 ## Implemented sections
 
 ### Pain & Goals (`pain-goals`)

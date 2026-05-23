@@ -1,0 +1,60 @@
+/* Interactive persona dashboard chips (MsqdxGlassPersonaChip) */
+
+.msqdx-glass-chip.--dashboard.--interactive {
+  user-select: none;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.12s ease;
+}
+
+.msqdx-glass-chip.--dashboard.--interactive:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.msqdx-glass-chip.--dashboard.--interactive:focus-visible {
+  outline: 2px solid var(--color-theme-accent, #000);
+  outline-offset: 2px;
+}
+
+.msqdx-glass-chip.--dashboard.--trait.--interactive:hover {
+  background: color-mix(in srgb, var(--color-secondary-dx-green-tint) 72%, var(--color-secondary-dx-green));
+  border-color: var(--color-secondary-dx-green);
+}
+
+.msqdx-glass-chip.--dashboard.--value.--interactive:hover {
+  background: color-mix(in srgb, var(--color-secondary-dx-green-tint) 72%, var(--color-secondary-dx-green));
+  border-color: var(--color-secondary-dx-green);
+}
+
+.msqdx-glass-chip.--dashboard.--interest.--interactive:hover {
+  background: color-mix(in srgb, var(--color-secondary-dx-yellow-tint) 72%, var(--color-secondary-dx-yellow));
+  border-color: var(--color-secondary-dx-yellow);
+}
+
+.msqdx-glass-chip.--dashboard.--social.--interactive:hover {
+  background: color-mix(in srgb, var(--color-secondary-dx-orange-tint) 72%, var(--color-secondary-dx-orange));
+  border-color: var(--color-secondary-dx-orange);
+}
+
+.msqdx-glass-chip.--dashboard.--vocab.--interactive:hover,
+.msqdx-glass-chip.--dashboard.--sentence.--interactive:hover {
+  background: color-mix(in srgb, var(--color-secondary-dx-blue-tint) 72%, var(--color-secondary-dx-blue));
+  border-color: var(--color-secondary-dx-blue);
+}
+
+.msqdx-glass-chip.--dashboard.--pain.--interactive:hover {
+  background: color-mix(in srgb, var(--color-secondary-dx-pink-tint) 72%, var(--color-secondary-dx-pink));
+  border-color: var(--color-secondary-dx-pink);
+}
+
+.msqdx-glass-chip.--dashboard.--goal.--interactive:hover {
+  background: color-mix(in srgb, var(--color-secondary-dx-blue-tint) 72%, var(--color-secondary-dx-blue));
+  border-color: var(--color-secondary-dx-blue);
+}
+
+[data-theme="dark"] .msqdx-glass-chip.--dashboard.--interactive:hover {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+}

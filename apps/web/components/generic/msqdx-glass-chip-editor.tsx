@@ -8,6 +8,10 @@ import { useInlineEdit } from "../hooks/use-inline-edit";
 import { MsqdxGlassInlineEditControls } from "../msqdx-glass-inline-edit-controls";
 import clsx from "clsx";
 import { MsqdxGlassChip, type MsqdxGlassChipVariant } from "./msqdx-glass-chip";
+import {
+  MsqdxGlassPersonaChip,
+  isMsqdxGlassPersonaChipVariant,
+} from "../msqdx/chip";
 import { MsqdxGlassHorizontalCardSlider } from "./msqdx-glass-horizontal-card-slider";
 import { useI18n } from "../i18n/i18n-provider";
 import { MONO_FONT_SX, SECTION_HEADING_MONO_SX } from "../../lib/msqdx-typography";
@@ -229,6 +233,18 @@ export const MsqdxGlassChipEditor = ({
     setEditingIndex(index);
     setEditingValue(currentValue);
   }, []);
+
+  const beginChipEdit = useCallback(
+    (index: number, currentValue: string) => {
+      if (!editable) return;
+      if (!isEditing) {
+        setIsEditing(true);
+        chipEdit.sync();
+      }
+      handleStartEditChip(index, currentValue);
+    },
+    [editable, isEditing, chipEdit, handleStartEditChip]
+  );
 
   const handleSaveEditChip = useCallback(() => {
     if (editingIndex === null) return;
@@ -583,6 +599,25 @@ export const MsqdxGlassChipEditor = ({
                       sx={INPUT_ACCENT_SX}
                     />
                   </Box>
+                ) : isMsqdxGlassPersonaChipVariant(chipVariant) ? (
+                  <MsqdxGlassPersonaChip
+                    label={chip}
+                    variant={chipVariant}
+                    block={isListLayout}
+                    highlighted={highlightedChips.some(
+                      (highlight) => highlight.trim().toLowerCase() === chip.trim().toLowerCase()
+                    )}
+                    editable={editable}
+                    onClick={isEditing ? () => handleStartEditChip(idx, chip) : undefined}
+                    onRequestEdit={() => beginChipEdit(idx, chip)}
+                    style={
+                      isListLayout
+                        ? { flex: 1, width: "100%" }
+                        : isGridLayout
+                          ? { width: "100%", maxWidth: "100%", justifyContent: "flex-start" }
+                          : undefined
+                    }
+                  />
                 ) : (
                   <MsqdxGlassChip
                     variant={chipVariant}
@@ -591,7 +626,11 @@ export const MsqdxGlassChipEditor = ({
                     highlighted={highlightedChips.some(
                       (highlight) => highlight.trim().toLowerCase() === chip.trim().toLowerCase()
                     )}
+                    interactive={editable}
                     onClick={isEditing ? () => handleStartEditChip(idx, chip) : undefined}
+                    onDoubleClick={
+                      editable && !isEditing ? () => beginChipEdit(idx, chip) : undefined
+                    }
                     style={
                       isListLayout
                         ? { flex: 1, width: "100%" }
