@@ -617,7 +617,7 @@
     "vocabulary": "Vokabular",
     "noVocabularyDefined": "Kein Vokabular definiert",
     "sentenceStructure": "Satzstruktur",
-    "addSentenceStructure": "Satzstruktur hinzufügen…",
+    "noSentenceStructureDefined": "Keine Satzstruktur definiert",
     "sentenceStructurePlaceholder": "z.B. klar, zielgerichtet, First-Person-Perspektive",
     "skepticism": "Skepsis",
     "skepticismLow": "Niedrig",

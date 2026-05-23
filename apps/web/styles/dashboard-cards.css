@@ -845,18 +845,6 @@
   line-height: 1.35;
 }
 
-.msqdx-glass-communication-section .msqdx-glass-chip.--dashboard.--empty-entry {
-  background: transparent !important;
-  border: 1px dashed var(--color-secondary-dx-blue) !important;
-  color: var(--color-secondary-dx-blue) !important;
-  font-style: italic;
-  cursor: pointer;
-}
-
-.msqdx-glass-communication-section .msqdx-glass-chip.--dashboard.--empty-entry:hover {
-  background: var(--color-secondary-dx-blue-tint) !important;
-}
-
 .msqdx-glass-communication-stack__block.--sentence .msqdx-glass-chip-editor__chips--grid,
 .msqdx-glass-communication-stack__block.--vocab .msqdx-glass-chip-editor__chips--grid,
 .msqdx-glass-communication-section .msqdx-glass-chip-editor__corner-tab-shell .msqdx-glass-chip-editor__chips--grid {
@@ -864,12 +852,9 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.msqdx-glass-communication-stack__block.--sentence .msqdx-glass-chip-editor__chips--grid {
-  grid-template-columns: minmax(0, 1fr);
-}
-
 @media (min-width: 960px) {
   .msqdx-glass-communication-stack__block.--vocab .msqdx-glass-chip-editor__chips--grid,
+  .msqdx-glass-communication-stack__block.--sentence .msqdx-glass-chip-editor__chips--grid,
   .msqdx-glass-communication-section .msqdx-glass-chip-editor__corner-tab-shell .msqdx-glass-chip-editor__chips--grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }

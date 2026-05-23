@@ -8,7 +8,7 @@ Same as personality / pain-goals: no `MsqdxDashboardCard` accordion in v2; `embe
 
 1. **Vocabulary** — `MsqdxGlassChipEditor` with grid + grey `MsqdxCornerTabCard` shell (`vocab` in `chip-editor-corner-tab.tsx`, `COMMUNICATION_VOCABULARY_CHIP_PROPS`)
 2. Sector separator
-3. **Sentence structure** — `MsqdxGlassChipEditor` (`maxChips={1}`, `showEmptyEntryChip`, `--sentence`, `COMMUNICATION_SENTENCE_CHIP_PROPS`, corner tab `sentence` / `format_quote`)
+3. **Sentence structure** — same `MsqdxGlassChipEditor` + `COMMUNICATION_VOCABULARY_CHIP_PROPS` as vocabulary (`--sentence` / `format_quote` corner tab only); no AI until wired
 4. Sector separator
 5. **Skepticism** — `PersonaV2SectionBlock` + preview bar + slider field editor
 

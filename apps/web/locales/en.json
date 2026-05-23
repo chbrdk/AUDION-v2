@@ -617,7 +617,7 @@
     "vocabulary": "Vocabulary",
     "noVocabularyDefined": "No vocabulary defined",
     "sentenceStructure": "Sentence Structure",
-    "addSentenceStructure": "Add sentence structure…",
+    "noSentenceStructureDefined": "No sentence structure defined",
     "sentenceStructurePlaceholder": "e.g., clear, purposeful, uses first-person perspective",
     "skepticism": "Skepticism",
     "skepticismLow": "Low",

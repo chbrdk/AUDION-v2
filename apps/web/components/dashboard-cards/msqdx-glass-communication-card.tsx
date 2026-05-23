@@ -10,10 +10,7 @@ import { MsqdxGlassPainGoalsSectorSeparator } from "../generic/msqdx-glass-pain-
 import { PersonaV2SectionBlock } from "../personas-v2/persona-v2-section-block";
 import { useI18n } from "../i18n/i18n-provider";
 import { THEME_ACCENT } from "../../lib/theme-accent";
-import {
-  COMMUNICATION_SENTENCE_CHIP_PROPS,
-  COMMUNICATION_VOCABULARY_CHIP_PROPS,
-} from "../../lib/persona-communication-chip-layout";
+import { COMMUNICATION_VOCABULARY_CHIP_PROPS } from "../../lib/persona-communication-chip-layout";
 
 const COMMUNICATION_CARD_ID = "communication";
 
@@ -48,8 +45,11 @@ export const MsqdxGlassCommunicationCard = ({
     return null;
   }
 
-  const sentenceValue = profile.communication_style.sentence_structure?.trim() ?? "";
-  const sentenceChips = sentenceValue ? [sentenceValue] : [];
+  const sentenceChips =
+    profile.communication_style.sentence_structure
+      ?.split(/,\s*/)
+      .map((part) => part.trim())
+      .filter(Boolean) ?? [];
 
   const vocabularyBlock = (
     <MsqdxGlassChipEditor
@@ -72,14 +72,15 @@ export const MsqdxGlassCommunicationCard = ({
       chips={sentenceChips}
       chipClassName="--sentence"
       onSave={async (chips) => {
-        await (onSaveSentenceStructure ?? (async () => {}))(chips[0]?.trim() ?? "");
+        const value = chips
+          .map((chip) => chip.trim())
+          .filter(Boolean)
+          .join(", ");
+        await (onSaveSentenceStructure ?? (async () => {}))(value);
       }}
       editable={!!onSaveSentenceStructure}
-      maxChips={1}
-      showEmptyEntryChip
-      emptyEntryChipLabel={t("personaAdmin.addSentenceStructure")}
-      emptyMessage={t("personaAdmin.sentenceStructurePlaceholder")}
-      {...COMMUNICATION_SENTENCE_CHIP_PROPS}
+      emptyMessage={t("personaAdmin.noSentenceStructureDefined")}
+      {...COMMUNICATION_VOCABULARY_CHIP_PROPS}
     />
   ) : (
     <MsqdxGlassFieldEditor
