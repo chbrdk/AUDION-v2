@@ -45,14 +45,12 @@ describe("persona v2 basics flat section", () => {
     );
   });
 
-  it("passes workspace section title from section def", () => {
+  it("omits duplicate workspace section header (nav labels sections)", () => {
     const layout = readFileSync(
       join(webRoot, "components/personas-v2/msqdx-glass-persona-v2-detail-layout.tsx"),
       "utf8"
     );
-    expect(layout).toContain("getPersonaV2SectionDef");
-    expect(layout).toContain("sectionTitle={showWorkspaceSectionHeader");
-    expect(layout).toContain("sectionDescription={showWorkspaceSectionHeader");
-    expect(layout).toContain('sectionId !== "overview"');
+    expect(layout).not.toContain("sectionTitle=");
+    expect(layout).not.toContain("sectionDescription=");
   });
 });

@@ -2514,6 +2514,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
                   profile={profileForChips ?? detail.profile}
                   expanded={accordionExpanded("communication")}
                   onToggle={accordionToggle}
+                  embedInSection={isV2Section}
                   onSaveVocabulary={handleSaveVocabulary}
                   onSaveSentenceStructure={handleSaveSentenceStructure}
                   onSaveSkepticismLevel={handleSaveSkepticismLevel}

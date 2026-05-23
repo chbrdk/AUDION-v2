@@ -774,6 +774,96 @@
   text-align: left;
 }
 
+/* Communication v2 — flat stack (mirrors personality section) */
+.msqdx-glass-communication-stack__block {
+  width: 100%;
+  padding: var(--msqdx-communication-block-padding, 0);
+  overflow: visible;
+}
+
+.msqdx-glass-communication-section {
+  --msqdx-communication-chip-font-size: 0.875rem;
+  --msqdx-communication-chip-font-weight: 400;
+  --msqdx-communication-chip-padding: 1rem 1.125rem;
+  --msqdx-communication-chip-gap: var(--msqdx-spacing-sm);
+  --msqdx-communication-block-padding: 0;
+  --msqdx-communication-section-surface: var(--audion-neutral-05, #e0e0e0);
+  padding-top: var(--msqdx-spacing-xxs);
+}
+
+[data-theme="dark"] .msqdx-glass-communication-section {
+  --msqdx-communication-section-surface: var(--audion-neutral-17, #181714);
+}
+
+.msqdx-glass-communication-section .msqdx-glass-pain-goals-sector-separator {
+  margin-block: var(--msqdx-spacing-lg);
+}
+
+.msqdx-glass-communication-section .msqdx-glass-chip-editor__corner-tab-shell {
+  --msqdx-pain-goals-corner-surface: var(--msqdx-communication-section-surface);
+  --msqdx-pain-goals-slide-surface: var(--audion-neutral-02, #f8f7f3);
+  width: 100%;
+}
+
+[data-theme="dark"] .msqdx-glass-communication-section .msqdx-glass-chip-editor__corner-tab-shell {
+  --msqdx-pain-goals-slide-surface: var(--audion-neutral-15, #302f2a);
+}
+
+.msqdx-glass-communication-section .msqdx-glass-chip-editor--corner-tab {
+  margin-bottom: 0;
+}
+
+.msqdx-glass-communication-section .msqdx-glass-chip.--dashboard.--vocab {
+  font-size: var(--msqdx-communication-chip-font-size) !important;
+  font-weight: var(--msqdx-communication-chip-font-weight) !important;
+  padding: var(--msqdx-communication-chip-padding) !important;
+  line-height: 1.35;
+}
+
+.msqdx-glass-communication-stack__block.--vocab .msqdx-glass-chip-editor__chips--grid {
+  gap: var(--msqdx-spacing-md);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 960px) {
+  .msqdx-glass-communication-stack__block.--vocab .msqdx-glass-chip-editor__chips--grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.msqdx-glass-communication-skepticism {
+  display: flex;
+  flex-direction: column;
+  gap: var(--msqdx-spacing-sm);
+}
+
+.msqdx-glass-communication-skepticism__labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--msqdx-font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.msqdx-glass-communication-skepticism__track {
+  width: 100%;
+  height: 10px;
+  background-color: var(--color-theme-accent-tint, rgba(0, 0, 0, 0.08));
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.msqdx-glass-communication-skepticism__fill {
+  height: 100%;
+  background-color: var(--color-theme-accent);
+  transition: width 0.3s ease;
+}
+
+.msqdx-glass-communication-skepticism__level {
+  margin: 0;
+  font-size: var(--msqdx-font-size-sm);
+  color: var(--color-text-secondary);
+}
+
 .msqdx-glass-chip-editor--grid .msqdx-glass-chip-editor__chip-cell {
   min-width: 0;
 }

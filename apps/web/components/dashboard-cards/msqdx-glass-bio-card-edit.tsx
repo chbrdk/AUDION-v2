@@ -212,23 +212,25 @@ export const MsqdxGlassBioCardEdit = ({
       blockClassName="msqdx-glass-bio-stack__block --demographics"
     >
       <Stack spacing={3}>
-        <Box ref={fullNameRef} sx={{ position: "relative" }}>
-          <MsqdxFormField
-            label={t("personaAdmin.fullName")}
-            value={fullNameEdit.value}
-            onChange={(e) => fullNameEdit.setValue(e.target.value)}
-            fullWidth
-            disabled={savePending}
-          />
-          <MsqdxGlassInlineEditControls
-            hasChanges={fullNameEdit.hasChanges}
-            saving={savePending}
-            onSave={handleSaveFullName}
-            onDiscard={() => fullNameEdit.reset()}
-            anchorElement={fullNameRef.current}
-            position="top"
-          />
-        </Box>
+        {!embedInParentStack ? (
+          <Box ref={fullNameRef} sx={{ position: "relative" }}>
+            <MsqdxFormField
+              label={t("personaAdmin.fullName")}
+              value={fullNameEdit.value}
+              onChange={(e) => fullNameEdit.setValue(e.target.value)}
+              fullWidth
+              disabled={savePending}
+            />
+            <MsqdxGlassInlineEditControls
+              hasChanges={fullNameEdit.hasChanges}
+              saving={savePending}
+              onSave={handleSaveFullName}
+              onDiscard={() => fullNameEdit.reset()}
+              anchorElement={fullNameRef.current}
+              position="top"
+            />
+          </Box>
+        ) : null}
 
         <Box ref={ageRef} sx={{ position: "relative" }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
