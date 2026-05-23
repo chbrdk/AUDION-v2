@@ -13,7 +13,8 @@ describe("MsqdxGlassPainGoalsCornerShell", () => {
     expect(source).toContain('placement = "top-right"');
     expect(source).not.toContain("tabHeading={");
     expect(source).toContain("tabActions");
-    expect(source).toContain("tabWidthAuto");
+    expect(source).toContain("corner-tab-toolbar");
+    expect(source).toContain("renderChipEditorCornerTab");
     expect(source).toContain("ChipEditorCornerTabContent");
     expect(source).toContain("resolveChipEditorCornerTabStyle");
     expect(source).toContain("CHIP_EDITOR_CORNER_BORDER_RADIUS_PX");

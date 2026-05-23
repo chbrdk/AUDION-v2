@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo, type ReactNode } from "react";
 import { Box, useTheme, alpha } from "@mui/material";
 import { MsqdxIcon, MsqdxButton, MsqdxTypography, MsqdxInput, MsqdxCornerBox } from "@msqdx/react";
-import { MsqdxGlassEditButton, MsqdxGlassAiButtonIcon } from "./";
+import { MsqdxGlassEditButton, MsqdxGlassAiButtonIcon, MsqdxGlassAddButtonIcon } from "./";
 import { useInlineEdit } from "../hooks/use-inline-edit";
 import { MsqdxGlassInlineEditControls } from "../msqdx-glass-inline-edit-controls";
 import clsx from "clsx";
@@ -335,49 +335,96 @@ export const MsqdxGlassChipEditor = ({
   const showSliderInlineHeader =
     isSliderLayout && !showEmptyState && Boolean(sectionHeading) && !useCornerTabChrome;
 
+  const cornerTabActionButtonNodes = useMemo(() => {
+    if (!editable || isEditing) {
+      return [];
+    }
+    const nodes: ReactNode[] = [];
+    if (onAiSuggest) {
+      nodes.push(
+        <MsqdxGlassAiButtonIcon
+          key="ai"
+          onClick={onAiSuggest}
+          disabled={aiLoading}
+          loading={aiLoading}
+          size="small"
+          fontSize={18}
+          title={t("chipEditor.aiSuggestion")}
+          aria-label={t("chipEditor.aiSuggestion")}
+        />
+      );
+    }
+    if (hasChips) {
+      nodes.push(
+        <MsqdxGlassEditButton
+          key="edit"
+          onClick={handleStartEdit}
+          size="small"
+          fontSize={18}
+          aria-label={t("chipEditor.editChips")}
+        />
+      );
+    } else if (canAddMore) {
+      nodes.push(
+        <MsqdxGlassAddButtonIcon
+          key="add"
+          onClick={handleStartEdit}
+          size="small"
+          fontSize={18}
+          aria-label={t("common.add")}
+        />
+      );
+    }
+    return nodes;
+  }, [
+    editable,
+    isEditing,
+    onAiSuggest,
+    aiLoading,
+    hasChips,
+    canAddMore,
+    handleStartEdit,
+    t,
+  ]);
+
   const sliderToolbarActions = useMemo(
     () =>
-      editable && !isEditing && isSliderLayout && !showEmptyState ? (
-        <>
-          {onAiSuggest ? (
-            <MsqdxGlassAiButtonIcon
-              onClick={onAiSuggest}
-              disabled={aiLoading}
-              loading={aiLoading}
-              size="small"
-              fontSize={18}
-              title={t("chipEditor.aiSuggestion")}
-              aria-label={t("chipEditor.aiSuggestion")}
-            />
-          ) : null}
-          {hasChips ? (
-            <MsqdxGlassEditButton
-              onClick={handleStartEdit}
-              size="small"
-              fontSize={18}
-              aria-label={t("chipEditor.editChips")}
-            />
-          ) : null}
-        </>
+      editable && !isEditing && isSliderLayout && !showEmptyState && cornerTabActionButtonNodes.length > 0 ? (
+        <>{cornerTabActionButtonNodes}</>
       ) : null,
     [
       editable,
       isEditing,
       isSliderLayout,
       showEmptyState,
-      onAiSuggest,
-      aiLoading,
-      hasChips,
-      handleStartEdit,
-      t,
+      cornerTabActionButtonNodes,
     ]
   );
 
   const headerActions = useMemo(
     () =>
-      showHeaderActions ? (
-        <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
-          {onAiSuggest ? (
+      showHeaderActions && cornerTabActionButtonNodes.length > 0 ? (
+        <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>{cornerTabActionButtonNodes}</Box>
+      ) : null,
+    [showHeaderActions, cornerTabActionButtonNodes]
+  );
+
+  const entryActionsContent = useMemo(() => {
+    if (!editable || isEditing || showEmptyEntryInGrid) {
+      return null;
+    }
+    const showAdd = canAddMore;
+    const showAiInBody = showEmptyState && Boolean(onAiSuggest);
+    if (!showAdd && !showAiInBody) {
+      return null;
+    }
+    return (
+      <Box
+        className="msqdx-glass-chip-editor__card-entry-actions"
+        sx={{ display: "flex", gap: 1, alignItems: "center" }}
+      >
+        {showAiInBody ? (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
             <MsqdxGlassAiButtonIcon
               onClick={onAiSuggest}
               disabled={aiLoading}
@@ -387,47 +434,12 @@ export const MsqdxGlassChipEditor = ({
               title={t("chipEditor.aiSuggestion")}
               aria-label={t("chipEditor.aiSuggestion")}
             />
-          ) : null}
-          {hasChips ? (
-            <MsqdxGlassEditButton
-              onClick={handleStartEdit}
-              size="small"
-              fontSize={18}
-              aria-label={t("chipEditor.editChips")}
-            />
-          ) : null}
-        </Box>
-      ) : null,
-    [
-      showHeaderActions,
-      onAiSuggest,
-      aiLoading,
-      hasChips,
-      handleStartEdit,
-      t,
-    ]
-  );
-
-  const emptyStateActions = useMemo(
-    () =>
-      editable ? (
-        <Box className="msqdx-glass-chip-editor__empty-actions" sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-          {onAiSuggest ? (
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-              <MsqdxGlassAiButtonIcon
-                onClick={onAiSuggest}
-                disabled={aiLoading}
-                loading={aiLoading}
-                size="small"
-                fontSize={18}
-                title={t("chipEditor.aiSuggestion")}
-                aria-label={t("chipEditor.aiSuggestion")}
-              />
-              <Box component="span" sx={{ fontSize: "0.875rem" }}>
-                {t("chipEditor.aiSuggestion")}
-              </Box>
+            <Box component="span" sx={{ fontSize: "0.875rem" }}>
+              {t("chipEditor.aiSuggestion")}
             </Box>
-          ) : null}
+          </Box>
+        ) : null}
+        {showAdd ? (
           <MsqdxButton
             variant="text"
             size="small"
@@ -437,10 +449,20 @@ export const MsqdxGlassChipEditor = ({
           >
             {t("common.add")}
           </MsqdxButton>
-        </Box>
-      ) : null,
-    [editable, onAiSuggest, aiLoading, handleStartEdit, t]
-  );
+        ) : null}
+      </Box>
+    );
+  }, [
+    editable,
+    isEditing,
+    showEmptyEntryInGrid,
+    canAddMore,
+    showEmptyState,
+    onAiSuggest,
+    aiLoading,
+    handleStartEdit,
+    t,
+  ]);
 
   const showCornerTabLeadingHeader = useCornerTabShell && Boolean(sectionHeading);
   const showStandaloneHeader =
@@ -511,7 +533,7 @@ export const MsqdxGlassChipEditor = ({
           >
             {displayEmptyMessage}
           </Box>
-          {useCornerTabShell ? emptyStateActions : null}
+          {useCornerTabShell ? entryActionsContent : null}
         </Box>
       ) : (
         <>
@@ -635,6 +657,9 @@ export const MsqdxGlassChipEditor = ({
               position="top"
             />
           )}
+          {useCornerTabShell && entryActionsContent ? (
+            <Box sx={{ mt: 1 }}>{entryActionsContent}</Box>
+          ) : null}
         </>
       )}
     </>
@@ -873,7 +898,9 @@ export const MsqdxGlassChipEditor = ({
         </>
       )}
 
-      {editable && showEmptyState && !showEmptyEntryInGrid && !useCornerTabShell && emptyStateActions}
+      {!useCornerTabShell && entryActionsContent ? (
+        <Box sx={{ mt: 1 }}>{entryActionsContent}</Box>
+      ) : null}
     </div>
   );
 };
