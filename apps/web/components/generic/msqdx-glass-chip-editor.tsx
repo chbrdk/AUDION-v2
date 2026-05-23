@@ -408,6 +408,40 @@ export const MsqdxGlassChipEditor = ({
     ]
   );
 
+  const emptyStateActions = useMemo(
+    () =>
+      editable ? (
+        <Box className="msqdx-glass-chip-editor__empty-actions" sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+          {onAiSuggest ? (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <MsqdxGlassAiButtonIcon
+                onClick={onAiSuggest}
+                disabled={aiLoading}
+                loading={aiLoading}
+                size="small"
+                fontSize={18}
+                title={t("chipEditor.aiSuggestion")}
+                aria-label={t("chipEditor.aiSuggestion")}
+              />
+              <Box component="span" sx={{ fontSize: "0.875rem" }}>
+                {t("chipEditor.aiSuggestion")}
+              </Box>
+            </Box>
+          ) : null}
+          <MsqdxButton
+            variant="text"
+            size="small"
+            onClick={handleStartEdit}
+            startIcon={<MsqdxIcon name="add" customSize={18} />}
+            aria-label={t("common.add")}
+          >
+            {t("common.add")}
+          </MsqdxButton>
+        </Box>
+      ) : null,
+    [editable, onAiSuggest, aiLoading, handleStartEdit, t]
+  );
+
   const showCornerTabLeadingHeader = useCornerTabShell && Boolean(sectionHeading);
   const showStandaloneHeader =
     !showSliderInlineHeader &&
@@ -459,14 +493,25 @@ export const MsqdxGlassChipEditor = ({
         </Box>
       ) : showEmptyState ? (
         <Box
+          className="msqdx-glass-chip-editor__empty-state"
           sx={{
-            color: "text.secondary",
-            fontStyle: "italic",
-            fontSize: "0.875rem",
-            ...(usesSectionMono ? MONO_FONT_SX : {}),
+            display: "flex",
+            flexDirection: "column",
+            gap: 1,
+            alignItems: "flex-start",
           }}
         >
-          {displayEmptyMessage}
+          <Box
+            sx={{
+              color: "text.secondary",
+              fontStyle: "italic",
+              fontSize: "0.875rem",
+              ...(usesSectionMono ? MONO_FONT_SX : {}),
+            }}
+          >
+            {displayEmptyMessage}
+          </Box>
+          {useCornerTabShell ? emptyStateActions : null}
         </Box>
       ) : (
         <>
@@ -828,35 +873,7 @@ export const MsqdxGlassChipEditor = ({
         </>
       )}
 
-      {editable && showEmptyState && !showEmptyEntryInGrid && (
-        <Box sx={{ display: "flex", gap: 1, alignItems: "center", mt: 1 }}>
-          {onAiSuggest && (
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-              <MsqdxGlassAiButtonIcon
-                onClick={onAiSuggest}
-                disabled={aiLoading}
-                loading={aiLoading}
-                size="small"
-                fontSize={18}
-                title={t("chipEditor.aiSuggestion")}
-                aria-label={t("chipEditor.aiSuggestion")}
-              />
-              <Box component="span" sx={{ fontSize: "0.875rem" }}>
-                {t("chipEditor.aiSuggestion")}
-              </Box>
-            </Box>
-          )}
-          <MsqdxButton
-            variant="text"
-            size="small"
-            onClick={handleStartEdit}
-            startIcon={<MsqdxIcon name="add" customSize={18} />}
-            aria-label={t("common.add")}
-          >
-            {t("common.add")}
-          </MsqdxButton>
-        </Box>
-      )}
+      {editable && showEmptyState && !showEmptyEntryInGrid && !useCornerTabShell && emptyStateActions}
     </div>
   );
 };
