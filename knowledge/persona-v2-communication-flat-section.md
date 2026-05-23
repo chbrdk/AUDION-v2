@@ -6,7 +6,7 @@ Same as personality / pain-goals: no `MsqdxDashboardCard` accordion in v2; `embe
 
 ## Block order
 
-1. **Vocabulary** — `MsqdxGlassChipEditor` with grid + corner-tab shell (`COMMUNICATION_VOCABULARY_CHIP_PROPS`, shared with personality grid tokens)
+1. **Vocabulary** — `MsqdxGlassChipEditor` with grid + grey `MsqdxCornerTabCard` shell (`vocab` in `chip-editor-corner-tab.tsx`, `COMMUNICATION_VOCABULARY_CHIP_PROPS`)
 2. Sector separator
 3. **Sentence structure** — `PersonaV2SectionBlock` + inline `MsqdxGlassFieldEditor` (textarea)
 4. Sector separator

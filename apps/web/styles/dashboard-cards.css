@@ -809,8 +809,25 @@
   --msqdx-pain-goals-slide-surface: var(--audion-neutral-15, #302f2a);
 }
 
-.msqdx-glass-communication-section .msqdx-glass-chip-editor--corner-tab {
+.msqdx-glass-communication-section .msqdx-glass-chip-editor--corner-tab.msqdx-glass-chip-editor--grid,
+.msqdx-glass-communication-section .msqdx-glass-chip-editor--corner-tab:not(.msqdx-glass-chip-editor--grid) {
   margin-bottom: 0;
+}
+
+.msqdx-glass-communication-section .msqdx-glass-chip-editor__corner-tab-shell--with-actions {
+  margin-top: 2rem;
+}
+
+.msqdx-glass-communication-section .msqdx-glass-chip-editor__chips--wrap {
+  gap: var(--msqdx-communication-chip-gap);
+}
+
+.msqdx-glass-communication-section .msqdx-glass-chip-editor--grid .msqdx-glass-chip.--dashboard {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  justify-content: flex-start;
+  text-align: left;
 }
 
 .msqdx-glass-communication-section .msqdx-glass-chip.--dashboard.--vocab {
@@ -820,14 +837,24 @@
   line-height: 1.35;
 }
 
-.msqdx-glass-communication-stack__block.--vocab .msqdx-glass-chip-editor__chips--grid {
+.msqdx-glass-communication-stack__block.--vocab .msqdx-glass-chip-editor__chips--grid,
+.msqdx-glass-communication-section .msqdx-glass-chip-editor__corner-tab-shell .msqdx-glass-chip-editor__chips--grid {
   gap: var(--msqdx-spacing-md);
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 @media (min-width: 960px) {
-  .msqdx-glass-communication-stack__block.--vocab .msqdx-glass-chip-editor__chips--grid {
+  .msqdx-glass-communication-stack__block.--vocab .msqdx-glass-chip-editor__chips--grid,
+  .msqdx-glass-communication-section .msqdx-glass-chip-editor__corner-tab-shell .msqdx-glass-chip-editor__chips--grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 959px) {
+  .msqdx-glass-communication-section .msqdx-glass-chip.--dashboard.--vocab {
+    font-size: var(--msqdx-communication-chip-font-size) !important;
+    font-weight: var(--msqdx-communication-chip-font-weight) !important;
+    padding: var(--msqdx-communication-chip-padding) !important;
   }
 }
 

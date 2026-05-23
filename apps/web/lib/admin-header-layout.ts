@@ -30,3 +30,6 @@ export const ADMIN_HEADER_V2_CONTEXT_DRAWER_CLASS =
 export function isPersonasV2AdminPath(pathname: string | null | undefined): boolean {
   return Boolean(pathname?.startsWith("/admin/personas-v2"));
 }
+
+/** Clears the v2 header card row inside `main` (back + header card + vertical padding). */
+export const ADMIN_CONTENT_PADDING_TOP_V2 = `calc(${ADMIN_HEADER_V2_BACK_BUTTON_SIZE_PX}px + var(--msqdx-spacing-md) + var(--msqdx-spacing-sm))`;

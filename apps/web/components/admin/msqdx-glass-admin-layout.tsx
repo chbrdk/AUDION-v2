@@ -16,6 +16,7 @@ import { MsqdxGlassAdminHeaderPageTitle } from "./msqdx-glass-admin-header-page-
 import {
   ADMIN_HEADER_V2_BACK_SLOT_CLASS,
   ADMIN_HEADER_V2_BAR_CLASS,
+  ADMIN_CONTENT_PADDING_TOP_V2,
   ADMIN_HEADER_V2_ROW_CLASS,
   isPersonasV2AdminPath,
 } from "../../lib/admin-header-layout";
@@ -483,12 +484,17 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
           bottom: 0,
           zIndex: 0,
           overflowX: "hidden",
-          overflowY: "auto",
+          overflowY: isPersonasV2Chrome ? "hidden" : "auto",
+          display: isPersonasV2Chrome ? "flex" : "block",
+          flexDirection: isPersonasV2Chrome ? "column" : undefined,
           padding: { xs: "1rem", md: "1.5rem" },
-          paddingTop: "100px !important",
+          paddingTop: isPersonasV2Chrome
+            ? `${ADMIN_CONTENT_PADDING_TOP_V2} !important`
+            : "100px !important",
           minWidth: 0,
+          minHeight: 0,
           maxWidth: "100%",
-          width: "100%"
+          width: "100%",
         }}
       >
         {title && (

@@ -43,8 +43,12 @@ describe("chip-editor-corner-tab", () => {
     expect(resolveChipEditorCornerTabStyle("social")?.iconColor).toContain("orange");
   });
 
+  it("returns blue icon accent for vocabulary", () => {
+    expect(resolveChipEditorCornerTabStyle("vocab")?.iconColor).toContain("blue");
+  });
+
   it("skips corner tab for unrelated chip variants", () => {
-    expect(resolveChipEditorCornerTabStyle("vocab")).toBeNull();
-    expect(renderChipEditorCornerTab("vocab", "Label")).toBeUndefined();
+    expect(resolveChipEditorCornerTabStyle("draft")).toBeNull();
+    expect(renderChipEditorCornerTab("draft", "Label")).toBeUndefined();
   });
 });

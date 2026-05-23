@@ -2,6 +2,52 @@
 .msqdx-glass-persona-v2-detail {
   --msqdx-persona-v2-section-heading-font-size: clamp(1.125rem, 2.5vw, 1.5rem);
   --msqdx-persona-v2-section-heading-count-font-size: 0.9375rem;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  width: 100%;
+}
+
+.msqdx-glass-persona-v2-detail > .msqdx-glass-section-shell {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.msqdx-glass-persona-v2-detail .msqdx-glass-section-shell__body {
+  flex: 1;
+  min-height: 0;
+  align-items: stretch;
+}
+
+.msqdx-glass-persona-v2-detail .msqdx-glass-section-workspace--with-subnav {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.msqdx-glass-persona-v2-detail .msqdx-glass-section-workspace__dock-shell {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.msqdx-glass-persona-v2-detail .msqdx-glass-section-workspace__main {
+  min-height: 0;
+}
+
+@media (min-width: 1025px) {
+  .msqdx-glass-persona-v2-detail .msqdx-glass-section-shell__nav-column {
+    max-height: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
 }
 
 .msqdx-glass-persona-v2-detail .msqdx-glass-chip-editor__section-heading h3.MuiTypography-root {

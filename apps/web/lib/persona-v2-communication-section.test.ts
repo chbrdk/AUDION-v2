@@ -15,6 +15,7 @@ describe("persona v2 communication flat section", () => {
     expect(card).toContain("msqdx-glass-communication-stack");
     expect(card).toContain("MsqdxGlassPainGoalsSectorSeparator");
     expect(card).toContain("COMMUNICATION_VOCABULARY_CHIP_PROPS");
+    expect(card).toContain('chipClassName="--vocab"');
     expect(card).toMatch(/if \(embedInSection\)[\s\S]*msqdx-glass-communication-section/);
     expect(card).toContain("PersonaV2SectionBlock");
   });
@@ -32,6 +33,8 @@ describe("persona v2 communication flat section", () => {
   it("styles communication section like personality", () => {
     const css = readFileSync(join(webRoot, "styles/dashboard-cards.css"), "utf8");
     expect(css).toContain(".msqdx-glass-communication-section");
+    expect(css).toContain(".msqdx-glass-communication-section .msqdx-glass-chip-editor__corner-tab-shell");
+    expect(css).toContain(".msqdx-glass-communication-section .msqdx-glass-chip-editor--corner-tab");
     expect(css).toContain(".msqdx-glass-communication-stack__block.--vocab");
     expect(css).toMatch(
       /\.msqdx-glass-communication-stack__block\.--vocab \.msqdx-glass-chip-editor__chips--grid[^}]*grid-template-columns:\s*repeat\(2/
