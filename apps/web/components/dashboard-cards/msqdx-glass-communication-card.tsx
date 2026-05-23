@@ -154,22 +154,23 @@ export const MsqdxGlassCommunicationCard = ({
   }
 
   return (
-    <MsqdxDashboardCard
-      id={COMMUNICATION_CARD_ID}
-      title={t("personaAdmin.communication")}
-      icon="chat_bubble"
-      iconColor={{ color: THEME_ACCENT.color }}
-      expanded={expanded}
-      onToggle={onToggle}
-      className="--communication"
-    >
-      {vocabularyBlock}
-      <MsqdxGlassDashboardCardSection title={t("personaAdmin.sentenceStructure")}>
-        {sentenceField}
-      </MsqdxGlassDashboardCardSection>
-      <MsqdxGlassDashboardCardSection title={t("personaAdmin.skepticism")}>
-        {skepticismBody}
-      </MsqdxGlassDashboardCardSection>
-    </MsqdxDashboardCard>
+    <Box className="msqdx-glass-dashboard-card --communication" sx={{ gridColumn: "1 / -1", width: "100%" }}>
+      <MsqdxDashboardCard
+        id={COMMUNICATION_CARD_ID}
+        title={t("personaAdmin.communication")}
+        icon="chat_bubble"
+        iconColor={{ color: THEME_ACCENT.color }}
+        expanded={expanded}
+        onToggle={onToggle}
+      >
+        {vocabularyBlock}
+        <MsqdxGlassDashboardCardSection title={t("personaAdmin.sentenceStructure")}>
+          {sentenceField}
+        </MsqdxGlassDashboardCardSection>
+        <MsqdxGlassDashboardCardSection title={t("personaAdmin.skepticism")}>
+          {skepticismBody}
+        </MsqdxGlassDashboardCardSection>
+      </MsqdxDashboardCard>
+    </Box>
   );
 };
