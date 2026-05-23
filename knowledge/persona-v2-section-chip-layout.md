@@ -28,7 +28,9 @@ Rule: **default to `inline`** for tag-like chips; use **`list`** only when each 
 
 - **`MsqdxGlassPersonaChip`** (`apps/web/components/msqdx/chip/`) — standard dashboard tag for traits, vocab, grid chips, etc.
 - Hover + focus styles: `apps/web/styles/msqdx-glass-persona-chip.css`
-- **Double-click** (or Enter/Space when focused) calls `onRequestEdit` → chip editor enters edit mode and focuses that entry.
+- **Double-click** (or Enter/Space when focused) calls `onRequestEdit` → chip editor enters **single-chip edit** (only that tag becomes editable; auto-save on blur/Enter).
+- **Add** in the corner tab / card still opens **bulk edit** (add row + remove buttons + save bar).
+- Inline editor: **`MsqdxGlassPersonaChipInput`** — same visual as the chip, not `MsqdxInput`.
 
 ## Implemented sections
 

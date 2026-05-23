@@ -34,9 +34,20 @@ describe("MsqdxGlassPersonaChip", () => {
     expect(editor).toContain("onRequestEdit={() => beginChipEdit(idx, chip)}");
   });
 
-  it("styles interactive dashboard chips", () => {
+  it("uses single-chip edit without bulk mode", () => {
+    const editor = readFileSync(
+      join(webRoot, "components/generic/msqdx-glass-chip-editor.tsx"),
+      "utf8"
+    );
+    expect(editor).toContain("isSingleChipEditing");
+    expect(editor).toContain("setIsEditing(false)");
+    expect(editor).toMatch(/beginChipEdit[\s\S]*setIsEditing\(false\)/);
+    expect(editor).toContain("MsqdxGlassPersonaChipInput");
+  });
+
+  it("styles chip-shaped inline input", () => {
     const css = readFileSync(join(webRoot, "styles/msqdx-glass-persona-chip.css"), "utf8");
-    expect(css).toContain(".msqdx-glass-chip.--dashboard.--interactive:hover");
-    expect(css).toContain(".--trait.--interactive:hover");
+    expect(css).toContain(".msqdx-glass-chip.--dashboard.--editing");
+    expect(css).toContain(".msqdx-glass-persona-chip__input");
   });
 });

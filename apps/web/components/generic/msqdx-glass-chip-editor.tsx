@@ -10,6 +10,7 @@ import clsx from "clsx";
 import { MsqdxGlassChip, type MsqdxGlassChipVariant } from "./msqdx-glass-chip";
 import {
   MsqdxGlassPersonaChip,
+  MsqdxGlassPersonaChipInput,
   isMsqdxGlassPersonaChipVariant,
 } from "../msqdx/chip";
 import { MsqdxGlassHorizontalCardSlider } from "./msqdx-glass-horizontal-card-slider";
@@ -151,10 +152,10 @@ export const MsqdxGlassChipEditor = ({
 
   // Ensure external updates sync when not editing
   useEffect(() => {
-    if (!isEditing) {
+    if (!isEditing && editingIndex === null) {
       syncChips();
     }
-  }, [chips, isEditing, syncChips]);
+  }, [chips, isEditing, editingIndex, syncChips]);
 
   // Focus input when entering edit mode
   useEffect(() => {
@@ -174,8 +175,10 @@ export const MsqdxGlassChipEditor = ({
   }, [editingIndex]);
 
   const handleStartEdit = () => {
+    setEditingIndex(null);
+    setEditingValue("");
     setIsEditing(true);
-    chipEdit.sync(); // Ensure we start with current values
+    chipEdit.sync();
   };
 
   const handleCancelEdit = useCallback(() => {
@@ -237,33 +240,49 @@ export const MsqdxGlassChipEditor = ({
   const beginChipEdit = useCallback(
     (index: number, currentValue: string) => {
       if (!editable) return;
-      if (!isEditing) {
-        setIsEditing(true);
-        chipEdit.sync();
-      }
+      chipEdit.sync();
+      setIsEditing(false);
+      setNewChipValue("");
       handleStartEditChip(index, currentValue);
     },
-    [editable, isEditing, chipEdit, handleStartEditChip]
+    [editable, chipEdit, handleStartEditChip]
   );
 
-  const handleSaveEditChip = useCallback(() => {
+  const handleSaveEditChip = useCallback(async () => {
     if (editingIndex === null) return;
 
     const trimmed = editingValue.trim();
+    const applyAndMaybePersist = async (next: string[]) => {
+      chipEdit.setValue(next);
+      if (!isEditing) {
+        setSavePending(true);
+        try {
+          const payload = maxChips != null ? next.slice(0, maxChips) : next;
+          await onSave(payload);
+          chipEdit.sync();
+        } catch (error) {
+          console.error("Failed to save chip:", error);
+          chipEdit.reset();
+        } finally {
+          setSavePending(false);
+        }
+      }
+      setEditingIndex(null);
+      setEditingValue("");
+    };
+
     if (!trimmed) {
-      // Empty value = remove chip
-      handleRemoveChip(editingIndex);
+      const next = chipEdit.value.filter((_, i) => i !== editingIndex);
+      await applyAndMaybePersist(next);
       return;
     }
 
-    // Check for duplicates (case-insensitive), but allow if editing same chip
     const normalized = trimmed.toLowerCase();
-    const exists = chipEdit.value.some((chip, i) =>
-      i !== editingIndex && chip.trim().toLowerCase() === normalized
+    const exists = chipEdit.value.some(
+      (chip, i) => i !== editingIndex && chip.trim().toLowerCase() === normalized
     );
 
     if (exists) {
-      // Duplicate found, cancel edit
       setEditingIndex(null);
       setEditingValue("");
       return;
@@ -271,21 +290,22 @@ export const MsqdxGlassChipEditor = ({
 
     const updated = [...chipEdit.value];
     updated[editingIndex] = trimmed;
-    chipEdit.setValue(updated);
-    setEditingIndex(null);
-    setEditingValue("");
-  }, [editingIndex, editingValue, chipEdit, handleRemoveChip]);
+    await applyAndMaybePersist(updated);
+  }, [editingIndex, editingValue, chipEdit, isEditing, maxChips, onSave]);
 
   const handleCancelEditChip = useCallback(() => {
+    if (!isEditing) {
+      chipEdit.reset();
+    }
     setEditingIndex(null);
     setEditingValue("");
-  }, []);
+  }, [isEditing, chipEdit]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent, isEdit: boolean, index: number | null) => {
     if (e.key === "Enter") {
       e.preventDefault();
       if (isEdit && index !== null) {
-        handleSaveEditChip();
+        void handleSaveEditChip();
       } else {
         handleAddChip(newChipValue);
       }
@@ -300,7 +320,9 @@ export const MsqdxGlassChipEditor = ({
 
   const displayChips = chipEdit.value;
   const hasChips = displayChips.length > 0;
-  const showEmptyState = !isEditing && !hasChips;
+  const isSingleChipEditing = editingIndex !== null && !isEditing;
+  const isEditActive = isEditing || editingIndex !== null;
+  const showEmptyState = !isEditActive && !hasChips;
   const isListLayout = chipLayout === "list";
   const isSliderLayout = chipLayout === "slider";
   const isGridLayout = chipLayout === "grid";
@@ -315,7 +337,7 @@ export const MsqdxGlassChipEditor = ({
   const useCornerTabShell =
     Boolean(cornerTabStyle) && relaxedSpacing && (isWrapLayout || isGridLayout);
   const showHeaderActions =
-    editable && !isEditing && (!isSliderLayout || showEmptyState) && !showEmptyEntryInGrid;
+    editable && !isEditActive && (!isSliderLayout || showEmptyState) && !showEmptyEntryInGrid;
   const canAddMore = maxChips == null || chipEdit.value.length < maxChips;
   const gridCellFullWidth = isGridLayout && maxChips === 1;
   const useMultilineInput = maxChips === 1;
@@ -352,7 +374,7 @@ export const MsqdxGlassChipEditor = ({
     isSliderLayout && !showEmptyState && Boolean(sectionHeading) && !useCornerTabChrome;
 
   const cornerTabActionButtonNodes = useMemo(() => {
-    if (!editable || isEditing) {
+    if (!editable || isEditActive) {
       return [];
     }
     const nodes: ReactNode[] = [];
@@ -394,7 +416,7 @@ export const MsqdxGlassChipEditor = ({
     return nodes;
   }, [
     editable,
-    isEditing,
+    isEditActive,
     onAiSuggest,
     aiLoading,
     hasChips,
@@ -405,12 +427,12 @@ export const MsqdxGlassChipEditor = ({
 
   const sliderToolbarActions = useMemo(
     () =>
-      editable && !isEditing && isSliderLayout && !showEmptyState && cornerTabActionButtonNodes.length > 0 ? (
+      editable && !isEditActive && isSliderLayout && !showEmptyState && cornerTabActionButtonNodes.length > 0 ? (
         <>{cornerTabActionButtonNodes}</>
       ) : null,
     [
       editable,
-      isEditing,
+      isEditActive,
       isSliderLayout,
       showEmptyState,
       cornerTabActionButtonNodes,
@@ -426,7 +448,7 @@ export const MsqdxGlassChipEditor = ({
   );
 
   const entryActionsContent = useMemo(() => {
-    if (!editable || isEditing || showEmptyEntryInGrid) {
+    if (!editable || isEditActive || showEmptyEntryInGrid) {
       return null;
     }
     const showAdd = canAddMore;
@@ -470,7 +492,7 @@ export const MsqdxGlassChipEditor = ({
     );
   }, [
     editable,
-    isEditing,
+    isEditActive,
     showEmptyEntryInGrid,
     canAddMore,
     showEmptyState,
@@ -586,18 +608,39 @@ export const MsqdxGlassChipEditor = ({
                   gridColumn: gridCellFullWidth ? "1 / -1" : undefined,
                 }}
               >
-                {isEditing && editingIndex === idx ? (
-                  <Box ref={editInputWrapperRef} sx={{ minWidth: "120px", width: "100%" }}>
-                    <MsqdxInput
-                      value={editingValue}
-                      onChange={(e) => setEditingValue(e.target.value)}
-                      onKeyDown={(e) => handleKeyDown(e, true, idx)}
-                      onBlur={handleSaveEditChip}
-                      size="small"
-                      multiline={useMultilineInput}
-                      minRows={useMultilineInput ? 3 : undefined}
-                      sx={INPUT_ACCENT_SX}
-                    />
+                {editingIndex === idx ? (
+                  <Box ref={editInputWrapperRef} sx={{ minWidth: "120px", width: isListLayout || isGridLayout ? "100%" : "auto" }}>
+                    {isMsqdxGlassPersonaChipVariant(chipVariant) ? (
+                      <MsqdxGlassPersonaChipInput
+                        variant={chipVariant}
+                        value={editingValue}
+                        onChange={setEditingValue}
+                        onKeyDown={(e) => handleKeyDown(e, true, idx)}
+                        onBlur={() => {
+                          void handleSaveEditChip();
+                        }}
+                        block={isListLayout}
+                        aria-label={t("chipEditor.editChips")}
+                        style={
+                          isGridLayout
+                            ? { width: "100%", maxWidth: "100%", justifyContent: "flex-start" }
+                            : undefined
+                        }
+                      />
+                    ) : (
+                      <MsqdxInput
+                        value={editingValue}
+                        onChange={(e) => setEditingValue(e.target.value)}
+                        onKeyDown={(e) => handleKeyDown(e, true, idx)}
+                        onBlur={() => {
+                          void handleSaveEditChip();
+                        }}
+                        size="small"
+                        multiline={useMultilineInput}
+                        minRows={useMultilineInput ? 3 : undefined}
+                        sx={INPUT_ACCENT_SX}
+                      />
+                    )}
                   </Box>
                 ) : isMsqdxGlassPersonaChipVariant(chipVariant) ? (
                   <MsqdxGlassPersonaChip
@@ -607,7 +650,7 @@ export const MsqdxGlassChipEditor = ({
                     highlighted={highlightedChips.some(
                       (highlight) => highlight.trim().toLowerCase() === chip.trim().toLowerCase()
                     )}
-                    editable={editable}
+                    editable={editable && !isSingleChipEditing}
                     onClick={isEditing ? () => handleStartEditChip(idx, chip) : undefined}
                     onRequestEdit={() => beginChipEdit(idx, chip)}
                     style={
@@ -629,7 +672,7 @@ export const MsqdxGlassChipEditor = ({
                     interactive={editable}
                     onClick={isEditing ? () => handleStartEditChip(idx, chip) : undefined}
                     onDoubleClick={
-                      editable && !isEditing ? () => beginChipEdit(idx, chip) : undefined
+                      editable && !isEditActive ? () => beginChipEdit(idx, chip) : undefined
                     }
                     style={
                       isListLayout

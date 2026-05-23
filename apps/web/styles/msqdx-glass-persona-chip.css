@@ -58,3 +58,47 @@
 [data-theme="dark"] .msqdx-glass-chip.--dashboard.--interactive:hover {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
 }
+
+.msqdx-glass-chip.--dashboard.--editing {
+  cursor: text;
+  min-width: min(100%, 8rem);
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.msqdx-glass-chip.--dashboard.--editing.--block {
+  width: 100%;
+}
+
+.msqdx-glass-persona-chip__input {
+  border: none;
+  background: transparent;
+  outline: none;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  color: inherit;
+  min-width: 4ch;
+  max-width: 100%;
+  field-sizing: content;
+}
+
+.msqdx-glass-persona-chip__input::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 0.75;
+}
+
+.msqdx-glass-persona-chip__input:focus {
+  outline: none;
+}
+
+.msqdx-glass-personality-section .msqdx-glass-chip.--editing,
+.msqdx-glass-communication-section .msqdx-glass-chip.--editing {
+  font-size: var(--msqdx-personality-chip-font-size, var(--msqdx-communication-chip-font-size)) !important;
+  font-weight: var(--msqdx-personality-chip-font-weight, var(--msqdx-communication-chip-font-weight)) !important;
+  padding: var(--msqdx-personality-chip-padding, var(--msqdx-communication-chip-padding)) !important;
+  line-height: 1.35;
+}
