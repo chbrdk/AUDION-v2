@@ -24,6 +24,16 @@ describe("persona v2 admin scroll containment", () => {
     expect(css).toMatch(/\.msqdx-glass-persona-v2-detail[^}]*overflow:\s*hidden/);
   });
 
+  it("does not scroll inside nav column on desktop", () => {
+    const css = readFileSync(join(webRoot, "styles/persona-v2-section-panel.css"), "utf8");
+    expect(css).toMatch(
+      /\.msqdx-glass-persona-v2-detail \.msqdx-glass-section-shell__nav-column[^}]*overflow:\s*hidden/
+    );
+    expect(css).not.toMatch(
+      /\.msqdx-glass-persona-v2-detail \.msqdx-glass-section-shell__nav-column[^}]*overflow-y:\s*auto/
+    );
+  });
+
   it("defines compact v2 main padding top", () => {
     expect(ADMIN_CONTENT_PADDING_TOP_V2).toContain("calc(");
     expect(ADMIN_CONTENT_PADDING_TOP_V2).toContain("55px");

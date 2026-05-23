@@ -28,7 +28,8 @@ export type ChipEditorCornerTabVariant =
   | "interest"
   | "value"
   | "social"
-  | "vocab";
+  | "vocab"
+  | "sentence";
 
 const CHIP_EDITOR_CORNER_TAB_STYLES: Record<ChipEditorCornerTabVariant, ChipEditorCornerTabStyle> = {
   pain: {
@@ -52,6 +53,9 @@ const CHIP_EDITOR_CORNER_TAB_STYLES: Record<ChipEditorCornerTabVariant, ChipEdit
   vocab: {
     iconColor: "var(--color-secondary-dx-blue)",
   },
+  sentence: {
+    iconColor: "var(--color-secondary-dx-blue)",
+  },
 };
 
 const CHIP_EDITOR_CORNER_TAB_ICONS: Record<ChipEditorCornerTabVariant, string> = {
@@ -62,6 +66,7 @@ const CHIP_EDITOR_CORNER_TAB_ICONS: Record<ChipEditorCornerTabVariant, string> =
   value: "volunteer_activism",
   social: "share",
   vocab: "chat_bubble",
+  sentence: "format_quote",
 };
 
 const CHIP_EDITOR_CORNER_TAB_VARIANTS = new Set<ChipEditorCornerTabVariant>(

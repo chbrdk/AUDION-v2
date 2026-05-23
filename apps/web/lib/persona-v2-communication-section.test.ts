@@ -15,7 +15,12 @@ describe("persona v2 communication flat section", () => {
     expect(card).toContain("msqdx-glass-communication-stack");
     expect(card).toContain("MsqdxGlassPainGoalsSectorSeparator");
     expect(card).toContain("COMMUNICATION_VOCABULARY_CHIP_PROPS");
+    expect(card).toContain("COMMUNICATION_SENTENCE_CHIP_PROPS");
     expect(card).toContain('chipClassName="--vocab"');
+    expect(card).toContain('chipClassName="--sentence"');
+    expect(card).toContain("maxChips={1}");
+    expect(card).toContain("showEmptyEntryChip");
+    expect(card).toMatch(/embedInSection \? \([\s\S]*MsqdxGlassChipEditor[\s\S]*--sentence/);
     expect(card).toMatch(/if \(embedInSection\)[\s\S]*msqdx-glass-communication-section/);
     expect(card).toContain("PersonaV2SectionBlock");
   });
@@ -36,8 +41,13 @@ describe("persona v2 communication flat section", () => {
     expect(css).toContain(".msqdx-glass-communication-section .msqdx-glass-chip-editor__corner-tab-shell");
     expect(css).toContain(".msqdx-glass-communication-section .msqdx-glass-chip-editor--corner-tab");
     expect(css).toContain(".msqdx-glass-communication-stack__block.--vocab");
+    expect(css).toContain(".msqdx-glass-communication-stack__block.--sentence");
+    expect(css).toContain(".msqdx-glass-chip.--dashboard.--empty-entry");
     expect(css).toMatch(
       /\.msqdx-glass-communication-stack__block\.--vocab \.msqdx-glass-chip-editor__chips--grid[^}]*grid-template-columns:\s*repeat\(2/
+    );
+    expect(css).toMatch(
+      /\.msqdx-glass-communication-stack__block\.--sentence \.msqdx-glass-chip-editor__chips--grid[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/
     );
   });
 });

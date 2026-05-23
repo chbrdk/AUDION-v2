@@ -47,6 +47,10 @@ describe("chip-editor-corner-tab", () => {
     expect(resolveChipEditorCornerTabStyle("vocab")?.iconColor).toContain("blue");
   });
 
+  it("returns blue icon accent for sentence structure", () => {
+    expect(resolveChipEditorCornerTabStyle("sentence")?.iconColor).toContain("blue");
+  });
+
   it("skips corner tab for unrelated chip variants", () => {
     expect(resolveChipEditorCornerTabStyle("draft")).toBeNull();
     expect(renderChipEditorCornerTab("draft", "Label")).toBeUndefined();

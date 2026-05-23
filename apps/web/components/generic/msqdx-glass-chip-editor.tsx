@@ -26,6 +26,7 @@ function resolveChipVariant(chipClassName: string): MsqdxGlassChipVariant {
   if (chipClassName.includes("--value")) return "value";
   if (chipClassName.includes("--interest")) return "interest";
   if (chipClassName.includes("--social")) return "social";
+  if (chipClassName.includes("--sentence")) return "sentence";
   if (chipClassName.includes("--trait")) return "trait";
   return "trait";
 }
@@ -90,6 +91,12 @@ export type MsqdxGlassChipEditorProps = {
    * @default 'top-right'
    */
   cornerTabPlacement?: "top-left" | "top-right";
+  /** Cap saved chips (e.g. single sentence structure). */
+  maxChips?: number;
+  /** When empty, show a clickable placeholder chip in the grid instead of italic text only. */
+  showEmptyEntryChip?: boolean;
+  /** Label on the placeholder chip when `showEmptyEntryChip` is set. */
+  emptyEntryChipLabel?: string;
 };
 
 export const MsqdxGlassChipEditor = ({
@@ -107,6 +114,9 @@ export const MsqdxGlassChipEditor = ({
   slidesVisible = 3.5,
   relaxedSpacing = false,
   cornerTabPlacement = "top-right",
+  maxChips,
+  showEmptyEntryChip = false,
+  emptyEntryChipLabel,
 }: MsqdxGlassChipEditorProps) => {
   const theme = useTheme();
   const { t } = useI18n();
@@ -175,7 +185,9 @@ export const MsqdxGlassChipEditor = ({
   const handleSave = async () => {
     setSavePending(true);
     try {
-      await onSave(chipEdit.value);
+      const payload =
+        maxChips != null ? chipEdit.value.slice(0, maxChips) : chipEdit.value;
+      await onSave(payload);
       chipEdit.sync();
       setIsEditing(false);
       setEditingIndex(null);
@@ -197,9 +209,13 @@ export const MsqdxGlassChipEditor = ({
     const exists = chipEdit.value.some(chip => chip.trim().toLowerCase() === normalized);
     if (exists) return;
 
-    chipEdit.setValue([...chipEdit.value, trimmed]);
+    if (maxChips === 1) {
+      chipEdit.setValue([trimmed]);
+    } else {
+      chipEdit.setValue([...chipEdit.value, trimmed]);
+    }
     setNewChipValue("");
-  }, [chipEdit]);
+  }, [chipEdit, maxChips]);
 
   const handleRemoveChip = useCallback((index: number) => {
     chipEdit.setValue(chipEdit.value.filter((_, i) => i !== index));
@@ -273,6 +289,8 @@ export const MsqdxGlassChipEditor = ({
   const isSliderLayout = chipLayout === "slider";
   const isGridLayout = chipLayout === "grid";
   const isWrapLayout = chipLayout === "inline";
+  const showEmptyEntryInGrid =
+    showEmptyEntryChip && showEmptyState && (isGridLayout || isWrapLayout);
   const usesSectionMono =
     isListLayout || isSliderLayout || isGridLayout || (isWrapLayout && relaxedSpacing);
   const chipVariant = resolveChipVariant(chipClassName);
@@ -280,7 +298,11 @@ export const MsqdxGlassChipEditor = ({
   const useCornerTabChrome = isSliderLayout && Boolean(cornerTabStyle);
   const useCornerTabShell =
     Boolean(cornerTabStyle) && relaxedSpacing && (isWrapLayout || isGridLayout);
-  const showHeaderActions = editable && !isEditing && (!isSliderLayout || showEmptyState);
+  const showHeaderActions =
+    editable && !isEditing && (!isSliderLayout || showEmptyState) && !showEmptyEntryInGrid;
+  const canAddMore = maxChips == null || chipEdit.value.length < maxChips;
+  const gridCellFullWidth = isGridLayout && maxChips === 1;
+  const useMultilineInput = maxChips === 1;
 
   const sectionHeading =
     label && usesSectionMono ? (
@@ -394,7 +416,48 @@ export const MsqdxGlassChipEditor = ({
 
   const inlineGridBody = (
     <>
-      {showEmptyState ? (
+      {showEmptyEntryInGrid ? (
+        <Box
+          className={clsx(
+            "msqdx-glass-chip-editor__chips",
+            isGridLayout && "msqdx-glass-chip-editor__chips--grid",
+            isGridLayout && gridColumns === 3 && "msqdx-glass-chip-editor__chips--grid-cols-3",
+            isWrapLayout && "msqdx-glass-chip-editor__chips--wrap"
+          )}
+          sx={{
+            display: isGridLayout ? "grid" : "flex",
+            flexWrap: isWrapLayout ? "wrap" : "nowrap",
+            gridTemplateColumns: isGridLayout
+              ? `repeat(${gridColumns}, minmax(0, 1fr))`
+              : undefined,
+            gap: isGridLayout ? 1.25 : relaxedSpacing ? 1 : 0.5,
+            alignItems: "flex-start",
+          }}
+        >
+          <Box
+            className={isGridLayout ? "msqdx-glass-chip-editor__chip-cell" : undefined}
+            sx={{
+              width: isGridLayout ? "100%" : "auto",
+              minWidth: isGridLayout ? 0 : undefined,
+              gridColumn: gridCellFullWidth ? "1 / -1" : undefined,
+            }}
+          >
+            <MsqdxGlassChip
+              variant={chipVariant}
+              dashboard
+              className="--empty-entry"
+              onClick={editable ? handleStartEdit : undefined}
+              style={
+                isGridLayout
+                  ? { width: "100%", maxWidth: "100%", justifyContent: "flex-start" }
+                  : undefined
+              }
+            >
+              {emptyEntryChipLabel ?? t("chipEditor.addEntryPlaceholder")}
+            </MsqdxGlassChip>
+          </Box>
+        </Box>
+      ) : showEmptyState ? (
         <Box
           sx={{
             color: "text.secondary",
@@ -437,16 +500,19 @@ export const MsqdxGlassChipEditor = ({
                   gap: 0.5,
                   width: isListLayout || isGridLayout ? "100%" : "auto",
                   minWidth: isGridLayout ? 0 : undefined,
+                  gridColumn: gridCellFullWidth ? "1 / -1" : undefined,
                 }}
               >
                 {isEditing && editingIndex === idx ? (
-                  <Box ref={editInputWrapperRef} sx={{ minWidth: "120px" }}>
+                  <Box ref={editInputWrapperRef} sx={{ minWidth: "120px", width: "100%" }}>
                     <MsqdxInput
                       value={editingValue}
                       onChange={(e) => setEditingValue(e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, true, idx)}
                       onBlur={handleSaveEditChip}
                       size="small"
+                      multiline={useMultilineInput}
+                      minRows={useMultilineInput ? 3 : undefined}
                       sx={INPUT_ACCENT_SX}
                     />
                   </Box>
@@ -490,14 +556,14 @@ export const MsqdxGlassChipEditor = ({
                 )}
               </Box>
             ))}
-            {isEditing && (
+            {isEditing && canAddMore && (
               <Box
                 ref={newInputWrapperRef}
                 className={isGridLayout ? "msqdx-glass-chip-editor__chip-cell" : undefined}
                 sx={{
                   minWidth: isListLayout || isGridLayout ? "100%" : "180px",
                   width: isListLayout || isGridLayout ? "100%" : undefined,
-                  gridColumn: isGridLayout ? "1 / -1" : undefined,
+                  gridColumn: gridCellFullWidth || isGridLayout ? "1 / -1" : undefined,
                 }}
               >
                 <MsqdxInput
@@ -506,6 +572,8 @@ export const MsqdxGlassChipEditor = ({
                   onKeyDown={(e) => handleKeyDown(e, false, null)}
                   placeholder={t("chipEditor.addEntryPlaceholder")}
                   size="small"
+                  multiline={useMultilineInput}
+                  minRows={useMultilineInput ? 3 : undefined}
                   sx={INPUT_ACCENT_SX}
                 />
               </Box>
@@ -760,7 +828,7 @@ export const MsqdxGlassChipEditor = ({
         </>
       )}
 
-      {editable && showEmptyState && (
+      {editable && showEmptyState && !showEmptyEntryInGrid && (
         <Box sx={{ display: "flex", gap: 1, alignItems: "center", mt: 1 }}>
           {onAiSuggest && (
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>

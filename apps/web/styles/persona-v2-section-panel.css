@@ -42,11 +42,52 @@
   min-height: 0;
 }
 
+/*
+ * Desktop nav rail: no internal scroll (scroll only in workspace dock-shell).
+ * Overrides section-shell sticky + max-height + overflow-y: auto on __nav-column.
+ */
 @media (min-width: 1025px) {
+  .msqdx-glass-persona-v2-detail .msqdx-glass-section-shell__body:has(.msqdx-glass-section-nav) {
+    align-items: stretch;
+  }
+
   .msqdx-glass-persona-v2-detail .msqdx-glass-section-shell__nav-column {
-    max-height: 100%;
-    overflow-y: auto;
-    overscroll-behavior: contain;
+    position: static;
+    top: auto;
+    align-self: stretch;
+    max-height: none;
+    height: auto;
+    min-height: 0;
+    overflow: hidden;
+    overscroll-behavior: none;
+    scrollbar-width: none;
+  }
+
+  .msqdx-glass-persona-v2-detail .msqdx-glass-section-shell__nav-column::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  /* Tighter rail: hero + 9 sections fit typical v2 viewport without clipping. */
+  .msqdx-glass-persona-v2-detail .msqdx-glass-section-shell__entity--in-nav-rail .msqdx-glass-section-shell__title {
+    font-size: 1.125rem;
+    line-height: 1.15;
+  }
+
+  .msqdx-glass-persona-v2-detail .msqdx-glass-section-shell__entity--in-nav-rail .msqdx-glass-section-shell__subtitle {
+    font-size: 0.75rem;
+    line-height: 1.2;
+  }
+
+  .msqdx-glass-persona-v2-detail .msqdx-glass-section-nav--compact .msqdx-glass-section-nav__card {
+    min-height: 30px;
+    padding: 3px 6px;
+  }
+
+  .msqdx-glass-persona-v2-detail .msqdx-glass-section-nav--compact .msqdx-glass-section-nav__icon {
+    width: 24px;
+    height: 24px;
   }
 }
 

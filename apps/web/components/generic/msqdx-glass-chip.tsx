@@ -5,7 +5,8 @@ import clsx from "clsx";
 
 export type MsqdxGlassChipVariant = 
   | "trait" 
-  | "vocab" 
+  | "vocab"
+  | "sentence"
   | "pain" 
   | "goal" 
   | "value" 

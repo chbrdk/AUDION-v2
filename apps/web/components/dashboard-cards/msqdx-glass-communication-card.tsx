@@ -10,7 +10,10 @@ import { MsqdxGlassPainGoalsSectorSeparator } from "../generic/msqdx-glass-pain-
 import { PersonaV2SectionBlock } from "../personas-v2/persona-v2-section-block";
 import { useI18n } from "../i18n/i18n-provider";
 import { THEME_ACCENT } from "../../lib/theme-accent";
-import { COMMUNICATION_VOCABULARY_CHIP_PROPS } from "../../lib/persona-communication-chip-layout";
+import {
+  COMMUNICATION_SENTENCE_CHIP_PROPS,
+  COMMUNICATION_VOCABULARY_CHIP_PROPS,
+} from "../../lib/persona-communication-chip-layout";
 
 const COMMUNICATION_CARD_ID = "communication";
 
@@ -45,6 +48,9 @@ export const MsqdxGlassCommunicationCard = ({
     return null;
   }
 
+  const sentenceValue = profile.communication_style.sentence_structure?.trim() ?? "";
+  const sentenceChips = sentenceValue ? [sentenceValue] : [];
+
   const vocabularyBlock = (
     <MsqdxGlassChipEditor
       label={t("personaAdmin.vocabulary")}
@@ -60,7 +66,22 @@ export const MsqdxGlassCommunicationCard = ({
     />
   );
 
-  const sentenceField = (
+  const sentenceStructureBlock = embedInSection ? (
+    <MsqdxGlassChipEditor
+      label={t("personaAdmin.sentenceStructure")}
+      chips={sentenceChips}
+      chipClassName="--sentence"
+      onSave={async (chips) => {
+        await (onSaveSentenceStructure ?? (async () => {}))(chips[0]?.trim() ?? "");
+      }}
+      editable={!!onSaveSentenceStructure}
+      maxChips={1}
+      showEmptyEntryChip
+      emptyEntryChipLabel={t("personaAdmin.addSentenceStructure")}
+      emptyMessage={t("personaAdmin.sentenceStructurePlaceholder")}
+      {...COMMUNICATION_SENTENCE_CHIP_PROPS}
+    />
+  ) : (
     <MsqdxGlassFieldEditor
       field={{
         key: "sentence_structure",
@@ -129,12 +150,9 @@ export const MsqdxGlassCommunicationCard = ({
         {vocabularyBlock}
       </Box>
       <MsqdxGlassPainGoalsSectorSeparator />
-      <PersonaV2SectionBlock
-        title={t("personaAdmin.sentenceStructure")}
-        className="msqdx-glass-communication-stack__block --sentence"
-      >
-        {sentenceField}
-      </PersonaV2SectionBlock>
+      <Box component="article" className="msqdx-glass-communication-stack__block --sentence">
+        {sentenceStructureBlock}
+      </Box>
       <MsqdxGlassPainGoalsSectorSeparator />
       <PersonaV2SectionBlock
         title={t("personaAdmin.skepticism")}
@@ -165,7 +183,7 @@ export const MsqdxGlassCommunicationCard = ({
       >
         {vocabularyBlock}
         <MsqdxGlassDashboardCardSection title={t("personaAdmin.sentenceStructure")}>
-          {sentenceField}
+          {sentenceStructureBlock}
         </MsqdxGlassDashboardCardSection>
         <MsqdxGlassDashboardCardSection title={t("personaAdmin.skepticism")}>
           {skepticismBody}
