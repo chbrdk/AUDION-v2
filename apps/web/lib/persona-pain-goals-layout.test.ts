@@ -33,7 +33,7 @@ describe("persona pain-goals layout", () => {
       /\.msqdx-glass-pain-goals-slide-card__body--indexed\s*\{[^}]*padding:\s*0/
     );
     expect(css).toMatch(
-      /\.msqdx-glass-pain-goals-slide-card__body--indexed \.MuiTypography-root[^}]*padding:/
+      /\.msqdx-glass-pain-goals-slide-card__body--indexed \.MuiTypography-root[^}]*padding-block:/
     );
     expect(css).toContain(".msqdx-glass-pain-goals-slide-card__index-corner");
     expect(css).toContain("--msqdx-pain-goals-slide-surface");
@@ -113,6 +113,10 @@ describe("persona pain-goals layout", () => {
       resolve(process.cwd(), "styles/dashboard-cards.css"),
       "utf8"
     );
+    const cornerTabCss = readFileSync(
+      resolve(process.cwd(), "styles/msqdx-glass-corner-tab-section.css"),
+      "utf8"
+    );
     expect(slider).toContain("leading?: ReactNode");
     expect(slider).toContain("renderLayout?:");
     expect(slider).toContain("useHorizontalCardSlider");
@@ -122,23 +126,25 @@ describe("persona pain-goals layout", () => {
     expect(css).toMatch(
       /\.msqdx-glass-horizontal-card-slider__controls\s*\{[^}]*justify-content:\s*space-between/
     );
-    expect(css).toContain(".msqdx-glass-chip-editor__corner-tab-shell--with-actions");
-    expect(css).toContain(".msqdx-glass-chip-editor__corner-tab-content");
-    expect(css).toContain(".msqdx-glass-chip-editor__corner-tab-heading");
-    expect(css).toContain(".msqdx-corner-tab-card__tab-box");
-    expect(css).toMatch(/width:\s*fit-content/);
-    expect(css).toMatch(
-      /\.msqdx-glass-chip-editor__corner-tab-shell \.msqdx-corner-tab-card__body[^}]*padding-top:\s*calc\(var\(--msqdx-spacing-md\) \+ var\(--msqdx-spacing-xxs\)\)/
+    expect(cornerTabCss).toContain(".msqdx-glass-corner-tab-section--with-toolbar");
+    expect(cornerTabCss).toContain(".msqdx-glass-corner-tab-section__tab-content");
+    expect(cornerTabCss).toContain(".msqdx-glass-chip-editor__corner-tab-content");
+    expect(cornerTabCss).toContain(".msqdx-glass-corner-tab-section__tab-heading");
+    expect(cornerTabCss).toContain(".msqdx-corner-tab-card__tab-box");
+    expect(cornerTabCss).toMatch(/width:\s*fit-content/);
+    expect(cornerTabCss).toMatch(
+      /\.msqdx-glass-corner-tab-section \.msqdx-corner-tab-card__body[^}]*padding-top:\s*calc\(var\(--msqdx-spacing-md\) \+ var\(--msqdx-spacing-xxs\)\)/
     );
-    expect(css).toMatch(
-      /\.msqdx-glass-chip-editor__corner-tab-shell \.msqdx-corner-tab-card__body[^}]*padding-bottom:\s*var\(--msqdx-spacing-xl\)/
+    expect(cornerTabCss).toMatch(
+      /\.msqdx-glass-corner-tab-section \.msqdx-corner-tab-card__body[^}]*padding-bottom:\s*var\(--msqdx-spacing-xl\)/
     );
-    expect(css).toMatch(
-      /\.msqdx-glass-chip-editor__corner-tab-shell \.msqdx-corner-tab-card__body[^}]*padding-left:\s*var\(--msqdx-spacing-xl\)/
+    expect(cornerTabCss).toMatch(
+      /\.msqdx-glass-corner-tab-section \.msqdx-corner-tab-card__body[^}]*padding-left:\s*var\(--msqdx-spacing-xl\)/
     );
-    expect(css).toMatch(
-      /\.msqdx-glass-chip-editor--slider:has\(\.msqdx-glass-chip-editor__corner-tab-shell\)\s*>\s*\.MuiBox-root:first-of-type\s*\{[^}]*margin-bottom:\s*-18px/
+    expect(cornerTabCss).toContain(
+      ".msqdx-glass-chip-editor--slider:has(.msqdx-glass-corner-tab-section)"
     );
+    expect(cornerTabCss).toMatch(/margin-bottom:\s*-18px/);
   });
 
   it("tightens corner-tab slider section heading spacing", () => {

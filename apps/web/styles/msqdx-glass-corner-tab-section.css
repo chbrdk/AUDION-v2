@@ -1,0 +1,119 @@
+/* MsqdxGlassCornerTabSection — cutout corner tab shell (no slider) */
+
+.msqdx-glass-corner-tab-section,
+.msqdx-glass-chip-editor__corner-tab-shell {
+  width: 100%;
+  --msqdx-corner-tab-section-surface: var(--audion-neutral-05, #e0e0e0);
+  --msqdx-corner-tab-section-body-surface: var(--audion-neutral-05, #e0e0e0);
+}
+
+[data-theme="dark"] .msqdx-glass-corner-tab-section,
+[data-theme="dark"] .msqdx-glass-chip-editor__corner-tab-shell {
+  --msqdx-corner-tab-section-surface: var(--audion-neutral-17, #181714);
+  --msqdx-corner-tab-section-body-surface: var(--audion-neutral-17, #181714);
+}
+
+.msqdx-glass-corner-tab-section .msqdx-corner-tab-card__tab-box,
+.msqdx-glass-corner-tab-section > .MuiBox-root:first-of-type,
+.msqdx-glass-chip-editor__corner-tab-shell .msqdx-corner-tab-card__tab-box,
+.msqdx-glass-chip-editor__corner-tab-shell > .MuiBox-root:first-of-type {
+  background-color: var(--msqdx-corner-tab-section-surface) !important;
+}
+
+.msqdx-glass-corner-tab-section--with-toolbar,
+.msqdx-glass-chip-editor__corner-tab-shell--with-actions {
+  margin-top: 2rem;
+}
+
+.msqdx-glass-corner-tab-section__tab-content,
+.msqdx-glass-corner-tab-section__tab-heading,
+.msqdx-glass-corner-tab-section__tab-actions,
+.msqdx-glass-chip-editor__corner-tab-content,
+.msqdx-glass-chip-editor__corner-tab-heading,
+.msqdx-glass-chip-editor__corner-tab-actions {
+  position: relative;
+  z-index: 1;
+}
+
+.msqdx-glass-corner-tab-section--with-toolbar .msqdx-glass-corner-tab-section__tab-heading,
+.msqdx-glass-chip-editor__corner-tab-shell--with-actions .msqdx-glass-chip-editor__corner-tab-heading {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.msqdx-glass-corner-tab-section--with-toolbar .msqdx-glass-chip-editor__section-heading,
+.msqdx-glass-chip-editor__corner-tab-shell--with-actions .msqdx-glass-chip-editor__section-heading {
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.msqdx-glass-corner-tab-section--with-toolbar .msqdx-corner-tab-card__tab-box,
+.msqdx-glass-chip-editor__corner-tab-shell--with-actions .msqdx-corner-tab-card__tab-box {
+  width: fit-content;
+  min-height: 40px;
+  height: auto;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  box-sizing: border-box;
+}
+
+.msqdx-glass-corner-tab-section .msqdx-corner-tab-card__body,
+.msqdx-glass-corner-tab-section .MuiBox-root.msqdx-corner-tab-card__body,
+.msqdx-glass-chip-editor__corner-tab-shell .msqdx-corner-tab-card__body,
+.msqdx-glass-chip-editor__corner-tab-shell .MuiBox-root.msqdx-corner-tab-card__body {
+  background-color: var(--msqdx-corner-tab-section-body-surface) !important;
+  padding-top: calc(var(--msqdx-spacing-md) + var(--msqdx-spacing-xxs));
+  padding-bottom: var(--msqdx-spacing-xl);
+  padding-left: var(--msqdx-spacing-xl);
+}
+
+/* Pain/goals slider tokens when section wraps chip-editor slider content */
+.msqdx-glass-chip-editor--slider .msqdx-glass-corner-tab-section,
+.msqdx-glass-chip-editor__corner-tab-shell {
+  --msqdx-pain-goals-corner-surface: var(--msqdx-corner-tab-section-surface);
+  --msqdx-pain-goals-slide-surface: var(--audion-neutral-02, #f8f7f3);
+  --msqdx-pain-goals-slide-label-font-size: 0.8125rem;
+  --msqdx-pain-goals-slide-label-padding-block-start: calc(
+    var(--msqdx-spacing-md) + var(--msqdx-spacing-xs)
+  );
+  --msqdx-pain-goals-slide-label-padding-inline-start: calc(
+    var(--msqdx-spacing-md) + var(--msqdx-spacing-xs)
+  );
+  --msqdx-pain-goals-slide-label-padding-block-end: calc(
+    var(--msqdx-spacing-md) + var(--msqdx-spacing-xxs)
+  );
+  --msqdx-pain-goals-slide-label-padding-inline-end: calc(
+    var(--msqdx-spacing-sm) + var(--msqdx-spacing-xxs) - 1px
+  );
+}
+
+[data-theme="dark"] .msqdx-glass-chip-editor--slider .msqdx-glass-corner-tab-section,
+[data-theme="dark"] .msqdx-glass-chip-editor__corner-tab-shell {
+  --msqdx-pain-goals-slide-surface: var(--audion-neutral-15, #302f2a);
+}
+
+.msqdx-glass-chip-editor--slider:has(.msqdx-glass-corner-tab-section)
+  > .MuiBox-root:first-of-type,
+.msqdx-glass-chip-editor--slider:has(.msqdx-glass-chip-editor__corner-tab-shell)
+  > .MuiBox-root:first-of-type {
+  margin-bottom: -18px;
+}
+
+.msqdx-glass-corner-tab-section .msqdx-glass-horizontal-card-slider__viewport,
+.msqdx-glass-chip-editor__corner-tab-shell .msqdx-glass-horizontal-card-slider__viewport {
+  padding-inline: max(24px, calc(var(--msqdx-spacing-sm) + var(--msqdx-spacing-xxs)));
+}
+
+.msqdx-glass-corner-tab-section .msqdx-glass-pain-goals-slide-card,
+.msqdx-glass-corner-tab-section .msqdx-glass-pain-goals-slide-card.--pain,
+.msqdx-glass-corner-tab-section .msqdx-glass-pain-goals-slide-card.--goal,
+.msqdx-glass-chip-editor__corner-tab-shell .msqdx-glass-pain-goals-slide-card,
+.msqdx-glass-chip-editor__corner-tab-shell .msqdx-glass-pain-goals-slide-card.--pain,
+.msqdx-glass-chip-editor__corner-tab-shell .msqdx-glass-pain-goals-slide-card.--goal {
+  background: var(--msqdx-pain-goals-slide-surface) !important;
+}
+
+.msqdx-glass-corner-tab-section .msqdx-glass-pain-goals-slide-card--indexed,
+.msqdx-glass-chip-editor__corner-tab-shell .msqdx-glass-pain-goals-slide-card--indexed {
+  background: transparent !important;
+}

@@ -2,6 +2,7 @@
 
 import { Box } from "@mui/material";
 import type { ReactNode } from "react";
+import { MsqdxGlassCornerTabSectionTab } from "../components/msqdx/corner-tab";
 
 export type ChipEditorCornerTabContentProps = {
   /** Section title + count (e.g. Pain Points (15)). */
@@ -9,36 +10,31 @@ export type ChipEditorCornerTabContentProps = {
   children?: ReactNode;
 };
 
-/** Heading and toolbar inside `MsqdxCornerTabCard` tab (`MsqdxCornerBox`). */
+/** @deprecated Prefer {@link MsqdxGlassCornerTabSectionTab} from `components/msqdx/corner-tab`. */
 export function ChipEditorCornerTabContent({
   heading,
   children,
 }: ChipEditorCornerTabContentProps) {
   return (
-    <Box
+    <MsqdxGlassCornerTabSectionTab
+      heading={heading}
       className="msqdx-glass-chip-editor__corner-tab-content"
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        flexWrap: "nowrap",
-        gap: 0.75,
-        minHeight: 40,
-        pr: 0.25,
-      }}
+      headingClassName="msqdx-glass-chip-editor__corner-tab-heading"
+      actionsClassName="msqdx-glass-chip-editor__corner-tab-actions"
     >
-      {heading ? (
-        <Box className="msqdx-glass-chip-editor__corner-tab-heading" sx={{ flex: "1 1 auto", minWidth: 0 }}>
-          {heading}
-        </Box>
-      ) : null}
-      {children ? (
-        <Box
-          className="msqdx-glass-chip-editor__corner-tab-actions"
-          sx={{ display: "flex", alignItems: "center", gap: 0.5, flexShrink: 0 }}
-        >
-          {children}
-        </Box>
-      ) : null}
+      {children}
+    </MsqdxGlassCornerTabSectionTab>
+  );
+}
+
+/** Icon + actions row used inside chip-editor corner tabs. */
+export function ChipEditorCornerTabToolbar({ children }: { children: ReactNode }) {
+  return (
+    <Box
+      className="msqdx-glass-chip-editor__corner-tab-toolbar"
+      sx={{ display: "flex", alignItems: "center", gap: 0.75, flexShrink: 0 }}
+    >
+      {children}
     </Box>
   );
 }

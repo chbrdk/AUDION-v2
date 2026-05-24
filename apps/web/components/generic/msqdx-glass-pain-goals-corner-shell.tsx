@@ -1,12 +1,13 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Box } from "@mui/material";
-import { MsqdxCornerTabCard } from "../../lib/msqdx-corner-tab-card";
 import type { MsqdxGlassChipVariant } from "./msqdx-glass-chip";
-import { ChipEditorCornerTabContent } from "../../lib/chip-editor-corner-tab-content";
 import {
-  CHIP_EDITOR_CORNER_BORDER_RADIUS_PX,
+  MsqdxGlassCornerTabSection,
+  MsqdxGlassCornerTabSectionTab,
+} from "../msqdx/corner-tab";
+import { ChipEditorCornerTabToolbar } from "../../lib/chip-editor-corner-tab-content";
+import {
   renderChipEditorCornerTab,
   resolveChipEditorCornerTabStyle,
 } from "../../lib/chip-editor-corner-tab";
@@ -24,7 +25,7 @@ export type MsqdxGlassPainGoalsCornerShellProps = {
 };
 
 /**
- * Wraps pain/goals slider content in `MsqdxCornerTabCard` when variant is pain or goal.
+ * Chip-editor adapter for {@link MsqdxGlassCornerTabSection} (pain/goals, personality, etc.).
  */
 export function MsqdxGlassPainGoalsCornerShell({
   chipVariant,
@@ -41,41 +42,34 @@ export function MsqdxGlassPainGoalsCornerShell({
 
   const sectionIcon = renderChipEditorCornerTab(chipVariant, label);
   const tabActionsWithIcon = tabActions ? (
-    <Box
-      className="msqdx-glass-chip-editor__corner-tab-toolbar"
-      sx={{ display: "flex", alignItems: "center", gap: 0.75, flexShrink: 0 }}
-    >
+    <ChipEditorCornerTabToolbar>
       {sectionIcon}
       {tabActions}
-    </Box>
+    </ChipEditorCornerTabToolbar>
   ) : undefined;
 
-  const hasTabChrome = Boolean(tabHeading) || Boolean(tabActionsWithIcon);
-  const tab = hasTabChrome ? (
-    <ChipEditorCornerTabContent heading={tabHeading}>{tabActionsWithIcon}</ChipEditorCornerTabContent>
+  const hasTabToolbar = Boolean(tabHeading) || Boolean(tabActionsWithIcon);
+  const tab = hasTabToolbar ? (
+    <MsqdxGlassCornerTabSectionTab heading={tabHeading}>{tabActionsWithIcon}</MsqdxGlassCornerTabSectionTab>
   ) : (
     sectionIcon
   );
 
   return (
-    <MsqdxCornerTabCard
+    <MsqdxGlassCornerTabSection
       className={[
         "msqdx-glass-chip-editor__corner-tab-shell",
         `msqdx-glass-chip-editor__corner-tab-shell--${placement === "top-right" ? "right" : "left"}`,
-        hasTabChrome && "msqdx-glass-chip-editor__corner-tab-shell--with-actions",
+        hasTabToolbar && "msqdx-glass-chip-editor__corner-tab-shell--with-actions",
       ]
         .filter(Boolean)
         .join(" ")}
       placement={placement}
       tab={tab}
-      tabWidthAuto={hasTabChrome}
       tabAriaLabel={label}
-      bodyBorderRadiusPx={CHIP_EDITOR_CORNER_BORDER_RADIUS_PX}
-      cornerBoxBorderRadiusPx={CHIP_EDITOR_CORNER_BORDER_RADIUS_PX}
-      containerBorderRadiusPx={CHIP_EDITOR_CORNER_BORDER_RADIUS_PX}
-      bodySx={{ pr: 0.25 }}
+      tabToolbar={hasTabToolbar}
     >
       {children}
-    </MsqdxCornerTabCard>
+    </MsqdxGlassCornerTabSection>
   );
 }

@@ -2,12 +2,14 @@ import type { ReactNode } from "react";
 import { MsqdxIcon } from "@msqdx/react";
 import type { MsqdxGlassChipVariant } from "../components/generic/msqdx-glass-chip";
 
+import { MSQDX_GLASS_CORNER_TAB_SECTION_BORDER_RADIUS_PX } from "./msqdx-corner-tab-section";
+
 /** Shared with `MsqdxCornerTabCard` body and tab chrome (light/dark via CSS on shell). */
 export const CHIP_EDITOR_CORNER_SHELL_SURFACE =
   "var(--msqdx-pain-goals-corner-surface, var(--audion-neutral-00, #ffffff))";
 
 /** Matches `--msqdx-radius-3xl`; tab box + card body share the same corner radius. */
-export const CHIP_EDITOR_CORNER_BORDER_RADIUS_PX = 24;
+export const CHIP_EDITOR_CORNER_BORDER_RADIUS_PX = MSQDX_GLASS_CORNER_TAB_SECTION_BORDER_RADIUS_PX;
 
 export const PAIN_GOALS_SLIDE_INDEX_BADGE_RADIUS_PX = 22;
 

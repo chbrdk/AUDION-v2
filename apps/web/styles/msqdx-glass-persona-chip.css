@@ -283,6 +283,8 @@
 
 .msqdx-glass-persona-indexed-chip__edit {
   display: block;
-  padding: calc(var(--msqdx-spacing-md) + var(--msqdx-spacing-xxs))
-    calc(var(--msqdx-spacing-sm) + var(--msqdx-spacing-xxs) - 1px);
+  padding-block: var(--msqdx-pain-goals-slide-label-padding-block-start)
+    var(--msqdx-pain-goals-slide-label-padding-block-end);
+  padding-inline: var(--msqdx-pain-goals-slide-label-padding-inline-start)
+    var(--msqdx-pain-goals-slide-label-padding-inline-end);
 }

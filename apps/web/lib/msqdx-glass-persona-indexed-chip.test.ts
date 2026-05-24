@@ -39,6 +39,8 @@ describe("MsqdxGlassPersonaIndexedChip", () => {
     expect(css).toContain(".msqdx-glass-persona-indexed-chip__label");
     expect(css).toMatch(/\.msqdx-glass-persona-indexed-chip__label[^}]*font-size:\s*var\(--msqdx-pain-goals-slide-label-font-size/);
     expect(dashboardCss).toContain("--msqdx-pain-goals-slide-label-font-size: 0.8125rem");
+    expect(dashboardCss).toContain("--msqdx-pain-goals-slide-label-padding-block-start");
+    expect(dashboardCss).toContain("--msqdx-pain-goals-slide-label-padding-inline-start");
     expect(css).toMatch(/\.msqdx-glass-persona-indexed-chip\.msqdx-glass-chip\.--dashboard\.--indexed[^}]*border:\s*none/);
     expect(css).toMatch(/\.msqdx-glass-persona-indexed-chip\.msqdx-glass-chip\.--dashboard\.--indexed[^}]*padding:\s*0/);
     expect(css).toMatch(/\.msqdx-glass-persona-indexed-chip \.msqdx-glass-pain-goals-slide-card__index-corner[^}]*margin:\s*0/);
