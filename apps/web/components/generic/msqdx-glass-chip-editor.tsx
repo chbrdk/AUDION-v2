@@ -368,6 +368,12 @@ export const MsqdxGlassChipEditor = ({
   const gridCellFullWidth = isGridLayout && maxChips === 1;
   const useMultilineInput = maxChips === 1;
   const useBlockChipLayout = isGridLayout || isListLayout;
+  const showSliderAddSlide = editable && canAddMore && isSliderLayout;
+
+  const handleSliderAddSlideClick = useCallback(() => {
+    if (!editable || !canAddMore || isBulkEditing) return;
+    handleStartEdit();
+  }, [editable, canAddMore, isBulkEditing]);
 
   const handleChipFieldKeyDown = useCallback(
     (event: React.KeyboardEvent, index: number, multiline: boolean) => {
@@ -1010,24 +1016,70 @@ export const MsqdxGlassChipEditor = ({
                 )}
               </article>
             ))}
-            {isEditing ? (
+            {showSliderAddSlide ? (
               <article
                 className="msqdx-glass-horizontal-card-slider__slide msqdx-glass-horizontal-card-slider__slide--add"
                 data-slide-index={displayChips.length}
               >
-                <div className="msqdx-glass-pain-goals-slide-card --add">
-                  <Box ref={newInputWrapperRef} sx={{ width: "100%" }}>
-                    <MsqdxInput
-                      value={newChipValue}
-                      onChange={(e) => setNewChipValue(e.target.value)}
-                      onKeyDown={(e) => handleKeyDown(e, false, null)}
-                      placeholder={t("chipEditor.addEntryPlaceholder")}
-                      size="small"
-                      multiline
-                      minRows={3}
-                      sx={{ ...INPUT_ACCENT_SX, ...MONO_FONT_SX }}
-                    />
-                  </Box>
+                <div
+                  className={clsx(
+                    "msqdx-glass-pain-goals-slide-card",
+                    chipVariant === "pain" && "--pain",
+                    chipVariant === "goal" && "--goal",
+                    "--add",
+                    !isBulkEditing && "msqdx-glass-pain-goals-slide-card--add-placeholder"
+                  )}
+                  role={!isBulkEditing ? "button" : undefined}
+                  tabIndex={!isBulkEditing ? 0 : undefined}
+                  aria-label={
+                    !isBulkEditing
+                      ? (emptyEntryChipLabel ?? t("chipEditor.addEntryPlaceholder"))
+                      : undefined
+                  }
+                  onClick={!isBulkEditing ? handleSliderAddSlideClick : undefined}
+                  onKeyDown={
+                    !isBulkEditing
+                      ? (event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            handleSliderAddSlideClick();
+                          }
+                        }
+                      : undefined
+                  }
+                >
+                  {isBulkEditing ? (
+                    <Box ref={newInputWrapperRef} sx={{ width: "100%" }}>
+                      <MsqdxInput
+                        value={newChipValue}
+                        onChange={(e) => setNewChipValue(e.target.value)}
+                        onKeyDown={(e) => handleKeyDown(e, false, null)}
+                        placeholder={t("chipEditor.addEntryPlaceholder")}
+                        size="small"
+                        multiline
+                        minRows={3}
+                        sx={{ ...INPUT_ACCENT_SX, ...MONO_FONT_SX }}
+                      />
+                    </Box>
+                  ) : (
+                    <Box
+                      className="msqdx-glass-pain-goals-slide-card__add-label"
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 0.75,
+                        width: "100%",
+                        height: "100%",
+                        minHeight: "13.5rem",
+                        color: "text.secondary",
+                        ...MONO_FONT_SX,
+                      }}
+                    >
+                      <MsqdxIcon name="add" customSize={20} />
+                      {emptyEntryChipLabel ?? t("chipEditor.addEntryPlaceholder")}
+                    </Box>
+                  )}
                 </div>
               </article>
             ) : null}

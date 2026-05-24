@@ -192,6 +192,37 @@
 .msqdx-glass-persona-indexed-chip.msqdx-glass-chip.--dashboard.--indexed {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  min-height: 13.5rem;
+  max-height: 17rem;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 18px;
+  background: transparent !important;
+  font-size: inherit;
+  font-weight: inherit;
+  text-transform: none;
+  overflow: visible;
+  box-sizing: border-box;
+}
+
+.msqdx-glass-persona-indexed-chip.msqdx-glass-chip.--dashboard.--pain.--indexed,
+.msqdx-glass-persona-indexed-chip.msqdx-glass-chip.--dashboard.--goal.--indexed {
+  border: none !important;
+  background: transparent !important;
+}
+
+.msqdx-glass-persona-indexed-chip .msqdx-glass-persona-indexed-chip__body {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+}
+
+.msqdx-glass-persona-indexed-chip .msqdx-glass-pain-goals-slide-card__index-corner,
+.msqdx-glass-persona-indexed-chip .msqdx-glass-pain-goals-slide-card__index-corner.MuiBox-root {
+  margin: 0 !important;
+  border-top-left-radius: 18px;
 }
 
 .msqdx-glass-persona-indexed-chip.msqdx-glass-chip.--dashboard.--indexed.--interactive {
@@ -203,7 +234,19 @@
 
 .msqdx-glass-persona-indexed-chip.msqdx-glass-chip.--dashboard.--indexed.--interactive:hover {
   transform: translateY(-1px);
+  box-shadow: none;
+  border: none !important;
+}
+
+.msqdx-glass-persona-indexed-chip.msqdx-glass-chip.--dashboard.--indexed.--interactive:hover
+  .msqdx-glass-persona-indexed-chip__body {
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+}
+
+.msqdx-glass-persona-indexed-chip.msqdx-glass-chip.--dashboard.--pain.--indexed.--interactive:hover,
+.msqdx-glass-persona-indexed-chip.msqdx-glass-chip.--dashboard.--goal.--indexed.--interactive:hover {
+  border: none !important;
+  background: transparent !important;
 }
 
 .msqdx-glass-persona-indexed-chip.msqdx-glass-chip.--dashboard.--pain.--indexed.--interactive:hover

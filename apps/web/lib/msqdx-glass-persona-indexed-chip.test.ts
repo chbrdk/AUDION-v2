@@ -25,6 +25,10 @@ describe("MsqdxGlassPersonaIndexedChip", () => {
       "utf8"
     );
     expect(editor).toContain("MsqdxGlassPersonaIndexedChip");
+    expect(editor).toContain("showSliderAddSlide");
+    expect(editor).toMatch(/showSliderAddSlide = editable && canAddMore && isSliderLayout/);
+    expect(editor).toContain("msqdx-glass-pain-goals-slide-card--add-placeholder");
+    expect(editor).toContain("handleSliderAddSlideClick");
     expect(editor).toContain("beginChipEdit(idx, chip)");
     expect(editor).toMatch(/useCornerTabChrome && \(chipVariant === "pain" \|\| chipVariant === "goal"\)/);
   });
@@ -32,6 +36,9 @@ describe("MsqdxGlassPersonaIndexedChip", () => {
   it("styles indexed chip label and hover affordance", () => {
     const css = readFileSync(join(webRoot, "styles/msqdx-glass-persona-chip.css"), "utf8");
     expect(css).toContain(".msqdx-glass-persona-indexed-chip__label");
+    expect(css).toMatch(/\.msqdx-glass-persona-indexed-chip\.msqdx-glass-chip\.--dashboard\.--indexed[^}]*border:\s*none/);
+    expect(css).toMatch(/\.msqdx-glass-persona-indexed-chip\.msqdx-glass-chip\.--dashboard\.--indexed[^}]*padding:\s*0/);
+    expect(css).toMatch(/\.msqdx-glass-persona-indexed-chip \.msqdx-glass-pain-goals-slide-card__index-corner[^}]*margin:\s*0/);
     expect(css).toContain(".msqdx-glass-persona-indexed-chip.msqdx-glass-chip.--dashboard.--indexed.--interactive:hover");
   });
 });

@@ -1299,6 +1299,33 @@
   padding: 1.125rem 1.25rem;
 }
 
+.msqdx-glass-pain-goals-slide-card.--add.msqdx-glass-pain-goals-slide-card--add-placeholder {
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.msqdx-glass-pain-goals-slide-card.--add.msqdx-glass-pain-goals-slide-card--add-placeholder:hover {
+  background: color-mix(
+    in srgb,
+    var(--msqdx-pain-goals-slide-surface, var(--audion-neutral-02, #f8f7f3)) 88%,
+    var(--color-theme-accent, #000) 12%
+  );
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+}
+
+.msqdx-glass-pain-goals-slide-card.--add.msqdx-glass-pain-goals-slide-card--add-placeholder:focus-visible {
+  outline: 2px solid var(--color-theme-accent, #000);
+  outline-offset: 2px;
+}
+
+.msqdx-glass-pain-goals-slide-card__add-label {
+  text-align: center;
+}
+
 .msqdx-glass-chip-editor--list .msqdx-glass-chip.--dashboard.--block {
   display: block;
   width: 100%;
