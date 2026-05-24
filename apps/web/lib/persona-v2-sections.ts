@@ -2,7 +2,6 @@ import { ADMIN_ROUTES } from "./routes";
 
 /** Persona detail sections for admin v2 (one route per section). */
 export const PERSONA_V2_SECTION_IDS = [
-  "overview",
   "basics",
   "personality",
   "communication",
@@ -25,12 +24,6 @@ export type PersonaV2SectionDef = {
 };
 
 export const PERSONA_V2_SECTIONS: readonly PersonaV2SectionDef[] = [
-  {
-    id: "overview",
-    icon: "dashboard",
-    labelKey: "personaV2.sections.overview.label",
-    descriptionKey: "personaV2.sections.overview.description",
-  },
   {
     id: "basics",
     icon: "person",
@@ -82,11 +75,12 @@ export const PERSONA_V2_SECTIONS: readonly PersonaV2SectionDef[] = [
   },
 ] as const;
 
-export const PERSONA_V2_DEFAULT_SECTION: PersonaV2SectionId = "overview";
+export const PERSONA_V2_DEFAULT_SECTION: PersonaV2SectionId = "basics";
 
-/** Old routes merged into another section (e.g. `/bio` → basics). */
+/** Old routes merged into another section (e.g. `/bio` → basics, `/overview` → basics). */
 export const PERSONA_V2_SECTION_LEGACY_ALIASES: Partial<Record<string, PersonaV2SectionId>> = {
   bio: "basics",
+  overview: "basics",
 };
 
 export function isPersonaV2SectionId(value: string): value is PersonaV2SectionId {

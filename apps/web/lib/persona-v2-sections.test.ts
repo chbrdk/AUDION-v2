@@ -19,8 +19,8 @@ describe("persona-v2-sections", () => {
     expect(PERSONA_V2_SECTION_IDS).toEqual(PERSONA_V2_SECTIONS.map((s) => s.id));
   });
 
-  it("defaults to overview", () => {
-    expect(PERSONA_V2_DEFAULT_SECTION).toBe("overview");
+  it("defaults to profile & bio (basics)", () => {
+    expect(PERSONA_V2_DEFAULT_SECTION).toBe("basics");
   });
 
   it("builds section hrefs", () => {
@@ -33,11 +33,15 @@ describe("persona-v2-sections", () => {
     expect(isPersonaV2SectionId("unknown")).toBe(false);
   });
 
-  it("merges legacy bio route into basics", () => {
+  it("merges legacy bio and overview routes into basics", () => {
     expect(PERSONA_V2_SECTION_LEGACY_ALIASES.bio).toBe("basics");
+    expect(PERSONA_V2_SECTION_LEGACY_ALIASES.overview).toBe("basics");
     expect(resolvePersonaV2SectionId("bio")).toBe("basics");
+    expect(resolvePersonaV2SectionId("overview")).toBe("basics");
     expect(resolvePersonaV2SectionId("basics")).toBe("basics");
+    expect(isPersonaV2SectionId("overview")).toBe(false);
     expect(resolvePersonaV2SectionId("unknown")).toBeNull();
     expect(PERSONA_V2_SECTION_IDS).not.toContain("bio");
+    expect(PERSONA_V2_SECTION_IDS).not.toContain("overview");
   });
 });
