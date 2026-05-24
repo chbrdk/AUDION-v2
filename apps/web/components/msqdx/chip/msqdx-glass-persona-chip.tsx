@@ -1,5 +1,6 @@
 "use client";
 
+import clsx from "clsx";
 import type { CSSProperties, KeyboardEvent } from "react";
 import {
   MsqdxGlassChip,
@@ -41,6 +42,8 @@ export type MsqdxGlassPersonaChipProps = {
   onClick?: () => void;
   className?: string;
   block?: boolean;
+  /** Wrapped multi-line chip (grid / list). */
+  multiline?: boolean;
   style?: CSSProperties;
 };
 
@@ -57,8 +60,10 @@ export function MsqdxGlassPersonaChip({
   onClick,
   className,
   block = false,
+  multiline = false,
   style,
 }: MsqdxGlassPersonaChipProps) {
+  const useBlockLayout = block || multiline;
   const interactive = editable && Boolean(onRequestEdit || onClick);
 
   const handleKeyDown = (event: KeyboardEvent<HTMLSpanElement>) => {
@@ -79,7 +84,11 @@ export function MsqdxGlassPersonaChip({
       dashboard
       highlighted={highlighted}
       interactive={interactive}
-      className={block ? "--block" : className}
+      className={clsx(
+        useBlockLayout && "--block",
+        multiline && "--multiline",
+        className
+      )}
       style={style}
       onClick={onClick}
       onDoubleClick={interactive && onRequestEdit ? onRequestEdit : undefined}

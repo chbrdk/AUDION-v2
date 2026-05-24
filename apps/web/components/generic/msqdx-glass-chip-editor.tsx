@@ -134,6 +134,7 @@ export const MsqdxGlassChipEditor = ({
   const [savePending, setSavePending] = useState(false);
   const editInputWrapperRef = useRef<HTMLDivElement>(null);
   const newInputWrapperRef = useRef<HTMLDivElement>(null);
+  const skipBlurSaveRef = useRef(false);
 
   // Array comparison function (order-independent for hasChanges)
   const arrayIsEqual = useCallback((a: string[], b: string[]): boolean => {
@@ -168,9 +169,13 @@ export const MsqdxGlassChipEditor = ({
   // Focus edit input when editing a chip
   useEffect(() => {
     if (editingIndex !== null) {
-      const input = editInputWrapperRef.current?.querySelector("input");
-      input?.focus();
-      input?.select();
+      const field = editInputWrapperRef.current?.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+        "input, textarea"
+      );
+      field?.focus();
+      if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) {
+        field.select();
+      }
     }
   }, [editingIndex]);
 
@@ -293,6 +298,27 @@ export const MsqdxGlassChipEditor = ({
     await applyAndMaybePersist(updated);
   }, [editingIndex, editingValue, chipEdit, isEditing, maxChips, onSave]);
 
+  const handleDeleteEditingChip = useCallback(async () => {
+    if (editingIndex === null) return;
+    const next = chipEdit.value.filter((_, i) => i !== editingIndex);
+    chipEdit.setValue(next);
+    setEditingIndex(null);
+    setEditingValue("");
+    if (!isEditing) {
+      setSavePending(true);
+      try {
+        const payload = maxChips != null ? next.slice(0, maxChips) : next;
+        await onSave(payload);
+        chipEdit.sync();
+      } catch (error) {
+        console.error("Failed to delete chip:", error);
+        chipEdit.reset();
+      } finally {
+        setSavePending(false);
+      }
+    }
+  }, [editingIndex, chipEdit, isEditing, maxChips, onSave]);
+
   const handleCancelEditChip = useCallback(() => {
     if (!isEditing) {
       chipEdit.reset();
@@ -341,6 +367,19 @@ export const MsqdxGlassChipEditor = ({
   const canAddMore = maxChips == null || chipEdit.value.length < maxChips;
   const gridCellFullWidth = isGridLayout && maxChips === 1;
   const useMultilineInput = maxChips === 1;
+  const useBlockChipLayout = isGridLayout || isListLayout;
+
+  const handleChipFieldKeyDown = useCallback(
+    (event: React.KeyboardEvent, index: number, multiline: boolean) => {
+      if (multiline && event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        void handleSaveEditChip();
+        return;
+      }
+      handleKeyDown(event, true, index);
+    },
+    [handleKeyDown, handleSaveEditChip]
+  );
 
   const sectionHeading =
     label && usesSectionMono ? (
@@ -601,7 +640,7 @@ export const MsqdxGlassChipEditor = ({
                 className={isGridLayout ? "msqdx-glass-chip-editor__chip-cell" : undefined}
                 sx={{
                   display: "flex",
-                  alignItems: isListLayout ? "flex-start" : "center",
+                  alignItems: isListLayout ? "flex-start" : isGridLayout ? "stretch" : "center",
                   gap: 0.5,
                   width: isListLayout || isGridLayout ? "100%" : "auto",
                   minWidth: isGridLayout ? 0 : undefined,
@@ -615,15 +654,25 @@ export const MsqdxGlassChipEditor = ({
                         variant={chipVariant}
                         value={editingValue}
                         onChange={setEditingValue}
-                        onKeyDown={(e) => handleKeyDown(e, true, idx)}
+                        onKeyDown={(e) => handleChipFieldKeyDown(e, idx, useBlockChipLayout)}
                         onBlur={() => {
+                          if (skipBlurSaveRef.current) {
+                            skipBlurSaveRef.current = false;
+                            return;
+                          }
                           void handleSaveEditChip();
                         }}
-                        block={isListLayout}
+                        onDelete={() => {
+                          skipBlurSaveRef.current = true;
+                          void handleDeleteEditingChip();
+                        }}
+                        deleteAriaLabel={t("common.remove")}
+                        multiline={useBlockChipLayout}
+                        block={useBlockChipLayout}
                         aria-label={t("chipEditor.editChips")}
                         style={
-                          isGridLayout
-                            ? { width: "100%", maxWidth: "100%", justifyContent: "flex-start" }
+                          useBlockChipLayout
+                            ? { width: "100%", maxWidth: "100%" }
                             : undefined
                         }
                       />
@@ -646,7 +695,8 @@ export const MsqdxGlassChipEditor = ({
                   <MsqdxGlassPersonaChip
                     label={chip}
                     variant={chipVariant}
-                    block={isListLayout}
+                    block={useBlockChipLayout}
+                    multiline={useBlockChipLayout}
                     highlighted={highlightedChips.some(
                       (highlight) => highlight.trim().toLowerCase() === chip.trim().toLowerCase()
                     )}
@@ -654,18 +704,16 @@ export const MsqdxGlassChipEditor = ({
                     onClick={isEditing ? () => handleStartEditChip(idx, chip) : undefined}
                     onRequestEdit={() => beginChipEdit(idx, chip)}
                     style={
-                      isListLayout
-                        ? { flex: 1, width: "100%" }
-                        : isGridLayout
-                          ? { width: "100%", maxWidth: "100%", justifyContent: "flex-start" }
-                          : undefined
+                      useBlockChipLayout
+                        ? { width: "100%", maxWidth: "100%" }
+                        : undefined
                     }
                   />
                 ) : (
                   <MsqdxGlassChip
                     variant={chipVariant}
                     dashboard={true}
-                    className={isListLayout ? "--block" : undefined}
+                    className={isListLayout || isGridLayout ? "--block --multiline" : undefined}
                     highlighted={highlightedChips.some(
                       (highlight) => highlight.trim().toLowerCase() === chip.trim().toLowerCase()
                     )}

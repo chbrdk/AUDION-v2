@@ -64,10 +64,22 @@
   min-width: min(100%, 8rem);
   max-width: 100%;
   box-sizing: border-box;
+  position: relative;
 }
 
-.msqdx-glass-chip.--dashboard.--editing.--block {
+.msqdx-glass-persona-chip-edit-shell {
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+  vertical-align: top;
+}
+
+.msqdx-glass-persona-chip-edit-shell--block {
   width: 100%;
+}
+
+.msqdx-glass-persona-chip-edit-shell__delete {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
 }
 
 .msqdx-glass-persona-chip__input {
@@ -84,6 +96,51 @@
   min-width: 4ch;
   max-width: 100%;
   field-sizing: content;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.msqdx-glass-chip.--dashboard.--editing.--block {
+  width: 100%;
+}
+
+.msqdx-glass-chip.--dashboard.--multiline {
+  display: inline-flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  width: 100%;
+  height: auto;
+  min-height: 2.75rem;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  text-align: left;
+  line-height: 1.35;
+}
+
+.msqdx-glass-chip-editor--grid .msqdx-glass-chip-editor__chip-cell {
+  align-items: stretch;
+}
+
+.msqdx-glass-chip.--dashboard.--editing.--multiline {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.msqdx-glass-persona-chip__input--multiline {
+  width: 100%;
+  min-height: 4.5rem;
+  resize: vertical;
+  field-sizing: normal;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+.msqdx-glass-persona-chip-edit-shell--multiline {
+  width: 100%;
+  max-width: 100%;
 }
 
 .msqdx-glass-persona-chip__input::placeholder {
