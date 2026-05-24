@@ -1072,6 +1072,7 @@
   width: 100%;
   --msqdx-pain-goals-corner-surface: var(--audion-neutral-05, #e0e0e0);
   --msqdx-pain-goals-slide-surface: var(--audion-neutral-02, #f8f7f3);
+  --msqdx-pain-goals-slide-label-font-size: 0.8125rem;
 }
 
 [data-theme="dark"] .msqdx-glass-chip-editor__corner-tab-shell {
@@ -1287,8 +1288,14 @@
 .msqdx-glass-pain-goals-slide-card__body--indexed .MuiTypography-root,
 .msqdx-glass-pain-goals-slide-card__body--indexed .msqdx-glass-persona-indexed-chip__label {
   display: block;
+  font-size: var(--msqdx-pain-goals-slide-label-font-size, var(--msqdx-font-size-sm));
   padding: calc(var(--msqdx-spacing-md) + var(--msqdx-spacing-xxs))
     calc(var(--msqdx-spacing-sm) + var(--msqdx-spacing-xxs) - 1px);
+}
+
+.msqdx-glass-pain-goals-slide-card--indexed .MuiInputBase-input,
+.msqdx-glass-pain-goals-slide-card--indexed .msqdx-glass-persona-chip__input {
+  font-size: var(--msqdx-pain-goals-slide-label-font-size, var(--msqdx-font-size-sm)) !important;
 }
 
 .msqdx-glass-pain-goals-slide-card.--add {

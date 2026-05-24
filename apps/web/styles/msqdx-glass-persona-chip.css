@@ -274,6 +274,7 @@
 
 .msqdx-glass-persona-indexed-chip__label {
   font-family: var(--msqdx-font-mono, ui-monospace, monospace);
+  font-size: var(--msqdx-pain-goals-slide-label-font-size, var(--msqdx-font-size-sm));
   line-height: 1.55;
   color: var(--color-text-primary);
   white-space: pre-wrap;

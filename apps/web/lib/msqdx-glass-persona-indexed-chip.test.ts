@@ -35,7 +35,10 @@ describe("MsqdxGlassPersonaIndexedChip", () => {
 
   it("styles indexed chip label and hover affordance", () => {
     const css = readFileSync(join(webRoot, "styles/msqdx-glass-persona-chip.css"), "utf8");
+    const dashboardCss = readFileSync(join(webRoot, "styles/dashboard-cards.css"), "utf8");
     expect(css).toContain(".msqdx-glass-persona-indexed-chip__label");
+    expect(css).toMatch(/\.msqdx-glass-persona-indexed-chip__label[^}]*font-size:\s*var\(--msqdx-pain-goals-slide-label-font-size/);
+    expect(dashboardCss).toContain("--msqdx-pain-goals-slide-label-font-size: 0.8125rem");
     expect(css).toMatch(/\.msqdx-glass-persona-indexed-chip\.msqdx-glass-chip\.--dashboard\.--indexed[^}]*border:\s*none/);
     expect(css).toMatch(/\.msqdx-glass-persona-indexed-chip\.msqdx-glass-chip\.--dashboard\.--indexed[^}]*padding:\s*0/);
     expect(css).toMatch(/\.msqdx-glass-persona-indexed-chip \.msqdx-glass-pain-goals-slide-card__index-corner[^}]*margin:\s*0/);
