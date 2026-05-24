@@ -57,8 +57,10 @@ describe("MsqdxGlassPersonaChip", () => {
     expect(css).toContain(".msqdx-glass-persona-chip__input");
     expect(css).toMatch(/\.msqdx-glass-persona-chip__input[^}]*text-decoration:\s*underline/);
     expect(css).toContain(".msqdx-glass-persona-chip-edit-shell__delete");
-    expect(css).toMatch(/\.msqdx-glass-persona-chip-edit-shell__delete[^}]*--color-status-error/);
+    expect(css).toMatch(/\.msqdx-glass-persona-chip-edit-shell__delete[^}]*background:\s*#ffffff/);
+    expect(css).toMatch(/\.msqdx-glass-persona-chip-edit-shell__delete \.msqdx-material-symbol[^}]*--color-status-error/);
     expect(input).toContain('name="delete"');
+    expect(input).toContain("<button");
   });
 
   it("supports multiline grid chip input", () => {

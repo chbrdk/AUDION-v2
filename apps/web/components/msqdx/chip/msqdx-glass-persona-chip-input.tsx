@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { MsqdxButton, MsqdxIcon } from "@msqdx/react";
+import { MsqdxIcon } from "@msqdx/react";
 import {
   forwardRef,
   type CSSProperties,
@@ -109,29 +109,19 @@ export const MsqdxGlassPersonaChipInput = forwardRef(function MsqdxGlassPersonaC
         )}
       </span>
       {onDelete ? (
-        <MsqdxButton
+        <button
           type="button"
-          variant="outlined"
-          size="small"
           className="msqdx-glass-persona-chip-edit-shell__delete"
           aria-label={deleteAriaLabel}
           onMouseDown={handleDeleteMouseDown}
           onClick={handleDeleteClick}
-          sx={{
-            position: "absolute",
-            top: -8,
-            right: -8,
-            minWidth: 22,
-            minHeight: 22,
-            width: 22,
-            height: 22,
-            p: 0,
-            borderRadius: "rounded",
-            zIndex: 2,
-          }}
         >
-          <MsqdxIcon name="delete" customSize={14} />
-        </MsqdxButton>
+          <MsqdxIcon
+            name="delete"
+            customSize={14}
+            style={{ color: "var(--color-status-error, #d32f2f)" }}
+          />
+        </button>
       ) : null}
     </span>
   );

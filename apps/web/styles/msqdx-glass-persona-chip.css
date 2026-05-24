@@ -79,15 +79,35 @@
 }
 
 .msqdx-glass-persona-chip-edit-shell__delete {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  margin: 0;
+  border: 1px solid color-mix(in srgb, var(--color-status-error, #d32f2f) 35%, transparent);
+  border-radius: 999px;
+  cursor: pointer;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
-  color: var(--color-status-error, #d32f2f) !important;
-  border-color: color-mix(in srgb, var(--color-status-error, #d32f2f) 35%, transparent) !important;
-  background: var(--color-surface-elevated, #fff) !important;
+  color: var(--color-status-error, #d32f2f);
+  background: #ffffff;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 .msqdx-glass-persona-chip-edit-shell__delete:hover {
-  background: color-mix(in srgb, var(--color-status-error, #d32f2f) 12%, transparent) !important;
-  border-color: var(--color-status-error, #d32f2f) !important;
+  background: #ffffff;
+  border-color: var(--color-status-error, #d32f2f);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--color-status-error, #d32f2f) 25%, transparent);
+}
+
+.msqdx-glass-persona-chip-edit-shell__delete .msqdx-material-symbol {
+  color: var(--color-status-error, #d32f2f);
 }
 
 .msqdx-glass-persona-chip__input {
