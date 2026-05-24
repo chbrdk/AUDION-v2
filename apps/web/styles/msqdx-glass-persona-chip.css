@@ -187,3 +187,58 @@
   padding: var(--msqdx-personality-chip-padding, var(--msqdx-communication-chip-padding)) !important;
   line-height: 1.35;
 }
+
+/* Indexed pain/goal slider chips (MsqdxGlassPersonaIndexedChip) */
+.msqdx-glass-persona-indexed-chip.msqdx-glass-chip.--dashboard.--indexed {
+  display: flex;
+  flex-direction: column;
+}
+
+.msqdx-glass-persona-indexed-chip.msqdx-glass-chip.--dashboard.--indexed.--interactive {
+  user-select: none;
+  transition:
+    box-shadow 0.15s ease,
+    transform 0.12s ease;
+}
+
+.msqdx-glass-persona-indexed-chip.msqdx-glass-chip.--dashboard.--indexed.--interactive:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+}
+
+.msqdx-glass-persona-indexed-chip.msqdx-glass-chip.--dashboard.--pain.--indexed.--interactive:hover
+  .msqdx-glass-persona-indexed-chip__body {
+  background: color-mix(
+    in srgb,
+    var(--color-secondary-dx-pink-tint) 72%,
+    var(--msqdx-pain-goals-slide-surface, var(--audion-neutral-02, #f8f7f3))
+  ) !important;
+}
+
+.msqdx-glass-persona-indexed-chip.msqdx-glass-chip.--dashboard.--goal.--indexed.--interactive:hover
+  .msqdx-glass-persona-indexed-chip__body {
+  background: color-mix(
+    in srgb,
+    var(--color-secondary-dx-blue-tint) 72%,
+    var(--msqdx-pain-goals-slide-surface, var(--audion-neutral-02, #f8f7f3))
+  ) !important;
+}
+
+.msqdx-glass-persona-indexed-chip__body:focus-visible {
+  outline: 2px solid var(--color-theme-accent, #000);
+  outline-offset: 2px;
+}
+
+.msqdx-glass-persona-indexed-chip__label {
+  font-family: var(--msqdx-font-mono, ui-monospace, monospace);
+  line-height: 1.55;
+  color: var(--color-text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.msqdx-glass-persona-indexed-chip__edit {
+  display: block;
+  padding: calc(var(--msqdx-spacing-md) + var(--msqdx-spacing-xxs))
+    calc(var(--msqdx-spacing-sm) + var(--msqdx-spacing-xxs) - 1px);
+}

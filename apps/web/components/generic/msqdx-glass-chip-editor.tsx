@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo, type ReactNode } from "react";
 import { Box, useTheme, alpha } from "@mui/material";
-import { MsqdxIcon, MsqdxButton, MsqdxTypography, MsqdxInput, MsqdxCornerBox } from "@msqdx/react";
+import { MsqdxIcon, MsqdxButton, MsqdxTypography, MsqdxInput } from "@msqdx/react";
 import { MsqdxGlassEditButton, MsqdxGlassAiButtonIcon, MsqdxGlassAddButtonIcon } from "./";
 import { useInlineEdit } from "../hooks/use-inline-edit";
 import { MsqdxGlassInlineEditControls } from "../msqdx-glass-inline-edit-controls";
@@ -11,6 +11,7 @@ import { MsqdxGlassChip, type MsqdxGlassChipVariant } from "./msqdx-glass-chip";
 import {
   MsqdxGlassPersonaChip,
   MsqdxGlassPersonaChipInput,
+  MsqdxGlassPersonaIndexedChip,
   isMsqdxGlassPersonaChipVariant,
 } from "../msqdx/chip";
 import { MsqdxGlassHorizontalCardSlider } from "./msqdx-glass-horizontal-card-slider";
@@ -20,8 +21,6 @@ import { INPUT_ACCENT_SX } from "../../lib/theme-accent";
 import { MsqdxGlassPainGoalsCornerShell } from "./msqdx-glass-pain-goals-corner-shell";
 import {
   resolveChipEditorCornerTabStyle,
-  PAIN_GOALS_SLIDE_INDEX_BADGE_RADIUS_PX,
-  PAIN_GOALS_SLIDE_INDEX_BADGE_SIZE,
 } from "../../lib/chip-editor-corner-tab";
 
 function resolveChipVariant(chipClassName: string): MsqdxGlassChipVariant {
@@ -879,109 +878,136 @@ export const MsqdxGlassChipEditor = ({
                 className="msqdx-glass-horizontal-card-slider__slide"
                 data-slide-index={idx}
               >
-                <div
-                  className={clsx(
-                    "msqdx-glass-pain-goals-slide-card",
-                    chipVariant === "pain" && "--pain",
-                    chipVariant === "goal" && "--goal",
-                    useCornerTabChrome && "msqdx-glass-pain-goals-slide-card--indexed"
-                  )}
-                >
-                  <div
-                    className={clsx(
-                      "msqdx-glass-pain-goals-slide-card__body",
-                      useCornerTabChrome && "msqdx-glass-pain-goals-slide-card__body--indexed"
-                    )}
-                  >
-                    {useCornerTabChrome ? (
-                      <MsqdxCornerBox
-                        className="msqdx-glass-pain-goals-slide-card__index-corner"
-                        topLeft="square"
-                        topRight="cutdown-a"
-                        bottomLeft="cutdown-b"
-                        bottomRight="rounded"
-                        borderRadius={PAIN_GOALS_SLIDE_INDEX_BADGE_RADIUS_PX}
-                        aria-label={t("chipEditor.slideIndexAria", { n: idx + 1 })}
-                        sx={{
-                          width: PAIN_GOALS_SLIDE_INDEX_BADGE_SIZE,
-                          height: PAIN_GOALS_SLIDE_INDEX_BADGE_SIZE,
-                          minWidth: PAIN_GOALS_SLIDE_INDEX_BADGE_SIZE,
-                          minHeight: PAIN_GOALS_SLIDE_INDEX_BADGE_SIZE,
-                          px: 0.75,
-                          py: 0.5,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          boxSizing: "border-box",
-                          color: "text.primary",
-                          pointerEvents: "none",
-                        }}
-                      >
-                        <Box
-                          component="span"
-                          sx={{
-                            ...MONO_FONT_SX,
-                            fontSize: "2.25rem",
-                            fontWeight: 300,
-                            lineHeight: 1,
-                          }}
-                        >
-                          {idx + 1}
-                        </Box>
-                      </MsqdxCornerBox>
-                    ) : null}
-                    {isEditing && editingIndex === idx ? (
+                {useCornerTabChrome && (chipVariant === "pain" || chipVariant === "goal") ? (
+                  <Box sx={{ position: "relative", flex: 1, width: "100%" }}>
+                    <MsqdxGlassPersonaIndexedChip
+                      label={chip}
+                      variant={chipVariant}
+                      index={idx + 1}
+                      indexAriaLabel={t("chipEditor.slideIndexAria", { n: idx + 1 })}
+                      highlighted={highlightedChips.some(
+                        (highlight) => highlight.trim().toLowerCase() === chip.trim().toLowerCase()
+                      )}
+                      editable={editable && !isSingleChipEditing}
+                      onRequestEdit={() => beginChipEdit(idx, chip)}
+                      onClick={isBulkEditing ? () => handleStartEditChip(idx, chip) : undefined}
+                      editing={editingIndex === idx}
+                    >
                       <Box ref={editInputWrapperRef} sx={{ width: "100%" }}>
-                        <MsqdxInput
+                        <MsqdxGlassPersonaChipInput
+                          variant={chipVariant}
                           value={editingValue}
-                          onChange={(e) => setEditingValue(e.target.value)}
-                          onKeyDown={(e) => handleKeyDown(e, true, idx)}
-                          onBlur={handleSaveEditChip}
-                          size="small"
+                          onChange={setEditingValue}
+                          onKeyDown={(e) => handleChipFieldKeyDown(e, idx, true)}
+                          onBlur={() => {
+                            if (skipBlurSaveRef.current) {
+                              skipBlurSaveRef.current = false;
+                              return;
+                            }
+                            void handleSaveEditChip();
+                          }}
+                          onDelete={
+                            !isBulkEditing
+                              ? () => {
+                                  skipBlurSaveRef.current = true;
+                                  void handleDeleteEditingChip();
+                                }
+                              : undefined
+                          }
+                          deleteAriaLabel={t("common.remove")}
                           multiline
-                          minRows={3}
-                          sx={{ ...INPUT_ACCENT_SX, ...MONO_FONT_SX }}
+                          block
+                          aria-label={t("chipEditor.editChips")}
+                          style={{ width: "100%", maxWidth: "100%" }}
                         />
                       </Box>
-                    ) : (
-                      <MsqdxTypography
-                        variant="body2"
+                    </MsqdxGlassPersonaIndexedChip>
+                    {isBulkEditing && editingIndex !== idx ? (
+                      <MsqdxButton
+                        variant="text"
+                        size="small"
+                        onClick={() => handleRemoveChip(idx)}
+                        aria-label={t("common.remove")}
+                        className="msqdx-glass-pain-goals-slide-card__remove"
                         sx={{
-                          ...MONO_FONT_SX,
-                          lineHeight: 1.55,
-                          color: "text.primary",
-                          cursor: isEditing ? "pointer" : "default",
+                          position: "absolute",
+                          top: 4,
+                          right: 4,
+                          minWidth: 24,
+                          minHeight: 24,
+                          p: "2px",
+                          zIndex: 4,
+                          "&:hover": {
+                            backgroundColor: alpha(theme.palette.error.main, 0.1),
+                          },
                         }}
-                        onClick={isEditing ? () => handleStartEditChip(idx, chip) : undefined}
                       >
-                        {chip}
-                      </MsqdxTypography>
+                        <MsqdxIcon name="close" customSize={16} />
+                      </MsqdxButton>
+                    ) : null}
+                  </Box>
+                ) : (
+                  <div
+                    className={clsx(
+                      "msqdx-glass-pain-goals-slide-card",
+                      chipVariant === "pain" && "--pain",
+                      chipVariant === "goal" && "--goal"
                     )}
+                  >
+                    <div className="msqdx-glass-pain-goals-slide-card__body">
+                      {isBulkEditing && editingIndex === idx ? (
+                        <Box ref={editInputWrapperRef} sx={{ width: "100%" }}>
+                          <MsqdxInput
+                            value={editingValue}
+                            onChange={(e) => setEditingValue(e.target.value)}
+                            onKeyDown={(e) => handleKeyDown(e, true, idx)}
+                            onBlur={handleSaveEditChip}
+                            size="small"
+                            multiline
+                            minRows={3}
+                            sx={{ ...INPUT_ACCENT_SX, ...MONO_FONT_SX }}
+                          />
+                        </Box>
+                      ) : (
+                        <MsqdxTypography
+                          variant="body2"
+                          sx={{
+                            ...MONO_FONT_SX,
+                            lineHeight: 1.55,
+                            color: "text.primary",
+                            cursor: isBulkEditing ? "pointer" : "default",
+                          }}
+                          onClick={isBulkEditing ? () => handleStartEditChip(idx, chip) : undefined}
+                        >
+                          {chip}
+                        </MsqdxTypography>
+                      )}
+                    </div>
+                    {isBulkEditing && editingIndex !== idx ? (
+                      <MsqdxButton
+                        variant="text"
+                        size="small"
+                        onClick={() => handleRemoveChip(idx)}
+                        aria-label={t("common.remove")}
+                        className="msqdx-glass-pain-goals-slide-card__remove"
+                        sx={{
+                          position: "absolute",
+                          top: 4,
+                          right: 4,
+                          minWidth: 24,
+                          minHeight: 24,
+                          p: "2px",
+                          zIndex: 4,
+                          "&:hover": {
+                            backgroundColor: alpha(theme.palette.error.main, 0.1),
+                          },
+                        }}
+                      >
+                        <MsqdxIcon name="close" customSize={16} />
+                      </MsqdxButton>
+                    ) : null}
                   </div>
-                  {isEditing && editingIndex !== idx ? (
-                    <MsqdxButton
-                      variant="text"
-                      size="small"
-                      onClick={() => handleRemoveChip(idx)}
-                      aria-label={t("common.remove")}
-                      className="msqdx-glass-pain-goals-slide-card__remove"
-                      sx={{
-                        position: "absolute",
-                        top: 4,
-                        right: 4,
-                        minWidth: 24,
-                        minHeight: 24,
-                        p: "2px",
-                        zIndex: 4,
-                        "&:hover": {
-                          backgroundColor: alpha(theme.palette.error.main, 0.1),
-                        },
-                      }}
-                    >
-                      <MsqdxIcon name="close" customSize={16} />
-                    </MsqdxButton>
-                  ) : null}
-                </div>
+                )}
               </article>
             ))}
             {isEditing ? (

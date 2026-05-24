@@ -78,16 +78,13 @@ describe("persona pain-goals layout", () => {
     expect(chipEditor).toContain("leading={showSliderInlineHeader ? sectionHeading : undefined}");
     expect(chipEditor).toContain("!useCornerTabChrome");
     expect(chipEditor).toContain("MsqdxGlassPainGoalsCornerShell");
-    expect(chipEditor).toContain("MsqdxCornerBox");
-    expect(chipEditor).toContain("PAIN_GOALS_SLIDE_INDEX_BADGE_RADIUS_PX");
-    expect(chipEditor).toContain("topLeft=\"square\"");
-    expect(chipEditor).toContain("topRight=\"cutdown-a\"");
-    expect(chipEditor).toContain("bottomLeft=\"cutdown-b\"");
-    expect(chipEditor).toContain("msqdx-glass-pain-goals-slide-card__body");
-    expect(chipEditor).toContain("msqdx-glass-pain-goals-slide-card--indexed");
-    expect(chipEditor).toContain("PAIN_GOALS_SLIDE_INDEX_BADGE_SIZE");
-    expect(chipEditor).toContain('fontSize: "2.25rem"');
-    expect(chipEditor).toContain("fontWeight: 300");
+    expect(chipEditor).toContain("MsqdxGlassPersonaIndexedChip");
+    const indexedChip = readFileSync(
+      resolve(process.cwd(), "components/msqdx/chip/msqdx-glass-persona-indexed-chip.tsx"),
+      "utf8"
+    );
+    expect(indexedChip).toContain("msqdx-glass-pain-goals-slide-card__body");
+    expect(indexedChip).toContain("msqdx-glass-pain-goals-slide-card--indexed");
     expect(chipEditor).not.toContain("PAIN_GOALS_SLIDE_INDEX_SURFACE");
     expect(chipEditor).toContain("renderLayout=");
     expect(chipEditor).toContain("tabActions={controlsEnd}");
@@ -103,7 +100,7 @@ describe("persona pain-goals layout", () => {
     expect(chipEditor).not.toContain("cornerTabActions");
     expect(chipEditor).toContain("showSliderInlineHeader");
     expect(chipEditor).toMatch(
-      /showHeaderActions = editable && !isEditing && \(!isSliderLayout \|\| showEmptyState\)/
+      /showHeaderActions[\s\S]*!isBulkEditing[\s\S]*!isSliderLayout \|\| showEmptyState/
     );
   });
 

@@ -1284,7 +1284,8 @@
   background-color: var(--audion-neutral-05, #e0e0e0) !important;
 }
 
-.msqdx-glass-pain-goals-slide-card__body--indexed .MuiTypography-root {
+.msqdx-glass-pain-goals-slide-card__body--indexed .MuiTypography-root,
+.msqdx-glass-pain-goals-slide-card__body--indexed .msqdx-glass-persona-indexed-chip__label {
   display: block;
   padding: calc(var(--msqdx-spacing-md) + var(--msqdx-spacing-xxs))
     calc(var(--msqdx-spacing-sm) + var(--msqdx-spacing-xxs) - 1px);
