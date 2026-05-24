@@ -736,7 +736,16 @@ docker exec {postgres-container} pg_dump -U persona persona > backup.sql
 - Build Context korrekt setzen
 - Build Args prüfen
 
-**2a. Web Build: "Module not found: Can't resolve '@msqdx/react'"**
+**2a. Web Build: Type error `ReactNode` is not assignable (bigint / duplicate @types/react)**
+
+**Ursache:** Im Docker-Build liegen zwei `@types/react`-Versionen vor — `apps/web` nutzt React 19 Types, das geklonte `msqdx-design-system` noch React 18. Beim Typecheck von Next.js schlagen dann `children`-Props an `@msqdx/react`-Komponenten fehl (z. B. `persona-admin-section-surface.tsx`).
+
+**Lösung im Repo:**
+- Cast über `ComponentProps<typeof MsqdxComponent>["children"]` an betroffenen Wrappern (siehe `persona-admin-section-surface.tsx`, `msqdx-corner-tab-card.tsx`).
+- Im `apps/web/Dockerfile` werden nach dem Design-System-Install die React-Types auf die Web-Version gepinnt.
+- In Coolify: **Rebuild without cache** und erneut deployen.
+
+**2b. Web Build: "Module not found: Can't resolve '@msqdx/react'"**
 
 **Ursache:** Die Web-App nutzt `@msqdx/react` über `file:../../../msqdx-design-system/packages/react`. Im Docker-Build wird das Repo per `git clone` nach `/msqdx-design-system` geholt; fehlt es dort oder wird der Builder-Stage nicht zuverlässig übernommen, schlägt der Next-Build fehl.
 

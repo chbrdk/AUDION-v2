@@ -113,7 +113,6 @@ export const MsqdxGlassPersonaChipInput = forwardRef(function MsqdxGlassPersonaC
           type="button"
           variant="outlined"
           size="small"
-          brandColor="purple"
           className="msqdx-glass-persona-chip-edit-shell__delete"
           aria-label={deleteAriaLabel}
           onMouseDown={handleDeleteMouseDown}
@@ -131,7 +130,7 @@ export const MsqdxGlassPersonaChipInput = forwardRef(function MsqdxGlassPersonaC
             zIndex: 2,
           }}
         >
-          <MsqdxIcon name="close" customSize={14} />
+          <MsqdxIcon name="delete" customSize={14} />
         </MsqdxButton>
       ) : null}
     </span>

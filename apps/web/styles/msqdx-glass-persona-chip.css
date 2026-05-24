@@ -80,6 +80,14 @@
 
 .msqdx-glass-persona-chip-edit-shell__delete {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  color: var(--color-status-error, #d32f2f) !important;
+  border-color: color-mix(in srgb, var(--color-status-error, #d32f2f) 35%, transparent) !important;
+  background: var(--color-surface-elevated, #fff) !important;
+}
+
+.msqdx-glass-persona-chip-edit-shell__delete:hover {
+  background: color-mix(in srgb, var(--color-status-error, #d32f2f) 12%, transparent) !important;
+  border-color: var(--color-status-error, #d32f2f) !important;
 }
 
 .msqdx-glass-persona-chip__input {

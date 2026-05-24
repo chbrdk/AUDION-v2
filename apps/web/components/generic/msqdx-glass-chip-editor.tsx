@@ -347,7 +347,8 @@ export const MsqdxGlassChipEditor = ({
   const displayChips = chipEdit.value;
   const hasChips = displayChips.length > 0;
   const isSingleChipEditing = editingIndex !== null && !isEditing;
-  const isEditActive = isEditing || editingIndex !== null;
+  const isBulkEditing = isEditing;
+  const isEditActive = isBulkEditing || isSingleChipEditing;
   const showEmptyState = !isEditActive && !hasChips;
   const isListLayout = chipLayout === "list";
   const isSliderLayout = chipLayout === "slider";
@@ -363,7 +364,7 @@ export const MsqdxGlassChipEditor = ({
   const useCornerTabShell =
     Boolean(cornerTabStyle) && relaxedSpacing && (isWrapLayout || isGridLayout);
   const showHeaderActions =
-    editable && !isEditActive && (!isSliderLayout || showEmptyState) && !showEmptyEntryInGrid;
+    editable && !isBulkEditing && (!isSliderLayout || showEmptyState) && !showEmptyEntryInGrid;
   const canAddMore = maxChips == null || chipEdit.value.length < maxChips;
   const gridCellFullWidth = isGridLayout && maxChips === 1;
   const useMultilineInput = maxChips === 1;
@@ -413,7 +414,7 @@ export const MsqdxGlassChipEditor = ({
     isSliderLayout && !showEmptyState && Boolean(sectionHeading) && !useCornerTabChrome;
 
   const cornerTabActionButtonNodes = useMemo(() => {
-    if (!editable || isEditActive) {
+    if (!editable || isBulkEditing) {
       return [];
     }
     const nodes: ReactNode[] = [];
@@ -455,7 +456,7 @@ export const MsqdxGlassChipEditor = ({
     return nodes;
   }, [
     editable,
-    isEditActive,
+    isBulkEditing,
     onAiSuggest,
     aiLoading,
     hasChips,
@@ -466,12 +467,12 @@ export const MsqdxGlassChipEditor = ({
 
   const sliderToolbarActions = useMemo(
     () =>
-      editable && !isEditActive && isSliderLayout && !showEmptyState && cornerTabActionButtonNodes.length > 0 ? (
+      editable && !isBulkEditing && isSliderLayout && !showEmptyState && cornerTabActionButtonNodes.length > 0 ? (
         <>{cornerTabActionButtonNodes}</>
       ) : null,
     [
       editable,
-      isEditActive,
+      isBulkEditing,
       isSliderLayout,
       showEmptyState,
       cornerTabActionButtonNodes,
@@ -487,7 +488,7 @@ export const MsqdxGlassChipEditor = ({
   );
 
   const entryActionsContent = useMemo(() => {
-    if (!editable || isEditActive || showEmptyEntryInGrid) {
+    if (!editable || isBulkEditing || showEmptyEntryInGrid) {
       return null;
     }
     const showAdd = canAddMore;
@@ -531,7 +532,7 @@ export const MsqdxGlassChipEditor = ({
     );
   }, [
     editable,
-    isEditActive,
+    isBulkEditing,
     showEmptyEntryInGrid,
     canAddMore,
     showEmptyState,
@@ -648,7 +649,15 @@ export const MsqdxGlassChipEditor = ({
                 }}
               >
                 {editingIndex === idx ? (
-                  <Box ref={editInputWrapperRef} sx={{ minWidth: "120px", width: isListLayout || isGridLayout ? "100%" : "auto" }}>
+                  <Box
+                    ref={editInputWrapperRef}
+                    sx={{
+                      display: useBlockChipLayout ? "block" : "inline-flex",
+                      width: useBlockChipLayout ? "100%" : "auto",
+                      maxWidth: "100%",
+                      verticalAlign: "top",
+                    }}
+                  >
                     {isMsqdxGlassPersonaChipVariant(chipVariant) ? (
                       <MsqdxGlassPersonaChipInput
                         variant={chipVariant}

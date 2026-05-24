@@ -40,17 +40,25 @@ describe("MsqdxGlassPersonaChip", () => {
       "utf8"
     );
     expect(editor).toContain("isSingleChipEditing");
+    expect(editor).toContain("isBulkEditing");
     expect(editor).toContain("setIsEditing(false)");
     expect(editor).toMatch(/beginChipEdit[\s\S]*setIsEditing\(false\)/);
     expect(editor).toContain("MsqdxGlassPersonaChipInput");
+    expect(editor).toMatch(/cornerTabActionButtonNodes[\s\S]*isBulkEditing/);
   });
 
   it("styles chip-shaped inline input", () => {
     const css = readFileSync(join(webRoot, "styles/msqdx-glass-persona-chip.css"), "utf8");
+    const input = readFileSync(
+      join(webRoot, "components/msqdx/chip/msqdx-glass-persona-chip-input.tsx"),
+      "utf8"
+    );
     expect(css).toContain(".msqdx-glass-chip.--dashboard.--editing");
     expect(css).toContain(".msqdx-glass-persona-chip__input");
     expect(css).toMatch(/\.msqdx-glass-persona-chip__input[^}]*text-decoration:\s*underline/);
     expect(css).toContain(".msqdx-glass-persona-chip-edit-shell__delete");
+    expect(css).toMatch(/\.msqdx-glass-persona-chip-edit-shell__delete[^}]*--color-status-error/);
+    expect(input).toContain('name="delete"');
   });
 
   it("supports multiline grid chip input", () => {
