@@ -6,16 +6,14 @@ import { describe, expect, it } from "vitest";
 const webRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 describe("MsqdxGlassCornerTabSection", () => {
-  it("defines standardized corner-tab section without slider", () => {
+  it("re-exports design-system corner tab section", () => {
     const section = readFileSync(
       join(webRoot, "components/msqdx/corner-tab/msqdx-glass-corner-tab-section.tsx"),
       "utf8"
     );
-    expect(section).toContain("MsqdxGlassCornerTabSection");
-    expect(section).toContain("MsqdxCornerTabCard");
+    expect(section).toContain('from "@msqdx/react"');
+    expect(section).toContain("MsqdxCornerTabSection");
     expect(section).toContain("msqdx-glass-corner-tab-section");
-    expect(section).toContain("tabToolbar");
-    expect(section).not.toContain("MsqdxGlassHorizontalCardSlider");
   });
 
   it("exports section and tab from msqdx barrel", () => {
@@ -34,6 +32,7 @@ describe("MsqdxGlassCornerTabSection", () => {
       "utf8"
     );
     expect(css).toContain(".msqdx-glass-corner-tab-section");
+    expect(css).toContain(".msqdx-corner-tab-section");
     expect(css).toContain("--msqdx-corner-tab-section-surface");
     expect(shell).toContain("MsqdxGlassCornerTabSection");
     expect(shell).toContain("MsqdxGlassCornerTabSectionTab");

@@ -1,5 +1,6 @@
 /* MsqdxGlassCornerTabSection — cutout corner tab shell (no slider) */
 
+.msqdx-corner-tab-section,
 .msqdx-glass-corner-tab-section,
 .msqdx-glass-chip-editor__corner-tab-shell {
   width: 100%;
@@ -7,12 +8,15 @@
   --msqdx-corner-tab-section-body-surface: var(--audion-neutral-05, #e0e0e0);
 }
 
+[data-theme="dark"] .msqdx-corner-tab-section,
 [data-theme="dark"] .msqdx-glass-corner-tab-section,
 [data-theme="dark"] .msqdx-glass-chip-editor__corner-tab-shell {
   --msqdx-corner-tab-section-surface: var(--audion-neutral-17, #181714);
   --msqdx-corner-tab-section-body-surface: var(--audion-neutral-17, #181714);
 }
 
+.msqdx-corner-tab-section .msqdx-corner-tab-card__tab-box,
+.msqdx-corner-tab-section > .MuiBox-root:first-of-type,
 .msqdx-glass-corner-tab-section .msqdx-corner-tab-card__tab-box,
 .msqdx-glass-corner-tab-section > .MuiBox-root:first-of-type,
 .msqdx-glass-chip-editor__corner-tab-shell .msqdx-corner-tab-card__tab-box,
@@ -20,6 +24,7 @@
   background-color: var(--msqdx-corner-tab-section-surface) !important;
 }
 
+.msqdx-corner-tab-section--with-toolbar,
 .msqdx-glass-corner-tab-section--with-toolbar,
 .msqdx-glass-chip-editor__corner-tab-shell--with-actions {
   margin-top: 2rem;

@@ -11,7 +11,7 @@ BVik workflow nodes used `MsqdxCornerBox` as a top corner tab on React Flow card
 
 ## AUDION integration
 
-**Standard shell (no slider):** `MsqdxGlassCornerTabSection` — see `knowledge/msqdx-glass-corner-tab-section.md`.
+**Standard shell (no slider):** `MsqdxCornerTabSection` in `@msqdx/react` — AUDION alias `MsqdxGlassCornerTabSection` — see `knowledge/msqdx-glass-corner-tab-section.md`.
 
 Pain/Goals slider (`MsqdxGlassChipEditor` + `chipLayout="slider"`):
 

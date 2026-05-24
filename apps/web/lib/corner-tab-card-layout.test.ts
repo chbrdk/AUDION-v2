@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   CORNER_TAB_CARD_DEFAULTS,
   getCornerTabCardLayout,
-} from "./corner-tab-card-layout";
+} from "@msqdx/react";
 
-describe("corner-tab-card-layout", () => {
+describe("corner-tab-card-layout (@msqdx/react)", () => {
   it("top-right tab uses cutdown-a on bottom-left for body join", () => {
     const layout = getCornerTabCardLayout({ placement: "top-right" });
     expect(layout.cornerStyles.bottomLeft).toBe("cutdown-a");

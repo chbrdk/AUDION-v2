@@ -1,7 +1,7 @@
 "use client";
 
+import type { ComponentProps, ReactNode } from "react";
 import { Box } from "@mui/material";
-import type { ReactNode } from "react";
 import { MsqdxGlassCornerTabSectionTab } from "../components/msqdx/corner-tab";
 
 export type ChipEditorCornerTabContentProps = {
@@ -10,19 +10,21 @@ export type ChipEditorCornerTabContentProps = {
   children?: ReactNode;
 };
 
-/** @deprecated Prefer {@link MsqdxGlassCornerTabSectionTab} from `components/msqdx/corner-tab`. */
+type MsqdxGlassCornerTabSectionTabProps = ComponentProps<typeof MsqdxGlassCornerTabSectionTab>;
+
+/** @deprecated Prefer {@link MsqdxGlassCornerTabSectionTab} or {@link MsqdxCornerTabSectionTab} from `@msqdx/react`. */
 export function ChipEditorCornerTabContent({
   heading,
   children,
 }: ChipEditorCornerTabContentProps) {
   return (
     <MsqdxGlassCornerTabSectionTab
-      heading={heading}
+      heading={heading as MsqdxGlassCornerTabSectionTabProps["heading"]}
       className="msqdx-glass-chip-editor__corner-tab-content"
       headingClassName="msqdx-glass-chip-editor__corner-tab-heading"
       actionsClassName="msqdx-glass-chip-editor__corner-tab-actions"
     >
-      {children}
+      {children as MsqdxGlassCornerTabSectionTabProps["children"]}
     </MsqdxGlassCornerTabSectionTab>
   );
 }

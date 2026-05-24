@@ -1,54 +1,33 @@
 "use client";
 
-import clsx from "clsx";
-import { Box } from "@mui/material";
-import type { ReactNode } from "react";
+import {
+  MsqdxCornerTabSectionTab,
+  type MsqdxCornerTabSectionTabProps,
+} from "@msqdx/react";
 
-export type MsqdxGlassCornerTabSectionTabProps = {
-  /** Section title rendered beside toolbar actions. */
-  heading?: ReactNode;
-  children?: ReactNode;
-  className?: string;
-  headingClassName?: string;
-  actionsClassName?: string;
-};
+export type MsqdxGlassCornerTabSectionTabProps = MsqdxCornerTabSectionTabProps;
 
-/** Heading + toolbar row inside the corner tab (`MsqdxCornerBox`). */
+/**
+ * AUDION alias for {@link MsqdxCornerTabSectionTab}.
+ */
 export function MsqdxGlassCornerTabSectionTab({
-  heading,
-  children,
   className,
   headingClassName,
   actionsClassName,
+  ...props
 }: MsqdxGlassCornerTabSectionTabProps) {
   return (
-    <Box
-      className={clsx("msqdx-glass-corner-tab-section__tab-content", className)}
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        flexWrap: "nowrap",
-        gap: 0.75,
-        minHeight: 40,
-        pr: 0.25,
-      }}
-    >
-      {heading ? (
-        <Box
-          className={clsx("msqdx-glass-corner-tab-section__tab-heading", headingClassName)}
-          sx={{ flex: "1 1 auto", minWidth: 0 }}
-        >
-          {heading}
-        </Box>
-      ) : null}
-      {children ? (
-        <Box
-          className={clsx("msqdx-glass-corner-tab-section__tab-actions", actionsClassName)}
-          sx={{ display: "flex", alignItems: "center", gap: 0.5, flexShrink: 0 }}
-        >
-          {children}
-        </Box>
-      ) : null}
-    </Box>
+    <MsqdxCornerTabSectionTab
+      {...props}
+      className={["msqdx-glass-corner-tab-section__tab-content", className]
+        .filter(Boolean)
+        .join(" ")}
+      headingClassName={["msqdx-glass-corner-tab-section__tab-heading", headingClassName]
+        .filter(Boolean)
+        .join(" ")}
+      actionsClassName={["msqdx-glass-corner-tab-section__tab-actions", actionsClassName]
+        .filter(Boolean)
+        .join(" ")}
+    />
   );
 }
