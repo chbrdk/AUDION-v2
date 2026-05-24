@@ -742,7 +742,7 @@ docker exec {postgres-container} pg_dump -U persona persona > backup.sql
 
 **Lösung im Repo:**
 - Cast über `ComponentProps<typeof MsqdxComponent>["children"]` an betroffenen Wrappern (siehe `persona-admin-section-surface.tsx`, `msqdx-corner-tab-card.tsx`).
-- Im `apps/web/Dockerfile` werden nach dem Design-System-Install die React-Types auf die Web-Version gepinnt.
+- **Nicht** `@types/react` im geklonten Design-System auf v19 pinnen — das bricht `npm run build` in `@msqdx/react` (`tsc`).
 - In Coolify: **Rebuild without cache** und erneut deployen.
 
 **2b. Web Build: "Module not found: Can't resolve '@msqdx/react'"**

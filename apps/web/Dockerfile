@@ -15,9 +15,7 @@ RUN apk add --no-cache git
 # Clone and build msqdx-design-system FIRST (before npm install)
 # Path file:../../../msqdx-design-system resolves from /app/apps/web to /msqdx-design-system
 RUN git clone --depth 1 https://github.com/chbrdk/msqdx-design-system.git /msqdx-design-system && \
-    cd /msqdx-design-system && npm install && \
-    npm install -D @types/react@19.0.7 @types/react-dom@19.0.2 --legacy-peer-deps && \
-    npm run build
+    cd /msqdx-design-system && npm install && npm run build
 
 # Copy workspace configuration
 COPY package.json package-lock.json ./
