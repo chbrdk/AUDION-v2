@@ -7,10 +7,7 @@ import {
   MsqdxGlassCornerTabSectionTab,
 } from "../msqdx/corner-tab";
 import { ChipEditorCornerTabToolbar } from "../../lib/chip-editor-corner-tab-content";
-import {
-  renderChipEditorCornerTab,
-  resolveChipEditorCornerTabStyle,
-} from "../../lib/chip-editor-corner-tab";
+import { resolveChipEditorCornerTabStyle } from "../../lib/chip-editor-corner-tab";
 
 type MsqdxGlassCornerTabSectionTabProps = ComponentProps<typeof MsqdxGlassCornerTabSectionTab>;
 type MsqdxGlassCornerTabSectionChildren = ComponentProps<typeof MsqdxGlassCornerTabSection>["children"];
@@ -44,22 +41,16 @@ export function MsqdxGlassPainGoalsCornerShell({
     return <>{children}</>;
   }
 
-  const sectionIcon = renderChipEditorCornerTab(chipVariant, label);
-  const tabActionsWithIcon = tabActions ? (
-    <ChipEditorCornerTabToolbar>
-      {sectionIcon}
-      {tabActions}
-    </ChipEditorCornerTabToolbar>
+  const tabActionsNode = tabActions ? (
+    <ChipEditorCornerTabToolbar>{tabActions}</ChipEditorCornerTabToolbar>
   ) : undefined;
 
-  const hasTabToolbar = Boolean(tabHeading) || Boolean(tabActionsWithIcon);
+  const hasTabToolbar = Boolean(tabHeading) || Boolean(tabActionsNode);
   const tab = (hasTabToolbar ? (
     <MsqdxGlassCornerTabSectionTab heading={tabHeading as MsqdxGlassCornerTabSectionTabProps["heading"]}>
-      {tabActionsWithIcon as MsqdxGlassCornerTabSectionTabProps["children"]}
+      {tabActionsNode as MsqdxGlassCornerTabSectionTabProps["children"]}
     </MsqdxGlassCornerTabSectionTab>
-  ) : (
-    sectionIcon
-  )) as MsqdxGlassCornerTabSectionTabProp;
+  ) : undefined) as MsqdxGlassCornerTabSectionTabProp | undefined;
 
   return (
     <MsqdxGlassCornerTabSection

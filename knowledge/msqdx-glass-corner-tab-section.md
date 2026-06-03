@@ -10,7 +10,7 @@ AUDION glass wrapper around design-system **`MsqdxCornerTabSection`** (`@msqdx/r
 | **Export** | `@msqdx/react` — `MsqdxCornerTabSection`, `MsqdxCornerTabSectionTab` |
 | **AUDION alias** | `apps/web/components/msqdx/corner-tab/msqdx-glass-corner-tab-section.tsx` |
 | **App CSS** | `apps/web/styles/msqdx-glass-corner-tab-section.css` (targets `.msqdx-glass-corner-tab-section` + `.msqdx-corner-tab-section`) |
-| **Chip-editor adapter** | `apps/web/components/generic/msqdx-glass-pain-goals-corner-shell.tsx` |
+| **Chip-editor adapter** | `apps/web/components/generic/msqdx-glass-pain-goals-corner-shell.tsx` (tab toolbar: actions only, no Material icon per variant) |
 
 Storybook: **Design System / Molecules / CornerTabSection**
 

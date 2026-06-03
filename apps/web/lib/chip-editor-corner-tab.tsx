@@ -1,5 +1,3 @@
-import type { ReactNode } from "react";
-import { MsqdxIcon } from "@msqdx/react";
 import type { MsqdxGlassChipVariant } from "../components/generic/msqdx-glass-chip";
 
 import { MSQDX_CORNER_TAB_SECTION_BORDER_RADIUS_PX } from "@msqdx/react";
@@ -60,17 +58,6 @@ const CHIP_EDITOR_CORNER_TAB_STYLES: Record<ChipEditorCornerTabVariant, ChipEdit
   },
 };
 
-const CHIP_EDITOR_CORNER_TAB_ICONS: Record<ChipEditorCornerTabVariant, string> = {
-  pain: "sentiment_dissatisfied",
-  goal: "flag",
-  trait: "psychology",
-  interest: "lightbulb",
-  value: "volunteer_activism",
-  social: "share",
-  vocab: "chat_bubble",
-  sentence: "format_quote",
-};
-
 const CHIP_EDITOR_CORNER_TAB_VARIANTS = new Set<ChipEditorCornerTabVariant>(
   Object.keys(CHIP_EDITOR_CORNER_TAB_STYLES) as ChipEditorCornerTabVariant[]
 );
@@ -88,21 +75,4 @@ export function resolveChipEditorCornerTabStyle(
     return null;
   }
   return CHIP_EDITOR_CORNER_TAB_STYLES[variant];
-}
-
-export function renderChipEditorCornerTab(
-  variant: MsqdxGlassChipVariant,
-  ariaLabel: string
-): ReactNode | undefined {
-  const style = resolveChipEditorCornerTabStyle(variant);
-  if (!style || !isChipEditorCornerTabVariant(variant)) return undefined;
-  const iconName = CHIP_EDITOR_CORNER_TAB_ICONS[variant];
-  return (
-    <MsqdxIcon
-      name={iconName as "sentiment_dissatisfied"}
-      customSize={18}
-      style={{ color: style.iconColor }}
-      aria-label={ariaLabel}
-    />
-  );
 }

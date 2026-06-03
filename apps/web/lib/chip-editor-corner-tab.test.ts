@@ -5,7 +5,6 @@ import {
   PAIN_GOALS_SLIDE_INDEX_BADGE_RADIUS_PX,
   PAIN_GOALS_SLIDE_INDEX_BADGE_SIZE,
   PAIN_GOALS_SLIDE_INDEX_SURFACE,
-  renderChipEditorCornerTab,
   resolveChipEditorCornerTabStyle,
 } from "./chip-editor-corner-tab";
 
@@ -53,6 +52,5 @@ describe("chip-editor-corner-tab", () => {
 
   it("skips corner tab for unrelated chip variants", () => {
     expect(resolveChipEditorCornerTabStyle("draft")).toBeNull();
-    expect(renderChipEditorCornerTab("draft", "Label")).toBeUndefined();
   });
 });
