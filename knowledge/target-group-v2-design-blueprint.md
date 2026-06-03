@@ -17,8 +17,7 @@ Mirrors **persona v2** shell/nav; content uses standard **msqdx** admin componen
 |---------|--------------|---------|
 | `basics` | basic + metadata | `MsqdxGlassEntityEditor` + metadata grid (`MsqdxTypography`) |
 | `personas` | personas | `MsqdxGlassTargetGroupPersonasPanel` — card/list toggle (shared view-mode storage with persona library), AI generate tile + dialog, avatar cards with key tags |
-| `knowledge` | knowledge | Knowledge entries + add form |
-| `documents` | documents | Upload + ingestion |
+| `sources` | knowledge + documents | `MsqdxGlassTargetGroupSourcesPanel` — documents grid + upload, knowledge cards + add entry |
 | `explorer` | knowledge-explorer | `MsqdxGlassKnowledgeExplorer` |
 
 ## Basics (v1 + v2)

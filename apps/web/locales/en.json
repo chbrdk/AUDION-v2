@@ -572,6 +572,12 @@
       "generateIntro": "Uses knowledge and context from “{name}”. Add an archetype label and optional focus notes.",
       "generateDialogIntro": "Generate a persona for “{name}” using this target group's knowledge, documents, and project context."
     },
+    "sources": {
+      "documentsHeading": "Documents ({count})",
+      "knowledgeHeading": "Knowledge entries ({count})",
+      "uploadAction": "Choose file",
+      "addKnowledgeHint": "Add notes and context manually"
+    },
     "sections": {
       "basics": {
         "label": "Basics",
@@ -581,13 +587,9 @@
         "label": "Personas",
         "description": "Personas linked to this target group"
       },
-      "knowledge": {
-        "label": "Knowledge",
-        "description": "Knowledge entries and notes"
-      },
-      "documents": {
-        "label": "Documents",
-        "description": "Uploaded files and ingestion status"
+      "sources": {
+        "label": "Knowledge & documents",
+        "description": "Uploaded files and manual knowledge entries for this target group"
       },
       "explorer": {
         "label": "Explorer",

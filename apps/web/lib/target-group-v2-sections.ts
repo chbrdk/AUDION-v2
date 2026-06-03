@@ -4,8 +4,7 @@ import { ADMIN_ROUTES } from "./routes";
 export const TARGET_GROUP_V2_SECTION_IDS = [
   "basics",
   "personas",
-  "knowledge",
-  "documents",
+  "sources",
   "explorer",
 ] as const;
 
@@ -36,18 +35,11 @@ export const TARGET_GROUP_V2_SECTIONS: readonly TargetGroupV2SectionDef[] = [
     v1AccordionId: "personas",
   },
   {
-    id: "knowledge",
-    icon: "menu_book",
-    labelKey: "targetGroupV2.sections.knowledge.label",
-    descriptionKey: "targetGroupV2.sections.knowledge.description",
+    id: "sources",
+    icon: "folder_open",
+    labelKey: "targetGroupV2.sections.sources.label",
+    descriptionKey: "targetGroupV2.sections.sources.description",
     v1AccordionId: "knowledge",
-  },
-  {
-    id: "documents",
-    icon: "description",
-    labelKey: "targetGroupV2.sections.documents.label",
-    descriptionKey: "targetGroupV2.sections.documents.description",
-    v1AccordionId: "documents",
   },
   {
     id: "explorer",
@@ -65,6 +57,9 @@ export function isTargetGroupV2SectionId(value: string): value is TargetGroupV2S
 }
 
 export function resolveTargetGroupV2SectionId(value: string): TargetGroupV2SectionId | null {
+  if (value === "knowledge" || value === "documents") {
+    return "sources";
+  }
   return isTargetGroupV2SectionId(value) ? value : null;
 }
 

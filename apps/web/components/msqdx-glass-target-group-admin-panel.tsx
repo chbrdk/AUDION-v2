@@ -46,6 +46,7 @@ import {
 } from "../lib/target-group-v2-section-visibility";
 import { TargetGroupAdminSectionSurface } from "./target-groups-v2/target-group-admin-section-surface";
 import { MsqdxGlassTargetGroupPersonasPanel } from "./target-groups-v2/msqdx-glass-target-group-personas-panel";
+import { MsqdxGlassTargetGroupSourcesPanel } from "./target-groups-v2/msqdx-glass-target-group-sources-panel";
 import { MsqdxGlassPainGoalsSectorSeparator } from "./generic/msqdx-glass-pain-goals-sector-separator";
 import { targetGroupV2PersonaDetailHref } from "../lib/target-group-v2-persona-link";
 import { ADMIN_ROUTES } from "../lib/routes";
@@ -473,20 +474,18 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
     setKnowledgeForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleKnowledgeSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!selectedId || !knowledgeForm.title || !knowledgeForm.content) {
-      notify(t("targetGroupsAdmin.toasts.titleContentRequired"));
-      return;
+  const addKnowledgeEntry = async (payload: { title: string; content: string }) => {
+    if (!selectedId) {
+      notify(t("targetGroupsAdmin.toasts.selectTargetGroup"));
+      throw new Error("no_target_group");
     }
     setKnowledgePending(true);
     try {
-      const payload = {
-        title: knowledgeForm.title,
-        content: knowledgeForm.content,
+      await createTargetGroupKnowledge(selectedId, {
+        title: payload.title,
+        content: payload.content,
         created_by: "target-group-admin-ui",
-      };
-      await createTargetGroupKnowledge(selectedId, payload);
+      });
       const knowledge = await fetchTargetGroupKnowledge(selectedId);
       setKnowledgeEntries(knowledge);
       setKnowledgeForm(defaultKnowledgeForm);
@@ -495,9 +494,22 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
     } catch (error) {
       console.error("Knowledge add failed:", error);
       notify(t("targetGroupsAdmin.toasts.knowledgeSaveFailed"));
+      throw error;
     } finally {
       setKnowledgePending(false);
     }
+  };
+
+  const handleKnowledgeSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!knowledgeForm.title || !knowledgeForm.content) {
+      notify(t("targetGroupsAdmin.toasts.titleContentRequired"));
+      return;
+    }
+    await addKnowledgeEntry({
+      title: knowledgeForm.title,
+      content: knowledgeForm.content,
+    });
   };
 
   // Auto-refresh document ingestion status
@@ -1016,7 +1028,33 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
               </TargetGroupAdminSectionSurface>
               ) : null}
 
-              {showSection("knowledge") ? (
+              {isV2Section && showSection("sources") ? (
+              <TargetGroupAdminSectionSurface
+                embedInSection={isV2Section}
+                cardId="sources"
+                title={t("targetGroupV2.sections.sources.label")}
+                icon="folder_open"
+                expanded={isAccordionExpanded("sources")}
+                onToggle={toggleAccordion}
+                hideBlockTitle={isV2Section}
+              >
+                <MsqdxGlassTargetGroupSourcesPanel
+                  documents={documents}
+                  knowledgeEntries={knowledgeEntries}
+                  documentUploadPending={documentUploadPending}
+                  knowledgePending={knowledgePending}
+                  documentsUpdating={documents.some(
+                    (d) => d.ingestionStatus === "pending" || d.ingestionStatus === "processing"
+                  )}
+                  onUploadClick={triggerDocumentUpload}
+                  onDeleteKnowledge={handleDeleteKnowledge}
+                  onAddKnowledge={addKnowledgeEntry}
+                />
+              </TargetGroupAdminSectionSurface>
+              ) : null}
+
+              {!isV2Section ? (
+              <>
               <TargetGroupAdminSectionSurface
                 embedInSection={isV2Section}
                 cardId="knowledge"
@@ -1095,11 +1133,8 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                     </Box>
                   </Box>
               </TargetGroupAdminSectionSurface>
-              ) : null}
 
-              {showSection("documents") ? (
               <TargetGroupAdminSectionSurface
-                embedInSection={isV2Section}
                 cardId="documents"
                 title={t("targetGroupsAdmin.documents", { count: documents.length }) + (documents.some((d) => d.ingestionStatus === "pending" || d.ingestionStatus === "processing") ? t("targetGroupsAdmin.documentsUpdating") : "")}
                 icon="description"
@@ -1170,6 +1205,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                     </MsqdxButton>
                   </Box>
               </TargetGroupAdminSectionSurface>
+              </>
               ) : null}
 
               {showSection("explorer") ? (

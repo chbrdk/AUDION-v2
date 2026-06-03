@@ -4,6 +4,7 @@ import {
   TARGET_GROUP_V2_SECTION_IDS,
   TARGET_GROUP_V2_SECTIONS,
   isTargetGroupV2SectionId,
+  resolveTargetGroupV2SectionId,
   targetGroupV2SectionHref,
 } from "./target-group-v2-sections";
 import { isTargetGroupV2SectionContentVisible } from "./target-group-v2-section-visibility";
@@ -30,19 +31,25 @@ describe("target-group-v2-sections", () => {
   });
 
   it("validates section ids", () => {
-    expect(isTargetGroupV2SectionId("documents")).toBe(true);
+    expect(isTargetGroupV2SectionId("sources")).toBe(true);
     expect(isTargetGroupV2SectionId("unknown")).toBe(false);
+  });
+
+  it("maps legacy knowledge/documents routes to sources", () => {
+    expect(resolveTargetGroupV2SectionId("knowledge")).toBe("sources");
+    expect(resolveTargetGroupV2SectionId("documents")).toBe("sources");
+    expect(resolveTargetGroupV2SectionId("sources")).toBe("sources");
   });
 });
 
 describe("target-group-v2-section-visibility", () => {
   it("shows all blocks in v1 mode", () => {
-    expect(isTargetGroupV2SectionContentVisible(undefined, "v1", "knowledge")).toBe(true);
+    expect(isTargetGroupV2SectionContentVisible(undefined, "v1", "sources")).toBe(true);
   });
 
   it("gates blocks in v2-section mode", () => {
     expect(isTargetGroupV2SectionContentVisible("personas", "v2-section", "personas")).toBe(true);
-    expect(isTargetGroupV2SectionContentVisible("personas", "v2-section", "knowledge")).toBe(false);
+    expect(isTargetGroupV2SectionContentVisible("personas", "v2-section", "sources")).toBe(false);
   });
 });
 
