@@ -123,12 +123,38 @@
   width: 100%;
 }
 
+.msqdx-glass-target-group-basics-hero__icon {
+  background: color-mix(in srgb, var(--color-theme-accent) 14%, transparent);
+  border-color: color-mix(in srgb, var(--color-theme-accent) 28%, transparent);
+  color: var(--color-theme-accent);
+}
+
+.msqdx-glass-target-group-basics-hero__chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--msqdx-spacing-sm);
+}
+
+.msqdx-glass-target-group-basics-hero__chips-row .msqdx-glass-persona-basics-hero__segment-row,
+.msqdx-glass-target-group-basics-hero__chips-row .msqdx-glass-target-group-basics-hero__status-row {
+  margin-top: 0;
+}
+
+.msqdx-glass-target-group-basics-hero__description-row {
+  margin-top: var(--msqdx-spacing-xxs);
+}
+
+.msqdx-glass-target-group-basics-hero__description--empty {
+  font-style: italic;
+  opacity: 0.72;
+}
+
 .msqdx-glass-target-group-basics-hero__status-row {
   display: flex;
   align-items: center;
   gap: var(--msqdx-spacing-xs);
   flex-wrap: wrap;
-  margin-top: var(--msqdx-spacing-xxs);
 }
 
 .msqdx-glass-target-group-basics-hero__status-pill {
@@ -205,4 +231,45 @@
 
 .msqdx-glass-target-group-v2-section-panel .msqdx-glass-dashboard-card.collapsed .msqdx-glass-dashboard-card-content {
   display: block;
+}
+
+/* Shared v2 field stacks (TG basics localization + future reuse) */
+.msqdx-glass-v2-field-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--msqdx-spacing-xs);
+  min-width: 0;
+  padding: var(--msqdx-spacing-md);
+  border-radius: var(--msqdx-radius-lg);
+  background: var(--color-theme-accent-tint, rgba(0, 0, 0, 0.03));
+  border: 1px solid var(--color-theme-accent-tint, rgba(0, 0, 0, 0.08));
+}
+
+.msqdx-glass-v2-field-stack__label {
+  font-size: var(--msqdx-font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.msqdx-glass-target-group-basics-localization__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--msqdx-spacing-md);
+}
+
+.msqdx-glass-target-group-basics-localization__description {
+  grid-column: 1 / -1;
+}
+
+.msqdx-glass-target-group-basics-localization .msqdx-glass-v2-field-stack .MuiTypography-root {
+  font-size: var(--msqdx-font-size-base);
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .msqdx-glass-target-group-basics-localization__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

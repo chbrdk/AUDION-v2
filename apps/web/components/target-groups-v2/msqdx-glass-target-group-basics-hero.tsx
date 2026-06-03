@@ -34,6 +34,7 @@ export function MsqdxGlassTargetGroupBasicsHero({
   const nameField = fieldDefinitions.find((f) => f.key === "name");
   const segmentField = fieldDefinitions.find((f) => f.key === "segment");
   const statusField = fieldDefinitions.find((f) => f.key === "status");
+  const descriptionField = fieldDefinitions.find((f) => f.key === "description");
 
   const handleFieldSave = async (key: string, value: unknown) => {
     await onSave({ [key]: value });
@@ -46,6 +47,8 @@ export function MsqdxGlassTargetGroupBasicsHero({
       ? t("targetGroupsAdmin.statusPublished")
       : t("targetGroupsAdmin.statusDraft");
 
+  const descriptionDisplay = detail.description?.trim() || t("targetGroupV2.basics.descriptionEmpty");
+
   const projectId = detail.projectId ?? (detail as { project_id?: string }).project_id ?? "—";
   const createdAt = detail.createdAt ?? (detail as { created_at?: string }).created_at ?? "";
   const updatedAt = detail.updatedAt ?? (detail as { updated_at?: string }).updated_at ?? "";
@@ -53,7 +56,10 @@ export function MsqdxGlassTargetGroupBasicsHero({
   return (
     <div className="msqdx-glass-persona-basics-hero msqdx-glass-target-group-basics-hero">
       <div className="msqdx-glass-persona-basics-hero__media">
-        <div className="msqdx-glass-persona-basics-hero__avatar" aria-hidden>
+        <div
+          className="msqdx-glass-persona-basics-hero__avatar msqdx-glass-target-group-basics-hero__icon"
+          aria-hidden
+        >
           <MsqdxIcon name="groups" customSize={TARGET_GROUP_BASICS_HERO_ICON_INNER_SIZE} />
         </div>
       </div>
@@ -91,46 +97,83 @@ export function MsqdxGlassTargetGroupBasicsHero({
             </div>
           ) : null}
 
-          {segmentField ? (
-            <div className="msqdx-glass-persona-basics-hero__segment-row">
-              {editingField === "segment" ? (
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <MsqdxGlassFieldEditor
-                    field={segmentField}
-                    value={detail.segment}
-                    valueSyncKey={selectedId || undefined}
-                    onChange={() => {}}
-                    onSave={(k, v) => handleFieldSave(k, v)}
-                    inline
-                    disabled={savePending}
-                    forceEditMode
-                    onEditEnd={() => setEditingField(null)}
-                  />
-                </Box>
-              ) : (
-                <>
-                  <span className="msqdx-glass-persona-basics-hero__segment-pill">
-                    {detail.segment || "—"}
-                  </span>
-                  <MsqdxGlassEditButton
-                    onClick={() => setEditingField("segment")}
-                    disabled={savePending}
-                    aria-label={t("targetGroupsAdmin.segment")}
-                    size="small"
-                    fontSize={14}
-                  />
-                </>
-              )}
-            </div>
-          ) : null}
+          <div className="msqdx-glass-target-group-basics-hero__chips-row">
+            {segmentField ? (
+              <div className="msqdx-glass-persona-basics-hero__segment-row">
+                {editingField === "segment" ? (
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <MsqdxGlassFieldEditor
+                      field={segmentField}
+                      value={detail.segment}
+                      valueSyncKey={selectedId || undefined}
+                      onChange={() => {}}
+                      onSave={(k, v) => handleFieldSave(k, v)}
+                      inline
+                      disabled={savePending}
+                      forceEditMode
+                      onEditEnd={() => setEditingField(null)}
+                    />
+                  </Box>
+                ) : (
+                  <>
+                    <span className="msqdx-glass-persona-basics-hero__segment-pill">
+                      {detail.segment || "—"}
+                    </span>
+                    <MsqdxGlassEditButton
+                      onClick={() => setEditingField("segment")}
+                      disabled={savePending}
+                      aria-label={t("targetGroupsAdmin.segment")}
+                      size="small"
+                      fontSize={14}
+                    />
+                  </>
+                )}
+              </div>
+            ) : null}
 
-          {statusField ? (
-            <div className="msqdx-glass-target-group-basics-hero__status-row">
-              {editingField === "status" ? (
-                <Box sx={{ flex: 1, minWidth: 0, maxWidth: 280 }}>
+            {statusField ? (
+              <div className="msqdx-glass-target-group-basics-hero__status-row">
+                {editingField === "status" ? (
+                  <Box sx={{ flex: 1, minWidth: 0, maxWidth: 280 }}>
+                    <MsqdxGlassFieldEditor
+                      field={statusField}
+                      value={statusValue}
+                      valueSyncKey={selectedId || undefined}
+                      onChange={() => {}}
+                      onSave={(k, v) => handleFieldSave(k, v)}
+                      inline
+                      disabled={savePending}
+                      forceEditMode
+                      onEditEnd={() => setEditingField(null)}
+                    />
+                  </Box>
+                ) : (
+                  <>
+                    <span
+                      className={`msqdx-glass-target-group-basics-hero__status-pill msqdx-glass-target-group-basics-hero__status-pill--${statusValue}`}
+                    >
+                      {statusLabel}
+                    </span>
+                    <MsqdxGlassEditButton
+                      onClick={() => setEditingField("status")}
+                      disabled={savePending}
+                      aria-label={t("targetGroupsAdmin.publicationStatus")}
+                      size="small"
+                      fontSize={14}
+                    />
+                  </>
+                )}
+              </div>
+            ) : null}
+          </div>
+
+          {descriptionField ? (
+            <div className="msqdx-glass-persona-basics-hero__headline-row msqdx-glass-target-group-basics-hero__description-row">
+              {editingField === "description" ? (
+                <Box sx={{ width: "100%", minWidth: 0 }}>
                   <MsqdxGlassFieldEditor
-                    field={statusField}
-                    value={statusValue}
+                    field={descriptionField}
+                    value={detail.description ?? ""}
                     valueSyncKey={selectedId || undefined}
                     onChange={() => {}}
                     onSave={(k, v) => handleFieldSave(k, v)}
@@ -142,15 +185,17 @@ export function MsqdxGlassTargetGroupBasicsHero({
                 </Box>
               ) : (
                 <>
-                  <span
-                    className={`msqdx-glass-target-group-basics-hero__status-pill msqdx-glass-target-group-basics-hero__status-pill--${statusValue}`}
+                  <p
+                    className={`msqdx-glass-persona-basics-hero__headline${
+                      detail.description?.trim() ? "" : " msqdx-glass-target-group-basics-hero__description--empty"
+                    }`}
                   >
-                    {statusLabel}
-                  </span>
+                    {descriptionDisplay}
+                  </p>
                   <MsqdxGlassEditButton
-                    onClick={() => setEditingField("status")}
+                    onClick={() => setEditingField("description")}
                     disabled={savePending}
-                    aria-label={t("targetGroupsAdmin.publicationStatus")}
+                    aria-label={t("targetGroupsAdmin.description")}
                     size="small"
                     fontSize={14}
                   />

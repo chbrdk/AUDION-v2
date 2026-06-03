@@ -548,7 +548,9 @@
     "sections": {
       "basics": {
         "label": "Basics",
-        "description": "Name, Segment, Beschreibung und Metadaten"
+        "description": "Name, Segment, Beschreibung und Metadaten",
+        "localizationTitle": "Deutsche Lokalisierung",
+        "descriptionEmpty": "Noch keine Beschreibung — füge eine kurze Zusammenfassung für diese Zielgruppe hinzu."
       },
       "personas": {
         "label": "Personas",

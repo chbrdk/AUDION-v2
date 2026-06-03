@@ -24,8 +24,9 @@ Mirrors **persona v2** (`knowledge/persona-v2-design-blueprint.md`).
 ## Basics v2 stack
 
 - `msqdx-glass-target-group-basics-section` + `msqdx-glass-target-group-basics-stack`
-- Hero: name, segment, status (inline edit) + read-only metadata (project, dates)
-- Separator → description + bilingual fields via `MsqdxGlassEntityEditor` (name/segment/status excluded)
+- Hero: name, segment, status, description (inline edit) + read-only metadata (project, dates)
+- Separator → `MsqdxGlassTargetGroupBasicsLocalization` (DE fields in v2 field stacks)
+- No generic `MsqdxGlassEntityEditor` in v2 basics (avoids duplicate labels / “BASIC” group header)
 - Persona list href helper: `targetGroupV2PersonaDetailHref` in `target-group-basics-hero-layout.ts`
 
 ## Components

@@ -44,6 +44,7 @@ import {
 } from "../lib/target-group-v2-section-visibility";
 import { TargetGroupAdminSectionSurface } from "./target-groups-v2/target-group-admin-section-surface";
 import { MsqdxGlassTargetGroupBasicsHero } from "./target-groups-v2/msqdx-glass-target-group-basics-hero";
+import { MsqdxGlassTargetGroupBasicsLocalization } from "./target-groups-v2/msqdx-glass-target-group-basics-localization";
 import { MsqdxGlassPainGoalsSectorSeparator } from "./generic/msqdx-glass-pain-goals-sector-separator";
 import { targetGroupV2PersonaDetailHref } from "../lib/target-group-basics-hero-layout";
 
@@ -753,28 +754,12 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
 
                     <MsqdxGlassPainGoalsSectorSeparator />
 
-                    <TargetGroupAdminSectionSurface
-                      embedInSection
-                      cardId="target-group-details"
-                      title={t("targetGroupsAdmin.description")}
-                      icon="edit_note"
-                      expanded={isAccordionExpanded("basic-details")}
-                      onToggle={toggleAccordion}
-                    >
-                      <MsqdxGlassEntityEditor
-                        entityType="targetGroup"
-                        entity={detail}
-                        entitySyncKey={selectedId ?? ""}
-                        onSave={handleFieldSave}
-                        inline
-                        disabled={savePending}
-                        fieldOverrides={{
-                          name: undefined,
-                          segment: undefined,
-                          status: undefined,
-                        }}
-                      />
-                    </TargetGroupAdminSectionSurface>
+                    <MsqdxGlassTargetGroupBasicsLocalization
+                      detail={detail}
+                      selectedId={selectedId}
+                      savePending={savePending}
+                      onSave={handleFieldSave}
+                    />
                   </Stack>
                 ) : (
                   <>

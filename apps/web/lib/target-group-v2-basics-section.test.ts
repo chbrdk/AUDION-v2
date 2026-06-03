@@ -18,8 +18,10 @@ describe("target group v2 basics section", () => {
       "utf8"
     );
     expect(panel).toContain("MsqdxGlassTargetGroupBasicsHero");
+    expect(panel).toContain("MsqdxGlassTargetGroupBasicsLocalization");
     expect(panel).toContain("msqdx-glass-target-group-basics-stack");
     expect(panel).toContain("MsqdxGlassPainGoalsSectorSeparator");
+    expect(panel).not.toContain("fieldOverrides");
     expect(panel).toContain("targetGroupV2PersonaDetailHref");
   });
 
