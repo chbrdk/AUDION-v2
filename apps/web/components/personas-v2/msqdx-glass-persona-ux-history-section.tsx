@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Alert, Box, CircularProgress, Tooltip } from "@mui/material";
 import Link from "next/link";
 import { MsqdxButton, MsqdxChip, MsqdxIcon, MsqdxTypography } from "@msqdx/react";
@@ -19,6 +20,22 @@ export type PersonaUxJourneyRun = {
   createdAt: string;
   derivedJourneyId?: string | null;
 };
+
+function NavButtonLink({
+  href,
+  children,
+  className,
+}: {
+  href: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <Link href={href} className={className} style={{ textDecoration: "none", display: "inline-flex" }}>
+      {children}
+    </Link>
+  );
+}
 
 export type MsqdxGlassPersonaUxHistorySectionProps = {
   runs: PersonaUxJourneyRun[];
@@ -75,25 +92,25 @@ export function MsqdxGlassPersonaUxHistorySection({
               </MsqdxTypography>
             </Box>
             {chatHref ? (
-              <MsqdxButton
-                component={Link}
-                href={chatHref}
-                variant="contained"
-                size="small"
-                startIcon={<MsqdxIcon name="forum" customSize={16} />}
-              >
-                {t("personaV2.uxHistory.startInChat")}
-              </MsqdxButton>
+              <NavButtonLink href={chatHref}>
+                <MsqdxButton
+                  variant="contained"
+                  size="small"
+                  startIcon={<MsqdxIcon name="forum" customSize={16} />}
+                >
+                  {t("personaV2.uxHistory.startInChat")}
+                </MsqdxButton>
+              </NavButtonLink>
             ) : null}
-            <MsqdxButton
-              component={Link}
-              href={ADMIN_ROUTES.uxJourneyAgent}
-              variant="outlined"
-              size="small"
-              startIcon={<MsqdxIcon name="smart_toy" customSize={16} />}
-            >
-              {t("personaV2.uxHistory.openAgent")}
-            </MsqdxButton>
+            <NavButtonLink href={ADMIN_ROUTES.uxJourneyAgent}>
+              <MsqdxButton
+                variant="outlined"
+                size="small"
+                startIcon={<MsqdxIcon name="smart_toy" customSize={16} />}
+              >
+                {t("personaV2.uxHistory.openAgent")}
+              </MsqdxButton>
+            </NavButtonLink>
           </Box>
         </Box>
       </Box>
@@ -118,15 +135,15 @@ export function MsqdxGlassPersonaUxHistorySection({
             {t("personaV2.uxHistory.emptyBody")}
           </MsqdxTypography>
           {chatHref ? (
-            <MsqdxButton
-              component={Link}
-              href={chatHref}
-              variant="contained"
-              size="small"
-              startIcon={<MsqdxIcon name="forum" customSize={16} />}
-            >
-              {t("personaV2.uxHistory.startInChat")}
-            </MsqdxButton>
+            <NavButtonLink href={chatHref}>
+              <MsqdxButton
+                variant="contained"
+                size="small"
+                startIcon={<MsqdxIcon name="forum" customSize={16} />}
+              >
+                {t("personaV2.uxHistory.startInChat")}
+              </MsqdxButton>
+            </NavButtonLink>
           ) : null}
         </Box>
       ) : (
@@ -202,29 +219,32 @@ export function MsqdxGlassPersonaUxHistorySection({
                   <footer className="msqdx-glass-ux-run__actions">
                     <Tooltip title={t("personaAdmin.uxJourneyRunVideo")}>
                       <span>
-                        <MsqdxButton
-                          component="a"
+                        <a
                           href={videoHref}
                           target="_blank"
                           rel="noopener noreferrer"
-                          size="small"
-                          variant="outlined"
-                          startIcon={<MsqdxIcon name="movie" customSize={16} />}
+                          style={{ textDecoration: "none", display: "inline-flex" }}
                         >
-                          {t("personaAdmin.uxJourneyRunVideo")}
-                        </MsqdxButton>
+                          <MsqdxButton
+                            size="small"
+                            variant="outlined"
+                            startIcon={<MsqdxIcon name="movie" customSize={16} />}
+                          >
+                            {t("personaAdmin.uxJourneyRunVideo")}
+                          </MsqdxButton>
+                        </a>
                       </span>
                     </Tooltip>
                     {journeyHref ? (
-                      <MsqdxButton
-                        component={Link}
-                        href={journeyHref}
-                        size="small"
-                        variant="outlined"
-                        startIcon={<MsqdxIcon name="map" customSize={16} />}
-                      >
-                        {t("personaAdmin.openDerivedJourney")}
-                      </MsqdxButton>
+                      <NavButtonLink href={journeyHref}>
+                        <MsqdxButton
+                          size="small"
+                          variant="outlined"
+                          startIcon={<MsqdxIcon name="map" customSize={16} />}
+                        >
+                          {t("personaAdmin.openDerivedJourney")}
+                        </MsqdxButton>
+                      </NavButtonLink>
                     ) : (
                       <MsqdxButton
                         size="small"
