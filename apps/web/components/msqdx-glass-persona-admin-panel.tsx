@@ -57,6 +57,7 @@ import { targetGroupsApi, type TargetGroupResponse } from "../app/api/_lib/targe
 import { MsqdxGlassConvertUxRunDialog } from "./journeys/msqdx-glass-convert-ux-run-dialog";
 import type { PersonaV2SectionId } from "../lib/persona-v2-sections";
 import { MsqdxGlassPersonaMoodboardSection } from "./personas-v2/msqdx-glass-persona-moodboard-section";
+import { MsqdxGlassPersonaUxHistorySection } from "./personas-v2/msqdx-glass-persona-ux-history-section";
 import {
   isPersonaV2SectionContentVisible,
   type PersonaAdminPresentation,
@@ -1835,6 +1836,9 @@ export const MsqdxGlassPersonaAdminPanel = ({
   const isAccordionExpanded = (accordionId: string) => expandedAccordions.has(accordionId);
 
   const isV2Section = presentation === "v2-section" && Boolean(visibleSection);
+  const uxHistoryChatHref = selectedId
+    ? `/admin/chat?${new URLSearchParams({ personaId: selectedId }).toString()}`
+    : null;
   const showSection = (section: PersonaV2SectionId) =>
     isPersonaV2SectionContentVisible(visibleSection, presentation, section);
   const accordionExpanded = (accordionId: string) =>
@@ -2587,9 +2591,20 @@ export const MsqdxGlassPersonaAdminPanel = ({
               />
               ) : null}
 
-              {/* Card: UX journey history — Full Width */}
+              {/* UX journey history — Full Width */}
               {showSection("ux-history") ? (
-              <Box sx={{ gridColumn: "1 / -1" }}>
+              <Box sx={{ gridColumn: "1 / -1" }} className={isV2Section ? "msqdx-glass-ux-history-section-wrap" : undefined}>
+                {isV2Section ? (
+                  <MsqdxGlassPersonaUxHistorySection
+                    runs={uxJourneyRuns}
+                    loading={uxJourneyRunsLoading}
+                    error={uxJourneyRunsError}
+                    personaId={selectedId}
+                    chatHref={uxHistoryChatHref}
+                    onConvertRun={(run) => setConvertRunDialog({ run })}
+                    formatDate={formatDate}
+                  />
+                ) : (
                 <MsqdxDashboardCard
                   id="ux-journey-history"
                   title={t("personaAdmin.uxJourneyHistory")}
@@ -2709,6 +2724,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
                     )}
                   </Box>
                 </MsqdxDashboardCard>
+                )}
               </Box>
               ) : null}
 
@@ -2917,13 +2933,13 @@ export const MsqdxGlassPersonaAdminPanel = ({
               </Box>
               ) : null}
 
-              {/* Card: Erweitert */}
-              {showSection("advanced") ? (
-              <MsqdxGlassAdvancedCard
-                profile={detail.profile}
-                expanded={accordionExpanded("advanced")}
-                onToggle={accordionToggle}
-              />
+              {/* Advanced JSON — v1 accordion only (not in personas-v2 nav) */}
+              {presentation !== "v2-section" ? (
+                <MsqdxGlassAdvancedCard
+                  profile={detail.profile}
+                  expanded={accordionExpanded("advanced")}
+                  onToggle={accordionToggle}
+                />
               ) : null}
             </div>
           </div>

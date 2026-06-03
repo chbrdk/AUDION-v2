@@ -9,7 +9,6 @@ export const PERSONA_V2_SECTION_IDS = [
   "knowledge",
   "ux-history",
   "moodboard",
-  "advanced",
 ] as const;
 
 export type PersonaV2SectionId = (typeof PERSONA_V2_SECTION_IDS)[number];
@@ -67,12 +66,6 @@ export const PERSONA_V2_SECTIONS: readonly PersonaV2SectionDef[] = [
     labelKey: "personaV2.sections.moodboard.label",
     descriptionKey: "personaV2.sections.moodboard.description",
   },
-  {
-    id: "advanced",
-    icon: "tune",
-    labelKey: "personaV2.sections.advanced.label",
-    descriptionKey: "personaV2.sections.advanced.description",
-  },
 ] as const;
 
 export const PERSONA_V2_DEFAULT_SECTION: PersonaV2SectionId = "basics";
@@ -81,6 +74,7 @@ export const PERSONA_V2_DEFAULT_SECTION: PersonaV2SectionId = "basics";
 export const PERSONA_V2_SECTION_LEGACY_ALIASES: Partial<Record<string, PersonaV2SectionId>> = {
   bio: "basics",
   overview: "basics",
+  advanced: "basics",
 };
 
 export function isPersonaV2SectionId(value: string): value is PersonaV2SectionId {

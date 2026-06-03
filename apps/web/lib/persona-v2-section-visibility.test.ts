@@ -14,6 +14,6 @@ describe("persona-v2-section-visibility", () => {
   });
 
   it("shows all when v2-section without visibleSection", () => {
-    expect(isPersonaV2SectionContentVisible(undefined, "v2-section", "advanced")).toBe(true);
+    expect(isPersonaV2SectionContentVisible(undefined, "v2-section", "moodboard")).toBe(true);
   });
 });

@@ -587,6 +587,17 @@
         "description": "Expert fields and JSON"
       }
     },
+    "uxHistory": {
+      "atmosphereTitle": "UX history",
+      "atmosphereLead": "Browser runs for this persona — task, outcome, video, and journey conversion.",
+      "runCount": "{count} runs",
+      "runCountZero": "No runs",
+      "startInChat": "Start in chat",
+      "openAgent": "UX agent",
+      "emptyTitle": "No UX runs yet",
+      "emptyBody": "Start a browser UX run in admin chat with this persona — it will show up here automatically.",
+      "noTaskLabel": "No task text"
+    },
     "moodboard": {
       "atmosphereTitle": "Mood space",
       "atmosphereLead": "Imagery, light, and texture — how this persona feels before you read a line.",

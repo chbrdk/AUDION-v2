@@ -587,6 +587,17 @@
         "description": "Expertenfelder und JSON"
       }
     },
+    "uxHistory": {
+      "atmosphereTitle": "UX-Verlauf",
+      "atmosphereLead": "Browser-Runs dieser Persona — Aufgabe, Ergebnis, Video und Journey-Konvertierung.",
+      "runCount": "{count} Runs",
+      "runCountZero": "Keine Runs",
+      "startInChat": "Im Chat starten",
+      "openAgent": "UX-Agent",
+      "emptyTitle": "Noch keine UX-Runs",
+      "emptyBody": "Starte einen Browser-UX-Run im Admin-Chat mit dieser Persona — er erscheint hier automatisch.",
+      "noTaskLabel": "Ohne Aufgabentext"
+    },
     "moodboard": {
       "atmosphereTitle": "Stimmungsraum",
       "atmosphereLead": "Bildwelten, Licht und Materialität — so wirkt diese Persona, bevor man sie liest.",
