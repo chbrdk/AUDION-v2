@@ -1,14 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { Box, Stack } from "@mui/material";
 import type { PersonaListResponse } from "@msqdx-glass/types";
 import { MsqdxButton } from "@msqdx/react";
 import { ADMIN_ROUTES } from "../../lib/routes";
 import { PERSONA_V2_DEFAULT_SECTION } from "../../lib/persona-v2-sections";
+import {
+  readPersonasOverviewViewModeFromStorage,
+  writePersonasOverviewViewModeToStorage,
+  type PersonasOverviewViewMode,
+} from "../../lib/personas-overview-view-mode";
 import { useI18n } from "../i18n/i18n-provider";
 import { MsqdxGlassSectionShell } from "../admin/section-shell";
 import { MsqdxGlassPersonasOverview } from "../personas/msqdx-glass-personas-overview";
+import { PersonasOverviewLayoutToggle } from "../personas/personas-overview-layout-toggle";
 
 export type MsqdxGlassPersonasV2OverviewProps = {
   initialList: PersonaListResponse;
@@ -16,6 +23,16 @@ export type MsqdxGlassPersonasV2OverviewProps = {
 
 export function MsqdxGlassPersonasV2Overview({ initialList }: MsqdxGlassPersonasV2OverviewProps) {
   const { t } = useI18n();
+  const [layout, setLayout] = useState<PersonasOverviewViewMode>("cards");
+
+  useEffect(() => {
+    const saved = readPersonasOverviewViewModeFromStorage();
+    if (saved) setLayout(saved);
+  }, []);
+
+  useEffect(() => {
+    writePersonasOverviewViewModeToStorage(layout);
+  }, [layout]);
 
   return (
     <MsqdxGlassSectionShell
@@ -32,6 +49,15 @@ export function MsqdxGlassPersonasV2Overview({ initialList }: MsqdxGlassPersonas
       }
       sectionTitle={t("personaV2.libraryTitle")}
       sectionDescription={t("personaV2.libraryDescription")}
+      workspaceActions={
+        <PersonasOverviewLayoutToggle
+          value={layout}
+          onChange={setLayout}
+          cardsLabel={t("personaV2.library.viewCards")}
+          listLabel={t("personaV2.library.viewList")}
+          groupLabel={t("personaV2.library.layoutToggleLabel")}
+        />
+      }
     >
       <Stack spacing={2}>
         <div className="msqdx-glass-section-v2-banner">{t("personaV2.previewBanner")}</div>
@@ -53,6 +79,7 @@ export function MsqdxGlassPersonasV2Overview({ initialList }: MsqdxGlassPersonas
         >
           <MsqdxGlassPersonasOverview
             initialList={initialList}
+            layout={layout}
             getPersonaDetailHref={(id) =>
               ADMIN_ROUTES.personaV2Section(id, PERSONA_V2_DEFAULT_SECTION)
             }

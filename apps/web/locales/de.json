@@ -538,6 +538,11 @@
     "overviewSubtitle": "Luftiges Layout mit Bereichsnavigation — Vorschau",
     "libraryTitle": "Alle Personas",
     "libraryDescription": "Größere Karten, mehr Abstand. Persona öffnen und einen Bereich nach dem anderen bearbeiten.",
+    "library": {
+      "viewCards": "Kartenansicht",
+      "viewList": "Listenansicht",
+      "layoutToggleLabel": "Layout der Persona-Bibliothek"
+    },
     "previewBanner": "Vorschau: Klassische Personas bleiben unter /admin/personas. Diese v2-Route testet die neue Section Shell.",
     "hubBanner": "Springe zu einem fokussierten Arbeitsbereich. Jeder Bereich hat eine eigene Ansicht mit mehr Platz.",
     "sectionsNavLabel": "Persona-Bereiche",

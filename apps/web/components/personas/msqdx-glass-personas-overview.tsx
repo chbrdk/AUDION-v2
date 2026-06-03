@@ -26,11 +26,14 @@ import { safePersonaAvatarSrc } from "../../lib/persona-avatar";
 import { useProject } from "../projects/project-provider";
 import { useI18n } from "../i18n/i18n-provider";
 import { fetchTargetGroupList, generateTargetGroupPersona } from "../../app/api/_lib/target-group";
+import type { PersonasOverviewViewMode } from "../../lib/personas-overview-view-mode";
 
 export type MsqdxGlassPersonasOverviewProps = {
   initialList: PersonaListResponse;
   /** Override detail URL when opening a persona (e.g. personas-v2). */
   getPersonaDetailHref?: (personaId: string) => string;
+  /** Card grid (default) or compact list rows. */
+  layout?: PersonasOverviewViewMode;
 };
 
 type CreateFormState = {
@@ -56,7 +59,11 @@ function extractPersonaId(payload: unknown): string | null {
   );
 }
 
-export function MsqdxGlassPersonasOverview({ initialList, getPersonaDetailHref }: MsqdxGlassPersonasOverviewProps) {
+export function MsqdxGlassPersonasOverview({
+  initialList,
+  getPersonaDetailHref,
+  layout = "cards",
+}: MsqdxGlassPersonasOverviewProps) {
   const { t } = useI18n();
   const router = useRouter();
   const { activeProjectId, activeProject, projects } = useProject();
@@ -272,23 +279,93 @@ export function MsqdxGlassPersonasOverview({ initialList, getPersonaDetailHref }
     }
   };
 
+  const isListLayout = layout === "list";
+
+  const listRowSx = {
+    display: "flex",
+    alignItems: "center",
+    gap: 1.5,
+    px: 2,
+    py: 1.25,
+    borderRadius: "var(--msqdx-radius-button, 12px)",
+    border: "1px solid",
+    borderColor: accent,
+    cursor: "pointer",
+    transition: "border-color 0.15s ease, background-color 0.15s ease",
+    "&:hover": {
+      borderColor: accent,
+      bgcolor: "rgba(0, 0, 0, 0.02)",
+    },
+    "&:focus-visible": {
+      outline: `2px solid ${accent}`,
+      outlineOffset: 2,
+    },
+  } as const;
+
   return (
     <Box sx={{ width: "100%" }} className="msqdx-glass-personas-overview">
       <Box
-        className="msqdx-glass-personas-grid"
-        sx={{
-          display: "grid",
-          gridTemplateColumns: {
-            xs: "1fr",
-            sm: "repeat(2, minmax(0, 1fr))",
-            lg: "repeat(3, minmax(0, 1fr))",
-          },
-          gap: 2,
-          alignItems: "start",
-        }}
+        className={isListLayout ? "msqdx-glass-personas-list" : "msqdx-glass-personas-grid"}
+        sx={
+          isListLayout
+            ? { display: "flex", flexDirection: "column", gap: 1 }
+            : {
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  sm: "repeat(2, minmax(0, 1fr))",
+                  lg: "repeat(3, minmax(0, 1fr))",
+                },
+                gap: 2,
+                alignItems: "start",
+              }
+        }
       >
         {/* Create Persona */}
         {!showCreate ? (
+          isListLayout ? (
+            <Box
+              className="msqdx-glass-personas-list__row msqdx-glass-personas-list__row--create"
+              role="button"
+              tabIndex={0}
+              onClick={() => setShowCreate(true)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setShowCreate(true);
+                }
+              }}
+              sx={{
+                ...listRowSx,
+                borderStyle: "dashed",
+                minHeight: 56,
+              }}
+            >
+              <MsqdxIcon name="add" customSize={22} style={{ color: accent, flexShrink: 0 }} />
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <MsqdxTypography variant="subtitle1" weight="semibold" sx={{ color: accent }}>
+                  {t("personaAdmin.newPersona")}
+                </MsqdxTypography>
+                <MsqdxTypography variant="caption" color="text.secondary">
+                  {t("personaAdmin.namePlaceholder")}
+                </MsqdxTypography>
+              </Box>
+              <Tooltip title={t("personaAdmin.generateWithAi")}>
+                <IconButton
+                  size="small"
+                  aria-label={t("personaAdmin.generateWithAi")}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void openAiDialog();
+                  }}
+                  disabled={!activeProjectId}
+                  sx={{ color: accent }}
+                >
+                  <MsqdxIcon name="auto_awesome" customSize={22} />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          ) : (
           <MsqdxMoleculeCard
             variant="flat"
             borderRadius="button"
@@ -324,6 +401,7 @@ export function MsqdxGlassPersonasOverview({ initialList, getPersonaDetailHref }
               "& .MuiTypography-h6": { color: accent },
             }}
           />
+          )
         ) : (
           <MsqdxMoleculeCard
             variant="flat"
@@ -415,7 +493,7 @@ export function MsqdxGlassPersonasOverview({ initialList, getPersonaDetailHref }
           </MsqdxMoleculeCard>
         )}
 
-        {/* Persona cards */}
+        {/* Persona cards / list rows */}
         {items.map((persona) => {
           const personaProjectId = persona.projectId;
           const personaTgId = persona.targetGroupId ?? null;
@@ -423,6 +501,96 @@ export function MsqdxGlassPersonasOverview({ initialList, getPersonaDetailHref }
             Boolean(personaProjectId) &&
             (!activeProjectId || String(personaProjectId) !== String(activeProjectId));
           const avatarSrc = safePersonaAvatarSrc(persona.avatarUrl ?? persona.imageUrl, persona.id);
+
+          const personaChips = (
+            <Stack direction="row" flexWrap="wrap" alignItems="center" sx={{ gap: 0.75 }}>
+              {!personaTgId ? (
+                <MsqdxChip
+                  variant="outlined"
+                  size="small"
+                  label={t("personaAdmin.noTargetGroupBanner")}
+                  sx={{
+                    borderColor: "warning.main",
+                    color: "warning.main",
+                    height: 24,
+                    "& .MuiChip-label": { color: "warning.main", fontSize: "0.7rem" },
+                  }}
+                />
+              ) : null}
+              {showProjectChip && personaProjectId ? (
+                <MsqdxChip
+                  variant="outlined"
+                  size="small"
+                  label={formatProjectLabel(personaProjectId)}
+                  sx={{
+                    borderColor: accent,
+                    color: accent,
+                    "& .MuiChip-label": { color: accent },
+                  }}
+                />
+              ) : null}
+              <Tooltip title={t("personaAdmin.confidenceHint")}>
+                <Box component="span" sx={{ display: "inline-flex" }}>
+                  <MsqdxChip
+                    variant="outlined"
+                    size="small"
+                    label={t("personaAdmin.confidencePercent", {
+                      value: Math.round(Math.min(1, Math.max(0, persona.confidence)) * 100),
+                    })}
+                    sx={{
+                      borderColor: "divider",
+                      height: 24,
+                      "& .MuiChip-label": { fontSize: "0.7rem" },
+                    }}
+                  />
+                </Box>
+              </Tooltip>
+            </Stack>
+          );
+
+          if (isListLayout) {
+            return (
+              <Box
+                key={persona.id}
+                className="msqdx-glass-personas-list__row"
+                role="button"
+                tabIndex={0}
+                onClick={() => router.push(personaHref(persona.id))}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    router.push(personaHref(persona.id));
+                  }
+                }}
+                sx={listRowSx}
+              >
+                <MsqdxAvatar
+                  size="md"
+                  src={avatarSrc}
+                  alt={persona.name}
+                  fallback={(persona.name ?? "").trim() || "?"}
+                  bordered
+                  sx={{
+                    flexShrink: 0,
+                    borderColor: accent,
+                    backgroundColor: accent,
+                    color: "white",
+                  }}
+                />
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <MsqdxTypography variant="subtitle1" weight="semibold" sx={{ color: accent }}>
+                    {persona.name}
+                  </MsqdxTypography>
+                  <MsqdxTypography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                    {persona.segment || "—"}
+                  </MsqdxTypography>
+                </Box>
+                <Box sx={{ display: { xs: "none", sm: "flex" }, flexShrink: 0 }}>{personaChips}</Box>
+                <MsqdxIcon name="chevron_right" customSize={22} style={{ color: accent, flexShrink: 0 }} />
+              </Box>
+            );
+          }
+
           return (
           <MsqdxMoleculeCard
             key={persona.id}
@@ -457,51 +625,7 @@ export function MsqdxGlassPersonasOverview({ initialList, getPersonaDetailHref }
             )}
             title={persona.name}
             titleVariant="h6"
-            chips={(
-              <Stack direction="row" flexWrap="wrap" alignItems="center" sx={{ gap: 0.75 }}>
-                {!personaTgId ? (
-                  <MsqdxChip
-                    variant="outlined"
-                    size="small"
-                    label={t("personaAdmin.noTargetGroupBanner")}
-                    sx={{
-                      borderColor: "warning.main",
-                      color: "warning.main",
-                      height: 24,
-                      "& .MuiChip-label": { color: "warning.main", fontSize: "0.7rem" },
-                    }}
-                  />
-                ) : null}
-                {showProjectChip && personaProjectId ? (
-                  <MsqdxChip
-                    variant="outlined"
-                    size="small"
-                    label={formatProjectLabel(personaProjectId)}
-                    sx={{
-                      borderColor: accent,
-                      color: accent,
-                      "& .MuiChip-label": { color: accent },
-                    }}
-                  />
-                ) : null}
-                <Tooltip title={t("personaAdmin.confidenceHint")}>
-                  <Box component="span" sx={{ display: "inline-flex" }}>
-                    <MsqdxChip
-                      variant="outlined"
-                      size="small"
-                      label={t("personaAdmin.confidencePercent", {
-                        value: Math.round(Math.min(1, Math.max(0, persona.confidence)) * 100),
-                      })}
-                      sx={{
-                        borderColor: "divider",
-                        height: 24,
-                        "& .MuiChip-label": { fontSize: "0.7rem" },
-                      }}
-                    />
-                  </Box>
-                </Tooltip>
-              </Stack>
-            )}
+            chips={personaChips}
             sx={{
               minHeight: 140,
               border: "1px solid",

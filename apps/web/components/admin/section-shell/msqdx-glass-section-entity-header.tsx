@@ -51,7 +51,7 @@ export function MsqdxGlassSectionEntityHeader({
       ? SECTION_ENTITY_CORNER_ACCENT_CORNERS_NAV_RAIL
       : SECTION_ENTITY_CORNER_ACCENT_CORNERS_DESKTOP;
   const accentTextAlign = isNavRailAccent ? "left" : "right";
-  const onAccentText = "var(--msqdx-entity-accent-on-surface, #ffffff)";
+  const onAccentText = "var(--color-theme-accent-contrast, #ffffff)";
 
   const renderMainFields = (onAccent: boolean) => (
     <>
@@ -113,7 +113,7 @@ export function MsqdxGlassSectionEntityHeader({
               minWidth: 0,
               boxSizing: "border-box",
               bgcolor: "var(--color-theme-accent, #000000)",
-              color: "var(--msqdx-entity-accent-on-surface, #ffffff)",
+              color: "var(--color-theme-accent-contrast, #ffffff)",
               position: stackedAboveNav || isNavRailAccent ? "relative" : "absolute",
               top: stackedAboveNav || isNavRailAccent ? "auto" : -19,
               right: stackedAboveNav || isNavRailAccent ? "auto" : -19,

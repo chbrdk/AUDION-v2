@@ -22,7 +22,7 @@ describe("section entity header corner accent", () => {
     expect(entity).toContain("entity-main--on-accent");
     expect(entity).toContain("msqdx-glass-section-shell__entity--has-corner-accent");
     expect(entity).toContain("SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX");
-    expect(entity).toContain("msqdx-entity-accent-on-surface");
+    expect(entity).toContain("color-theme-accent-contrast");
     expect(entity).toContain("SECTION_ENTITY_CORNER_ACCENT_CORNERS_DESKTOP");
     expect(entity).toContain("SECTION_ENTITY_CORNER_ACCENT_CORNERS_NAV_RAIL");
     expect(entity).toContain("SECTION_ENTITY_CORNER_ACCENT_CORNERS_RESPONSIVE");
@@ -54,7 +54,7 @@ describe("section entity header corner accent", () => {
     expect(css).toContain(".msqdx-glass-section-shell__entity--has-corner-accent");
     expect(css).toContain(".msqdx-glass-section-shell__entity-hero");
     expect(css).toContain(".msqdx-glass-section-shell__entity-main--on-accent");
-    expect(css).toContain("--msqdx-entity-accent-on-surface");
+    expect(css).toContain("--color-theme-accent-contrast");
     expect(entity).toContain("msqdx-glass-section-shell__entity-corner-accent--responsive");
     expect(css).toContain(".msqdx-glass-section-shell__entity--stacked-above-nav");
     expect(css).toContain(".msqdx-glass-section-shell__entity--in-nav-rail");

@@ -63,10 +63,14 @@ describe("section-nav-dock-layout", () => {
     expect(SECTION_NAV_HORIZONTAL_DOCK_BORDER_RADIUS_PX).toBe(36);
   });
 
-  it("uses opaque black active dock row with white on-surface tokens", () => {
+  it("uses theme accent tokens for active dock row surface and contrast text", () => {
     const css = readFileSync(resolve(process.cwd(), "styles/section-shell.css"), "utf8");
-    expect(css).toMatch(/--msqdx-section-nav-active-card-surface:\s*#000000/);
-    expect(css).toMatch(/--msqdx-section-nav-active-card-on-surface:\s*#ffffff/);
+    expect(css).toMatch(
+      /--msqdx-section-nav-active-card-surface:\s*var\(--color-theme-accent/
+    );
+    expect(css).toMatch(
+      /--msqdx-section-nav-active-card-on-surface:\s*var\(--color-theme-accent-contrast/
+    );
     expect(css).toContain(
       "color: var(--msqdx-section-nav-active-card-on-surface) !important"
     );

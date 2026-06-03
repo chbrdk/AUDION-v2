@@ -36,9 +36,9 @@
   --msqdx-section-nav-dock-border: var(--color-theme-accent-tint, rgba(0, 0, 0, 0.12));
   /* Outer workspace frame: solid accent (light = black), not alpha grey. */
   --msqdx-section-workspace-frame-border: var(--color-theme-accent, #000000);
-  /* Docked compact active row: opaque black, white label/icon (no alpha on fill). */
-  --msqdx-section-nav-active-card-surface: #000000;
-  --msqdx-section-nav-active-card-on-surface: #ffffff;
+  /* Docked compact active row: theme accent fill + contrast label/icon. */
+  --msqdx-section-nav-active-card-surface: var(--color-theme-accent, #000000);
+  --msqdx-section-nav-active-card-on-surface: var(--color-theme-accent-contrast, #ffffff);
   /* Outer workspace frame beside subnav (matches SECTION_WORKSPACE_DOCK_BORDER_RADIUS_PX) */
   --msqdx-section-workspace-frame-radius: 36px;
   /* Horizontal subnav overlap onto workspace (SECTION_NAV_HORIZONTAL_WORKSPACE_OVERLAP_PX) */
@@ -56,8 +56,8 @@
   --msqdx-section-nav-dock-surface: var(--color-theme-accent-tint, rgba(255, 255, 255, 0.06));
   --msqdx-section-nav-dock-border: var(--color-theme-accent-tint, rgba(255, 255, 255, 0.12));
   --msqdx-section-workspace-frame-border: var(--color-theme-accent, #ffffff);
-  --msqdx-section-nav-active-card-surface: #000000;
-  --msqdx-section-nav-active-card-on-surface: #ffffff;
+  --msqdx-section-nav-active-card-surface: var(--color-theme-accent, #ffffff);
+  --msqdx-section-nav-active-card-on-surface: var(--color-theme-accent-contrast, #000000);
 }
 
 .msqdx-glass-section-shell--no-subnav .msqdx-glass-section-shell__body {
@@ -316,10 +316,14 @@
   flex: 1;
 }
 
-/* Black corner hero: always light on-surface copy (independent of theme primary-white flip) */
+/* Corner hero: theme accent surface + contrast on-surface copy */
 .msqdx-glass-section-shell__entity-corner-accent {
-  --msqdx-entity-accent-on-surface: #ffffff;
-  --msqdx-entity-accent-on-surface-muted: rgba(255, 255, 255, 0.82);
+  --msqdx-entity-accent-on-surface: var(--color-theme-accent-contrast, #ffffff);
+  --msqdx-entity-accent-on-surface-muted: color-mix(
+    in srgb,
+    var(--color-theme-accent-contrast, #ffffff) 82%,
+    transparent
+  );
 }
 
 @media (max-width: 1024px) {

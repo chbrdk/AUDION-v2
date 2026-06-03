@@ -538,6 +538,11 @@
     "overviewSubtitle": "Spacious layout with section navigation — preview",
     "libraryTitle": "All personas",
     "libraryDescription": "Larger cards and calmer spacing. Open a persona to edit one section at a time.",
+    "library": {
+      "viewCards": "Card view",
+      "viewList": "List view",
+      "layoutToggleLabel": "Persona library layout"
+    },
     "previewBanner": "Preview: classic personas remain at /admin/personas. This v2 route tests the new section shell.",
     "hubBanner": "Jump to a focused workspace for this persona. Each area opens in its own view with more room to work.",
     "sectionsNavLabel": "Persona areas",
