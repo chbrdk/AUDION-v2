@@ -3,6 +3,7 @@ from __future__ import annotations
 from app.services.moodboard_creative import (
     MOODBOARD_CATEGORIES,
     build_category_queries,
+    category_shot_spec,
     derive_style_keywords,
     extract_mood_signals,
     heuristic_style_package,
@@ -83,6 +84,27 @@ def test_score_stock_penalizes_generic_corporate() -> None:
     picked, score = pick_best_stock_image([bad, good], query="sportscar lifestyle", category="lifestyle", package=package)
     assert picked is good
     assert score > 0
+
+
+def test_category_shot_spec_textures_macro_no_people() -> None:
+    persona = _Persona()
+    sig = extract_mood_signals(persona)  # type: ignore[arg-type]
+    kw = derive_style_keywords(persona, sig)  # type: ignore[arg-type]
+    package = heuristic_style_package(persona, sig, kw)  # type: ignore[arg-type]
+    spec = category_shot_spec(category="textures", persona=persona, signals=sig, package=package)  # type: ignore[arg-type]
+    assert "macro" in spec.lower()
+    assert "no humans" in spec.lower() or "no human" in spec.lower()
+
+
+def test_category_shot_spec_people_group_not_portrait() -> None:
+    persona = _Persona()
+    sig = extract_mood_signals(persona)  # type: ignore[arg-type]
+    kw = derive_style_keywords(persona, sig)  # type: ignore[arg-type]
+    package = heuristic_style_package(persona, sig, kw)  # type: ignore[arg-type]
+    spec = category_shot_spec(category="people", persona=persona, signals=sig, package=package)  # type: ignore[arg-type]
+    assert "group" in spec.lower()
+    assert "portrait" in spec.lower()  # mentioned as banned
+    assert "office" in spec.lower()
 
 
 def test_build_category_queries_stays_short() -> None:

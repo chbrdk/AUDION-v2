@@ -12,13 +12,13 @@ import {
 
 describe("moodboardCategoryMoodLine", () => {
   it("returns German category hints for known categories", () => {
-    expect(moodboardCategoryMoodLine("colors", "de")).toContain("Palette");
-    expect(moodboardCategoryMoodLine("COLORS", "de")).toContain("Palette");
-    expect(moodboardCategoryMoodLine("textures", "de")).toContain("Haptik");
+    expect(moodboardCategoryMoodLine("colors", "de")).toContain("Farbe");
+    expect(moodboardCategoryMoodLine("COLORS", "de")).toContain("Farbe");
+    expect(moodboardCategoryMoodLine("textures", "de")).toContain("Tiefe");
   });
 
   it("returns English for locale en", () => {
-    expect(moodboardCategoryMoodLine("ui", "en")).toContain("Interaction");
+    expect(moodboardCategoryMoodLine("ui", "en")).toContain("Digital");
   });
 
   it("falls back for unknown categories", () => {
@@ -58,9 +58,12 @@ describe("moodboardGridContainerSx", () => {
 });
 
 describe("moodboardCategoryVisual", () => {
-  it("returns category-specific accent tokens", () => {
-    expect(moodboardCategoryVisual("colors").accent).toContain("pink");
-    expect(moodboardCategoryVisual("ui").glow).toContain("246");
+  it("uses neutral editorial frame for all categories", () => {
+    const colors = moodboardCategoryVisual("colors");
+    const ui = moodboardCategoryVisual("ui");
+    expect(colors.accent).toBe(ui.accent);
+    expect(colors.overlay).toContain("gradient");
+    expect(colors.glow).not.toContain("246");
   });
 
   it("labels categories for overlays", () => {
@@ -71,8 +74,8 @@ describe("moodboardCategoryVisual", () => {
 
 describe("moodboardTileCardRadius", () => {
   it("returns stable radii", () => {
-    expect(moodboardTileCardRadius(0)).toBe(18);
-    expect(moodboardTileCardRadius(2)).toBe(22);
+    expect(moodboardTileCardRadius(0)).toBe(14);
+    expect(moodboardTileCardRadius(2)).toBe(14);
   });
 });
 

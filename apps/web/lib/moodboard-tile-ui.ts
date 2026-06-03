@@ -1,32 +1,29 @@
 /**
- * Moodboard tile presentation: category-specific overlay copy and responsive grid placement.
- * Keep persona headline/segment in the persona card — overlays here describe the *tile role*.
- *
- * Layout rule: **max 3 columns** from `sm` up so tiles stay large enough to read; `xs` uses 2 columns.
+ * Moodboard tile presentation: neutral editorial frame — color comes from photos, not UI chrome.
  */
 
 import type { SxProps, Theme } from "@mui/material/styles";
 
 const MOOD_DE: Record<string, string> = {
-  lifestyle: "Stimmung, Orte, Alltag",
-  places: "Räume, die man betritt",
-  colors: "Palette, Licht, Kontrast",
-  textures: "Haptik, Material, Oberfläche",
-  people: "Typ, Ausstrahlung, Nähe",
-  objects: "Dinge mit Bedeutung",
-  ui: "Interaktion, Klarheit, Rhythmus",
-  typography: "Rhythmus, Stimme, Form",
+  lifestyle: "Interesse im echten Moment",
+  places: "Räume mit Bedeutung",
+  colors: "Licht und Farbe",
+  textures: "Material, Fokus, Tiefe",
+  people: "Gruppe, Dynamik, Haltung",
+  objects: "Das zentrale Objekt",
+  ui: "Digitale Ruhe",
+  typography: "Form und Rhythmus",
 };
 
 const MOOD_EN: Record<string, string> = {
-  lifestyle: "Mood, places, rituals",
-  places: "Spaces you would enter",
-  colors: "Palette, light, contrast",
-  textures: "Touch, materials, surface",
-  people: "Character, presence, warmth",
-  objects: "Objects with meaning",
-  ui: "Interaction, clarity, pace",
-  typography: "Rhythm, voice, shape",
+  lifestyle: "Interest in the moment",
+  places: "Spaces that matter",
+  colors: "Light and color",
+  textures: "Material, focus, depth",
+  people: "Group, energy, stance",
+  objects: "The focal object",
+  ui: "Digital calm",
+  typography: "Form and rhythm",
 };
 
 const CATEGORY_LABEL_DE: Record<string, string> = {
@@ -51,6 +48,10 @@ const CATEGORY_LABEL_EN: Record<string, string> = {
   typography: "Typography",
 };
 
+/** Subtle bottom read — no per-category color wash. */
+const EDITORIAL_OVERLAY =
+  "linear-gradient(180deg, rgba(0,0,0,0) 38%, rgba(0,0,0,0.35) 72%, rgba(0,0,0,0.78) 100%)";
+
 export type MoodboardCategoryVisual = {
   accent: string;
   accentTint: string;
@@ -58,83 +59,22 @@ export type MoodboardCategoryVisual = {
   overlay: string;
 };
 
-const DEFAULT_CATEGORY_VISUAL: MoodboardCategoryVisual = {
-  accent: "var(--color-theme-accent, var(--color-secondary-dx-green))",
-  accentTint: "var(--color-theme-accent-tint, var(--color-secondary-dx-green-tint))",
-  glow: "rgba(34, 197, 94, 0.28)",
-  overlay:
-    "linear-gradient(165deg, rgba(0,0,0,0.15) 0%, transparent 40%, rgba(0,0,0,0.78) 100%)",
-};
-
-const CATEGORY_VISUALS: Record<string, MoodboardCategoryVisual> = {
-  places: {
-    accent: "var(--color-secondary-dx-blue)",
-    accentTint: "var(--color-secondary-dx-blue-tint)",
-    glow: "rgba(59, 130, 246, 0.35)",
-    overlay:
-      "linear-gradient(158deg, rgba(37,99,235,0.38) 0%, transparent 44%, rgba(0,0,0,0.76) 100%)",
-  },
-  lifestyle: {
-    accent: "var(--color-secondary-dx-orange)",
-    accentTint: "var(--color-secondary-dx-orange-tint)",
-    glow: "rgba(234, 88, 12, 0.38)",
-    overlay:
-      "linear-gradient(155deg, rgba(234,88,12,0.42) 0%, transparent 38%, rgba(0,0,0,0.75) 100%)",
-  },
-  colors: {
-    accent: "var(--color-secondary-dx-pink)",
-    accentTint: "var(--color-secondary-dx-pink-tint)",
-    glow: "rgba(236, 72, 153, 0.35)",
-    overlay:
-      "linear-gradient(160deg, rgba(236,72,153,0.38) 0%, transparent 42%, rgba(0,0,0,0.72) 100%)",
-  },
-  textures: {
-    accent: "var(--color-secondary-dx-yellow)",
-    accentTint: "var(--color-secondary-dx-yellow-tint)",
-    glow: "rgba(202, 138, 4, 0.32)",
-    overlay:
-      "linear-gradient(150deg, rgba(161,98,7,0.35) 0%, transparent 45%, rgba(0,0,0,0.8) 100%)",
-  },
-  people: {
-    accent: "var(--color-secondary-dx-green)",
-    accentTint: "var(--color-secondary-dx-green-tint)",
-    glow: "rgba(34, 197, 94, 0.32)",
-    overlay:
-      "linear-gradient(165deg, rgba(22,163,74,0.32) 0%, transparent 40%, rgba(0,0,0,0.78) 100%)",
-  },
-  objects: {
-    accent: "var(--color-secondary-dx-yellow)",
-    accentTint: "var(--color-secondary-dx-yellow-tint)",
-    glow: "rgba(202, 138, 4, 0.32)",
-    overlay:
-      "linear-gradient(150deg, rgba(161,98,7,0.34) 0%, transparent 42%, rgba(0,0,0,0.78) 100%)",
-  },
-  ui: {
-    accent: "var(--color-secondary-dx-blue)",
-    accentTint: "var(--color-secondary-dx-blue-tint)",
-    glow: "rgba(59, 130, 246, 0.35)",
-    overlay:
-      "linear-gradient(158deg, rgba(37,99,235,0.4) 0%, transparent 44%, rgba(0,0,0,0.76) 100%)",
-  },
-  typography: {
-    accent: "var(--color-secondary-dx-purple)",
-    accentTint: "var(--color-secondary-dx-purple-tint)",
-    glow: "rgba(124, 58, 237, 0.34)",
-    overlay:
-      "linear-gradient(162deg, rgba(124,58,237,0.36) 0%, transparent 42%, rgba(0,0,0,0.74) 100%)",
-  },
+const EDITORIAL_VISUAL: MoodboardCategoryVisual = {
+  accent: "var(--color-border-subtle, rgba(0, 0, 0, 0.12))",
+  accentTint: "transparent",
+  glow: "rgba(0, 0, 0, 0.12)",
+  overlay: EDITORIAL_OVERLAY,
 };
 
 function normCategory(category: string): string {
   return category.trim().toLowerCase();
 }
 
-/** Accent colors and cinematic overlay per tile category. */
-export function moodboardCategoryVisual(category: string): MoodboardCategoryVisual {
-  return CATEGORY_VISUALS[normCategory(category)] ?? DEFAULT_CATEGORY_VISUAL;
+/** Neutral frame for all categories — imagery carries color. */
+export function moodboardCategoryVisual(_category: string): MoodboardCategoryVisual {
+  return EDITORIAL_VISUAL;
 }
 
-/** Short category title for overlays (not the mood line). */
 export function moodboardCategoryDisplayLabel(category: string, locale: "de" | "en" = "de"): string {
   const key = normCategory(category);
   const map = locale === "en" ? CATEGORY_LABEL_EN : CATEGORY_LABEL_DE;
@@ -142,14 +82,12 @@ export function moodboardCategoryDisplayLabel(category: string, locale: "de" | "
   return map[key] ?? (raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : locale === "en" ? "Mood" : "Stimmung");
 }
 
-/** Short overlay line for the image (not the persona headline). */
 export function moodboardCategoryMoodLine(category: string, locale: "de" | "en" = "de"): string {
   const key = normCategory(category);
   const map = locale === "en" ? MOOD_EN : MOOD_DE;
   return map[key] ?? (locale === "en" ? "Visual inspiration" : "Visuelle Inspiration");
 }
 
-/** Shared outer grid: max 3 columns ≥ sm, 2 columns on xs. */
 export function moodboardGridContainerSx(opts?: { compact?: boolean; immersive?: boolean }): SxProps<Theme> {
   const compact = Boolean(opts?.compact);
   const immersive = Boolean(opts?.immersive);
@@ -165,7 +103,6 @@ export function moodboardGridContainerSx(opts?: { compact?: boolean; immersive?:
   };
 }
 
-/** 3-column “bento” for 8 tiles (typical OpenAI): large hero + sidebar + two full rows. */
 function bento8ThreeCol(compact: boolean): SxProps<Theme>[] {
   const s = (n: number) => (compact ? Math.round(n * 0.9) : n);
   return [
@@ -180,7 +117,6 @@ function bento8ThreeCol(compact: boolean): SxProps<Theme>[] {
   ];
 }
 
-/** 2-column layout on xs (8 tiles): wide hero + pairs. */
 function bento8TwoCol(compact: boolean): SxProps<Theme>[] {
   const s = (n: number) => (compact ? Math.round(n * 0.9) : n);
   return [
@@ -195,9 +131,6 @@ function bento8TwoCol(compact: boolean): SxProps<Theme>[] {
   ];
 }
 
-/**
- * Per-tile placement inside `moodboardGridContainerSx` (2 cols xs, 3 cols sm+).
- */
 export function moodboardTileGridSx(
   index: number,
   total: number,
@@ -230,13 +163,11 @@ export function moodboardTileGridSx(
   } as SxProps<Theme>;
 }
 
-/** Slight visual rhythm without breaking the glass look. */
 export function moodboardTileCardRadius(index: number): number {
-  const r = [18, 14, 22, 16, 20, 14, 18, 16];
-  return r[index % r.length] ?? 16;
+  const r = [14, 12, 14, 12, 14, 12, 14, 12];
+  return r[index % r.length] ?? 12;
 }
 
-/** Same visibility rule as the main chat moodboard preview (tiles or in-progress / error states). */
 export function shouldShowMoodboardStrip(moodboard: { status?: string; tiles?: readonly unknown[] } | null): boolean {
   if (!moodboard) return false;
   const status = (moodboard.status ?? "").toLowerCase();

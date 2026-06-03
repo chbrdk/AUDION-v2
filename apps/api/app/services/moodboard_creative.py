@@ -46,13 +46,29 @@ _GENERIC_STOCK_TERMS: frozenset[str] = frozenset(
         "success",
         "startup",
         "office worker",
+        "office",
+        "businessman",
+        "businesswoman",
+        "laptop",
+        "open space",
+        "coworking",
+        "boardroom",
+        "headshot",
+        "portrait studio",
         "generic",
         "smiling business",
         "thumbs up",
         "cheerful",
         "multiracial",
-        "boardroom",
     }
+)
+
+# Categories that must not show office / solo portraits in stock or gen.
+_NO_PEOPLE_CATEGORIES: frozenset[str] = frozenset(
+    {"textures", "colors", "objects", "typography", "ui", "places"}
+)
+_OFFICE_BLOB_TERMS: frozenset[str] = frozenset(
+    {"office", "businessman", "businesswoman", "corporate", "laptop", "meeting", "boardroom", "coworking"}
 )
 
 _SPLIT_RE = re.compile(r"[·•\n\r]+|(?:\s[-–—]\s)|[.;,:]+")
@@ -299,19 +315,138 @@ def _heuristic_manifest(persona: Persona, signals: MoodSignals, keywords: list[s
     return " ".join(parts)[:420]
 
 
+def _primary_interest(signals: MoodSignals, keywords: list[str]) -> str:
+    if signals.interests:
+        return signals.interests[0]
+    for kw in keywords:
+        compact = _compact_phrase(kw, max_words=6, max_chars=48)
+        if compact:
+            return compact
+    return "persönlicher Alltag"
+
+
+def _secondary_interest(signals: MoodSignals) -> str:
+    return signals.interests[1] if len(signals.interests) > 1 else ""
+
+
+def _trait_phrase(signals: MoodSignals) -> str:
+    return signals.traits[0] if signals.traits else (signals.values[0] if signals.values else "")
+
+
 def _heuristic_category_directions(signals: MoodSignals, keywords: list[str]) -> dict[str, str]:
-    anchor = keywords[0] if keywords else "persönlicher Alltag"
-    interest = signals.interests[0] if signals.interests else anchor
+    interest = _primary_interest(signals, keywords)
+    interest2 = _secondary_interest(signals)
+    trait = _trait_phrase(signals)
+    anchor = keywords[0] if keywords else interest
     return {
-        "lifestyle": f"Alltag und Ritual um {interest} — authentisch, nicht Hochglanz-Werbung.",
-        "places": f"Räume und Orte, die zu {anchor} passen — erkennbar, bewohnt, nicht anonym.",
-        "colors": f"Farbpalette mit Wärme/Kontrast passend zu {anchor} — keine Neon-Startup-Gradienten.",
-        "textures": f"Materialien, die {interest} fühlbar machen — Haptik statt Plastik-Look.",
-        "people": "Menschen mit echter Präsenz, passend zur Persona — kein Gruppen-Handshake.",
-        "objects": f"Gegenstände und Details, die {interest} symbolisieren — persönlich, nicht generisch.",
-        "ui": f"Digitale Oberflächen im Geschmack von {anchor} — ruhig, präzise, ohne Template-UI.",
-        "typography": f"Editorial Typografie mit Charakter zu {anchor} — Form statt leerer Buzzwords.",
+        "lifestyle": (
+            f"Zeige die Tätigkeit „{interest}“ als Held — Hände, Werkzeug, Bewegung, Ort. "
+            f"Kein Büro, keine generische Business-Person."
+        ),
+        "places": (
+            f"Ein konkreter, bewohnter Ort, der zu „{interest}“ oder „{anchor}“ passt — "
+            f"Architektur/Interior, keine anonyme Lobby."
+        ),
+        "colors": (
+            f"Abstrakte Farb- und Lichtstudie (Materialflächen, Wand, Himmel) passend zu „{anchor}“ — "
+            f"keine Menschen, kein UI-Mockup."
+        ),
+        "textures": (
+            f"Makro eines Materials aus dem Kontext „{interest}“ (Stoff, Metall, Leder, Holz) — "
+            f"seichte Tiefenschärfe, Seitenlicht, Fasern sichtbar. Keine Personen."
+        ),
+        "people": (
+            f"Kleine Gruppe (3–6) in Szene zu „{interest}“ — Weitwinkel, Gesichter nicht im Fokus. "
+            f"Haltung/Trait „{trait}“ über Raum, Licht, Anordnung andeuten, kein Einzelportrait."
+        ),
+        "objects": (
+            f"Stillleben: das zentrale Objekt von „{interest}“"
+            + (f" und „{interest2}“" if interest2 else "")
+            + " — Produktfotografie, neutraler Hintergrund."
+        ),
+        "ui": (
+            f"Ruhige Interface-Ästhetik für „{anchor}“ — echte UI-Anmutung, kein generisches Dashboard-Template."
+        ),
+        "typography": (
+            f"Editorial Typografie (Magazin/Poster) zum Ton von „{anchor}“ — Schrift als Form, kein Stock-Text-Bild."
+        ),
     }
+
+
+def category_shot_spec(
+    *,
+    category: str,
+    persona: Persona,
+    signals: MoodSignals,
+    package: MoodboardStylePackage,
+) -> str:
+    """English photography brief for image models — category-specific, anti-generic."""
+    cat = category.strip().lower()
+    interest = _primary_interest(signals, package.keywords)
+    interest2 = _secondary_interest(signals)
+    trait = _trait_phrase(signals)
+    custom = package.category_directions.get(cat, "")
+
+    specs: dict[str, str] = {
+        "textures": (
+            f"SUBJECT: Extreme close-up macro of a material tied to «{interest}» "
+            f"(fabric weave, leather grain, brushed metal, wood pore, ceramic glaze).\n"
+            "CAMERA: 85–100mm macro lens, f/2.0–f/2.8, shallow depth of field, focus on surface fibers.\n"
+            "LIGHT: Raking sidelight or soft window light to reveal tactile detail.\n"
+            "FRAME: No humans, no faces, no screens, no office objects."
+        ),
+        "lifestyle": (
+            f"SUBJECT: Document the actual hobby/interest «{interest}» in action — "
+            "the activity, tools, vehicle, food, or environment is the hero.\n"
+            "CAMERA: 35mm documentary, natural perspective, candid moment mid-action.\n"
+            "LIGHT: Authentic available light (golden hour, workshop lamp, café window).\n"
+            "FRAME: No corporate office, no businessman at laptop, no staged handshake."
+        ),
+        "objects": (
+            f"SUBJECT: Hero still-life of the physical object(s) representing «{interest}»"
+            + (f" and «{interest2}»" if interest2 else "")
+            + " on a clean surface.\n"
+            "CAMERA: 50mm product shot, slight angle, crisp focus on object, soft background falloff.\n"
+            "LIGHT: Controlled softbox or window light, subtle reflection.\n"
+            "FRAME: No people, no office desk clutter."
+        ),
+        "places": (
+            f"SUBJECT: A specific lived-in place where «{interest}» or segment «{persona.segment}» belongs "
+            f"(garage, alpine road pull-off, atelier, club lounge — not a generic coworking space).\n"
+            "CAMERA: 24mm architectural interior or environmental wide, leading lines.\n"
+            "LIGHT: Natural ambient, believable shadows.\n"
+            "FRAME: Empty of posed business people."
+        ),
+        "colors": (
+            f"SUBJECT: Abstract color and light study inspired by «{interest}» / mood «{package.mood_manifest[:80]}» — "
+            "painted wall, stacked fabrics, sky gradient, or material swatches only.\n"
+            "CAMERA: Flat lay or soft telephoto compression.\n"
+            "FRAME: No people, no logos, no UI screenshots."
+        ),
+        "people": (
+            f"SUBJECT: Small group (3–6) engaged around «{interest}» — backs, profiles, motion, or distance; "
+            f"never a single portrait headshot. Suggest trait «{trait}» via composition "
+            "(tight/loose grouping, calm vs energetic spacing, warm vs cool light).\n"
+            "CAMERA: 28–35mm environmental wide, documentary street/family-dinner energy.\n"
+            "FRAME: No office workers, no isolated smiling professional facing camera."
+        ),
+        "ui": (
+            f"SUBJECT: Tasteful digital UI mood for «{persona.segment}» — sparse layout, real app chrome, "
+            "one focal screen state.\n"
+            "CAMERA: Straight-on device mock or cropped interface panel.\n"
+            "FRAME: No stock dashboard collage, no fake charts spam."
+        ),
+        "typography": (
+            f"SUBJECT: Editorial typography specimen (poster/magazine spread) echoing «{interest}» and tone — "
+            "real letterforms, hierarchy, negative space.\n"
+            "CAMERA: Flat graphic shot, slight paper texture.\n"
+            "FRAME: No watermark, no lorem ipsum wall of text."
+        ),
+    }
+    base = specs.get(cat, f"Editorial photograph for moodboard category {cat}.")
+    if custom:
+        base += f"\nART DIRECTOR NOTE: {custom}"
+    return base
 
 
 def _heuristic_palette(keywords: list[str]) -> list[str]:
@@ -332,10 +467,13 @@ def heuristic_style_package(persona: Persona, signals: MoodSignals, keywords: li
         category_directions=_heuristic_category_directions(signals, keywords),
         avoid=[
             "generic corporate stock",
+            "office worker at laptop",
+            "solo business portrait",
             "forced smile handshake",
             "neon startup gradients",
             "empty buzzword poster",
             "watermark or logo",
+            "same person in every tile",
         ],
     )
 
@@ -365,19 +503,24 @@ Return ONE JSON object:
   "keywords": ["max 10 short German/English search anchors"],
   "palette_hints": ["3-5 color/material words, no hex required"],
   "category_directions": {{
-    "lifestyle": "specific scene direction",
-    "places": "specific place direction",
-    "colors": "palette direction",
-    "textures": "material direction",
-    "people": "who we show, casting direction",
-    "objects": "totem objects",
-    "ui": "digital taste",
-    "typography": "type mood"
+    "lifestyle": "exact activity from interests — NOT office",
+    "places": "specific place tied to interests",
+    "colors": "abstract color study — no people",
+    "textures": "macro material from interest — camera + DOF specified",
+    "people": "group scene only — visualize traits via composition, NO solo portrait",
+    "objects": "hero object from primary interest",
+    "ui": "tasteful UI mood",
+    "typography": "editorial type specimen"
   }},
-  "avoid": ["5-8 things to avoid in images — stock tropes, AI slop tells"]
+  "avoid": ["5-10 banned motifs — office, handshake, solo headshot, etc."]
 }}
 
-Rules: Be concrete (places, rituals, materials). Ban generic office/stock tropes. Match persona gender/segment when relevant."""
+Rules (mandatory):
+- lifestyle/objects must depict the literal interest (e.g. sportscar, watches), never a random office person.
+- textures: macro fabric/material, shallow DOF, NO humans.
+- people: groups only, environmental wide — NO single portrait, NO corporate office.
+- colors/places: no posed business people.
+- Each direction: include camera/lens hint and what must NOT appear."""
 
     try:
         client = OpenAI(api_key=settings.openai_api_key)
@@ -437,6 +580,35 @@ def build_style_package(persona: Persona) -> MoodboardStylePackage:
     return heuristic_style_package(persona, signals, keywords)
 
 
+def _stock_query_for_category(
+    *,
+    category: str,
+    persona: Persona,
+    signals: MoodSignals,
+    package: MoodboardStylePackage,
+) -> str:
+    """Category-tuned stock search — avoids office/portrait traps."""
+    cat = category.strip().lower()
+    interest = _compact_phrase(_primary_interest(signals, package.keywords), max_words=4, max_chars=32)
+    templates: dict[str, str] = {
+        "textures": f"{interest} fabric macro texture close-up shallow depth",
+        "lifestyle": f"{interest} hobby activity documentary authentic",
+        "objects": f"{interest} object still life product photography",
+        "places": f"{interest} interior architecture environmental wide",
+        "colors": f"{interest} color palette material swatch abstract",
+        "people": f"{interest} group friends gathering candid wide shot",
+        "ui": f"minimal mobile app interface clean {interest}",
+        "typography": f"editorial typography poster layout {interest}",
+    }
+    q = templates.get(cat, f"{interest} editorial photography")
+    direction = package.category_directions.get(cat, "")
+    if direction:
+        hint = _compact_phrase(direction, max_words=3, max_chars=20)
+        if hint:
+            q = f"{hint} {q}"
+    return " ".join(q.split())[:96]
+
+
 def build_category_queries(
     *,
     persona: Persona,
@@ -444,50 +616,11 @@ def build_category_queries(
     categories: Iterable[str] = MOODBOARD_CATEGORIES,
 ) -> dict[str, str]:
     """Short Openverse/Pexels queries per category."""
-    compacted: list[str] = []
-    for k in package.keywords[:12]:
-        ck = _compact_phrase(k, max_words=3, max_chars=24)
-        if ck:
-            compacted.append(ck)
-        if len(compacted) >= 4:
-            break
-    anchor = compacted[0] if compacted else "lifestyle"
-    profile = persona.profile if isinstance(persona.profile, dict) else {}
-    people_bias = _people_query_bias(persona, profile)
-    hints: dict[str, str] = {
-        "lifestyle": "documentary lifestyle",
-        "places": "interior architecture mood",
-        "colors": "color palette still life",
-        "textures": "material texture macro",
-        "people": people_bias,
-        "objects": "still life personal objects",
-        "ui": "minimal app interface",
-        "typography": "editorial typography poster",
+    signals = extract_mood_signals(persona)
+    return {
+        cat: _stock_query_for_category(category=cat, persona=persona, signals=signals, package=package)
+        for cat in categories
     }
-    out: dict[str, str] = {}
-    for cat in categories:
-        direction = package.category_directions.get(cat, "")
-        dir_hint = _compact_phrase(direction, max_words=4, max_chars=28) if direction else ""
-        base = hints.get(cat, cat)
-        q = f"{anchor} {dir_hint} {base}".strip() if dir_hint else f"{anchor} {base}".strip()
-        out[cat] = " ".join(q.split())[:96]
-    return out
-
-
-def _people_query_bias(persona: Persona, profile: dict[str, Any]) -> str:
-    gender = profile.get("gender")
-    if isinstance(gender, str):
-        g = gender.strip().lower()
-        if g in {"male", "m", "man", "masculine", "männlich", "mann"}:
-            return "candid man portrait natural light"
-        if g in {"female", "f", "woman", "feminine", "weiblich", "frau"}:
-            return "candid woman portrait natural light"
-    blob = f"{persona.headline} {persona.segment}".lower()
-    if "männ" in blob or " mann" in blob or " male" in blob:
-        return "candid man portrait natural light"
-    if "weib" in blob or " frau" in blob or " female" in blob:
-        return "candid woman portrait natural light"
-    return "candid portrait natural light"
 
 
 def _candidate_blob(img: OpenverseImage) -> str:
@@ -527,6 +660,17 @@ def score_stock_candidate(
     for bad in _GENERIC_STOCK_TERMS:
         if bad in blob:
             score -= 4.0
+    cat_norm = category.strip().lower()
+    if cat_norm in _NO_PEOPLE_CATEGORIES:
+        for bad in _OFFICE_BLOB_TERMS:
+            if bad in blob:
+                score -= 5.0
+        if any(x in blob for x in ("portrait", "headshot", "business suit", "necktie")):
+            score -= 4.0
+    if cat_norm == "people" and any(x in blob for x in ("headshot", "studio portrait", "isolated on white")):
+        score -= 5.0
+    if cat_norm in {"textures", "colors"} and any(x in blob for x in ("face", "person", "people", "man ", "woman ")):
+        score -= 6.0
     for bad in package.avoid:
         for part in bad.lower().split():
             if len(part) > 4 and part in blob:
@@ -578,16 +722,25 @@ def stock_tile_rationale(*, category: str, package: MoodboardStylePackage, query
 
 
 def openai_image_prompt(*, persona: Persona, category: str, package: MoodboardStylePackage) -> str:
-    direction = package.category_directions.get(category, category)
-    avoid = "; ".join(package.avoid[:6])
+    signals = extract_mood_signals(persona)
+    shot = category_shot_spec(category=category, persona=persona, signals=signals, package=package)
+    avoid = "; ".join(package.avoid[:8])
     palette = ", ".join(package.palette_hints[:4])
+    interests = ", ".join(signals.interests[:4]) or "—"
+    traits = ", ".join(signals.traits[:4]) or "—"
     return (
-        f"Art direction for a persona moodboard tile.\n"
-        f"Persona: {persona.name} — {persona.segment}. {persona.headline}\n"
-        f"Category: {category}\n"
-        f"Direction: {direction}\n"
-        f"Palette hints: {palette}\n"
-        f"Mood: {package.mood_manifest}\n\n"
-        f"Create ONE striking photograph or artwork. Cinematic, authentic, editorial quality.\n"
-        f"Avoid: {avoid}. No text, no logos, no watermark, no generic stock poses, no AI gloss overload."
+        f"High-end editorial photograph for a persona moodboard (single frame, photorealistic).\n\n"
+        f"PERSONA CONTEXT\n"
+        f"- Name: {persona.name}\n"
+        f"- Segment: {persona.segment}\n"
+        f"- Headline: {persona.headline}\n"
+        f"- Interests: {interests}\n"
+        f"- Traits: {traits}\n"
+        f"- Mood brief: {package.mood_manifest}\n"
+        f"- Palette hints: {palette}\n\n"
+        f"CATEGORY: {category.strip().lower()}\n"
+        f"SHOT BRIEF\n{shot}\n\n"
+        f"GLOBAL BANS: {avoid}. "
+        f"No text overlays, no logos, no watermark, no AI plastic skin, no repeated generic office man. "
+        f"Must match category rules exactly — do not default to a person in an office."
     )

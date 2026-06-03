@@ -39,14 +39,14 @@ DEFAULT_CATEGORIES: list[str] = list(MOODBOARD_CATEGORIES)
 
 def _fallback_category_query(category: str) -> str:
     return {
-        "lifestyle": "documentary lifestyle authentic",
-        "places": "lived-in interior space",
-        "colors": "muted color palette still life",
-        "textures": "natural material macro texture",
-        "people": "candid portrait natural light",
-        "objects": "personal still life objects",
-        "ui": "minimal product interface",
-        "typography": "editorial typography layout",
+        "lifestyle": "hobby activity documentary authentic no office",
+        "places": "lived-in interior architecture environmental",
+        "colors": "abstract color palette material swatch",
+        "textures": "fabric macro texture shallow depth field",
+        "people": "small group gathering candid wide no portrait",
+        "objects": "still life product photography hero object",
+        "ui": "minimal app interface clean layout",
+        "typography": "editorial typography magazine layout",
     }.get(category, "editorial photography")
 
 

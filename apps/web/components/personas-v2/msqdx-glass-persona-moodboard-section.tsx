@@ -87,8 +87,6 @@ export function MsqdxGlassPersonaMoodboardSection({
       aria-labelledby="persona-moodboard-atmosphere-title"
     >
       <Box className="msqdx-glass-moodboard-atmosphere">
-        <Box className="msqdx-glass-moodboard-atmosphere__glow msqdx-glass-moodboard-atmosphere__glow--a" aria-hidden />
-        <Box className="msqdx-glass-moodboard-atmosphere__glow msqdx-glass-moodboard-atmosphere__glow--b" aria-hidden />
         <Box className="msqdx-glass-moodboard-atmosphere__inner">
           <Box className="msqdx-glass-moodboard-atmosphere__copy">
             <MsqdxTypography
@@ -230,17 +228,8 @@ export function MsqdxGlassPersonaMoodboardSection({
                 ]
                   .filter(Boolean)
                   .join(" ")}
-                style={
-                  {
-                    "--moodboard-tile-accent": visual.accent,
-                    "--moodboard-tile-glow": visual.glow,
-                    borderRadius: `${moodboardTileCardRadius(index)}px`,
-                  } as CSSProperties
-                }
-                sx={{
-                  ...moodboardTileGridSx(index, tileCount, gridOpts),
-                  borderColor: visual.accent,
-                }}
+                style={{ borderRadius: `${moodboardTileCardRadius(index)}px` } as CSSProperties}
+                sx={moodboardTileGridSx(index, tileCount, gridOpts)}
               >
                 <Box className="msqdx-glass-moodboard-tile__media">
                   <Box

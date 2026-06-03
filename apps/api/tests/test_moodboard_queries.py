@@ -7,7 +7,11 @@ class _FakePersona:
     def __init__(self) -> None:
         self.headline = "Self-confident executive"
         self.segment = "Luxury automotive"
-        self.profile = {"gender": "male"}
+        self.name = "Alex"
+        self.profile = {
+            "gender": "male",
+            "interests": ["Sportwagen", "mechanische Uhren"],
+        }
 
 
 def test_coerce_keywords_splits_on_commas_and_colons() -> None:
@@ -25,9 +29,10 @@ def test_build_queries_stays_short_and_category_specific() -> None:
         "Leidenschaft für elegante Sportwagen , Wochenend-Ausfahrten",
         "Sammelt hochwertige Uhren und stilvolle Accessoires",
     ]
-    qs = build_queries(persona=persona, keywords=keywords, categories=["lifestyle", "colors", "people"])
-    assert qs["lifestyle"].startswith("Leidenschaft")
-    assert "lifestyle photography" in qs["lifestyle"]
-    assert "color palette interior" in qs["colors"]
-    assert "portrait" in qs["people"]
+    qs = build_queries(persona=persona, keywords=keywords, categories=["lifestyle", "colors", "people", "textures"])
+    assert "Sportwagen" in qs["lifestyle"] or "Leidenschaft" in qs["lifestyle"]
+    assert "documentary" in qs["lifestyle"] or "hobby" in qs["lifestyle"]
+    assert "macro" in qs["textures"] or "texture" in qs["textures"]
+    assert "group" in qs["people"]
+    assert "portrait" not in qs["people"]
     assert len(qs["lifestyle"]) < 140

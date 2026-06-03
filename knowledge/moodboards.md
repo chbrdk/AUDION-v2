@@ -95,7 +95,8 @@ Implementation:
 - Brief explicitly bans generic corporate/handshake/startup imagery
 - Stock pool scored; low-scoring generic URLs deprioritized
 - **Hybrid:** if best stock score &lt; `MOODBOARD_STOCK_MIN_SCORE` (default 1.5) and `MOODBOARD_HYBRID_OPENAI=true`, that category is generated via OpenAI instead
-- OpenAI prompts: editorial, no logos/text/watermarks, persona-specific direction per category
+- OpenAI prompts: per-category **shot specs** (macro/DOF for textures, literal interest for lifestyle/objects, groups not portraits for people) — see `category_shot_spec()` in `moodboard_creative.py`
+- UI tiles: neutral editorial frame (color from photos only, no rainbow glow cards)
 
 ### Locked tiles on rebuild
 
