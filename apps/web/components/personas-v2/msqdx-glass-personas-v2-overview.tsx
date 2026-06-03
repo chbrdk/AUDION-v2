@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Box, Stack } from "@mui/material";
+import { Box } from "@mui/material";
 import type { PersonaListResponse } from "@msqdx-glass/types";
 import { MsqdxButton } from "@msqdx/react";
 import { ADMIN_ROUTES } from "../../lib/routes";
@@ -38,7 +38,6 @@ export function MsqdxGlassPersonasV2Overview({ initialList }: MsqdxGlassPersonas
     <MsqdxGlassSectionShell
       scopeLabel={t("personaV2.scopeLabel")}
       entityTitle={t("personaV2.overviewTitle")}
-      entitySubtitle={t("personaV2.overviewSubtitle")}
       hideSubNav
       headerActions={
         <Link href={ADMIN_ROUTES.personas} style={{ textDecoration: "none" }}>
@@ -48,7 +47,6 @@ export function MsqdxGlassPersonasV2Overview({ initialList }: MsqdxGlassPersonas
         </Link>
       }
       sectionTitle={t("personaV2.libraryTitle")}
-      sectionDescription={t("personaV2.libraryDescription")}
       workspaceActions={
         <PersonasOverviewLayoutToggle
           value={layout}
@@ -59,33 +57,30 @@ export function MsqdxGlassPersonasV2Overview({ initialList }: MsqdxGlassPersonas
         />
       }
     >
-      <Stack spacing={2}>
-        <div className="msqdx-glass-section-v2-banner">{t("personaV2.previewBanner")}</div>
-        <Box
-          className="msqdx-glass-personas-v2-overview-grid"
-          sx={{
-            "& .msqdx-glass-personas-grid": {
-              gridTemplateColumns: {
-                xs: "1fr",
-                sm: "repeat(2, minmax(0, 1fr))",
-                lg: "repeat(2, minmax(0, 1fr))",
-              },
-              gap: 3,
+      <Box
+        className="msqdx-glass-personas-v2-overview-grid"
+        sx={{
+          "& .msqdx-glass-personas-grid": {
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "repeat(2, minmax(0, 1fr))",
+              lg: "repeat(2, minmax(0, 1fr))",
             },
-            "& .MuiCard-root, & .msqdx-molecule-card": {
-              minHeight: 168,
-            },
-          }}
-        >
-          <MsqdxGlassPersonasOverview
-            initialList={initialList}
-            layout={layout}
-            getPersonaDetailHref={(id) =>
-              ADMIN_ROUTES.personaV2Section(id, PERSONA_V2_DEFAULT_SECTION)
-            }
-          />
-        </Box>
-      </Stack>
+            gap: 3,
+          },
+          "& .MuiCard-root, & .msqdx-molecule-card": {
+            minHeight: 168,
+          },
+        }}
+      >
+        <MsqdxGlassPersonasOverview
+          initialList={initialList}
+          layout={layout}
+          getPersonaDetailHref={(id) =>
+            ADMIN_ROUTES.personaV2Section(id, PERSONA_V2_DEFAULT_SECTION)
+          }
+        />
+      </Box>
     </MsqdxGlassSectionShell>
   );
 }

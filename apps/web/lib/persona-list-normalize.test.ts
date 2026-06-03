@@ -60,6 +60,23 @@ describe("normalizePersonaListItem", () => {
     });
     expect(item.targetGroupId).toBe("tg-top");
   });
+
+  it("maps profile and profileCard through", () => {
+    const item = normalizePersonaListItem({
+      id: "p1",
+      projectId: "proj",
+      name: "N",
+      segment: "S",
+      headline: "H",
+      status: "draft",
+      confidence: 0.42,
+      version: "1",
+      profile: { traits: { curious: 1 }, interests: ["Art"] },
+      profile_card: { values: ["Trust"] },
+    });
+    expect(item.profile).toMatchObject({ traits: { curious: 1 } });
+    expect(item.profileCard).toMatchObject({ values: ["Trust"] });
+  });
 });
 
 describe("normalizePersonaListResponse", () => {

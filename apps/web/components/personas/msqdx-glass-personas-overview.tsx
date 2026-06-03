@@ -23,8 +23,13 @@ import { buildApiUrl } from "../../app/api/_lib/backend";
 import { ADMIN_ROUTES } from "../../lib/routes";
 import { normalizePersonaListResponse } from "../../lib/persona-list-normalize";
 import { safePersonaAvatarSrc } from "../../lib/persona-avatar";
+import {
+  personaListKeyTagVariant,
+  pickPersonaListKeyTags,
+} from "../../lib/persona-list-key-tags";
 import { useProject } from "../projects/project-provider";
 import { useI18n } from "../i18n/i18n-provider";
+import { MsqdxGlassPersonaChip } from "../msqdx/chip/msqdx-glass-persona-chip";
 import { fetchTargetGroupList, generateTargetGroupPersona } from "../../app/api/_lib/target-group";
 import type { PersonasOverviewViewMode } from "../../lib/personas-overview-view-mode";
 
@@ -501,6 +506,7 @@ export function MsqdxGlassPersonasOverview({
             Boolean(personaProjectId) &&
             (!activeProjectId || String(personaProjectId) !== String(activeProjectId));
           const avatarSrc = safePersonaAvatarSrc(persona.avatarUrl ?? persona.imageUrl, persona.id);
+          const keyTags = pickPersonaListKeyTags(persona);
 
           const personaChips = (
             <Stack direction="row" flexWrap="wrap" alignItems="center" sx={{ gap: 0.75 }}>
@@ -529,24 +535,28 @@ export function MsqdxGlassPersonasOverview({
                   }}
                 />
               ) : null}
-              <Tooltip title={t("personaAdmin.confidenceHint")}>
-                <Box component="span" sx={{ display: "inline-flex" }}>
-                  <MsqdxChip
-                    variant="outlined"
-                    size="small"
-                    label={t("personaAdmin.confidencePercent", {
-                      value: Math.round(Math.min(1, Math.max(0, persona.confidence)) * 100),
-                    })}
-                    sx={{
-                      borderColor: "divider",
-                      height: 24,
-                      "& .MuiChip-label": { fontSize: "0.7rem" },
-                    }}
-                  />
-                </Box>
-              </Tooltip>
+              {keyTags.map((tag, index) => (
+                <MsqdxGlassPersonaChip
+                  key={`${persona.id}-${tag}`}
+                  label={tag}
+                  variant={personaListKeyTagVariant(index)}
+                />
+              ))}
             </Stack>
           );
+
+          const personaKeyTagsInline =
+            keyTags.length > 0 ? (
+              <Stack direction="row" flexWrap="wrap" sx={{ gap: 0.5, mt: 0.5 }}>
+                {keyTags.map((tag, index) => (
+                  <MsqdxGlassPersonaChip
+                    key={`${persona.id}-inline-${tag}`}
+                    label={tag}
+                    variant={personaListKeyTagVariant(index)}
+                  />
+                ))}
+              </Stack>
+            ) : null;
 
           if (isListLayout) {
             return (
@@ -584,6 +594,7 @@ export function MsqdxGlassPersonasOverview({
                   <MsqdxTypography variant="caption" color="text.secondary" sx={{ display: "block" }}>
                     {persona.segment || "—"}
                   </MsqdxTypography>
+                  <Box sx={{ display: { xs: "block", sm: "none" } }}>{personaKeyTagsInline}</Box>
                 </Box>
                 <Box sx={{ display: { xs: "none", sm: "flex" }, flexShrink: 0 }}>{personaChips}</Box>
                 <MsqdxIcon name="chevron_right" customSize={22} style={{ color: accent, flexShrink: 0 }} />

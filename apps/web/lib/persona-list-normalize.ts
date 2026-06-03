@@ -1,4 +1,4 @@
-import type { PersonaListItem, PersonaListResponse } from "@msqdx-glass/types";
+import type { PersonaListItem, PersonaListResponse, PersonaProfile } from "@msqdx-glass/types";
 
 function pickStr(...vals: unknown[]): string | undefined {
   for (const v of vals) {
@@ -44,6 +44,8 @@ export function normalizePersonaListItem(raw: unknown): PersonaListItem {
     updatedBy: pickStr(r.updatedBy, r.updated_by) ?? null,
     imageUrl: (pickStr(r.imageUrl, r.image_url) ?? null) as string | null,
     avatarUrl: (pickStr(r.avatarUrl, r.avatar_url) ?? null) as string | null,
+    profileCard: (r.profileCard ?? r.profile_card ?? null) as Record<string, unknown> | null,
+    profile: (r.profile ?? null) as PersonaProfile | null,
   };
 }
 
