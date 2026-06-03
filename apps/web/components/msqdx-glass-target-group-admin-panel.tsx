@@ -802,6 +802,8 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                     entitySyncKey={selectedId ?? ""}
                     onSave={handleFieldSave}
                     inline
+                    alwaysEditMode={isV2Section}
+                    savePending={savePending}
                     disabled={savePending}
                   />
               </TargetGroupAdminSectionSurface>

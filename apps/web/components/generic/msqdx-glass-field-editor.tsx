@@ -20,6 +20,9 @@ export type MsqdxGlassFieldEditorProps = {
   onEditStart?: () => void;
   onEditEnd?: () => void;
   forceEditMode?: boolean;
+  /** Always show inputs (no click-to-edit); save snackbar appears when the value changes. */
+  alwaysEditMode?: boolean;
+  saving?: boolean;
   /**
    * Pass stable entity/selection id (e.g. `selectedId` or `profile.id`) so background detail refreshes
    * do not reset the inline value while the user is editing.
@@ -41,10 +44,12 @@ export const MsqdxGlassFieldEditor = ({
   onEditStart,
   onEditEnd,
   forceEditMode = false,
+  alwaysEditMode = false,
+  saving = false,
   valueSyncKey,
 }: MsqdxGlassFieldEditorProps) => {
   const { t } = useI18n();
-  const [editing, setEditing] = useState(forceEditMode);
+  const [editing, setEditing] = useState(forceEditMode || alwaysEditMode);
 
   const resolveLabel = (key: string | undefined, fallback: string) => {
     if (!key) return fallback;
@@ -59,11 +64,11 @@ export const MsqdxGlassFieldEditor = ({
 
   // Update editing state when forceEditMode changes
   useEffect(() => {
-    if (forceEditMode) {
+    if (forceEditMode || alwaysEditMode) {
       setEditing(true);
       onEditStart?.();
     }
-  }, [forceEditMode, onEditStart]);
+  }, [forceEditMode, alwaysEditMode, onEditStart]);
   const fieldRef = useRef<HTMLDivElement>(null);
 
   const inlineEdit = useInlineEdit({
@@ -82,46 +87,67 @@ export const MsqdxGlassFieldEditor = ({
     },
   });
 
+  const setFieldValue = useCallback(
+    (next: unknown) => {
+      inlineEdit.setValue(next);
+      if (alwaysEditMode) {
+        onChange(field.key, next);
+      }
+    },
+    [alwaysEditMode, field.key, inlineEdit, onChange]
+  );
+
   const handleSave = useCallback(async () => {
     if (onSave) {
       try {
         await onSave(field.key, inlineEdit.getValue());
         onChange(field.key, inlineEdit.getValue());
-        setEditing(false);
-        onEditEnd?.();
+        if (alwaysEditMode) {
+          setTimeout(() => {
+            inlineEdit.sync();
+          }, 100);
+        } else {
+          setEditing(false);
+          onEditEnd?.();
+        }
       } catch (error) {
         console.error(`Save failed for field ${field.key}:`, error);
         throw error;
       }
     } else {
       onChange(field.key, inlineEdit.getValue());
-      setEditing(false);
-      onEditEnd?.();
+      if (!alwaysEditMode) {
+        setEditing(false);
+        onEditEnd?.();
+      }
     }
-  }, [field.key, inlineEdit, onChange, onSave, onEditEnd]);
+  }, [field.key, inlineEdit, onChange, onSave, onEditEnd, alwaysEditMode]);
 
   const handleCancel = useCallback(() => {
     inlineEdit.reset();
-    setEditing(false);
-    onEditEnd?.();
-  }, [inlineEdit, onEditEnd]);
+    if (!alwaysEditMode) {
+      setEditing(false);
+      onEditEnd?.();
+    }
+  }, [inlineEdit, onEditEnd, alwaysEditMode]);
 
   // Render field input based on type
   const renderFieldInput = () => {
     const currentValue = inlineEdit.value ?? (field.type === "boolean" ? false : null);
+    const showFieldLabel = !inline || alwaysEditMode;
 
     switch (field.type) {
       case "text":
         return (
           <MsqdxFormField
-            label={inline ? "" : fieldLabel}
+            label={showFieldLabel ? fieldLabel : ""}
             value={currentValue ?? ""}
-            onChange={(e) => inlineEdit.setValue(e.target.value || null)}
+            onChange={(e) => setFieldValue(e.target.value || null)}
             inputRef={inlineEdit.elementRef as React.RefObject<HTMLInputElement>}
             placeholder={field.config?.placeholder}
             disabled={disabled}
             required={field.config?.required}
-            autoFocus
+            autoFocus={!alwaysEditMode}
             fullWidth
             sx={FORM_FIELD_ACCENT_SX}
           />
@@ -130,14 +156,14 @@ export const MsqdxGlassFieldEditor = ({
       case "textarea":
         return (
           <MsqdxTextareaField
-            label={inline ? "" : fieldLabel}
+            label={showFieldLabel ? fieldLabel : ""}
             value={currentValue ?? ""}
-            onChange={(e) => inlineEdit.setValue(e.target.value || null)}
+            onChange={(e) => setFieldValue(e.target.value || null)}
             inputRef={inlineEdit.elementRef as React.RefObject<HTMLInputElement>}
             placeholder={field.config?.placeholder}
             disabled={disabled}
             required={field.config?.required}
-            autoFocus
+            autoFocus={!alwaysEditMode}
             fullWidth
             minRows={3}
             size="small"
@@ -148,18 +174,18 @@ export const MsqdxGlassFieldEditor = ({
       case "number":
         return (
           <MsqdxFormField
-            label={inline ? "" : fieldLabel}
+            label={showFieldLabel ? fieldLabel : ""}
             type="number"
             value={currentValue ?? ""}
             onChange={(e) => {
               const numValue = e.target.value ? Number(e.target.value) : null;
-              inlineEdit.setValue(numValue);
+              setFieldValue(numValue);
             }}
             inputRef={inlineEdit.elementRef as React.RefObject<HTMLInputElement>}
             placeholder={field.config?.placeholder}
             disabled={disabled}
             required={field.config?.required}
-            autoFocus
+            autoFocus={!alwaysEditMode}
             fullWidth
             sx={FORM_FIELD_ACCENT_SX}
           />
@@ -172,7 +198,7 @@ export const MsqdxGlassFieldEditor = ({
             {/* @ts-expect-error MsqdxSlider ForwardRef type conflicts with React 19 inference */}
             <MsqdxSlider
               value={sliderValue}
-              onChange={(_, newValue) => inlineEdit.setValue(Array.isArray(newValue) ? newValue[0] : newValue)}
+              onChange={(_, newValue) => setFieldValue(Array.isArray(newValue) ? newValue[0] : newValue)}
               min={field.config?.min ?? 0}
               max={field.config?.max ?? 100}
               step={field.config?.step ?? 1}
@@ -201,14 +227,14 @@ export const MsqdxGlassFieldEditor = ({
         ];
         return (
           <MsqdxSelect
-            label={inline ? "" : fieldLabel}
+            label={showFieldLabel ? fieldLabel : ""}
             options={selectOptions}
             value={currentValue ?? ""}
-            onChange={(e) => inlineEdit.setValue(e.target.value || null)}
+            onChange={(e) => setFieldValue(e.target.value || null)}
             inputRef={inlineEdit.elementRef as React.RefObject<HTMLInputElement>}
             disabled={disabled}
             required={field.config?.required}
-            autoFocus
+            autoFocus={!alwaysEditMode}
             fullWidth
             size="small"
             displayEmpty
@@ -221,26 +247,26 @@ export const MsqdxGlassFieldEditor = ({
           <Checkbox
             inputRef={inlineEdit.elementRef as React.RefObject<HTMLInputElement>}
             checked={currentValue ?? false}
-            onChange={(e) => inlineEdit.setValue(e.target.checked)}
+            onChange={(e) => setFieldValue(e.target.checked)}
             disabled={disabled}
-            autoFocus
+            autoFocus={!alwaysEditMode}
           />
         );
 
       case "date":
         return (
           <MsqdxFormField
-            label={inline ? "" : fieldLabel}
+            label={showFieldLabel ? fieldLabel : ""}
             type="date"
             value={currentValue ? new Date(currentValue).toISOString().split("T")[0] : ""}
             onChange={(e) => {
               const dateValue = e.target.value ? new Date(e.target.value).toISOString() : null;
-              inlineEdit.setValue(dateValue);
+              setFieldValue(dateValue);
             }}
             inputRef={inlineEdit.elementRef as React.RefObject<HTMLInputElement>}
             disabled={disabled}
             required={field.config?.required}
-            autoFocus
+            autoFocus={!alwaysEditMode}
             fullWidth
             sx={FORM_FIELD_ACCENT_SX}
             InputLabelProps={{ shrink: true }}
@@ -259,6 +285,23 @@ export const MsqdxGlassFieldEditor = ({
     }
   }, [editing, inlineEdit.hasChanges]);
 
+  // Always-visible inputs (e.g. TG v2 basics)
+  if (alwaysEditMode) {
+    return (
+      <Box ref={fieldRef} sx={{ position: "relative" }}>
+        {renderFieldInput()}
+        <MsqdxGlassInlineEditControls
+          hasChanges={inlineEdit.hasChanges}
+          saving={saving}
+          onSave={handleSave}
+          onDiscard={handleCancel}
+          anchorElement={fieldRef.current}
+          position="bottom"
+        />
+      </Box>
+    );
+  }
+
   // Inline-Edit Mode
   if (inline) {
     if (editing) {
@@ -269,6 +312,7 @@ export const MsqdxGlassFieldEditor = ({
           </Box>
           <MsqdxGlassInlineEditControls
             hasChanges={inlineEdit.hasChanges}
+            saving={saving}
             onSave={handleSave}
             onDiscard={handleCancel}
             anchorElement={fieldRef.current}

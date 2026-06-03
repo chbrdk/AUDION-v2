@@ -22,6 +22,9 @@ export type MsqdxGlassEntityEditorProps<T extends Record<string, any>> = {
   inline?: boolean;
   disabled?: boolean;
   showGroups?: boolean; // Zeige Gruppierung an
+  /** Always show inputs; save snackbar on change (TG v2 basics). */
+  alwaysEditMode?: boolean;
+  savePending?: boolean;
 };
 
 /**
@@ -37,6 +40,8 @@ export const MsqdxGlassEntityEditor = <T extends Record<string, any>>({
   inline = true,
   disabled = false,
   showGroups = true,
+  alwaysEditMode = false,
+  savePending = false,
 }: MsqdxGlassEntityEditorProps<T>) => {
   const { t } = useI18n();
   const [localEntity, setLocalEntity] = useState<T>(entity);
@@ -153,7 +158,7 @@ export const MsqdxGlassEntityEditor = <T extends Record<string, any>>({
             })() : field.label;
             return (
             <Box key={field.key}>
-              {inline ? (
+              {inline && !alwaysEditMode ? (
                 <Box sx={{ display: "flex", alignItems: "flex-start", gap: 2 }}>
                   <Typography
                     variant="body2"
@@ -173,6 +178,8 @@ export const MsqdxGlassEntityEditor = <T extends Record<string, any>>({
                       onSave={handleFieldSave}
                       inline={inline}
                       disabled={disabled}
+                      alwaysEditMode={alwaysEditMode}
+                      saving={savePending || saving}
                       valueSyncKey={entitySyncKey || undefined}
                     />
                   </Box>
@@ -185,6 +192,8 @@ export const MsqdxGlassEntityEditor = <T extends Record<string, any>>({
                   onSave={handleFieldSave}
                   inline={false}
                   disabled={disabled}
+                  alwaysEditMode={alwaysEditMode}
+                  saving={savePending || saving}
                   valueSyncKey={entitySyncKey || undefined}
                 />
               )}
