@@ -45,6 +45,7 @@ import {
   type TargetGroupAdminPresentation,
 } from "../lib/target-group-v2-section-visibility";
 import { TargetGroupAdminSectionSurface } from "./target-groups-v2/target-group-admin-section-surface";
+import { MsqdxGlassTargetGroupPersonasPanel } from "./target-groups-v2/msqdx-glass-target-group-personas-panel";
 import { MsqdxGlassPainGoalsSectorSeparator } from "./generic/msqdx-glass-pain-goals-sector-separator";
 import { targetGroupV2PersonaDetailHref } from "../lib/target-group-v2-persona-link";
 import { ADMIN_ROUTES } from "../lib/routes";
@@ -557,15 +558,16 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
   const handleCreatePersona = async (request: TargetGroupPersonaGenerateRequest) => {
     if (!selectedId) {
       notify(t("targetGroupsAdmin.toasts.selectTargetGroup"));
-      return;
+      throw new Error("no_target_group");
     }
     setCreatePersonaPending(true);
     try {
-      await generateTargetGroupPersona(selectedId, request);
-      await loadDetail(selectedId); // Reload to update persona list
+      const created = await generateTargetGroupPersona(selectedId, request);
+      await loadDetail(selectedId);
       notify(t("targetGroupsAdmin.toasts.personaCreated"));
       setPersonaFormExpanded(false);
       setPersonaForm(defaultPersonaForm);
+      return created;
     } catch (error) {
       console.error("Persona creation failed:", error);
       notify(t("targetGroupsAdmin.toasts.personaCreateError"));
@@ -897,7 +899,45 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                 icon="person"
                 expanded={isAccordionExpanded("personas")}
                 onToggle={toggleAccordion}
+                hideBlockTitle={isV2Section}
               >
+                  {isV2Section && selectedId && detail ? (
+                    <MsqdxGlassTargetGroupPersonasPanel
+                      targetGroupId={selectedId}
+                      targetGroupName={detail.name}
+                      targetGroupSegment={detail.segment}
+                      personas={personas}
+                      generatePending={createPersonaPending}
+                      getPersonaDetailHref={targetGroupV2PersonaDetailHref}
+                      onGenerate={handleCreatePersona}
+                      onDelete={async (personaId: string) => {
+                        const persona = personas.find((p) => p.id === personaId);
+                        const personaName = persona?.name || t("targetGroupsAdmin.thisPersona");
+                        const confirmed = window.confirm(
+                          t("targetGroupsAdmin.deletePersonaConfirm", { name: personaName })
+                        );
+                        if (!confirmed) {
+                          return;
+                        }
+                        try {
+                          const response = await fetch(
+                            buildApiUrl(`/api/persona-admin/${personaId}?actor=persona-admin-ui`),
+                            { method: "DELETE" }
+                          );
+                          if (!response.ok) {
+                            throw new Error(`Backend responded with ${response.status}`);
+                          }
+                          const personasData = await fetchTargetGroupPersonas(selectedId);
+                          setPersonas(personasData.items);
+                          notify(t("targetGroupsAdmin.toasts.personaDeleted"));
+                        } catch (error) {
+                          console.error("Persona delete failed", error);
+                          notify(t("targetGroupsAdmin.toasts.deleteFailed"));
+                        }
+                      }}
+                    />
+                  ) : (
+                  <>
                   <MsqdxGlassPersonaList
                     personas={personas}
                     getPersonaDetailHref={isV2Section ? targetGroupV2PersonaDetailHref : undefined}
@@ -932,8 +972,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                       }
                     }}
                   />
-                  {isV2Section ? <MsqdxGlassPainGoalsSectorSeparator /> : null}
-                  <Box sx={{ mt: isV2Section ? 0 : 2, p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
+                  <Box sx={{ mt: 2, p: 2, border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
                     <MsqdxTypography variant="subtitle2" weight="semibold" sx={{ mb: 1.5 }}>{t("targetGroupsAdmin.createPersona")}</MsqdxTypography>
                     <Box
                       component="form"
@@ -966,12 +1005,14 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                         size="small"
                         type="submit"
                         disabled={createPersonaPending || !personaForm.segment.trim()}
-                        startIcon={<MsqdxIcon name={createPersonaPending ? "hourglass_empty" : "add"} customSize={14} />}
+                        startIcon={<MsqdxIcon name={createPersonaPending ? "hourglass_empty" : "auto_awesome"} customSize={14} />}
                       >
-                        {createPersonaPending ? t("targetGroupsAdmin.creating") : t("targetGroupsAdmin.createButton")}
+                        {createPersonaPending ? t("personaAdmin.generateWithAiGenerating") : t("personaAdmin.generateWithAiSubmit")}
                       </MsqdxButton>
                     </Box>
                   </Box>
+                  </>
+                  )}
               </TargetGroupAdminSectionSurface>
               ) : null}
 

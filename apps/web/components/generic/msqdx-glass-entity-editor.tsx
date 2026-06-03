@@ -194,36 +194,55 @@ export const MsqdxGlassEntityEditor = <T extends Record<string, any>>({
     );
   };
 
+  const bilingualLocaleCaptionSx = {
+    fontWeight: 600,
+    textTransform: "uppercase",
+    letterSpacing: "0.06em",
+    color: "text.secondary",
+    mb: 0.75,
+  } as const;
+
+  const renderBilingualFieldCell = (
+    field: FieldDefinition,
+    localeLabel: string,
+    labelField?: FieldDefinition
+  ) => (
+    <Box className="msqdx-glass-entity-editor__bilingual-cell">
+      <Typography
+        variant="caption"
+        className="msqdx-glass-entity-editor__bilingual-cell-locale"
+        sx={{
+          ...bilingualLocaleCaptionSx,
+          display: { xs: "block", sm: "none" },
+        }}
+      >
+        {localeLabel}
+      </Typography>
+      {renderFieldEditor(field, labelField)}
+    </Box>
+  );
+
   const renderBilingualGroupFields = (groupFields: FieldDefinition[]) => {
     const rows = buildBilingualFieldRows(groupFields);
+    const columnEn = t("entityEditor.columnEn");
+    const columnDe = t("entityEditor.columnDe");
 
     return (
       <Stack spacing={2} className="msqdx-glass-entity-editor__bilingual-grid">
         <Box
+          className="msqdx-glass-entity-editor__bilingual-columns"
           sx={{
-            display: "grid",
-            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+            display: { xs: "none", sm: "grid" },
+            gridTemplateColumns: "1fr 1fr",
             gap: 2,
             pb: 0.5,
           }}
         >
-          <Typography
-            variant="caption"
-            sx={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "text.secondary" }}
-          >
-            {t("entityEditor.columnEn")}
+          <Typography variant="caption" sx={bilingualLocaleCaptionSx}>
+            {columnEn}
           </Typography>
-          <Typography
-            variant="caption"
-            sx={{
-              fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: "0.06em",
-              color: "text.secondary",
-              display: { xs: "none", sm: "block" },
-            }}
-          >
-            {t("entityEditor.columnDe")}
+          <Typography variant="caption" sx={bilingualLocaleCaptionSx}>
+            {columnDe}
           </Typography>
         </Box>
         {rows.map((row) =>
@@ -237,8 +256,8 @@ export const MsqdxGlassEntityEditor = <T extends Record<string, any>>({
                 alignItems: "start",
               }}
             >
-              <Box>{renderFieldEditor(row.en)}</Box>
-              <Box>{renderFieldEditor(row.de, row.en)}</Box>
+              {renderBilingualFieldCell(row.en, columnEn)}
+              {renderBilingualFieldCell(row.de, columnDe, row.en)}
             </Box>
           ) : (
             <Box key={row.field.key}>{renderFieldEditor(row.field)}</Box>

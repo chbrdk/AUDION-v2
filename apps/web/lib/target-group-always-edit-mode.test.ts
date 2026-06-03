@@ -36,5 +36,7 @@ describe("alwaysEditMode field editor", () => {
     );
     expect(entityEditor).toContain("buildBilingualFieldRows");
     expect(entityEditor).toContain("msqdx-glass-entity-editor__bilingual-grid");
+    expect(entityEditor).toContain("msqdx-glass-entity-editor__bilingual-cell-locale");
+    expect(entityEditor).toContain('display: { xs: "block", sm: "none" }');
   });
 });

@@ -562,6 +562,16 @@
     "sectionsNavLabel": "Zielgruppen-Bereiche",
     "backToList": "Alle Zielgruppen",
     "openClassicList": "Klassische Liste",
+    "personas": {
+      "viewCards": "Kartenansicht",
+      "viewList": "Listenansicht",
+      "layoutToggleLabel": "Persona-Layout",
+      "newPersona": "Neue Persona",
+      "newPersonaHint": "Mit KI aus dem Kontext dieser Zielgruppe erzeugen",
+      "generateTitle": "Persona mit KI erzeugen",
+      "generateIntro": "Nutzt Wissen und Kontext von „{name}“. Archetyp-Label und optionale Fokus-Notizen ergänzen.",
+      "generateDialogIntro": "Persona für „{name}“ erzeugen — mit Wissen, Dokumenten und Projektkontext dieser Zielgruppe."
+    },
     "sections": {
       "basics": {
         "label": "Basics",

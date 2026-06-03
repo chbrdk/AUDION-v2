@@ -562,6 +562,16 @@
     "sectionsNavLabel": "Target group areas",
     "backToList": "All target groups",
     "openClassicList": "Classic list",
+    "personas": {
+      "viewCards": "Card view",
+      "viewList": "List view",
+      "layoutToggleLabel": "Persona layout",
+      "newPersona": "New persona",
+      "newPersonaHint": "Generate with AI from this target group's context",
+      "generateTitle": "Generate persona with AI",
+      "generateIntro": "Uses knowledge and context from “{name}”. Add an archetype label and optional focus notes.",
+      "generateDialogIntro": "Generate a persona for “{name}” using this target group's knowledge, documents, and project context."
+    },
     "sections": {
       "basics": {
         "label": "Basics",
