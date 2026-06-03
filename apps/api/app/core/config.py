@@ -123,6 +123,10 @@ class Settings(BaseSettings):
     moodboard_openai_size: str = "1024x1024"
     moodboard_openai_image_count: int = 8
     moodboard_openai_request_timeout_seconds: float = 120.0
+    # When stock best-score is below this, hybrid mode generates that category via OpenAI (if key set).
+    moodboard_stock_min_score: float = 1.5
+    moodboard_hybrid_openai: bool = True
+    moodboard_palette_fetch_timeout_seconds: float = 15.0
 
     # Upload size limits (bytes). Reject with 413 if exceeded.
     upload_max_document_bytes: int = 10 * 1024 * 1024  # 10 MB for documents

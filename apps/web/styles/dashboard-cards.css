@@ -1405,6 +1405,33 @@
   color: var(--color-text-on-light) !important;
 }
 
+.msqdx-glass-moodboard-swatches {
+  margin-top: var(--msqdx-spacing-sm, 12px);
+}
+
+.msqdx-glass-moodboard-swatches__label {
+  display: block;
+  margin-bottom: 6px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+
+.msqdx-glass-moodboard-swatches__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.msqdx-glass-moodboard-swatches__dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+
 .msqdx-glass-moodboard-palette {
   display: flex;
   flex-wrap: wrap;

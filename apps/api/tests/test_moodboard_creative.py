@@ -43,7 +43,7 @@ def test_pack_unpack_style_keywords_roundtrip() -> None:
     kw = derive_style_keywords(persona, sig)  # type: ignore[arg-type]
     package = heuristic_style_package(persona, sig, kw)  # type: ignore[arg-type]
     packed = pack_style_keywords(package)
-    keywords, manifest, palette, directions = unpack_style_keywords(packed)
+    keywords, manifest, palette, directions, swatches = unpack_style_keywords(packed)
     assert keywords
     assert manifest
     assert palette
@@ -80,8 +80,9 @@ def test_score_stock_penalizes_generic_corporate() -> None:
     assert score_stock_candidate(good, query="sportscar lifestyle", category="lifestyle", package=package) > score_stock_candidate(
         bad, query="sportscar lifestyle", category="lifestyle", package=package
     )
-    picked = pick_best_stock_image([bad, good], query="sportscar lifestyle", category="lifestyle", package=package)
+    picked, score = pick_best_stock_image([bad, good], query="sportscar lifestyle", category="lifestyle", package=package)
     assert picked is good
+    assert score > 0
 
 
 def test_build_category_queries_stays_short() -> None:

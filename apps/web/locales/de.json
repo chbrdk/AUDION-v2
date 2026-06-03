@@ -597,7 +597,10 @@
       "generating": "Wird zusammengestellt…",
       "emptyTitle": "Noch keine Bildwelt",
       "emptyBody": "Generiere ein Moodboard aus Profil und Traits — Kacheln nach Kategorien mit Farbe, Alltag und Haptik.",
-      "locked": "Gesperrt"
+      "locked": "Gesperrt",
+      "paletteFromTiles": "Farben aus dem Board",
+      "lockTile": "Kachel sperren (bleibt beim Neuaufbau)",
+      "unlockTile": "Sperre aufheben"
     }
   },
   "personaAdmin": {

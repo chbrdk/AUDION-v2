@@ -163,7 +163,9 @@ def _serialize_moodboard(session: Session, moodboard: PersonaMoodboard) -> Moodb
         )
         .all()
     )
-    keywords, mood_manifest, palette_hints, _directions = unpack_style_keywords(moodboard.style_keywords)
+    keywords, mood_manifest, palette_hints, _directions, palette_swatches = unpack_style_keywords(
+        moodboard.style_keywords
+    )
     project_uuid = moodboard.project_id
     if project_uuid is None:
         persona_obj = session.get(Persona, moodboard.persona_id)
@@ -178,6 +180,7 @@ def _serialize_moodboard(session: Session, moodboard: PersonaMoodboard) -> Moodb
         styleKeywords=keywords,
         moodManifest=mood_manifest,
         paletteHints=palette_hints,
+        paletteSwatches=palette_swatches,
         tiles=[
             _serialize_moodboard_tile(t, persona_id=moodboard.persona_id, project_id=project_uuid)
             for t in tiles

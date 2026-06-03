@@ -94,7 +94,18 @@ Implementation:
 
 - Brief explicitly bans generic corporate/handshake/startup imagery
 - Stock pool scored; low-scoring generic URLs deprioritized
+- **Hybrid:** if best stock score &lt; `MOODBOARD_STOCK_MIN_SCORE` (default 1.5) and `MOODBOARD_HYBRID_OPENAI=true`, that category is generated via OpenAI instead
 - OpenAI prompts: editorial, no logos/text/watermarks, persona-specific direction per category
+
+### Locked tiles on rebuild
+
+- PATCH tile `locked: true` — tile is kept when admin triggers **Rebuild**
+- Only unlocked tiles are deleted before re-sourcing; locked categories are skipped
+
+### Palette swatches
+
+- After build, dominant colors are extracted from tile images (`moodboard_palette.py`) → `paletteSwatches` in `style_keywords` JSON
+- UI shows circular swatches under the mood manifest (v2 section)
 
 ## API endpoints
 

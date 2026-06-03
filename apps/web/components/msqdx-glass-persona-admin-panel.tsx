@@ -124,6 +124,7 @@ type Moodboard = {
   styleKeywords?: string[];
   moodManifest?: string | null;
   paletteHints?: string[];
+  paletteSwatches?: { hex: string; weight?: number }[];
   tiles: MoodboardTile[];
 };
 
@@ -610,6 +611,23 @@ export const MsqdxGlassPersonaAdminPanel = ({
       notify(e instanceof Error ? e.message : "Failed to save tile");
     } finally {
       setTileSavePending(false);
+    }
+  };
+
+  const handleToggleTileLock = async (tile: MoodboardTile) => {
+    if (!tile?.id) return;
+    try {
+      const res = await fetch(buildApiUrl(`/api/persona-admin/moodboard-tiles/${tile.id}`), {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ locked: !tile.locked }),
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(payload?.detail || payload?.error || `HTTP ${res.status}`);
+      if (selectedId) await loadMoodboard(selectedId);
+    } catch (e) {
+      notify(e instanceof Error ? e.message : "Failed to update tile lock");
     }
   };
 
@@ -2711,6 +2729,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
                     onGenerate={() => void handleGenerateMoodboard()}
                     onRebuild={() => void handleRebuildMoodboard()}
                     onEditTile={openTileDialog}
+                    onToggleTileLock={(tile) => void handleToggleTileLock(tile)}
                     onDeleteTile={(tile) => void handleDeleteTile(tile)}
                     canGenerate={Boolean(selectedId)}
                   />

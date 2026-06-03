@@ -246,6 +246,10 @@ class Moodboard(BaseModel):
         default_factory=list,
         description="Color/material hints for the moodboard atmosphere.",
     )
+    paletteSwatches: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Dominant colors extracted from tiles ({hex, weight}).",
+    )
     tiles: list[MoodboardTile] = Field(default_factory=list, description="Tiles in display order.")
     createdAt: datetime | None = None
     updatedAt: datetime | None = None

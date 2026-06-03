@@ -597,7 +597,10 @@
       "generating": "Composing…",
       "emptyTitle": "No visual world yet",
       "emptyBody": "Generate a moodboard from profile and traits — tiles by category with color, life, and touch.",
-      "locked": "Locked"
+      "locked": "Locked",
+      "paletteFromTiles": "Colors from the board",
+      "lockTile": "Lock tile (kept on rebuild)",
+      "unlockTile": "Unlock tile"
     }
   },
   "personaAdmin": {

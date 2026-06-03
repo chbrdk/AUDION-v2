@@ -6,6 +6,7 @@ import { MsqdxButton, MsqdxChip, MsqdxIcon, MsqdxTypography } from "@msqdx/react
 import { MsqdxGlassEditButton } from "../generic/msqdx-glass-edit-button";
 import { useI18n } from "../i18n/i18n-provider";
 import { sortMoodboardTiles } from "../../lib/moodboard";
+import { normalizePaletteSwatches, type MoodboardPaletteSwatch } from "../../lib/moodboard-palette";
 import {
   moodboardCategoryDisplayLabel,
   moodboardCategoryMoodLine,
@@ -32,6 +33,7 @@ export type PersonaMoodboard = {
   styleKeywords?: string[];
   moodManifest?: string | null;
   paletteHints?: string[];
+  paletteSwatches?: MoodboardPaletteSwatch[];
   tiles: PersonaMoodboardTile[];
 };
 
@@ -44,6 +46,7 @@ export type MsqdxGlassPersonaMoodboardSectionProps = {
   onGenerate: () => void;
   onRebuild: () => void;
   onEditTile: (tile: PersonaMoodboardTile) => void;
+  onToggleTileLock?: (tile: PersonaMoodboardTile) => void;
   onDeleteTile: (tile: PersonaMoodboardTile) => void;
   canGenerate: boolean;
 };
@@ -57,6 +60,7 @@ export function MsqdxGlassPersonaMoodboardSection({
   onGenerate,
   onRebuild,
   onEditTile,
+  onToggleTileLock,
   onDeleteTile,
   canGenerate,
 }: MsqdxGlassPersonaMoodboardSectionProps) {
@@ -67,6 +71,10 @@ export function MsqdxGlassPersonaMoodboardSection({
   const sortedTiles = useMemo(
     () => (moodboard?.tiles?.length ? sortMoodboardTiles(moodboard.tiles) : []),
     [moodboard?.tiles]
+  );
+  const paletteSwatches = useMemo(
+    () => normalizePaletteSwatches(moodboard?.paletteSwatches),
+    [moodboard?.paletteSwatches]
   );
   const isBuilding = pending || status === "building" || status === "draft";
   const hasTiles = sortedTiles.length > 0;
@@ -104,6 +112,24 @@ export function MsqdxGlassPersonaMoodboardSection({
                   : t("personaV2.moodboard.atmosphereLead")}
               </MsqdxTypography>
             )}
+            {paletteSwatches.length ? (
+              <Box className="msqdx-glass-moodboard-swatches" aria-label={t("personaV2.moodboard.paletteFromTiles")}>
+                <MsqdxTypography variant="caption" className="msqdx-glass-moodboard-swatches__label">
+                  {t("personaV2.moodboard.paletteFromTiles")}
+                </MsqdxTypography>
+                <Box className="msqdx-glass-moodboard-swatches__row" role="list">
+                  {paletteSwatches.map((swatch) => (
+                    <Box
+                      key={swatch.hex}
+                      role="listitem"
+                      className="msqdx-glass-moodboard-swatches__dot"
+                      title={swatch.hex}
+                      sx={{ backgroundColor: swatch.hex }}
+                    />
+                  ))}
+                </Box>
+              </Box>
+            ) : null}
             {moodboard?.paletteHints?.length ? (
               <Box className="msqdx-glass-moodboard-palette" role="list">
                 {moodboard.paletteHints.slice(0, 5).map((hint) => (
@@ -243,6 +269,31 @@ export function MsqdxGlassPersonaMoodboardSection({
                     ) : null}
                   </Box>
                   <Box className="msqdx-glass-moodboard-tile__actions">
+                    {onToggleTileLock ? (
+                      <Tooltip
+                        title={
+                          tile.locked
+                            ? t("personaV2.moodboard.unlockTile")
+                            : t("personaV2.moodboard.lockTile")
+                        }
+                      >
+                        <span>
+                          <MsqdxButton
+                            variant="text"
+                            size="small"
+                            onClick={() => onToggleTileLock(tile)}
+                            sx={{ minWidth: 28, width: 28, height: 28, p: 0, borderRadius: "rounded" }}
+                            aria-label={
+                              tile.locked
+                                ? t("personaV2.moodboard.unlockTile")
+                                : t("personaV2.moodboard.lockTile")
+                            }
+                          >
+                            <MsqdxIcon name={tile.locked ? "lock" : "lock_open"} customSize={16} />
+                          </MsqdxButton>
+                        </span>
+                      </Tooltip>
+                    ) : null}
                     <Tooltip title={t("personaAdmin.edit")}>
                       <span>
                         <MsqdxGlassEditButton onClick={() => onEditTile(tile)} size="small" fontSize={14} />

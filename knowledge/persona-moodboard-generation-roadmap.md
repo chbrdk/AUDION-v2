@@ -5,15 +5,18 @@
 - **8 categories:** lifestyle, places, colors, textures, people, objects, ui, typography
 - **Style package** (`moodboard_creative.py`): mood manifest, keywords, palette hints, per-category directions, avoid-list (anti stock/AI slop)
 - **Stock:** one scored tile per category (not 4×6 flood)
+- **Hybrid stock/OpenAI:** weak stock → OpenAI for that category (`moodboard_stock_min_score`, `moodboard_hybrid_openai`)
+- **Locked tiles:** survive rebuild; quick lock in v2 UI
+- **Palette swatches:** extracted from tiles → `paletteSwatches` + UI dots
 - **OpenAI:** art-directed prompts from brief + avoid list; captions/rationale on tiles
-- **API:** `moodManifest`, `paletteHints` on moodboard payload
-- **UI:** manifest + palette chips in atmosphere block (`MsqdxGlassPersonaMoodboardSection`)
+- **API:** `moodManifest`, `paletteHints`, `paletteSwatches` on moodboard payload
+- **UI:** manifest, swatches, palette chips (`MsqdxGlassPersonaMoodboardSection`)
 
 ## Product ideas (next)
 
 | Idea | Why it helps uniqueness |
 |------|-------------------------|
-| **Dominant-color swatches** from final tiles | Real palette from persona board, not text hints |
+| ~~Dominant-color swatches~~ | Done — `paletteSwatches` |
 | **Sound grain / ambient loop** (short, licensed or gen) | Mood beyond visuals; optional mute in UI |
 | **Typography specimen tile** as real type sample image | Not generic “font” stock |
 | **Places tied to persona geography** | Cities/routes from profile, not random travel stock |

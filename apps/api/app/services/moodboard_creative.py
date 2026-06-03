@@ -18,6 +18,9 @@ logger = structlog.get_logger(__name__)
 settings = get_settings()
 
 # One hero tile per category → 8-tile bento (matches frontend layout).
+# Below this score, stock is treated as too generic — hybrid build may use OpenAI for the category.
+STOCK_ACCEPT_MIN_SCORE: float = 1.5
+
 MOODBOARD_CATEGORIES: tuple[str, ...] = (
     "lifestyle",
     "places",
@@ -227,17 +230,44 @@ def derive_style_keywords(persona: Persona, signals: MoodSignals | None = None) 
     return deduped[:14]
 
 
-def pack_style_keywords(package: MoodboardStylePackage) -> dict[str, Any]:
-    return {
+def pack_style_keywords(
+    package: MoodboardStylePackage,
+    *,
+    palette_swatches: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
         "keywords": package.keywords,
         "moodManifest": package.mood_manifest,
         "paletteHints": package.palette_hints,
         "avoid": package.avoid,
         "categoryDirections": package.category_directions,
     }
+    if palette_swatches:
+        payload["paletteSwatches"] = palette_swatches
+    return payload
 
 
-def unpack_style_keywords(raw: Any) -> tuple[list[str], str | None, list[str], dict[str, str]]:
+def _normalize_palette_swatches(raw: Any) -> list[dict[str, Any]]:
+    if not isinstance(raw, list):
+        return []
+    out: list[dict[str, Any]] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        hex_val = item.get("hex")
+        if not isinstance(hex_val, str) or not hex_val.startswith("#"):
+            continue
+        weight = item.get("weight")
+        entry: dict[str, Any] = {"hex": hex_val.lower()}
+        if isinstance(weight, (int, float)):
+            entry["weight"] = round(float(weight), 3)
+        out.append(entry)
+    return out[:8]
+
+
+def unpack_style_keywords(
+    raw: Any,
+) -> tuple[list[str], str | None, list[str], dict[str, str], list[dict[str, Any]]]:
     if isinstance(raw, dict):
         keywords = [s for s in raw.get("keywords") or [] if isinstance(s, str)]
         manifest = raw.get("moodManifest")
@@ -249,10 +279,11 @@ def unpack_style_keywords(raw: Any) -> tuple[list[str], str | None, list[str], d
             for k, v in directions_raw.items():
                 if isinstance(k, str) and isinstance(v, str) and v.strip():
                     directions[k.strip().lower()] = v.strip()
-        return keywords, manifest_str, palette, directions
+        swatches = _normalize_palette_swatches(raw.get("paletteSwatches"))
+        return keywords, manifest_str, palette, directions, swatches
     if isinstance(raw, list):
-        return [s for s in raw if isinstance(s, str)], None, [], {}
-    return [], None, [], {}
+        return [s for s in raw if isinstance(s, str)], None, [], {}, []
+    return [], None, [], {}, []
 
 
 def _heuristic_manifest(persona: Persona, signals: MoodSignals, keywords: list[str]) -> str:
@@ -514,18 +545,22 @@ def pick_best_stock_image(
     query: str,
     category: str,
     package: MoodboardStylePackage,
-) -> OpenverseImage | None:
+) -> tuple[OpenverseImage | None, float]:
     if not candidates:
-        return None
+        return None, -999.0
     ranked = sorted(
         candidates,
         key=lambda img: score_stock_candidate(img, query=query, category=category, package=package),
         reverse=True,
     )
     best = ranked[0]
-    if score_stock_candidate(best, query=query, category=category, package=package) < -2:
-        return ranked[1] if len(ranked) > 1 else best
-    return best
+    best_score = score_stock_candidate(best, query=query, category=category, package=package)
+    if best_score < -2 and len(ranked) > 1:
+        alt = ranked[1]
+        alt_score = score_stock_candidate(alt, query=query, category=category, package=package)
+        if alt_score > best_score:
+            return alt, alt_score
+    return best, best_score
 
 
 def stock_tile_caption(*, category: str, package: MoodboardStylePackage) -> str:
