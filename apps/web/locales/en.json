@@ -72,6 +72,7 @@
     "personas": "Personas",
     "personasV2": "Personas (v2 preview)",
     "targetGroups": "Target Groups",
+    "targetGroupsV2": "Target groups (v2)",
     "journeys": "Journeys",
     "uxJourneyAgent": "UX Journey Agent",
     "profile": "Profile",
@@ -530,6 +531,41 @@
       "segmentRequired": "Segment is required.",
       "personaDeleted": "Persona deleted",
       "deleteFailed": "Delete failed"
+    }
+  },
+  "targetGroupV2": {
+    "scopeLabel": "Target groups",
+    "overviewTitle": "Target group library",
+    "libraryTitle": "All target groups",
+    "library": {
+      "viewCards": "Card view",
+      "viewList": "List view",
+      "layoutToggleLabel": "Target group library layout"
+    },
+    "sectionsNavLabel": "Target group areas",
+    "backToList": "All target groups",
+    "openClassicList": "Classic list",
+    "sections": {
+      "basics": {
+        "label": "Basics",
+        "description": "Name, segment, description, and metadata"
+      },
+      "personas": {
+        "label": "Personas",
+        "description": "Personas linked to this target group"
+      },
+      "knowledge": {
+        "label": "Knowledge",
+        "description": "Knowledge entries and notes"
+      },
+      "documents": {
+        "label": "Documents",
+        "description": "Uploaded files and ingestion status"
+      },
+      "explorer": {
+        "label": "Explorer",
+        "description": "Search and explore indexed knowledge"
+      }
     }
   },
   "personaV2": {

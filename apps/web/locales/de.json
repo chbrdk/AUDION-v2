@@ -72,6 +72,7 @@
     "personas": "Personas",
     "personasV2": "Personas (v2 Vorschau)",
     "targetGroups": "Zielgruppen",
+    "targetGroupsV2": "Zielgruppen (v2)",
     "journeys": "Journeys",
     "uxJourneyAgent": "UX Journey Agent",
     "profile": "Profil",
@@ -530,6 +531,41 @@
       "segmentRequired": "Segment ist Pflicht.",
       "personaDeleted": "Persona gelöscht",
       "deleteFailed": "Löschen fehlgeschlagen"
+    }
+  },
+  "targetGroupV2": {
+    "scopeLabel": "Zielgruppen",
+    "overviewTitle": "Zielgruppen-Bibliothek",
+    "libraryTitle": "Alle Zielgruppen",
+    "library": {
+      "viewCards": "Kartenansicht",
+      "viewList": "Listenansicht",
+      "layoutToggleLabel": "Layout der Zielgruppen-Bibliothek"
+    },
+    "sectionsNavLabel": "Zielgruppen-Bereiche",
+    "backToList": "Alle Zielgruppen",
+    "openClassicList": "Klassische Liste",
+    "sections": {
+      "basics": {
+        "label": "Basics",
+        "description": "Name, Segment, Beschreibung und Metadaten"
+      },
+      "personas": {
+        "label": "Personas",
+        "description": "Mit dieser Zielgruppe verknüpfte Personas"
+      },
+      "knowledge": {
+        "label": "Knowledge",
+        "description": "Knowledge-Einträge und Notizen"
+      },
+      "documents": {
+        "label": "Dokumente",
+        "description": "Hochgeladene Dateien und Index-Status"
+      },
+      "explorer": {
+        "label": "Explorer",
+        "description": "Indexiertes Wissen durchsuchen"
+      }
     }
   },
   "personaV2": {

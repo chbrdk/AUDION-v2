@@ -31,11 +31,15 @@ import {
   type TargetGroupSuggestionDto,
 } from "../../lib/projects-suggest-target-groups";
 import { ADMIN_ROUTES } from "../../lib/routes";
+import type { TargetGroupsOverviewViewMode } from "../../lib/target-groups-overview-view-mode";
 import { useProject } from "../projects/project-provider";
 import { useI18n } from "../i18n/i18n-provider";
 
 export type MsqdxGlassTargetGroupsOverviewProps = {
   initialList: TargetGroupListResponse;
+  /** Override detail URL when opening a target group (e.g. target-groups-v2). */
+  getTargetGroupDetailHref?: (targetGroupId: string) => string;
+  layout?: TargetGroupsOverviewViewMode;
 };
 
 type CreateFormState = {
@@ -61,7 +65,11 @@ function extractTargetGroupId(payload: unknown): string | null {
   return anyPayload?.id ?? anyPayload?.targetGroupId ?? anyPayload?.target_group_id ?? null;
 }
 
-export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTargetGroupsOverviewProps) {
+export function MsqdxGlassTargetGroupsOverview({
+  initialList,
+  getTargetGroupDetailHref,
+  layout = "cards",
+}: MsqdxGlassTargetGroupsOverviewProps) {
   const { t, locale } = useI18n();
   const router = useRouter();
   const { activeProjectId, activeProject } = useProject();
@@ -85,6 +93,27 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
   const [aiError, setAiError] = useState<string | null>(null);
 
   const items = useMemo(() => list.items ?? [], [list.items]);
+  const isListLayout = layout === "list";
+
+  const targetGroupHref = (targetGroupId: string) =>
+    getTargetGroupDetailHref?.(targetGroupId) ?? ADMIN_ROUTES.targetGroupDetail(targetGroupId);
+
+  const listRowSx = {
+    display: "flex",
+    alignItems: "center",
+    gap: 1.5,
+    px: 2,
+    py: 1.25,
+    borderRadius: "var(--msqdx-radius-button, 12px)",
+    border: "1px solid",
+    borderColor: accent,
+    cursor: "pointer",
+    transition: "border-color 0.15s ease, background-color 0.15s ease",
+    "&:hover": {
+      borderColor: accent,
+      bgcolor: "rgba(0, 0, 0, 0.02)",
+    },
+  } as const;
 
   const refresh = async (projectId: string) => {
     setLoading(true);
@@ -158,7 +187,7 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
       setShowCreate(false);
       await refresh(activeProjectId);
       if (newId) {
-        router.push(ADMIN_ROUTES.targetGroupDetail(newId));
+        router.push(targetGroupHref(newId));
       }
     } catch (e) {
       setCreateError(e instanceof Error ? e.message : t("targetGroupsAdmin.toasts.createError"));
@@ -245,7 +274,7 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
       setSelectedAiIndices(new Set());
       await refresh(activeProjectId);
       if (lastId) {
-        router.push(ADMIN_ROUTES.targetGroupDetail(lastId));
+        router.push(targetGroupHref(lastId));
       }
     } catch (e) {
       setAiError(e instanceof Error ? e.message : t("targetGroupsAdmin.generateWithAiFailed"));
@@ -257,20 +286,63 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
   return (
     <Box sx={{ width: "100%" }} className="msqdx-glass-target-groups-overview">
       <Box
-        className="msqdx-glass-target-groups-grid"
-        sx={{
-          display: "grid",
-          gridTemplateColumns: {
-            xs: "1fr",
-            sm: "repeat(2, minmax(0, 1fr))",
-            lg: "repeat(3, minmax(0, 1fr))",
-          },
-          gap: 2,
-          alignItems: "start",
-        }}
+        className={isListLayout ? "msqdx-glass-target-groups-list" : "msqdx-glass-target-groups-grid"}
+        sx={
+          isListLayout
+            ? { display: "flex", flexDirection: "column", gap: 1 }
+            : {
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  sm: "repeat(2, minmax(0, 1fr))",
+                  lg: "repeat(3, minmax(0, 1fr))",
+                },
+                gap: 2,
+                alignItems: "start",
+              }
+        }
       >
         {/* Create Target Group */}
         {!showCreate ? (
+          isListLayout ? (
+            <Box
+              className="msqdx-glass-target-groups-list__row msqdx-glass-target-groups-list__row--create"
+              role="button"
+              tabIndex={0}
+              onClick={() => setShowCreate(true)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setShowCreate(true);
+                }
+              }}
+              sx={{ ...listRowSx, borderStyle: "dashed", minHeight: 56 }}
+            >
+              <MsqdxIcon name="add" customSize={22} style={{ color: accent, flexShrink: 0 }} />
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <MsqdxTypography variant="subtitle1" weight="semibold" sx={{ color: accent }}>
+                  {t("targetGroupsAdmin.newTargetGroup")}
+                </MsqdxTypography>
+                <MsqdxTypography variant="caption" color="text.secondary">
+                  {t("targetGroupsAdmin.namePlaceholder")}
+                </MsqdxTypography>
+              </Box>
+              <Tooltip title={t("targetGroupsAdmin.generateWithAi")}>
+                <IconButton
+                  size="small"
+                  aria-label={t("targetGroupsAdmin.generateWithAi")}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void openAiDialog();
+                  }}
+                  disabled={!activeProjectId}
+                  sx={{ color: accent }}
+                >
+                  <MsqdxIcon name="auto_awesome" customSize={22} />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          ) : (
           <MsqdxMoleculeCard
             variant="flat"
             borderRadius="button"
@@ -306,6 +378,7 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
               "& .MuiTypography-h6": { color: accent },
             }}
           />
+          )
         ) : (
           <MsqdxMoleculeCard
             variant="flat"
@@ -414,15 +487,47 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
           </MsqdxMoleculeCard>
         )}
 
-        {/* Target group cards */}
-        {items.map((tg) => (
+        {/* Target group cards / list rows */}
+        {items.map((tg) => {
+          if (isListLayout) {
+            return (
+              <Box
+                key={tg.id}
+                className="msqdx-glass-target-groups-list__row"
+                role="button"
+                tabIndex={0}
+                onClick={() => router.push(targetGroupHref(tg.id))}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    router.push(targetGroupHref(tg.id));
+                  }
+                }}
+                sx={listRowSx}
+              >
+                <MsqdxIcon name="groups" customSize={24} style={{ color: accent, flexShrink: 0 }} />
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <MsqdxTypography variant="subtitle1" weight="semibold" sx={{ color: accent }}>
+                    {tg.name}
+                  </MsqdxTypography>
+                  <MsqdxTypography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                    {tg.segment || "—"}
+                  </MsqdxTypography>
+                </Box>
+                <MsqdxChip variant="outlined" size="small" label={tg.segment || "—"} sx={{ display: { xs: "none", sm: "inline-flex" } }} />
+                <MsqdxIcon name="chevron_right" customSize={22} style={{ color: accent, flexShrink: 0 }} />
+              </Box>
+            );
+          }
+
+          return (
           <MsqdxMoleculeCard
             key={tg.id}
             variant="flat"
             borderRadius="button"
             clickable
             hoverable
-            onClick={() => router.push(ADMIN_ROUTES.targetGroupDetail(tg.id))}
+            onClick={() => router.push(targetGroupHref(tg.id))}
             title={tg.name}
             titleVariant="h6"
             subtitle={tg.segment}
@@ -434,7 +539,7 @@ export function MsqdxGlassTargetGroupsOverview({ initialList }: MsqdxGlassTarget
               "& .MuiTypography-h6": { color: accent },
             }}
           />
-        ))}
+        );})}
       </Box>
 
       <Dialog

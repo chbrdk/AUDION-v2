@@ -5,7 +5,9 @@ import { describe, expect, it } from "vitest";
 import {
   ADMIN_HEADER_V2_BACK_BUTTON_SIZE_PX,
   ADMIN_HEADER_V2_CARD_ACTION_SIZE_PX,
+  isEntityV2AdminPath,
   isPersonasV2AdminPath,
+  isTargetGroupsV2AdminPath,
 } from "./admin-header-layout";
 
 const webRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -18,12 +20,19 @@ describe("admin header v2 card", () => {
     expect(isPersonasV2AdminPath(null)).toBe(false);
   });
 
-  it("renders rounded header card on personas v2 chrome", () => {
+  it("detects target groups v2 admin routes", () => {
+    expect(isTargetGroupsV2AdminPath("/admin/target-groups-v2")).toBe(true);
+    expect(isTargetGroupsV2AdminPath("/admin/target-groups-v2/tg-1/basics")).toBe(true);
+    expect(isEntityV2AdminPath("/admin/target-groups-v2/tg-1/basics")).toBe(true);
+    expect(isTargetGroupsV2AdminPath("/admin/target-groups")).toBe(false);
+  });
+
+  it("renders rounded header card on entity v2 chrome", () => {
     const layout = readFileSync(
       join(webRoot, "components/admin/msqdx-glass-admin-layout.tsx"),
       "utf8"
     );
-    expect(layout).toContain("isPersonasV2AdminPath");
+    expect(layout).toContain("isEntityV2AdminPath");
     expect(layout).toContain("MsqdxGlassAdminHeaderV2Card");
     expect(layout).toContain("ADMIN_HEADER_V2_ROW_CLASS");
     expect(layout).toContain("ADMIN_HEADER_V2_BACK_SLOT_CLASS");

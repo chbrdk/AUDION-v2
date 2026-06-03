@@ -509,7 +509,7 @@ export function MsqdxGlassPersonasOverview({
           const keyTags = pickPersonaListKeyTags(persona);
 
           const personaChips = (
-            <Stack direction="row" flexWrap="wrap" alignItems="center" sx={{ gap: 0.75 }}>
+            <Stack direction="row" flexWrap="wrap" alignItems="center" sx={{ gap: 0.5 }}>
               {!personaTgId ? (
                 <MsqdxChip
                   variant="outlined"
@@ -547,7 +547,7 @@ export function MsqdxGlassPersonasOverview({
 
           const personaKeyTagsInline =
             keyTags.length > 0 ? (
-              <Stack direction="row" flexWrap="wrap" sx={{ gap: 0.5, mt: 0.5 }}>
+              <Stack direction="row" flexWrap="wrap" sx={{ gap: 0.375, mt: 0.5 }}>
                 {keyTags.map((tag, index) => (
                   <MsqdxGlassPersonaChip
                     key={`${persona.id}-inline-${tag}`}

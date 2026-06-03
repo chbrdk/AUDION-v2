@@ -234,6 +234,37 @@ body:has(.msqdx-glass-admin-panel) {
   background-color: #242424 !important;
 }
 
+/* Persona library — compact key-tag chips (card + list previews) */
+.msqdx-glass-personas-overview .msqdx-glass-chip.--dashboard {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  line-height: 1.25;
+}
+
+@media (max-width: 959px) {
+  .msqdx-glass-personas-overview .msqdx-glass-chip.--dashboard {
+    font-size: 0.6875rem !important;
+    font-weight: 500 !important;
+    padding: 0.125rem 0.5rem !important;
+  }
+}
+
+[data-theme="dark"] .msqdx-glass-target-groups-overview [style*="rgba(0, 0, 0, 0.03)"] {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-target-groups-list__row {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-target-groups-list__row:hover {
+  background-color: #242424 !important;
+}
+
 /* Target groups overview page: grid of target group cards (name, segment, View) */
 [data-theme="dark"] .msqdx-glass-target-groups-grid > * {
   background-color: #1a1a1a !important;

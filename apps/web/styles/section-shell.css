@@ -31,6 +31,12 @@
   display: none !important;
 }
 
+.msqdx-glass-target-group-v2-detail
+  .msqdx-glass-section-shell__entity-corner-accent
+  .msqdx-glass-section-shell__entity-back {
+  display: none !important;
+}
+
 .msqdx-glass-section-shell {
   --msqdx-section-nav-dock-surface: var(--color-theme-accent-tint, rgba(0, 0, 0, 0.04));
   --msqdx-section-nav-dock-border: var(--color-theme-accent-tint, rgba(0, 0, 0, 0.12));

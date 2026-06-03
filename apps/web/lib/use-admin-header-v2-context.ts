@@ -13,6 +13,11 @@ import {
   isPersonaV2SectionId,
   type PersonaV2SectionId,
 } from "./persona-v2-sections";
+import {
+  TARGET_GROUP_V2_DEFAULT_SECTION,
+  isTargetGroupV2SectionId,
+  type TargetGroupV2SectionId,
+} from "./target-group-v2-sections";
 
 type PickerOption = { value: string; label: string };
 
@@ -26,13 +31,34 @@ function parsePersonaV2Path(pathname: string | null | undefined) {
     personaId: match?.[1] ?? null,
     sectionId: sectionRaw && isPersonaV2SectionId(sectionRaw) ? sectionRaw : null,
   };
-};
+}
+
+function parseTargetGroupV2Path(pathname: string | null | undefined) {
+  if (!pathname?.startsWith("/admin/target-groups-v2")) {
+    return { targetGroupId: null as string | null, sectionId: null as TargetGroupV2SectionId | null };
+  }
+  const match = pathname.match(/^\/admin\/target-groups-v2\/([^/]+)(?:\/([^/]+))?/);
+  const sectionRaw = match?.[2] ?? null;
+  const id = match?.[1] ?? null;
+  return {
+    targetGroupId: id && id !== "undefined" ? id : null,
+    sectionId: sectionRaw && isTargetGroupV2SectionId(sectionRaw) ? sectionRaw : null,
+  };
+}
 
 export function useAdminHeaderV2Context() {
   const pathname = usePathname();
   const router = useRouter();
   const { activeProjectId, selectProject } = useProject();
-  const { personaId, sectionId } = useMemo(() => parsePersonaV2Path(pathname), [pathname]);
+  const { personaId, sectionId: personaSectionId } = useMemo(
+    () => parsePersonaV2Path(pathname),
+    [pathname]
+  );
+  const { targetGroupId: targetGroupIdFromPath, sectionId: targetGroupSectionId } = useMemo(
+    () => parseTargetGroupV2Path(pathname),
+    [pathname]
+  );
+  const isTargetGroupV2Route = Boolean(pathname?.startsWith("/admin/target-groups-v2"));
 
   const [targetGroups, setTargetGroups] = useState<PickerOption[]>([]);
   const [personas, setPersonas] = useState<PickerOption[]>([]);
@@ -41,11 +67,16 @@ export function useAdminHeaderV2Context() {
   const [loadingTargetGroups, setLoadingTargetGroups] = useState(false);
   const [loadingPersonas, setLoadingPersonas] = useState(false);
 
-  const activeTargetGroupId = personaId ? resolvedTargetGroupId : overviewTargetGroupId;
-  const activeSectionId = sectionId ?? PERSONA_V2_DEFAULT_SECTION;
+  const activeTargetGroupId = isTargetGroupV2Route
+    ? targetGroupIdFromPath ?? overviewTargetGroupId
+    : personaId
+      ? resolvedTargetGroupId
+      : overviewTargetGroupId;
+  const activeSectionId = personaSectionId ?? PERSONA_V2_DEFAULT_SECTION;
+  const activeTargetGroupSectionId = targetGroupSectionId ?? TARGET_GROUP_V2_DEFAULT_SECTION;
 
   useEffect(() => {
-    if (!personaId) {
+    if (!personaId || isTargetGroupV2Route) {
       setResolvedTargetGroupId("");
       return;
     }
@@ -78,7 +109,7 @@ export function useAdminHeaderV2Context() {
     return () => {
       cancelled = true;
     };
-  }, [personaId, activeProjectId, selectProject]);
+  }, [personaId, activeProjectId, selectProject, isTargetGroupV2Route]);
 
   useEffect(() => {
     if (!activeProjectId) {
@@ -110,10 +141,10 @@ export function useAdminHeaderV2Context() {
   }, [activeProjectId]);
 
   useEffect(() => {
-    if (!personaId) {
+    if (!personaId && !isTargetGroupV2Route) {
       setOverviewTargetGroupId("");
     }
-  }, [activeProjectId, personaId]);
+  }, [activeProjectId, personaId, isTargetGroupV2Route]);
 
   useEffect(() => {
     if (!activeTargetGroupId) {
@@ -146,6 +177,21 @@ export function useAdminHeaderV2Context() {
 
   const handleTargetGroupChange = useCallback(
     (nextTargetGroupId: string) => {
+      if (isTargetGroupV2Route) {
+        if (!nextTargetGroupId) {
+          router.push(ADMIN_ROUTES.targetGroupsV2);
+          return;
+        }
+        if (targetGroupIdFromPath) {
+          router.push(
+            ADMIN_ROUTES.targetGroupV2Section(nextTargetGroupId, activeTargetGroupSectionId)
+          );
+          return;
+        }
+        setOverviewTargetGroupId(nextTargetGroupId);
+        return;
+      }
+
       if (!personaId) {
         setOverviewTargetGroupId(nextTargetGroupId);
         return;
@@ -167,18 +213,25 @@ export function useAdminHeaderV2Context() {
           router.push(ADMIN_ROUTES.personasV2);
         });
     },
-    [personaId, router, activeSectionId]
+    [
+      isTargetGroupV2Route,
+      targetGroupIdFromPath,
+      activeTargetGroupSectionId,
+      personaId,
+      router,
+      activeSectionId,
+    ]
   );
 
   const handlePersonaChange = useCallback(
     (nextPersonaId: string) => {
       if (!nextPersonaId) {
-        router.push(ADMIN_ROUTES.personasV2);
+        router.push(isTargetGroupV2Route ? ADMIN_ROUTES.targetGroupsV2 : ADMIN_ROUTES.personasV2);
         return;
       }
       router.push(ADMIN_ROUTES.personaV2Section(nextPersonaId, activeSectionId));
     },
-    [router, activeSectionId]
+    [router, activeSectionId, isTargetGroupV2Route]
   );
 
   return {

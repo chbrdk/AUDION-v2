@@ -25,6 +25,13 @@ export const ADMIN_ROUTES = {
   targetGroupDetail: (targetGroupId: string) =>
     `/admin/target-groups/${encodeURIComponent(targetGroupId)}`,
 
+  /** Experimental layout: section sub-nav + one section per route. */
+  targetGroupsV2: "/admin/target-groups-v2",
+  targetGroupV2Detail: (targetGroupId: string) =>
+    `/admin/target-groups-v2/${encodeURIComponent(targetGroupId)}`,
+  targetGroupV2Section: (targetGroupId: string, sectionId: string) =>
+    `/admin/target-groups-v2/${encodeURIComponent(targetGroupId)}/${encodeURIComponent(sectionId)}`,
+
   settingsApiDocs: "/admin/settings/api-docs",
 } as const;
 

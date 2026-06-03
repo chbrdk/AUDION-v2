@@ -31,5 +31,13 @@ export function isPersonasV2AdminPath(pathname: string | null | undefined): bool
   return Boolean(pathname?.startsWith("/admin/personas-v2"));
 }
 
+export function isTargetGroupsV2AdminPath(pathname: string | null | undefined): boolean {
+  return Boolean(pathname?.startsWith("/admin/target-groups-v2"));
+}
+
+export function isEntityV2AdminPath(pathname: string | null | undefined): boolean {
+  return isPersonasV2AdminPath(pathname) || isTargetGroupsV2AdminPath(pathname);
+}
+
 /** Clears the v2 header card row inside `main` (back + header card + vertical padding). */
 export const ADMIN_CONTENT_PADDING_TOP_V2 = `calc(${ADMIN_HEADER_V2_BACK_BUTTON_SIZE_PX}px + var(--msqdx-spacing-md) + var(--msqdx-spacing-sm))`;

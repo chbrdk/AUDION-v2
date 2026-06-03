@@ -16,4 +16,11 @@ describe("personas v2 overview", () => {
     expect(overview).not.toContain("msqdx-glass-section-v2-banner");
     expect(overview).not.toContain("previewBanner");
   });
+
+  it("uses compact key-tag chip styles in library overview", () => {
+    const css = readFileSync(join(webRoot, "styles/globals.css"), "utf8");
+    expect(css).toMatch(
+      /\.msqdx-glass-personas-overview \.msqdx-glass-chip\.--dashboard[\s\S]*font-size: 0\.6875rem/
+    );
+  });
 });

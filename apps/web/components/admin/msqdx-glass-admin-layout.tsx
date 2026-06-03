@@ -19,6 +19,7 @@ import {
   ADMIN_CONTENT_PADDING_TOP_V2,
   ADMIN_HEADER_V2_ROW_CLASS,
   isPersonasV2AdminPath,
+  isEntityV2AdminPath,
 } from "../../lib/admin-header-layout";
 import { BrandColorInitializer } from "../settings/brand-color-initializer";
 import { useI18n } from "../i18n/i18n-provider";
@@ -40,6 +41,7 @@ const ADMIN_NAV_ITEMS = [
   { labelKey: "nav.personas", path: "/admin/personas", icon: "person" },
   { labelKey: "nav.personasV2", path: "/admin/personas-v2", icon: "view_sidebar" },
   { labelKey: "nav.targetGroups", path: "/admin/target-groups", icon: "groups" },
+  { labelKey: "nav.targetGroupsV2", path: "/admin/target-groups-v2", icon: "view_sidebar" },
   { labelKey: "nav.journeys", path: "/admin/journeys", icon: "route" },
   { labelKey: "nav.uxJourneyAgent", path: "/admin/ux-journey-agent", icon: "travel_explore" },
 ] as const;
@@ -99,7 +101,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
         : undefined;
   const appInnerBackground = isMonochrome || isDarkApp ? "default" : "offwhite";
   const { activeProjectId } = useProject();
-  const isPersonasV2Chrome = isPersonasV2AdminPath(pathname);
+  const isPersonasV2Chrome = isEntityV2AdminPath(pathname);
   // Get headerContent from context - safe for SSR with default value
   const { headerContent, headerStartContent } = useAdminHeader();
   // Get panel state from context
@@ -171,6 +173,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
       "/admin/personas": t("nav.personas"),
       "/admin/personas-v2": t("nav.personasV2"),
       "/admin/target-groups": t("nav.targetGroups"),
+      "/admin/target-groups-v2": t("nav.targetGroupsV2"),
       "/admin/journeys": t("nav.journeys"),
       "/admin/ux-journey-agent": t("nav.uxJourneyAgent"),
       "/admin/profile": t("nav.profile"),
@@ -204,6 +207,7 @@ export const MsqdxGlassAdminLayoutClient = ({ children, title, subtitle }: Msqdx
       "/admin/personas": "person",
       "/admin/personas-v2": "view_sidebar",
       "/admin/target-groups": "groups",
+      "/admin/target-groups-v2": "view_sidebar",
       "/admin/journeys": "route",
       "/admin/ux-journey-agent": "travel_explore",
       "/admin/profile": "account_circle",

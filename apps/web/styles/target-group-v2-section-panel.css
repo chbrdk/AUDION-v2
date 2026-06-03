@@ -1,0 +1,111 @@
+/* Target group v2 — detail scroll + flat section panel (mirrors persona v2 shell) */
+.msqdx-glass-target-group-v2-detail {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  width: 100%;
+}
+
+.msqdx-glass-target-group-v2-detail > .msqdx-glass-section-shell {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.msqdx-glass-target-group-v2-detail .msqdx-glass-section-shell__body {
+  flex: 1;
+  min-height: 0;
+  align-items: stretch;
+}
+
+.msqdx-glass-target-group-v2-detail .msqdx-glass-section-workspace--with-subnav {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.msqdx-glass-target-group-v2-detail .msqdx-glass-section-workspace__dock-shell {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.msqdx-glass-target-group-v2-detail .msqdx-glass-section-workspace__main {
+  min-height: 0;
+}
+
+@media (min-width: 1025px) {
+  .msqdx-glass-target-group-v2-detail .msqdx-glass-section-shell__body:has(.msqdx-glass-section-nav) {
+    align-items: stretch;
+  }
+
+  .msqdx-glass-target-group-v2-detail .msqdx-glass-section-shell__nav-column {
+    position: static;
+    top: auto;
+    align-self: stretch;
+    max-height: none;
+    height: auto;
+    min-height: 0;
+    overflow: hidden;
+    overscroll-behavior: none;
+    scrollbar-width: none;
+  }
+
+  .msqdx-glass-target-group-v2-detail .msqdx-glass-section-shell__nav-column::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  .msqdx-glass-target-group-v2-detail .msqdx-glass-section-shell__entity--in-nav-rail .msqdx-glass-section-shell__title {
+    font-size: 1.125rem;
+    line-height: 1.15;
+  }
+
+  .msqdx-glass-target-group-v2-detail .msqdx-glass-section-shell__entity--in-nav-rail .msqdx-glass-section-shell__subtitle {
+    font-size: 0.75rem;
+    line-height: 1.2;
+  }
+
+  .msqdx-glass-target-group-v2-detail .msqdx-glass-section-nav--compact .msqdx-glass-section-nav__card {
+    min-height: 30px;
+    padding: 3px 6px;
+  }
+
+  .msqdx-glass-target-group-v2-detail .msqdx-glass-section-nav--compact .msqdx-glass-section-nav__icon {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+.msqdx-glass-target-group-v2-section-panel .msqdx-glass-dashboard-grid--v2-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--msqdx-spacing-lg);
+  margin-top: 0;
+}
+
+.msqdx-glass-target-group-v2-section-panel .msqdx-glass-dashboard-grid--v2-section > * {
+  grid-column: unset !important;
+  width: 100%;
+}
+
+.msqdx-glass-target-group-v2-detail .msqdx-glass-persona-v2-section-block {
+  width: 100%;
+}
+
+.msqdx-glass-target-group-v2-detail .msqdx-glass-chip-editor__section-heading h3.MuiTypography-root {
+  font-family: var(--msqdx-font-family-mono) !important;
+  font-size: clamp(1.125rem, 2.5vw, 1.5rem) !important;
+  font-weight: 400 !important;
+  line-height: 1.2 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  color: var(--color-text-primary) !important;
+}
