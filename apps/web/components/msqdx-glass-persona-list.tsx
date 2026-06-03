@@ -11,6 +11,9 @@ type MsqdxGlassPersonaListProps = {
   onSelect?: (personaId: string) => void;
   onDelete?: (personaId: string) => void;
   actionLabel?: string;
+  /** Override open-persona link (e.g. personas v2 basics route). */
+  getPersonaDetailHref?: (personaId: string) => string;
+  showConfidence?: boolean;
 };
 
 export const MsqdxGlassPersonaList = ({
@@ -18,6 +21,8 @@ export const MsqdxGlassPersonaList = ({
   onSelect,
   onDelete,
   actionLabel = "Chat",
+  getPersonaDetailHref,
+  showConfidence = true,
 }: MsqdxGlassPersonaListProps) => {
   const { t } = useI18n();
 
@@ -41,26 +46,28 @@ export const MsqdxGlassPersonaList = ({
                 <MsqdxTypography variant="subtitle1" weight="semibold">
                   {persona.name}
                 </MsqdxTypography>
-                <Tooltip title={t("personaAdmin.confidenceHint")}>
-                  <Box component="span">
-                    <MsqdxChip
-                      variant="outlined"
-                      size="small"
-                      label={t("personaAdmin.confidencePercent", {
-                        value: Math.round(Math.min(1, Math.max(0, persona.confidence)) * 100),
-                      })}
-                      sx={{
-                        height: 22,
-                        borderColor: "divider",
-                        "& .MuiChip-label": { fontSize: "0.7rem" },
-                      }}
-                    />
-                  </Box>
-                </Tooltip>
+                {showConfidence ? (
+                  <Tooltip title={t("personaAdmin.confidenceHint")}>
+                    <Box component="span">
+                      <MsqdxChip
+                        variant="outlined"
+                        size="small"
+                        label={t("personaAdmin.confidencePercent", {
+                          value: Math.round(Math.min(1, Math.max(0, persona.confidence)) * 100),
+                        })}
+                        sx={{
+                          height: 22,
+                          borderColor: "divider",
+                          "& .MuiChip-label": { fontSize: "0.7rem" },
+                        }}
+                      />
+                    </Box>
+                  </Tooltip>
+                ) : null}
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", gap: 0.25 }}>
                 <Link
-                  href={`/personas/admin?selected=${persona.id}`}
+                  href={getPersonaDetailHref?.(persona.id) ?? `/personas/admin?selected=${persona.id}`}
                   onClick={(e) => {
                     if (onSelect) {
                       e.preventDefault();

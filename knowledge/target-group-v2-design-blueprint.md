@@ -15,17 +15,25 @@ Mirrors **persona v2** (`knowledge/persona-v2-design-blueprint.md`).
 
 | Section | v1 accordion | Content |
 |---------|--------------|---------|
-| `basics` | basic + metadata | Entity editor + metadata grid |
-| `personas` | personas | Persona list + create |
-| `knowledge` | knowledge | Knowledge entries |
+| `basics` | basic + metadata | v2: `MsqdxGlassTargetGroupBasicsHero` + description/DE fields; v1: entity editor + metadata grid |
+| `personas` | personas | Persona list (v2 links → `ADMIN_ROUTES.personaV2Section`) + create |
+| `knowledge` | knowledge | Knowledge entries + add form (`MsqdxGlassPainGoalsSectorSeparator` in v2) |
 | `documents` | documents | Upload + ingestion |
 | `explorer` | knowledge-explorer | `MsqdxGlassKnowledgeExplorer` |
+
+## Basics v2 stack
+
+- `msqdx-glass-target-group-basics-section` + `msqdx-glass-target-group-basics-stack`
+- Hero: name, segment, status (inline edit) + read-only metadata (project, dates)
+- Separator → description + bilingual fields via `MsqdxGlassEntityEditor` (name/segment/status excluded)
+- Persona list href helper: `targetGroupV2PersonaDetailHref` in `target-group-basics-hero-layout.ts`
 
 ## Components
 
 - `MsqdxGlassTargetGroupsV2Overview` — section shell library
 - `MsqdxGlassTargetGroupV2DetailLayout` — shell + nav
 - `MsqdxGlassTargetGroupAdminSectionView` → panel `presentation="v2-section"`
+- `MsqdxGlassTargetGroupBasicsHero` — profile hero for basics section
 - `TargetGroupAdminSectionSurface` — flat `PersonaV2SectionBlock` vs accordion
 
 ## CSS
