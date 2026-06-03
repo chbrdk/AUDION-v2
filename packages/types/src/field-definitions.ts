@@ -158,20 +158,6 @@ export const ENTITY_FIELD_DEFINITIONS: Record<string, FieldDefinition[]> = {
   
   targetGroup: [
     {
-      key: 'status',
-      label: 'Publication status',
-      labelKey: 'targetGroupsAdmin.publicationStatus',
-      type: 'select',
-      group: 'basic',
-      order: 0,
-      config: {
-        options: [
-          { value: 'draft', label: 'Draft', labelKey: 'targetGroupsAdmin.statusDraft' },
-          { value: 'published', label: 'Published', labelKey: 'targetGroupsAdmin.statusPublished' },
-        ],
-      },
-    },
-    {
       key: 'name',
       label: 'Name',
       labelKey: 'targetGroupsAdmin.name',

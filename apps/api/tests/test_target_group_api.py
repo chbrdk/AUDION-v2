@@ -59,6 +59,29 @@ def test_target_group_service_create_and_get():
     assert retrieved.name == "Enterprise Buyers"
 
 
+def test_target_group_service_delete():
+    """Deleting a target group removes it from the database."""
+    service = TargetGroupService()
+    session = build_session()
+    project_id = uuid4()
+
+    created = service.create_target_group(
+        session,
+        TargetGroupCreateRequest(
+            project_id=str(project_id),
+            name="To Delete",
+            segment="enterprise",
+        ),
+    )
+    service.delete_target_group(session, str(created.id))
+
+    try:
+        service.get_target_group(session, str(created.id))
+        assert False, "expected target_group_not_found"
+    except ValueError as exc:
+        assert str(exc) == "target_group_not_found"
+
+
 def test_target_group_knowledge_entry_creation():
     """Test that knowledge entries can be created for target groups."""
     service = TargetGroupService()

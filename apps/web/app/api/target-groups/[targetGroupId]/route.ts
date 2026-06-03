@@ -49,3 +49,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     body,
   });
 }
+
+export async function DELETE(_request: NextRequest, { params }: RouteParams) {
+  const { targetGroupId } = await params;
+  const target = `${getPersonaBackendBase()}/target-groups/${targetGroupId}`;
+  return forward(_request, target, { method: "DELETE" });
+}

@@ -1,8 +1,10 @@
 # Project & target group publication status
 
-- **DB**: `audion.projects.status` and `audion.target_groups.status`, `String(32)`, values `draft` | `published`, default `draft` (Alembic revision `20260418_proj_tg_pub_stat`, file `20260418_project_target_group_publication_status.py`).
-- **Validation**: `apps/api/app/services/resource_bilingual_utils.py` — `validate_project_bilingual_publish` / `validate_target_group_bilingual_publish` when status is `published` (DE mirrors required where EN text is set). `normalize_publication_status` coerces input.
-- **API**: Schemas expose `status`; create/update paths run validation before commit. Target group logic lives in `TargetGroupService` (`target_group_store.py`).
+> **Target groups** now use **`active` / `archived`** only — see [`target-group-lifecycle.md`](./target-group-lifecycle.md). The draft/published model below applies to **projects** only.
+
+- **DB (projects)**: `audion.projects.status`, `String(32)`, values `draft` | `published`, default `draft` (Alembic revision `20260418_proj_tg_pub_stat`).
+- **DB (target groups)**: `audion.target_groups.status` — migrated to `active` | `archived`, default `active` (Alembic `20260603_target_group_lifecycle_status`).
+- **Validation**: `apps/api/app/services/resource_bilingual_utils.py` — `validate_project_bilingual_publish` when status is `published` (DE mirrors required where EN text is set). Target groups use `target_group_lifecycle.py` instead (no bilingual publish gate).
 - **Migrations**: `alembic_version.version_num` is `varchar(32)` — keep revision ids ≤ 32 chars. **Coolify / unattended**: `start.sh` runs **`coolify-migrate.sh` (`alembic upgrade head`) before `init_db.py`**. Migrations that mirror `init_db` emergency columns must use **`ADD COLUMN IF NOT EXISTS`** (e.g. `20260417_persona_bilingual_de`, `20260418_project_tg_bilingual_de`, `20260421_chk_proj_id`) so Alembic does not fail when those columns already exist. Optional one-shot: `apps/api/scripts/coolify-migrate.sh`. Local: `cd apps/api && alembic upgrade head`.
 - **Legacy stamped DBs** (no replay of `20260418_project_target_group_bilingual_de`): `init_db.py` section **2c** runs `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` for `projects.name_de`, `description_de`, `company_context_de` and `target_groups.name_de`, `segment_de`, `description_de`, plus `description` / `company_context` and `status` where missing, so `GET /projects` and ORM loads do not hit `UndefinedColumn` before Alembic can run.
 - **Personas** (no replay of `20260417_persona_bilingual_de`): `init_db.py` section **2d** adds `personas.headline_de`, `profile_de`, `profile_card_de` and `persona_prompts.system_prompt_de` when missing so `GET /personas` and list queries do not fail on stamped databases.

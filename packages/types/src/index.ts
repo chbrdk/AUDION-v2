@@ -151,7 +151,7 @@ export type TargetGroup = {
   segment_de?: string | null;
   description?: string | null;
   description_de?: string | null;
-  /** Publication lifecycle from backend (`draft` | `published`). */
+  /** Lifecycle (`active` | `archived`). Legacy `draft`/`published` map to active. */
   status?: string;
   createdAt: string;
   updatedAt: string;
@@ -165,7 +165,7 @@ export type TargetGroupListItem = {
   segment_de?: string | null;
   description?: string | null;
   description_de?: string | null;
-  /** Publication lifecycle (`draft` | `published`). */
+  /** Lifecycle (`active` | `archived`). Legacy `draft`/`published` map to active. */
   status?: string;
   personaCount: number;
   knowledgeEntryCount: number;
@@ -189,7 +189,7 @@ export type TargetGroupResponse = {
   segment_de?: string | null;
   description?: string | null;
   description_de?: string | null;
-  /** Publication lifecycle (`draft` | `published`). */
+  /** Lifecycle (`active` | `archived`). Legacy `draft`/`published` map to active. */
   status?: string;
   personas: PersonaListItem[];
   knowledgeEntries: PersonaKnowledgeEntry[];

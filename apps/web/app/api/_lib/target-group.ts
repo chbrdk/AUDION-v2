@@ -56,7 +56,8 @@ const buildTargetGroupUrl = (path: string, params?: URLSearchParams) => {
 export async function fetchTargetGroupList(
   projectId?: string,
   page: number = 1,
-  pageSize: number = 20
+  pageSize: number = 20,
+  options?: { includeArchived?: boolean }
 ): Promise<TargetGroupListResponse> {
   const params = new URLSearchParams({
     page: page.toString(),
@@ -64,6 +65,9 @@ export async function fetchTargetGroupList(
   });
   if (projectId) {
     params.append("project_id", projectId);
+  }
+  if (options?.includeArchived) {
+    params.append("include_archived", "true");
   }
   const response = await fetch(buildTargetGroupUrl("/target-groups", params), {
     method: "GET",
@@ -119,6 +123,16 @@ export async function updateTargetGroup(
     throw new Error(`Failed to update target group: ${response.status} - ${errorText}`);
   }
   return (await response.json()) as TargetGroupResponse;
+}
+
+export async function deleteTargetGroup(targetGroupId: string): Promise<void> {
+  const response = await fetch(buildTargetGroupUrl(`/target-groups/${targetGroupId}`), {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to delete target group: ${response.status} - ${errorText}`);
+  }
 }
 
 export async function fetchTargetGroupKnowledge(

@@ -448,6 +448,8 @@
     "publicationStatus": "Publication status",
     "statusDraft": "Draft",
     "statusPublished": "Published",
+    "statusArchived": "Archived",
+    "showArchived": "Show archived target groups",
     "name": "Name",
     "namePlaceholder": "Target Group Name",
     "segment": "Segment",
@@ -491,6 +493,14 @@
     "selectFile": "Select File",
     "uploading": "Uploading…",
     "knowledgeExplorer": "Knowledge Explorer",
+    "archive": "Archive",
+    "archiveConfirm": "Archive \"{name}\"? It will be hidden from the library until you show archived groups.",
+    "restore": "Restore",
+    "delete": "Delete target group",
+    "deleteDialogTitle": "Delete target group?",
+    "deleteDialogDescription": "Delete \"{name}\" permanently? Linked personas stay in the project but are unlinked from this target group. This cannot be undone.",
+    "deleteDialogConfirm": "Delete permanently",
+    "thisTargetGroup": "this target group",
     "deletePersonaConfirm": "Are you sure you want to delete \"{name}\"?\n\nThis action cannot be undone. The persona will be permanently removed.",
     "thisPersona": "this persona",
     "generateWithAi": "Suggest with AI",
@@ -530,7 +540,12 @@
       "personaCreateError": "Error creating persona",
       "segmentRequired": "Segment is required.",
       "personaDeleted": "Persona deleted",
-      "deleteFailed": "Delete failed"
+      "deleteFailed": "Delete failed",
+      "targetGroupArchived": "Target group archived",
+      "archiveFailed": "Could not archive target group",
+      "targetGroupRestored": "Target group restored",
+      "restoreFailed": "Could not restore target group",
+      "targetGroupDeleted": "Target group deleted"
     }
   },
   "targetGroupV2": {
@@ -548,9 +563,7 @@
     "sections": {
       "basics": {
         "label": "Basics",
-        "description": "Name, segment, description, and metadata",
-        "localizationTitle": "German localization",
-        "descriptionEmpty": "No description yet — add a short summary for this target group."
+        "description": "Name, segment, description, and metadata"
       },
       "personas": {
         "label": "Personas",

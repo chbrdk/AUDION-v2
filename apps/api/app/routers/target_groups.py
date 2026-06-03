@@ -111,6 +111,7 @@ def list_target_groups(
     project_id: str | None = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=500),
+    include_archived: bool = Query(False, description="Include archived target groups in the list."),
     session: Session = Depends(get_db),
 ) -> TargetGroupListResponse:
     try:
@@ -121,6 +122,7 @@ def list_target_groups(
             project_id=project_id,
             page=page,
             page_size=page_size,
+            include_archived=include_archived,
         )
     except ValueError as exc:
         if str(exc) == "project_access_denied":
@@ -254,6 +256,30 @@ def update_target_group(
 ) -> TargetGroupResponse:
     try:
         return service.update_target_group(session, target_group_id, payload)
+    except ValueError as exc:
+        if "not found" in str(exc):
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.delete(
+    "/{target_group_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a target group",
+    description="""
+    Permanently delete a target group and its associated knowledge entries and sources.
+
+    Linked personas are kept but unlinked from this target group (`target_group_id` set to null).
+    Documents linked to the target group are not deleted from storage by this operation alone.
+    """,
+)
+def delete_target_group(
+    target_group_id: str,
+    session: Session = Depends(get_db),
+) -> None:
+    try:
+        _get_target_group_or_404(session, target_group_id)
+        service.delete_target_group(session, target_group_id)
     except ValueError as exc:
         if "not found" in str(exc):
             raise HTTPException(status_code=404, detail=str(exc)) from exc

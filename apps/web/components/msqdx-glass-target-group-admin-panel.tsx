@@ -14,6 +14,7 @@ import type {
 import {
   createTargetGroup,
   createTargetGroupKnowledge,
+  deleteTargetGroup,
   deleteTargetGroupKnowledge,
   fetchTargetGroup,
   fetchTargetGroupDocuments,
@@ -26,14 +27,15 @@ import {
   updateTargetGroup,
 } from "../app/api/_lib/target-group";
 import type { PersonaListItem } from "@msqdx-glass/types";
-import { MsqdxIcon, MsqdxFormField, MsqdxTextareaField, MsqdxButton, MsqdxTypography, MsqdxCard, MsqdxChip, MsqdxDashboardCard, MsqdxSelect } from "@msqdx/react";
+import { MsqdxIcon, MsqdxFormField, MsqdxTextareaField, MsqdxButton, MsqdxTypography, MsqdxCard, MsqdxChip, MsqdxDashboardCard } from "@msqdx/react";
 import { MsqdxGlassKnowledgeExplorer } from "./msqdx-glass-knowledge-explorer";
 import { MsqdxGlassDashboardCardSection } from "./dashboard-cards/msqdx-glass-dashboard-card-section";
 import { MsqdxGlassPersonaList } from "./msqdx-glass-persona-list";
 import { MsqdxGlassEntityEditor } from "./generic";
 import { FORM_FIELD_ACCENT_SX, THEME_ACCENT } from "../lib/theme-accent";
 import { MsqdxGlassCollapsiblePanel } from "./admin/msqdx-glass-collapsible-panel";
-import { Box, Stack } from "@mui/material";
+import { Box, Dialog, DialogActions, DialogContent, DialogTitle } from "@mui/material";
+import { useRouter } from "next/navigation";
 import { useProject } from "./projects/project-provider";
 import { buildApiUrl } from "../app/api/_lib/backend";
 import { useI18n } from "./i18n/i18n-provider";
@@ -43,10 +45,13 @@ import {
   type TargetGroupAdminPresentation,
 } from "../lib/target-group-v2-section-visibility";
 import { TargetGroupAdminSectionSurface } from "./target-groups-v2/target-group-admin-section-surface";
-import { MsqdxGlassTargetGroupBasicsHero } from "./target-groups-v2/msqdx-glass-target-group-basics-hero";
-import { MsqdxGlassTargetGroupBasicsLocalization } from "./target-groups-v2/msqdx-glass-target-group-basics-localization";
 import { MsqdxGlassPainGoalsSectorSeparator } from "./generic/msqdx-glass-pain-goals-sector-separator";
-import { targetGroupV2PersonaDetailHref } from "../lib/target-group-basics-hero-layout";
+import { targetGroupV2PersonaDetailHref } from "../lib/target-group-v2-persona-link";
+import { ADMIN_ROUTES } from "../lib/routes";
+import {
+  isTargetGroupArchived,
+  TARGET_GROUP_LIFECYCLE,
+} from "../lib/target-group-lifecycle";
 
 type MsqdxGlassTargetGroupAdminPanelProps = {
   initialList: TargetGroupListResponse;
@@ -71,7 +76,6 @@ type CreateFormState = {
   name_de: string;
   segment_de: string;
   description_de: string;
-  status: "draft" | "published";
 };
 
 type KnowledgeFormState = {
@@ -98,7 +102,6 @@ const defaultCreateFormState: CreateFormState = {
   name_de: "",
   segment_de: "",
   description_de: "",
-  status: "draft",
 };
 
 const defaultKnowledgeForm: KnowledgeFormState = {
@@ -181,6 +184,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
 }: MsqdxGlassTargetGroupAdminPanelProps) => {
   const { activeProjectId, activeProject } = useProject();
   const { t } = useI18n();
+  const router = useRouter();
   const accent = "var(--color-theme-accent)";
   const isV2Section = presentation === "v2-section" && Boolean(visibleSection);
   const showSection = (blockSection: TargetGroupV2SectionId) =>
@@ -194,11 +198,6 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
   const [detailLoading, setDetailLoading] = useState<boolean>(false);
   const [editForm, setEditForm] = useState<EditFormState>(defaultEditFormState);
   const [savePending, setSavePending] = useState(false);
-  const [editingField, setEditingField] = useState<string | null>(null);
-
-  useEffect(() => {
-    setEditingField(null);
-  }, [selectedId]);
   const [createForm, setCreateForm] = useState<CreateFormState>(defaultCreateFormState);
   const [createPending, setCreatePending] = useState(false);
   const [listRefreshing, setListRefreshing] = useState(false);
@@ -214,6 +213,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
   const [createPersonaPending, setCreatePersonaPending] = useState(false);
   const [personaFormExpanded, setPersonaFormExpanded] = useState(false);
   const [personaForm, setPersonaForm] = useState<PersonaFormState>(defaultPersonaForm);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [expandedAccordions, setExpandedAccordions] = useState<Set<string>>(
     () => new Set(["basic", "personas", "documents"])
   );
@@ -310,7 +310,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
     }
     setListRefreshing(true);
     try {
-      const updated = await fetchTargetGroupList(activeProjectId);
+      const updated = await fetchTargetGroupList(activeProjectId, 1, 50, { includeArchived: true });
       setList(updated);
       if (selectedId && !updated.items.find((item) => item.id === selectedId)) {
         setSelectedId(null);
@@ -357,6 +357,88 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
     }
   };
 
+  const handleArchive = async () => {
+    if (!selectedId || !detail || isTargetGroupArchived(detail.status)) {
+      return;
+    }
+    const confirmed = window.confirm(
+      t("targetGroupsAdmin.archiveConfirm", { name: detail.name || t("targetGroupsAdmin.thisTargetGroup") })
+    );
+    if (!confirmed) {
+      return;
+    }
+    setSavePending(true);
+    try {
+      await updateTargetGroup(selectedId, {
+        status: TARGET_GROUP_LIFECYCLE.archived,
+        updated_by: editForm.updatedBy,
+      });
+      await loadDetail(selectedId);
+      await refreshList();
+      notify(t("targetGroupsAdmin.toasts.targetGroupArchived"));
+      if (isV2Section || mode === "detail") {
+        router.push(ADMIN_ROUTES.targetGroupsV2);
+      }
+    } catch (error) {
+      console.error("Target group archive failed:", error);
+      notify(t("targetGroupsAdmin.toasts.archiveFailed"));
+    } finally {
+      setSavePending(false);
+    }
+  };
+
+  const handleRestore = async () => {
+    if (!selectedId || !detail || !isTargetGroupArchived(detail.status)) {
+      return;
+    }
+    setSavePending(true);
+    try {
+      await updateTargetGroup(selectedId, {
+        status: TARGET_GROUP_LIFECYCLE.active,
+        updated_by: editForm.updatedBy,
+      });
+      await loadDetail(selectedId);
+      await refreshList();
+      notify(t("targetGroupsAdmin.toasts.targetGroupRestored"));
+    } catch (error) {
+      console.error("Target group restore failed:", error);
+      notify(t("targetGroupsAdmin.toasts.restoreFailed"));
+    } finally {
+      setSavePending(false);
+    }
+  };
+
+  const handleDelete = () => {
+    if (!selectedId || !detail) {
+      return;
+    }
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!selectedId) {
+      setDeleteDialogOpen(false);
+      return;
+    }
+    setSavePending(true);
+    try {
+      await deleteTargetGroup(selectedId);
+      setDeleteDialogOpen(false);
+      setSelectedId(null);
+      setDetail(null);
+      await refreshList();
+      notify(t("targetGroupsAdmin.toasts.targetGroupDeleted"));
+      if (isV2Section || mode === "detail") {
+        router.push(isV2Section ? ADMIN_ROUTES.targetGroupsV2 : ADMIN_ROUTES.targetGroups);
+      }
+    } catch (error) {
+      console.error("Target group delete failed:", error);
+      notify(t("targetGroupsAdmin.toasts.deleteFailed"));
+    } finally {
+      setSavePending(false);
+    }
+  };
+
   const handleCreate = async () => {
     if (!activeProjectId || !createForm.name || !createForm.segment) {
       notify(t("targetGroupsAdmin.toasts.projectNameSegmentRequired"));
@@ -372,7 +454,6 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
         name_de: createForm.name_de.trim() || null,
         segment_de: createForm.segment_de.trim() || null,
         description_de: createForm.description_de.trim() || null,
-        status: createForm.status,
       };
       const created = await createTargetGroup(payload);
       setCreateForm(defaultCreateFormState);
@@ -666,22 +747,6 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                 fullWidth
                 sx={FORM_FIELD_ACCENT_SX}
               />
-              <MsqdxSelect
-                label={t("targetGroupsAdmin.publicationStatus")}
-                value={createForm.status}
-                onChange={(e) =>
-                  setCreateForm((prev) => ({
-                    ...prev,
-                    status: e.target.value === "published" ? "published" : "draft",
-                  }))
-                }
-                options={[
-                  { value: "draft", label: t("targetGroupsAdmin.statusDraft") },
-                  { value: "published", label: t("targetGroupsAdmin.statusPublished") },
-                ]}
-                size="small"
-                sx={{ ...FORM_FIELD_ACCENT_SX, maxWidth: 360 }}
-              />
               <MsqdxButton
                 variant="contained"
                 size="small"
@@ -722,91 +787,103 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
             }
           >
               {showSection("basics") ? (
-              <Box
-                sx={{ gridColumn: "1 / -1", width: "100%" }}
-                className={isV2Section ? "msqdx-glass-target-group-basics-section" : undefined}
+              <>
+              <TargetGroupAdminSectionSurface
+                embedInSection={isV2Section}
+                cardId="basic"
+                title={t("targetGroupsAdmin.basic")}
+                icon="groups"
+                expanded={isAccordionExpanded("basic")}
+                onToggle={toggleAccordion}
               >
-                {isV2Section ? (
-                  <Stack
-                    component="section"
-                    className="msqdx-glass-target-group-basics-stack"
-                    spacing={0}
+                  <MsqdxGlassEntityEditor
+                    entityType="targetGroup"
+                    entity={detail}
+                    entitySyncKey={selectedId ?? ""}
+                    onSave={handleFieldSave}
+                    inline
+                    disabled={savePending}
+                  />
+              </TargetGroupAdminSectionSurface>
+
+              {isV2Section ? <MsqdxGlassPainGoalsSectorSeparator /> : null}
+
+              <TargetGroupAdminSectionSurface
+                embedInSection={isV2Section}
+                cardId="metadata"
+                title={t("targetGroupsAdmin.metadata")}
+                icon="info"
+                expanded={isAccordionExpanded("metadata")}
+                onToggle={toggleAccordion}
+              >
+                  <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" }, gap: 2, borderLeft: "1px solid", borderColor: "divider", pl: 2 }}>
+                    <Box>
+                      <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>{t("targetGroupsAdmin.projectId")}</MsqdxTypography>
+                      <MsqdxTypography variant="body2">{detail.projectId ?? (detail as any).project_id ?? "—"}</MsqdxTypography>
+                    </Box>
+                    <Box>
+                      <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>{t("targetGroupsAdmin.created")}</MsqdxTypography>
+                      <MsqdxTypography variant="body2">{formatDate(detail.createdAt ?? (detail as any).created_at ?? "")}</MsqdxTypography>
+                    </Box>
+                    <Box>
+                      <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>{t("targetGroupsAdmin.updated")}</MsqdxTypography>
+                      <MsqdxTypography variant="body2">{formatDate(detail.updatedAt ?? (detail as any).updated_at ?? "")}</MsqdxTypography>
+                    </Box>
+                  </Box>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      gap: 1,
+                      justifyContent: "flex-end",
+                      flexWrap: "wrap",
+                      pt: 2,
+                      mt: 2,
+                      borderTop: "1px solid",
+                      borderColor: "divider",
+                    }}
                   >
-                    <TargetGroupAdminSectionSurface
-                      embedInSection
-                      hideBlockTitle
-                      cardId="target-group-basics-hero"
-                      title={t("targetGroupsAdmin.basic")}
-                      icon="groups"
-                      expanded={isAccordionExpanded("basic")}
-                      onToggle={toggleAccordion}
-                    >
-                      <MsqdxGlassTargetGroupBasicsHero
-                        detail={detail}
-                        selectedId={selectedId}
-                        editingField={editingField}
-                        setEditingField={setEditingField}
-                        savePending={savePending}
-                        onSave={handleFieldSave}
-                        formatDate={formatDate}
+                    {isTargetGroupArchived(detail.status) ? (
+                      <MsqdxChip
+                        variant="outlined"
+                        size="small"
+                        label={t("targetGroupsAdmin.statusArchived")}
+                        sx={{ mr: "auto" }}
                       />
-                    </TargetGroupAdminSectionSurface>
-
-                    <MsqdxGlassPainGoalsSectorSeparator />
-
-                    <MsqdxGlassTargetGroupBasicsLocalization
-                      detail={detail}
-                      selectedId={selectedId}
-                      savePending={savePending}
-                      onSave={handleFieldSave}
-                    />
-                  </Stack>
-                ) : (
-                  <>
-                    <TargetGroupAdminSectionSurface
-                      embedInSection={false}
-                      cardId="basic"
-                      title={t("targetGroupsAdmin.basic")}
-                      icon="groups"
-                      expanded={isAccordionExpanded("basic")}
-                      onToggle={toggleAccordion}
-                    >
-                      <MsqdxGlassEntityEditor
-                        entityType="targetGroup"
-                        entity={detail}
-                        entitySyncKey={selectedId ?? ""}
-                        onSave={handleFieldSave}
-                        inline
+                    ) : null}
+                    {!isTargetGroupArchived(detail.status) ? (
+                      <MsqdxButton
+                        variant="text"
+                        size="small"
+                        onClick={() => void handleArchive()}
                         disabled={savePending}
-                      />
-                    </TargetGroupAdminSectionSurface>
-
-                    <TargetGroupAdminSectionSurface
-                      embedInSection={false}
-                      cardId="metadata"
-                      title={t("targetGroupsAdmin.metadata")}
-                      icon="info"
-                      expanded={isAccordionExpanded("metadata")}
-                      onToggle={toggleAccordion}
+                        startIcon={<MsqdxIcon name="archive" customSize={16} />}
+                      >
+                        {t("targetGroupsAdmin.archive")}
+                      </MsqdxButton>
+                    ) : (
+                      <MsqdxButton
+                        variant="text"
+                        size="small"
+                        onClick={() => void handleRestore()}
+                        disabled={savePending}
+                        startIcon={<MsqdxIcon name="unarchive" customSize={16} />}
+                      >
+                        {t("targetGroupsAdmin.restore")}
+                      </MsqdxButton>
+                    )}
+                    <MsqdxButton
+                      variant="text"
+                      size="small"
+                      brandColor="pink"
+                      onClick={handleDelete}
+                      disabled={savePending}
+                      startIcon={<MsqdxIcon name="delete" customSize={16} />}
                     >
-                      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" }, gap: 2, borderLeft: "1px solid", borderColor: "divider", pl: 2 }}>
-                        <Box>
-                          <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>{t("targetGroupsAdmin.projectId")}</MsqdxTypography>
-                          <MsqdxTypography variant="body2">{detail.projectId ?? (detail as any).project_id ?? "—"}</MsqdxTypography>
-                        </Box>
-                        <Box>
-                          <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>{t("targetGroupsAdmin.created")}</MsqdxTypography>
-                          <MsqdxTypography variant="body2">{formatDate(detail.createdAt ?? (detail as any).created_at ?? "")}</MsqdxTypography>
-                        </Box>
-                        <Box>
-                          <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>{t("targetGroupsAdmin.updated")}</MsqdxTypography>
-                          <MsqdxTypography variant="body2">{formatDate(detail.updatedAt ?? (detail as any).updated_at ?? "")}</MsqdxTypography>
-                        </Box>
-                      </Box>
-                    </TargetGroupAdminSectionSurface>
-                  </>
-                )}
-              </Box>
+                      {t("targetGroupsAdmin.delete")}
+                    </MsqdxButton>
+                  </Box>
+              </TargetGroupAdminSectionSurface>
+              </>
               ) : null}
 
               {showSection("personas") ? (
@@ -1079,6 +1156,31 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
             </div>
         )}
       </section>
+
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>{t("targetGroupsAdmin.deleteDialogTitle")}</DialogTitle>
+        <DialogContent>
+          <MsqdxTypography variant="body2" sx={{ color: "text.secondary" }}>
+            {t("targetGroupsAdmin.deleteDialogDescription", {
+              name: detail?.name || t("targetGroupsAdmin.thisTargetGroup"),
+            })}
+          </MsqdxTypography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+          <MsqdxButton variant="outlined" size="small" onClick={() => setDeleteDialogOpen(false)} disabled={savePending}>
+            {t("common.cancel")}
+          </MsqdxButton>
+          <MsqdxButton
+            variant="contained"
+            size="small"
+            brandColor="pink"
+            onClick={() => void handleDeleteConfirm()}
+            disabled={savePending}
+          >
+            {t("targetGroupsAdmin.deleteDialogConfirm")}
+          </MsqdxButton>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 };

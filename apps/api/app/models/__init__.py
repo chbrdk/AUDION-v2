@@ -322,7 +322,7 @@ class TargetGroup(Base):
     description_de = Column(Text, nullable=True)
     segment = Column(String(128), nullable=False)
     segment_de = Column(String(128), nullable=True)
-    status = Column(String(32), nullable=False, default="draft")
+    status = Column(String(32), nullable=False, default="active")
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     updated_by = Column(String(128), nullable=True)

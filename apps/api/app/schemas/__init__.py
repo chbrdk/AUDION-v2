@@ -489,8 +489,8 @@ class TargetGroupBase(BaseModel):
     )
     segment: str = Field(..., description="Segment identifier shared by personas in the group (English, canonical).")
     status: str = Field(
-        default="draft",
-        description="Publication lifecycle: draft or published. Published requires DE mirrors where EN text is set.",
+        default="active",
+        description="Lifecycle: active (default) or archived (hidden from default lists).",
     )
     name_de: str | None = Field(
         default=None,
@@ -537,7 +537,7 @@ class TargetGroupUpdateRequest(BaseModel):
     )
     status: str | None = Field(
         default=None,
-        description="Set to draft or published. Published requires DE mirrors where EN text is set.",
+        description="Set to active or archived.",
     )
     updated_by: str | None = Field(
         default=None,
@@ -556,7 +556,7 @@ class TargetGroupListItem(BaseModel):
         description="Optional description text.",
     )
     description_de: str | None = Field(default=None, description="German mirror description.")
-    status: str = Field(default="draft", description="Publication lifecycle: draft or published.")
+    status: str = Field(default="active", description="Lifecycle: active or archived.")
     persona_count: int = Field(
         0,
         description="Number of personas currently associated with the group.",
@@ -588,7 +588,7 @@ class TargetGroupResponse(BaseModel):
         description="Optional detail describing the group.",
     )
     description_de: str | None = Field(default=None, description="German mirror description.")
-    status: str = Field(default="draft", description="Publication lifecycle: draft or published.")
+    status: str = Field(default="active", description="Lifecycle: active or archived.")
     personas: List[PersonaListItem] = Field(
         default_factory=list,
         description="Personas currently linked to the target group.",

@@ -381,14 +381,14 @@ def init_db():
                         conn.execute(
                             text(
                                 "ALTER TABLE audion.target_groups ADD COLUMN status VARCHAR(32) "
-                                "NOT NULL DEFAULT 'draft'"
+                                "NOT NULL DEFAULT 'active'"
                             )
                         )
                         conn.execute(text("ALTER TABLE audion.target_groups ALTER COLUMN status DROP DEFAULT"))
 
                 conn.commit()
                 logger.info(
-                    "Ensured projects/target_groups ORM columns (bilingual DE mirrors, context, publication status, checkion_project_id)."
+                    "Ensured projects/target_groups ORM columns (bilingual DE mirrors, context, lifecycle status, checkion_project_id)."
                 )
         except Exception as e:
             logger.warning(f"Projects/target_groups ORM column ensure failed: {e}")

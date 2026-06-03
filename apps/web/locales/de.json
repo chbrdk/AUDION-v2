@@ -448,6 +448,8 @@
     "publicationStatus": "Veröffentlichungsstatus",
     "statusDraft": "Entwurf",
     "statusPublished": "Veröffentlicht",
+    "statusArchived": "Archiviert",
+    "showArchived": "Archivierte Zielgruppen anzeigen",
     "name": "Name",
     "namePlaceholder": "Zielgruppenname",
     "segment": "Segment",
@@ -491,6 +493,14 @@
     "selectFile": "Datei auswählen",
     "uploading": "Hochladen…",
     "knowledgeExplorer": "Knowledge Explorer",
+    "archive": "Archivieren",
+    "archiveConfirm": "\"{name}\" archivieren? Die Zielgruppe wird in der Bibliothek ausgeblendet, bis archivierte Gruppen eingeblendet werden.",
+    "restore": "Wiederherstellen",
+    "delete": "Zielgruppe löschen",
+    "deleteDialogTitle": "Zielgruppe löschen?",
+    "deleteDialogDescription": "\"{name}\" dauerhaft löschen? Verknüpfte Personas bleiben im Projekt, die Verknüpfung zu dieser Zielgruppe wird entfernt. Das kann nicht rückgängig gemacht werden.",
+    "deleteDialogConfirm": "Endgültig löschen",
+    "thisTargetGroup": "diese Zielgruppe",
     "deletePersonaConfirm": "Bist du sicher, dass du \"{name}\" löschen möchtest?\n\nDiese Aktion kann nicht rückgängig gemacht werden. Die Persona wird dauerhaft entfernt.",
     "thisPersona": "diese Persona",
     "generateWithAi": "Mit KI vorschlagen",
@@ -530,7 +540,12 @@
       "personaCreateError": "Fehler beim Erstellen der Persona",
       "segmentRequired": "Segment ist Pflicht.",
       "personaDeleted": "Persona gelöscht",
-      "deleteFailed": "Löschen fehlgeschlagen"
+      "deleteFailed": "Löschen fehlgeschlagen",
+      "targetGroupArchived": "Zielgruppe archiviert",
+      "archiveFailed": "Zielgruppe konnte nicht archiviert werden",
+      "targetGroupRestored": "Zielgruppe wiederhergestellt",
+      "restoreFailed": "Zielgruppe konnte nicht wiederhergestellt werden",
+      "targetGroupDeleted": "Zielgruppe gelöscht"
     }
   },
   "targetGroupV2": {
@@ -548,9 +563,7 @@
     "sections": {
       "basics": {
         "label": "Basics",
-        "description": "Name, Segment, Beschreibung und Metadaten",
-        "localizationTitle": "Deutsche Lokalisierung",
-        "descriptionEmpty": "Noch keine Beschreibung — füge eine kurze Zusammenfassung für diese Zielgruppe hinzu."
+        "description": "Name, Segment, Beschreibung und Metadaten"
       },
       "personas": {
         "label": "Personas",

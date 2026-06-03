@@ -57,30 +57,3 @@ def validate_project_bilingual_publish(*, project: _ProjectLike) -> None:
     ctx_en = (project.company_context or "").strip()
     if ctx_en and not (project.company_context_de or "").strip():
         raise ValueError("bilingual_publish_incomplete: project company_context_de is required when company_context is set")
-
-
-@runtime_checkable
-class _TargetGroupLike(Protocol):
-    name: str
-    name_de: str | None
-    segment: str
-    segment_de: str | None
-    description: str | None
-    description_de: str | None
-    status: object
-
-
-def validate_target_group_bilingual_publish(*, target_group: _TargetGroupLike) -> None:
-    """When target group is published, require DE mirrors wherever EN text is set."""
-
-    if _norm_status(target_group.status) != "published":
-        return
-
-    if not (target_group.name_de or "").strip():
-        raise ValueError("bilingual_publish_incomplete: target_group name_de is required when status is published")
-    if not (target_group.segment_de or "").strip():
-        raise ValueError("bilingual_publish_incomplete: target_group segment_de is required when status is published")
-
-    desc_en = (target_group.description or "").strip()
-    if desc_en and not (target_group.description_de or "").strip():
-        raise ValueError("bilingual_publish_incomplete: target_group description_de is required when description is set")

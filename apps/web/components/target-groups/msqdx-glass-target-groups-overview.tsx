@@ -31,6 +31,11 @@ import {
   type TargetGroupSuggestionDto,
 } from "../../lib/projects-suggest-target-groups";
 import { ADMIN_ROUTES } from "../../lib/routes";
+import { isTargetGroupArchived } from "../../lib/target-group-lifecycle";
+import {
+  readTargetGroupsShowArchived,
+  writeTargetGroupsShowArchived,
+} from "../../lib/target-groups-show-archived";
 import type { TargetGroupsOverviewViewMode } from "../../lib/target-groups-overview-view-mode";
 import { useProject } from "../projects/project-provider";
 import { useI18n } from "../i18n/i18n-provider";
@@ -91,6 +96,7 @@ export function MsqdxGlassTargetGroupsOverview({
   const [expandedAiDetails, setExpandedAiDetails] = useState<Set<number>>(new Set());
   const [aiCreating, setAiCreating] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
 
   const items = useMemo(() => list.items ?? [], [list.items]);
   const isListLayout = layout === "list";
@@ -115,12 +121,19 @@ export function MsqdxGlassTargetGroupsOverview({
     },
   } as const;
 
-  const refresh = async (projectId: string) => {
+  useEffect(() => {
+    setShowArchived(readTargetGroupsShowArchived());
+  }, []);
+
+  const refresh = async (projectId: string, includeArchived = showArchived) => {
     setLoading(true);
     setLoadError(null);
     try {
+      const archivedParam = includeArchived ? "&include_archived=true" : "";
       const response = await fetch(
-        buildApiUrl(`/api/target-groups?page=1&page_size=50&project_id=${encodeURIComponent(projectId)}`),
+        buildApiUrl(
+          `/api/target-groups?page=1&page_size=50&project_id=${encodeURIComponent(projectId)}${archivedParam}`
+        ),
         { cache: "no-store" }
       );
       if (!response.ok) {
@@ -142,9 +155,9 @@ export function MsqdxGlassTargetGroupsOverview({
       setList({ items: [], total: 0, page: 1, page_size: 50 });
       return;
     }
-    void refresh(activeProjectId);
+    void refresh(activeProjectId, showArchived);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeProjectId]);
+  }, [activeProjectId, showArchived]);
 
   const handleCreate = async () => {
     const namePair = mirrorFillStringPair(createForm.name, createForm.name_de);
@@ -285,6 +298,18 @@ export function MsqdxGlassTargetGroupsOverview({
 
   return (
     <Box sx={{ width: "100%" }} className="msqdx-glass-target-groups-overview">
+      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1.5 }}>
+        <MsqdxCheckboxField
+          label={t("targetGroupsAdmin.showArchived")}
+          options={[{ value: "on", label: t("targetGroupsAdmin.showArchived") }]}
+          value={showArchived ? ["on"] : []}
+          onChange={(v) => {
+            const next = v.includes("on");
+            setShowArchived(next);
+            writeTargetGroupsShowArchived(next);
+          }}
+        />
+      </Box>
       <Box
         className={isListLayout ? "msqdx-glass-target-groups-list" : "msqdx-glass-target-groups-grid"}
         sx={
@@ -514,6 +539,9 @@ export function MsqdxGlassTargetGroupsOverview({
                     {tg.segment || "—"}
                   </MsqdxTypography>
                 </Box>
+                {isTargetGroupArchived(tg.status) ? (
+                  <MsqdxChip variant="outlined" size="small" label={t("targetGroupsAdmin.statusArchived")} />
+                ) : null}
                 <MsqdxChip variant="outlined" size="small" label={tg.segment || "—"} sx={{ display: { xs: "none", sm: "inline-flex" } }} />
                 <MsqdxIcon name="chevron_right" customSize={22} style={{ color: accent, flexShrink: 0 }} />
               </Box>
@@ -530,7 +558,11 @@ export function MsqdxGlassTargetGroupsOverview({
             onClick={() => router.push(targetGroupHref(tg.id))}
             title={tg.name}
             titleVariant="h6"
-            subtitle={tg.segment}
+            subtitle={
+              isTargetGroupArchived(tg.status)
+                ? `${tg.segment || "—"} · ${t("targetGroupsAdmin.statusArchived")}`
+                : tg.segment
+            }
             sx={{
               minHeight: 140,
               border: "1px solid",

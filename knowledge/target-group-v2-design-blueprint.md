@@ -1,6 +1,6 @@
 # Target groups v2 — design blueprint
 
-Mirrors **persona v2** (`knowledge/persona-v2-design-blueprint.md`).
+Mirrors **persona v2** shell/nav; content uses standard **msqdx** admin components (no custom hero blocks).
 
 ## Routes
 
@@ -15,31 +15,28 @@ Mirrors **persona v2** (`knowledge/persona-v2-design-blueprint.md`).
 
 | Section | v1 accordion | Content |
 |---------|--------------|---------|
-| `basics` | basic + metadata | v2: `MsqdxGlassTargetGroupBasicsHero` + description/DE fields; v1: entity editor + metadata grid |
-| `personas` | personas | Persona list (v2 links → `ADMIN_ROUTES.personaV2Section`) + create |
-| `knowledge` | knowledge | Knowledge entries + add form (`MsqdxGlassPainGoalsSectorSeparator` in v2) |
+| `basics` | basic + metadata | `MsqdxGlassEntityEditor` + metadata grid (`MsqdxTypography`) |
+| `personas` | personas | `MsqdxGlassPersonaList` (v2 → `targetGroupV2PersonaDetailHref`) + create |
+| `knowledge` | knowledge | Knowledge entries + add form |
 | `documents` | documents | Upload + ingestion |
 | `explorer` | knowledge-explorer | `MsqdxGlassKnowledgeExplorer` |
 
-## Basics v2 stack
+## Basics (v1 + v2)
 
-- `msqdx-glass-target-group-basics-section` + `msqdx-glass-target-group-basics-stack`
-- Hero: name, segment, status, description (inline edit) + read-only metadata (project, dates)
-- Separator → `MsqdxGlassTargetGroupBasicsLocalization` (DE fields in v2 field stacks)
-- No generic `MsqdxGlassEntityEditor` in v2 basics (avoids duplicate labels / “BASIC” group header)
-- Persona list href helper: `targetGroupV2PersonaDetailHref` in `target-group-basics-hero-layout.ts`
+- Same components; v2 uses `TargetGroupAdminSectionSurface` with `embedInSection` + optional `MsqdxGlassPainGoalsSectorSeparator` between editor and metadata.
+- Persona list href: `apps/web/lib/target-group-v2-persona-link.ts`
+- Basics metadata block: **Unpublish** (published → draft) and **Delete** via `deleteTargetGroup` + MUI confirm dialog
 
 ## Components
 
 - `MsqdxGlassTargetGroupsV2Overview` — section shell library
 - `MsqdxGlassTargetGroupV2DetailLayout` — shell + nav
 - `MsqdxGlassTargetGroupAdminSectionView` → panel `presentation="v2-section"`
-- `MsqdxGlassTargetGroupBasicsHero` — profile hero for basics section
 - `TargetGroupAdminSectionSurface` — flat `PersonaV2SectionBlock` vs accordion
 
 ## CSS
 
-- `target-group-v2-section-panel.css`
+- `target-group-v2-section-panel.css` — shell/scroll only (no custom field layouts)
 - `section-shell.css` — `.msqdx-glass-target-group-v2-detail`
 
 ## View mode

@@ -10,7 +10,6 @@ import pytest
 from app.services.resource_bilingual_utils import (
     normalize_publication_status,
     validate_project_bilingual_publish,
-    validate_target_group_bilingual_publish,
 )
 
 
@@ -22,17 +21,6 @@ class _FakeProject:
     description_de: str | None
     company_context: str | None
     company_context_de: str | None
-    status: str
-
-
-@dataclass
-class _FakeTargetGroup:
-    name: str
-    name_de: str | None
-    segment: str
-    segment_de: str | None
-    description: str | None
-    description_de: str | None
     status: str
 
 
@@ -87,33 +75,6 @@ def test_validate_project_bilingual_publish_published_rules() -> None:
 
     p.company_context_de = "de ctx"
     validate_project_bilingual_publish(project=p)
-
-
-def test_validate_target_group_bilingual_publish_published_rules() -> None:
-    tg = _FakeTargetGroup(
-        name="n",
-        name_de=None,
-        segment="s",
-        segment_de=None,
-        description=None,
-        description_de=None,
-        status="published",
-    )
-    with pytest.raises(ValueError, match="name_de"):
-        validate_target_group_bilingual_publish(target_group=tg)
-
-    tg.name_de = "nd"
-    with pytest.raises(ValueError, match="segment_de"):
-        validate_target_group_bilingual_publish(target_group=tg)
-
-    tg.segment_de = "sd"
-    tg.description = "d"
-    tg.description_de = None
-    with pytest.raises(ValueError, match="description_de"):
-        validate_target_group_bilingual_publish(target_group=tg)
-
-    tg.description_de = "dd"
-    validate_target_group_bilingual_publish(target_group=tg)
 
 
 def test_init_db_emergency_orm_columns_for_projects_target_groups() -> None:

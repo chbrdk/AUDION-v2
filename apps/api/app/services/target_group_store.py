@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 
 from ..core.config import get_settings
-from .resource_bilingual_utils import normalize_publication_status, validate_target_group_bilingual_publish
+from .target_group_lifecycle import coerce_target_group_status, normalize_target_group_status
 from ..models import (
     Document,
     Persona,
@@ -47,6 +47,7 @@ class TargetGroupService:
         project_id: str | None = None,
         page: int = 1,
         page_size: int = 20,
+        include_archived: bool = False,
     ) -> TargetGroupListResponse:
         # Subqueries for counts to avoid N+1
         persona_count_subq = (
@@ -78,12 +79,17 @@ class TargetGroupService:
                 raise ValueError("project_access_denied")
             query = query.where(TargetGroup.project_id == project_uuid)
 
+        if not include_archived:
+            query = query.where(TargetGroup.status != "archived")
+
         # Get total count (need separate query for count)
         count_query = select(func.count(TargetGroup.id))
         if allowed_project_ids is not None:
             count_query = count_query.where(TargetGroup.project_id.in_(allowed_project_ids))
         if project_id:
              count_query = count_query.where(TargetGroup.project_id == UUID(project_id))
+        if not include_archived:
+            count_query = count_query.where(TargetGroup.status != "archived")
         
         total = session.scalar(count_query)
 
@@ -103,7 +109,7 @@ class TargetGroupService:
                     segment_de=getattr(tg, "segment_de", None),
                     description=tg.description,
                     description_de=getattr(tg, "description_de", None),
-                    status=getattr(tg, "status", None) or "draft",
+                    status=coerce_target_group_status(getattr(tg, "status", None)),
                     persona_count=p_count or 0,
                     knowledge_entry_count=k_count or 0,
                     created_at=tg.created_at,
@@ -185,7 +191,7 @@ class TargetGroupService:
             segment_de=getattr(tg, "segment_de", None),
             description=tg.description,
             description_de=getattr(tg, "description_de", None),
-            status=getattr(tg, "status", None) or "draft",
+            status=coerce_target_group_status(getattr(tg, "status", None)),
             personas=persona_list,
             knowledge_entries=knowledge_list,
             sources=source_list,
@@ -206,7 +212,7 @@ class TargetGroupService:
         except ValueError as exc:
             raise ValueError(f"badly formed hexadecimal UUID string: {project_id_str}") from exc
         
-        publication_status = normalize_publication_status(getattr(payload, "status", None))
+        publication_status = normalize_target_group_status(getattr(payload, "status", None))
 
         tg = TargetGroup(
             project_id=project_id,
@@ -222,7 +228,6 @@ class TargetGroupService:
         session.add(tg)
         try:
             session.flush()
-            validate_target_group_bilingual_publish(target_group=tg)
             session.commit()
             session.refresh(tg)
         except ValueError:
@@ -244,7 +249,7 @@ class TargetGroupService:
 
         if payload.status is not None:
             try:
-                tg.status = normalize_publication_status(payload.status)
+                tg.status = normalize_target_group_status(payload.status)
             except ValueError:
                 raise
 
@@ -264,13 +269,25 @@ class TargetGroupService:
             tg.updated_by = payload.updated_by
 
         try:
-            validate_target_group_bilingual_publish(target_group=tg)
             session.commit()
             session.refresh(tg)
         except ValueError:
             session.rollback()
             raise
         return self.get_target_group(session, str(tg.id))
+
+    def delete_target_group(self, session: Session, target_group_id: str) -> None:
+        try:
+            tg_uuid = UUID(target_group_id)
+        except ValueError:
+            raise ValueError("invalid_target_group_id")
+
+        tg = session.get(TargetGroup, tg_uuid)
+        if not tg:
+            raise ValueError("target_group_not_found")
+
+        session.delete(tg)
+        session.commit()
 
     def list_knowledge(
         self, session: Session, target_group_id: str
