@@ -238,6 +238,14 @@ class Moodboard(BaseModel):
     status: str = Field(default="draft", description="draft|building|ready|failed")
     active: bool = Field(default=True, description="Whether this moodboard is the active board for the persona.")
     styleKeywords: list[str] = Field(default_factory=list, description="Optional style keywords used for sourcing.")
+    moodManifest: str | None = Field(
+        default=None,
+        description="Short art-direction brief describing the persona mood (German/English).",
+    )
+    paletteHints: list[str] = Field(
+        default_factory=list,
+        description="Color/material hints for the moodboard atmosphere.",
+    )
     tiles: list[MoodboardTile] = Field(default_factory=list, description="Tiles in display order.")
     createdAt: datetime | None = None
     updatedAt: datetime | None = None

@@ -56,6 +56,7 @@ import { useI18n } from "./i18n/i18n-provider";
 import { targetGroupsApi, type TargetGroupResponse } from "../app/api/_lib/target-groups";
 import { MsqdxGlassConvertUxRunDialog } from "./journeys/msqdx-glass-convert-ux-run-dialog";
 import type { PersonaV2SectionId } from "../lib/persona-v2-sections";
+import { MsqdxGlassPersonaMoodboardSection } from "./personas-v2/msqdx-glass-persona-moodboard-section";
 import {
   isPersonaV2SectionContentVisible,
   type PersonaAdminPresentation,
@@ -121,6 +122,8 @@ type Moodboard = {
   status: string;
   active: boolean;
   styleKeywords?: string[];
+  moodManifest?: string | null;
+  paletteHints?: string[];
   tiles: MoodboardTile[];
 };
 
@@ -2693,7 +2696,25 @@ export const MsqdxGlassPersonaAdminPanel = ({
 
               {/* Card: Moodboard - Full Width */}
               {showSection("moodboard") ? (
-              <Box sx={{ gridColumn: "1 / -1" }}>
+              <Box sx={{ gridColumn: "1 / -1" }} className={isV2Section ? "msqdx-glass-moodboard-section-wrap" : undefined}>
+                {isV2Section ? (
+                  <MsqdxGlassPersonaMoodboardSection
+                    moodboard={moodboard}
+                    loading={moodboardLoading}
+                    pending={moodboardPending}
+                    error={moodboardError}
+                    personaHeadline={
+                      locale === "de"
+                        ? detail.headline_de ?? detail.profile.headline
+                        : detail.profile.headline
+                    }
+                    onGenerate={() => void handleGenerateMoodboard()}
+                    onRebuild={() => void handleRebuildMoodboard()}
+                    onEditTile={openTileDialog}
+                    onDeleteTile={(tile) => void handleDeleteTile(tile)}
+                    canGenerate={Boolean(selectedId)}
+                  />
+                ) : (
                 <MsqdxDashboardCard
                   id="moodboard"
                   title="Moodboard"
@@ -2873,6 +2894,7 @@ export const MsqdxGlassPersonaAdminPanel = ({
                     )}
                   </Box>
                 </MsqdxDashboardCard>
+                )}
               </Box>
               ) : null}
 

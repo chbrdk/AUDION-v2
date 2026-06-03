@@ -580,12 +580,24 @@
       },
       "moodboard": {
         "label": "Moodboard",
-        "description": "Visuelle Kacheln und Generierung"
+        "description": "Stimmung, Bildwelten und visuelle Energie der Persona"
       },
       "advanced": {
         "label": "Erweitert",
         "description": "Expertenfelder und JSON"
       }
+    },
+    "moodboard": {
+      "atmosphereTitle": "Stimmungsraum",
+      "atmosphereLead": "Bildwelten, Licht und Materialität — so wirkt diese Persona, bevor man sie liest.",
+      "atmosphereLeadWithHeadline": "Wie fühlt sich „{headline}“ visuell an?",
+      "statusReady": "Bereit",
+      "generate": "Stimmung erzeugen",
+      "regenerate": "Neu zusammenstellen",
+      "generating": "Wird zusammengestellt…",
+      "emptyTitle": "Noch keine Bildwelt",
+      "emptyBody": "Generiere ein Moodboard aus Profil und Traits — Kacheln nach Kategorien mit Farbe, Alltag und Haptik.",
+      "locked": "Gesperrt"
     }
   },
   "personaAdmin": {

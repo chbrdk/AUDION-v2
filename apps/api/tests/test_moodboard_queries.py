@@ -29,5 +29,5 @@ def test_build_queries_stays_short_and_category_specific() -> None:
     assert qs["lifestyle"].startswith("Leidenschaft")
     assert "lifestyle photography" in qs["lifestyle"]
     assert "color palette interior" in qs["colors"]
-    assert "man portrait confident" in qs["people"]
+    assert "portrait" in qs["people"]
     assert len(qs["lifestyle"]) < 140

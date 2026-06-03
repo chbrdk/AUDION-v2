@@ -73,13 +73,28 @@ Alembic migration:
 
 1. Admin creates a moodboard via `POST /api/persona-admin/{persona_id}/moodboards`
 2. API enqueues Celery task `moodboard.build` (queue `moodboards`)
-3. Worker fetches Openverse images for default categories and writes tiles
-4. Moodboard `status` transitions: `draft → building → ready|failed`
+3. Worker builds a **persona style package** (LLM brief when `OPENAI_API_KEY` set, else heuristic):
+   - `moodManifest`, `keywords`, `paletteHints`, per-category `categoryDirections`, `avoid` list
+4. Images:
+   - **openverse** (default): **one curated tile per category** (8 categories), scored against brief; captions/rationale from directions
+   - **openai** / **auto**: GPT Image with art-direction prompts (anti-stock-slop rules)
+5. Moodboard `status` transitions: `draft → building → ready|failed`
 
 Implementation:
+- Creative brief + scoring: `apps/api/app/services/moodboard_creative.py`
 - Openverse client: `apps/api/app/services/openverse_client.py`
 - Moodboard service: `apps/api/app/services/moodboard_service.py`
 - Celery task: `apps/api/app/tasks/moodboard_tasks.py`
+
+### Categories (8-tile bento)
+
+`lifestyle`, `places`, `colors`, `textures`, `people`, `objects`, `ui`, `typography`
+
+### Anti–AI-slop / anti-stock
+
+- Brief explicitly bans generic corporate/handshake/startup imagery
+- Stock pool scored; low-scoring generic URLs deprioritized
+- OpenAI prompts: editorial, no logos/text/watermarks, persona-specific direction per category
 
 ## API endpoints
 

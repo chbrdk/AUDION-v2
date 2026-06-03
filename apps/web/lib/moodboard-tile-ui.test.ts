@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  moodboardCategoryDisplayLabel,
   moodboardCategoryMoodLine,
+  moodboardCategoryVisual,
   moodboardGridContainerSx,
   moodboardTileCardRadius,
   moodboardTileGridSx,
@@ -47,6 +49,23 @@ describe("moodboardGridContainerSx", () => {
     const sx = moodboardGridContainerSx() as { gridTemplateColumns?: { xs?: string; sm?: string } };
     expect(sx.gridTemplateColumns?.xs).toContain("repeat(2");
     expect(sx.gridTemplateColumns?.sm).toBe("repeat(3, 1fr)");
+  });
+
+  it("uses taller rows in immersive mode", () => {
+    const sx = moodboardGridContainerSx({ immersive: true }) as { gridAutoRows?: string };
+    expect(sx.gridAutoRows).toContain("200");
+  });
+});
+
+describe("moodboardCategoryVisual", () => {
+  it("returns category-specific accent tokens", () => {
+    expect(moodboardCategoryVisual("colors").accent).toContain("pink");
+    expect(moodboardCategoryVisual("ui").glow).toContain("246");
+  });
+
+  it("labels categories for overlays", () => {
+    expect(moodboardCategoryDisplayLabel("textures", "de")).toBe("Texturen");
+    expect(moodboardCategoryDisplayLabel("textures", "en")).toBe("Textures");
   });
 });
 

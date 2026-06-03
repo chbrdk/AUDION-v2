@@ -580,12 +580,24 @@
       },
       "moodboard": {
         "label": "Moodboard",
-        "description": "Visual tiles and generation"
+        "description": "Mood, imagery, and visual energy of the persona"
       },
       "advanced": {
         "label": "Advanced",
         "description": "Expert fields and JSON"
       }
+    },
+    "moodboard": {
+      "atmosphereTitle": "Mood space",
+      "atmosphereLead": "Imagery, light, and texture — how this persona feels before you read a line.",
+      "atmosphereLeadWithHeadline": "What does “{headline}” feel like visually?",
+      "statusReady": "Ready",
+      "generate": "Generate mood",
+      "regenerate": "Rebuild board",
+      "generating": "Composing…",
+      "emptyTitle": "No visual world yet",
+      "emptyBody": "Generate a moodboard from profile and traits — tiles by category with color, life, and touch.",
+      "locked": "Locked"
     }
   },
   "personaAdmin": {

@@ -154,6 +154,7 @@ def _serialize_persona_ux_journey_run(row: PersonaUxJourneyRun) -> PersonaUxJour
 
 
 def _serialize_moodboard(session: Session, moodboard: PersonaMoodboard) -> Moodboard:
+    from ..services.moodboard_creative import unpack_style_keywords
     tiles = (
         session.scalars(
             select(PersonaMoodboardTile)
@@ -162,7 +163,7 @@ def _serialize_moodboard(session: Session, moodboard: PersonaMoodboard) -> Moodb
         )
         .all()
     )
-    style = moodboard.style_keywords if isinstance(moodboard.style_keywords, list) else []
+    keywords, mood_manifest, palette_hints, _directions = unpack_style_keywords(moodboard.style_keywords)
     project_uuid = moodboard.project_id
     if project_uuid is None:
         persona_obj = session.get(Persona, moodboard.persona_id)
@@ -174,7 +175,9 @@ def _serialize_moodboard(session: Session, moodboard: PersonaMoodboard) -> Moodb
         title=moodboard.title,
         status=moodboard.status.value if hasattr(moodboard.status, "value") else str(moodboard.status),
         active=bool(moodboard.active),
-        styleKeywords=[s for s in style if isinstance(s, str)],
+        styleKeywords=keywords,
+        moodManifest=mood_manifest,
+        paletteHints=palette_hints,
         tiles=[
             _serialize_moodboard_tile(t, persona_id=moodboard.persona_id, project_id=project_uuid)
             for t in tiles
