@@ -41,6 +41,8 @@
   },
   "entityEditor": {
     "saveAllChanges": "Alle Änderungen speichern ({count})",
+    "columnEn": "Englisch",
+    "columnDe": "Deutsch",
     "mediaAffinityHint": "Skala 0–100: wie stark die Persona digitale/Medien-Inhalte nutzt oder bevorzugt."
   },
   "promptBuilder": {

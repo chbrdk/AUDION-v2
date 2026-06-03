@@ -24,6 +24,7 @@ Mirrors **persona v2** shell/nav; content uses standard **msqdx** admin componen
 ## Basics (v1 + v2)
 
 - Same components; v2 uses `TargetGroupAdminSectionSurface` with `embedInSection` + optional `MsqdxGlassPainGoalsSectorSeparator` between editor and metadata.
+- v2 basics entity editor: `alwaysEditMode` + `bilingualColumns` (EN | DE side-by-side rows via `entity-editor-bilingual-rows.ts`).
 - Persona list href: `apps/web/lib/target-group-v2-persona-link.ts`
 - Basics metadata block: **Unpublish** (published → draft) and **Delete** via `deleteTargetGroup` + MUI confirm dialog
 

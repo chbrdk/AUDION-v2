@@ -803,6 +803,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                     onSave={handleFieldSave}
                     inline
                     alwaysEditMode={isV2Section}
+                    bilingualColumns={isV2Section}
                     savePending={savePending}
                     disabled={savePending}
                   />

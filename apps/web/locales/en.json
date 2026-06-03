@@ -41,6 +41,8 @@
   },
   "entityEditor": {
     "saveAllChanges": "Save all changes ({count})",
+    "columnEn": "English",
+    "columnDe": "German",
     "mediaAffinityHint": "Scale 0–100: how strongly this persona uses or prefers digital/media content."
   },
   "promptBuilder": {

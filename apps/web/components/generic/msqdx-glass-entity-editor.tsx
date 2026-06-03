@@ -7,6 +7,7 @@ import { getFieldDefinitions as getFieldDefs, groupFields as groupFieldsHelper }
 import { MsqdxGlassFieldEditor } from "./msqdx-glass-field-editor";
 import { useI18n } from "../i18n/i18n-provider";
 import { entityFieldGroupTitleKey } from "../../lib/entity-field-i18n";
+import { buildBilingualFieldRows } from "../../lib/entity-editor-bilingual-rows";
 
 export type MsqdxGlassEntityEditorProps<T extends Record<string, any>> = {
   entityType: "persona" | "targetGroup" | "document" | "knowledge";
@@ -24,6 +25,8 @@ export type MsqdxGlassEntityEditorProps<T extends Record<string, any>> = {
   showGroups?: boolean; // Zeige Gruppierung an
   /** Always show inputs; save snackbar on change (TG v2 basics). */
   alwaysEditMode?: boolean;
+  /** Render EN / *_de field pairs in two columns (TG v2 basics). */
+  bilingualColumns?: boolean;
   savePending?: boolean;
 };
 
@@ -41,6 +44,7 @@ export const MsqdxGlassEntityEditor = <T extends Record<string, any>>({
   disabled = false,
   showGroups = true,
   alwaysEditMode = false,
+  bilingualColumns = false,
   savePending = false,
 }: MsqdxGlassEntityEditorProps<T>) => {
   const { t } = useI18n();
@@ -128,6 +132,122 @@ export const MsqdxGlassEntityEditor = <T extends Record<string, any>>({
     return label === path ? groupName : label;
   };
 
+  const renderFieldEditor = (field: FieldDefinition, labelField?: FieldDefinition) => {
+    const displayField = labelField
+      ? {
+          ...field,
+          label: labelField.label,
+          labelKey: labelField.labelKey,
+        }
+      : field;
+
+    if (inline && !alwaysEditMode) {
+      const path = displayField.labelKey;
+      const columnLabel = path
+        ? (() => {
+            const v = t(path);
+            return v === path ? displayField.label : v;
+          })()
+        : displayField.label;
+
+      return (
+        <Box sx={{ display: "flex", alignItems: "flex-start", gap: 2 }}>
+          <Typography
+            variant="body2"
+            sx={{
+              minWidth: "150px",
+              fontWeight: 500,
+              pt: 1,
+            }}
+          >
+            {columnLabel}
+          </Typography>
+          <Box sx={{ flex: 1 }}>
+            <MsqdxGlassFieldEditor
+              field={displayField}
+              value={localEntity[displayField.key]}
+              onChange={handleFieldChange}
+              onSave={handleFieldSave}
+              inline={inline}
+              disabled={disabled}
+              alwaysEditMode={alwaysEditMode}
+              saving={savePending || saving}
+              valueSyncKey={entitySyncKey || undefined}
+            />
+          </Box>
+        </Box>
+      );
+    }
+
+    return (
+      <MsqdxGlassFieldEditor
+        field={displayField}
+        value={localEntity[displayField.key]}
+        onChange={handleFieldChange}
+        onSave={handleFieldSave}
+        inline={false}
+        disabled={disabled}
+        alwaysEditMode={alwaysEditMode}
+        saving={savePending || saving}
+        valueSyncKey={entitySyncKey || undefined}
+      />
+    );
+  };
+
+  const renderBilingualGroupFields = (groupFields: FieldDefinition[]) => {
+    const rows = buildBilingualFieldRows(groupFields);
+
+    return (
+      <Stack spacing={2} className="msqdx-glass-entity-editor__bilingual-grid">
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+            gap: 2,
+            pb: 0.5,
+          }}
+        >
+          <Typography
+            variant="caption"
+            sx={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "text.secondary" }}
+          >
+            {t("entityEditor.columnEn")}
+          </Typography>
+          <Typography
+            variant="caption"
+            sx={{
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              color: "text.secondary",
+              display: { xs: "none", sm: "block" },
+            }}
+          >
+            {t("entityEditor.columnDe")}
+          </Typography>
+        </Box>
+        {rows.map((row) =>
+          row.kind === "pair" ? (
+            <Box
+              key={`${row.en.key}-${row.de.key}`}
+              sx={{
+                display: "grid",
+                gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                gap: 2,
+                alignItems: "start",
+              }}
+            >
+              <Box>{renderFieldEditor(row.en)}</Box>
+              <Box>{renderFieldEditor(row.de, row.en)}</Box>
+            </Box>
+          ) : (
+            <Box key={row.field.key}>{renderFieldEditor(row.field)}</Box>
+          )
+        )}
+      </Stack>
+    );
+  };
+
   const renderGroupedFields = () => {
     return Object.entries(groupedFields).map(([groupName, groupFields]) => (
       <Box key={groupName} sx={{ mb: 3 }}>
@@ -149,58 +269,15 @@ export const MsqdxGlassEntityEditor = <T extends Record<string, any>>({
             <Divider sx={{ mb: 2 }} />
           </>
         )}
+        {bilingualColumns ? (
+          renderBilingualGroupFields(groupFields)
+        ) : (
         <Stack spacing={2}>
-          {groupFields.map((field) => {
-            const path = field.labelKey;
-            const columnLabel = path ? (() => {
-              const v = t(path);
-              return v === path ? field.label : v;
-            })() : field.label;
-            return (
-            <Box key={field.key}>
-              {inline && !alwaysEditMode ? (
-                <Box sx={{ display: "flex", alignItems: "flex-start", gap: 2 }}>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      minWidth: "150px",
-                      fontWeight: 500,
-                      pt: 1,
-                    }}
-                  >
-                    {columnLabel}
-                  </Typography>
-                  <Box sx={{ flex: 1 }}>
-                    <MsqdxGlassFieldEditor
-                      field={field}
-                      value={localEntity[field.key]}
-                      onChange={handleFieldChange}
-                      onSave={handleFieldSave}
-                      inline={inline}
-                      disabled={disabled}
-                      alwaysEditMode={alwaysEditMode}
-                      saving={savePending || saving}
-                      valueSyncKey={entitySyncKey || undefined}
-                    />
-                  </Box>
-                </Box>
-              ) : (
-                <MsqdxGlassFieldEditor
-                  field={field}
-                  value={localEntity[field.key]}
-                  onChange={handleFieldChange}
-                  onSave={handleFieldSave}
-                  inline={false}
-                  disabled={disabled}
-                  alwaysEditMode={alwaysEditMode}
-                  saving={savePending || saving}
-                  valueSyncKey={entitySyncKey || undefined}
-                />
-              )}
-            </Box>
-            );
-          })}
+          {groupFields.map((field) => (
+            <Box key={field.key}>{renderFieldEditor(field)}</Box>
+          ))}
         </Stack>
+        )}
       </Box>
     ));
   };

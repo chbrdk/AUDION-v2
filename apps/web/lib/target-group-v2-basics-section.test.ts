@@ -18,6 +18,7 @@ describe("target group v2 basics section", () => {
     );
     expect(panel).toContain("MsqdxGlassEntityEditor");
     expect(panel).toContain("alwaysEditMode={isV2Section}");
+    expect(panel).toContain("bilingualColumns={isV2Section}");
     expect(panel).not.toContain("MsqdxGlassTargetGroupBasicsHero");
     expect(panel).not.toContain("MsqdxGlassTargetGroupBasicsLocalization");
     expect(panel).toContain("targetGroupV2PersonaDetailHref");
