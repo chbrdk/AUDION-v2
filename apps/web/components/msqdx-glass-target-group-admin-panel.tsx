@@ -34,7 +34,7 @@ import { MsqdxGlassPersonaList } from "./msqdx-glass-persona-list";
 import { MsqdxGlassEntityEditor } from "./generic";
 import { FORM_FIELD_ACCENT_SX, THEME_ACCENT } from "../lib/theme-accent";
 import { MsqdxGlassCollapsiblePanel } from "./admin/msqdx-glass-collapsible-panel";
-import { Box, Dialog, DialogActions, DialogContent, DialogTitle } from "@mui/material";
+import { Box, Dialog, DialogActions, DialogContent, DialogTitle, Stack } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { useProject } from "./projects/project-provider";
 import { buildApiUrl } from "../app/api/_lib/backend";
@@ -802,7 +802,15 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
             }
           >
               {showSection("basics") ? (
-              <>
+              <Box
+                sx={isV2Section ? { gridColumn: "1 / -1", width: "100%" } : undefined}
+                className={isV2Section ? "msqdx-glass-target-group-basics-section" : undefined}
+              >
+                <Stack
+                  component={isV2Section ? "section" : "div"}
+                  className={isV2Section ? "msqdx-glass-target-group-basics-stack" : undefined}
+                  spacing={0}
+                >
               <TargetGroupAdminSectionSurface
                 embedInSection={isV2Section}
                 cardId="basic"
@@ -910,7 +918,8 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                     </MsqdxButton>
                   </Box>
               </TargetGroupAdminSectionSurface>
-              </>
+                </Stack>
+              </Box>
               ) : null}
 
               {showSection("personas") ? (

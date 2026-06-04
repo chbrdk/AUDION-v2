@@ -84,6 +84,26 @@
   }
 }
 
+/* Target group basics v2 — flat stack (profile fields, separator, metadata) */
+.msqdx-glass-target-group-basics-section {
+  width: 100%;
+  padding-top: var(--msqdx-spacing-xxs);
+}
+
+.msqdx-glass-target-group-basics-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+}
+
+.msqdx-glass-target-group-v2-detail .msqdx-glass-section-workspace__content .msqdx-glass-detail,
+.msqdx-glass-target-group-v2-detail .msqdx-glass-target-group-v2-section-panel {
+  padding-inline: 0;
+  margin-inline: 0;
+  max-width: 100%;
+}
+
 .msqdx-glass-target-group-v2-section-panel .msqdx-glass-dashboard-grid--v2-section {
   display: flex;
   flex-direction: column;
