@@ -76,6 +76,7 @@ export function MsqdxGlassTargetGroupsV2Overview({ initialList }: MsqdxGlassTarg
         <MsqdxGlassTargetGroupsOverview
           initialList={initialList}
           layout={layout}
+          useV2Surfaces
           getTargetGroupDetailHref={(id) =>
             ADMIN_ROUTES.targetGroupV2Section(id, TARGET_GROUP_V2_DEFAULT_SECTION)
           }

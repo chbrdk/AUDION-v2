@@ -34,10 +34,17 @@ Mirrors **persona v2** shell/nav; content uses standard **msqdx** admin componen
 - `MsqdxGlassTargetGroupAdminSectionView` → panel `presentation="v2-section"`
 - `TargetGroupAdminSectionSurface` — flat `PersonaV2SectionBlock` vs accordion
 
-## CSS
+## CSS & surfaces
 
-- `target-group-v2-section-panel.css` — shell/scroll only (no custom field layouts)
+- `target-group-v2-section-panel.css` — shell/scroll + unified accent surfaces (see `knowledge/target-group-v2-surface-tokens.md`)
 - `section-shell.css` — `.msqdx-glass-target-group-v2-detail`
+- Cards/list rows: **1px solid** accent; create/upload tiles: **1px dashed** accent; transparent card backgrounds
+
+## Headings
+
+- **Workspace (nav section):** `sectionTitle` + `sectionDescription` on `MsqdxGlassTargetGroupV2DetailLayout` (h2 in section shell).
+- **Blocks (Basics, Metadata):** `PersonaV2SectionBlock` via `TargetGroupAdminSectionSurface`.
+- **Sources subsections:** `PersonaV2SectionBlock` — “Documents (n)” and “Knowledge entries (n)” as mono h3 (not uppercase captions).
 
 ## View mode
 

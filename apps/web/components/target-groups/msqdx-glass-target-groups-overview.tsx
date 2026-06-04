@@ -37,6 +37,13 @@ import {
   writeTargetGroupsShowArchived,
 } from "../../lib/target-groups-show-archived";
 import type { TargetGroupsOverviewViewMode } from "../../lib/target-groups-overview-view-mode";
+import {
+  TG_V2_ACCENT,
+  TG_V2_SURFACE_CLASS,
+  tgV2CardSurfaceSx,
+  tgV2CreateSurfaceSx,
+  tgV2ListRowSurfaceSx,
+} from "../../lib/target-group-v2-surface-styles";
 import { useProject } from "../projects/project-provider";
 import { useI18n } from "../i18n/i18n-provider";
 
@@ -45,6 +52,8 @@ export type MsqdxGlassTargetGroupsOverviewProps = {
   /** Override detail URL when opening a target group (e.g. target-groups-v2). */
   getTargetGroupDetailHref?: (targetGroupId: string) => string;
   layout?: TargetGroupsOverviewViewMode;
+  /** Use TG v2 surface tokens (1px solid / 1px dashed accent borders). */
+  useV2Surfaces?: boolean;
 };
 
 type CreateFormState = {
@@ -74,6 +83,7 @@ export function MsqdxGlassTargetGroupsOverview({
   initialList,
   getTargetGroupDetailHref,
   layout = "cards",
+  useV2Surfaces = false,
 }: MsqdxGlassTargetGroupsOverviewProps) {
   const { t, locale } = useI18n();
   const router = useRouter();
@@ -104,7 +114,15 @@ export function MsqdxGlassTargetGroupsOverview({
   const targetGroupHref = (targetGroupId: string) =>
     getTargetGroupDetailHref?.(targetGroupId) ?? ADMIN_ROUTES.targetGroupDetail(targetGroupId);
 
-  const listRowSx = {
+  const listRowSx = useV2Surfaces
+    ? {
+        ...tgV2ListRowSurfaceSx(),
+        "&:focus-visible": {
+          outline: `2px solid ${TG_V2_ACCENT}`,
+          outlineOffset: 2,
+        },
+      }
+    : ({
     display: "flex",
     alignItems: "center",
     gap: 1.5,
@@ -119,7 +137,7 @@ export function MsqdxGlassTargetGroupsOverview({
       borderColor: accent,
       bgcolor: "rgba(0, 0, 0, 0.02)",
     },
-  } as const;
+  } as const);
 
   useEffect(() => {
     setShowArchived(readTargetGroupsShowArchived());
@@ -331,7 +349,11 @@ export function MsqdxGlassTargetGroupsOverview({
         {!showCreate ? (
           isListLayout ? (
             <Box
-              className="msqdx-glass-target-groups-list__row msqdx-glass-target-groups-list__row--create"
+              className={
+                useV2Surfaces
+                  ? `msqdx-glass-target-groups-list__row msqdx-glass-target-groups-list__row--create ${TG_V2_SURFACE_CLASS.listRow} ${TG_V2_SURFACE_CLASS.create}`
+                  : "msqdx-glass-target-groups-list__row msqdx-glass-target-groups-list__row--create"
+              }
               role="button"
               tabIndex={0}
               onClick={() => setShowCreate(true)}
@@ -341,7 +363,7 @@ export function MsqdxGlassTargetGroupsOverview({
                   setShowCreate(true);
                 }
               }}
-              sx={{ ...listRowSx, borderStyle: "dashed", minHeight: 56 }}
+              sx={useV2Surfaces ? tgV2ListRowSurfaceSx(56) : { ...listRowSx, borderStyle: "dashed", minHeight: 56 }}
             >
               <MsqdxIcon name="add" customSize={22} style={{ color: accent, flexShrink: 0 }} />
               <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -369,6 +391,7 @@ export function MsqdxGlassTargetGroupsOverview({
             </Box>
           ) : (
           <MsqdxMoleculeCard
+            className={useV2Surfaces ? TG_V2_SURFACE_CLASS.create : undefined}
             variant="flat"
             borderRadius="button"
             clickable
@@ -377,7 +400,7 @@ export function MsqdxGlassTargetGroupsOverview({
             title={t("targetGroupsAdmin.newTargetGroup")}
             titleVariant="h6"
             subtitle={t("targetGroupsAdmin.namePlaceholder")}
-            headerActions={(
+            headerActions={
               <Stack direction="row" alignItems="center" spacing={0.5}>
                 <Tooltip title={t("targetGroupsAdmin.generateWithAi")}>
                   <IconButton
@@ -395,27 +418,36 @@ export function MsqdxGlassTargetGroupsOverview({
                 </Tooltip>
                 <MsqdxIcon name="add" customSize={22} style={{ color: accent }} />
               </Stack>
-            )}
-            sx={{
-              minHeight: 140,
-              border: "2px dashed",
-              borderColor: accent,
-              "& .MuiTypography-h6": { color: accent },
-            }}
+            }
+            sx={
+              useV2Surfaces
+                ? tgV2CreateSurfaceSx()
+                : {
+                    minHeight: 140,
+                    border: "2px dashed",
+                    borderColor: accent,
+                    "& .MuiTypography-h6": { color: accent },
+                  }
+            }
           />
           )
         ) : (
           <MsqdxMoleculeCard
+            className={useV2Surfaces ? TG_V2_SURFACE_CLASS.card : undefined}
             variant="flat"
             borderRadius="button"
             title={t("targetGroupsAdmin.newTargetGroup")}
             titleVariant="h6"
-            sx={{
-              minHeight: 140,
-              border: "1px solid",
-              borderColor: accent,
-              "& .MuiTypography-h6": { color: accent },
-            }}
+            sx={
+              useV2Surfaces
+                ? tgV2CardSurfaceSx()
+                : {
+                    minHeight: 140,
+                    border: "1px solid",
+                    borderColor: accent,
+                    "& .MuiTypography-h6": { color: accent },
+                  }
+            }
             actions={(
               <>
                 <MsqdxButton
@@ -518,7 +550,11 @@ export function MsqdxGlassTargetGroupsOverview({
             return (
               <Box
                 key={tg.id}
-                className="msqdx-glass-target-groups-list__row"
+                className={
+                  useV2Surfaces
+                    ? `msqdx-glass-target-groups-list__row ${TG_V2_SURFACE_CLASS.listRow}`
+                    : "msqdx-glass-target-groups-list__row"
+                }
                 role="button"
                 tabIndex={0}
                 onClick={() => router.push(targetGroupHref(tg.id))}
@@ -551,6 +587,7 @@ export function MsqdxGlassTargetGroupsOverview({
           return (
           <MsqdxMoleculeCard
             key={tg.id}
+            className={useV2Surfaces ? TG_V2_SURFACE_CLASS.card : undefined}
             variant="flat"
             borderRadius="button"
             clickable
@@ -563,13 +600,17 @@ export function MsqdxGlassTargetGroupsOverview({
                 ? `${tg.segment || "—"} · ${t("targetGroupsAdmin.statusArchived")}`
                 : tg.segment
             }
-            sx={{
-              minHeight: 140,
-              border: "1px solid",
-              borderColor: accent,
-              "&:hover": { borderColor: accent },
-              "& .MuiTypography-h6": { color: accent },
-            }}
+            sx={
+              useV2Surfaces
+                ? tgV2CardSurfaceSx()
+                : {
+                    minHeight: 140,
+                    border: "1px solid",
+                    borderColor: accent,
+                    "&:hover": { borderColor: accent },
+                    "& .MuiTypography-h6": { color: accent },
+                  }
+            }
           />
         );})}
       </Box>

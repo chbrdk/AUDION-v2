@@ -37,6 +37,14 @@ import {
 } from "../../lib/personas-overview-view-mode";
 import { safePersonaAvatarSrc } from "../../lib/persona-avatar-src";
 import { FORM_FIELD_ACCENT_SX } from "../../lib/theme-accent";
+import {
+  TG_V2_ACCENT,
+  TG_V2_SURFACE_CLASS,
+  tgV2CardSurfaceSx,
+  tgV2CreateSurfaceSx,
+  tgV2ListRowSurfaceSx,
+  tgV2MediaBandSx,
+} from "../../lib/target-group-v2-surface-styles";
 import { useI18n } from "../i18n/i18n-provider";
 import { MsqdxGlassPersonaChip } from "../msqdx/chip/msqdx-glass-persona-chip";
 import { PersonasOverviewLayoutToggle } from "../personas/personas-overview-layout-toggle";
@@ -105,25 +113,12 @@ export function MsqdxGlassTargetGroupPersonasPanel({
   const isListLayout = layout === "list";
 
   const listRowSx = {
-    display: "flex",
-    alignItems: "center",
-    gap: 1.5,
-    px: 2,
-    py: 1.25,
-    borderRadius: "var(--msqdx-radius-button, 12px)",
-    border: "1px solid",
-    borderColor: accent,
-    cursor: "pointer",
-    transition: "border-color 0.15s ease, background-color 0.15s ease",
-    "&:hover": {
-      borderColor: accent,
-      bgcolor: "rgba(0, 0, 0, 0.02)",
-    },
+    ...tgV2ListRowSurfaceSx(),
     "&:focus-visible": {
-      outline: `2px solid ${accent}`,
+      outline: `2px solid ${TG_V2_ACCENT}`,
       outlineOffset: 2,
     },
-  } as const;
+  };
 
   const buildGenerateRequest = (segment: string, userBrief: string): TargetGroupPersonaGenerateRequest => {
     const segmentLabel = (segment.trim() || targetGroupSegment || "Persona").trim();
@@ -197,7 +192,7 @@ export function MsqdxGlassTargetGroupPersonasPanel({
       if (isListLayout) {
         return (
           <Box
-            className="msqdx-glass-personas-list__row msqdx-glass-personas-list__row--create"
+            className={`msqdx-glass-personas-list__row msqdx-glass-personas-list__row--create ${TG_V2_SURFACE_CLASS.listRow} ${TG_V2_SURFACE_CLASS.create}`}
             role="button"
             tabIndex={0}
             onClick={() => setShowCreate(true)}
@@ -207,7 +202,7 @@ export function MsqdxGlassTargetGroupPersonasPanel({
                 setShowCreate(true);
               }
             }}
-            sx={{ ...listRowSx, borderStyle: "dashed", minHeight: 56 }}
+            sx={tgV2ListRowSurfaceSx(56)}
           >
             <MsqdxIcon name="add" customSize={22} style={{ color: accent, flexShrink: 0 }} />
             <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -238,6 +233,7 @@ export function MsqdxGlassTargetGroupPersonasPanel({
 
       return (
         <MsqdxMoleculeCard
+          className={TG_V2_SURFACE_CLASS.create}
           variant="flat"
           borderRadius="button"
           clickable
@@ -265,28 +261,21 @@ export function MsqdxGlassTargetGroupPersonasPanel({
               <MsqdxIcon name="add" customSize={22} style={{ color: accent }} />
             </Stack>
           }
-          sx={{
-            minHeight: 140,
-            border: "2px dashed",
-            borderColor: accent,
-            "& .MuiTypography-h6": { color: accent },
-          }}
+          sx={tgV2CreateSurfaceSx()}
         />
       );
     }
 
     return (
       <MsqdxMoleculeCard
+        className={TG_V2_SURFACE_CLASS.card}
         variant="flat"
         borderRadius="button"
         title={t("targetGroupV2.personas.generateTitle")}
         titleVariant="h6"
         sx={{
-          minHeight: 140,
-          border: "1px solid",
-          borderColor: accent,
+          ...tgV2CardSurfaceSx(),
           gridColumn: isListLayout ? undefined : { xs: "1 / -1", sm: "1 / -1" },
-          "& .MuiTypography-h6": { color: accent },
         }}
         actions={
           <>
@@ -434,7 +423,7 @@ export function MsqdxGlassTargetGroupPersonasPanel({
             return (
               <Box
                 key={persona.id}
-                className="msqdx-glass-personas-list__row"
+                className={`msqdx-glass-personas-list__row ${TG_V2_SURFACE_CLASS.listRow}`}
                 role="button"
                 tabIndex={0}
                 onClick={() => router.push(personaHref)}
@@ -481,21 +470,14 @@ export function MsqdxGlassTargetGroupPersonasPanel({
           return (
             <MsqdxMoleculeCard
               key={persona.id}
+              className={TG_V2_SURFACE_CLASS.card}
               variant="flat"
               borderRadius="button"
               clickable
               hoverable
               onClick={() => router.push(personaHref)}
               media={
-                <Box
-                  sx={{
-                    height: 92,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    bgcolor: "rgba(0, 0, 0, 0.03)",
-                  }}
-                >
+                <Box className={TG_V2_SURFACE_CLASS.media} sx={tgV2MediaBandSx}>
                   <MsqdxAvatar
                     size="xl"
                     src={avatarSrc}
@@ -514,12 +496,7 @@ export function MsqdxGlassTargetGroupPersonasPanel({
               titleVariant="h6"
               chips={keyTags.length > 0 ? personaKeyTags : undefined}
               headerActions={renderPersonaActions(persona)}
-              sx={{
-                minHeight: 140,
-                border: "1px solid",
-                borderColor: accent,
-                "& .MuiTypography-h6": { color: accent },
-              }}
+              sx={tgV2CardSurfaceSx()}
             >
               <MsqdxTypography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.25 }}>
                 {persona.segment || "—"}

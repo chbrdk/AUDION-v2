@@ -234,6 +234,26 @@ body:has(.msqdx-glass-admin-panel) {
   background-color: #242424 !important;
 }
 
+[data-theme="dark"] .msqdx-glass-target-group-v2-detail .msqdx-tg-v2-surface-card,
+[data-theme="dark"] .msqdx-glass-target-group-v2-detail .msqdx-tg-v2-surface-create,
+[data-theme="dark"] .msqdx-glass-target-group-v2-detail .msqdx-tg-v2-surface-list-row,
+[data-theme="dark"] .msqdx-glass-target-groups-v2-overview-grid .msqdx-tg-v2-surface-card,
+[data-theme="dark"] .msqdx-glass-target-groups-v2-overview-grid .msqdx-tg-v2-surface-create,
+[data-theme="dark"] .msqdx-glass-target-groups-v2-overview-grid .msqdx-tg-v2-surface-list-row {
+  background-color: #1a1a1a !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme="dark"] .msqdx-glass-target-group-v2-detail .msqdx-tg-v2-surface-list-row:hover,
+[data-theme="dark"] .msqdx-glass-target-groups-v2-overview-grid .msqdx-tg-v2-surface-list-row:hover {
+  background-color: #242424 !important;
+}
+
+[data-theme="dark"] .msqdx-glass-target-group-v2-detail .msqdx-tg-v2-surface-media,
+[data-theme="dark"] .msqdx-glass-target-groups-v2-overview-grid .msqdx-tg-v2-surface-media {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
 /* Persona library — compact key-tag chips (card + list previews) */
 .msqdx-glass-personas-overview .msqdx-glass-chip.--dashboard {
   font-size: 0.6875rem;

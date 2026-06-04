@@ -20,4 +20,15 @@ describe("target group v2 sources panel", () => {
     expect(sections).toContain('"sources"');
     expect(sections).not.toContain('id: "documents"');
   });
+
+  it("renders documents and knowledge with PersonaV2SectionBlock headings", () => {
+    const panel = readFileSync(
+      join(webRoot, "components/target-groups-v2/msqdx-glass-target-group-sources-panel.tsx"),
+      "utf8"
+    );
+    expect(panel).toContain("PersonaV2SectionBlock");
+    expect(panel).toContain("documentsHeading");
+    expect(panel).toContain("knowledgeHeading");
+    expect(panel).not.toContain("tgV2SectionCaptionSx");
+  });
 });

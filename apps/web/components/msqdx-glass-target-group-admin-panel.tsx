@@ -54,6 +54,7 @@ import {
   isTargetGroupArchived,
   TARGET_GROUP_LIFECYCLE,
 } from "../lib/target-group-lifecycle";
+import { TG_V2_ACCENT, tgV2MetadataRailSx } from "../lib/target-group-v2-surface-styles";
 
 type MsqdxGlassTargetGroupAdminPanelProps = {
   initialList: TargetGroupListResponse;
@@ -833,7 +834,17 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                 expanded={isAccordionExpanded("metadata")}
                 onToggle={toggleAccordion}
               >
-                  <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" }, gap: 2, borderLeft: "1px solid", borderColor: "divider", pl: 2 }}>
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" },
+                      gap: 2,
+                      pl: 2,
+                      ...(isV2Section
+                        ? tgV2MetadataRailSx
+                        : { borderLeft: "1px solid", borderColor: "divider" }),
+                    }}
+                  >
                     <Box>
                       <MsqdxTypography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>{t("targetGroupsAdmin.projectId")}</MsqdxTypography>
                       <MsqdxTypography variant="body2">{detail.projectId ?? (detail as any).project_id ?? "—"}</MsqdxTypography>
@@ -856,7 +867,7 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                       pt: 2,
                       mt: 2,
                       borderTop: "1px solid",
-                      borderColor: "divider",
+                      borderColor: isV2Section ? TG_V2_ACCENT : "divider",
                     }}
                   >
                     {isTargetGroupArchived(detail.status) ? (

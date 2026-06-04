@@ -100,7 +100,8 @@
   width: 100%;
 }
 
-.msqdx-glass-target-group-v2-detail .msqdx-glass-chip-editor__section-heading h3.MuiTypography-root {
+.msqdx-glass-target-group-v2-detail .msqdx-glass-chip-editor__section-heading h3.MuiTypography-root,
+.msqdx-glass-target-group-v2-detail .msqdx-glass-target-group-sources-panel .msqdx-glass-chip-editor__section-heading h3.MuiTypography-root {
   font-family: var(--msqdx-font-family-mono) !important;
   font-size: clamp(1.125rem, 2.5vw, 1.5rem) !important;
   font-weight: 400 !important;
@@ -108,6 +109,10 @@
   letter-spacing: 0 !important;
   text-transform: none !important;
   color: var(--color-text-primary) !important;
+}
+
+.msqdx-glass-target-group-sources-panel .msqdx-glass-persona-v2-section-block + .msqdx-glass-persona-v2-section-block {
+  margin-top: var(--msqdx-spacing-lg);
 }
 
 .msqdx-glass-target-group-v2-section-panel .msqdx-dashboard-card .MuiAccordionSummary-root,
@@ -127,4 +132,42 @@
 
 .msqdx-glass-target-group-v2-section-panel .msqdx-glass-dashboard-card.collapsed .msqdx-glass-dashboard-card-content {
   display: block;
+}
+
+/* TG v2 — unified accent surfaces (1px solid cards, 1px dashed create tiles) */
+.msqdx-glass-target-group-v2-detail .msqdx-tg-v2-surface-card,
+.msqdx-glass-target-groups-v2-overview-grid .msqdx-tg-v2-surface-card {
+  border: 1px solid var(--color-theme-accent);
+  background-color: transparent;
+  border-radius: var(--msqdx-radius-button, 12px);
+}
+
+.msqdx-glass-target-group-v2-detail .msqdx-tg-v2-surface-create,
+.msqdx-glass-target-groups-v2-overview-grid .msqdx-tg-v2-surface-create {
+  border: 1px dashed var(--color-theme-accent);
+  background-color: transparent;
+  border-radius: var(--msqdx-radius-button, 12px);
+}
+
+.msqdx-glass-target-group-v2-detail .msqdx-tg-v2-surface-list-row,
+.msqdx-glass-target-groups-v2-overview-grid .msqdx-tg-v2-surface-list-row {
+  border: 1px solid var(--color-theme-accent);
+  background-color: transparent;
+  border-radius: var(--msqdx-radius-button, 12px);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.msqdx-glass-target-group-v2-detail .msqdx-tg-v2-surface-list-row.msqdx-tg-v2-surface-create,
+.msqdx-glass-target-groups-v2-overview-grid .msqdx-tg-v2-surface-list-row.msqdx-tg-v2-surface-create {
+  border-style: dashed;
+}
+
+.msqdx-glass-target-group-v2-detail .msqdx-tg-v2-surface-list-row:hover,
+.msqdx-glass-target-groups-v2-overview-grid .msqdx-tg-v2-surface-list-row:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.msqdx-glass-target-group-v2-detail .msqdx-tg-v2-surface-media,
+.msqdx-glass-target-groups-v2-overview-grid .msqdx-tg-v2-surface-media {
+  background-color: rgba(0, 0, 0, 0.03);
 }

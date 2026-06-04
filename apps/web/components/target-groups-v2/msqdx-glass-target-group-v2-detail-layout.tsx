@@ -5,6 +5,7 @@ import { MsqdxGlassAdminHeaderBackIconButton } from "../admin/msqdx-glass-admin-
 import { fetchTargetGroup } from "../../app/api/_lib/target-group";
 import { ADMIN_ROUTES } from "../../lib/routes";
 import {
+  getTargetGroupV2SectionDef,
   TARGET_GROUP_V2_SECTIONS,
   targetGroupV2SectionHref,
   type TargetGroupV2SectionId,
@@ -84,6 +85,8 @@ export function MsqdxGlassTargetGroupV2DetailLayout({
     [targetGroupId, t]
   );
 
+  const activeSection = getTargetGroupV2SectionDef(sectionId);
+
   return (
     <MsqdxGlassSectionShell
       className="msqdx-glass-target-group-v2-detail"
@@ -92,6 +95,8 @@ export function MsqdxGlassTargetGroupV2DetailLayout({
       activeSectionId={sectionId}
       navItems={navItems}
       navLabel={t("targetGroupV2.sectionsNavLabel")}
+      sectionTitle={t(activeSection.labelKey)}
+      sectionDescription={t(activeSection.descriptionKey)}
       wideContent
       entityCornerAccent
     >

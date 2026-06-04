@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { Box, Divider, Stack } from "@mui/material";
+import { Box, Stack } from "@mui/material";
 import type { PersonaDocument, TargetGroupKnowledgeEntry } from "@msqdx-glass/types";
 import {
   MsqdxButton,
@@ -17,7 +17,13 @@ import {
   formatDocumentSize,
 } from "../../lib/target-group-document-display";
 import { FORM_FIELD_ACCENT_SX } from "../../lib/theme-accent";
+import {
+  TG_V2_SURFACE_CLASS,
+  tgV2CardSurfaceSx,
+  tgV2CreateSurfaceSx,
+} from "../../lib/target-group-v2-surface-styles";
 import { useI18n } from "../i18n/i18n-provider";
+import { PersonaV2SectionBlock } from "../personas-v2/persona-v2-section-block";
 
 export type MsqdxGlassTargetGroupSourcesPanelProps = {
   documents: PersonaDocument[];
@@ -82,22 +88,13 @@ export function MsqdxGlassTargetGroupSourcesPanel({
     }
   };
 
-  const sectionHeadingSx = {
-    fontWeight: 600,
-    textTransform: "uppercase",
-    letterSpacing: "0.06em",
-    color: "text.secondary",
-    mb: 1.5,
-  } as const;
+  const documentsTitle = `${t("targetGroupV2.sources.documentsHeading", { count: documents.length })}${
+    documentsUpdating ? ` · ${t("targetGroupsAdmin.documentsUpdating")}` : ""
+  }`;
 
   return (
     <Box className="msqdx-glass-target-group-sources-panel" sx={{ width: "100%" }}>
-      <Box sx={{ mb: 3 }}>
-        <MsqdxTypography variant="caption" sx={sectionHeadingSx}>
-          {t("targetGroupV2.sources.documentsHeading", { count: documents.length })}
-          {documentsUpdating ? ` · ${t("targetGroupsAdmin.documentsUpdating")}` : ""}
-        </MsqdxTypography>
-
+      <PersonaV2SectionBlock title={documentsTitle}>
         <Box
           sx={{
             display: "grid",
@@ -107,6 +104,7 @@ export function MsqdxGlassTargetGroupSourcesPanel({
           }}
         >
           <MsqdxMoleculeCard
+            className={TG_V2_SURFACE_CLASS.create}
             variant="flat"
             borderRadius="button"
             clickable
@@ -117,12 +115,9 @@ export function MsqdxGlassTargetGroupSourcesPanel({
             subtitle={t("targetGroupsAdmin.uploadHint")}
             headerActions={<MsqdxIcon name="upload_file" customSize={22} style={{ color: accent }} />}
             sx={{
-              minHeight: 120,
-              border: "2px dashed",
-              borderColor: accent,
+              ...tgV2CreateSurfaceSx(120),
               opacity: documentUploadPending ? 0.7 : 1,
               pointerEvents: documentUploadPending ? "none" : undefined,
-              "& .MuiTypography-h6": { color: accent },
             }}
           >
             <MsqdxButton
@@ -151,6 +146,7 @@ export function MsqdxGlassTargetGroupSourcesPanel({
             return (
               <MsqdxMoleculeCard
                 key={doc.id}
+                className={TG_V2_SURFACE_CLASS.card}
                 variant="flat"
                 borderRadius="button"
                 title={doc.filename}
@@ -160,10 +156,8 @@ export function MsqdxGlassTargetGroupSourcesPanel({
                   <MsqdxChip variant="filled" brandColor={chip.brandColor} label={chip.label} size="small" />
                 }
                 sx={{
-                  minHeight: 120,
-                  border: "1px solid",
-                  borderColor: accent,
-                  "& .MuiTypography-h6": { color: accent, wordBreak: "break-word" },
+                  ...tgV2CardSurfaceSx(120),
+                  "& .MuiTypography-h6": { wordBreak: "break-word" },
                 }}
               >
                 {doc.ingestionStatus === "processing" && doc.ingestionProgress != null ? (
@@ -188,19 +182,16 @@ export function MsqdxGlassTargetGroupSourcesPanel({
             {t("targetGroupsAdmin.documentsEmpty")}
           </MsqdxTypography>
         ) : null}
-      </Box>
+      </PersonaV2SectionBlock>
 
-      <Divider sx={{ my: 3 }} />
-
-      <Box>
-        <MsqdxTypography variant="caption" sx={sectionHeadingSx}>
-          {t("targetGroupV2.sources.knowledgeHeading", { count: knowledgeEntries.length })}
-        </MsqdxTypography>
-
+      <PersonaV2SectionBlock
+        title={t("targetGroupV2.sources.knowledgeHeading", { count: knowledgeEntries.length })}
+      >
         <Stack spacing={1.5}>
           {knowledgeEntries.map((entry) => (
             <MsqdxMoleculeCard
               key={entry.id}
+              className={TG_V2_SURFACE_CLASS.card}
               variant="flat"
               borderRadius="button"
               title={entry.title}
@@ -215,11 +206,7 @@ export function MsqdxGlassTargetGroupSourcesPanel({
                   aria-label={t("targetGroupsAdmin.deleteKnowledge")}
                 />
               }
-              sx={{
-                border: "1px solid",
-                borderColor: accent,
-                "& .MuiTypography-h6": { color: accent },
-              }}
+              sx={tgV2CardSurfaceSx()}
             >
               <MsqdxTypography
                 variant="body2"
@@ -238,6 +225,7 @@ export function MsqdxGlassTargetGroupSourcesPanel({
 
           {!showAddKnowledge ? (
             <MsqdxMoleculeCard
+              className={TG_V2_SURFACE_CLASS.create}
               variant="flat"
               borderRadius="button"
               clickable
@@ -247,23 +235,16 @@ export function MsqdxGlassTargetGroupSourcesPanel({
               titleVariant="h6"
               subtitle={t("targetGroupV2.sources.addKnowledgeHint")}
               headerActions={<MsqdxIcon name="add" customSize={22} style={{ color: accent }} />}
-              sx={{
-                border: "2px dashed",
-                borderColor: accent,
-                "& .MuiTypography-h6": { color: accent },
-              }}
+              sx={tgV2CreateSurfaceSx()}
             />
           ) : (
             <MsqdxMoleculeCard
+              className={TG_V2_SURFACE_CLASS.card}
               variant="flat"
               borderRadius="button"
               title={t("targetGroupsAdmin.newKnowledgeEntry")}
               titleVariant="h6"
-              sx={{
-                border: "1px solid",
-                borderColor: accent,
-                "& .MuiTypography-h6": { color: accent },
-              }}
+              sx={tgV2CardSurfaceSx()}
               actions={
                 <>
                   <MsqdxButton
@@ -333,7 +314,7 @@ export function MsqdxGlassTargetGroupSourcesPanel({
             </MsqdxTypography>
           ) : null}
         </Stack>
-      </Box>
+      </PersonaV2SectionBlock>
     </Box>
   );
 }
