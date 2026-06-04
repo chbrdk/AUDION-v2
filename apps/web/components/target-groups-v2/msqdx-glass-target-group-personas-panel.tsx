@@ -275,7 +275,7 @@ export function MsqdxGlassTargetGroupPersonasPanel({
         titleVariant="h6"
         sx={{
           ...tgV2CardSurfaceSx(),
-          gridColumn: isListLayout ? undefined : { xs: "1 / -1", sm: "1 / -1" },
+          ...(!isListLayout ? { gridColumn: { xs: "1 / -1", sm: "1 / -1" } } : {}),
         }}
         actions={
           <>

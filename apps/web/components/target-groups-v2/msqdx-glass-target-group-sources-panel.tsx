@@ -117,7 +117,7 @@ export function MsqdxGlassTargetGroupSourcesPanel({
             sx={{
               ...tgV2CreateSurfaceSx(120),
               opacity: documentUploadPending ? 0.7 : 1,
-              pointerEvents: documentUploadPending ? "none" : undefined,
+              ...(documentUploadPending ? { pointerEvents: "none" as const } : {}),
             }}
           >
             <MsqdxButton

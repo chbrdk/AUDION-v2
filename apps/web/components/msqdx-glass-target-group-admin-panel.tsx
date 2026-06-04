@@ -839,10 +839,9 @@ export const MsqdxGlassTargetGroupAdminPanel = ({
                       display: "grid",
                       gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" },
                       gap: 2,
-                      pl: 2,
                       ...(isV2Section
                         ? tgV2MetadataRailSx
-                        : { borderLeft: "1px solid", borderColor: "divider" }),
+                        : { borderLeft: "1px solid", borderColor: "divider", pl: 2 }),
                     }}
                   >
                     <Box>
