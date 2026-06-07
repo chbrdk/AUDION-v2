@@ -76,6 +76,7 @@ def system_prompt_persona_identity_openai(resolved_locale: str) -> str:
             "KEINE Markdown-Codeblöcke. Kein Kommentar außerhalb des JSON.\n"
             "Alle nutzerlesbaren String-Werte im JSON müssen auf Deutsch (Hochdeutsch) sein.\n"
             "Interessen, Werte, full_name, gender, location, age, media_affinity wie im Nutzer-Schema.\n"
+            "Wenn im Nutzer-Prompt bereits vorhandene Personas aufgeführt sind: eindeutiger Anzeigename und unterscheidbare Demografie.\n"
             "Vermeide nicht-escapte doppelte Anführungszeichen in String-Werten."
         )
     return (
@@ -84,6 +85,7 @@ def system_prompt_persona_identity_openai(resolved_locale: str) -> str:
         "Do NOT wrap JSON in markdown fences. Do NOT add any commentary.\n"
         "All human-readable string values in the JSON must be English.\n"
         "Include interests, values, full_name, gender, location, age, media_affinity as in the user schema.\n"
+        "When existing personas are listed in the user message, pick a unique display name and distinct demographics.\n"
         "Avoid using unescaped double-quotes inside string values (e.g. don’t quote phrases like “...”)."
     )
 

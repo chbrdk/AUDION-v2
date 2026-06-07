@@ -52,3 +52,71 @@ def test_parse_goal_priority() -> None:
     assert _parse_goal_priority("high", 1) == 11
     assert _parse_goal_priority("medium", 2) == 22
     assert _parse_goal_priority("nonsense", 4) == 5
+
+
+def test_is_placeholder_persona_name() -> None:
+    from app.services.persona_generation import _is_placeholder_persona_name
+
+    assert _is_placeholder_persona_name("Pending Persona")
+    assert _is_placeholder_persona_name("  pending  ")
+    assert _is_placeholder_persona_name("")
+    assert not _is_placeholder_persona_name("Anna Becker")
+
+
+def test_persona_demographics_snapshot_skips_pending() -> None:
+    from types import SimpleNamespace
+
+    from app.services.persona_generation import _persona_demographics_snapshot
+
+    pending = SimpleNamespace(
+        name="Pending Persona",
+        segment="B2B",
+        profile={"age": 30, "gender": "female"},
+    )
+    assert _persona_demographics_snapshot(pending) is None
+
+    real = SimpleNamespace(
+        name="Anna Becker",
+        segment="B2B Buyer",
+        profile={
+            "full_name": "Anna Maria Becker",
+            "age": 34,
+            "gender": "female",
+            "location": "Hamburg",
+        },
+    )
+    snap = _persona_demographics_snapshot(real)
+    assert snap is not None
+    assert snap["name"] == "Anna Becker"
+    assert snap["full_name"] == "Anna Maria Becker"
+    assert snap["age"] == 34
+    assert snap["gender"] == "female"
+    assert snap["location"] == "Hamburg"
+
+
+def test_format_existing_personas_avoidance_block_en_and_de() -> None:
+    from app.services.persona_generation import _format_existing_personas_avoidance_block
+
+    snapshots = [
+        {
+            "name": "Anna Becker",
+            "full_name": "Anna Maria Becker",
+            "age": 34,
+            "gender": "female",
+            "location": "Hamburg",
+            "segment": "B2B",
+            "same_target_group": True,
+        }
+    ]
+    en = _format_existing_personas_avoidance_block(snapshots, "en")
+    assert "EXISTING PERSONAS IN THIS PROJECT" in en
+    assert "Anna Becker" in en
+    assert "same target group" in en
+    assert "Do not reuse" in en
+
+    de = _format_existing_personas_avoidance_block(snapshots, "de")
+    assert "BEREITS VORHANDENE PERSONAS" in de
+    assert "Anzeigename: Anna Becker" in de
+    assert "gleiche Zielgruppe" in de
+
+    assert _format_existing_personas_avoidance_block([], "en") == ""

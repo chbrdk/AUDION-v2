@@ -135,6 +135,110 @@ def _parse_goal_priority(raw: Any, idx: int) -> int:
     return idx + 1
 
 
+_PLACEHOLDER_PERSONA_NAMES = frozenset({"pending persona", "pending"})
+_MAX_EXISTING_PERSONAS_IN_PROMPT = 30
+
+
+def _is_placeholder_persona_name(name: str | None) -> bool:
+    s = (name or "").strip().lower()
+    return not s or s in _PLACEHOLDER_PERSONA_NAMES
+
+
+def _persona_demographics_snapshot(persona: Persona) -> dict[str, Any] | None:
+    """Compact name + demographics for dedup context in generation prompts."""
+    if _is_placeholder_persona_name(persona.name):
+        return None
+    profile = persona.profile if isinstance(persona.profile, dict) else {}
+    return {
+        "name": (persona.name or "").strip(),
+        "full_name": _optional_str(profile.get("full_name") or profile.get("fullName")),
+        "age": _parse_age_optional(profile.get("age")),
+        "gender": _optional_str(profile.get("gender")),
+        "location": _optional_str(profile.get("location")),
+        "segment": _optional_str(persona.segment),
+        "same_target_group": False,
+    }
+
+
+def _format_existing_personas_avoidance_block(snapshots: list[dict[str, Any]], resolved_locale: str) -> str:
+    """Prompt block listing existing personas so the LLM avoids duplicate names/demographics."""
+    if not snapshots:
+        return ""
+
+    def _line(snap: dict[str, Any], idx: int) -> str:
+        parts: list[str] = []
+        if resolved_locale == "de":
+            parts.append(f"Anzeigename: {snap['name']}")
+            if snap.get("full_name"):
+                parts.append(f"Vollständiger Name: {snap['full_name']}")
+            if snap.get("age") is not None:
+                parts.append(f"Alter: {snap['age']}")
+            if snap.get("gender"):
+                parts.append(f"Geschlecht: {snap['gender']}")
+            if snap.get("location"):
+                parts.append(f"Ort: {snap['location']}")
+            if snap.get("segment"):
+                parts.append(f"Segment: {snap['segment']}")
+            suffix = " [gleiche Zielgruppe]" if snap.get("same_target_group") else ""
+        else:
+            parts.append(f"Display name: {snap['name']}")
+            if snap.get("full_name"):
+                parts.append(f"Full name: {snap['full_name']}")
+            if snap.get("age") is not None:
+                parts.append(f"Age: {snap['age']}")
+            if snap.get("gender"):
+                parts.append(f"Gender: {snap['gender']}")
+            if snap.get("location"):
+                parts.append(f"Location: {snap['location']}")
+            if snap.get("segment"):
+                parts.append(f"Segment: {snap['segment']}")
+            suffix = " [same target group]" if snap.get("same_target_group") else ""
+        return f"{idx}. " + " | ".join(parts) + suffix
+
+    lines = [_line(snap, i) for i, snap in enumerate(snapshots, 1)]
+    if resolved_locale == "de":
+        header = (
+            "BEREITS VORHANDENE PERSONAS IN DIESEM PROJEKT (nicht duplizieren):\n"
+            "Verwende keine dieser Anzeigenamen oder Vollständigen Namen erneut. "
+            "Wähle eine klar unterscheidbare Identität (Alter, Geschlecht, Ort, Segment) — "
+            "keine nahezu identischen Demografien zu den Einträgen unten.\n"
+        )
+    else:
+        header = (
+            "EXISTING PERSONAS IN THIS PROJECT (do not duplicate):\n"
+            "Do not reuse any display name or full name below. "
+            "Choose a clearly distinct identity (age, gender, location, segment) — "
+            "avoid near-identical demographics to the entries below.\n"
+        )
+    return header + "\n".join(lines)
+
+
+def _load_existing_persona_snapshots(
+    session: Any,
+    *,
+    project_id: UUID,
+    exclude_persona_id: UUID,
+    target_group_id: UUID | None,
+) -> list[dict[str, Any]]:
+    siblings = session.scalars(
+        select(Persona)
+        .where(Persona.project_id == project_id)
+        .where(Persona.id != exclude_persona_id)
+        .order_by(Persona.updated_at.desc())
+        .limit(_MAX_EXISTING_PERSONAS_IN_PROMPT)
+    ).all()
+    snapshots: list[dict[str, Any]] = []
+    for sibling in siblings:
+        snap = _persona_demographics_snapshot(sibling)
+        if not snap:
+            continue
+        if target_group_id is not None and sibling.target_group_id == target_group_id:
+            snap["same_target_group"] = True
+        snapshots.append(snap)
+    snapshots.sort(key=lambda s: (not s.get("same_target_group", False), s["name"].lower()))
+    return snapshots
+
+
 def _compose_identity_context_block(
     *, persona: Persona, target_group_id: UUID | None, resolved_locale: str = "en"
 ) -> str:
@@ -153,6 +257,17 @@ def _compose_identity_context_block(
                     desc = (project.description or "").strip()
                     if desc:
                         blocks.append("PROJECT DESCRIPTION:\n" + desc)
+            existing_block = _format_existing_personas_avoidance_block(
+                _load_existing_persona_snapshots(
+                    session,
+                    project_id=persona.project_id,
+                    exclude_persona_id=persona.id,
+                    target_group_id=target_group_id,
+                ),
+                resolved_locale,
+            )
+            if existing_block:
+                blocks.append(existing_block)
         if target_group_id is not None:
             tg = session.get(TargetGroup, target_group_id)
             if tg is not None:
