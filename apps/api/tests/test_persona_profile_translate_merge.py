@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
+
+from app.services.persona_bilingual_utils import align_profile_de_to_en_profile, json_shape_compatible
 from app.services.persona_profile_translate_merge import (
     enrich_profile_patch_json,
     merge_persona_profile_bilingual_enrich,
@@ -40,7 +43,8 @@ def test_merge_en_locale_fills_de_mirror() -> None:
     assert de["interests"] == ["Hello::de", "World::de"]
     assert de["traits"] == next_en["traits"]
     pj = enrich_profile_patch_json(next_en)
-    assert pj["pain_points"] == pj["painPoints"]
+    assert "painPoints" not in pj
+    assert "communicationStyle" not in pj
 
 
 def test_merge_de_locale_updates_en_canonical() -> None:
@@ -89,3 +93,65 @@ def test_trait_keys_rebuilt_when_de_locale() -> None:
     )
     assert "Calm_Mind" in next_en["traits"]
     assert next_en["traits"] == de["traits"]
+
+
+def test_enrich_patch_stays_shape_compatible_with_profile_de() -> None:
+    """Simulates enrich save: partial profile_json merge + full profile_de patch."""
+    existing_en = {
+        "pain_points": [{"label": "old", "evidence_count": 1}],
+        "goals": [],
+        "interests": ["keep"],
+        "values": [],
+        "traits": {},
+        "communication_style": {"vocabulary": [], "sentence_structure": "", "skepticism_level": 0},
+        "bio": "bio",
+        "age": 30,
+        "location": "Berlin",
+        "gender": "female",
+        "social_media_usage": ["LinkedIn"],
+    }
+    existing_de = align_profile_de_to_en_profile(
+        existing_en,
+        {
+            "pain_points": [{"label": "alt", "evidence_count": 1}],
+            "goals": [],
+            "interests": ["behalten"],
+            "values": [],
+            "traits": {},
+            "communication_style": {"vocabulary": [], "sentence_structure": "", "skepticism_level": 0},
+            "bio": "bio de",
+            "age": 30,
+            "location": "Berlin",
+            "gender": "female",
+            "social_media_usage": ["LinkedIn-de"],
+        },
+    )
+    chip = {
+        "pain_points": [{"label": "new pain", "evidence_count": 1}],
+        "goals": [{"label": "goal", "priority": 1}],
+        "interests": ["a", "b"],
+        "values": ["v1"],
+        "traits": {"curious": 1.0},
+        "communication_style": {
+            "vocabulary": ["word"],
+            "sentence_structure": "short",
+            "skepticism_level": 0,
+        },
+        "bio": "bio",
+        "age": 30,
+        "location": "Berlin",
+        "gender": "female",
+    }
+    next_en, aligned_de = merge_persona_profile_bilingual_enrich(
+        existing_en=existing_en,
+        existing_de=existing_de,
+        chip_updates=chip,
+        from_locale="en",
+        translate=_mock_translate,
+    )
+    profile_json = enrich_profile_patch_json(next_en)
+    merged_profile = deepcopy(existing_en)
+    merged_profile.update(profile_json)
+    merged_de = deepcopy(existing_de)
+    merged_de.update(aligned_de)
+    assert json_shape_compatible(merged_profile, merged_de)

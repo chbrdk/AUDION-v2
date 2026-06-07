@@ -648,13 +648,11 @@ async def enrich_persona(
         )
         profile_json = {
             "pain_points": pain_points,
-            "painPoints": pain_points,
             "goals": goals,
             "interests": interests,
             "values": values,
             "traits": traits,
             "communication_style": merged_comm,
-            "communicationStyle": merged_comm,
         }
         for key in ("bio", "age", "location", "gender"):
             if overlay is not None and key in overlay:

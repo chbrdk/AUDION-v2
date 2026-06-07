@@ -327,15 +327,15 @@ def enrich_profile_patch_json(next_en: dict[str, Any]) -> dict[str, Any]:
     values = list(next_en.get("values") or [])
     traits = next_en.get("traits") if isinstance(next_en.get("traits"), dict) else {}
     merged_comm = next_en.get("communication_style") if isinstance(next_en.get("communication_style"), dict) else {}
+    # Snake_case only: camelCase aliases (painPoints, communicationStyle) break
+    # json_shape_compatible when profile_de is patched in the same enrich request.
     out: dict[str, Any] = {
         "pain_points": pp,
-        "painPoints": pp,
         "goals": goals,
         "interests": interests,
         "values": values,
         "traits": traits,
         "communication_style": merged_comm,
-        "communicationStyle": merged_comm,
     }
     for key in ("bio", "age", "location", "gender"):
         if key in next_en:
