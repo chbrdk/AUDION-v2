@@ -66,3 +66,30 @@ export async function POST(
   const target = buildTargetUrl(request, resolvePath(resolved));
   return forward(request, target);
 }
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ path?: string[] }> }
+) {
+  const resolved = await params;
+  const target = buildTargetUrl(request, resolvePath(resolved));
+  return forward(request, target);
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ path?: string[] }> }
+) {
+  const resolved = await params;
+  const target = buildTargetUrl(request, resolvePath(resolved));
+  return forward(request, target);
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ path?: string[] }> }
+) {
+  const resolved = await params;
+  const target = buildTargetUrl(request, resolvePath(resolved));
+  return forward(request, target);
+}
