@@ -22,6 +22,7 @@ from .routers.journeys import router as journeys_router
 from .routers.journeys_from_ux_runs import router as journeys_from_ux_runs_router
 from .routers.queue import router as queue_router
 from .routers.integrations_checkion import router as integrations_checkion_router
+from .routers.integrations_checkion_audience import router as integrations_checkion_audience_router
 from .routers.platform_provisioning import router as platform_provisioning_router
 from .routers.ux_journey_agent import router as ux_journey_agent_router
 from .persona_reality.router import router as persona_reality_router
@@ -92,6 +93,7 @@ def create_app() -> FastAPI:
     app.include_router(journeys_from_ux_runs_router)
     app.include_router(queue_router)
     app.include_router(integrations_checkion_router)
+    app.include_router(integrations_checkion_audience_router)
     app.include_router(platform_provisioning_router)
     app.include_router(ux_journey_agent_router)
     app.include_router(persona_reality_router)

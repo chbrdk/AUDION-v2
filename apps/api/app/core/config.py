@@ -142,6 +142,8 @@ class Settings(BaseSettings):
     checkion_api_base_url: str | None = None
     checkion_api_token: str | None = None
     checkion_request_timeout_seconds: float = 30.0
+    # Shared secret for CHECKION → AUDION server calls (audience report export).
+    checkion_inbound_service_token: str | None = None
 
     # UX Journey Agent (optional): separate service (FastAPI) for browser-use runs.
     ux_journey_agent_url: str | None = Field(default=None, validation_alias=AliasChoices("ux_journey_agent_url", "UX_JOURNEY_AGENT_URL"))

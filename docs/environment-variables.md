@@ -88,6 +88,16 @@ When both are set, the persona-api Celery worker calls CHECKION after the crawl 
 | `CHECKION_API_TOKEN` | CHECKION API Bearer token (`checkion_` + 64 hex). Must belong to the CHECKION user under whom Deep Scans for target domains were run. | – | api, celery-worker |
 | `CHECKION_REQUEST_TIMEOUT_SECONDS` | HTTP timeout for CHECKION calls | `30` | api, celery-worker |
 
+### CHECKION inbound (AUDION → CHECKION audience export for reports)
+
+When set, CHECKION comprehensive reports can call AUDION to load linked personas (`projects.checkion_project_id`).
+
+| Variable | Description | Default | Services |
+|----------|-------------|---------|----------|
+| `CHECKION_INBOUND_SERVICE_TOKEN` | Bearer token CHECKION sends when fetching audience report | – | api |
+
+See CHECKION repo `knowledge/checkion-audion-audience-report.md`.
+
 See [knowledge/project-ai-research.md](../knowledge/project-ai-research.md) (CHECKION section).
 
 ### Service URLs
