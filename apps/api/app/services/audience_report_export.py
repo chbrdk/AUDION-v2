@@ -43,10 +43,97 @@ def _serialize_ux_run(row: PersonaUxJourneyRun | None) -> dict[str, Any] | None:
     }
 
 
+def resolve_audion_project_for_checkion(
+    session: Session,
+    *,
+    checkion_project_id: str,
+    platform_project_id: str | None = None,
+) -> tuple[Project | None, str | None]:
+    """
+    Resolve AUDION project for a CHECKION report.
+
+    1. ``projects.checkion_project_id`` (explicit link)
+    2. ``projects.platform_project_id`` (PLEXON federation fallback)
+    """
+    cpid = (checkion_project_id or "").strip()
+    if cpid:
+        project = session.scalars(
+            select(Project).where(Project.checkion_project_id == cpid).limit(1)
+        ).first()
+        if project is not None:
+            return project, "checkion_project_id"
+
+    ppid = (platform_project_id or "").strip()
+    if ppid:
+        project = session.scalars(
+            select(Project).where(Project.platform_project_id == ppid).limit(1)
+        ).first()
+        if project is not None:
+            return project, "platform_project_id"
+
+    return None, None
+
+
+def link_audion_project_to_checkion(
+    session: Session,
+    *,
+    checkion_project_id: str,
+    audion_project_id: UUID,
+) -> dict[str, Any]:
+    """Set ``checkion_project_id`` on an AUDION project (CHECKION inbound link)."""
+    cpid = (checkion_project_id or "").strip()
+    if not cpid:
+        return {"ok": False, "reason": "missing_checkion_project_id"}
+
+    project = session.get(Project, audion_project_id)
+    if project is None:
+        return {"ok": False, "reason": "audion_project_not_found"}
+
+    # Clear duplicate links to the same CHECKION project on other AUDION rows.
+    others = session.scalars(
+        select(Project).where(
+            Project.checkion_project_id == cpid,
+            Project.id != audion_project_id,
+        )
+    ).all()
+    for other in others:
+        other.checkion_project_id = None
+
+    project.checkion_project_id = cpid
+    session.commit()
+    session.refresh(project)
+    return {
+        "ok": True,
+        "audionProjectId": str(project.id),
+        "audionProjectName": project.name,
+        "checkionProjectId": cpid,
+    }
+
+
+def list_audion_projects_for_checkion_link(
+    session: Session,
+    *,
+    limit: int = 200,
+) -> list[dict[str, Any]]:
+    rows = session.scalars(
+        select(Project).order_by(Project.name.asc()).limit(max(1, min(limit, 500)))
+    ).all()
+    return [
+        {
+            "id": str(p.id),
+            "name": p.name,
+            "checkionProjectId": (p.checkion_project_id or "").strip() or None,
+            "platformProjectId": (p.platform_project_id or "").strip() or None,
+        }
+        for p in rows
+    ]
+
+
 def build_audience_report_context(
     session: Session,
     *,
     checkion_project_id: str,
+    platform_project_id: str | None = None,
     max_personas: int = 24,
 ) -> dict[str, Any]:
     """
@@ -56,9 +143,11 @@ def build_audience_report_context(
     if not cpid:
         return {"available": False, "reason": "missing_checkion_project_id"}
 
-    project = session.scalars(
-        select(Project).where(Project.checkion_project_id == cpid).limit(1)
-    ).first()
+    project, resolved_via = resolve_audion_project_for_checkion(
+        session,
+        checkion_project_id=cpid,
+        platform_project_id=platform_project_id,
+    )
     if project is None:
         return {"available": False, "reason": "no_audion_project_for_checkion_id"}
 
@@ -106,6 +195,7 @@ def build_audience_report_context(
 
     return {
         "available": True,
+        "resolvedVia": resolved_via,
         "audionProjectId": str(project.id),
         "audionProjectName": project.name,
         "checkionProjectId": cpid,
@@ -123,11 +213,14 @@ def build_audience_report_context(
     }
 
 
-def find_audion_project_id_for_checkion(session: Session, checkion_project_id: str) -> UUID | None:
-    cpid = (checkion_project_id or "").strip()
-    if not cpid:
-        return None
-    project = session.scalars(
-        select(Project).where(Project.checkion_project_id == cpid).limit(1)
-    ).first()
+def find_audion_project_id_for_checkion(
+    session: Session,
+    checkion_project_id: str,
+    platform_project_id: str | None = None,
+) -> UUID | None:
+    project, _ = resolve_audion_project_for_checkion(
+        session,
+        checkion_project_id=checkion_project_id,
+        platform_project_id=platform_project_id,
+    )
     return project.id if project else None

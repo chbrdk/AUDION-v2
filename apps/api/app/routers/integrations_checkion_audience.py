@@ -1,11 +1,18 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from ..core.config import get_settings
 from ..db import get_db
-from ..services.audience_report_export import build_audience_report_context
+from ..services.audience_report_export import (
+    build_audience_report_context,
+    link_audion_project_to_checkion,
+    list_audion_projects_for_checkion_link,
+)
 
 router = APIRouter(prefix="/integrations/checkion", tags=["integrations"])
 
@@ -27,14 +34,58 @@ def verify_checkion_inbound_service_token(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid service token.")
 
 
+class CheckionAudionLinkBody(BaseModel):
+    audion_project_id: str = Field(..., min_length=1)
+
+
+@router.get("/audion-projects")
+def list_audion_projects_for_checkion(
+    session: Session = Depends(get_db),
+    _: None = Depends(verify_checkion_inbound_service_token),
+) -> dict:
+    """List AUDION projects for CHECKION-side linking UI."""
+    return {"items": list_audion_projects_for_checkion_link(session)}
+
+
+@router.put("/projects/{checkion_project_id}/link")
+def link_checkion_project_to_audion(
+    checkion_project_id: str,
+    body: CheckionAudionLinkBody,
+    session: Session = Depends(get_db),
+    _: None = Depends(verify_checkion_inbound_service_token),
+) -> dict:
+    """Set ``checkion_project_id`` on the chosen AUDION project."""
+    try:
+        audion_id = UUID(body.audion_project_id.strip())
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid audion_project_id.") from exc
+
+    result = link_audion_project_to_checkion(
+        session,
+        checkion_project_id=checkion_project_id,
+        audion_project_id=audion_id,
+    )
+    if not result.get("ok"):
+        reason = result.get("reason", "link_failed")
+        if reason == "audion_project_not_found":
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=reason)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=reason)
+    return result
+
+
 @router.get("/projects/{checkion_project_id}/audience-report")
 def get_audience_report_for_checkion_project(
     checkion_project_id: str,
+    platform_project_id: str | None = Query(default=None),
     session: Session = Depends(get_db),
     _: None = Depends(verify_checkion_inbound_service_token),
 ) -> dict:
     """
     Read-only audience context for CHECKION comprehensive project reports.
-    Resolves AUDION project via ``projects.checkion_project_id``.
+    Resolves AUDION project via ``checkion_project_id`` or ``platform_project_id``.
     """
-    return build_audience_report_context(session, checkion_project_id=checkion_project_id)
+    return build_audience_report_context(
+        session,
+        checkion_project_id=checkion_project_id,
+        platform_project_id=platform_project_id,
+    )

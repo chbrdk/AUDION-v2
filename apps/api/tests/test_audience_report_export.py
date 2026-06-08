@@ -71,3 +71,39 @@ def test_build_audience_report_context_exports_personas():
     assert out["audionProjectName"] == "Demo"
     assert len(out["personas"]) == 1
     assert out["personas"][0]["painPoints"][0] == "Kunden fragen nach Haftpflicht"
+
+
+def test_build_audience_report_context_platform_project_fallback():
+    project_id = uuid4()
+    project = SimpleNamespace(
+        id=project_id,
+        name="Plexon Linked",
+        checkion_project_id=None,
+        platform_project_id="plat-99",
+    )
+    session = MagicMock()
+    call = {"n": 0}
+
+    def scalars_side_effect(_stmt):
+        call["n"] += 1
+        result = MagicMock()
+        if call["n"] == 1:
+            result.first.return_value = None
+        elif call["n"] == 2:
+            result.first.return_value = project
+        elif call["n"] == 3:
+            result.all.return_value = []
+        else:
+            result.all.return_value = []
+        return result
+
+    session.scalars.side_effect = scalars_side_effect
+
+    out = build_audience_report_context(
+        session,
+        checkion_project_id="chk-1",
+        platform_project_id="plat-99",
+    )
+    assert out["available"] is True
+    assert out["resolvedVia"] == "platform_project_id"
+    assert out["audionProjectName"] == "Plexon Linked"
