@@ -2156,63 +2156,16 @@ def delete_moodboard_tile_admin(tile_id: str, session: Session = Depends(get_db)
 
 
 def _is_missing_relation_error(exc: Exception) -> bool:
-    """Detect Postgres "relation does not exist" so we can self-heal.
+    """Detect Postgres "relation does not exist" so we can self-heal."""
+    from ..services.persona_ux_journey_runs_schema import is_missing_persona_ux_journey_runs_error
 
-    The persona-admin UX-journey timeline ships with its own Alembic
-    migration (``20260510_persona_ux_journey_runs``). In environments where
-    the migration hasn't run yet (legacy DBs stamped to head without
-    replaying revisions, branch swaps, etc.) we want the endpoint to
-    create the table on-the-fly instead of 500/503'ing.
-    """
-    msg = str(getattr(exc, "orig", exc)).lower()
-    return "persona_ux_journey_runs" in msg and (
-        "does not exist" in msg or "undefinedtable" in msg
-    )
-
-
-_PERSONA_UX_JOURNEY_RUNS_DDL = """
-CREATE TABLE IF NOT EXISTS audion.persona_ux_journey_runs (
-    id UUID PRIMARY KEY,
-    persona_id UUID NOT NULL REFERENCES audion.personas(id) ON DELETE CASCADE,
-    job_id VARCHAR(80) NOT NULL,
-    task TEXT,
-    site_url TEXT,
-    success BOOLEAN,
-    steps_count INTEGER,
-    scorecard JSONB,
-    created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT now(),
-    CONSTRAINT uq_persona_ux_journey_runs_persona_job UNIQUE (persona_id, job_id)
-);
-CREATE INDEX IF NOT EXISTS ix_persona_ux_journey_runs_persona_id
-    ON audion.persona_ux_journey_runs (persona_id);
-"""
+    return is_missing_persona_ux_journey_runs_error(exc)
 
 
 def _ensure_persona_ux_journey_runs_table(session: Session) -> bool:
-    """Idempotent self-heal: create the timeline table when migrations are
-    behind. Safe to call repeatedly — uses ``CREATE TABLE IF NOT EXISTS``.
-    Returns True when the DDL was attempted without raising.
-    """
-    bind = session.get_bind()
-    if bind is None:
-        return False
-    try:
-        from sqlalchemy import text as _text
+    from ..services.persona_ux_journey_runs_schema import ensure_persona_ux_journey_runs_table
 
-        with bind.begin() as conn:
-            for stmt in _PERSONA_UX_JOURNEY_RUNS_DDL.strip().split(";"):
-                cleaned = stmt.strip()
-                if cleaned:
-                    conn.execute(_text(cleaned))
-        _log.warning(
-            "persona_ux_journey_runs table was missing — self-healed via "
-            "CREATE TABLE IF NOT EXISTS. Run `alembic upgrade head` to keep "
-            "Alembic in sync."
-        )
-        return True
-    except Exception:  # noqa: BLE001
-        _log.exception("persona_ux_journey_runs.self_heal_ddl.failed")
-        return False
+    return ensure_persona_ux_journey_runs_table(session)
 
 
 @persona_admin_router.get(

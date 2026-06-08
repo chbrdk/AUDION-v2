@@ -9,6 +9,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from ..models import Persona, PersonaUxJourneyRun, Project, TargetGroup
+from .persona_ux_journey_runs_schema import (
+    ensure_persona_ux_journey_runs_table,
+    is_missing_persona_ux_journey_runs_error,
+)
 
 
 def _profile_strings(profile: dict[str, Any] | None, key: str, limit: int = 8) -> list[str]:
@@ -129,6 +133,42 @@ def list_audion_projects_for_checkion_link(
     ]
 
 
+def _load_personas_for_audience_export(
+    session: Session,
+    project_id: UUID,
+    max_personas: int,
+) -> list[Persona]:
+    """Load personas; UX-journey runs are optional (legacy DBs may lack the table)."""
+    limit = max(1, min(max_personas, 48))
+    query = (
+        select(Persona)
+        .where(Persona.project_id == project_id)
+        .order_by(Persona.name.asc())
+        .limit(limit)
+    )
+
+    def _with_ux_runs() -> list[Persona]:
+        return session.scalars(query.options(joinedload(Persona.ux_journey_runs))).all()
+
+    def _without_ux_runs() -> list[Persona]:
+        rows = session.scalars(query).all()
+        for persona in rows:
+            object.__setattr__(persona, "ux_journey_runs", [])
+        return rows
+
+    try:
+        return _with_ux_runs()
+    except Exception as exc:
+        session.rollback()
+        if is_missing_persona_ux_journey_runs_error(exc) and ensure_persona_ux_journey_runs_table(session):
+            session.rollback()
+            try:
+                return _with_ux_runs()
+            except Exception:
+                session.rollback()
+        return _without_ux_runs()
+
+
 def build_audience_report_context(
     session: Session,
     *,
@@ -157,13 +197,7 @@ def build_audience_report_context(
         .order_by(TargetGroup.name.asc())
     ).all()
 
-    personas = session.scalars(
-        select(Persona)
-        .where(Persona.project_id == project.id)
-        .options(joinedload(Persona.ux_journey_runs))
-        .order_by(Persona.name.asc())
-        .limit(max(1, min(max_personas, 48)))
-    ).all()
+    personas = _load_personas_for_audience_export(session, project.id, max_personas)
 
     tg_by_id = {tg.id: tg for tg in target_groups}
 

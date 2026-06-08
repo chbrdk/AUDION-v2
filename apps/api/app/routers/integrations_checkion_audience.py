@@ -98,7 +98,4 @@ def get_audience_report_for_checkion_project(
             checkion_project_id=checkion_project_id,
             platform_project_id=platform_project_id,
         )
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="audience_report_failed",
-        ) from exc
+        return {"available": False, "reason": "audience_export_failed"}

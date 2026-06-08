@@ -12,7 +12,10 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 from uuid import uuid4
 
-from app.services.audience_report_export import build_audience_report_context
+from app.services.audience_report_export import (
+    _load_personas_for_audience_export,
+    build_audience_report_context,
+)
 
 
 def test_build_audience_report_context_missing_id():
@@ -107,3 +110,33 @@ def test_build_audience_report_context_platform_project_fallback():
     assert out["available"] is True
     assert out["resolvedVia"] == "platform_project_id"
     assert out["audionProjectName"] == "Plexon Linked"
+
+
+def test_load_personas_falls_back_without_ux_journey_table():
+    project_id = uuid4()
+    persona = SimpleNamespace(
+        id=uuid4(),
+        name="Fallback",
+        headline="h",
+        segment="s",
+        target_group_id=None,
+        profile={},
+    )
+    session = MagicMock()
+    call = {"n": 0}
+
+    def scalars_side_effect(_stmt):
+        call["n"] += 1
+        if call["n"] == 1:
+            raise Exception('relation "audion.persona_ux_journey_runs" does not exist')
+        result = MagicMock()
+        result.all.return_value = [persona]
+        return result
+
+    session.scalars.side_effect = scalars_side_effect
+    session.get_bind.return_value = None
+
+    rows = _load_personas_for_audience_export(session, project_id, max_personas=24)
+    assert len(rows) == 1
+    assert rows[0].name == "Fallback"
+    assert rows[0].ux_journey_runs == []
