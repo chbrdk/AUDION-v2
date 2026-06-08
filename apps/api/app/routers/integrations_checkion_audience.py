@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
+import structlog
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -15,6 +16,7 @@ from ..services.audience_report_export import (
 )
 
 router = APIRouter(prefix="/integrations/checkion", tags=["integrations"])
+logger = structlog.get_logger(__name__)
 
 
 def verify_checkion_inbound_service_token(
@@ -84,8 +86,19 @@ def get_audience_report_for_checkion_project(
     Read-only audience context for CHECKION comprehensive project reports.
     Resolves AUDION project via ``checkion_project_id`` or ``platform_project_id``.
     """
-    return build_audience_report_context(
-        session,
-        checkion_project_id=checkion_project_id,
-        platform_project_id=platform_project_id,
-    )
+    try:
+        return build_audience_report_context(
+            session,
+            checkion_project_id=checkion_project_id,
+            platform_project_id=platform_project_id,
+        )
+    except Exception as exc:
+        logger.exception(
+            "checkion.audience_report_failed",
+            checkion_project_id=checkion_project_id,
+            platform_project_id=platform_project_id,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="audience_report_failed",
+        ) from exc
