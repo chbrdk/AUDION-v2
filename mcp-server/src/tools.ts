@@ -197,6 +197,30 @@ export function registerAudionTools(server: Server): void {
   );
 
   server.registerTool(
+    'audion.project_research_start',
+    {
+      title: 'Start project research',
+      description: 'Start async website research for a project (POST /projects/:id/research/start).',
+      inputSchema: z.object({
+        project_id: z.string().describe('AUDION project ID'),
+        seed_url: z.string().optional().describe('Optional seed URL'),
+      }),
+    },
+    async (args) => {
+      const { project_id, seed_url } = args as { project_id: string; seed_url?: string };
+      const res = await base(`/projects/${encodeURIComponent(project_id)}/research/start`, {
+        method: 'POST',
+        body: JSON.stringify({
+          ...(seed_url ? { seed_url } : {}),
+        }),
+      });
+      if (isAudionError(res))
+        return { content: [{ type: 'text', text: JSON.stringify(res) }] };
+      return { content: [{ type: 'text', text: toTextContent(res) }] };
+    }
+  );
+
+  server.registerTool(
     'audion.project_update',
     {
       title: 'Update project',
