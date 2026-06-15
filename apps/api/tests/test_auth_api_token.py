@@ -67,6 +67,14 @@ def test_get_current_user_with_invalid_api_token_returns_401():
     with pytest.raises(HTTPException) as exc_info:
         get_current_user(credentials=credentials, session=session)
     assert exc_info.value.status_code == 401
+    assert exc_info.value.detail == "Invalid API token"
+
+
+def test_api_token_length_matches_generate_token_string():
+    raw = api_tokens_service.generate_token_string()
+    assert raw.startswith("audion_")
+    assert len(raw) == 71
+    assert len(raw) == 7 + 64
 
 
 def test_get_current_user_with_malformed_api_token_returns_401():

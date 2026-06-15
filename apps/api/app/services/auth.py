@@ -18,7 +18,8 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 bearer_scheme = HTTPBearer(auto_error=False)
 
 API_TOKEN_PREFIX = "audion_"
-API_TOKEN_LEN = 9 + 64  # audion_ + 64 hex
+API_TOKEN_HEX_LEN = 64
+API_TOKEN_LEN = len(API_TOKEN_PREFIX) + API_TOKEN_HEX_LEN  # audion_ + 64 hex
 
 
 def hash_password(password: str) -> str:
@@ -64,7 +65,7 @@ def get_current_user(
     if (
         token.startswith(API_TOKEN_PREFIX)
         and len(token) == API_TOKEN_LEN
-        and all(c in "0123456789abcdef" for c in token[9:])
+        and all(c in "0123456789abcdef" for c in token[len(API_TOKEN_PREFIX) :])
     ):
         token_hash = hash_token(token)
         user_id = get_user_id_by_token_hash(session, token_hash)
