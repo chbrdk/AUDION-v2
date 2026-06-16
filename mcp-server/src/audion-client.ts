@@ -2,6 +2,12 @@
  * HTTP client for AUDION API. All requests use Bearer token from env.
  */
 
+import {
+  audionWebUrlMisconfigMessage,
+  formatFastApiErrorDetail,
+  isHtmlOrLoginBody,
+} from './audion-api-detect.js';
+
 function getConfig() {
   return {
     baseUrl: process.env.AUDION_API_URL ?? '',
@@ -37,10 +43,19 @@ export async function audionFetch<T = unknown>(
   try {
     const res = await fetch(url, { ...options, headers });
     const text = await res.text();
+    const contentType =
+      typeof res.headers?.get === 'function' ? res.headers.get('content-type') : null;
     let data: T;
     try {
       data = text ? (JSON.parse(text) as T) : ({} as T);
     } catch {
+      if (!res.ok && isHtmlOrLoginBody(contentType, text)) {
+        return {
+          error: true,
+          message: `${audionWebUrlMisconfigMessage()} HTTP ${res.status}.`,
+          status: res.status,
+        };
+      }
       return {
         error: true,
         message: res.ok
@@ -50,11 +65,19 @@ export async function audionFetch<T = unknown>(
       };
     }
     if (!res.ok) {
-      const err = data as { error?: string; message?: string; detail?: string };
+      const err = data as {
+        error?: string;
+        message?: string;
+        detail?: unknown;
+      };
+      const detail = formatFastApiErrorDetail(err?.detail);
       return {
         error: true,
         message:
-          err?.error ?? err?.message ?? err?.detail ?? `HTTP ${res.status}`,
+          err?.error ??
+          err?.message ??
+          detail ??
+          `HTTP ${res.status}`,
         status: res.status,
       };
     }

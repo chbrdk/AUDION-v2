@@ -6,6 +6,7 @@ from uuid import UUID, uuid4
 import structlog
 from fastapi import APIRouter, Body, BackgroundTasks, Depends, File, Form, HTTPException, Query, UploadFile, status
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from ..core.http_exceptions import exception_to_http
@@ -176,6 +177,12 @@ def create_target_group(
         return service.create_target_group(session, payload)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except SQLAlchemyError as exc:
+        logger.exception("target_group.create_failed", project_id=payload.project_id)
+        raise HTTPException(
+            status_code=500,
+            detail="Target group could not be saved. Check API logs and database migrations.",
+        ) from exc
 
 
 @router.get(

@@ -95,7 +95,47 @@ curl -sS -X POST https://mcp-audion.<domain> \
 
 PLEXON Admin: `GET /api/services/audion/status` (nur eingeloggt).
 
-## Browser-Netzwerk prüfen
+### 5. HTTP 500 bei `target_group_create` (PLEXON / MCP)
+
+**Symptom:** Assistant meldet „AUDION API – HTTP 500“ beim Anlegen von Zielgruppen.
+
+**Häufigste Ursache (live geprüft):** `AUDION_API_URL` auf dem **MCP-Container** zeigt auf die **Web-App**, nicht auf FastAPI.
+
+**Schnelltest:**
+
+```bash
+curl -sS -X POST https://mcp-audion.<domain> \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"audion.health","arguments":{}}}'
+```
+
+| Antwort | Bedeutung |
+|---------|-----------|
+| `"service":"web"` / `"runtime":"nextjs"` | **Falsch** – MCP ruft Next.js auf |
+| `"ai_provider_configured": true/false` | **Richtig** – FastAPI erreichbar |
+
+**Fix (Coolify → audion-mcp):**
+
+```
+AUDION_API_URL=http://audion-api:8000
+AUDION_API_TOKEN=audion_...
+```
+
+- Hostname = interner API-Service (wie in docker-compose), **ohne** `/api`.
+- **Nicht** `https://audion.<domain>` (das ist die Web-UI).
+
+Nach Env-Änderung MCP-Container **neu deployen**. Danach sollte `audion.health` `ai_provider_configured` zeigen und `audion.target_group_create` funktionieren.
+
+**Weitere 500-Ursachen (seltener):**
+
+| Ursache | Status | Fix |
+|---------|--------|-----|
+| `project_id` = Plattform-ID statt AUDION-UUID | 400 `project_not_found` | `audionProjectId` aus Projektkontext / `audion.projects_list` |
+| Token-User kein Projekt-Mitglied | 403 | API-Token-Besitzer in AUDION dem Projekt zuweisen |
+| DB-Migration fehlt (`status`-Spalte) | 500 + API-Log | API-Container neu starten (`init_db`) oder Alembic |
+
+**`project_id` für MCP-Tools:** immer die **AUDION-Projekt-UUID** (`audionProjectId` im PLEXON-Board), nicht `platformProjectId` oder CHECKION-ID.
+
 
 1. DevTools → Network
 2. Aktion wiederholen (Zielgruppe/Persona anlegen)

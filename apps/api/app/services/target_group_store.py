@@ -14,6 +14,7 @@ from ..models import (
     Document,
     Persona,
     ProcessingJob,
+    Project,
     TargetGroup,
     TargetGroupKnowledgeEntry,
     TargetGroupSource,
@@ -211,7 +212,10 @@ class TargetGroupService:
             project_id = UUID(project_id_str)
         except ValueError as exc:
             raise ValueError(f"badly formed hexadecimal UUID string: {project_id_str}") from exc
-        
+
+        if session.get(Project, project_id) is None:
+            raise ValueError("project_not_found")
+
         publication_status = normalize_target_group_status(getattr(payload, "status", None))
 
         tg = TargetGroup(

@@ -3,6 +3,11 @@
  */
 import { z } from 'zod';
 import { audionFetch, isAudionError } from './audion-client.js';
+import {
+  audionWebUrlMisconfigMessage,
+  isAudionFastApiHealthPayload,
+  isAudionWebHealthPayload,
+} from './audion-api-detect.js';
 import { registerUxJourneyTools } from './tools-ux-journey.js';
 import { registerChatTools } from './tools-chat.js';
 
@@ -42,6 +47,45 @@ export function registerAudionTools(server: Server): void {
       const res = await base('/health');
       if (isAudionError(res))
         return { content: [{ type: 'text', text: JSON.stringify(res) }] };
+      if (isAudionWebHealthPayload(res)) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  error: true,
+                  misconfiguration: 'web_app_not_fastapi',
+                  message: audionWebUrlMisconfigMessage(),
+                  hint: 'Coolify → audion-mcp → AUDION_API_URL=http://audion-api:8000',
+                  received: res,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+      if (!isAudionFastApiHealthPayload(res)) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  warning: 'unexpected_health_shape',
+                  message:
+                    'Health response is not the FastAPI /health JSON (expected ai_provider_configured). Check AUDION_API_URL.',
+                  received: res,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
       return { content: [{ type: 'text', text: toTextContent(res) }] };
     }
   );

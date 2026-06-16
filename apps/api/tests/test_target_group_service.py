@@ -18,7 +18,7 @@ os.environ.setdefault("CLAUDE_API_KEY", "test-key")
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.models import Base, Persona, TargetGroup, TargetGroupKnowledgeEntry
+from app.models import Base, Persona, Project, TargetGroup, TargetGroupKnowledgeEntry
 from app.schemas import TargetGroupCreateRequest, TargetGroupUpdateRequest
 from app.services.target_group_store import TargetGroupService
 
@@ -27,6 +27,11 @@ def build_session() -> Session:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     return sessionmaker(bind=engine, autoflush=False, autocommit=False)()
+
+
+def seed_project(session: Session, project_id) -> None:
+    session.add(Project(id=project_id, name="Test Project"))
+    session.commit()
 
 
 def test_list_target_groups():
@@ -60,6 +65,7 @@ def test_create_target_group():
     service = TargetGroupService()
     session = build_session()
     project_id = uuid4()
+    seed_project(session, project_id)
     
     payload = TargetGroupCreateRequest(
         project_id=str(project_id),
@@ -74,6 +80,22 @@ def test_create_target_group():
     assert result.segment == "enterprise"
     assert result.description == "Enterprise customers"
     assert result.project_id == str(project_id)
+
+
+def test_create_target_group_requires_existing_project():
+    service = TargetGroupService()
+    session = build_session()
+    project_id = uuid4()
+    payload = TargetGroupCreateRequest(
+        project_id=str(project_id),
+        name="Enterprise Buyers",
+        segment="enterprise",
+    )
+    try:
+        service.create_target_group(session, payload)
+        assert False, "expected project_not_found"
+    except ValueError as exc:
+        assert str(exc) == "project_not_found"
 
 
 def test_get_target_group_with_personas_and_knowledge():

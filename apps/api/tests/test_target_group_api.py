@@ -22,7 +22,7 @@ os.environ.setdefault("PERSONA_BACKEND_PUBLIC_URL", "http://localhost:8000")
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.models import Base, TargetGroup, TargetGroupKnowledgeEntry
+from app.models import Base, Project, TargetGroup, TargetGroupKnowledgeEntry
 from app.schemas import TargetGroupCreateRequest
 from app.services.target_group_store import TargetGroupService
 
@@ -31,6 +31,11 @@ def build_session() -> Session:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     return sessionmaker(bind=engine, autoflush=False, autocommit=False)()
+
+
+def seed_project(session: Session, project_id) -> None:
+    session.add(Project(id=project_id, name="Test Project"))
+    session.commit()
 
 
 def test_target_group_service_create_and_get():
@@ -47,6 +52,9 @@ def test_target_group_service_create_and_get():
         description="Enterprise customers",
     )
     
+    session.add(Project(id=project_id, name="Test Project"))
+    session.commit()
+
     # Create
     created = service.create_target_group(session, payload)
     assert created.name == "Enterprise Buyers"
@@ -64,6 +72,7 @@ def test_target_group_service_delete():
     service = TargetGroupService()
     session = build_session()
     project_id = uuid4()
+    seed_project(session, project_id)
 
     created = service.create_target_group(
         session,
@@ -87,6 +96,7 @@ def test_target_group_knowledge_entry_creation():
     service = TargetGroupService()
     session = build_session()
     project_id = uuid4()
+    seed_project(session, project_id)
     
     # Create target group
     payload = TargetGroupCreateRequest(
@@ -157,6 +167,7 @@ def test_target_group_update():
     service = TargetGroupService()
     session = build_session()
     project_id = uuid4()
+    seed_project(session, project_id)
     
     # Create
     payload = TargetGroupCreateRequest(
