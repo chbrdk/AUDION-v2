@@ -58,13 +58,40 @@ Container neu starten. Prüfen: API `/health` liefert `ai_provider_configured: t
 
 Das betrifft **nicht** die native AUDION-UI, sondern PLEXON oder Board-Chat.
 
-**Fix (PLEXON + AUDION-MCP):**
+**Zwei getrennte Konfigurationen:**
 
-| Variable | Wo | Wert |
-|----------|-----|------|
-| `AUDION_MCP_URL` | PLEXON | `http://audion-mcp:3100` (intern) |
-| `AUDION_API_URL` | PLEXON, AUDION-MCP | `http://audion-api:8000` (ohne `/api`) |
-| `AUDION_API_TOKEN` | PLEXON, AUDION-MCP | `audion_...` (API-Token aus AUDION) |
+| Was | Variable | Wo | Richtiger Wert |
+|-----|----------|-----|----------------|
+| PLEXON → MCP-Server | `AUDION_MCP_URL` | PLEXON | `https://mcp-audion.<domain>` **oder** intern `http://audion-mcp:3100` |
+| MCP-Server → FastAPI | `AUDION_API_URL` | **AUDION-MCP-Container** | `http://audion-api:8000` (ohne `/api`) |
+| MCP-Server → Auth | `AUDION_API_TOKEN` | **AUDION-MCP-Container** | `audion_...` (API-Token aus AUDION) |
+
+**Wichtig:** `https://mcp-audion.<domain>` ist nur der **MCP-Einstieg** (Health + `tools/list`). Wenn Personas/Zielgruppen trotzdem scheitern, ist fast immer **`AUDION_API_URL` auf dem MCP-Container falsch** — z. B. zeigt auf die **Web-URL** (`https://audion.<domain>`) statt auf die **FastAPI-API**. Symptom: MCP-Tools liefern `HTTP 404` mit Next.js-HTML.
+
+**Schnelltest MCP-URL (öffentlich):**
+
+```bash
+# Health (GET)
+curl -sS https://mcp-audion.<domain>
+# → {"status":"ok","service":"audion-mcp"}
+
+# Tools (POST)
+curl -sS -X POST https://mcp-audion.<domain> \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
+```
+
+**Schnelltest API-Anbindung des MCP-Servers:**
+
+```bash
+curl -sS -X POST https://mcp-audion.<domain> \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"audion.health","arguments":{}}}'
+```
+
+- `{"status":"ok",...}` → `AUDION_API_URL` + Token OK  
+- `HTTP 404` + HTML → `AUDION_API_URL` zeigt auf Web statt API  
+- `AUDION_API_URL or AUDION_API_TOKEN not configured` → Env auf MCP-Container fehlt
 
 PLEXON Admin: `GET /api/services/audion/status` (nur eingeloggt).
 

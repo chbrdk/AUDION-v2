@@ -23,12 +23,14 @@ Do not hardcode URLs or path prefixes in code. Use environment variables and thi
 | `MCP_STATELESS` | MCP server | Set to `true` when MCP is behind the Next.js proxy (recommended). |
 | `AUDION_API_URL` | MCP server | Base URL of the FastAPI API (see above). |
 | `AUDION_API_TOKEN` | MCP server | Bearer token (API token from Settings → API access, or JWT). |
+| `CHAT_API_URL` | MCP server | Chat API base for `audion.chat_*` tools (e.g. `http://audion-chat-api:8001`). |
+| `AUDION_CHAT_API_URL` | MCP server | Alias for `CHAT_API_URL`. |
 
 ### Chat / Voice / Indexing
 
 | Variable | Used by | Description |
 |----------|--------|-------------|
-| `NEXT_PUBLIC_CHAT_API_URL` | AUDION web | Chat API base URL (server-side fallback). |
+| `NEXT_PUBLIC_CHAT_API_URL` | AUDION web | Chat API base URL (server-side fallback). MCP uses `CHAT_API_URL` (see MCP server table above). |
 | `NEXT_PUBLIC_VOICE_API_URL` | AUDION web | Voice API base URL (server-side fallback). |
 | `NEXT_PUBLIC_INDEXING_API_URL` | AUDION web | Indexing API URL. |
 | `INDEXING_API_URL` | AUDION web / services | Indexing API URL (internal). |

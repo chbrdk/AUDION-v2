@@ -72,6 +72,12 @@ MCP_TRANSPORT=stdio AUDION_API_URL=https://api.audion.example.com AUDION_API_TOK
 | `audion.project_update` | PATCH /projects/:id |
 | `audion.project_member_add` | POST /projects/:id/members |
 | `audion.project_member_remove` | DELETE /projects/:id/members/:member_id |
+| `audion.project_research_start` | POST /projects/:id/research/start |
+| `audion.project_research_latest` | GET /projects/:id/research/latest |
+| `audion.project_research_status` | GET /projects/:id/research/status?run_id= |
+| `audion.project_suggest_target_groups` | POST /projects/:id/suggest-target-groups |
+| `audion.project_checkion_site_topics` | GET /projects/:id/integrations/checkion/site-topics |
+| `audion.project_bootstrap` | POST /projects/bootstrap (easy setup) |
 
 ### Personas
 | Tool | Description |
@@ -101,6 +107,8 @@ MCP_TRANSPORT=stdio AUDION_API_URL=https://api.audion.example.com AUDION_API_TOK
 | `audion.target_group_knowledge_create` | POST /target-groups/:id/knowledge |
 | `audion.target_group_documents_list` | GET /target-groups/:id/documents |
 | `audion.target_group_personas_list` | GET /target-groups/:id/personas |
+| `audion.target_group_suggest_personas` | POST /target-groups/:id/suggest-personas |
+| `audion.target_group_personas_generate` | POST /target-groups/:id/personas/generate |
 
 ### Journeys
 | Tool | Description |
@@ -121,7 +129,7 @@ MCP_TRANSPORT=stdio AUDION_API_URL=https://api.audion.example.com AUDION_API_TOK
 | Tool | Description |
 |------|-------------|
 | `audion.ai_assist_templates` | GET /ai-assist/templates |
-| `audion.ai_assist_assist` | POST /ai-assist/assist |
+| `audion.ai_assist_assist` | POST /ai-assist |
 | `audion.ai_assist_test` | POST /ai-assist/test |
 
 ### Settings

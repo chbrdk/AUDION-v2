@@ -9,7 +9,7 @@
     "start": "node dist/index.js",
     "start:stdio": "MCP_TRANSPORT=stdio node dist/index.js",
     "dev": "tsx src/index.ts",
-    "test": "node --test --import tsx src/audion-client.test.ts"
+    "test": "node --test --import tsx src/audion-client.test.ts src/chat-client.test.ts src/tool-registry.test.ts"
   },
   "engines": {
     "node": ">=20"

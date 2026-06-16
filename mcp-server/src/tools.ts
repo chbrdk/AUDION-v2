@@ -3,6 +3,8 @@
  */
 import { z } from 'zod';
 import { audionFetch, isAudionError } from './audion-client.js';
+import { registerUxJourneyTools } from './tools-ux-journey.js';
+import { registerChatTools } from './tools-chat.js';
 
 function toTextContent(value: unknown): string {
   if (value === null || value === undefined) return '';
@@ -293,6 +295,153 @@ export function registerAudionTools(server: Server): void {
       if (isAudionError(res))
         return { content: [{ type: 'text', text: JSON.stringify(res) }] };
       return { content: [{ type: 'text', text: toTextContent(res ?? 'OK') }] };
+    }
+  );
+
+  server.registerTool(
+    'audion.project_suggest_target_groups',
+    {
+      title: 'Suggest target groups for project',
+      description:
+        'AI-suggest target groups from project company context, optional research and CHECKION site topics (POST /projects/:id/suggest-target-groups).',
+      inputSchema: z.object({
+        project_id: z.string(),
+        max_suggestions: z.number().int().min(1).max(10).optional(),
+        bilingual: z.boolean().optional(),
+        output_locale: z.enum(['de', 'en']).optional(),
+        include_project_research: z.boolean().optional(),
+        include_checkion_topics: z.boolean().optional(),
+        force_refresh: z.boolean().optional(),
+      }),
+    },
+    async (args) => {
+      const {
+        project_id,
+        force_refresh,
+        max_suggestions,
+        bilingual,
+        output_locale,
+        include_project_research,
+        include_checkion_topics,
+      } = args as {
+        project_id: string;
+        force_refresh?: boolean;
+        max_suggestions?: number;
+        bilingual?: boolean;
+        output_locale?: 'de' | 'en';
+        include_project_research?: boolean;
+        include_checkion_topics?: boolean;
+      };
+      const q = force_refresh ? '?force_refresh=true' : '';
+      const body: Record<string, unknown> = {};
+      if (max_suggestions != null) body.max_suggestions = max_suggestions;
+      if (bilingual != null) body.bilingual = bilingual;
+      if (output_locale) body.output_locale = output_locale;
+      if (include_project_research != null) body.include_project_research = include_project_research;
+      if (include_checkion_topics != null) body.include_checkion_topics = include_checkion_topics;
+      const res = await base(
+        `/projects/${encodeURIComponent(project_id)}/suggest-target-groups${q}`,
+        {
+          method: 'POST',
+          body: JSON.stringify(Object.keys(body).length ? body : {}),
+        }
+      );
+      if (isAudionError(res))
+        return { content: [{ type: 'text', text: JSON.stringify(res) }] };
+      return { content: [{ type: 'text', text: toTextContent(res) }] };
+    }
+  );
+
+  server.registerTool(
+    'audion.project_research_latest',
+    {
+      title: 'Latest project research',
+      description: 'GET /projects/:id/research/latest – latest AI website research summary.',
+      inputSchema: z.object({ project_id: z.string() }),
+    },
+    async (args) => {
+      const { project_id } = args as { project_id: string };
+      const res = await base(`/projects/${encodeURIComponent(project_id)}/research/latest`);
+      if (isAudionError(res))
+        return { content: [{ type: 'text', text: JSON.stringify(res) }] };
+      return { content: [{ type: 'text', text: toTextContent(res) }] };
+    }
+  );
+
+  server.registerTool(
+    'audion.project_research_status',
+    {
+      title: 'Project research run status',
+      description: 'GET /projects/:id/research/status?run_id=…',
+      inputSchema: z.object({
+        project_id: z.string(),
+        run_id: z.string(),
+      }),
+    },
+    async (args) => {
+      const { project_id, run_id } = args as { project_id: string; run_id: string };
+      const res = await base(
+        `/projects/${encodeURIComponent(project_id)}/research/status?run_id=${encodeURIComponent(run_id)}`
+      );
+      if (isAudionError(res))
+        return { content: [{ type: 'text', text: JSON.stringify(res) }] };
+      return { content: [{ type: 'text', text: toTextContent(res) }] };
+    }
+  );
+
+  server.registerTool(
+    'audion.project_checkion_site_topics',
+    {
+      title: 'CHECKION site topics for project',
+      description:
+        'GET /projects/:id/integrations/checkion/site-topics – page topics from linked CHECKION deep scan.',
+      inputSchema: z.object({
+        project_id: z.string(),
+        seed_url: z.string().optional(),
+        max_pages: z.number().int().min(1).max(2000).optional(),
+      }),
+    },
+    async (args) => {
+      const { project_id, seed_url, max_pages } = args as {
+        project_id: string;
+        seed_url?: string;
+        max_pages?: number;
+      };
+      const params = new URLSearchParams();
+      if (seed_url) params.set('seed_url', seed_url);
+      if (max_pages != null) params.set('max_pages', String(max_pages));
+      const q = params.toString() ? `?${params}` : '';
+      const res = await base(
+        `/projects/${encodeURIComponent(project_id)}/integrations/checkion/site-topics${q}`
+      );
+      if (isAudionError(res))
+        return { content: [{ type: 'text', text: JSON.stringify(res) }] };
+      return { content: [{ type: 'text', text: toTextContent(res) }] };
+    }
+  );
+
+  server.registerTool(
+    'audion.project_bootstrap',
+    {
+      title: 'Bootstrap project (easy setup)',
+      description:
+        'POST /projects/bootstrap – create project + default target group + persona from website URL.',
+      inputSchema: z.object({
+        name: z.string(),
+        website_url: z.string(),
+        company_context: z.string().optional(),
+        description: z.string().optional(),
+      }),
+    },
+    async (args) => {
+      const body = args as Record<string, unknown>;
+      const res = await base('/projects/bootstrap', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
+      if (isAudionError(res))
+        return { content: [{ type: 'text', text: JSON.stringify(res) }] };
+      return { content: [{ type: 'text', text: toTextContent(res) }] };
     }
   );
 
@@ -759,6 +908,91 @@ export function registerAudionTools(server: Server): void {
     }
   );
 
+  server.registerTool(
+    'audion.target_group_suggest_personas',
+    {
+      title: 'Suggest personas for target group',
+      description: 'POST /target-groups/:id/suggest-personas – AI persona suggestions.',
+      inputSchema: z.object({
+        target_group_id: z.string(),
+        max_suggestions: z.number().int().min(1).max(10).optional(),
+        output_locale: z.enum(['de', 'en']).optional(),
+        include_project_research: z.boolean().optional(),
+        include_checkion_topics: z.boolean().optional(),
+      }),
+    },
+    async (args) => {
+      const {
+        target_group_id,
+        max_suggestions,
+        output_locale,
+        include_project_research,
+        include_checkion_topics,
+      } = args as {
+        target_group_id: string;
+        max_suggestions?: number;
+        output_locale?: 'de' | 'en';
+        include_project_research?: boolean;
+        include_checkion_topics?: boolean;
+      };
+      const body: Record<string, unknown> = {};
+      if (max_suggestions != null) body.max_suggestions = max_suggestions;
+      if (output_locale) body.output_locale = output_locale;
+      if (include_project_research != null) body.include_project_research = include_project_research;
+      if (include_checkion_topics != null) body.include_checkion_topics = include_checkion_topics;
+      const res = await base(
+        `/target-groups/${encodeURIComponent(target_group_id)}/suggest-personas`,
+        {
+          method: 'POST',
+          body: JSON.stringify(Object.keys(body).length ? body : {}),
+        }
+      );
+      if (isAudionError(res))
+        return { content: [{ type: 'text', text: JSON.stringify(res) }] };
+      return { content: [{ type: 'text', text: toTextContent(res) }] };
+    }
+  );
+
+  server.registerTool(
+    'audion.target_group_personas_generate',
+    {
+      title: 'Generate persona for target group',
+      description: 'POST /target-groups/:id/personas/generate – AI persona from target group knowledge.',
+      inputSchema: z.object({
+        target_group_id: z.string(),
+        segment: z.string(),
+        description: z.string().optional(),
+        filter_mode: z.enum(['auto', 'documents', 'chunks_manual']).optional(),
+        document_ids: z.array(z.string()).optional(),
+        chunk_ids: z.array(z.string()).optional(),
+        limit_chunks: z.number().int().optional(),
+        output_locale: z.enum(['de', 'en']).optional(),
+      }),
+    },
+    async (args) => {
+      const { target_group_id, ...body } = args as {
+        target_group_id: string;
+        segment: string;
+        description?: string;
+        filter_mode?: string;
+        document_ids?: string[];
+        chunk_ids?: string[];
+        limit_chunks?: number;
+        output_locale?: 'de' | 'en';
+      };
+      const res = await base(
+        `/target-groups/${encodeURIComponent(target_group_id)}/personas/generate`,
+        {
+          method: 'POST',
+          body: JSON.stringify(body),
+        }
+      );
+      if (isAudionError(res))
+        return { content: [{ type: 'text', text: JSON.stringify(res) }] };
+      return { content: [{ type: 'text', text: toTextContent(res) }] };
+    }
+  );
+
   // --- journeys ---
   server.registerTool(
     'audion.journeys_generate',
@@ -1014,16 +1248,26 @@ export function registerAudionTools(server: Server): void {
     'audion.ai_assist_assist',
     {
       title: 'AI assist',
-      description: 'POST /ai-assist/assist',
+      description: 'POST /ai-assist – execute an AI assist template.',
       inputSchema: z.object({
         template_id: z.string(),
         context: z.record(z.unknown()),
         project_id: z.string().optional(),
+        provider: z.string().optional(),
+        model: z.string().optional(),
+        prompt_variables: z.record(z.unknown()).optional(),
+        max_suggestions: z.number().int().optional(),
+        metadata: z.record(z.unknown()).optional(),
       }),
     },
     async (args) => {
-      const body = args as Record<string, unknown>;
-      const res = await base('/ai-assist/assist', {
+      const { project_id, ...body } = args as {
+        project_id?: string;
+        template_id: string;
+        context: Record<string, unknown>;
+      };
+      const q = project_id ? `?project_id=${encodeURIComponent(project_id)}` : '';
+      const res = await base(`/ai-assist${q}`, {
         method: 'POST',
         body: JSON.stringify(body),
       });
@@ -1208,4 +1452,7 @@ export function registerAudionTools(server: Server): void {
       return { content: [{ type: 'text', text: toTextContent(res) }] };
     }
   );
+
+  registerUxJourneyTools(server, base);
+  registerChatTools(server);
 }
