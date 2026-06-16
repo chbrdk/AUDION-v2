@@ -53,6 +53,7 @@ import {
 } from "../lib/moodboard-tile-ui";
 import { useProject } from "./projects/project-provider";
 import { useI18n } from "./i18n/i18n-provider";
+import { humanizeApiErrorMessage } from "../lib/api-error-humanize";
 import { targetGroupsApi, type TargetGroupResponse } from "../app/api/_lib/target-groups";
 import { MsqdxGlassConvertUxRunDialog } from "./journeys/msqdx-glass-convert-ux-run-dialog";
 import type { PersonaV2SectionId } from "../lib/persona-v2-sections";
@@ -1622,14 +1623,16 @@ export const MsqdxGlassPersonaAdminPanel = ({
         body: JSON.stringify(payload),
       });
       if (!response.ok) {
-        throw new Error(`Backend responded with ${response.status}`);
+        const detail = await response.text().catch(() => "");
+        throw new Error(detail ? `${response.status}: ${detail}` : `Backend responded with ${response.status}`);
       }
       await refreshList();
       setCreateForm(defaultCreateFormState);
       notify(t("personaAdmin.toasts.personaCreated"));
     } catch (error) {
       console.error("Persona creation failed", error);
-      notify(t("personaAdmin.toasts.creationFailed"));
+      const raw = error instanceof Error ? error.message : t("personaAdmin.toasts.creationFailed");
+      notify(humanizeApiErrorMessage(raw, { locale, context: "persona" }));
     } finally {
       setCreatePending(false);
     }

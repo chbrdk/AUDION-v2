@@ -29,6 +29,7 @@ import {
 } from "../../lib/persona-list-key-tags";
 import { useProject } from "../projects/project-provider";
 import { useI18n } from "../i18n/i18n-provider";
+import { humanizeApiErrorMessage } from "../../lib/api-error-humanize";
 import { MsqdxGlassPersonaChip } from "../msqdx/chip/msqdx-glass-persona-chip";
 import { fetchTargetGroupList, generateTargetGroupPersona } from "../../app/api/_lib/target-group";
 import type { PersonasOverviewViewMode } from "../../lib/personas-overview-view-mode";
@@ -69,7 +70,7 @@ export function MsqdxGlassPersonasOverview({
   getPersonaDetailHref,
   layout = "cards",
 }: MsqdxGlassPersonasOverviewProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const router = useRouter();
   const { activeProjectId, activeProject, projects } = useProject();
   const accent = "var(--color-theme-accent)";
@@ -130,7 +131,8 @@ export function MsqdxGlassPersonasOverview({
       const payload = normalizePersonaListResponse(await response.json());
       setList(payload);
     } catch (e) {
-      setLoadError(e instanceof Error ? e.message : t("personaAdmin.loadListFailed"));
+      const raw = e instanceof Error ? e.message : t("personaAdmin.loadListFailed");
+      setLoadError(humanizeApiErrorMessage(raw, { locale, context: "persona" }));
       setList({ items: [], total: 0, page: 1, page_size: 50 });
     } finally {
       setLoading(false);
@@ -210,7 +212,8 @@ export function MsqdxGlassPersonasOverview({
         router.push(personaHref(newId));
       }
     } catch (e) {
-      setAiError(e instanceof Error ? e.message : t("personaAdmin.generateWithAiFailed"));
+      const raw = e instanceof Error ? e.message : t("personaAdmin.generateWithAiFailed");
+      setAiError(humanizeApiErrorMessage(raw, { locale, context: "persona" }));
     } finally {
       setAiGenerating(false);
     }
@@ -278,7 +281,8 @@ export function MsqdxGlassPersonasOverview({
         router.push(personaHref(newId));
       }
     } catch (e) {
-      setCreateError(e instanceof Error ? e.message : t("personaAdmin.toasts.creationFailed"));
+      const raw = e instanceof Error ? e.message : t("personaAdmin.toasts.creationFailed");
+      setCreateError(humanizeApiErrorMessage(raw, { locale, context: "persona" }));
     } finally {
       setCreating(false);
     }

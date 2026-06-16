@@ -62,7 +62,9 @@ def create_app() -> FastAPI:
     )
     @app.get("/health", include_in_schema=False)
     async def health():
-        return {"status": "ok"}
+        s = get_settings()
+        ai_configured = bool((s.openai_api_key or "").strip() or (s.claude_api_key or "").strip())
+        return {"status": "ok", "ai_provider_configured": ai_configured}
     origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()] if settings.cors_origins else ["*"]
     # Figma plugins run in iframes with origin "null" – always allow it explicitly
     if "null" not in origins:

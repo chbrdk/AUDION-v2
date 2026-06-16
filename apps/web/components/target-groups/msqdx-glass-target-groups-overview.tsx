@@ -46,6 +46,7 @@ import {
 } from "../../lib/target-group-v2-surface-styles";
 import { useProject } from "../projects/project-provider";
 import { useI18n } from "../i18n/i18n-provider";
+import { humanizeApiErrorMessage } from "../../lib/api-error-humanize";
 
 export type MsqdxGlassTargetGroupsOverviewProps = {
   initialList: TargetGroupListResponse;
@@ -221,7 +222,8 @@ export function MsqdxGlassTargetGroupsOverview({
         router.push(targetGroupHref(newId));
       }
     } catch (e) {
-      setCreateError(e instanceof Error ? e.message : t("targetGroupsAdmin.toasts.createError"));
+      const raw = e instanceof Error ? e.message : t("targetGroupsAdmin.toasts.createError");
+      setCreateError(humanizeApiErrorMessage(raw, { locale, context: "target_group" }));
     } finally {
       setCreating(false);
     }
@@ -239,7 +241,8 @@ export function MsqdxGlassTargetGroupsOverview({
       const res = await suggestProjectTargetGroups(activeProjectId, { bilingual: true, maxSuggestions: 5 });
       setAiSuggestions(res.suggestions ?? []);
     } catch (e) {
-      setAiError(e instanceof Error ? e.message : t("targetGroupsAdmin.generateWithAiFailed"));
+      const raw = e instanceof Error ? e.message : t("targetGroupsAdmin.generateWithAiFailed");
+      setAiError(humanizeApiErrorMessage(raw, { locale, context: "target_group" }));
     } finally {
       setAiLoading(false);
     }
@@ -308,7 +311,8 @@ export function MsqdxGlassTargetGroupsOverview({
         router.push(targetGroupHref(lastId));
       }
     } catch (e) {
-      setAiError(e instanceof Error ? e.message : t("targetGroupsAdmin.generateWithAiFailed"));
+      const raw = e instanceof Error ? e.message : t("targetGroupsAdmin.generateWithAiFailed");
+      setAiError(humanizeApiErrorMessage(raw, { locale, context: "target_group" }));
     } finally {
       setAiCreating(false);
     }
