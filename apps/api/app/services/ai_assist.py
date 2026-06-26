@@ -41,6 +41,7 @@ TEMPLATE_CACHE_PREFIX_LAST_VAR: Dict[str, str] = {
     "journey.full_generation": "knowledge_context",
     "persona.pain_points": "persona_profile",
     "persona.goals": "persona_profile",
+    "persona.geo_questions": "persona_profile",
     "persona.interests": "persona_profile",
     "persona.values": "persona_profile",
 }

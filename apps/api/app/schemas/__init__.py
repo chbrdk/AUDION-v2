@@ -785,6 +785,13 @@ class PersonaTranslateFieldsRequest(BaseModel):
     strings: Dict[str, str] = Field(default_factory=dict, description="Field key → text to translate.")
 
 
+class PersonaGeoQuestionsResponse(BaseModel):
+    questions: List[str] = Field(
+        ...,
+        description="Natural GEO check questions written in the persona's voice.",
+    )
+
+
 class PersonaTranslateFieldsResponse(BaseModel):
     strings: Dict[str, str] = Field(default_factory=dict, description="Same keys as input; translated values.")
 
@@ -961,6 +968,7 @@ __all__ = [
     "PersonaCreateRequest",
     "PersonaPatchRequest",
     "PersonaTranslateFieldsRequest",
+    "PersonaGeoQuestionsResponse",
     "PersonaTranslateFieldsResponse",
     "PersonaResponse",
     "TargetGroupBase",

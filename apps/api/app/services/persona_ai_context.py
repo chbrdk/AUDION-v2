@@ -267,6 +267,35 @@ def build_persona_vocabulary_ai_context(
     }
 
 
+def build_persona_geo_questions_ai_context(
+    session: Session,
+    persona: Persona,
+    max_items: int,
+    *,
+    output_locale: str | None = None,
+    brand_name: str | None = None,
+    brand_url: str | None = None,
+) -> Dict[str, Any]:
+    """Build context for persona GEO question generation (PLEXON Quick Check)."""
+    loc = normalize_output_locale(output_locale)
+    prof = persona_profile_for_ai(persona, loc)
+    profile_json = json.dumps(prof, ensure_ascii=False, indent=2)
+    existing_goals = "\n".join(_persona_existing_goals(prof)) or "Keine Goals dokumentiert."
+    existing_pain_points = "\n".join(_persona_existing_pain_points(prof)) or "Keine Pain Points dokumentiert."
+    return {
+        "persona_name": persona.name,
+        "persona_segment": persona.segment,
+        "persona_profile": profile_json,
+        "persona_goals": existing_goals,
+        "persona_pain_points": existing_pain_points,
+        "target_group_summary": _persona_target_group_summary(session, persona),
+        "brand_name": (brand_name or "").strip() or "das Unternehmen",
+        "brand_url": (brand_url or "").strip() or "—",
+        "max_items": max_items,
+        **_locale_fields(output_locale),
+    }
+
+
 def build_persona_sentence_structure_ai_context(
     session: Session, persona: Persona, *, output_locale: str | None = None
 ) -> Dict[str, Any]:

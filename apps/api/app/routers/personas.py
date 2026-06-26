@@ -40,6 +40,7 @@ from ..schemas import (
     PersonaCreateRequest,
     PersonaDocument,
     PersonaGenerateRequest,
+    PersonaGeoQuestionsResponse,
     PersonaKnowledgeEntry as PersonaKnowledgeEntrySchema,
     PersonaKnowledgeUpsertRequest,
     PersonaListResponse,
@@ -56,6 +57,7 @@ from ..services.access_control import list_accessible_project_ids
 from ..services.persona_ai_context import (
     build_persona_ai_context as _build_persona_ai_context,
     build_persona_goals_ai_context as _build_persona_goals_ai_context,
+    build_persona_geo_questions_ai_context as _build_persona_geo_questions_ai_context,
     build_persona_interests_ai_context as _build_persona_interests_ai_context,
     build_persona_values_ai_context as _build_persona_values_ai_context,
     build_persona_traits_ai_context as _build_persona_traits_ai_context,
@@ -289,6 +291,16 @@ def _max_items_from_payload(payload: dict[str, Any] | None, *, default: int = 3,
     return max(1, min(n, cap))
 
 
+def _brand_context_from_payload(payload: dict[str, Any] | None) -> tuple[str | None, str | None]:
+    if not isinstance(payload, dict):
+        return None, None
+    brand_name = payload.get("brand_name") or payload.get("brandName")
+    brand_url = payload.get("brand_url") or payload.get("brandUrl")
+    name = str(brand_name).strip() if brand_name is not None and str(brand_name).strip() else None
+    url = str(brand_url).strip() if brand_url is not None and str(brand_url).strip() else None
+    return name, url
+
+
 @router.post(
     "/{persona_id}/ai/pain-points",
     response_model=AiAssistResponse,
@@ -322,6 +334,58 @@ async def generate_persona_pain_points(
                 },
             )
         return response
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post(
+    "/{persona_id}/geo-questions",
+    response_model=PersonaGeoQuestionsResponse,
+    summary="Generate GEO check questions in persona voice (PLEXON Quick Check)",
+)
+async def generate_persona_geo_questions(
+    persona_id: str,
+    payload: dict[str, Any] | None = Body(default=None),
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> PersonaGeoQuestionsResponse:
+    persona = _get_persona_or_404(session, persona_id)
+    max_items = _max_items_from_payload(payload, default=3, cap=6)
+    brand_name, brand_url = _brand_context_from_payload(payload)
+    context = _build_persona_geo_questions_ai_context(
+        session,
+        persona,
+        max_items,
+        output_locale=_output_locale_from_payload(payload),
+        brand_name=brand_name,
+        brand_url=brand_url,
+    )
+    ai_request = AiAssistRequest(
+        template_id="persona.geo_questions",
+        context=context,
+        max_suggestions=max_items,
+    )
+    try:
+        uid = _user_id_for_usage(current_user)
+        ai_assist = AiAssistService(session=session, retrieval_usage_user_id=uid)
+        response = await ai_assist.generate(ai_request)
+        if uid and response.usage:
+            report_usage(
+                user_id=uid,
+                event_type="llm_request",
+                raw_units={
+                    "input_tokens": response.usage.get("input_tokens") or response.usage.get("prompt_tokens"),
+                    "output_tokens": response.usage.get("output_tokens") or response.usage.get("completion_tokens"),
+                },
+            )
+        questions: list[str] = []
+        for suggestion in response.suggestions:
+            content = (suggestion.content or "").strip()
+            if content:
+                questions.append(content)
+            if len(questions) >= max_items:
+                break
+        return PersonaGeoQuestionsResponse(questions=questions)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 

@@ -152,6 +152,48 @@ templates:
         title: title
         content: content
 
+  - template_id: persona.geo_questions
+    label: Persona GEO Questions
+    description: "Generate natural buyer questions in persona voice for GEO competitive checks."
+    category: persona
+    tags: ["persona", "geo", "plexon"]
+    default_provider: openai
+    default_model: gpt-5.4-mini
+    max_tokens: 4096
+    prompt: |
+      LANGUAGE: All questions must be written exclusively in ${generated_text_locale_name}. Do not mix languages.
+
+      You are ${persona_name} (${persona_segment}). Use the full persona profile below — goals, pain points, communication style — to write exactly ${max_items} authentic questions you would ask ChatGPT, Perplexity, or a similar AI when researching vendors.
+
+      TARGET GROUP: ${target_group_summary}
+      PERSONA PROFILE: ${persona_profile}
+      PERSONA GOALS: ${persona_goals}
+      PERSONA PAIN POINTS: ${persona_pain_points}
+
+      COMPANY BEING EVALUATED: ${brand_name}
+      WEBSITE: ${brand_url}
+
+      RULES:
+      - Write like a real buyer: first person ("Ich …") or natural search/chat phrasing
+      - Questions must match YOUR role and needs — not generic SEO keyword lists
+      - Reference the evaluated company or ask for alternatives/comparisons where natural
+      - NO meta labels or suffixes like "Branche:", "Zielgruppe:", "Bezug:", "Segment:"
+      - NO agency jargon or keyword stuffing
+      - Maximum 160 characters per question
+      - Each question must be a complete, standalone sentence
+
+      FORMAT:
+      {
+        "items": [
+          { "content": "question text here" }
+        ]
+      }
+    output:
+      mode: json
+      key: items
+      item_fields:
+        content: content
+
   - template_id: persona.interests
     label: Persona Interests Expansion
     description: "Suggest additional interests or hobbies for a selected persona."

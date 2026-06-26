@@ -48,7 +48,7 @@ The FastAPI app mounts routers at the following prefixes. **No** `/api` prefix; 
 - `/health` – health check
 - `/auth` – login, register, me, password, **tokens** (API token CRUD)
 - `/projects` – projects CRUD, members
-- `/personas` – personas CRUD, generate, AI (pain-points, interests, values, goals)
+- `/personas` – personas CRUD, generate, AI (pain-points, interests, values, goals), **geo-questions** (PLEXON Quick Check)
 - `/target-groups` – target groups, knowledge, documents, personas
 - `/journeys` – journeys, phases, elements, expectations, validate, tracking, measurements, insights, changes
 - `/ai-assist` – templates, assist, test
