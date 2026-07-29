@@ -69,3 +69,13 @@ The web app uses `buildApiUrl(path)` which prepends `NEXT_PUBLIC_BASE_PATH`. Pat
 **API token management (same pattern as CHECKION):** Central constants in `apps/web/app/api/_lib/backend.ts`: `API_AUTH_TOKENS` (GET/POST list and create), `apiAuthTokenRevoke(id)` (DELETE). Used on the profile page at **Admin → Profil** (API-Zugang / API access). All token fetches use `credentials: 'include'` so the session cookie is sent.
 
 **Chat API proxy:** Next rewrites `/api/chat/:path*` to chat-api `/chat/:path*` (`next.config.mjs`). Use `getChatApiBase()` and helpers in `apps/web/app/api/_lib/backend.ts` (e.g. `buildChatDocumentsUploadUrl` for `POST …/documents/upload`). See `knowledge/chat-document-upload.md` for DOCX attachments.
+
+## External study / UX targets (do not hardcode in product code)
+
+Machine-readable source of truth: **`knowledge/urls.json`**. Markdown table below mirrors it for humans.
+
+| Key | URL | Notes |
+|-----|-----|-------|
+| `bosch.ebike.produktkombinationen` | siehe `knowledge/urls.json` | EBM UX Testleitfaden; Tasks: `knowledge/ebm-produktkombinationen-journey-tasks.json`; Runner: `scripts/run-ebm-produktkombinationen-journeys.py` |
+| `bosch.ebike.home` | siehe `knowledge/urls.json` | Startseite; Kiox-300-PDP bei Bedarf aus CMS ergänzen |
+| `audion.uxJourneyAgent.local` | siehe `knowledge/urls.json` | Default `http://127.0.0.1:8320`; Override: `UX_JOURNEY_AGENT_URL` |

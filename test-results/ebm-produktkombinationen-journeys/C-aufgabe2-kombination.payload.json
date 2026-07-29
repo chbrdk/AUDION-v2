@@ -1,0 +1,19 @@
+{
+  "url": "https://www.bosch-ebike.com/de/service/produktkombinationen",
+  "task": "Aufgabe 2 aus dem UX-Testleitfaden: Überprüfe, ob die Kombination aus Motor (Drive Unit), Akku und Display kompatibel ist: Bosch Kiox 400C mit einer Mini Remote Bedieneinheit für ein Cargo-Fahrrad (Cargo Line) mit einem möglichst leistungsfähigen Rahmenakku. Stelle die Kombination aus den vier Komponenten im Tool zusammen. Denke laut auf Deutsch. Beantworte: (F3.5) Konntest du die Kombination zusammenstellen? (F3.4 Ergebnis) Sind sie kompatibel oder nicht – zu welchem Ergebnis bist du gekommen? (F3.6) Hat das Tool erklärt, warum bestimmte Produkte nicht auswählbar waren? (F3.7) Was hätte dir geholfen, die Aufgabe schneller/einfacher zu erledigen? (F3.8) Was würdest du als Nächstes machen? (F3.9) Findest du einen logischen nächsten Schritt (Kauf/weitere Info)? Schliesse mit einem klaren Kompatibilitätsurteil und offenen Fragen.",
+  "max_steps": 50,
+  "persona": {
+    "name": "eBike Kaufinteressent",
+    "headline": "Plant eBike-Kauf in den nächsten 6 Monaten und prüft Systemkompatibilität",
+    "bio": "Interessiert sich für eBikes, besitzt noch keines. Will verstehen welche Komponenten zusammenpassen bevor er/sie kauft.",
+    "goals": [
+      "Verstehen welche Kombinationen möglich sind",
+      "Nächsten Schritt Richtung Kauf finden"
+    ],
+    "pain_points": [
+      "Überforderung durch Matrix",
+      "Fehlender klarer Next Step"
+    ],
+    "tech_affinity": "beginner"
+  }
+}
