@@ -1,0 +1,264 @@
+{
+  "schemaVersion": "1.0.0",
+  "comparisonId": "testbirds-2026-07-vs-audion-2026-07-30",
+  "comparedAt": "2026-07-30T12:50:00+02:00",
+  "sources": {
+    "testbirds": {
+      "label": "EBM Auswertung UX Test Produktkombinationen & Nachrüsten",
+      "file": "EBM-Auswertung UX Test 'Produktkombinationen & Nachrüsten'-200726-065814.pdf",
+      "n": 17,
+      "method": "unmoderated remote UX (Testbirds) + KI-Auswertung mit menschlicher QS",
+      "devices": "Desktop"
+    },
+    "audion": {
+      "label": "AUDION UX Journey Soft-Reproduktion",
+      "waveId": "audion-2026-07-30-mcp",
+      "evaluationFile": "knowledge/ebm-produktkombinationen-evaluation-audion-2026-07-30.json",
+      "nValidEvidenceRuns": 1,
+      "method": "persona-driven browser agent via MCP"
+    }
+  },
+  "methodGap": {
+    "summary": "Testbirds = 17 echte Nutzer mit Think-aloud/Video; AUDION = 1 belastbarer Agent-Run (Owner). Kein statistischer 1:1-Vergleich.",
+    "audionBlocked": ["F2 Erstkontakt (403)", "Aufgabe 2 (403)", "F4 Navigation/Auffindbarkeit", "F4.4/F4.5", "Segmentvergleich H5"]
+  },
+  "hypotheses": [
+    {
+      "id": "H1",
+      "testbirds": {
+        "ampel": "yellow",
+        "verdict": "teilweise bestätigt",
+        "kernerkenntnis": "Nicht pauschal überfordernd; Komplexität korreliert stark mit Wissenslevel und Nachrüst-Erfahrung. Experten/Nachrüster kommen klar, Einsteiger/Kaufinteressenten stoßen an Grenzen."
+      },
+      "audion": {
+        "verdict": "supported",
+        "score": 1,
+        "confidence": 0.55,
+        "basis": "1 Owner-Run mit Friction 9 + unerwartete Akku-Zwischenwahl"
+      },
+      "alignment": "partial_match",
+      "deltaNote": "AUDION trifft die Reibung korrekt, überschätzt aber die Pauschalität. Testbirds differenziert nach Wissen/Nachrüst-Erfahrung — das konnte AUDION ohne H5/Segmentläufe nicht abbilden."
+    },
+    {
+      "id": "H2",
+      "testbirds": {
+        "ampel": "yellow",
+        "verdict": "teilweise bestätigt",
+        "kernerkenntnis": "Mehrheit kommt zum richtigen Schluss durch Ausprobieren. Ausgrauen verwirrt fast universell; Erklärung warum fehlt; Tooltips nur teilweise gefunden."
+      },
+      "audion": {
+        "verdict": "supported",
+        "score": 1,
+        "confidence": 0.65,
+        "basis": "Displays bleiben grau; Agent prüfte CSS-Klassen zur Verifikation"
+      },
+      "alignment": "strong_match",
+      "deltaNote": "Kernbefund deckungsgleich: Filterlogik nicht selbsterklärend, Ausgrauung ohne Erklärung. AUDION härter bewertet (supported vs. teilweise), weil kein Gegenbeispiel 'Experten verstehen es'."
+    },
+    {
+      "id": "H3",
+      "testbirds": {
+        "ampel": "red",
+        "verdict": "bestätigt",
+        "kernerkenntnis": "Schlechte Auffindbarkeit, Service&Beratung unerwartet, kein klarer Next Step, Händler-finden als Bruch."
+      },
+      "audion": {
+        "verdict": "inconclusive",
+        "score": 0,
+        "confidence": 0.25,
+        "basis": "F4/Journey-Fragen nicht gelaufen; A/C blockiert"
+      },
+      "alignment": "missed_by_audion",
+      "deltaNote": "Kritischster Testbirds-Befund (🔴) — AUDION hat ihn methodisch verpasst. Retest muss Navigation + Next Step explizit abdecken."
+    },
+    {
+      "id": "H4",
+      "testbirds": {
+        "ampel": "yellow",
+        "verdict": "teilweise bestätigt",
+        "kernerkenntnis": "Nicht Mehrheit gegen Matrix; Segment-Split: Experten wollen Tool, Einsteiger/Kaufinteressenten produktnahe Hinweise. Zwei-/Drei-Wege-Strategie."
+      },
+      "audion": {
+        "verdict": "partially_supported",
+        "score": 0.5,
+        "confidence": 0.4,
+        "basis": "Display-Frage beantwortbar, Matrix als Reibungsquelle"
+      },
+      "alignment": "match",
+      "deltaNote": "Richtung stimmt. Testbirds liefert die strategische Ableitung (Zwei-/Drei-Wege) belastbarer durch Segmentdaten."
+    },
+    {
+      "id": "H5",
+      "testbirds": {
+        "ampel": "green",
+        "verdict": "bestätigt",
+        "kernerkenntnis": "Besitzer mit Nachrüst-Interesse finden Tool klar nützlicher; Kaufeinsteiger kaum Mehrwert. Q1 Besitzer ~4.0–4.3 vs. Kaufinteressenten ~3.2."
+      },
+      "audion": {
+        "verdict": "not_tested",
+        "score": null,
+        "confidence": 0.0,
+        "basis": "Nur owner validEvidence; buyer-Run C ungültig"
+      },
+      "alignment": "missed_by_audion",
+      "deltaNote": "Quantitativ bei Testbirds klar bestätigt. AUDION-Personas existieren, aber ohne validen Buyer-Run kein Vergleich."
+    }
+  ],
+  "quantitative": {
+    "note": "AUDION Soft-Scores sind keine Stichprobenmittelwerte. Vergleich nur als Richtungssignal.",
+    "rows": [
+      {
+        "metric": "Q1_nuetzlichkeit",
+        "scale": "1-5",
+        "testbirds": {
+          "share_4_or_5": 0.764,
+          "experts_mean": 4.5,
+          "beginners_mean": 2.5,
+          "owners_mean_approx": 4.15,
+          "buyers_mean": 3.2
+        },
+        "audion_soft": 3,
+        "audion_segment": "owner_upgrade_proxy",
+        "alignment": "undershoot_vs_owners",
+        "note": "AUDION Soft=3 liegt unter Owner-Ø (~4.1) und nahe Kaufinteressenten-Ø (3.2) — zu pessimistisch für Nachrüster-Segment, das Run B eigentlich repräsentiert."
+      },
+      {
+        "metric": "Q2_bedienbarkeit",
+        "scale": "1-5",
+        "testbirds": {
+          "share_easy_or_very_easy": 0.647,
+          "note": "2/3 kommen gut bis sehr gut klar; Abstand Experten vs. Einsteiger kleiner als bei Q1"
+        },
+        "audion_soft": 2,
+        "alignment": "undershoot",
+        "note": "AUDION härter (2) als Testbirds-Mehrheit (~4-Bereich). Friction-Moment Akku-Zwischenwahl stimmt, Gesamtbewertung der Mehrheit war milder."
+      },
+      {
+        "metric": "Q3_filterlogik",
+        "scale": "1-5",
+        "testbirds": {
+          "share_rather_to_fully_understood": 0.765,
+          "share_4_or_5": 0.471
+        },
+        "audion_soft": 2,
+        "alignment": "undershoot_but_qualitative_match",
+        "note": "Qualitativ: Erklärung fehlt — Match. Quantitativ: AUDION zu niedrig vs. 76% die eher verstanden haben (durch Ausprobieren)."
+      },
+      {
+        "metric": "Q4_auffindbarkeit",
+        "scale": "1-5",
+        "testbirds": {
+          "mean": 2.6,
+          "share_5": 0.0,
+          "note": "Schlechtester Einzelwert; screener-unabhängig"
+        },
+        "audion_soft": null,
+        "alignment": "not_measured_by_audion",
+        "note": "Wichtigster struktureller Website-Befund — AUDION hat ihn nicht gemessen."
+      },
+      {
+        "metric": "Q5_produktnah_vs_tool",
+        "scale": "choice",
+        "testbirds": {
+          "distribution": "approx_50_50",
+          "note": "Experten/Besitzer → Tool; Einsteiger/Kaufinteressenten → produktnah"
+        },
+        "audion_soft": "produktseite_bevorzugt_vermutet",
+        "alignment": "partial_match",
+        "note": "AUDION rät Richtung Produktseite, obwohl der valide Run ein Owner/Nachrüster-Proxy war — hier eher falsch segmentiert."
+      },
+      {
+        "metric": "Q6_nutzungswahrscheinlichkeit",
+        "scale": "1-5",
+        "testbirds": {
+          "owners_mean": 3.9,
+          "buyers_mean": 3.0
+        },
+        "audion_soft": 2,
+        "alignment": "undershoot",
+        "note": "AUDION zu pessimistisch vs. Owner Ø 3.9."
+      },
+      {
+        "metric": "Q7_gesamteindruck",
+        "scale": "1-6_schulnote",
+        "testbirds": null,
+        "audion_soft": 4,
+        "alignment": "no_testbirds_aggregate_in_pdf_excerpt",
+        "note": "In der PDF-Zusammenfassung kein klarer Ø-Schulnotenwert aggregiert; AUDION Note 4 = ausreichend."
+      }
+    ]
+  },
+  "qualitativeMatches": [
+    {
+      "theme": "Akku-Zwischenwahl vor Displays",
+      "testbirds": "F3.2/F3.3: fast einheitlich überraschend, dass Akku nötig ist obwohl Frage nur Motor+Display",
+      "audion": "Run B: Performance Line gewählt → Displays grau → PowerTube 625 nötig",
+      "alignment": "strong_match"
+    },
+    {
+      "theme": "Ausgrauung ohne Erklärung",
+      "testbirds": "F2.2/F3.6: Ausgrauung dominant; warum fehlt; oft als ausverkauft/Fehler missverstanden",
+      "audion": "Agent verstand Filter erst über CSS/Ausprobieren",
+      "alignment": "strong_match"
+    },
+    {
+      "theme": "Aufgabe 1 letztlich lösbar",
+      "testbirds": "F3.1/F3.4: Mehrheit findet Antwort, Weg oft nicht intuitiv; ~4/17 unbefriedigend",
+      "audion": "taskCompleted=true mit Caveat Abbruchrisiko",
+      "alignment": "match"
+    },
+    {
+      "theme": "Next Step / Kaufbruch",
+      "testbirds": "F3.7–F3.9/H3: Händler finden als Bruch; Warenkorb erwartet",
+      "audion": "nicht belastbar getestet",
+      "alignment": "missed"
+    },
+    {
+      "theme": "Auffindbarkeit Navigation",
+      "testbirds": "F4.2/Q4: unter Produkte/eBikes erwartet, nicht Service&Beratung; Ø 2.6",
+      "audion": "nicht getestet",
+      "alignment": "missed"
+    },
+    {
+      "theme": "Aufgabe 2 Viererkombination",
+      "testbirds": "Mehrheit schafft es mühsam; Start oft falsch (Display zuerst); Cargo Line unten übersehen",
+      "audion": "Run C invalid (403/Archive)",
+      "alignment": "missed"
+    },
+    {
+      "theme": "Erster Eindruck = Konfigurator",
+      "testbirds": "F2.1: fast alle als Konfigurator/Zusammenstellen, nicht primär 'Kompatibilität prüfen'",
+      "audion": "Run A 403 — kein Erstkontakt",
+      "alignment": "missed"
+    }
+  ],
+  "strategicRecommendations": {
+    "testbirds": [
+      "Drei-Wege-Strategie: usability-optimiertes Tool (Experten) + produktnaher Hinweis + explorative Nachrüstseite",
+      "Auffindbarkeit/Navigation verbessern",
+      "Schrittlogik im Tool kommunizieren",
+      "Nutzer dort abholen wo sie suchen"
+    ],
+    "audionImplied": [
+      "Filter-/Schrittlogik erklären (Akku vor Display)",
+      "CloudFront/Agent-Zugang lösen für Retests",
+      "Buyer-Run + Navigationstests nachziehen"
+    ],
+    "alignment": "audion_covers_tool_ux_slice_only"
+  },
+  "scorecard": {
+    "hypothesisAlignmentRate": 0.4,
+    "hypothesisDetail": {
+      "strong_or_match": ["H2", "H4"],
+      "partial": ["H1"],
+      "missed": ["H3", "H5"]
+    },
+    "qualitativeMatchRate": 0.43,
+    "qualitativeDetail": {
+      "matched": 3,
+      "missed": 4,
+      "totalThemes": 7
+    },
+    "overall": "AUDION trifft die zentralen In-Tool-Reibungen (Akku-Schritt, Ausgrauung) gut, verfehlt aber die stärksten strategischen Befunde (Auffindbarkeit/Journey H3, Segmentdifferenz H5) und bewertet Soft-Scores zu pessimistisch gegenüber Owner-Mittelwerten."
+  }
+}

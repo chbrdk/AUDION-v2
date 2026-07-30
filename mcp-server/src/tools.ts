@@ -9,6 +9,7 @@ import {
   isAudionWebHealthPayload,
 } from './audion-api-detect.js';
 import { registerUxJourneyTools } from './tools-ux-journey.js';
+import { registerUxStudyTools } from './tools-ux-studies.js';
 import { registerChatTools } from './tools-chat.js';
 
 function toTextContent(value: unknown): string {
@@ -1498,5 +1499,6 @@ export function registerAudionTools(server: Server): void {
   );
 
   registerUxJourneyTools(server, base);
+  registerUxStudyTools(server, base);
   registerChatTools(server);
 }

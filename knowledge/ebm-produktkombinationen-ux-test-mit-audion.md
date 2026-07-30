@@ -37,16 +37,18 @@ Klassischer **unmoderierter Remote-UX-Test** (Testbirds):
    - URL-Keys: `knowledge/urls.json` (`bosch.ebike.produktkombinationen`, `audion.uxJourneyAgent.local`)
    - Runner: `scripts/run-ebm-produktkombinationen-journeys.py`
    - Tests: `python3 -m unittest tests.test_ebm_produktkombinationen_journeys`
-3. **Agent starten** (Docker Desktop/OrbStack nötig):
+3. **Bevorzugt: Remote MCP** (Playground):
+   - URL-Key: `audion.mcp.playground` → `knowledge/urls.json`
+   - Auth: Env **`AUDION_API_TOKEN`** (nie committen; Token in AUDION Settings → API access)
+   - Tools: `audion.ux_journey_run_start` / `audion.ux_journey_run_get`
+   ```bash
+   export AUDION_API_TOKEN=audion_…   # nur lokal / Secrets, nicht ins Repo
+   python3 scripts/run-ebm-produktkombinationen-journeys.py --via-mcp
+   ```
+4. **Lokal alternativ** (Docker Desktop/OrbStack):
    ```bash
    docker compose up -d ux-journey-agent
-   # LLM-Key in .env: ANTHROPIC_API_KEY oder OPENAI_API_KEY
-   ```
-4. **Drei Runs sequentiell starten** (Agent: ein Job zur Zeit):
-   ```bash
    python3 scripts/run-ebm-produktkombinationen-journeys.py
-   # nur Payload prüfen:
-   python3 scripts/run-ebm-produktkombinationen-journeys.py --dry-run
    ```
    Ergebnisse: `test-results/ebm-produktkombinationen-journeys/`
    Alternative UI: `/admin/ux-journey-agent` mit denselben Tasks aus dem JSON.
@@ -61,3 +63,19 @@ Outputs: Video, Steps, Scorecard (`frictionScore`, `personaFitScore`) – **expl
 - Keine Screener-Quota / keine statistische Auswertung n=15
 - Agent kann die Matrix falsch bedienen oder „Erfolg“ vortäuschen – manuell gegen Video prüfen
 - Hypothesen nur **richtungsweisend**, nicht methodisch äquivalent zur Originalstudie
+- **CloudFront 403:** Der UX-Journey-Agent (Server-IP) wird von `bosch-ebike.com` oft mit **403** geblockt. Runs können scheitern oder auf Workarounds (z. B. Archive) ausweichen – Ergebnisse dann ungültig. Retry oder Whitelist/Proxy nötig.
+
+## Live-Runs via Playground-MCP (2026-07-30)
+
+MCP: `audion.mcp.playground` → [mcp-audion.projects-a.plygrnd.tech](https://mcp-audion.projects-a.plygrnd.tech)
+
+| Run | jobId | Status | Hinweis |
+|-----|-------|--------|---------|
+| A-erstkontakt | `31fd7347-8dc5-41e1-b9c7-8f36ef0811bc` | complete | CloudFront **403** – kein Erstkontakt möglich |
+| B-aufgabe1-nachruesten | `26afaddb-a73e-4f7f-8f80-4e2168a0685b` | complete / success | Tool erreichbar; Performance Line → Displays ausgewertet |
+| C-aufgabe2-kombination | `038afe67-5ef3-40f3-9386-8ea604e35621` | complete / success=false | wieder 403 / Workaround – Aufgabe nicht zuverlässig |
+
+Artefakte: `test-results/ebm-produktkombinationen-journeys/`  
+Vollständiger Report: `knowledge/ebm-produktkombinationen-testing-report-2026-07-30.md`  
+AUDION Projekt: `https://audion.projects-a.plygrnd.tech/admin/projects/28ece310-66c3-46d0-b5c7-e3acfc3a7567`  
+Token: nur Env `AUDION_API_TOKEN` — **nie** in Git committen.

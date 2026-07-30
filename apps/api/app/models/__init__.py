@@ -787,3 +787,83 @@ class ProjectResearchEvent(Base):
 
     run = relationship("ProjectResearchRun")
 
+
+class UxStudy(Base):
+    """First-class UX study (Testbirds-like) owned by a project."""
+
+    __tablename__ = "ux_studies"
+    __table_args__ = {"schema": "audion"}
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(256), nullable=False)
+    status = Column(String(32), nullable=False, default="draft")
+    description = Column(Text, nullable=True)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("audion.projects.id", ondelete="SET NULL"), nullable=True)
+    source_guide = Column(String(512), nullable=True)
+    target_url_key = Column(String(128), nullable=True)
+    hypothesis_templates = Column(JSONB, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    waves = relationship("UxStudyWave", back_populates="study", cascade="all, delete-orphan")
+
+
+class UxStudyWave(Base):
+    __tablename__ = "ux_study_waves"
+    __table_args__ = (
+        UniqueConstraint("study_id", "wave_key", name="uq_ux_study_waves_study_wave_key"),
+        {"schema": "audion"},
+    )
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    study_id = Column(UUID(as_uuid=True), ForeignKey("audion.ux_studies.id", ondelete="CASCADE"), nullable=False)
+    wave_key = Column(String(128), nullable=False)
+    status = Column(String(32), nullable=False, default="draft")
+    evaluation = Column(JSONB, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    study = relationship("UxStudy", back_populates="waves")
+    run_items = relationship("UxWaveRunItem", back_populates="wave", cascade="all, delete-orphan")
+
+
+class UxWaveRunItem(Base):
+    __tablename__ = "ux_wave_run_items"
+    __table_args__ = (
+        UniqueConstraint("wave_id", "run_key", name="uq_ux_wave_run_items_wave_run_key"),
+        {"schema": "audion"},
+    )
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    wave_id = Column(UUID(as_uuid=True), ForeignKey("audion.ux_study_waves.id", ondelete="CASCADE"), nullable=False)
+    run_key = Column(String(128), nullable=False)
+    leitfaden_block = Column(String(256), nullable=True)
+    persona_id = Column(UUID(as_uuid=True), ForeignKey("audion.personas.id", ondelete="SET NULL"), nullable=True)
+    persona_name = Column(String(256), nullable=True)
+    segment = Column(String(128), nullable=True)
+    url = Column(Text, nullable=False)
+    task = Column(Text, nullable=False)
+    max_steps = Column(Integer, nullable=True)
+    job_id = Column(String(80), nullable=True)
+    agent_status = Column(String(64), nullable=True)
+    agent_success = Column(Boolean, nullable=True)
+    task_completed = Column(Boolean, nullable=True)
+    valid_evidence = Column(Boolean, nullable=True)
+    valid_evidence_caveat = Column(Text, nullable=True)
+    blockers = Column(JSONB, nullable=True)
+    steps = Column(Integer, nullable=True)
+    friction_score = Column(Float, nullable=True)
+    persona_fit_score = Column(Float, nullable=True)
+    goal_reached = Column(Boolean, nullable=True)
+    finding = Column(Text, nullable=True)
+    categories = Column(JSONB, nullable=True)
+    persona_ux_journey_run_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("audion.persona_ux_journey_runs.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    wave = relationship("UxStudyWave", back_populates="run_items")
+

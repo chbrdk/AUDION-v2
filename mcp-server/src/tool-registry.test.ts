@@ -5,7 +5,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const toolFiles = ['tools.ts', 'tools-ux-journey.ts', 'tools-chat.ts'];
+const toolFiles = ['tools.ts', 'tools-ux-journey.ts', 'tools-ux-studies.ts', 'tools-chat.ts'];
 
 function toolNames(): string[] {
   const names: string[] = [];
@@ -32,6 +32,9 @@ test('includes ux journey and chat tools', () => {
   const names = toolNames();
   assert.ok(names.includes('audion.ux_journey_run_start'));
   assert.ok(names.includes('audion.ux_journey_run_get'));
+  assert.ok(names.includes('audion.ux_study_list'));
+  assert.ok(names.includes('audion.ux_wave_start'));
+  assert.ok(names.includes('audion.ux_wave_evaluate'));
   assert.ok(names.includes('audion.chat_message'));
   assert.ok(names.includes('audion.chat_history_upsert'));
 });

@@ -1,0 +1,260 @@
+{
+  "schemaVersion": "1.0.0",
+  "studyId": "ebm-produktkombinationen-tool-v1.3",
+  "waveId": "audion-2026-07-30-mcp",
+  "evaluatedAt": "2026-07-30T11:40:00+02:00",
+  "method": "audion_ux_journey_agent",
+  "sourceGuide": "EBM-Testleitfaden Produktkombinationen-Tool v1.3 (Testbirds)",
+  "targetUrlKey": "bosch.ebike.produktkombinationen",
+  "mcpUrlKey": "audion.mcp.playground",
+  "audionProjectId": "28ece310-66c3-46d0-b5c7-e3acfc3a7567",
+  "notes": [
+    "Soft-Scores sind evidenzbasiert aus Agent-Runs, keine echten Probanden-Skalen (n=15).",
+    "Nur Runs mit validEvidence=true dürfen für UX-Hypothesen und Q-Scores herangezogen werden.",
+    "Wave-Vergleich: spätere Waves gegen dieses File diffen (scripts/compare-ebm-evaluations.py)."
+  ],
+  "runs": [
+    {
+      "runId": "A-erstkontakt",
+      "leitfadenBlock": "2 Erstkontakt",
+      "persona": "Alex Nachrüster",
+      "segment": "owner_upgrade",
+      "jobId": "31fd7347-8dc5-41e1-b9c7-8f36ef0811bc",
+      "agentStatus": "complete",
+      "agentSuccess": true,
+      "taskCompleted": false,
+      "validEvidence": false,
+      "blockers": ["cloudfront_403"],
+      "steps": 6,
+      "frictionScore": 10,
+      "personaFitScore": 0,
+      "goalReached": false,
+      "categories": {
+        "layout": -5,
+        "visual": -5,
+        "typography": -3,
+        "copy": -3,
+        "affordance": -5,
+        "navigation": -3.67,
+        "info_density": -5,
+        "trust": -4,
+        "performance": -4.67,
+        "persona_fit": -3.67
+      },
+      "finding": "Seite nicht erreichbar; F2.1/F2.2 unbeantwortbar."
+    },
+    {
+      "runId": "B-aufgabe1-nachruesten",
+      "leitfadenBlock": "3 Aufgabe 1",
+      "persona": "Alex Nachrüster",
+      "segment": "owner_upgrade",
+      "jobId": "26afaddb-a73e-4f7f-8f80-4e2168a0685b",
+      "agentStatus": "complete",
+      "agentSuccess": true,
+      "taskCompleted": true,
+      "validEvidence": true,
+      "validEvidenceCaveat": "403/Archive-Umweg; echter Nutzer hätte eher abgebrochen",
+      "blockers": ["cloudfront_403_intermittent"],
+      "steps": 20,
+      "frictionScore": 9,
+      "personaFitScore": 2,
+      "goalReached": true,
+      "categories": {
+        "layout": 0.22,
+        "visual": 0.56,
+        "typography": 1.25,
+        "copy": 1.5,
+        "affordance": -0.67,
+        "navigation": -1.56,
+        "info_density": -0.5,
+        "trust": -1.89,
+        "performance": -2.85,
+        "persona_fit": -2
+      },
+      "taskOutcome": {
+        "compatibleDisplays": ["Purion 200", "LED Remote", "Kiox 400C", "System Controller"],
+        "incompatibleExamples": ["Mini Remote", "Kiox 300", "Kiox 500", "Purion 400", "SmartphoneGrip", "Intuvia 100"],
+        "uxFrictionMoments": [
+          "Displays bleiben grau nach Drive-Unit-Auswahl",
+          "Zusätzliche Akku-Auswahl nötig bevor Matrix sinnvoll reagiert",
+          "Kompatibilität erst über CSS-Klassen klar verifizierbar"
+        ]
+      },
+      "finding": "Aufgabe 1 erfüllbar; Matrix-Filter für Nutzer nicht selbsterklärend."
+    },
+    {
+      "runId": "C-aufgabe2-kombination",
+      "leitfadenBlock": "3 Aufgabe 2",
+      "persona": "Sam Kaufinteressent",
+      "segment": "purchase_intent",
+      "jobId": "038afe67-5ef3-40f3-9386-8ea604e35621",
+      "agentStatus": "complete",
+      "agentSuccess": false,
+      "taskCompleted": false,
+      "validEvidence": false,
+      "blockers": ["cloudfront_403", "archive_org_workaround"],
+      "steps": 31,
+      "frictionScore": null,
+      "personaFitScore": null,
+      "goalReached": false,
+      "categories": {},
+      "finding": "Kein valides Kompatibilitätsurteil für 4er-Kombination."
+    }
+  ],
+  "aggregate": {
+    "runsTotal": 3,
+    "runsTaskCompleted": 1,
+    "runsValidEvidence": 1,
+    "taskCompletionRate": 0.333,
+    "validEvidenceRate": 0.333,
+    "infrastructureBlockRate": 1.0,
+    "meanFrictionValidOnly": 9.0,
+    "meanFrictionAllReported": 9.5,
+    "meanPersonaFitValidOnly": 2.0,
+    "goalReachedRateValidOnly": 1.0,
+    "segmentsCoveredWithValidEvidence": ["owner_upgrade"],
+    "segmentsMissingValidEvidence": ["purchase_intent"]
+  },
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "Tool wird als komplex/überfordernd wahrgenommen",
+      "scale": "support",
+      "verdict": "supported",
+      "confidence": 0.55,
+      "score": 1,
+      "evidenceRunIds": ["B-aufgabe1-nachruesten"],
+      "rationale": "Friction 9, unerwartete Zweitauswahl Akku, Coverage-Caveat Abbruchrisiko."
+    },
+    {
+      "id": "H2",
+      "statement": "Nutzer verstehen Matrix-Filtersystem nicht",
+      "scale": "support",
+      "verdict": "supported",
+      "confidence": 0.65,
+      "score": 1,
+      "evidenceRunIds": ["B-aufgabe1-nachruesten"],
+      "rationale": "Displays bleiben grau; Agent musste CSS prüfen, um Kompatibilität zu verstehen."
+    },
+    {
+      "id": "H3",
+      "statement": "Kein natürlicher Einstieg / Next Step",
+      "scale": "support",
+      "verdict": "inconclusive",
+      "confidence": 0.25,
+      "score": 0,
+      "evidenceRunIds": [],
+      "rationale": "A/C ungültig; B Done-Text ohne belastbaren Next-Step-Befund."
+    },
+    {
+      "id": "H4",
+      "statement": "Produktnahe Antwort reicht oft besser als volle Matrix",
+      "scale": "support",
+      "verdict": "partially_supported",
+      "confidence": 0.4,
+      "score": 0.5,
+      "evidenceRunIds": ["B-aufgabe1-nachruesten"],
+      "rationale": "Konkrete Display-Liste war Ziel; Matrix blieb trotzdem der Einstieg und erzeugte Reibung."
+    },
+    {
+      "id": "H5",
+      "statement": "Segmente bewerten Nutzen unterschiedlich",
+      "scale": "support",
+      "verdict": "not_tested",
+      "confidence": 0.0,
+      "score": null,
+      "evidenceRunIds": [],
+      "rationale": "Nur owner_upgrade mit validEvidence; purchase_intent ohne validen Run."
+    }
+  ],
+  "softScores": {
+    "basis": "Derived from validEvidence runs (primarily B). Not statistically comparable to Testbirds n=15.",
+    "Q1_nuetzlichkeit": {
+      "scale": "1-5",
+      "value": 3,
+      "confidence": 0.45,
+      "rationale": "Frage nach kompatiblen Displays beantwortbar, aber hoher Aufwand/Umweg."
+    },
+    "Q2_bedienbarkeit": {
+      "scale": "1-5",
+      "value": 2,
+      "confidence": 0.55,
+      "rationale": "Matrix-Verhalten nicht intuitiv (Displays grau bis Akku gewählt)."
+    },
+    "Q3_filterlogik": {
+      "scale": "1-5",
+      "value": 2,
+      "confidence": 0.6,
+      "rationale": "Warum Optionen ausgeblendet werden, bleibt ohne Erklärung unklar."
+    },
+    "Q4_auffindbarkeit": {
+      "scale": "1-5",
+      "value": null,
+      "confidence": 0.0,
+      "rationale": "Navigation von Start-/Produktseite nicht getestet (F4.2/F4.4 ausstehend)."
+    },
+    "Q5_produktnah_vs_tool": {
+      "scale": "choice",
+      "value": "produktseite_bevorzugt_vermutet",
+      "choices": ["produktseite", "vollstaendiges_tool", "unentschieden", "produktseite_bevorzugt_vermutet"],
+      "confidence": 0.35,
+      "rationale": "H4-Richtung: einfache Kompatibilitätsantwort reichte als Ziel; Matrix war Reibungsquelle."
+    },
+    "Q6_nutzungswahrscheinlichkeit": {
+      "scale": "1-5",
+      "value": 2,
+      "confidence": 0.4,
+      "rationale": "Hohe Friction und 403-Erlebnis senken Wiederkehrwahrscheinlichkeit."
+    },
+    "Q7_gesamteindruck": {
+      "scale": "1-6_schulnote",
+      "value": 4,
+      "confidence": 0.45,
+      "rationale": "Inhaltlich nutzbar nach Umweg, aber Bedienung/Vertrauen schwach (ausreichend)."
+    }
+  },
+  "leitfadenQuestionCoverage": {
+    "F2.1": "blocked",
+    "F2.2": "blocked",
+    "F3.1": "partial",
+    "F3.2": "covered",
+    "F3.3": "covered",
+    "F3.4": "partial",
+    "F3.5": "blocked",
+    "F3.6": "blocked",
+    "F3.7": "blocked",
+    "F3.8": "blocked",
+    "F3.9": "blocked",
+    "F4.1": "not_run",
+    "F4.2": "not_run",
+    "F4.4": "not_run",
+    "F4.5": "not_run",
+    "F5.1": "not_run",
+    "F5.2": "not_run",
+    "Q1": "soft_scored",
+    "Q2": "soft_scored",
+    "Q3": "soft_scored",
+    "Q4": "missing",
+    "Q5": "soft_scored",
+    "Q6": "soft_scored",
+    "Q7": "soft_scored"
+  },
+  "comparisonKeys": [
+    "aggregate.taskCompletionRate",
+    "aggregate.validEvidenceRate",
+    "aggregate.infrastructureBlockRate",
+    "aggregate.meanFrictionValidOnly",
+    "aggregate.meanPersonaFitValidOnly",
+    "hypotheses.*.verdict",
+    "hypotheses.*.score",
+    "softScores.Q1_nuetzlichkeit.value",
+    "softScores.Q2_bedienbarkeit.value",
+    "softScores.Q3_filterlogik.value",
+    "softScores.Q6_nutzungswahrscheinlichkeit.value",
+    "softScores.Q7_gesamteindruck.value",
+    "runs.*.taskCompleted",
+    "runs.*.validEvidence",
+    "runs.*.frictionScore",
+    "runs.*.categories.*"
+  ]
+}

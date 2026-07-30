@@ -79,3 +79,5 @@ Machine-readable source of truth: **`knowledge/urls.json`**. Markdown table belo
 | `bosch.ebike.produktkombinationen` | siehe `knowledge/urls.json` | EBM UX Testleitfaden; Tasks: `knowledge/ebm-produktkombinationen-journey-tasks.json`; Runner: `scripts/run-ebm-produktkombinationen-journeys.py` |
 | `bosch.ebike.home` | siehe `knowledge/urls.json` | Startseite; Kiox-300-PDP bei Bedarf aus CMS ergänzen |
 | `audion.uxJourneyAgent.local` | siehe `knowledge/urls.json` | Default `http://127.0.0.1:8320`; Override: `UX_JOURNEY_AGENT_URL` |
+| `audion.mcp.playground` | siehe `knowledge/urls.json` | Remote MCP `https://mcp-audion.projects-a.plygrnd.tech` — Token nur via Env `AUDION_API_TOKEN`, nie committen |
+| `audion.web.playground` | siehe `knowledge/urls.json` | AUDION Web UI Playground |

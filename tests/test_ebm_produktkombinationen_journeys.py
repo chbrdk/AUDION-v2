@@ -28,17 +28,53 @@ class EbmJourneyTasksTest(unittest.TestCase):
         self.assertIn("bosch.ebike.produktkombinationen", urls)
         self.assertTrue(urls["bosch.ebike.produktkombinationen"].startswith("https://"))
         self.assertIn("audion.uxJourneyAgent.local", urls)
+        self.assertIn("audion.mcp.playground", urls)
+        self.assertTrue(urls["audion.mcp.playground"].startswith("https://"))
+        self.assertIn("audion.web.playground", urls)
+
+    def test_testing_report_exists(self):
+        report = ROOT / "knowledge" / "ebm-produktkombinationen-testing-report-2026-07-30.md"
+        self.assertTrue(report.is_file())
+        text = report.read_text(encoding="utf-8")
+        self.assertIn("Executive Summary", text)
+        self.assertIn("26afaddb", text)
+        self.assertIn("Alex Nachrüster", text)
+
+    def test_testbirds_comparison_exists(self):
+        path = ROOT / "knowledge" / "ebm-produktkombinationen-testbirds-vs-audion-comparison.json"
+        data = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(len(data["hypotheses"]), 5)
+        h3 = next(h for h in data["hypotheses"] if h["id"] == "H3")
+        self.assertEqual(h3["alignment"], "missed_by_audion")
+        self.assertIn("strong_match", [h["alignment"] for h in data["hypotheses"] if h["id"] == "H2"])
+        md = ROOT / "knowledge" / "ebm-produktkombinationen-testbirds-vs-audion-2026-07-30.md"
+        self.assertTrue(md.is_file())
+        self.assertIn("Kurzfazit", md.read_text(encoding="utf-8"))
 
     def test_tasks_file_structure(self):
         tasks = json.loads(TASKS_PATH.read_text(encoding="utf-8"))
         self.assertEqual(tasks["urlKey"], "bosch.ebike.produktkombinationen")
         run_ids = [r["id"] for r in tasks["runs"]]
-        self.assertEqual(run_ids, ["A-erstkontakt", "B-aufgabe1-nachruesten", "C-aufgabe2-kombination"])
+        self.assertEqual(
+            run_ids,
+            [
+                "A-erstkontakt",
+                "B-aufgabe1-nachruesten",
+                "B-aufgabe1-purchase-intent",
+                "C-aufgabe2-kombination",
+                "Nav-home-to-tool",
+            ],
+        )
         for run in tasks["runs"]:
             self.assertIn("task", run)
+            self.assertIn("segment", run)
             self.assertGreater(len(run["task"]), 80)
             self.assertIn(run["personaKey"], tasks["personas"])
             self.assertIsInstance(run["max_steps"], int)
+        nav = next(r for r in tasks["runs"] if r["id"] == "Nav-home-to-tool")
+        self.assertEqual(nav["urlKey"], "bosch.ebike.home")
+        self.assertIn("screenerChatPrompts", tasks)
+        self.assertIn("audion.api.uxStudies", json.loads(URLS_PATH.read_text(encoding="utf-8")))
 
     def test_build_payload_includes_persona_and_url(self):
         runner = load_runner()

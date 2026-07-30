@@ -2,5 +2,8 @@
   "bosch.ebike.produktkombinationen": "https://www.bosch-ebike.com/de/service/produktkombinationen",
   "bosch.ebike.home": "https://www.bosch-ebike.com/de/",
   "audion.uxJourneyAgent.local": "http://127.0.0.1:8320",
-  "audion.admin.uxJourneyAgent": "/admin/ux-journey-agent"
+  "audion.admin.uxJourneyAgent": "/admin/ux-journey-agent",
+  "audion.mcp.playground": "https://mcp-audion.projects-a.plygrnd.tech",
+  "audion.web.playground": "https://audion.projects-a.plygrnd.tech",
+  "audion.api.uxStudies": "/ux-studies"
 }
