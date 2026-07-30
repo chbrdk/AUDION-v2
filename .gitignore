@@ -55,3 +55,6 @@ data/uploads/
 *.pdf
 *.zip
 *.tar.gz
+
+# Local journey / agent run artifacts (regenerable; curated copies live under knowledge/)
+/test-results/
