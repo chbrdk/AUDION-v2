@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   title: "Audion",
   description: "Chat live with research-driven personas.",
   icons: {
-    icon: `${basePath}/favicon.svg`
+    icon: `${basePath}/favicon.ico`
   }
 };
 
