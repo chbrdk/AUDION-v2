@@ -1,8 +1,8 @@
 /**
- * AUDION MCP tools: proxy to AUDION FastAPI API with Bearer token.
+ * AUDION MCP tools: proxy to AUDION API with Bearer token + Access Model B actor.
  */
 import { z } from 'zod';
-import { audionFetch, isAudionError } from './audion-client.js';
+import { audionActorStore, audionFetch, isAudionError } from './audion-client.js';
 import {
   audionWebUrlMisconfigMessage,
   isAudionFastApiHealthPayload,
@@ -32,7 +32,33 @@ type Server = {
   ) => void;
 };
 
+function wrapServerWithActor(server: Server): void {
+  const original = server.registerTool.bind(server);
+  server.registerTool = (name, config, cb) => {
+    const base =
+      config.inputSchema && config.inputSchema instanceof z.ZodObject
+        ? config.inputSchema
+        : z.object({});
+    const inputSchema = base.extend({
+      actorUserId: z
+        .string()
+        .optional()
+        .describe('Plexon user id — injected by assistant; Access Model B actor'),
+    });
+    original(name, { ...config, inputSchema }, async (args) => {
+      const actor =
+        args &&
+        typeof args === 'object' &&
+        typeof (args as { actorUserId?: unknown }).actorUserId === 'string'
+          ? String((args as { actorUserId: string }).actorUserId).trim()
+          : '';
+      return audionActorStore.run(actor, () => cb(args));
+    });
+  };
+}
+
 export function registerAudionTools(server: Server): void {
+  wrapServerWithActor(server);
   const base = (path: string, options?: RequestInit) =>
     audionFetch(path, options);
 

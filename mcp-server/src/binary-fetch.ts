@@ -1,4 +1,4 @@
-import { type AudionFetchError } from './audion-client.js';
+import { audionActorStore, type AudionFetchError } from './audion-client.js';
 
 const DEFAULT_MAX_BYTES = 512_000;
 
@@ -18,10 +18,21 @@ export async function audionFetchBinary(
   if (!baseUrl || !token) {
     return { error: true, message: 'AUDION_API_URL or AUDION_API_TOKEN not configured' };
   }
+  const actor = audionActorStore.getStore()?.trim() || '';
+  if (!actor) {
+    return {
+      error: true,
+      message: 'actorUserId required for machine auth (Access Model B)',
+    };
+  }
   const url = `${baseUrl.replace(/\/$/, '')}${path.startsWith('/') ? path : `/${path}`}`;
   try {
     const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}`, Accept: '*/*' },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: '*/*',
+        'X-Plexon-User-Id': actor,
+      },
     });
     if (!res.ok) {
       const text = await res.text().catch(() => '');
