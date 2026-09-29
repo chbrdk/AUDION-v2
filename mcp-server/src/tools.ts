@@ -520,18 +520,47 @@ export function registerAudionTools(server: Server): void {
   server.registerTool(
     'audion.personas_list',
     {
-      title: 'List personas',
-      description: 'List personas with optional project_id filter (GET /personas).',
+      title: 'List / search personas',
+      description:
+        'List or search personas (GET /personas). For name lookup pass q (fuzzy; e.g. "Markus Reinhard" finds "Markus Reinhardt"). Optional project_id scopes to one Audion project; omit project_id when searching by name across accessible projects.',
       inputSchema: z.object({
         project_id: z.string().optional(),
+        projectId: z.string().optional(),
+        q: z.string().optional().describe('Fuzzy name/role search'),
+        search: z.string().optional(),
+        name: z.string().optional(),
+        page: z.number().optional(),
+        page_size: z.number().optional(),
       }),
     },
     async (args) => {
-      const { project_id } = (args ?? {}) as { project_id?: string };
-      const q = project_id
-        ? `?project_id=${encodeURIComponent(project_id)}`
-        : '';
-      const res = await base(`/personas${q}`);
+      const a = (args ?? {}) as {
+        project_id?: string;
+        projectId?: string;
+        q?: string;
+        search?: string;
+        name?: string;
+        page?: number;
+        page_size?: number;
+      };
+      const projectId = (a.project_id || a.projectId || '').trim();
+      const q = (a.q || a.search || a.name || '').trim();
+      const params = new URLSearchParams();
+      if (projectId) params.set('project_id', projectId);
+      if (q) params.set('q', q);
+      if (typeof a.page === 'number' && a.page > 0) params.set('page', String(a.page));
+      params.set(
+        'page_size',
+        String(
+          typeof a.page_size === 'number' && a.page_size > 0
+            ? Math.min(200, Math.floor(a.page_size))
+            : q
+              ? 50
+              : 100
+        )
+      );
+      const qs = params.toString() ? `?${params.toString()}` : '';
+      const res = await base(`/personas${qs}`);
       if (isAudionError(res))
         return { content: [{ type: 'text', text: JSON.stringify(res) }] };
       return { content: [{ type: 'text', text: toTextContent(res) }] };
