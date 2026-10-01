@@ -587,20 +587,62 @@ export function registerAudionTools(server: Server): void {
     'audion.persona_create',
     {
       title: 'Create persona',
-      description: 'Create a persona (POST /personas).',
+      description:
+        'Create a persona (POST /personas). Pass project_id or projectId (mapped to projectId for audion-v3).',
       inputSchema: z.object({
-        project_id: z.string(),
+        project_id: z.string().optional(),
+        projectId: z.string().optional(),
         name: z.string(),
-        segment: z.string(),
-        headline: z.string(),
-        profile: z.record(z.unknown()),
-        confidence: z.number(),
-        version: z.string(),
+        role: z.string().optional(),
+        segment: z.string().optional(),
+        headline: z.string().optional(),
+        profile: z.record(z.unknown()).optional(),
+        confidence: z.number().optional(),
+        version: z.string().optional(),
         target_group_id: z.string().optional(),
+        bio: z.string().optional(),
+        location: z.string().optional(),
+        archetype: z.string().optional(),
       }),
     },
     async (args) => {
-      const body = args as Record<string, unknown>;
+      const a = (args ?? {}) as Record<string, unknown>;
+      const projectId =
+        (typeof a.projectId === 'string' && a.projectId.trim()) ||
+        (typeof a.project_id === 'string' && a.project_id.trim()) ||
+        '';
+      if (!projectId) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                error: true,
+                message: 'project_id or projectId is required',
+              }),
+            },
+          ],
+        };
+      }
+      const role =
+        (typeof a.role === 'string' && a.role.trim()) ||
+        (typeof a.segment === 'string' && a.segment.trim()) ||
+        'Persona';
+      // audion-v3 PersonaWritePayload — never forward MCP actorUserId or snake project_id as-is
+      const {
+        project_id: _pidSnake,
+        projectId: _pidCamel,
+        actorUserId: _actor,
+        target_group_id: _tg,
+        segment: _segment,
+        ...rest
+      } = a;
+      const body: Record<string, unknown> = {
+        ...rest,
+        projectId,
+        name: typeof a.name === 'string' ? a.name : '',
+        role,
+      };
       const res = await base('/personas', {
         method: 'POST',
         body: JSON.stringify(body),

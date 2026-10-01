@@ -45,6 +45,19 @@ test('does not call deprecated ai-assist path', () => {
   assert.ok(toolsSource.includes('/ai-assist${q}'));
 });
 
+test('persona_create maps project_id to projectId for audion-v3', () => {
+  const toolsSource = readFileSync(resolve(__dirname, 'tools.ts'), 'utf8');
+  const createIdx = toolsSource.indexOf("'audion.persona_create'");
+  assert.ok(createIdx > 0);
+  const slice = toolsSource.slice(createIdx, createIdx + 2800);
+  assert.ok(slice.includes("projectId,"));
+  assert.ok(slice.includes('actorUserId: _actor') || slice.includes('actorUserId:'));
+  assert.ok(
+    !slice.includes('const body = args as Record'),
+    'must not forward raw MCP args (would send project_id + actorUserId)'
+  );
+});
+
 test('has at least 75 registered tools', () => {
   assert.ok(toolNames().length >= 75);
 });
