@@ -6,12 +6,74 @@ import { audionActorStore, audionFetch, isAudionError } from './audion-client.js
 import {
   audionWebUrlMisconfigMessage,
   isAudionFastApiHealthPayload,
+  isAudionV3HealthPayload,
   isAudionWebHealthPayload,
 } from './audion-api-detect.js';
 import { registerUxJourneyTools } from './tools-ux-journey.js';
 import { registerUxStudyTools } from './tools-ux-studies.js';
 import { registerChatTools } from './tools-chat.js';
 import { jsonBodyFromToolArgs, jsonBodyString, resolveProjectId } from './mcp-json-body.js';
+
+/** audion-v3 PersonaWritePayload fields (passthrough keeps extras). */
+const personaWriteFields = {
+  name: z.string().optional(),
+  role: z.string().optional(),
+  segment: z.string().optional(),
+  status: z.enum(['draft', 'ready', 'archived']).optional(),
+  archetype: z.string().nullable().optional(),
+  age: z.string().nullable().optional(),
+  location: z.string().nullable().optional(),
+  bio: z.string().nullable().optional(),
+  gender: z.string().nullable().optional(),
+  attentionSpan: z.string().nullable().optional(),
+  colorPalette: z.array(z.string()).optional(),
+  mediaAffinity: z.number().nullable().optional(),
+  confidence: z.number().nullable().optional(),
+  techLiteracy: z.number().nullable().optional(),
+  emotionalBaseline: z.string().nullable().optional(),
+  stressTriggers: z.array(z.string()).optional(),
+  motivations: z.array(z.union([z.string(), z.record(z.unknown())])).optional(),
+  traits: z.record(z.number()).optional(),
+  interests: z.array(z.string()).optional(),
+  values: z.array(z.string()).optional(),
+  socialMediaUsage: z.array(z.string()).optional(),
+  communicationStyle: z.record(z.unknown()).nullable().optional(),
+  goals: z.array(z.union([z.string(), z.record(z.unknown())])).optional(),
+  frustrations: z.array(z.union([z.string(), z.record(z.unknown())])).optional(),
+  channels: z.array(z.string()).optional(),
+  sections: z.array(z.record(z.unknown())).optional(),
+  visuals: z.record(z.unknown()).nullable().optional(),
+  avatarUrl: z.string().nullable().optional(),
+  headlineDe: z.string().nullable().optional(),
+  profileDe: z.record(z.unknown()).nullable().optional(),
+  journeyBehavior: z.record(z.unknown()).nullable().optional(),
+  headline: z.string().optional(),
+  profile: z.record(z.unknown()).optional(),
+  version: z.string().optional(),
+};
+
+function v3AiEndpointRetired(tool: string, patchHint: string) {
+  return {
+    content: [
+      {
+        type: 'text' as const,
+        text: JSON.stringify(
+          {
+            error: true,
+            code: 'use_persona_patch',
+            message:
+              `${tool} calls FastAPI /personas/:id/ai/* which is not available on audion-v3. ` +
+              `Use audion.persona_patch with ${patchHint} instead (from persona_get of the source).`,
+            hint: 'AUDION_API_URL must stay https://…/api (audion-v3). Do not switch back to FastAPI audion-api:8000.',
+          },
+          null,
+          2
+        ),
+      },
+    ],
+  };
+}
+
 
 function toTextContent(value: unknown): string {
   if (value === null || value === undefined) return '';
@@ -75,6 +137,10 @@ export function registerAudionTools(server: Server): void {
       const res = await base('/health');
       if (isAudionError(res))
         return { content: [{ type: 'text', text: JSON.stringify(res) }] };
+      // audion-v3 Next /api/health is the canonical assistant target
+      if (isAudionV3HealthPayload(res) || isAudionFastApiHealthPayload(res)) {
+        return { content: [{ type: 'text', text: toTextContent(res) }] };
+      }
       if (isAudionWebHealthPayload(res)) {
         return {
           content: [
@@ -83,9 +149,9 @@ export function registerAudionTools(server: Server): void {
               text: JSON.stringify(
                 {
                   error: true,
-                  misconfiguration: 'web_app_not_fastapi',
+                  misconfiguration: 'web_origin_without_api',
                   message: audionWebUrlMisconfigMessage(),
-                  hint: 'Coolify → audion-mcp → AUDION_API_URL=http://audion-api:8000',
+                  hint: 'Coolify → audion-mcp → AUDION_API_URL=https://audion-v3.projects-a.plygrnd.tech/api',
                   received: res,
                 },
                 null,
@@ -95,26 +161,23 @@ export function registerAudionTools(server: Server): void {
           ],
         };
       }
-      if (!isAudionFastApiHealthPayload(res)) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  warning: 'unexpected_health_shape',
-                  message:
-                    'Health response is not the FastAPI /health JSON (expected ai_provider_configured). Check AUDION_API_URL.',
-                  received: res,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
-      }
-      return { content: [{ type: 'text', text: toTextContent(res) }] };
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                warning: 'unexpected_health_shape',
+                message:
+                  'Unexpected /health JSON. Expected audion-v3 ({ ok, service: "audion-v3" }) or FastAPI. Check AUDION_API_URL ends with /api for v3.',
+                received: res,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
     }
   );
 
@@ -585,22 +648,16 @@ export function registerAudionTools(server: Server): void {
     {
       title: 'Create persona',
       description:
-        'Create a persona (POST /personas). Pass project_id or projectId (mapped to projectId for audion-v3).',
-      inputSchema: z.object({
-        project_id: z.string().optional(),
-        projectId: z.string().optional(),
-        name: z.string(),
-        role: z.string().optional(),
-        segment: z.string().optional(),
-        headline: z.string().optional(),
-        profile: z.record(z.unknown()).optional(),
-        confidence: z.number().optional(),
-        version: z.string().optional(),
-        target_group_id: z.string().optional(),
-        bio: z.string().optional(),
-        location: z.string().optional(),
-        archetype: z.string().optional(),
-      }),
+        'Create a persona (POST /personas). Pass project_id|projectId. Include deep fields from persona_get when duplicating (goals, frustrations, motivations, stressTriggers, emotionalBaseline, techLiteracy, interests, values, sections).',
+      inputSchema: z
+        .object({
+          project_id: z.string().optional(),
+          projectId: z.string().optional(),
+          target_group_id: z.string().optional(),
+          ...personaWriteFields,
+          name: z.string(),
+        })
+        .passthrough(),
     },
     async (args) => {
       const projectId = resolveProjectId(args);
@@ -637,12 +694,14 @@ export function registerAudionTools(server: Server): void {
     'audion.persona_patch',
     {
       title: 'Update persona',
-      description: 'Update a persona (PATCH /personas/:id).',
-      inputSchema: z.object({
-        persona_id: z.string(),
-        name: z.string().optional(),
-        segment: z.string().optional(),
-      }),
+      description:
+        'Update a persona (PATCH /personas/:id). Use for duplicate follow-up: goals, frustrations, motivations, stressTriggers, emotionalBaseline, techLiteracy, interests, values, sections, etc. Prefer this over persona_ai_*.',
+      inputSchema: z
+        .object({
+          persona_id: z.string(),
+          ...personaWriteFields,
+        })
+        .passthrough(),
     },
     async (args) => {
       const { persona_id } = args as {
@@ -708,103 +767,58 @@ export function registerAudionTools(server: Server): void {
     'audion.persona_ai_pain_points',
     {
       title: 'Persona AI pain points',
-      description: 'POST /personas/:id/ai/pain-points',
+      description:
+        'Retired on audion-v3. Use audion.persona_patch with frustrations copied from persona_get.',
       inputSchema: z.object({
         persona_id: z.string(),
         body: z.record(z.unknown()).optional(),
       }),
     },
-    async (args) => {
-      const { persona_id, body: b } = args as {
-        persona_id: string;
-        body?: Record<string, unknown>;
-      };
-      const res = await base(
-        `/personas/${encodeURIComponent(persona_id)}/ai/pain-points`,
-        { method: 'POST', body: JSON.stringify(b ?? {}) }
-      );
-      if (isAudionError(res))
-        return { content: [{ type: 'text', text: JSON.stringify(res) }] };
-      return { content: [{ type: 'text', text: toTextContent(res) }] };
-    }
+    async () => v3AiEndpointRetired('audion.persona_ai_pain_points', 'frustrations')
   );
 
   server.registerTool(
     'audion.persona_ai_interests',
     {
       title: 'Persona AI interests',
-      description: 'POST /personas/:id/ai/interests',
+      description:
+        'Retired on audion-v3. Use audion.persona_patch with interests copied from persona_get.',
       inputSchema: z.object({
         persona_id: z.string(),
         body: z.record(z.unknown()).optional(),
       }),
     },
-    async (args) => {
-      const { persona_id, body: b } = args as {
-        persona_id: string;
-        body?: Record<string, unknown>;
-      };
-      const res = await base(
-        `/personas/${encodeURIComponent(persona_id)}/ai/interests`,
-        { method: 'POST', body: JSON.stringify(b ?? {}) }
-      );
-      if (isAudionError(res))
-        return { content: [{ type: 'text', text: JSON.stringify(res) }] };
-      return { content: [{ type: 'text', text: toTextContent(res) }] };
-    }
+    async () => v3AiEndpointRetired('audion.persona_ai_interests', 'interests')
   );
 
   server.registerTool(
     'audion.persona_ai_values',
     {
       title: 'Persona AI values',
-      description: 'POST /personas/:id/ai/values',
+      description:
+        'Retired on audion-v3. Use audion.persona_patch with values copied from persona_get.',
       inputSchema: z.object({
         persona_id: z.string(),
         body: z.record(z.unknown()).optional(),
       }),
     },
-    async (args) => {
-      const { persona_id, body: b } = args as {
-        persona_id: string;
-        body?: Record<string, unknown>;
-      };
-      const res = await base(
-        `/personas/${encodeURIComponent(persona_id)}/ai/values`,
-        { method: 'POST', body: JSON.stringify(b ?? {}) }
-      );
-      if (isAudionError(res))
-        return { content: [{ type: 'text', text: JSON.stringify(res) }] };
-      return { content: [{ type: 'text', text: toTextContent(res) }] };
-    }
+    async () => v3AiEndpointRetired('audion.persona_ai_values', 'values')
   );
 
   server.registerTool(
     'audion.persona_ai_goals',
     {
       title: 'Persona AI goals',
-      description: 'POST /personas/:id/ai/goals',
+      description:
+        'Retired on audion-v3. Use audion.persona_patch with goals copied from persona_get.',
       inputSchema: z.object({
         persona_id: z.string(),
         body: z.record(z.unknown()).optional(),
       }),
     },
-    async (args) => {
-      const { persona_id, body: b } = args as {
-        persona_id: string;
-        body?: Record<string, unknown>;
-      };
-      const res = await base(
-        `/personas/${encodeURIComponent(persona_id)}/ai/goals`,
-        { method: 'POST', body: JSON.stringify(b ?? {}) }
-      );
-      if (isAudionError(res))
-        return { content: [{ type: 'text', text: JSON.stringify(res) }] };
-      return { content: [{ type: 'text', text: toTextContent(res) }] };
-    }
+    async () => v3AiEndpointRetired('audion.persona_ai_goals', 'goals')
   );
 
-  // --- target groups ---
   server.registerTool(
     'audion.target_groups_list',
     {

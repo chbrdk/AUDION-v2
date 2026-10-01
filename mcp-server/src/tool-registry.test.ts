@@ -62,6 +62,14 @@ test('write tools use jsonBody helpers (no raw args stringify for creates)', () 
   assert.ok(toolsSource.includes('jsonBodyString'));
 });
 
+test('persona_create/patch accept deep fields; persona_ai_* retired', () => {
+  const toolsSource = readFileSync(resolve(__dirname, 'tools.ts'), 'utf8');
+  assert.ok(toolsSource.includes('personaWriteFields'));
+  assert.ok(toolsSource.includes('.passthrough()'));
+  assert.ok(toolsSource.includes('v3AiEndpointRetired'));
+  assert.ok(toolsSource.includes("code: 'use_persona_patch'"));
+});
+
 test('has at least 75 registered tools', () => {
   assert.ok(toolNames().length >= 75);
 });

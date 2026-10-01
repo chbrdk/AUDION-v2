@@ -5,6 +5,8 @@
 export function isAudionWebHealthPayload(data: unknown): boolean {
   if (!data || typeof data !== 'object') return false;
   const d = data as Record<string, unknown>;
+  // audion-v3 Next /api/health is the assistant target — not a misconfiguration
+  if (d.service === 'audion-v3') return false;
   return (
     d.service === 'web' ||
     d.runtime === 'nextjs' ||
@@ -22,10 +24,19 @@ export function isAudionFastApiHealthPayload(data: unknown): boolean {
 
 export function audionWebUrlMisconfigMessage(): string {
   return (
-    'AUDION_API_URL points to the AUDION **web app** (Next.js), not the FastAPI API. ' +
-    'MCP calls like POST /target-groups then fail (redirect/HTML/500). ' +
-    'Fix on the audion-mcp container: AUDION_API_URL=http://audion-api:8000 (internal service name, no /api suffix).'
+    'AUDION_API_URL returned HTML/login instead of JSON. ' +
+    'For the Plexon assistant, point audion-mcp at audion-v3 Next: ' +
+    'AUDION_API_URL=https://audion-v3.projects-a.plygrnd.tech/api ' +
+    '(same token + PLEXON_SERVICE_SECRET as plexon-v3). ' +
+    'Do not use FastAPI http://audion-api:8000 for persona list/create/patch.'
   );
+}
+
+/** audion-v3 /api/health is a valid assistant target (not a misconfiguration). */
+export function isAudionV3HealthPayload(data: unknown): boolean {
+  if (!data || typeof data !== 'object') return false;
+  const d = data as Record<string, unknown>;
+  return d.service === 'audion-v3' || (d.ok === true && d.service === 'audion-v3');
 }
 
 export function isHtmlOrLoginBody(contentType: string | null, body: string): boolean {

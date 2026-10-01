@@ -4,6 +4,7 @@ import {
   audionWebUrlMisconfigMessage,
   formatFastApiErrorDetail,
   isAudionFastApiHealthPayload,
+  isAudionV3HealthPayload,
   isAudionWebHealthPayload,
   isHtmlOrLoginBody,
 } from './audion-api-detect.js';
@@ -14,6 +15,14 @@ test('detects Next.js web health payload', () => {
     true
   );
   assert.equal(isAudionFastApiHealthPayload({ status: 'ok', service: 'web' }), false);
+});
+
+test('detects audion-v3 health as valid assistant target', () => {
+  assert.equal(
+    isAudionV3HealthPayload({ ok: true, service: 'audion-v3', login: '/login' }),
+    true
+  );
+  assert.equal(isAudionWebHealthPayload({ ok: true, service: 'audion-v3' }), false);
 });
 
 test('detects FastAPI health payload', () => {
@@ -28,18 +37,17 @@ test('formats validation detail arrays', () => {
   const msg = formatFastApiErrorDetail([
     { loc: ['body', 'segment'], msg: 'Field required' },
   ]);
-  assert.ok(msg?.includes('segment'));
-  assert.ok(msg?.includes('Field required'));
+  assert.ok(msg && msg.includes('segment') && msg.includes('Field required'));
 });
 
 test('detects html login bodies', () => {
-  assert.equal(isHtmlOrLoginBody('text/html', '<!DOCTYPE html><html>'), true);
-  assert.equal(
-    isHtmlOrLoginBody('application/json', '{"detail":"x"}'),
-    false
-  );
+  assert.equal(isHtmlOrLoginBody('text/html', '<html>'), true);
+  assert.equal(isHtmlOrLoginBody('application/json', '{"ok":true}'), false);
 });
 
-test('misconfig message mentions internal API URL', () => {
-  assert.ok(audionWebUrlMisconfigMessage().includes('audion-api:8000'));
+test('misconfig message points at audion-v3 /api not FastAPI', () => {
+  const msg = audionWebUrlMisconfigMessage();
+  assert.ok(msg.includes('audion-v3'));
+  assert.ok(msg.includes('/api'));
+  assert.ok(msg.toLowerCase().includes('do not use fastapi'));
 });
