@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { audionFetchBinary } from './binary-fetch.js';
 import { isAudionError, type AudionFetchError } from './audion-client.js';
+import { jsonBodyString } from './mcp-json-body.js';
 
 type ToolServer = {
   registerTool: (
@@ -42,7 +43,7 @@ export function registerUxJourneyTools(server: ToolServer, base: AudionBase): vo
       const { body } = args as { body: Record<string, unknown> };
       const res = await base('/ux-journey-agent/run', {
         method: 'POST',
-        body: JSON.stringify(body),
+        body: jsonBodyString(body, { projectIdMode: 'both' }),
       });
       if (isAudionError(res)) return textResult(res);
       return textResult(res);
@@ -190,7 +191,7 @@ export function registerUxJourneyTools(server: ToolServer, base: AudionBase): vo
       const { persona_id, body } = args as { persona_id: string; body: Record<string, unknown> };
       const res = await base(
         `/api/persona-admin/${encodeURIComponent(persona_id)}/ux-journey-runs`,
-        { method: 'POST', body: JSON.stringify(body) }
+        { method: 'POST', body: jsonBodyString(body, { projectIdMode: 'both' }) }
       );
       if (isAudionError(res)) return textResult(res);
       return textResult(res);
@@ -216,7 +217,7 @@ export function registerUxJourneyTools(server: ToolServer, base: AudionBase): vo
       };
       const res = await base(
         `/api/persona-admin/${encodeURIComponent(persona_id)}/ux-journey-runs/${encodeURIComponent(run_id)}/convert`,
-        { method: 'POST', body: JSON.stringify(body ?? {}) }
+        { method: 'POST', body: jsonBodyString(body ?? {}, { projectIdMode: 'both' }) }
       );
       if (isAudionError(res)) return textResult(res);
       return textResult(res);

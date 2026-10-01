@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { chatFetch, isChatApiConfigured, isChatFetchError } from './chat-client.js';
+import { jsonBodyString } from './mcp-json-body.js';
 
 type ToolServer = {
   registerTool: (
@@ -85,10 +86,9 @@ export function registerChatTools(server: ToolServer): void {
       }),
     },
     async (args) => {
-      const body = args as Record<string, unknown>;
       const res = await chatFetch('/chat/message', {
         method: 'POST',
-        body: JSON.stringify(body),
+        body: jsonBodyString(args, { projectIdMode: 'none' }),
       });
       if (isChatFetchError(res)) return textResult(res);
       return textResult(res);
@@ -109,7 +109,7 @@ export function registerChatTools(server: ToolServer): void {
       const { call_id, body } = args as { call_id: string; body: Record<string, unknown> };
       const res = await chatFetch(`/chat/tool-call/decision/${encodeURIComponent(call_id)}`, {
         method: 'POST',
-        body: JSON.stringify(body),
+        body: jsonBodyString(body, { projectIdMode: 'both' }),
       });
       if (isChatFetchError(res)) return textResult(res);
       return textResult(res ?? { success: true });
@@ -132,7 +132,7 @@ export function registerChatTools(server: ToolServer): void {
     async (args) => {
       const res = await chatFetch('/chat/history/conversations/upsert', {
         method: 'POST',
-        body: JSON.stringify(args),
+        body: jsonBodyString(args, { projectIdMode: 'none' }),
       });
       if (isChatFetchError(res)) return textResult(res);
       return textResult(res);
@@ -155,7 +155,7 @@ export function registerChatTools(server: ToolServer): void {
       }),
     },
     async (args) => {
-      const { conversation_id, ...body } = args as {
+      const { conversation_id } = args as {
         conversation_id: string;
         role: string;
         content: string;
@@ -166,7 +166,10 @@ export function registerChatTools(server: ToolServer): void {
       };
       const res = await chatFetch(
         `/chat/history/conversations/${encodeURIComponent(conversation_id)}/messages`,
-        { method: 'POST', body: JSON.stringify(body) }
+        {
+          method: 'POST',
+          body: jsonBodyString(args, { omit: ['conversation_id'], projectIdMode: 'none' }),
+        }
       );
       if (isChatFetchError(res)) return textResult(res);
       return textResult(res);

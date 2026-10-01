@@ -11,6 +11,7 @@ import {
 import { registerUxJourneyTools } from './tools-ux-journey.js';
 import { registerUxStudyTools } from './tools-ux-studies.js';
 import { registerChatTools } from './tools-chat.js';
+import { jsonBodyFromToolArgs, jsonBodyString, resolveProjectId } from './mcp-json-body.js';
 
 function toTextContent(value: unknown): string {
   if (value === null || value === undefined) return '';
@@ -147,10 +148,9 @@ export function registerAudionTools(server: Server): void {
       }),
     },
     async (args) => {
-      const body = args as Record<string, unknown>;
       const res = await base('/auth/me', {
         method: 'PATCH',
-        body: JSON.stringify(body),
+        body: jsonBodyString(args),
       });
       if (isAudionError(res))
         return { content: [{ type: 'text', text: JSON.stringify(res) }] };
@@ -183,10 +183,9 @@ export function registerAudionTools(server: Server): void {
       }),
     },
     async (args) => {
-      const body = args as { name?: string };
       const res = await base('/auth/tokens', {
         method: 'POST',
-        body: JSON.stringify(body ?? {}),
+        body: jsonBodyString(args),
       });
       if (isAudionError(res))
         return { content: [{ type: 'text', text: JSON.stringify(res) }] };
@@ -258,10 +257,9 @@ export function registerAudionTools(server: Server): void {
       }),
     },
     async (args) => {
-      const body = args as { name: string };
       const res = await base('/projects', {
         method: 'POST',
-        body: JSON.stringify(body),
+        body: jsonBodyString(args),
       });
       if (isAudionError(res))
         return { content: [{ type: 'text', text: JSON.stringify(res) }] };
@@ -304,10 +302,10 @@ export function registerAudionTools(server: Server): void {
       }),
     },
     async (args) => {
-      const { project_id, ...rest } = args as { project_id: string; name?: string };
+      const { project_id } = args as { project_id: string; name?: string };
       const res = await base(`/projects/${encodeURIComponent(project_id)}`, {
         method: 'PATCH',
-        body: JSON.stringify(rest),
+        body: jsonBodyString(args, { omit: ['project_id', 'projectId'] }),
       });
       if (isAudionError(res))
         return { content: [{ type: 'text', text: JSON.stringify(res) }] };
@@ -328,7 +326,7 @@ export function registerAudionTools(server: Server): void {
       }),
     },
     async (args) => {
-      const { project_id, ...body } = args as {
+      const { project_id } = args as {
         project_id: string;
         user_id?: string;
         email?: string;
@@ -336,7 +334,7 @@ export function registerAudionTools(server: Server): void {
       };
       const res = await base(
         `/projects/${encodeURIComponent(project_id)}/members`,
-        { method: 'POST', body: JSON.stringify(body) }
+        { method: 'POST', body: jsonBodyString(args, { omit: ['project_id', 'projectId'] }) }
       );
       if (isAudionError(res))
         return { content: [{ type: 'text', text: JSON.stringify(res) }] };
@@ -505,10 +503,9 @@ export function registerAudionTools(server: Server): void {
       }),
     },
     async (args) => {
-      const body = args as Record<string, unknown>;
       const res = await base('/projects/bootstrap', {
         method: 'POST',
-        body: JSON.stringify(body),
+        body: jsonBodyString(args),
       });
       if (isAudionError(res))
         return { content: [{ type: 'text', text: JSON.stringify(res) }] };
@@ -606,11 +603,7 @@ export function registerAudionTools(server: Server): void {
       }),
     },
     async (args) => {
-      const a = (args ?? {}) as Record<string, unknown>;
-      const projectId =
-        (typeof a.projectId === 'string' && a.projectId.trim()) ||
-        (typeof a.project_id === 'string' && a.project_id.trim()) ||
-        '';
+      const projectId = resolveProjectId(args);
       if (!projectId) {
         return {
           content: [
@@ -624,25 +617,12 @@ export function registerAudionTools(server: Server): void {
           ],
         };
       }
-      const role =
-        (typeof a.role === 'string' && a.role.trim()) ||
-        (typeof a.segment === 'string' && a.segment.trim()) ||
-        'Persona';
-      // audion-v3 PersonaWritePayload — never forward MCP actorUserId or snake project_id as-is
-      const {
-        project_id: _pidSnake,
-        projectId: _pidCamel,
-        actorUserId: _actor,
-        target_group_id: _tg,
-        segment: _segment,
-        ...rest
-      } = a;
-      const body: Record<string, unknown> = {
-        ...rest,
-        projectId,
-        name: typeof a.name === 'string' ? a.name : '',
-        role,
-      };
+      const body = jsonBodyFromToolArgs(args, {
+        omit: ['target_group_id'],
+        projectIdMode: 'projectId',
+        mapSegmentToRole: true,
+      });
+      if (!body.role) body.role = 'Persona';
       const res = await base('/personas', {
         method: 'POST',
         body: JSON.stringify(body),
@@ -665,14 +645,18 @@ export function registerAudionTools(server: Server): void {
       }),
     },
     async (args) => {
-      const { persona_id, ...rest } = args as {
+      const { persona_id } = args as {
         persona_id: string;
         name?: string;
         segment?: string;
       };
       const res = await base(`/personas/${encodeURIComponent(persona_id)}`, {
         method: 'PATCH',
-        body: JSON.stringify(rest),
+        body: jsonBodyString(args, {
+          omit: ['persona_id'],
+          projectIdMode: 'projectId',
+          mapSegmentToRole: true,
+        }),
       });
       if (isAudionError(res))
         return { content: [{ type: 'text', text: JSON.stringify(res) }] };
@@ -710,10 +694,9 @@ export function registerAudionTools(server: Server): void {
       }),
     },
     async (args) => {
-      const body = args as Record<string, unknown>;
       const res = await base('/personas/generate', {
         method: 'POST',
-        body: JSON.stringify(body),
+        body: jsonBodyString(args, { projectIdMode: 'both' }),
       });
       if (isAudionError(res))
         return { content: [{ type: 'text', text: JSON.stringify(res) }] };
@@ -872,10 +855,9 @@ export function registerAudionTools(server: Server): void {
       }),
     },
     async (args) => {
-      const body = args as Record<string, unknown>;
       const res = await base('/target-groups', {
         method: 'POST',
-        body: JSON.stringify(body),
+        body: jsonBodyString(args, { projectIdMode: 'both' }),
       });
       if (isAudionError(res))
         return { content: [{ type: 'text', text: JSON.stringify(res) }] };
@@ -896,7 +878,7 @@ export function registerAudionTools(server: Server): void {
       }),
     },
     async (args) => {
-      const { target_group_id, ...rest } = args as {
+      const { target_group_id } = args as {
         target_group_id: string;
         name?: string;
         description?: string;
@@ -904,7 +886,10 @@ export function registerAudionTools(server: Server): void {
       };
       const res = await base(
         `/target-groups/${encodeURIComponent(target_group_id)}`,
-        { method: 'PATCH', body: JSON.stringify(rest) }
+        {
+          method: 'PATCH',
+          body: jsonBodyString(args, { omit: ['target_group_id'], projectIdMode: 'none' }),
+        }
       );
       if (isAudionError(res))
         return { content: [{ type: 'text', text: JSON.stringify(res) }] };
@@ -998,7 +983,7 @@ export function registerAudionTools(server: Server): void {
       }),
     },
     async (args) => {
-      const { target_group_id, ...body } = args as {
+      const { target_group_id } = args as {
         target_group_id: string;
         title: string;
         content: string;
@@ -1006,7 +991,10 @@ export function registerAudionTools(server: Server): void {
       };
       const res = await base(
         `/target-groups/${encodeURIComponent(target_group_id)}/knowledge`,
-        { method: 'POST', body: JSON.stringify(body) }
+        {
+          method: 'POST',
+          body: jsonBodyString(args, { omit: ['target_group_id'], projectIdMode: 'none' }),
+        }
       );
       if (isAudionError(res))
         return { content: [{ type: 'text', text: JSON.stringify(res) }] };
@@ -1112,7 +1100,7 @@ export function registerAudionTools(server: Server): void {
       }),
     },
     async (args) => {
-      const { target_group_id, ...body } = args as {
+      const { target_group_id } = args as {
         target_group_id: string;
         segment: string;
         description?: string;
@@ -1126,7 +1114,7 @@ export function registerAudionTools(server: Server): void {
         `/target-groups/${encodeURIComponent(target_group_id)}/personas/generate`,
         {
           method: 'POST',
-          body: JSON.stringify(body),
+          body: jsonBodyString(args, { omit: ['target_group_id'], projectIdMode: 'none' }),
         }
       );
       if (isAudionError(res))
@@ -1151,7 +1139,10 @@ export function registerAudionTools(server: Server): void {
         target_group_id: string;
         body?: Record<string, unknown>;
       };
-      const payload = { target_group_id, ...(b ?? {}) };
+      const payload = jsonBodyFromToolArgs(
+        { target_group_id, ...(b ?? {}) },
+        { projectIdMode: 'both' }
+      );
       const res = await base('/journeys/generate', {
         method: 'POST',
         body: JSON.stringify(payload),
@@ -1224,7 +1215,10 @@ export function registerAudionTools(server: Server): void {
       };
       const res = await base(
         `/journeys/${encodeURIComponent(journey_id)}`,
-        { method: 'PUT', body: JSON.stringify(body) }
+        {
+          method: 'PUT',
+          body: jsonBodyString(body, { projectIdMode: 'both' }),
+        }
       );
       if (isAudionError(res))
         return { content: [{ type: 'text', text: JSON.stringify(res) }] };
@@ -1268,7 +1262,7 @@ export function registerAudionTools(server: Server): void {
       };
       const res = await base(
         `/journeys/${encodeURIComponent(journey_id)}/phases`,
-        { method: 'POST', body: JSON.stringify(body) }
+        { method: 'POST', body: jsonBodyString(body, { projectIdMode: 'none' }) }
       );
       if (isAudionError(res))
         return { content: [{ type: 'text', text: JSON.stringify(res) }] };
@@ -1403,15 +1397,14 @@ export function registerAudionTools(server: Server): void {
       }),
     },
     async (args) => {
-      const { project_id, ...body } = args as {
-        project_id?: string;
-        template_id: string;
-        context: Record<string, unknown>;
-      };
+      const project_id = resolveProjectId(args);
       const q = project_id ? `?project_id=${encodeURIComponent(project_id)}` : '';
       const res = await base(`/ai-assist${q}`, {
         method: 'POST',
-        body: JSON.stringify(body),
+        body: jsonBodyString(args, {
+          omit: ['project_id', 'projectId'],
+          projectIdMode: 'none',
+        }),
       });
       if (isAudionError(res))
         return { content: [{ type: 'text', text: JSON.stringify(res) }] };
@@ -1432,7 +1425,7 @@ export function registerAudionTools(server: Server): void {
       const { body } = args as { body: Record<string, unknown> };
       const res = await base('/ai-assist/test', {
         method: 'POST',
-        body: JSON.stringify(body),
+        body: jsonBodyString(body, { projectIdMode: 'both' }),
       });
       if (isAudionError(res))
         return { content: [{ type: 'text', text: JSON.stringify(res) }] };

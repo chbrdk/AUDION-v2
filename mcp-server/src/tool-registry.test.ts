@@ -47,15 +47,19 @@ test('does not call deprecated ai-assist path', () => {
 
 test('persona_create maps project_id to projectId for audion-v3', () => {
   const toolsSource = readFileSync(resolve(__dirname, 'tools.ts'), 'utf8');
+  assert.ok(toolsSource.includes("from './mcp-json-body.js'"));
   const createIdx = toolsSource.indexOf("'audion.persona_create'");
   assert.ok(createIdx > 0);
-  const slice = toolsSource.slice(createIdx, createIdx + 2800);
-  assert.ok(slice.includes("projectId,"));
-  assert.ok(slice.includes('actorUserId: _actor') || slice.includes('actorUserId:'));
-  assert.ok(
-    !slice.includes('const body = args as Record'),
-    'must not forward raw MCP args (would send project_id + actorUserId)'
-  );
+  const slice = toolsSource.slice(createIdx, createIdx + 1800);
+  assert.ok(slice.includes('jsonBodyFromToolArgs') || slice.includes('resolveProjectId'));
+  assert.ok(slice.includes("projectIdMode: 'projectId'"));
+});
+
+test('write tools use jsonBody helpers (no raw args stringify for creates)', () => {
+  const toolsSource = readFileSync(resolve(__dirname, 'tools.ts'), 'utf8');
+  assert.equal(toolsSource.includes("body: JSON.stringify(args)"), false);
+  assert.equal(toolsSource.includes('const body = args as Record'), false);
+  assert.ok(toolsSource.includes('jsonBodyString'));
 });
 
 test('has at least 75 registered tools', () => {

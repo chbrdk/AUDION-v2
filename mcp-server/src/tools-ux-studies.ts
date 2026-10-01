@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { type AudionFetchError } from './audion-client.js';
+import { jsonBodyString } from './mcp-json-body.js';
 
 type ToolServer = {
   registerTool: (
@@ -86,7 +87,7 @@ export function registerUxStudyTools(server: ToolServer, base: AudionBase): void
     async (args) => {
       const res = await base('/ux-studies', {
         method: 'POST',
-        body: JSON.stringify(args),
+        body: jsonBodyString(args, { projectIdMode: 'both' }),
       });
       return textResult(res);
     }
@@ -113,7 +114,7 @@ export function registerUxStudyTools(server: ToolServer, base: AudionBase): void
       };
       const res = await base(`/ux-studies/${encodeURIComponent(study_id)}/waves`, {
         method: 'POST',
-        body: JSON.stringify(body),
+        body: jsonBodyString(args, { omit: ['study_id'], projectIdMode: 'none' }),
       });
       return textResult(res);
     }
